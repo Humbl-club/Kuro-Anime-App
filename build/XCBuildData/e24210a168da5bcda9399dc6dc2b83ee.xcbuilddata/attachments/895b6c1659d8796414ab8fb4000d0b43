@@ -1,0 +1,4 @@
+module FirebaseCoreExtension {
+umbrella "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Extension"
+export *
+}

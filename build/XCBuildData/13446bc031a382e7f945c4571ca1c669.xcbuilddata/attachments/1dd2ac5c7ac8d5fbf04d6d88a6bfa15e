@@ -1,0 +1,4 @@
+module FirebaseCore {
+umbrella header "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Sources/Public/FirebaseCore/FirebaseCore.h"
+export *
+}

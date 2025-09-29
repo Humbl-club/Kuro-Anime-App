@@ -1,0 +1,59 @@
+{
+  "" : {
+    "diagnostics" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/Kuro-primary.dia",
+    "emit-module-dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/Kuro-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/Kuro-primary-emit-module.dia",
+    "pch" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/Kuro-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/Kuro-primary.swiftdeps"
+  },
+  "/Users/MaxDeveloper/Kubo anime app /Kuro/Kuro/ContentView.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/ContentView.d",
+    "diagnostics" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/ContentView.dia",
+    "index-unit-output-path" : "/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/ContentView.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/ContentView.bc",
+    "object" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/ContentView.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/ContentView~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Kubo anime app /Kuro/Kuro/KuroApp.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/KuroApp.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/KuroApp.d",
+    "diagnostics" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/KuroApp.dia",
+    "index-unit-output-path" : "/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/KuroApp.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/KuroApp.bc",
+    "object" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/KuroApp.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/KuroApp.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/KuroApp~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Kubo anime app /Kuro/Kuro/Models/MediaModels.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/MediaModels.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/MediaModels.d",
+    "diagnostics" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/MediaModels.dia",
+    "index-unit-output-path" : "/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/MediaModels.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/MediaModels.bc",
+    "object" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/MediaModels.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/MediaModels.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/MediaModels~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Kubo anime app /Kuro/Kuro/Services/FirebaseService.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/FirebaseService.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/FirebaseService.d",
+    "diagnostics" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/FirebaseService.dia",
+    "index-unit-output-path" : "/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/FirebaseService.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/FirebaseService.bc",
+    "object" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/FirebaseService.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/FirebaseService.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/FirebaseService~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Kubo anime app /Kuro/build/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/x86_64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

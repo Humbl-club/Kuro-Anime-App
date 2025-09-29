@@ -1,0 +1,4 @@
+module grpcWrapper {
+umbrella "/Users/MaxDeveloper/Library/Developer/Xcode/DerivedData/Kuro-fwrkcuwqiwnzaqbgsfsigrbkxfxm/SourcePackages/checkouts/grpc-binary/grpc-Wrapper/include"
+export *
+}

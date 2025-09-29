@@ -1,0 +1,59 @@
+{
+  "" : {
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/FirebaseDatabase-primary.dia",
+    "emit-module-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/FirebaseDatabase-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/FirebaseDatabase-primary-emit-module.dia",
+    "pch" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/FirebaseDatabase-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/FirebaseDatabase-primary.swiftdeps"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseDatabase/Swift/Sources/Codable/DataSnapshot+ReadDecodable.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DataSnapshot+ReadDecodable.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DataSnapshot+ReadDecodable.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DataSnapshot+ReadDecodable.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DataSnapshot+ReadDecodable.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DataSnapshot+ReadDecodable.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DataSnapshot+ReadDecodable.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DataSnapshot+ReadDecodable.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DataSnapshot+ReadDecodable~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseDatabase/Swift/Sources/Codable/DatabaseReference+WriteEncodable.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DatabaseReference+WriteEncodable.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DatabaseReference+WriteEncodable.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DatabaseReference+WriteEncodable.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DatabaseReference+WriteEncodable.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DatabaseReference+WriteEncodable.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DatabaseReference+WriteEncodable.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DatabaseReference+WriteEncodable.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/DatabaseReference+WriteEncodable~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseDatabase/Swift/Sources/Codable/EncoderDecoder.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/EncoderDecoder.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/EncoderDecoder.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/EncoderDecoder.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/EncoderDecoder.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/EncoderDecoder.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/EncoderDecoder.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/EncoderDecoder.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/EncoderDecoder~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseDatabase/Swift/Sources/Codable/ServerTimestamp.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/ServerTimestamp.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/ServerTimestamp.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/ServerTimestamp.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/ServerTimestamp.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/ServerTimestamp.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/ServerTimestamp.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/ServerTimestamp.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/ServerTimestamp~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseDatabase/Swift/Sources/SPMSwiftHeaderWorkaround.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/SPMSwiftHeaderWorkaround.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/SPMSwiftHeaderWorkaround.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/SPMSwiftHeaderWorkaround.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/SPMSwiftHeaderWorkaround.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/SPMSwiftHeaderWorkaround.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/SPMSwiftHeaderWorkaround.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/SPMSwiftHeaderWorkaround.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseDatabase.build/Objects-normal/x86_64/SPMSwiftHeaderWorkaround~partial.swiftmodule"
+  }
+}

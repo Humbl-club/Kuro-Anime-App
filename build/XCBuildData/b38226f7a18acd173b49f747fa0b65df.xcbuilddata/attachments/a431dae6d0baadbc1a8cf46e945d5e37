@@ -1,0 +1,4 @@
+module FirebaseFirestoreTarget {
+umbrella "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/SwiftPM-PlatformExclude/FirebaseFirestoreWrap/include"
+export *
+}

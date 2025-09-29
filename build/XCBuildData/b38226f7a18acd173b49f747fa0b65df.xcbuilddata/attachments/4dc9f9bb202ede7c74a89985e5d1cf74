@@ -1,0 +1,14 @@
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseCoreInternal.build/DerivedSources/resource_bundle_accessor.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/Heartbeat.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/HeartbeatController.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/HeartbeatLoggingTestUtils.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/HeartbeatStorage.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/HeartbeatsBundle.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/HeartbeatsPayload.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/RingBuffer.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/Storage.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/StorageFactory.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/WeakContainer.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/_ObjC_HeartbeatController.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/HeartbeatLogging/_ObjC_HeartbeatsPayload.swift
+/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseCore/Internal/Sources/Utilities/UnfairLock.swift

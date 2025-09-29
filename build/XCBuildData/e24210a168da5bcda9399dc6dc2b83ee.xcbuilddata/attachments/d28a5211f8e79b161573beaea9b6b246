@@ -1,0 +1,4 @@
+module FirebaseAuthInterop {
+umbrella "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseAuth/Interop/Public"
+export *
+}

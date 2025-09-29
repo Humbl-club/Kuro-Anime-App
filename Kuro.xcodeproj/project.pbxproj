@@ -6,6 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		953474B62E8AAEE7004F4AA2 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 953474B52E8AAEE7004F4AA2 /* GoogleService-Info.plist */; };
+		953474B92E8ABF52004F4AA2 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 953474B82E8ABF52004F4AA2 /* FirebaseAuth */; };
+		953474BB2E8ABF52004F4AA2 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 953474BA2E8ABF52004F4AA2 /* FirebaseCore */; };
+		953474BF2E8ABF52004F4AA2 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 953474BE2E8ABF52004F4AA2 /* FirebaseFirestore */; };
+		95F78A882E8ACCC300F10CF9 /* GoogleService-Info 2.plist in Resources */ = {isa = PBXBuildFile; fileRef = 95F78A872E8ACCC300F10CF9 /* GoogleService-Info 2.plist */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		953474932E8AA6D6004F4AA2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +35,8 @@
 		953474852E8AA6D5004F4AA2 /* Kuro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kuro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		953474922E8AA6D6004F4AA2 /* KuroTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KuroTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9534749C2E8AA6D6004F4AA2 /* KuroUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KuroUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		953474B52E8AAEE7004F4AA2 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		95F78A872E8ACCC300F10CF9 /* GoogleService-Info 2.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info 2.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +62,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				953474BF2E8ABF52004F4AA2 /* FirebaseFirestore in Frameworks */,
+				953474BB2E8ABF52004F4AA2 /* FirebaseCore in Frameworks */,
+				953474B92E8ABF52004F4AA2 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,6 +88,8 @@
 		9534747C2E8AA6D5004F4AA2 = {
 			isa = PBXGroup;
 			children = (
+				953474B52E8AAEE7004F4AA2 /* GoogleService-Info.plist */,
+				95F78A872E8ACCC300F10CF9 /* GoogleService-Info 2.plist */,
 				953474872E8AA6D5004F4AA2 /* Kuro */,
 				953474952E8AA6D6004F4AA2 /* KuroTests */,
 				9534749F2E8AA6D6004F4AA2 /* KuroUITests */,
@@ -112,6 +127,9 @@
 			);
 			name = Kuro;
 			packageProductDependencies = (
+				953474B82E8ABF52004F4AA2 /* FirebaseAuth */,
+				953474BA2E8ABF52004F4AA2 /* FirebaseCore */,
+				953474BE2E8ABF52004F4AA2 /* FirebaseFirestore */,
 			);
 			productName = Kuro;
 			productReference = 953474852E8AA6D5004F4AA2 /* Kuro.app */;
@@ -195,6 +213,9 @@
 			);
 			mainGroup = 9534747C2E8AA6D5004F4AA2;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				953474B72E8ABF52004F4AA2 /* XCLocalSwiftPackageReference "../../Downloads/firebase-ios-sdk-main" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 953474862E8AA6D5004F4AA2 /* Products */;
 			projectDirPath = "";
@@ -212,6 +233,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				95F78A882E8ACCC300F10CF9 /* GoogleService-Info 2.plist in Resources */,
+				953474B62E8AAEE7004F4AA2 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -615,6 +638,28 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		953474B72E8ABF52004F4AA2 /* XCLocalSwiftPackageReference "../../Downloads/firebase-ios-sdk-main" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../Downloads/firebase-ios-sdk-main";
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		953474B82E8ABF52004F4AA2 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FirebaseAuth;
+		};
+		953474BA2E8ABF52004F4AA2 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FirebaseCore;
+		};
+		953474BE2E8ABF52004F4AA2 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9534747D2E8AA6D5004F4AA2 /* Project object */;
 }

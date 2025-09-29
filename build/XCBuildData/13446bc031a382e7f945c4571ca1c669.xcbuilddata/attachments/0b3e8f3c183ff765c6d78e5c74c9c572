@@ -1,0 +1,4 @@
+module GoogleUtilities_Network {
+umbrella "/Users/MaxDeveloper/Library/Developer/Xcode/DerivedData/Kuro-fwrkcuwqiwnzaqbgsfsigrbkxfxm/SourcePackages/checkouts/GoogleUtilities/GoogleUtilities/Network/Public"
+export *
+}

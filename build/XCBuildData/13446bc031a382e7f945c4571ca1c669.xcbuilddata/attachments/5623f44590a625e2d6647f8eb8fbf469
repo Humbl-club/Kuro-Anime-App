@@ -1,0 +1,249 @@
+{
+  "" : {
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/FirebaseStorage-primary.dia",
+    "emit-module-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/FirebaseStorage-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/FirebaseStorage-primary-emit-module.dia",
+    "pch" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/FirebaseStorage-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/FirebaseStorage-primary.swiftdeps"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/AsyncAwait.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/AsyncAwait.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/AsyncAwait.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/AsyncAwait.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/AsyncAwait.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/AsyncAwait.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/AsyncAwait.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/AsyncAwait.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/AsyncAwait~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StorageDeleteTask.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDeleteTask.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDeleteTask.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDeleteTask.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDeleteTask.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDeleteTask.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDeleteTask.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDeleteTask.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDeleteTask~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StorageFetcherService.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageFetcherService.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageFetcherService.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageFetcherService.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageFetcherService.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageFetcherService.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageFetcherService.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageFetcherService.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageFetcherService~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StorageGetDownloadURLTask.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetDownloadURLTask.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetDownloadURLTask.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetDownloadURLTask.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetDownloadURLTask.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetDownloadURLTask.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetDownloadURLTask.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetDownloadURLTask.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetDownloadURLTask~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StorageGetMetadataTask.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetMetadataTask.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetMetadataTask.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetMetadataTask.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetMetadataTask.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetMetadataTask.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetMetadataTask.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetMetadataTask.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageGetMetadataTask~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StorageInternalTask.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageInternalTask.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageInternalTask.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageInternalTask.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageInternalTask.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageInternalTask.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageInternalTask.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageInternalTask.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageInternalTask~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StorageListTask.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListTask.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListTask.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListTask.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListTask.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListTask.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListTask.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListTask.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListTask~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StoragePath.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StoragePath.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StoragePath.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StoragePath.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StoragePath.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StoragePath.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StoragePath.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StoragePath.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StoragePath~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StorageTaskState.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskState.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskState.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskState.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskState.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskState.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskState.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskState.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskState~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StorageTokenAuthorizer.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTokenAuthorizer.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTokenAuthorizer.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTokenAuthorizer.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTokenAuthorizer.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTokenAuthorizer.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTokenAuthorizer.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTokenAuthorizer.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTokenAuthorizer~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StorageUpdateMetadataTask.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUpdateMetadataTask.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUpdateMetadataTask.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUpdateMetadataTask.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUpdateMetadataTask.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUpdateMetadataTask.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUpdateMetadataTask.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUpdateMetadataTask.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUpdateMetadataTask~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Internal/StorageUtils.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUtils.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUtils.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUtils.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUtils.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUtils.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUtils.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUtils.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUtils~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Result.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Result.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Result.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Result.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Result.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Result.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Result.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Result.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Result~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/Storage.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Storage.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Storage.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Storage.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Storage.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Storage.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Storage.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Storage.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/Storage~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/StorageConstants.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageConstants.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageConstants.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageConstants.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageConstants.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageConstants.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageConstants.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageConstants.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageConstants~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/StorageDownloadTask.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDownloadTask.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDownloadTask.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDownloadTask.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDownloadTask.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDownloadTask.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDownloadTask.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDownloadTask.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageDownloadTask~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/StorageError.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageError.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageError.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageError.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageError.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageError.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageError.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageError.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageError~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/StorageListResult.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListResult.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListResult.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListResult.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListResult.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListResult.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListResult.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListResult.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageListResult~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/StorageMetadata.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageMetadata.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageMetadata.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageMetadata.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageMetadata.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageMetadata.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageMetadata.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageMetadata.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageMetadata~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/StorageObservableTask.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageObservableTask.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageObservableTask.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageObservableTask.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageObservableTask.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageObservableTask.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageObservableTask.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageObservableTask.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageObservableTask~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/StorageReference.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageReference.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageReference.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageReference.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageReference.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageReference.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageReference.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageReference.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageReference~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/StorageTask.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTask.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTask.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTask.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTask.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTask.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTask.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTask.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTask~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/StorageTaskSnapshot.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskSnapshot.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskSnapshot.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskSnapshot.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskSnapshot.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskSnapshot.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskSnapshot.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskSnapshot.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageTaskSnapshot~partial.swiftmodule"
+  },
+  "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseStorage/Sources/StorageUploadTask.swift" : {
+    "const-values" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUploadTask.swiftconstvalues",
+    "dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUploadTask.d",
+    "diagnostics" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUploadTask.dia",
+    "index-unit-output-path" : "/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUploadTask.o",
+    "llvm-bc" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUploadTask.bc",
+    "object" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUploadTask.o",
+    "swift-dependencies" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUploadTask.swiftdeps",
+    "swiftmodule" : "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/build/Firebase.build/Debug-iphonesimulator/FirebaseStorage.build/Objects-normal/x86_64/StorageUploadTask~partial.swiftmodule"
+  }
+}

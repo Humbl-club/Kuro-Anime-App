@@ -1,0 +1,4 @@
+module FirebaseMessagingInterop {
+umbrella "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseMessaging/Interop"
+export *
+}

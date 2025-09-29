@@ -1,0 +1,112 @@
+{
+  "source": "/Users/MaxDeveloper/Kubo anime app /Kuro/Kuro/ContentView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "KURO",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 44
+        }
+      },
+      {
+        "comment": "",
+        "key": "CURATED ANIME",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 50
+        }
+      },
+      {
+        "comment": "",
+        "key": "KURO",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 152
+        }
+      },
+      {
+        "comment": "",
+        "key": "M",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 173
+        }
+      },
+      {
+        "comment": "",
+        "key": "SEARCH ANIME",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 289
+        }
+      },
+      {
+        "comment": "",
+        "key": "BEGIN TYPING TO SEARCH",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 332
+        }
+      },
+      {
+        "comment": "",
+        "key": "DISCOVER YOUR NEXT OBSESSION",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 337
+        }
+      },
+      {
+        "comment": "",
+        "key": "IMAGE",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 388
+        }
+      },
+      {
+        "comment": "",
+        "key": "IMG",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 426
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ · %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 438
+        }
+      },
+      {
+        "comment": "",
+        "key": "IMG",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 499
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ · %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 511
+        }
+      },
+      {
+        "comment": "",
+        "key": "12 EPS",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 516
+        }
+      }
+    ]
+  },
+  "version": 1
+}

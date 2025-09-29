@@ -1,0 +1,4 @@
+module FirebaseDatabaseInternal {
+umbrella "/Users/MaxDeveloper/Downloads/firebase-ios-sdk-main/FirebaseDatabase/Sources/Public"
+export *
+}
