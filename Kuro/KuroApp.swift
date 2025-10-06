@@ -6,22 +6,16 @@
 //
 
 import SwiftUI
-import FirebaseCore
 
 @main
 struct KuroApp: App {
-    @StateObject private var firebaseService = FirebaseService()
-    
-    init() {
-        FirebaseApp.configure()
-        // Setup simple console logging (working version only)
-        SimpleConsoleLogger.setupAutoCheck()
-    }
+    @StateObject private var supabaseService = SupabaseService.shared
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(firebaseService)
+                .environmentObject(supabaseService)
+                .preferredColorScheme(.light)
         }
     }
 }

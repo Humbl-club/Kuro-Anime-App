@@ -5,37 +5,11 @@ import SwiftUI
 
 // MARK: - Content View
 struct ContentView: View {
-    @EnvironmentObject var firebaseService: FirebaseService
-    @State private var showDatabaseChecker = false
+    @EnvironmentObject var supabaseService: SupabaseService
     
     var body: some View {
-        ZStack {
-            KuroRootView()
-                .environmentObject(firebaseService)
-            
-            // Single Database Checker Button (working version only)
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button(action: {
-                        showDatabaseChecker = true
-                    }) {
-                        Image(systemName: "server.rack")
-                            .font(.system(size: 20))
-                            .foregroundColor(.white)
-                            .frame(width: 56, height: 56)
-                            .background(Color.blue)
-                            .clipShape(Circle())
-                            .shadow(radius: 4)
-                    }
-                    .padding()
-                }
-            }
-        }
-        .sheet(isPresented: $showDatabaseChecker) {
-            SimpleDatabaseStatusView()
-        }
+        KuroRootView()
+            .environmentObject(supabaseService)
     }
 }
 
