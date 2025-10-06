@@ -6,11 +6,36 @@ import SwiftUI
 // MARK: - Content View
 struct ContentView: View {
     @EnvironmentObject var firebaseService: FirebaseService
+    @State private var showDatabaseChecker = false
     
     var body: some View {
-        KuroRootView()
-            .preferredColorScheme(.light)
-            .environmentObject(firebaseService)
+        ZStack {
+            KuroRootView()
+                .environmentObject(firebaseService)
+            
+            // Single Database Checker Button (working version only)
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        showDatabaseChecker = true
+                    }) {
+                        Image(systemName: "server.rack")
+                            .font(.system(size: 20))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(Color.blue)
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                    }
+                    .padding()
+                }
+            }
+        }
+        .sheet(isPresented: $showDatabaseChecker) {
+            SimpleDatabaseStatusView()
+        }
     }
 }
 
@@ -320,7 +345,45 @@ struct CollectionViewSimple: View {
 }
 
 struct SearchViewSimple: View {
+    @EnvironmentObject var firebaseService: FirebaseService
     @Binding var searchText: String
+    @State private var selectedCategories: Set<String> = []
+    
+    // Filter results based on search and categories
+    private var filteredResults: [Media] {
+        var results = firebaseService.mediaItems
+        
+        // Apply text search
+        if !searchText.isEmpty {
+            results = results.filter { media in
+                media.title.localizedCaseInsensitiveContains(searchText) ||
+                media.description.localizedCaseInsensitiveContains(searchText) ||
+                media.genres.contains { $0.localizedCaseInsensitiveContains(searchText) }
+            }
+        }
+        
+        // Apply category filters
+        if !selectedCategories.isEmpty {
+            results = results.filter { media in
+                selectedCategories.contains { category in
+                    switch category {
+                    case "TRENDING":
+                        return media.rating ?? 0 > 8.0
+                    case "NEW SEASON":
+                        return media.year >= 2020
+                    case "CLASSICS":
+                        return media.year < 2010
+                    case "HIDDEN GEMS":
+                        return (media.rating ?? 0) > 8.5 && media.year < 2015
+                    default:
+                        return false
+                    }
+                }
+            }
+        }
+        
+        return results
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -341,33 +404,58 @@ struct SearchViewSimple: View {
             .padding(.horizontal, 24)
             .padding(.top, 24)
             
-            // Category pills
+            // Category pills with selection
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(["TRENDING", "NEW SEASON", "CLASSICS", "HIDDEN GEMS"], id: \.self) { category in
-                        CategoryPillSimple(title: category)
+                        CategoryPillSelectable(
+                            title: category,
+                            isSelected: selectedCategories.contains(category)
+                        ) {
+                            if selectedCategories.contains(category) {
+                                selectedCategories.remove(category)
+                            } else {
+                                selectedCategories.insert(category)
+                            }
+                            // Trigger search with new filters
+                            performSearch()
+                        }
                     }
                 }
                 .padding(.horizontal, 24)
             }
             .padding(.vertical, 20)
             
-            // Search Results
-            if !searchText.isEmpty {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        ForEach(0..<5, id: \.self) { _ in
-                            SearchResultRowSimple(
-                                title: "SAMPLE ANIME",
-                                year: "2024",
-                                genre: "ACTION"
-                            )
-                            Rectangle()
-                                .fill(Color.black.opacity(0.08))
-                                .frame(height: 0.5)
-                        }
+            // Search Results with real data
+            if !searchText.isEmpty || !selectedCategories.isEmpty {
+                if firebaseService.isLoading {
+                    ProgressView("Searching...")
+                        .padding(.top, 40)
+                } else if filteredResults.isEmpty {
+                    VStack(spacing: 8) {
+                        Text("NO RESULTS FOUND")
+                            .font(.system(size: 11, weight: .regular))
+                            .tracking(1.5)
+                            .foregroundColor(.black.opacity(0.3))
+                        
+                        Text("Try adjusting your search or filters")
+                            .font(.system(size: 10, weight: .light))
+                            .tracking(1.0)
+                            .foregroundColor(.black.opacity(0.2))
                     }
-                    .padding(.horizontal, 24)
+                    .padding(.top, 60)
+                } else {
+                    ScrollView(.vertical, showsIndicators: false) {
+                        LazyVStack(spacing: 0) {
+                            ForEach(filteredResults) { media in
+                                SearchResultRowReal(media: media)
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.08))
+                                    .frame(height: 0.5)
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                    }
                 }
             } else {
                 Spacer()
@@ -387,6 +475,200 @@ struct SearchViewSimple: View {
                 
                 Spacer()
             }
+        }
+        .onChange(of: searchText) { _ in
+            performSearch()
+        }
+        .onAppear {
+            // Load data if not already loaded
+            Task {
+                if firebaseService.mediaItems.isEmpty {
+                    await firebaseService.loadInitialData()
+                }
+            }
+        }
+    }
+    
+    private func performSearch() {
+        // Perform search with current text and filters
+        Task {
+            await firebaseService.searchMedia(
+                query: searchText,
+                filters: SearchFilters(
+                    genres: Array(selectedCategories)
+                )
+            )
+        }
+    }
+}
+
+// MARK: - Enhanced Components
+
+struct CategoryPillSelectable: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 10, weight: .regular))
+                .tracking(1.0)
+                .foregroundColor(.black.opacity(isSelected ? 1.0 : 0.6))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .stroke(Color.black.opacity(isSelected ? 0.8 : 0.15), lineWidth: 0.5)
+                        .background(
+                            Capsule()
+                                .fill(Color.black.opacity(isSelected ? 0.05 : 0.0))
+                        )
+                )
+        }
+    }
+}
+
+struct SearchResultRowReal: View {
+    let media: Media
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            AsyncImage(url: URL(string: media.imageURL ?? "")) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Rectangle()
+                    .fill(Color.black.opacity(0.05))
+                    .overlay(
+                        Text("IMG")
+                            .font(.system(size: 8, weight: .light))
+                            .foregroundColor(.black.opacity(0.3))
+                    )
+            }
+            .frame(width: 50, height: 70)
+            .clipped()
+            .cornerRadius(4)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(media.title.uppercased())
+                    .font(.system(size: 12, weight: .regular))
+                    .tracking(0.5)
+                    .foregroundColor(.black.opacity(0.8))
+                    .lineLimit(1)
+                
+                Text("\(media.year) · \(media.genres.first ?? "Unknown")")
+                    .font(.system(size: 10, weight: .light))
+                    .tracking(0.5)
+                    .foregroundColor(.black.opacity(0.5))
+                
+                if let episodes = media.episodes {
+                    Text("\(episodes) EPS")
+                        .font(.system(size: 9, weight: .light))
+                        .tracking(0.5)
+                        .foregroundColor(.black.opacity(0.3))
+                }
+            }
+            
+            Spacer()
+            
+            // Rating if available
+            if let rating = media.rating {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(String(format: "%.1f", rating))
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.black.opacity(0.8))
+                    
+                    Text("★")
+                        .font(.system(size: 8))
+                        .foregroundColor(.black.opacity(0.3))
+                }
+            }
+            
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10, weight: .light))
+                .foregroundColor(.black.opacity(0.2))
+        }
+        .padding(.vertical, 12)
+    }
+}
+
+struct CollectionCardLoading: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Rectangle()
+                .fill(Color.black.opacity(0.05))
+                .aspectRatio(0.7, contentMode: .fill)
+                .overlay(
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .foregroundColor(.black.opacity(0.3))
+                )
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Rectangle()
+                    .fill(Color.black.opacity(0.1))
+                    .frame(height: 10)
+                    .frame(maxWidth: .infinity)
+                
+                Rectangle()
+                    .fill(Color.black.opacity(0.05))
+                    .frame(height: 9)
+                    .frame(width: 40)
+            }
+            .padding(.top, 8)
+        }
+    }
+}
+
+struct CollectionCardReal: View {
+    let media: Media
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            AsyncImage(url: URL(string: media.imageURL ?? "")) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Rectangle()
+                    .fill(Color.black.opacity(0.05))
+                    .overlay(
+                        Text("IMG")
+                            .font(.system(size: 12, weight: .light))
+                            .foregroundColor(.black.opacity(0.3))
+                    )
+            }
+            .aspectRatio(0.7, contentMode: .fill)
+            .clipped()
+            .cornerRadius(4)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(media.title.uppercased())
+                    .font(.system(size: 10, weight: .regular))
+                    .tracking(0.5)
+                    .foregroundColor(.black.opacity(0.8))
+                    .lineLimit(2)
+                
+                let episodeText = media.episodes != nil ? "\(media.episodes!) EPS" : "Movie"
+                Text("\(media.year) · \(episodeText)")
+                    .font(.system(size: 9, weight: .light))
+                    .tracking(0.5)
+                    .foregroundColor(.black.opacity(0.5))
+                
+                if let rating = media.rating {
+                    HStack(spacing: 2) {
+                        Text("★")
+                            .font(.system(size: 8))
+                            .foregroundColor(.black.opacity(0.4))
+                        Text(String(format: "%.1f", rating))
+                            .font(.system(size: 8, weight: .light))
+                            .foregroundColor(.black.opacity(0.4))
+                    }
+                }
+            }
+            .padding(.top, 8)
         }
     }
 }

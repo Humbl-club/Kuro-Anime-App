@@ -14,6 +14,8 @@ struct KuroApp: App {
     
     init() {
         FirebaseApp.configure()
+        // Setup simple console logging (working version only)
+        SimpleConsoleLogger.setupAutoCheck()
     }
     
     var body: some Scene {

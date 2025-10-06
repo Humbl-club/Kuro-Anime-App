@@ -1,9 +1,10 @@
 import Foundation
-import FirebaseFirestore
 
-// MARK: - Media Models for Firebase
+// MARK: - Supabase Data Models
+// Single source of truth for all data structures
+
 struct Media: Identifiable, Codable {
-    var id: String?
+    let id: String
     let title: String
     let year: Int
     let description: String
@@ -11,6 +12,7 @@ struct Media: Identifiable, Codable {
     let type: MediaType
     let genres: [String]
     let episodes: Int?
+    let chapters: Int?
     let status: String
     let rating: Double?
     let createdAt: Date
@@ -25,6 +27,7 @@ struct Media: Identifiable, Codable {
         case type
         case genres
         case episodes
+        case chapters
         case status
         case rating
         case createdAt = "created_at"
@@ -46,17 +49,18 @@ enum MediaType: String, Codable, CaseIterable {
     }
 }
 
-// MARK: - User List Models
 struct UserList: Identifiable, Codable {
-    var id: String?
+    let id: String
+    let userId: String
     let name: String
     let type: ListType
-    let mediaItems: [String] // Array of Media IDs
+    let mediaItems: [String]
     let createdAt: Date
     let updatedAt: Date
     
     enum CodingKeys: String, CodingKey {
         case id
+        case userId = "user_id"
         case name
         case type
         case mediaItems = "media_items"
@@ -81,7 +85,6 @@ enum ListType: String, Codable, CaseIterable {
     }
 }
 
-// MARK: - Search Filters
 struct SearchFilters: Codable {
     let type: MediaType?
     let genres: [String]
@@ -89,10 +92,10 @@ struct SearchFilters: Codable {
     let rating: Double?
     let status: String?
     
-    init(type: MediaType? = nil, 
-         genres: [String] = [], 
-         yearRange: ClosedRange<Int>? = nil, 
-         rating: Double? = nil, 
+    init(type: MediaType? = nil,
+         genres: [String] = [],
+         yearRange: ClosedRange<Int>? = nil,
+         rating: Double? = nil,
          status: String? = nil) {
         self.type = type
         self.genres = genres

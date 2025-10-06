@@ -7,11 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		953474B62E8AAEE7004F4AA2 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 953474B52E8AAEE7004F4AA2 /* GoogleService-Info.plist */; };
 		953474B92E8ABF52004F4AA2 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 953474B82E8ABF52004F4AA2 /* FirebaseAuth */; };
 		953474BB2E8ABF52004F4AA2 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 953474BA2E8ABF52004F4AA2 /* FirebaseCore */; };
 		953474BF2E8ABF52004F4AA2 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 953474BE2E8ABF52004F4AA2 /* FirebaseFirestore */; };
-		95F78A882E8ACCC300F10CF9 /* GoogleService-Info 2.plist in Resources */ = {isa = PBXBuildFile; fileRef = 95F78A872E8ACCC300F10CF9 /* GoogleService-Info 2.plist */; };
+		95649E8A2E8AE30500FB651A /* MANUAL_CLEANUP_REQUIRED.md in Resources */ = {isa = PBXBuildFile; fileRef = 95649E892E8AE30500FB651A /* MANUAL_CLEANUP_REQUIRED.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -35,8 +34,7 @@
 		953474852E8AA6D5004F4AA2 /* Kuro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kuro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		953474922E8AA6D6004F4AA2 /* KuroTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KuroTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9534749C2E8AA6D6004F4AA2 /* KuroUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KuroUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		953474B52E8AAEE7004F4AA2 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
-		95F78A872E8ACCC300F10CF9 /* GoogleService-Info 2.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info 2.plist"; sourceTree = "<group>"; };
+		95649E892E8AE30500FB651A /* MANUAL_CLEANUP_REQUIRED.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MANUAL_CLEANUP_REQUIRED.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -88,12 +86,11 @@
 		9534747C2E8AA6D5004F4AA2 = {
 			isa = PBXGroup;
 			children = (
-				953474B52E8AAEE7004F4AA2 /* GoogleService-Info.plist */,
-				95F78A872E8ACCC300F10CF9 /* GoogleService-Info 2.plist */,
 				953474872E8AA6D5004F4AA2 /* Kuro */,
 				953474952E8AA6D6004F4AA2 /* KuroTests */,
 				9534749F2E8AA6D6004F4AA2 /* KuroUITests */,
 				953474862E8AA6D5004F4AA2 /* Products */,
+				95649E892E8AE30500FB651A /* MANUAL_CLEANUP_REQUIRED.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -233,8 +230,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				95F78A882E8ACCC300F10CF9 /* GoogleService-Info 2.plist in Resources */,
-				953474B62E8AAEE7004F4AA2 /* GoogleService-Info.plist in Resources */,
+				95649E8A2E8AE30500FB651A /* MANUAL_CLEANUP_REQUIRED.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -436,7 +432,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Lazy.Kuro;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kuro.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -480,7 +476,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = Lazy.Kuro;
+				PRODUCT_BUNDLE_IDENTIFIER = com.kuro.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
