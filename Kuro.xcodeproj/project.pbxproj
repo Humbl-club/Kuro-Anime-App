@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		953474B92E8ABF52004F4AA2 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 953474B82E8ABF52004F4AA2 /* FirebaseAuth */; };
-		953474BB2E8ABF52004F4AA2 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 953474BA2E8ABF52004F4AA2 /* FirebaseCore */; };
-		953474BF2E8ABF52004F4AA2 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 953474BE2E8ABF52004F4AA2 /* FirebaseFirestore */; };
-		95649E8A2E8AE30500FB651A /* MANUAL_CLEANUP_REQUIRED.md in Resources */ = {isa = PBXBuildFile; fileRef = 95649E892E8AE30500FB651A /* MANUAL_CLEANUP_REQUIRED.md */; };
+		95314FF62E950C9100BDEE62 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 95314FF52E950C9100BDEE62 /* Auth */; };
+		95314FF82E950C9100BDEE62 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 95314FF72E950C9100BDEE62 /* Functions */; };
+		95314FFA2E950C9100BDEE62 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 95314FF92E950C9100BDEE62 /* PostgREST */; };
+		95314FFC2E950C9100BDEE62 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 95314FFB2E950C9100BDEE62 /* Realtime */; };
+		95314FFE2E950C9100BDEE62 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 95314FFD2E950C9100BDEE62 /* Storage */; };
+		953150002E950C9100BDEE62 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 95314FFF2E950C9100BDEE62 /* Supabase */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,7 +36,6 @@
 		953474852E8AA6D5004F4AA2 /* Kuro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kuro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		953474922E8AA6D6004F4AA2 /* KuroTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KuroTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9534749C2E8AA6D6004F4AA2 /* KuroUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KuroUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		95649E892E8AE30500FB651A /* MANUAL_CLEANUP_REQUIRED.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MANUAL_CLEANUP_REQUIRED.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -60,9 +61,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				953474BF2E8ABF52004F4AA2 /* FirebaseFirestore in Frameworks */,
-				953474BB2E8ABF52004F4AA2 /* FirebaseCore in Frameworks */,
-				953474B92E8ABF52004F4AA2 /* FirebaseAuth in Frameworks */,
+				95314FFA2E950C9100BDEE62 /* PostgREST in Frameworks */,
+				95314FF82E950C9100BDEE62 /* Functions in Frameworks */,
+				953150002E950C9100BDEE62 /* Supabase in Frameworks */,
+				95314FF62E950C9100BDEE62 /* Auth in Frameworks */,
+				95314FFE2E950C9100BDEE62 /* Storage in Frameworks */,
+				95314FFC2E950C9100BDEE62 /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -90,7 +94,6 @@
 				953474952E8AA6D6004F4AA2 /* KuroTests */,
 				9534749F2E8AA6D6004F4AA2 /* KuroUITests */,
 				953474862E8AA6D5004F4AA2 /* Products */,
-				95649E892E8AE30500FB651A /* MANUAL_CLEANUP_REQUIRED.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -124,9 +127,12 @@
 			);
 			name = Kuro;
 			packageProductDependencies = (
-				953474B82E8ABF52004F4AA2 /* FirebaseAuth */,
-				953474BA2E8ABF52004F4AA2 /* FirebaseCore */,
-				953474BE2E8ABF52004F4AA2 /* FirebaseFirestore */,
+				95314FF52E950C9100BDEE62 /* Auth */,
+				95314FF72E950C9100BDEE62 /* Functions */,
+				95314FF92E950C9100BDEE62 /* PostgREST */,
+				95314FFB2E950C9100BDEE62 /* Realtime */,
+				95314FFD2E950C9100BDEE62 /* Storage */,
+				95314FFF2E950C9100BDEE62 /* Supabase */,
 			);
 			productName = Kuro;
 			productReference = 953474852E8AA6D5004F4AA2 /* Kuro.app */;
@@ -211,7 +217,7 @@
 			mainGroup = 9534747C2E8AA6D5004F4AA2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				953474B72E8ABF52004F4AA2 /* XCLocalSwiftPackageReference "../../Downloads/firebase-ios-sdk-main" */,
+				95314FF42E950C9100BDEE62 /* XCLocalSwiftPackageReference "../../Downloads/supabase-swift-main" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 953474862E8AA6D5004F4AA2 /* Products */;
@@ -230,7 +236,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				95649E8A2E8AE30500FB651A /* MANUAL_CLEANUP_REQUIRED.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -636,24 +641,36 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		953474B72E8ABF52004F4AA2 /* XCLocalSwiftPackageReference "../../Downloads/firebase-ios-sdk-main" */ = {
+		95314FF42E950C9100BDEE62 /* XCLocalSwiftPackageReference "../../Downloads/supabase-swift-main" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "../../Downloads/firebase-ios-sdk-main";
+			relativePath = "../../Downloads/supabase-swift-main";
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		953474B82E8ABF52004F4AA2 /* FirebaseAuth */ = {
+		95314FF52E950C9100BDEE62 /* Auth */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = FirebaseAuth;
+			productName = Auth;
 		};
-		953474BA2E8ABF52004F4AA2 /* FirebaseCore */ = {
+		95314FF72E950C9100BDEE62 /* Functions */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = FirebaseCore;
+			productName = Functions;
 		};
-		953474BE2E8ABF52004F4AA2 /* FirebaseFirestore */ = {
+		95314FF92E950C9100BDEE62 /* PostgREST */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = FirebaseFirestore;
+			productName = PostgREST;
+		};
+		95314FFB2E950C9100BDEE62 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Realtime;
+		};
+		95314FFD2E950C9100BDEE62 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Storage;
+		};
+		95314FFF2E950C9100BDEE62 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Supabase;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

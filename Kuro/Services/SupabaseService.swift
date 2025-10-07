@@ -2,7 +2,7 @@ import Foundation
 import Supabase
 
 // MARK: - Supabase Service
-// Single source of truth for all database operations
+// Connects to your existing comprehensive database schema
 
 @MainActor
 class SupabaseService: ObservableObject {
@@ -12,74 +12,111 @@ class SupabaseService: ObservableObject {
     private let client: SupabaseClient
     
     // Published properties
-    @Published var mediaItems: [Media] = []
+    @Published var animeItems: [Anime] = []
+    @Published var mangaItems: [Manga] = []
     @Published var userLists: [UserList] = []
+    @Published var episodes: [Episode] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     
     init() {
-        // Initialize Supabase client
-        // TODO: Replace with your actual Supabase URL and anon key
+        // Initialize Supabase client with your credentials
         client = SupabaseClient(
-            supabaseURL: URL(string: "https://your-project.supabase.co")!,
-            supabaseKey: "your-anon-key"
+            supabaseURL: URL(string: "https://bkdifromsqxkndnllmdj.supabase.co")!,
+            supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZGlmcm9tc3F4a25kbmxsbWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTg2NjMsImV4cCI6MjA2ODE3NDY2M30.xWtSNgApX5jMZqdWJLjsqNlsXbwubFwW39Hs3x9hOoo"
         )
+        print("🔥 Supabase client initialized for project: bkdifromsqxkndnllmdj")
+        
+        // Auto-initialize on app launch
+        Task {
+            do {
+                try await signInAnonymously()
+                await fetchAnime(limit: 20) // Load initial data
+            } catch {
+                print("❌ Auto-initialization failed: \(error)")
+            }
+        }
     }
     
     // MARK: - Authentication
     func signInAnonymously() async throws {
-        // Supabase anonymous authentication
         try await client.auth.signInAnonymously()
         print("✅ Signed in anonymously to Supabase")
     }
     
-    func signInWithEmail(email: String, password: String) async throws {
-        try await client.auth.signIn(email: email, password: password)
-        print("✅ Signed in with email")
-    }
-    
-    // MARK: - Fetch Media
-    func fetchMedia(type: MediaType? = nil, limit: Int = 50) async {
+    // MARK: - Fetch Anime (from your existing table)
+    func fetchAnime(limit: Int = 50) async {
         isLoading = true
         errorMessage = nil
         
         do {
-            var query = client.database
-                .from("media")
+            let response: [Anime] = try await client.database
+                .from("anime")
                 .select()
-                .order("created_at", ascending: false)
+                .order("popularity", ascending: false)
                 .limit(limit)
+                .execute()
+                .value
             
-            if let type = type {
-                query = query.eq("type", value: type.rawValue)
-            }
-            
-            let response: [Media] = try await query.execute().value
-            mediaItems = response
-            print("✅ Fetched \(response.count) media items from Supabase")
+            animeItems = response
+            print("✅ Fetched \(response.count) anime from your database")
         } catch {
-            errorMessage = "Failed to fetch media: \(error.localizedDescription)"
+            errorMessage = "Failed to fetch anime: \(error.localizedDescription)"
             print("❌ Supabase error: \(error)")
         }
         
         isLoading = false
     }
     
-    // MARK: - Search
-    func searchMedia(query: String) async {
+    // MARK: - Fetch Manga (from your existing table)
+    func fetchManga(limit: Int = 50) async {
         isLoading = true
         errorMessage = nil
         
         do {
-            let response: [Media] = try await client.database
-                .from("media")
+            let response: [Manga] = try await client.database
+                .from("manga")
                 .select()
-                .ilike("title", pattern: "%\(query)%")
+                .order("popularity", ascending: false)
+                .limit(limit)
                 .execute()
                 .value
             
-            mediaItems = response
-            print("✅ Found \(response.count) results")
+            mangaItems = response
+            print("✅ Fetched \(response.count) manga from your database")
+        } catch {
+            errorMessage = "Failed to fetch manga: \(error.localizedDescription)"
+            print("❌ Error: \(error)")
+        }
+        
+        isLoading = false
+    }
+    
+    // MARK: - Search (using your full-text search index)
+    func searchContent(query: String) async {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            // Search anime using your full-text search index
+            let animeResponse: [Anime] = try await client.database
+                .from("anime")
+                .select()
+                .textSearch("title_english,title_romaji,description_normalized", query: query)
+                .execute()
+                .value
+            
+            // Search manga
+            let mangaResponse: [Manga] = try await client.database
+                .from("manga")
+                .select()
+                .textSearch("title_english,title_romaji,description", query: query)
+                .execute()
+                .value
+            
+            animeItems = animeResponse
+            mangaItems = mangaResponse
+            print("✅ Found \(animeResponse.count) anime, \(mangaResponse.count) manga")
         } catch {
             errorMessage = "Search failed: \(error.localizedDescription)"
             print("❌ Search error: \(error)")
@@ -88,7 +125,7 @@ class SupabaseService: ObservableObject {
         isLoading = false
     }
     
-    // MARK: - User Lists
+    // MARK: - User Lists (using your existing structure)
     func fetchUserLists() async {
         guard let userId = try? await client.auth.session.user.id else { return }
         
@@ -108,16 +145,18 @@ class SupabaseService: ObservableObject {
         }
     }
     
-    // MARK: - Add to List
-    func addToList(mediaId: String, listType: String) async {
+    // MARK: - Add to List (using your existing structure)
+    func addToList(mediaId: Int, mediaType: String, status: ListStatus) async {
         guard let userId = try? await client.auth.session.user.id else { return }
         
         do {
             let listData: [String: Any] = [
                 "user_id": userId.uuidString,
                 "media_id": mediaId,
-                "list_type": listType,
-                "created_at": ISO8601DateFormatter().string(from: Date())
+                "media_type": mediaType,
+                "status": status.rawValue,
+                "progress": 0,
+                "private": false
             ]
             
             try await client.database
@@ -126,23 +165,85 @@ class SupabaseService: ObservableObject {
                 .execute()
             
             await fetchUserLists()
-            print("✅ Added to list")
+            print("✅ Added to \(status.displayName) list")
         } catch {
             errorMessage = "Failed to add to list: \(error.localizedDescription)"
             print("❌ Error: \(error)")
         }
     }
     
+    // MARK: - Filter by Genre (using your genres array)
+    func filterByGenre(_ genre: String) async {
+        isLoading = true
+        
+        do {
+            let response: [Anime] = try await client.database
+                .from("anime")
+                .select()
+                .contains("genres", value: [genre])
+                .order("average_score", ascending: false)
+                .limit(50)
+                .execute()
+                .value
+            
+            animeItems = response
+            print("✅ Filtered by genre: \(genre)")
+        } catch {
+            errorMessage = "Filter failed: \(error.localizedDescription)"
+            print("❌ Error: \(error)")
+        }
+        
+        isLoading = false
+    }
+    
+    // MARK: - Get by Mood (using your genre system)
+    func getByMood(_ mood: String) -> [Anime] {
+        switch mood {
+        case "Contemplative":
+            return animeItems.filter { anime in
+                anime.genres?.contains(where: { genre in
+                    ["Drama", "Psychological", "Mystery"].contains(genre)
+                }) ?? false
+            }
+        case "Energetic":
+            return animeItems.filter { anime in
+                anime.genres?.contains(where: { genre in
+                    ["Action", "Sports", "Adventure"].contains(genre)
+                }) ?? false
+            }
+        case "Melancholic":
+            return animeItems.filter { anime in
+                anime.genres?.contains(where: { genre in
+                    ["Drama", "Romance", "Slice of Life"].contains(genre)
+                }) ?? false
+            }
+        case "Uplifting":
+            return animeItems.filter { anime in
+                anime.genres?.contains(where: { genre in
+                    ["Comedy", "Adventure", "Music"].contains(genre)
+                }) ?? false
+            }
+        case "Mysterious":
+            return animeItems.filter { anime in
+                anime.genres?.contains(where: { genre in
+                    ["Thriller", "Horror", "Supernatural", "Mystery"].contains(genre)
+                }) ?? false
+            }
+        default:
+            return Array(animeItems.prefix(10))
+        }
+    }
+    
     // MARK: - Real-time Subscriptions
-    func subscribeToMediaUpdates() {
-        // Supabase real-time subscriptions
+    func subscribeToUpdates() {
+        // Subscribe to anime updates
         Task {
             for await change in client.database
-                .from("media")
+                .from("anime")
                 .on(.all) { event in
-                    print("🔄 Real-time update: \(event)")
+                    print("🔄 Real-time anime update")
                     Task {
-                        await self.fetchMedia()
+                        await self.fetchAnime()
                     }
                 } {
                 // Handle subscription

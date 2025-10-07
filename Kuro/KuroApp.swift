@@ -9,12 +9,12 @@ import SwiftUI
 
 @main
 struct KuroApp: App {
-    @StateObject private var supabaseService = SupabaseService.shared
+    @State private var supabaseService = SupabaseService.shared
     
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(supabaseService)
+                .environment(supabaseService)
                 .preferredColorScheme(.light)
         }
     }

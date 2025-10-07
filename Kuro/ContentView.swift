@@ -5,7 +5,7 @@ import SwiftUI
 
 // MARK: - Content View
 struct ContentView: View {
-    @EnvironmentObject var supabaseService: SupabaseService
+    @Environment(SupabaseService.self) private var supabaseService
     
     var body: some View {
         KuroRootView()
@@ -192,7 +192,7 @@ struct KuroHeader: View {
 
 // MARK: - Discover View with Firebase Data
 struct DiscoverViewSimple: View {
-    @EnvironmentObject var firebaseService: FirebaseService
+    @Environment(SupabaseService.self) private var supabaseService
     @Binding var selectedMood: String?
     let moods = ["Contemplative", "Energetic", "Melancholic", "Uplifting", "Mysterious"]
     
@@ -214,14 +214,14 @@ struct DiscoverViewSimple: View {
                 }
                 .padding(.vertical, 24)
                 
-                // Featured content from Firebase
-                if firebaseService.isLoading {
+                // Featured content from Supabase
+                if supabaseService.isLoading {
                     VStack(spacing: 24) {
                         ForEach(0..<3, id: \.self) { _ in
                             FeaturedCardLoading()
                         }
                     }
-                } else if firebaseService.mediaItems.isEmpty {
+                } else if supabaseService.animeItems.isEmpty {
                     VStack(spacing: 16) {
                         Text("LOADING YOUR 20K+ COLLECTION...")
                             .font(.system(size: 14, weight: .light))
@@ -240,8 +240,8 @@ struct DiscoverViewSimple: View {
                     .padding(.top, 80)
                 } else {
                     VStack(spacing: 48) {
-                        ForEach(Array(firebaseService.mediaItems.prefix(10)), id: \.id) { media in
-                            FeaturedCardReal(media: media)
+                        ForEach(Array(supabaseService.animeItems.prefix(10)), id: \.id) { anime in
+                            FeaturedCardReal(media: anime)
                         }
                     }
                 }
@@ -249,7 +249,7 @@ struct DiscoverViewSimple: View {
         }
         .onAppear {
             Task {
-                await firebaseService.loadMediaItems()
+                await supabaseService.fetchAnime()
             }
         }
         .refreshable {
@@ -259,7 +259,7 @@ struct DiscoverViewSimple: View {
 }
 
 struct CollectionViewSimple: View {
-    @EnvironmentObject var firebaseService: FirebaseService
+    @Environment(SupabaseService.self) private var supabaseService
     @State private var filter = "ALL"
     let filters = ["ALL", "WATCHING", "COMPLETED", "PLANNED"]
     
@@ -294,13 +294,13 @@ struct CollectionViewSimple: View {
                     ],
                     spacing: 16
                 ) {
-                    if firebaseService.isLoading {
+                    if supabaseService.isLoading {
                         ForEach(0..<9, id: \.self) { _ in
                             CollectionCardLoading()
                         }
                     } else {
-                        ForEach(firebaseService.mediaItems.prefix(50), id: \.id) { media in
-                            CollectionCardReal(media: media)
+                        ForEach(supabaseService.animeItems.prefix(50), id: \.id) { anime in
+                            CollectionCardReal(media: anime)
                         }
                     }
                 }
@@ -309,9 +309,9 @@ struct CollectionViewSimple: View {
             .padding(.bottom, 32)
         }
         .onAppear {
-            if firebaseService.mediaItems.isEmpty {
+            if supabaseService.animeItems.isEmpty {
                 Task {
-                    await firebaseService.loadMediaItems()
+                    await supabaseService.fetchAnime()
                 }
             }
         }
@@ -319,13 +319,13 @@ struct CollectionViewSimple: View {
 }
 
 struct SearchViewSimple: View {
-    @EnvironmentObject var firebaseService: FirebaseService
+    @Environment(SupabaseService.self) private var supabaseService
     @Binding var searchText: String
     @State private var selectedCategories: Set<String> = []
     
     // Filter results based on search and categories
-    private var filteredResults: [Media] {
-        var results = firebaseService.mediaItems
+    private var filteredResults: [Anime] {
+        var results = supabaseService.animeItems
         
         // Apply text search
         if !searchText.isEmpty {
@@ -402,7 +402,7 @@ struct SearchViewSimple: View {
             
             // Search Results with real data
             if !searchText.isEmpty || !selectedCategories.isEmpty {
-                if firebaseService.isLoading {
+                if supabaseService.isLoading {
                     ProgressView("Searching...")
                         .padding(.top, 40)
                 } else if filteredResults.isEmpty {
@@ -456,8 +456,8 @@ struct SearchViewSimple: View {
         .onAppear {
             // Load data if not already loaded
             Task {
-                if firebaseService.mediaItems.isEmpty {
-                    await firebaseService.loadInitialData()
+                if supabaseService.animeItems.isEmpty {
+                    await supabaseService.fetchAnime()
                 }
             }
         }
@@ -466,12 +466,7 @@ struct SearchViewSimple: View {
     private func performSearch() {
         // Perform search with current text and filters
         Task {
-            await firebaseService.searchMedia(
-                query: searchText,
-                filters: SearchFilters(
-                    genres: Array(selectedCategories)
-                )
-            )
+            await supabaseService.searchContent(query: searchText)
         }
     }
 }
@@ -597,7 +592,7 @@ struct CollectionCardLoading: View {
 }
 
 struct CollectionCardReal: View {
-    let media: Media
+    let media: any MediaDisplayable
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -831,7 +826,7 @@ struct SearchResultRowSimple: View {
 
 // MARK: - Real Firebase Data Components
 struct FeaturedCardReal: View {
-    let media: Media
+    let media: any MediaDisplayable
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
