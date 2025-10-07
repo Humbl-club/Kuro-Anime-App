@@ -81,8 +81,8 @@ https://github.com/supabase/supabase-swift
 ### **2. Configure Supabase**
 In `SupabaseService.swift`, update:
 ```swift
-supabaseURL: URL(string: "https://your-project.supabase.co")!
-supabaseKey: "your-anon-key"
+supabaseURL: URL(string: "https://bkdifromsqxkndnllmdj.supabase.co")!
+supabaseKey: "sb_secret_EWNiKfUMBcUtWJWsNkzDag_ao1RiZw2"
 ```
 
 ### **3. Database Schema**

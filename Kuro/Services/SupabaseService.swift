@@ -5,25 +5,26 @@ import Supabase
 // Connects to your existing comprehensive database schema
 
 @MainActor
-class SupabaseService: ObservableObject {
+@Observable
+class SupabaseService {
     static let shared = SupabaseService()
     
     // Supabase client
     private let client: SupabaseClient
     
-    // Published properties
-    @Published var animeItems: [Anime] = []
-    @Published var mangaItems: [Manga] = []
-    @Published var userLists: [UserList] = []
-    @Published var episodes: [Episode] = []
-    @Published var isLoading = false
-    @Published var errorMessage: String?
+    // Observable properties (no @Published needed with @Observable)
+    var animeItems: [Anime] = []
+    var mangaItems: [Manga] = []
+    var userLists: [UserList] = []
+    var episodes: [Episode] = []
+    var isLoading = false
+    var errorMessage: String?
     
     init() {
         // Initialize Supabase client with your credentials
         client = SupabaseClient(
             supabaseURL: URL(string: "https://bkdifromsqxkndnllmdj.supabase.co")!,
-            supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZGlmcm9tc3F4a25kbmxsbWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTg2NjMsImV4cCI6MjA2ODE3NDY2M30.xWtSNgApX5jMZqdWJLjsqNlsXbwubFwW39Hs3x9hOoo"
+            supabaseKey: "sb_secret_EWNiKfUMBcUtWJWsNkzDag_ao1RiZw2"
         )
         print("🔥 Supabase client initialized for project: bkdifromsqxkndnllmdj")
         
