@@ -9,7 +9,7 @@ struct ContentView: View {
     
     var body: some View {
         KuroRootView()
-            .environmentObject(supabaseService)
+            .environment(supabaseService)
     }
 }
 
@@ -73,7 +73,7 @@ struct KuroMainView: View {
     @State private var currentSection = 0
     @State private var showProfile = false
     @State private var searchText = ""
-    @State private var selectedMood: String? = "Contemplative"
+    @State private var selectedMood: String? = nil // Not used anymore
     @State private var dragOffset: CGFloat = 0
     
     let sections = ["DISCOVER", "COLLECTION", "SEARCH"]
@@ -123,7 +123,7 @@ struct KuroMainView: View {
                     }
                 }
                 
-                // Dot indicators - Minimal (5-6px circles)
+                // Enhanced dot indicators - Lower position for more content space
                 HStack(spacing: 8) {
                     ForEach(0..<sections.count, id: \.self) { index in
                         Circle()
@@ -133,116 +133,133 @@ struct KuroMainView: View {
                             .animation(.spring(response: 0.3), value: currentSection)
                     }
                 }
-                .padding(.vertical, 20)
-                .padding(.bottom, 8)
+                .padding(.vertical, 12) // Reduced vertical padding
+                .padding(.bottom, 16)   // More space for content
             }
         }
     }
 }
 
-// MARK: - Fixed Header Component
+// MARK: - Enhanced Responsive Header Component
 struct KuroHeader: View {
     let currentSection: String
     @Binding var showProfile: Bool
     
     var body: some View {
         VStack(spacing: 0) {
-            Spacer().frame(height: UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0)
-            
-            // Three-part layout: Brand / Section / Action
-            HStack {
-                // Left: Brand (30% opacity)
-                Text("KURO")
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(1.5)
-                    .foregroundColor(.black.opacity(0.3))
-                
-                Spacer()
-                
-                // Center: Section (full opacity)
-                Text(currentSection)
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(1.5)
-                    .foregroundColor(.black)
-                
-                Spacer()
-                
-                // Right: Action (minimal interaction)
-                Button(action: { showProfile.toggle() }) {
-                    Circle()
+            // Safe area handling for all devices
+            GeometryReader { geometry in
+                VStack(spacing: 0) {
+                    // Top safe area
+                    Spacer()
+                        .frame(height: geometry.safeAreaInsets.top)
+                    
+                    // Three-part layout: Brand / Section / Action
+                    HStack {
+                        // Left: Brand (30% opacity)
+                        Text("KURO")
+                            .font(.system(size: 11, weight: .regular))
+                            .tracking(1.5)
+                            .foregroundColor(.black.opacity(0.3))
+                        
+                        Spacer()
+                        
+                        // Center: Section (full opacity)
+                        Text(currentSection)
+                            .font(.system(size: 11, weight: .regular))
+                            .tracking(1.5)
+                            .foregroundColor(.black)
+                        
+                        Spacer()
+                        
+                        // Right: Action (minimal interaction)
+                        Button(action: { showProfile.toggle() }) {
+                            Circle()
+                                .fill(Color.black.opacity(0.08))
+                                .frame(width: 32, height: 32)
+                                .overlay(
+                                    Text("M")
+                                        .font(.system(size: 14, weight: .light))
+                                        .foregroundColor(.black)
+                                )
+                        }
+                    }
+                    .padding(.horizontal, adaptiveHorizontalPadding(for: geometry.size.width))
+                    .padding(.vertical, 20)
+                    
+                    // Subtle divider
+                    Rectangle()
                         .fill(Color.black.opacity(0.08))
-                        .frame(width: 32, height: 32)
-                        .overlay(
-                            Text("M")
-                                .font(.system(size: 14, weight: .light))
-                                .foregroundColor(.black)
-                        )
+                        .frame(height: 0.5)
                 }
             }
-            .padding(.horizontal, 24) // 24px standard margin
-            .padding(.vertical, 20)
-            
-            // Subtle divider
-            Rectangle()
-                .fill(Color.black.opacity(0.08))
-                .frame(height: 0.5)
+            .frame(height: adaptiveHeaderHeight())
         }
+    }
+    
+    // Adaptive horizontal padding based on screen width
+    private func adaptiveHorizontalPadding(for width: CGFloat) -> CGFloat {
+        switch width {
+        case 0..<375:    // iPhone SE, mini
+            return 16
+        case 375..<414:  // iPhone standard
+            return 20
+        case 414..<768:  // iPhone Plus, Pro Max
+            return 24
+        case 768..<1024: // iPad Portrait
+            return 32
+        default:         // iPad Landscape, larger screens
+            return 40
+        }
+    }
+    
+    // Adaptive header height based on device
+    private func adaptiveHeaderHeight() -> CGFloat {
+        let safeAreaTop = UIApplication.shared.windows.first?.safeAreaInsets.top ?? 0
+        return safeAreaTop + 60 // Base height + safe area
     }
 }
 
-// MARK: - Discover View with Firebase Data
+// MARK: - Enhanced Discover View (No Mood Filters)
 struct DiscoverViewSimple: View {
     @Environment(SupabaseService.self) private var supabaseService
-    @Binding var selectedMood: String?
-    let moods = ["Contemplative", "Energetic", "Melancholic", "Uplifting", "Mysterious"]
+    @Binding var selectedMood: String? // Keep for compatibility but not used
     
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 0) {
-                // Mood selector
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 32) {
-                        ForEach(moods, id: \.self) { mood in
-                            MoodPillSimple(mood: mood, isSelected: selectedMood == mood) {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    selectedMood = mood
-                                }
+        GeometryReader { geometry in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    // Featured content from Supabase with enhanced layout
+                    if supabaseService.isLoading {
+                        VStack(spacing: adaptiveSpacing(for: geometry.size.width)) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                FeaturedCardLoading()
                             }
                         }
-                    }
-                    .padding(.horizontal, 24)
-                }
-                .padding(.vertical, 24)
-                
-                // Featured content from Supabase
-                if supabaseService.isLoading {
-                    VStack(spacing: 24) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            FeaturedCardLoading()
+                    } else if supabaseService.animeItems.isEmpty {
+                        VStack(spacing: 16) {
+                            Text("LOADING YOUR COLLECTION...")
+                                .font(.system(size: 14, weight: .light))
+                                .tracking(1.0)
+                                .foregroundColor(.black.opacity(0.6))
+                            
+                            Text("Connecting to Supabase...")
+                                .font(.system(size: 12, weight: .light))
+                                .tracking(0.5)
+                                .foregroundColor(.black.opacity(0.3))
+                            
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .padding(.top, 20)
                         }
-                    }
-                } else if supabaseService.animeItems.isEmpty {
-                    VStack(spacing: 16) {
-                        Text("LOADING YOUR 20K+ COLLECTION...")
-                            .font(.system(size: 14, weight: .light))
-                            .tracking(1.0)
-                            .foregroundColor(.black.opacity(0.6))
-                        
-                        Text("Connecting to Firebase...")
-                            .font(.system(size: 12, weight: .light))
-                            .tracking(0.5)
-                            .foregroundColor(.black.opacity(0.3))
-                        
-                        ProgressView()
-                            .scaleEffect(0.8)
-                            .padding(.top, 20)
-                    }
-                    .padding(.top, 80)
-                } else {
-                    VStack(spacing: 48) {
-                        ForEach(Array(supabaseService.animeItems.prefix(10)), id: \.id) { anime in
-                            FeaturedCardReal(media: anime)
+                        .padding(.top, 80)
+                    } else {
+                        VStack(spacing: adaptiveSpacing(for: geometry.size.width)) {
+                            ForEach(Array(supabaseService.animeItems.prefix(10)), id: \.id) { anime in
+                                FeaturedCardReal(media: anime)
+                            }
                         }
+                        .padding(.top, 24)
                     }
                 }
             }
@@ -252,8 +269,21 @@ struct DiscoverViewSimple: View {
                 await supabaseService.fetchAnime()
             }
         }
-        .refreshable {
-            await firebaseService.loadMediaItems()
+    }
+    
+    // Adaptive spacing based on screen size
+    private func adaptiveSpacing(for width: CGFloat) -> CGFloat {
+        switch width {
+        case 0..<375:    // iPhone SE, mini
+            return 32
+        case 375..<414:  // iPhone standard
+            return 40
+        case 414..<768:  // iPhone Plus, Pro Max
+            return 48
+        case 768..<1024: // iPad Portrait
+            return 56
+        default:         // iPad Landscape, larger screens
+            return 64
         }
     }
 }
@@ -331,8 +361,8 @@ struct SearchViewSimple: View {
         if !searchText.isEmpty {
             results = results.filter { media in
                 media.title.localizedCaseInsensitiveContains(searchText) ||
-                media.description.localizedCaseInsensitiveContains(searchText) ||
-                media.genres.contains { $0.localizedCaseInsensitiveContains(searchText) }
+                media.displayDescription.localizedCaseInsensitiveContains(searchText) ||
+                media.genres?.contains { $0.localizedCaseInsensitiveContains(searchText) } ?? false
             }
         }
         
@@ -342,13 +372,13 @@ struct SearchViewSimple: View {
                 selectedCategories.contains { category in
                     switch category {
                     case "TRENDING":
-                        return media.rating ?? 0 > 8.0
+                        return (media.averageScore ?? 0) > 80
                     case "NEW SEASON":
-                        return media.year >= 2020
+                        return Int(media.year) ?? 0 >= 2020
                     case "CLASSICS":
-                        return media.year < 2010
+                        return Int(media.year) ?? 0 < 2010
                     case "HIDDEN GEMS":
-                        return (media.rating ?? 0) > 8.5 && media.year < 2015
+                        return (media.averageScore ?? 0) > 85 && Int(media.year) ?? 0 < 2015
                     default:
                         return false
                     }
@@ -421,8 +451,8 @@ struct SearchViewSimple: View {
                 } else {
                     ScrollView(.vertical, showsIndicators: false) {
                         LazyVStack(spacing: 0) {
-                            ForEach(filteredResults) { media in
-                                SearchResultRowReal(media: media)
+                            ForEach(filteredResults) { anime in
+                                SearchResultRowReal(media: anime)
                                 Rectangle()
                                     .fill(Color.black.opacity(0.08))
                                     .frame(height: 0.5)
@@ -499,7 +529,7 @@ struct CategoryPillSelectable: View {
 }
 
 struct SearchResultRowReal: View {
-    let media: Media
+    let media: any MediaDisplayable
     
     var body: some View {
         HStack(spacing: 16) {
@@ -527,13 +557,18 @@ struct SearchResultRowReal: View {
                     .foregroundColor(.black.opacity(0.8))
                     .lineLimit(1)
                 
-                Text("\(media.year) · \(media.genres.first ?? "Unknown")")
+                Text("\(media.year) · \(media.genres?.first ?? "Unknown")")
                     .font(.system(size: 10, weight: .light))
                     .tracking(0.5)
                     .foregroundColor(.black.opacity(0.5))
                 
                 if let episodes = media.episodes {
                     Text("\(episodes) EPS")
+                        .font(.system(size: 9, weight: .light))
+                        .tracking(0.5)
+                        .foregroundColor(.black.opacity(0.3))
+                } else if let chapters = media.chapters {
+                    Text("\(chapters) CH")
                         .font(.system(size: 9, weight: .light))
                         .tracking(0.5)
                         .foregroundColor(.black.opacity(0.3))
@@ -593,51 +628,74 @@ struct CollectionCardLoading: View {
 
 struct CollectionCardReal: View {
     let media: any MediaDisplayable
+    @State private var showDetail = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            AsyncImage(url: URL(string: media.imageURL ?? "")) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.black.opacity(0.05))
-                    .overlay(
-                        Text("IMG")
-                            .font(.system(size: 12, weight: .light))
-                            .foregroundColor(.black.opacity(0.3))
-                    )
-            }
-            .aspectRatio(0.7, contentMode: .fill)
-            .clipped()
-            .cornerRadius(4)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(media.title.uppercased())
-                    .font(.system(size: 10, weight: .regular))
-                    .tracking(0.5)
-                    .foregroundColor(.black.opacity(0.8))
-                    .lineLimit(2)
+        Button(action: {
+            KuroAccessibility.impactHaptic(.light)
+            showDetail = true
+        }) {
+            VStack(alignment: .leading, spacing: 0) {
+                AsyncImage(url: URL(string: media.imageURL ?? "")) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color.black.opacity(0.05))
+                        .overlay(
+                            Text("IMG")
+                                .font(.system(size: 12, weight: .light))
+                                .foregroundColor(.black.opacity(0.3))
+                        )
+                }
+                .aspectRatio(0.7, contentMode: .fill)
+                .clipped()
+                .cornerRadius(4)
                 
-                let episodeText = media.episodes != nil ? "\(media.episodes!) EPS" : "Movie"
-                Text("\(media.year) · \(episodeText)")
-                    .font(.system(size: 9, weight: .light))
-                    .tracking(0.5)
-                    .foregroundColor(.black.opacity(0.5))
-                
-                if let rating = media.rating {
-                    HStack(spacing: 2) {
-                        Text("★")
-                            .font(.system(size: 8))
-                            .foregroundColor(.black.opacity(0.4))
-                        Text(String(format: "%.1f", rating))
-                            .font(.system(size: 8, weight: .light))
-                            .foregroundColor(.black.opacity(0.4))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(media.title.uppercased())
+                        .font(.system(size: 10, weight: .regular))
+                        .tracking(0.5)
+                        .foregroundColor(.black.opacity(0.8))
+                        .lineLimit(2)
+                    
+                    Text("\(media.year) · \(episodeText)")
+                        .font(.system(size: 9, weight: .light))
+                        .tracking(0.5)
+                        .foregroundColor(.black.opacity(0.5))
+                    
+                    if let rating = media.rating {
+                        HStack(spacing: 2) {
+                            Text("★")
+                                .font(.system(size: 8))
+                                .foregroundColor(.black.opacity(0.4))
+                            Text(String(format: "%.1f", rating))
+                                .font(.system(size: 8, weight: .light))
+                                .foregroundColor(.black.opacity(0.4))
+                        }
                     }
                 }
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showDetail) {
+            if let anime = media as? Anime {
+                AnimeDetailView(anime: anime)
+            } else if let manga = media as? Manga {
+                MangaDetailView(manga: manga)
+            }
+        }
+    }
+    
+    private var episodeText: String {
+        if let episodes = media.episodes {
+            return "\(episodes) EPS"
+        } else if let chapters = media.chapters {
+            return "\(chapters) CH"
+        } else {
+            return "Movie"
         }
     }
 }
@@ -827,46 +885,60 @@ struct SearchResultRowSimple: View {
 // MARK: - Real Firebase Data Components
 struct FeaturedCardReal: View {
     let media: any MediaDisplayable
+    @State private var showDetail = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Real image or placeholder
-            AsyncImage(url: URL(string: media.imageURL ?? "")) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Rectangle()
-                    .fill(Color.black.opacity(0.05))
-                    .overlay(
-                        Text("IMAGE")
-                            .font(.system(size: 24, weight: .ultraLight))
-                            .foregroundColor(.black.opacity(0.3))
-                    )
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 420)
-            .clipped()
-            
-            VStack(alignment: .leading, spacing: 12) {
-                Text(media.title.uppercased())
-                    .font(.system(size: 20, weight: .ultraLight, design: .serif))
-                    .tracking(0.5)
-                    .foregroundColor(.black)
+        Button(action: {
+            KuroAccessibility.impactHaptic(.light)
+            showDetail = true
+        }) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Real image or placeholder
+                AsyncImage(url: URL(string: media.imageURL ?? "")) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color.black.opacity(0.05))
+                        .overlay(
+                            Text("IMAGE")
+                                .font(.system(size: 24, weight: .ultraLight))
+                                .foregroundColor(.black.opacity(0.3))
+                        )
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 420)
+                .clipped()
                 
-                Text("\(media.year)")
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(1.5)
-                    .foregroundColor(.black.opacity(0.5))
-                
-                Text(media.description)
-                    .font(.system(size: 11, weight: .light))
-                    .tracking(1.0)
-                    .foregroundColor(.black.opacity(0.6))
-                    .lineSpacing(4)
-                    .lineLimit(3)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(media.title.uppercased())
+                        .font(.system(size: 20, weight: .ultraLight, design: .serif))
+                        .tracking(0.5)
+                        .foregroundColor(.black)
+                    
+                    Text("\(media.year)")
+                        .font(.system(size: 11, weight: .regular))
+                        .tracking(1.5)
+                        .foregroundColor(.black.opacity(0.5))
+                    
+                    Text(media.displayDescription)
+                        .font(.system(size: 11, weight: .light))
+                        .tracking(1.0)
+                        .foregroundColor(.black.opacity(0.6))
+                        .lineSpacing(4)
+                        .lineLimit(3)
+                }
+                .padding(.vertical, 24)
             }
-            .padding(.vertical, 24)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .sheet(isPresented: $showDetail) {
+            if let anime = media as? Anime {
+                AnimeDetailView(anime: anime)
+            } else if let manga = media as? Manga {
+                MangaDetailView(manga: manga)
+            }
         }
     }
 }
@@ -904,3 +976,5 @@ struct FeaturedCardLoading: View {
         }
     }
 }
+
+

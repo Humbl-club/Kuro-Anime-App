@@ -151,14 +151,24 @@ class SupabaseService {
         guard let userId = try? await client.auth.session.user.id else { return }
         
         do {
-            let listData: [String: Any] = [
-                "user_id": userId.uuidString,
-                "media_id": mediaId,
-                "media_type": mediaType,
-                "status": status.rawValue,
-                "progress": 0,
-                "private": false
-            ]
+            // Create a proper Codable struct instead of [String: Any]
+            struct ListData: Codable {
+                let user_id: String
+                let media_id: Int
+                let media_type: String
+                let status: String
+                let progress: Int
+                let `private`: Bool
+            }
+            
+            let listData = ListData(
+                user_id: userId.uuidString,
+                media_id: mediaId,
+                media_type: mediaType,
+                status: status.rawValue,
+                progress: 0,
+                private: false
+            )
             
             try await client.database
                 .from("user_lists")
@@ -235,19 +245,15 @@ class SupabaseService {
         }
     }
     
-    // MARK: - Real-time Subscriptions
+    // MARK: - Real-time Subscriptions  
     func subscribeToUpdates() {
-        // Subscribe to anime updates
-        Task {
-            for await change in client.database
-                .from("anime")
-                .on(.all) { event in
-                    print("🔄 Real-time anime update")
-                    Task {
-                        await self.fetchAnime()
-                    }
-                } {
-                // Handle subscription
+        // Simple polling approach - can be replaced with proper realtime when needed
+        print("📡 Real-time subscription placeholder - implement based on your Supabase SDK version")
+        
+        // Alternative: Use a timer for periodic updates if realtime is not available
+        Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
+            Task { @MainActor in
+                await self.fetchAnime(limit: 20)
             }
         }
     }

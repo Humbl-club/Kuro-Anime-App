@@ -6,7 +6,11 @@ protocol MediaDisplayable {
     var title: String { get }
     var imageURL: String? { get }
     var year: String { get }
-    var description: String { get }
+    var displayDescription: String { get }
+    var episodes: Int? { get }
+    var chapters: Int? { get }
+    var rating: Double? { get }
+    var genres: [String]? { get }
 }
 
 // MARK: - Media struct for UI components
@@ -15,7 +19,11 @@ struct Media: MediaDisplayable {
     let title: String
     let imageURL: String?
     let year: String
-    let description: String
+    let displayDescription: String
+    let episodes: Int?
+    let chapters: Int?
+    let rating: Double?
+    let genres: [String]?
 }
 
 // MARK: - Extensions to make existing models conform to MediaDisplayable
@@ -23,7 +31,20 @@ extension Anime: MediaDisplayable {
     var title: String { displayTitle }
     var imageURL: String? { displayImage.isEmpty ? nil : displayImage }
     var year: String { displayYear }
-    var description: String { self.description ?? "No description available" }
+    
+    var displayDescription: String { 
+        return description ?? "No description available" 
+    }
+    
+    var episodes: Int? { episodeCount }
+    var chapters: Int? { nil } // Anime doesn't have chapters
+    var rating: Double? { 
+        if let score = averageScore {
+            return Double(score) / 10.0 // Convert from 0-100 to 0-10 scale
+        }
+        return nil
+    }
+    var genres: [String]? { genreList }
 }
 
 extension Manga: MediaDisplayable {
@@ -35,7 +56,20 @@ extension Manga: MediaDisplayable {
         }
         return "TBA"
     }
-    var description: String { self.description ?? "No description available" }
+    
+    var displayDescription: String { 
+        return description ?? "No description available" 
+    }
+    
+    var episodes: Int? { nil } // Manga doesn't have episodes
+    var chapters: Int? { chapterCount }
+    var rating: Double? { 
+        if let score = averageScore {
+            return Double(score) / 10.0 // Convert from 0-100 to 0-10 scale
+        }
+        return nil
+    }
+    var genres: [String]? { genreList }
 }
 
 // MARK: - Supabase Data Models
@@ -59,14 +93,13 @@ struct Anime: Identifiable, Codable {
     let bannerImage: String?
     
     // Basic info
-    let type: String                      // 'ANIME'
     let format: String?                   // TV, MOVIE, OVA, etc.
     let status: String?                   // FINISHED, RELEASING, etc.
     let description: String?
     let descriptionNormalized: String?
     
     // Numbers
-    let episodes: Int?
+    let episodeCount: Int?
     let duration: Int?                    // Episode duration in minutes
     let totalDuration: Int?
     
@@ -92,8 +125,8 @@ struct Anime: Identifiable, Codable {
     let favourites: Int?
     
     // Categories
-    let genres: [String]?
-    let tags: [String: Any]?              // JSONB tags from AniList
+    let genreList: [String]?
+    let tags: String?              // JSONB tags from AniList stored as JSON string
     
     // Content rating
     let isAdult: Bool
@@ -124,9 +157,9 @@ struct Anime: Identifiable, Codable {
         case coverImageMedium = "cover_image_medium"
         case coverImageColor = "cover_image_color"
         case bannerImage = "banner_image"
-        case type, format, status, description
+        case format, status, description
         case descriptionNormalized = "description_normalized"
-        case episodes, duration
+        case episodeCount = "episodes", duration
         case totalDuration = "total_duration"
         case season
         case seasonYear = "season_year"
@@ -140,7 +173,8 @@ struct Anime: Identifiable, Codable {
         case nextAiringAt = "next_airing_at"
         case averageScore = "average_score"
         case meanScore = "mean_score"
-        case popularity, trending, favourites, genres, tags
+        case popularity, trending, favourites
+        case genreList = "genres", tags
         case isAdult = "is_adult"
         case ageRating = "age_rating"
         case siteUrl = "site_url"
@@ -169,10 +203,20 @@ struct Anime: Identifiable, Codable {
     }
     
     var episodeText: String {
-        if let episodes = episodes {
+        if let episodes = episodeCount {
             return episodes == 1 ? "FILM" : "\(episodes) EPS"
         }
         return "ONGOING"
+    }
+    
+    // Helper property to decode tags as dictionary when needed
+    var tagsAsDictionary: [String: Any]? {
+        guard let tags = tags,
+              let data = tags.data(using: .utf8),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        return dict
     }
 }
 
@@ -191,15 +235,14 @@ struct Manga: Identifiable, Codable {
     let coverImageColor: String?
     
     // Info
-    let type: String                      // 'MANGA'
     let format: String?                   // MANGA, NOVEL, ONE_SHOT, etc.
     let status: String?
     let description: String?
     let descriptionNormalized: String?
     
     // Numbers
-    let chapters: Int?
-    let volumes: Int?
+    let chapterCount: Int?
+    let volumeCount: Int?
     
     // Release
     let startDateYear: Int?
@@ -210,7 +253,7 @@ struct Manga: Identifiable, Codable {
     let popularity: Int?
     
     // Categories
-    let genres: [String]?
+    let genreList: [String]?
     
     // External
     let siteUrl: String?
@@ -228,13 +271,14 @@ struct Manga: Identifiable, Codable {
         case coverImageLarge = "cover_image_large"
         case coverImageMedium = "cover_image_medium"
         case coverImageColor = "cover_image_color"
-        case type, format, status, description
+        case format, status, description
         case descriptionNormalized = "description_normalized"
-        case chapters, volumes
+        case chapterCount = "chapters", volumeCount = "volumes"
         case startDateYear = "start_date_year"
         case startDateMonth = "start_date_month"
         case averageScore = "average_score"
-        case popularity, genres
+        case popularity
+        case genreList = "genres"
         case siteUrl = "site_url"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -250,7 +294,7 @@ struct Manga: Identifiable, Codable {
     }
     
     var chapterText: String {
-        if let chapters = chapters {
+        if let chapters = chapterCount {
             return "\(chapters) CH"
         }
         return "ONGOING"
