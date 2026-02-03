@@ -33,7 +33,15 @@ serve(async (req) => {
   const startedMs = Date.now();
   const shouldStop = () => (Date.now() - startedMs) >= timeBudgetMs;
 
+  let runId: number | null = null;
   try {
+    runId = await startMirrorRun(supabase, payload);
+    const lockAcquired = await acquireImportLock(supabase, 'mirror-images', payload?.lockTtlSeconds ?? 1800);
+    if (!lockAcquired) {
+      await finishMirrorRun(supabase, runId, 'skipped', {}, 'locked', startedMs);
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: 'locked' }), { headers: { 'Content-Type': 'application/json' } });
+    }
+
     const results: Record<string, number> = {};
 
     if (mediaTypes.includes('ANIME')) {
@@ -49,8 +57,11 @@ serve(async (req) => {
       results['staff'] = await mirrorStaff(supabase, bucket, limit, offset, overwrite);
     }
 
+    await finishMirrorRun(supabase, runId, 'success', results, null, startedMs);
     return new Response(JSON.stringify({ success: true, results }), { headers: { 'Content-Type': 'application/json' } });
   } catch (e) {
+    // Best-effort logging; do not mask original error.
+    try { await finishMirrorRun(supabase, runId, 'error', {}, (e as Error).message, startedMs); } catch (_ignored) {}
     return new Response(JSON.stringify({ success: false, error: (e as Error).message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 
@@ -222,5 +233,58 @@ serve(async (req) => {
   function getPublicUrl(bucket: string, path: string): string {
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;
+  }
+
+  async function acquireImportLock(supabase: any, key: string, ttlSeconds: number): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.rpc('acquire_import_lock', { p_key: key, p_ttl_seconds: ttlSeconds });
+      if (error) {
+        console.error('Acquire lock error:', error);
+        return true; // fail open to avoid blocking if RPC missing
+      }
+      return Boolean(data);
+    } catch (e) {
+      console.error('Acquire lock exception:', e);
+      return true;
+    }
+  }
+
+  async function startMirrorRun(supabase: any, payload: any): Promise<number | null> {
+    try {
+      const { data, error } = await supabase
+        .from('mirror_runs')
+        .insert({ payload, status: 'running', started_at: new Date().toISOString() })
+        .select('id')
+        .single();
+      if (error) {
+        console.error('mirror_runs insert error:', error);
+        return null;
+      }
+      return data?.id ?? null;
+    } catch (e) {
+      console.error('mirror_runs insert exception:', e);
+      return null;
+    }
+  }
+
+  async function finishMirrorRun(
+    supabase: any,
+    runId: number | null,
+    status: string,
+    results: Record<string, number>,
+    message: string | null,
+    startedAtMs: number
+  ): Promise<void> {
+    if (!runId) return;
+    try {
+      const durationMs = Date.now() - startedAtMs;
+      const { error } = await supabase
+        .from('mirror_runs')
+        .update({ status, results, message, finished_at: new Date().toISOString(), duration_ms: durationMs })
+        .eq('id', runId);
+      if (error) console.error('mirror_runs update error:', error);
+    } catch (e) {
+      console.error('mirror_runs update exception:', e);
+    }
   }
 });
