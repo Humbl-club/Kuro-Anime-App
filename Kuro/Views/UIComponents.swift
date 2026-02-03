@@ -1,11 +1,11 @@
 import SwiftUI
 
 // MARK: - Kuro Header (Shared)
-public struct KuroHeader: View {
+struct KuroHeader: View {
     public let currentSection: String
-    @Binding public var showProfile: Bool
+    @Binding var showProfile: Bool
 
-    public init(currentSection: String, showProfile: Binding<Bool>) {
+    init(currentSection: String, showProfile: Binding<Bool>) {
         self.currentSection = currentSection
         self._showProfile = showProfile
     }
@@ -28,7 +28,10 @@ public struct KuroHeader: View {
 
                     Spacer()
 
-                    Button(action: { showProfile.toggle() }) {
+                    Button(action: {
+                        KuroAccessibility.impactHaptic(.light)
+                        showProfile.toggle()
+                    }) {
                         Circle()
                             .fill(Color.black.opacity(0.08))
                             .frame(width: 32, height: 32)
@@ -38,6 +41,8 @@ public struct KuroHeader: View {
                                     .foregroundColor(.black)
                             )
                     }
+                    .accessibilityLabel("Settings")
+                    .accessibilityHint("Opens settings")
                 }
                 .padding(.horizontal, max(geometry.size.width * 0.05, 16))
                 .padding(.vertical, max(geometry.size.height * 0.2, 12))
@@ -54,11 +59,11 @@ public struct KuroHeader: View {
 }
 
 // MARK: - Page Dots (Shared)
-public struct PageDots: View {
+struct PageDots: View {
     public let count: Int
     public let currentIndex: Int
 
-    public init(count: Int, currentIndex: Int) {
+    init(count: Int, currentIndex: Int) {
         self.count = count
         self.currentIndex = currentIndex
     }
@@ -76,5 +81,6 @@ public struct PageDots: View {
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
         .padding(.bottom, 20)
+        .accessibilityHidden(true)
     }
 }

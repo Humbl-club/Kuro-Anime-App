@@ -13,12 +13,12 @@ struct AnimeDetailView: View {
     var body: some View {
         GeometryReader { geometry in
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
+                VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)) {
                     // Hero Section with Parallax Effect
                     HeroSection(anime: anime, geometry: geometry, scrollOffset: $scrollOffset)
                     
                     // Content Section
-                    VStack(spacing: KuroSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width)) {
+                    VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)) {
                         // Title & Quick Info
                         TitleSection(anime: anime)
                         
@@ -45,10 +45,11 @@ struct AnimeDetailView: View {
                         ActionButtons(anime: anime)
                     }
                     .padding(.horizontal, ResponsiveLayout.padding())
-                    .padding(.top, KuroSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width))
-                    .padding(.bottom, KuroSpacing.adaptive(KuroSpacing.xxxl, for: geometry.size.width))
+                    .padding(.top, KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width))
+                    .padding(.bottom, KuroDesignSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width))
                 }
             }
+            .transaction { $0.animation = nil }
             .background(Color.kuroBackground)
             .ignoresSafeArea(edges: .top)
             .overlay(alignment: .topLeading) {
@@ -58,7 +59,11 @@ struct AnimeDetailView: View {
                     .padding(.leading, ResponsiveLayout.padding())
             }
         }
+        #if os(iOS)
         .navigationBarHidden(true)
+        #else
+        .toolbar(.hidden, for: .windowToolbar)
+        #endif
     }
 }
 
@@ -71,7 +76,7 @@ struct HeroSection: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             // Banner/Cover Image with Parallax
-            AsyncImage(url: URL(string: anime.bannerImage ?? anime.displayImage)) { image in
+            KuroCachedAsyncImage(url: URL(string: anime.bannerImage ?? anime.displayImage)) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -85,7 +90,7 @@ struct HeroSection: View {
                         )
                     )
             }
-            .frame(width: geometry.size.width, height: ResponsiveLayout.imageHeight(400))
+            .frame(width: geometry.size.width, height: ResponsiveLayout.imageHeight(320))
             .clipped()
             .offset(y: scrollOffset * 0.5) // Parallax effect
             
@@ -109,7 +114,7 @@ struct HeroSection: View {
             .padding(.horizontal, ResponsiveLayout.padding())
             .padding(.bottom, KuroSpacing.lg)
         }
-        .frame(height: ResponsiveLayout.imageHeight(400))
+        .frame(height: ResponsiveLayout.imageHeight(320))
     }
 }
 
@@ -217,7 +222,7 @@ struct StatCard: View {
                 .foregroundColor(.kuroBlack60)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, KuroSpacing.lg)
+        .padding(.vertical, KuroSpacing.md)
         .background(Color.kuroBlack08)
         .cornerRadius(KuroRadius.sm)
     }
@@ -303,6 +308,20 @@ struct GenreTag: View {
 struct EpisodesSection: View {
     let anime: Anime
     let episodeCount: Int
+    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.openURL) private var openURL
+    @State private var episodes: [Episode] = []
+    @State private var isLoading: Bool = false
+    @State private var showAllEpisodes: Bool = false
+    @State private var markingEpisode: Int? = nil
+
+    private var userProgress: Int {
+        supabaseService.getProgress(for: anime.id) ?? 0
+    }
+
+    private var nextEpisodeNumber: Int {
+        max(1, userProgress + 1)
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: KuroSpacing.md) {
@@ -320,25 +339,46 @@ struct EpisodesSection: View {
                     .foregroundColor(.kuroBlack60)
             }
             
-            // Episode list placeholder
             VStack(spacing: KuroSpacing.sm) {
-                ForEach(1...min(episodeCount, 5), id: \.self) { episode in
-                    EpisodeRow(episodeNumber: episode)
+                if isLoading && episodes.isEmpty {
+                    ForEach(0..<3, id: \.self) { _ in
+                        EpisodeSkeletonRow()
+                    }
+                } else if episodes.isEmpty {
+                    HStack {
+                        Text("No episode data yet")
+                            .font(.kuroMicro(weight: .light))
+                            .foregroundColor(.kuroBlack60)
+                        Spacer()
+                    }
+                    .padding(KuroSpacing.md)
+                    .background(Color.kuroBlack08)
+                    .cornerRadius(KuroRadius.sm)
+                } else {
+                    ForEach(episodes.prefix(5)) { ep in
+                        EpisodeItemRow(
+                            episode: ep,
+                            isWatched: ep.number <= userProgress,
+                            isMarking: markingEpisode == ep.number,
+                            onOpen: { openEpisode(ep) },
+                            onMarkWatched: { markWatched(ep) }
+                        )
+                    }
                 }
-                
+
                 if episodeCount > 5 {
                     Button(action: {
-                        // Navigate to full episode list
                         KuroAccessibility.impactHaptic(.light)
+                        showAllEpisodes = true
                     }) {
                         HStack {
                             Text("VIEW ALL \(episodeCount) EPISODES")
                                 .font(.kuroMicro(weight: .medium))
                                 .tracking(1.0)
                                 .foregroundColor(.kuroBlack80)
-                            
+
                             Spacer()
-                            
+
                             Image(systemName: "chevron.right")
                                 .font(.kuroMicro())
                                 .foregroundColor(.kuroBlack30)
@@ -351,22 +391,90 @@ struct EpisodesSection: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .task(id: nextEpisodeNumber) {
+            await loadPreview()
+        }
+        .sheet(isPresented: $showAllEpisodes) {
+            EpisodeListSheet(anime: anime, episodeCount: episodeCount)
+                .environment(supabaseService)
+        }
+    }
+
+    private func loadPreview() async {
+        isLoading = true
+        defer { isLoading = false }
+        episodes = await supabaseService.fetchEpisodesNext(animeId: anime.id, fromNumber: nextEpisodeNumber, limit: 10)
+    }
+
+    private func openEpisode(_ ep: Episode) {
+        KuroAccessibility.impactHaptic(.light)
+        if let urlString = ep.streamUrl, let url = URL(string: urlString) {
+            openURL(url)
+        } else if let urlString = anime.siteUrl, let url = URL(string: urlString) {
+            openURL(url)
+        }
+    }
+
+    private func markWatched(_ ep: Episode) {
+        let target = min(ep.number, episodeCount)
+        markingEpisode = ep.number
+        Task {
+            await supabaseService.setUserProgress(mediaId: anime.id, mediaType: "anime", progress: target)
+            await MainActor.run { markingEpisode = nil }
+        }
     }
 }
 
-// MARK: - Episode Row
-struct EpisodeRow: View {
-    let episodeNumber: Int
-    
+struct EpisodeItemRow: View {
+    let episode: Episode
+    let isWatched: Bool
+    let isMarking: Bool
+    let onOpen: () -> Void
+    let onMarkWatched: () -> Void
+
     var body: some View {
-        HStack {
-            Text("EP \(episodeNumber)")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.0)
-                .foregroundColor(.kuroBlack80)
-            
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("EP \(episode.number)".uppercased())
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.0)
+                    .foregroundColor(.kuroBlack80)
+
+                if let title = episode.title ?? episode.titleRomaji, !title.isEmpty {
+                    Text(title)
+                        .font(.kuroMicro(weight: .light))
+                        .foregroundColor(.kuroBlack60)
+                        .lineLimit(1)
+                } else if let site = episode.streamSite, !site.isEmpty {
+                    Text(site.uppercased())
+                        .font(.kuroMicro(weight: .light))
+                        .foregroundColor(.kuroBlack60)
+                        .lineLimit(1)
+                }
+            }
+
             Spacer()
-            
+
+            if isMarking {
+                ProgressView()
+                    .scaleEffect(0.75)
+            } else if isWatched {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.kuroBlack)
+            } else {
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    onMarkWatched()
+                }) {
+                    Image(systemName: "plus.circle")
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundColor(.kuroBlack80)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Mark watched")
+            }
+
             Image(systemName: "chevron.right")
                 .font(.kuroMicro())
                 .foregroundColor(.kuroBlack30)
@@ -374,16 +482,211 @@ struct EpisodeRow: View {
         .padding(KuroSpacing.md)
         .background(Color.kuroBlack08)
         .cornerRadius(KuroRadius.sm)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onOpen)
+        // Make the whole row operable in VoiceOver (plus-button stays visual; action is exposed below).
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(accessibilityLabelText())
+        .accessibilityValue(accessibilityValueText())
+        .accessibilityHint("Opens episode")
+        .accessibilityAction { onOpen() }
+        .accessibilityAction(named: "Mark watched") {
+            if !isWatched && !isMarking { onMarkWatched() }
+        }
+    }
+
+    private func accessibilityLabelText() -> Text {
+        var parts: [String] = []
+        parts.append("Episode \(episode.number)")
+        if let title = episode.title ?? episode.titleRomaji, !title.isEmpty {
+            parts.append(title)
+        } else if let site = episode.streamSite, !site.isEmpty {
+            parts.append(site)
+        }
+        return Text(parts.joined(separator: ", "))
+    }
+
+    private func accessibilityValueText() -> Text {
+        if isMarking { return Text("Updating") }
+        return Text(isWatched ? "Watched" : "Not watched")
+    }
+}
+
+struct EpisodeSkeletonRow: View {
+    var body: some View {
+        HStack {
+            Rectangle()
+                .fill(Color.kuroBlack.opacity(0.08))
+                .frame(height: 10)
+                .frame(maxWidth: 90, alignment: .leading)
+            Spacer()
+            Rectangle()
+                .fill(Color.kuroBlack.opacity(0.06))
+                .frame(width: 14, height: 14)
+        }
+        .padding(KuroSpacing.md)
+        .background(Color.kuroBlack08)
+        .cornerRadius(KuroRadius.sm)
+        .redacted(reason: .placeholder)
+        .accessibilityHidden(true)
+    }
+}
+
+struct EpisodeListSheet: View {
+    let anime: Anime
+    let episodeCount: Int
+    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
+
+    @State private var episodes: [Episode] = []
+    @State private var isLoading: Bool = false
+    @State private var hasLoadedOnce: Bool = false
+    @State private var hasMore: Bool = true
+    @State private var offset: Int = 0
+    @State private var markingEpisode: Int? = nil
+
+    private let pageSize: Int = 50
+
+    private var userProgress: Int { supabaseService.getProgress(for: anime.id) ?? 0 }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: KuroSpacing.sm) {
+                    if hasLoadedOnce && episodes.isEmpty && !isLoading {
+                        VStack(spacing: 10) {
+                            Text("NO EPISODES FOUND")
+                                .font(.kuroMicro(weight: .medium))
+                                .tracking(1.2)
+                                .foregroundColor(.kuroBlack60)
+                            Text("Episode data may still be importing.")
+                                .font(.kuroMicro(weight: .light))
+                                .foregroundColor(.kuroBlack30)
+                        }
+                        .padding(.vertical, 32)
+                    }
+
+                    ForEach(Array(episodes.enumerated()), id: \.element.id) { index, ep in
+                        EpisodeItemRow(
+                            episode: ep,
+                            isWatched: ep.number <= userProgress,
+                            isMarking: markingEpisode == ep.number,
+                            onOpen: { openEpisode(ep) },
+                            onMarkWatched: { markWatched(ep) }
+                        )
+                        .onAppear {
+                            if index == episodes.count - 1, hasMore, !isLoading {
+                                Task { await loadMore() }
+                            }
+                        }
+                    }
+
+                    if isLoading {
+                        ProgressView()
+                            .padding(.vertical, 16)
+                    }
+                }
+                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.top, KuroSpacing.md)
+                .padding(.bottom, KuroSpacing.xl)
+            }
+            .background(Color.kuroBackground)
+            .navigationTitle("Episodes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close") { dismiss() }
+                        .font(.kuroMicro(weight: .medium))
+                }
+            }
+            .task {
+                await loadMore(reset: true)
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private func loadMore(reset: Bool = false) async {
+        if reset {
+            episodes = []
+            offset = 0
+            hasMore = true
+            hasLoadedOnce = false
+        }
+        guard hasMore, !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
+
+        let page = await supabaseService.fetchEpisodesPage(animeId: anime.id, offset: offset, limit: pageSize)
+        episodes.append(contentsOf: page)
+        hasMore = page.count == pageSize
+        if hasMore { offset += pageSize }
+        hasLoadedOnce = true
+    }
+
+    private func openEpisode(_ ep: Episode) {
+        KuroAccessibility.impactHaptic(.light)
+        if let urlString = ep.streamUrl, let url = URL(string: urlString) {
+            openURL(url)
+        } else if let urlString = anime.siteUrl, let url = URL(string: urlString) {
+            openURL(url)
+        }
+    }
+
+    private func markWatched(_ ep: Episode) {
+        let target = min(ep.number, episodeCount)
+        markingEpisode = ep.number
+        Task {
+            await supabaseService.setUserProgress(mediaId: anime.id, mediaType: "anime", progress: target)
+            await MainActor.run { markingEpisode = nil }
+        }
     }
 }
 
 // MARK: - Action Buttons
 struct ActionButtons: View {
     let anime: Anime
+    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.openURL) private var openURL
     @State private var showAddToList = false
-    
+    @State private var showProviders = false
+    @State private var watchLink: (url: String, site: String, label: String)? = nil
+    @State private var allLinks: [ExternalLink] = []
+
+    private var isSaved: Bool {
+        supabaseService.isInCollection(mediaId: anime.id, mediaType: "anime")
+    }
+
     var body: some View {
         VStack(spacing: KuroSpacing.md) {
+            if let link = watchLink, !link.url.isEmpty {
+                Button(action: {
+                    if allLinks.count > 1 {
+                        showProviders = true
+                    } else if let url = URL(string: link.url) {
+                        KuroAccessibility.impactHaptic(.medium)
+                        openURL(url)
+                    }
+                }) {
+                    HStack {
+                        Text(link.label)
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(1.0)
+                        Spacer()
+                        Image(systemName: allLinks.count > 1 ? "list.bullet" : "arrow.up.right")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(.kuroWhite)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, KuroSpacing.md)
+                    .padding(.horizontal, KuroSpacing.md)
+                    .background(Color.kuroBlack)
+                    .cornerRadius(KuroRadius.sm)
+                }
+            }
+
             // Add to List Button
             Button(action: {
                 KuroAccessibility.impactHaptic(.medium)
@@ -399,7 +702,7 @@ struct ActionButtons: View {
                 }
                 .foregroundColor(.kuroWhite)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, KuroSpacing.lg)
+                .padding(.vertical, KuroSpacing.md)
                 .background(Color.kuroBlack)
                 .cornerRadius(KuroRadius.sm)
             }
@@ -409,8 +712,55 @@ struct ActionButtons: View {
             
             // Secondary Actions
             HStack(spacing: KuroSpacing.md) {
-                SecondaryActionButton(icon: "heart", label: "FAVORITE")
-                SecondaryActionButton(icon: "square.and.arrow.up", label: "SHARE")
+                SecondaryActionButton(
+                    icon: isSaved ? "heart.fill" : "heart",
+                    label: isSaved ? "SAVED" : "SAVE"
+                ) {
+                    toggleSaved()
+                }
+
+                if let urlString = anime.siteUrl, let url = URL(string: urlString) {
+                    SecondaryShareButton(url: url, title: anime.displayTitle)
+                } else {
+                    SecondaryActionButton(icon: "square.and.arrow.up", label: "SHARE") { }
+                }
+            }
+        }
+        .task(id: supabaseService.getProgress(for: anime.id) ?? -1) {
+            await refreshLinks()
+        }
+        .sheet(isPresented: $showProviders) {
+            ProviderSelectionSheet(title: "Watch On", links: allLinks) { link in
+                if let url = URL(string: link.url) {
+                    KuroAccessibility.impactHaptic(.light)
+                    openURL(url)
+                }
+            }
+        }
+    }
+
+    private func refreshLinks() async {
+        let progress = supabaseService.getProgress(for: anime.id)
+        let best = await supabaseService.getBestWatchLink(anime: anime, userProgress: progress)
+        let links = await supabaseService.fetchExternalLinks(mediaType: "ANIME", mediaId: anime.id)
+        await MainActor.run {
+            self.watchLink = best
+            self.allLinks = links
+        }
+    }
+
+    private func toggleSaved() {
+        let currentlySaved = isSaved
+        Task {
+            if currentlySaved {
+                await supabaseService.removeFromList(mediaId: anime.id, mediaType: "anime")
+            } else {
+                await supabaseService.addToList(mediaId: anime.id, mediaType: "anime", status: .planning)
+            }
+            if let msg = supabaseService.errorMessage, !msg.isEmpty {
+                KuroAccessibility.errorHaptic()
+            } else {
+                KuroAccessibility.successHaptic()
             }
         }
     }
@@ -420,10 +770,12 @@ struct ActionButtons: View {
 struct SecondaryActionButton: View {
     let icon: String
     let label: String
+    var action: () -> Void = { }
     
     var body: some View {
         Button(action: {
             KuroAccessibility.impactHaptic(.light)
+            action()
         }) {
             HStack {
                 Image(systemName: icon)
@@ -435,10 +787,72 @@ struct SecondaryActionButton: View {
             }
             .foregroundColor(.kuroBlack80)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, KuroSpacing.lg)
+            .padding(.vertical, KuroSpacing.md)
             .background(Color.kuroBlack08)
             .cornerRadius(KuroRadius.sm)
         }
+    }
+}
+
+struct SecondaryShareButton: View {
+    let url: URL
+    let title: String
+
+    var body: some View {
+        ShareLink(item: url, subject: Text(title)) {
+            HStack {
+                Image(systemName: "square.and.arrow.up")
+                    .font(.kuroMicro())
+
+                Text("SHARE")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.0)
+            }
+            .foregroundColor(.kuroBlack80)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, KuroSpacing.md)
+            .background(Color.kuroBlack08)
+            .cornerRadius(KuroRadius.sm)
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture().onEnded { KuroAccessibility.impactHaptic(.light) })
+    }
+}
+
+struct ProviderSelectionSheet: View {
+    let title: String
+    let links: [ExternalLink]
+    let onSelect: (ExternalLink) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List(links) { link in
+                Button(action: {
+                    onSelect(link)
+                    dismiss()
+                }) {
+                    HStack {
+                        Text(link.site ?? "Provider")
+                            .font(.kuroBody(weight: .regular))
+                        Spacer()
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.kuroBlack30)
+                    }
+                    .padding(.vertical, KuroSpacing.sm)
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close") { dismiss() }
+                        .font(.kuroMicro(weight: .medium))
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
 

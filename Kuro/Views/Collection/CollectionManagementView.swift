@@ -8,47 +8,105 @@ struct CollectionManagementView: View {
     @State private var selectedStatus: ListStatus = .current
     @State private var showAddSheet = false
     @State private var searchText = ""
+    @State private var mediaIsManga = false
     
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
                 // Header
                 CollectionHeader()
-                
+
+                // Media Toggle
+                HStack(spacing: KuroSpacing.xl) {
+                    Button(action: {
+                        withAnimation(KuroAnimation.spring) { mediaIsManga = false }
+                        KuroAccessibility.impactHaptic(.light)
+                    }) {
+                        Text("ANIME")
+                            .font(.kuroMicro(weight: mediaIsManga ? .light : .medium))
+                            .foregroundColor(mediaIsManga ? .kuroBlack60 : .kuroBlack)
+                    }
+                    Button(action: {
+                        withAnimation(KuroAnimation.spring) { mediaIsManga = true }
+                        // Collection is server-driven; no giant prefetch needed.
+                        KuroAccessibility.impactHaptic(.light)
+                    }) {
+                        Text("MANGA")
+                            .font(.kuroMicro(weight: mediaIsManga ? .medium : .light))
+                            .foregroundColor(mediaIsManga ? .kuroBlack : .kuroBlack60)
+                    }
+                }
+                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.top, KuroSpacing.lg)
+
                 // Status Filter
                 StatusFilterBar(selectedStatus: $selectedStatus)
                 
                 // Collection Grid
                 ScrollView(.vertical, showsIndicators: false) {
-                    if filteredItems.isEmpty {
+                    if (mediaIsManga ? filteredMangaItems.isEmpty : filteredItems.isEmpty) {
                         EmptyCollectionView(status: selectedStatus)
                     } else {
                         LazyVGrid(
                             columns: adaptiveColumns(for: geometry.size.width),
-                            spacing: KuroSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)
+                            spacing: KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)
                         ) {
-                            ForEach(filteredItems) { item in
-                                CollectionItemCard(item: item)
+                            if mediaIsManga {
+                                ForEach(filteredMangaItems) { item in
+                                    CollectionCardReal(media: item)
+                                }
+                            } else {
+                                ForEach(filteredItems) { item in
+                                    CollectionItemCard(item: item)
+                                }
                             }
                         }
                         .padding(.horizontal, ResponsiveLayout.padding())
                         .padding(.top, KuroSpacing.lg)
                     }
                 }
+                .transaction { $0.animation = nil }
                 .background(Color.kuroBackground)
+            }
+        }
+        .onAppear {
+            Task {
+                await supabaseService.fetchUserLists()
+                await supabaseService.fetchCollectionItems()
             }
         }
     }
     
     private var filteredItems: [Anime] {
-        // TODO: Filter by user's list status
-        supabaseService.animeItems
+        let ids: Set<Int> = Set(
+            supabaseService.userLists
+                .filter { $0.mediaType.lowercased() == "anime" }
+                .filter { $0.status == selectedStatus }
+                .map { $0.mediaId }
+        )
+        if ids.isEmpty { return [] }
+        let lookup: [Int: Anime] = Dictionary(uniqueKeysWithValues: supabaseService.collectionAnimeItems.map { ($0.id, $0) })
+        return ids.compactMap { lookup[$0] }
+            .sorted { $0.updatedAt > $1.updatedAt }
+    }
+
+    private var filteredMangaItems: [Manga] {
+        let ids: Set<Int> = Set(
+            supabaseService.userLists
+                .filter { $0.mediaType.lowercased() == "manga" }
+                .filter { $0.status == selectedStatus }
+                .map { $0.mediaId }
+        )
+        if ids.isEmpty { return [] }
+        let lookup: [Int: Manga] = Dictionary(uniqueKeysWithValues: supabaseService.collectionMangaItems.map { ($0.id, $0) })
+        return ids.compactMap { lookup[$0] }
+            .sorted { $0.updatedAt > $1.updatedAt }
     }
     
     private func adaptiveColumns(for width: CGFloat) -> [GridItem] {
         let columnCount: Int
         switch width {
-        case 0..<375:    columnCount = 2
+        case 0..<375:    columnCount = 3
         case 375..<768:  columnCount = 3
         case 768..<1024: columnCount = 4
         default:         columnCount = 5
@@ -150,6 +208,11 @@ struct CollectionItemCard: View {
     let item: Anime
     @State private var showDetail = false
     @State private var showProgress = false
+    @Environment(SupabaseService.self) private var supabaseService
+
+    private var userProgress: Int {
+        supabaseService.userLists.first(where: { $0.mediaType.lowercased() == "anime" && $0.mediaId == item.id })?.progress ?? 0
+    }
     
     var body: some View {
         Button(action: {
@@ -158,7 +221,7 @@ struct CollectionItemCard: View {
         }) {
             VStack(alignment: .leading, spacing: KuroSpacing.xs) {
                 // Cover Image
-                AsyncImage(url: URL(string: item.displayImage)) { image in
+                KuroCachedAsyncImage(url: URL(string: item.displayImage)) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -172,10 +235,12 @@ struct CollectionItemCard: View {
                 }
                 .aspectRatio(0.7, contentMode: .fill)
                 .clipped()
-                .cornerRadius(KuroRadius.sm)
+                .cornerRadius(4)
                 
                 // Progress Bar (if watching/reading)
-                ProgressBar(current: 5, total: item.episodeCount ?? 1)
+                if let total = item.episodeCount, total > 0 {
+                    ProgressBar(current: min(userProgress, total), total: total)
+                }
                 
                 // Title
                 Text(item.displayTitle.uppercased())
@@ -191,6 +256,8 @@ struct CollectionItemCard: View {
                     .tracking(0.5)
                     .foregroundColor(.kuroBlack60)
             }
+            .frame(maxWidth: 180)
+            .transaction { $0.animation = nil }
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showDetail) {
@@ -219,7 +286,9 @@ struct ProgressBar: View {
                 Rectangle()
                     .fill(Color.kuroBlack)
                     .frame(width: geometry.size.width * progress, height: 2)
+                    .clipShape(Rectangle())
             }
+            .transaction { $0.animation = nil }
         }
         .frame(height: 2)
     }
@@ -295,17 +364,44 @@ struct EmptyCollectionView: View {
 // MARK: - Add to List Sheet
 struct AddToListSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(SupabaseService.self) private var supabaseService
     let media: any MediaDisplayable
     @State private var selectedStatus: ListStatus = .planning
     @State private var progress: Int = 0
     @State private var score: Int = 0
     @State private var notes: String = ""
+    @State private var isExistingEntry: Bool = false
+    @State private var isSaving: Bool = false
+    @State private var saveError: String? = nil
+
+    private var mediaType: String {
+        media.kind.rawValue
+    }
+
+    private var maxProgress: Int {
+        let total = media.episodes ?? media.chapters ?? 0
+        return max(0, total)
+    }
+
+    private func statusLabel(_ status: ListStatus) -> String {
+        if mediaType == "manga" {
+            switch status {
+            case .current: return "Reading"
+            case .planning: return "Planned"
+            case .completed: return "Completed"
+            case .dropped: return "Dropped"
+            case .paused: return "Paused"
+            case .repeating: return "Rereading"
+            }
+        }
+        return status.displayName
+    }
     
     var body: some View {
         NavigationView {
             GeometryReader { geometry in
                 ScrollView {
-                    VStack(spacing: KuroSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width)) {
+                    VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width)) {
                         // Media Preview
                         MediaPreview(media: media)
                         
@@ -326,7 +422,8 @@ struct AddToListSheet: View {
                                 ForEach(ListStatus.allCases, id: \.self) { status in
                                     StatusCard(
                                         status: status,
-                                        isSelected: selectedStatus == status
+                                        isSelected: selectedStatus == status,
+                                        label: statusLabel(status)
                                     ) {
                                         selectedStatus = status
                                         KuroAccessibility.impactHaptic(.light)
@@ -336,7 +433,7 @@ struct AddToListSheet: View {
                         }
                         
                         // Progress
-                        if selectedStatus == .current {
+                        if (selectedStatus == .current || selectedStatus == .completed || selectedStatus == .repeating) && maxProgress > 0 {
                             VStack(alignment: .leading, spacing: KuroSpacing.md) {
                                 Text("PROGRESS")
                                     .font(.kuroMicro(weight: .medium))
@@ -344,8 +441,8 @@ struct AddToListSheet: View {
                                     .foregroundColor(.kuroBlack80)
                                 
                                 HStack {
-                                    Stepper(value: $progress, in: 0...(media.episodes ?? media.chapters ?? 100)) {
-                                        Text("\(progress) / \(media.episodes ?? media.chapters ?? 0)")
+                                    Stepper(value: $progress, in: 0...maxProgress) {
+                                        Text("\(progress) / \(maxProgress)")
                                             .font(.kuroBody(weight: .light))
                                             .foregroundColor(.kuroBlack80)
                                     }
@@ -395,7 +492,7 @@ struct AddToListSheet: View {
                         
                         // Save Button
                         Button(action: saveToList) {
-                            Text("ADD TO LIST")
+                            Text(isExistingEntry ? "SAVE" : "ADD TO LIST")
                                 .font(.kuroMicro(weight: .medium))
                                 .tracking(1.5)
                                 .foregroundColor(.kuroWhite)
@@ -403,6 +500,27 @@ struct AddToListSheet: View {
                                 .padding(.vertical, KuroSpacing.lg)
                                 .background(Color.kuroBlack)
                                 .cornerRadius(KuroRadius.sm)
+                        }
+                        .disabled(isSaving)
+
+                        if isExistingEntry {
+                            Button(role: .destructive, action: removeFromList) {
+                                Text("REMOVE FROM LIST")
+                                    .font(.kuroMicro(weight: .medium))
+                                    .tracking(1.5)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, KuroSpacing.lg)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(isSaving)
+                        }
+
+                        if let saveError {
+                            Text(saveError)
+                                .font(.kuroMicro(weight: .light))
+                                .foregroundColor(.red)
+                                .multilineTextAlignment(.center)
+                                .padding(.top, KuroSpacing.sm)
                         }
                     }
                     .padding(ResponsiveLayout.padding())
@@ -420,12 +538,77 @@ struct AddToListSheet: View {
                 }
             }
         }
+        .task(id: media.id) {
+            // Ensure we have latest list state for pre-filling.
+            await supabaseService.fetchUserLists()
+            if let entry = supabaseService.userLists.first(where: { $0.mediaId == media.id && $0.mediaType.lowercased() == mediaType }) {
+                isExistingEntry = true
+                selectedStatus = entry.status
+                progress = entry.progress
+                score = (entry.score ?? 0) / 10
+                notes = entry.notes ?? ""
+            } else {
+                isExistingEntry = false
+                selectedStatus = .planning
+                progress = 0
+                score = 0
+                notes = ""
+            }
+        }
     }
     
     private func saveToList() {
-        // TODO: Save to Supabase
-        KuroAccessibility.successHaptic()
-        dismiss()
+        saveError = nil
+        isSaving = true
+
+        // If user marks as completed and hasn't set progress, default progress to the end when we know totals.
+        let finalProgress: Int
+        if selectedStatus == .completed && maxProgress > 0 && progress == 0 {
+            finalProgress = maxProgress
+        } else {
+            finalProgress = progress
+        }
+
+        let rating: Int? = score > 0 ? score : nil
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let notesValue: String? = trimmedNotes.isEmpty ? nil : trimmedNotes
+
+        Task {
+            await supabaseService.upsertUserListEntry(
+                mediaId: media.id,
+                mediaType: mediaType,
+                status: selectedStatus,
+                progress: finalProgress,
+                rating: rating,
+                notes: notesValue
+            )
+            await MainActor.run {
+                isSaving = false
+                if let msg = supabaseService.errorMessage, !msg.isEmpty {
+                    saveError = msg
+                    return
+                }
+                KuroAccessibility.successHaptic()
+                dismiss()
+            }
+        }
+    }
+
+    private func removeFromList() {
+        saveError = nil
+        isSaving = true
+        Task {
+            await supabaseService.removeFromList(mediaId: media.id, mediaType: mediaType)
+            await MainActor.run {
+                isSaving = false
+                if let msg = supabaseService.errorMessage, !msg.isEmpty {
+                    saveError = msg
+                    return
+                }
+                KuroAccessibility.successHaptic()
+                dismiss()
+            }
+        }
     }
 }
 
@@ -435,7 +618,7 @@ struct MediaPreview: View {
     
     var body: some View {
         HStack(spacing: KuroSpacing.md) {
-            AsyncImage(url: URL(string: media.imageURL ?? "")) { image in
+            KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -484,6 +667,7 @@ struct MediaPreview: View {
 struct StatusCard: View {
     let status: ListStatus
     let isSelected: Bool
+    let label: String
     let action: () -> Void
     
     var body: some View {
@@ -493,7 +677,7 @@ struct StatusCard: View {
                     .font(.kuroCardTitle())
                     .foregroundColor(isSelected ? .kuroBlack : .kuroBlack30)
                 
-                Text(status.displayName.uppercased())
+                Text(label.uppercased())
                     .font(.kuroMicro(weight: isSelected ? .medium : .light))
                     .tracking(0.5)
                     .foregroundColor(isSelected ? .kuroBlack : .kuroBlack60)

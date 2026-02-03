@@ -240,7 +240,12 @@ async function processMangaItem(supabase, manga, results) {
   // 3. CREATE PLACEHOLDER VOLUMES (if volumes count is available)
   if (manga.volumes && manga.volumes > 0) {
     console.log(`📚 Creating ${manga.volumes} placeholder volumes...`);
-    
+    // Ensure idempotency: remove existing volumes for this manga before inserting
+    await supabase
+      .from('volumes')
+      .delete()
+      .eq('manga_id', insertedManga.id);
+
     // Create volumes 1 through manga.volumes
     for (let volumeNum = 1; volumeNum <= manga.volumes; volumeNum++) {
       const volumeData = {
@@ -252,8 +257,8 @@ async function processMangaItem(supabase, manga, results) {
       };
       
       const { error: volumeError } = await supabase
-        .from('manga_volumes')
-        .upsert(volumeData, { onConflict: 'manga_id,number' });
+        .from('volumes')
+        .insert(volumeData);
       
       if (!volumeError) {
         results.volumes++;
@@ -412,4 +417,3 @@ async function processMangaItem(supabase, manga, results) {
   
   console.log(`✅ Complete: ${manga.title?.english || manga.title?.romaji}`);
 }
-

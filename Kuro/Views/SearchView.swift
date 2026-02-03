@@ -1,5 +1,16 @@
 import SwiftUI
 
+private extension String {
+    func normalized() -> String {
+        self.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+    }
+    func tokens() -> [String] {
+        self.normalized()
+            .split{ $0.isWhitespace || $0.isNewline }
+            .map(String.init)
+    }
+}
+
 struct SearchView: View {
     @Environment(SupabaseService.self) private var supabaseService
     @State private var searchText: String = ""
@@ -9,11 +20,15 @@ struct SearchView: View {
     // Filter results based on search and categories (local composition over service results)
     private var filteredResults: [Anime] {
         var results = supabaseService.animeItems
-        if !searchText.isEmpty {
+        let tokens = searchText.tokens()
+        if !tokens.isEmpty {
             results = results.filter { media in
-                media.title.localizedCaseInsensitiveContains(searchText) ||
-                media.displayDescription.localizedCaseInsensitiveContains(searchText) ||
-                media.genres?.contains { $0.localizedCaseInsensitiveContains(searchText) } ?? false
+                let haystack = (
+                    (media.title) + " " +
+                    (media.displayDescription) + " " +
+                    ((media.genres ?? []).joined(separator: " "))
+                ).normalized()
+                return tokens.allSatisfy { haystack.contains($0) }
             }
         }
         if !selectedCategories.isEmpty {
@@ -128,7 +143,7 @@ struct SearchView: View {
             // Ensure the Group switching doesn’t animate
             .transaction { $0.animation = nil }
         }
-        .onChange(of: searchText) { _ in
+        .onChange(of: searchText) { _, _ in
             debounceSearch()
         }
         .onAppear {
@@ -159,9 +174,7 @@ struct SearchView: View {
         }
     }
 
-    private func performSearch() async {
-        await supabaseService.searchContent(query: searchText)
-    }
+    private func performSearch() async { /* local filtering only */ }
 }
 
 #Preview {

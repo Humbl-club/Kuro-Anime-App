@@ -6,7 +6,6 @@
 //
 
 import Testing
-import FirebaseCore
 @testable import Kuro
 
 @Suite("Kuro App Tests")
@@ -19,23 +18,6 @@ struct KuroTests {
         print("✅ App Launch: PASSED")
     }
     
-    @Test("Firebase Configuration Check")
-    func testFirebaseSetup() async throws {
-        // This will verify Firebase is properly configured
-        FirebaseApp.configure()
-        
-        let app = FirebaseApp.app()
-        #expect(app != nil, "Firebase should be configured after calling configure()")
-        
-        if let firebaseApp = app {
-            let options = firebaseApp.options
-            #expect(!options.googleAppID.isEmpty, "Google App ID should be configured")
-            #expect(!options.projectID.isEmpty, "Project ID should be configured")
-            print("✅ Firebase Setup: PASSED")
-            print("   - Project ID: \(options.projectID)")
-            print("   - Google App ID: \(options.googleAppID)")
-        }
-    }
 
     @Test("UI Components Test")
     func testUIComponents() async throws {

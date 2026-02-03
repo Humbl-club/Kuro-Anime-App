@@ -1,8 +1,14 @@
 import Foundation
 
+enum MediaKind: String, Codable, Sendable {
+    case anime
+    case manga
+}
+
 // MARK: - Media Protocol for UI compatibility
 protocol MediaDisplayable {
     var id: Int { get }
+    var kind: MediaKind { get }
     var title: String { get }
     var imageURL: String? { get }
     var year: String { get }
@@ -11,11 +17,19 @@ protocol MediaDisplayable {
     var chapters: Int? { get }
     var rating: Double? { get }
     var genres: [String]? { get }
+
+    // Optional metadata used for filtering/paging without requiring full models.
+    var statusRaw: String? { get }
+    var formatRaw: String? { get }
+    var popularityValue: Int? { get }
+    var trendingValue: Int? { get }
+    var createdAtValue: Date? { get }
 }
 
 // MARK: - Media struct for UI components
 struct Media: MediaDisplayable {
     let id: Int
+    let kind: MediaKind
     let title: String
     let imageURL: String?
     let year: String
@@ -24,10 +38,17 @@ struct Media: MediaDisplayable {
     let chapters: Int?
     let rating: Double?
     let genres: [String]?
+
+    let statusRaw: String?
+    let formatRaw: String?
+    let popularityValue: Int?
+    let trendingValue: Int?
+    let createdAtValue: Date?
 }
 
 // MARK: - Extensions to make existing models conform to MediaDisplayable
 extension Anime: MediaDisplayable {
+    var kind: MediaKind { .anime }
     var title: String { displayTitle }
     var imageURL: String? { displayImage.isEmpty ? nil : displayImage }
     var year: String { displayYear }
@@ -45,9 +66,15 @@ extension Anime: MediaDisplayable {
         return nil
     }
     var genres: [String]? { genreList }
+    var statusRaw: String? { status }
+    var formatRaw: String? { format }
+    var popularityValue: Int? { popularity }
+    var trendingValue: Int? { trending }
+    var createdAtValue: Date? { createdAt }
 }
 
 extension Manga: MediaDisplayable {
+    var kind: MediaKind { .manga }
     var title: String { displayTitle }
     var imageURL: String? { displayImage.isEmpty ? nil : displayImage }
     var year: String { 
@@ -70,6 +97,125 @@ extension Manga: MediaDisplayable {
         return nil
     }
     var genres: [String]? { genreList }
+    var statusRaw: String? { status }
+    var formatRaw: String? { format }
+    var popularityValue: Int? { popularity }
+    var trendingValue: Int? { trending }
+    var createdAtValue: Date? { createdAt }
+}
+
+// MARK: - Lightweight "card" models (minimal payload for rails/grids)
+// These are returned by RPCs like `discover_bundle` and `browse_*_page`.
+struct AnimeCard: Identifiable, Codable, Sendable, MediaDisplayable {
+    let id: Int
+    let titleEnglish: String?
+    let titleRomaji: String?
+    let titleNative: String?
+    let coverImageLarge: String?
+    let coverImageMedium: String?
+    let bannerImage: String?
+    let format: String?
+    let status: String?
+    let episodeCount: Int?
+    let seasonYear: Int?
+    let startDateYear: Int?
+    let averageScore: Int?
+    let popularity: Int?
+    let trending: Int?
+    let favourites: Int?
+    let genreList: [String]?
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case titleEnglish = "title_english"
+        case titleRomaji = "title_romaji"
+        case titleNative = "title_native"
+        case coverImageLarge = "cover_image_large"
+        case coverImageMedium = "cover_image_medium"
+        case bannerImage = "banner_image"
+        case format
+        case status
+        case episodeCount = "episode_count"
+        case seasonYear = "season_year"
+        case startDateYear = "start_date_year"
+        case averageScore = "average_score"
+        case popularity
+        case trending
+        case favourites
+        case genreList = "genres"
+        case createdAt = "created_at"
+    }
+
+    // MediaDisplayable
+    var kind: MediaKind { .anime }
+    var title: String { titleEnglish ?? titleRomaji ?? titleNative ?? "Unknown" }
+    var imageURL: String? { (coverImageLarge ?? coverImageMedium)?.isEmpty == false ? (coverImageLarge ?? coverImageMedium) : nil }
+    var year: String { seasonYear.map(String.init) ?? startDateYear.map(String.init) ?? "TBA" }
+    var displayDescription: String { "No description available" }
+    var episodes: Int? { episodeCount }
+    var chapters: Int? { nil }
+    var rating: Double? { averageScore.map { Double($0) / 10.0 } }
+    var genres: [String]? { genreList }
+    var statusRaw: String? { status }
+    var formatRaw: String? { format }
+    var popularityValue: Int? { popularity }
+    var trendingValue: Int? { trending }
+    var createdAtValue: Date? { createdAt }
+}
+
+struct MangaCard: Identifiable, Codable, Sendable, MediaDisplayable {
+    let id: Int
+    let titleEnglish: String?
+    let titleRomaji: String?
+    let titleNative: String?
+    let coverImageLarge: String?
+    let coverImageMedium: String?
+    let format: String?
+    let status: String?
+    let chapterCount: Int?
+    let startDateYear: Int?
+    let averageScore: Int?
+    let popularity: Int?
+    let trending: Int?
+    let favourites: Int?
+    let genreList: [String]?
+    let createdAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case titleEnglish = "title_english"
+        case titleRomaji = "title_romaji"
+        case titleNative = "title_native"
+        case coverImageLarge = "cover_image_large"
+        case coverImageMedium = "cover_image_medium"
+        case format
+        case status
+        case chapterCount = "chapter_count"
+        case startDateYear = "start_date_year"
+        case averageScore = "average_score"
+        case popularity
+        case trending
+        case favourites
+        case genreList = "genres"
+        case createdAt = "created_at"
+    }
+
+    // MediaDisplayable
+    var kind: MediaKind { .manga }
+    var title: String { titleEnglish ?? titleRomaji ?? titleNative ?? "Unknown" }
+    var imageURL: String? { (coverImageLarge ?? coverImageMedium)?.isEmpty == false ? (coverImageLarge ?? coverImageMedium) : nil }
+    var year: String { startDateYear.map(String.init) ?? "TBA" }
+    var displayDescription: String { "No description available" }
+    var episodes: Int? { nil }
+    var chapters: Int? { chapterCount }
+    var rating: Double? { averageScore.map { Double($0) / 10.0 } }
+    var genres: [String]? { genreList }
+    var statusRaw: String? { status }
+    var formatRaw: String? { format }
+    var popularityValue: Int? { popularity }
+    var trendingValue: Int? { trending }
+    var createdAtValue: Date? { createdAt }
 }
 
 // MARK: - Supabase Data Models
@@ -251,9 +397,16 @@ struct Manga: Identifiable, Codable {
     // Scores
     let averageScore: Int?
     let popularity: Int?
+    let trending: Int?
+    let favourites: Int?
     
     // Categories
     let genreList: [String]?
+    let tags: String?              // Optional JSONB tags (if present)
+
+    // Content rating
+    let isAdult: Bool
+    let ageRating: String?
     
     // External
     let siteUrl: String?
@@ -277,8 +430,11 @@ struct Manga: Identifiable, Codable {
         case startDateYear = "start_date_year"
         case startDateMonth = "start_date_month"
         case averageScore = "average_score"
-        case popularity
+        case popularity, trending, favourites
         case genreList = "genres"
+        case tags
+        case isAdult = "is_adult"
+        case ageRating = "age_rating"
         case siteUrl = "site_url"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -300,6 +456,15 @@ struct Manga: Identifiable, Codable {
         return "ONGOING"
     }
 }
+
+// MARK: - Discovery Facets (UI models)
+struct TagFacet: Identifiable, Hashable {
+    let id: Int
+    let name: String
+    let category: String?
+    let count: Int
+}
+
 
 struct UserList: Identifiable, Codable {
     let id: Int                           // SERIAL PRIMARY KEY
@@ -381,9 +546,11 @@ struct Episode: Identifiable, Codable {
     let isRecap: Bool
     let isMixed: Bool
     let fillerSource: String?
+    let streamUrl: String?
+    let streamSite: String?
     let createdAt: Date
     let updatedAt: Date
-    
+
     enum CodingKeys: String, CodingKey {
         case id
         case animeId = "anime_id"
@@ -397,6 +564,60 @@ struct Episode: Identifiable, Codable {
         case isRecap = "is_recap"
         case isMixed = "is_mixed"
         case fillerSource = "filler_source"
+        case streamUrl = "stream_url"
+        case streamSite = "stream_site"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+struct MangaChapter: Identifiable, Codable {
+    let id: Int
+    let mangaId: Int
+    let number: Int
+    let title: String?
+    let titleRomaji: String?
+    let description: String?
+    let releaseDate: Date?
+    let releaseAt: Date?
+    let thumbnail: String?
+    let pages: Int?
+    let createdAt: Date
+    let updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case mangaId = "manga_id"
+        case number, title
+        case titleRomaji = "title_romaji"
+        case description
+        case releaseDate = "release_date"
+        case releaseAt = "release_at"
+        case thumbnail, pages
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+}
+
+struct ExternalLink: Identifiable, Codable {
+    let id: Int
+    let mediaType: String
+    let mediaId: Int
+    let site: String?
+    let url: String
+    let language: String?
+    let color: String?
+    let priority: Int?
+    let isDisabled: Bool
+    let createdAt: Date
+    let updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case mediaType = "media_type"
+        case mediaId = "media_id"
+        case site, url, language, color, priority
+        case isDisabled = "is_disabled"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }

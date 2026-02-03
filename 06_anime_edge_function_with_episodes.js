@@ -239,26 +239,32 @@ async function processAnimeItem(supabase, anime, results) {
   // 2. INSERT EPISODES (from streamingEpisodes)
   if (anime.streamingEpisodes && anime.streamingEpisodes.length > 0) {
     console.log(`📺 Importing ${anime.streamingEpisodes.length} episodes...`);
-    
+
+    // Ensure idempotency: remove existing episodes for this anime before inserting
+    await supabase
+      .from('episodes')
+      .delete()
+      .eq('anime_id', insertedAnime.id);
+
     for (let i = 0; i < anime.streamingEpisodes.length; i++) {
       const ep = anime.streamingEpisodes[i];
-      
+
       // Extract episode number from title (e.g., "Episode 1 - Title")
-      const episodeMatch = ep.title?.match(/Episode (\d+)/i);
-      const episodeNumber = episodeMatch ? parseInt(episodeMatch[1]) : i + 1;
-      
+      const episodeMatch = ep.title?.match(/Episode\s+(\d+)/i);
+      const episodeNumber = episodeMatch ? parseInt(episodeMatch[1], 10) : i + 1;
+
       const episodeData = {
         anime_id: insertedAnime.id,
         number: episodeNumber,
         title: ep.title,
         thumbnail: ep.thumbnail,
-        duration: anime.duration // Use anime's default duration
+        duration: anime.duration || null
       };
-      
+
       const { error: episodeError } = await supabase
         .from('episodes')
-        .upsert(episodeData, { onConflict: 'anime_id,number' });
-      
+        .insert(episodeData);
+
       if (!episodeError) {
         results.episodes++;
       }
@@ -405,5 +411,4 @@ async function processAnimeItem(supabase, anime, results) {
   
   console.log(`✅ Complete: ${anime.title?.english || anime.title?.romaji}`);
 }
-
 

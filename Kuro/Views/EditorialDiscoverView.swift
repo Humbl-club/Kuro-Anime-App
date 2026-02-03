@@ -1,0 +1,1338 @@
+// Editorial Discover View - REDESIGNED
+// Functional-first anime discovery with refined aesthetics
+// Dense content, efficient browsing, elegant presentation
+
+import SwiftUI
+
+struct EditorialDiscoverView: View {
+    @Environment(SupabaseService.self) private var supabaseService
+    @State private var vm = DiscoverViewModel()
+    @State private var isLoadingSections = false
+    @State private var didInitialLoad = false
+    @State private var bannerMessage: String? = nil
+
+    private let screenWidth: CGFloat = 393 // iPhone 14 Pro width (safe default)
+    @State private var showGenrePicker = false
+
+    // Premium rails
+    @State private var showFullEssentials = false
+    @State private var showFullClassics = false
+    @State private var showFullNewToYou = false
+
+    @State private var showFullEssentialsManga = false
+    @State private var showFullClassicsManga = false
+    @State private var showFullNewToYouManga = false
+
+    @State private var showFullTopRated = false
+    @State private var showFullTrending = false
+    @State private var showFullNewlyAdded = false
+    @State private var showFullAiringToday = false
+    @State private var showFullCurrentSeason = false
+    @State private var showGenreHub: GenreHubPresentation? = nil
+
+    private struct GenreHubPresentation: Identifiable {
+        let id: String
+        let genre: String
+    }
+
+    private var safeCanonicalGenres: [String] {
+        SupabaseService.canonicalGenres.filter { $0 != "Hentai" && $0 != "Ecchi" }
+    }
+
+    private var primaryGenreChips: [String] {
+        // Put mainstream entry points up front (avoid niche genres in the first row).
+        let preferred = [
+            "Action",
+            "Adventure",
+            "Comedy",
+            "Drama",
+            "Fantasy",
+            "Romance",
+            "Sci-Fi",
+            "Slice of Life",
+            "Thriller"
+        ]
+        return preferred.filter { safeCanonicalGenres.contains($0) }
+    }
+
+    private var hasAnyContent: Bool {
+        !vm.essentials.isEmpty ||
+        !vm.classics.isEmpty ||
+        !vm.newToYou.isEmpty ||
+        !vm.airingToday.isEmpty ||
+        !vm.currentSeason.isEmpty ||
+        !vm.trending.isEmpty ||
+        !vm.topRated.isEmpty ||
+        !vm.newlyAdded.isEmpty ||
+        !vm.essentialsManga.isEmpty ||
+        !vm.classicsManga.isEmpty ||
+        !vm.newToYouManga.isEmpty ||
+        !vm.trendingManga.isEmpty ||
+        !vm.topRatedManga.isEmpty ||
+        !vm.newlyAddedManga.isEmpty
+    }
+
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            if isLoadingSections && !hasAnyContent {
+                EditorialLoadingView()
+            } else if !isLoadingSections && !hasAnyContent {
+                EditorialEmptyView()
+            } else {
+                VStack(spacing: 24) {
+                    // Genre quick access pills
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("BROWSE BY GENRE")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(1.5)
+                            .foregroundColor(.black.opacity(0.5))
+                            .padding(.horizontal, 20)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                FilterChip(
+                                    title: "All Genres",
+                                    isSelected: false,
+                                    action: { showGenrePicker = true }
+                                )
+
+                                ForEach(primaryGenreChips, id: \.self) { genre in
+                                    FilterChip(
+                                        title: genre,
+                                        isSelected: false,
+                                        action: { showGenreHub = GenreHubPresentation(id: genre, genre: genre) }
+                                    )
+                                }
+
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                    }
+                    .padding(.top, 8)
+
+                    // Premium discovery rails
+                    if !vm.essentials.isEmpty {
+                        CompactHorizontalSection(
+                            title: "ESSENTIAL ANIME",
+                            subtitle: "Gateway picks (high confidence)",
+                            items: Array(vm.essentials.prefix(10)),
+                            onSeeAll: { showFullEssentials = true }
+                        )
+                    }
+
+                    if !vm.classics.isEmpty {
+                        Dense2ColumnSectionFixed(
+                            title: "CLASSICS",
+                            subtitle: "Proven greats",
+                            items: Array(vm.classics.prefix(8)),
+                            screenWidth: screenWidth,
+                            onSeeAll: { showFullClassics = true }
+                        )
+                    }
+
+                    if !vm.newToYou.isEmpty {
+                        Dense2ColumnSectionFixed(
+                            title: "NEW TO YOU",
+                            subtitle: "High score, not in your list",
+                            items: Array(vm.newToYou.prefix(8)),
+                            screenWidth: screenWidth,
+                            onSeeAll: { showFullNewToYou = true }
+                        )
+                    }
+
+                    // Airing Today - What's on now
+                    if !vm.airingToday.isEmpty {
+                        CompactHorizontalSection(
+                            title: "AIRING TODAY",
+                            subtitle: "Next 24 hours",
+                            items: Array(vm.airingToday.prefix(10)),
+                            onSeeAll: { showFullAiringToday = true }
+                        )
+                    }
+
+                    // Current Season - Horizontal Scroll (TOP PRIORITY)
+                    if !vm.currentSeason.isEmpty {
+                        CompactHorizontalSection(
+                            title: "CURRENT SEASON",
+                            subtitle: "Airing now",
+                            items: Array(vm.currentSeason.prefix(10)),
+                            onSeeAll: { showFullCurrentSeason = true }
+                        )
+                    }
+
+                    // Trending - Horizontal Scroll
+                    if !vm.trending.isEmpty {
+                        CompactHorizontalSection(
+                            title: "TRENDING",
+                            subtitle: "Popular right now",
+                            items: vm.trending,
+                            onSeeAll: { showFullTrending = true },
+                            showFilters: true
+                        )
+                    }
+
+                    // Top Rated - Dense 2-Column Grid
+                    if !vm.topRated.isEmpty {
+                        Dense2ColumnSectionFixed(
+                            title: "TOP RATED",
+                            subtitle: "Highest scores",
+                            items: vm.topRated,
+                            screenWidth: screenWidth,
+                            onSeeAll: { showFullTopRated = true },
+                            showFilters: true
+                        )
+                    }
+
+                    // Newly Added - Dense 2-Column Grid
+                    if !vm.newlyAdded.isEmpty {
+                        Dense2ColumnSectionFixed(
+                            title: "JUST ADDED",
+                            subtitle: "Fresh arrivals",
+                            items: Array(vm.newlyAdded.prefix(8)),
+                            screenWidth: screenWidth,
+                            onSeeAll: { showFullNewlyAdded = true }
+                        )
+                    }
+
+                    // Manga Sections
+                    if !vm.essentialsManga.isEmpty {
+                        CompactHorizontalMangaSection(
+                            title: "ESSENTIAL MANGA",
+                            subtitle: "Foundational reads",
+                            items: Array(vm.essentialsManga.prefix(10)),
+                            onSeeAll: { showFullEssentialsManga = true }
+                        )
+                    }
+
+                    if !vm.classicsManga.isEmpty {
+                        Dense2ColumnMangaSectionFixed(
+                            title: "MANGA CLASSICS",
+                            subtitle: "Proven greats",
+                            items: Array(vm.classicsManga.prefix(8)),
+                            screenWidth: screenWidth,
+                            onSeeAll: { showFullClassicsManga = true }
+                        )
+                    }
+
+                    if !vm.newToYouManga.isEmpty {
+                        Dense2ColumnMangaSectionFixed(
+                            title: "NEW TO YOU (MANGA)",
+                            subtitle: "High score, not in your list",
+                            items: Array(vm.newToYouManga.prefix(8)),
+                            screenWidth: screenWidth,
+                            onSeeAll: { showFullNewToYouManga = true }
+                        )
+                    }
+
+                    if !vm.trendingManga.isEmpty {
+                        CompactHorizontalMangaSection(
+                            title: "TRENDING MANGA",
+                            subtitle: "Popular manga",
+                            items: Array(vm.trendingManga.prefix(10))
+                        )
+                    }
+
+                    if !vm.topRatedManga.isEmpty {
+                        Dense2ColumnMangaSectionFixed(
+                            title: "TOP RATED MANGA",
+                            subtitle: "Highest scores",
+                            items: Array(vm.topRatedManga.prefix(8)),
+                            screenWidth: screenWidth
+                        )
+                    }
+                }
+                .padding(.top, 12)
+                .padding(.bottom, 32)
+            }
+        }
+        // A parent `.scrollDisabled(true)` (e.g. on a paging container) can propagate via environment.
+        // Keep Discover scrollable regardless.
+        .scrollDisabled(false)
+        .background(Color.white)
+        .refreshable {
+            await refreshSections()
+        }
+        .overlay(alignment: .top) {
+            if let bannerMessage {
+                KuroTransientBanner(message: bannerMessage)
+                    .padding(.top, 10)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .task {
+            if !didInitialLoad {
+                didInitialLoad = true
+                await refreshSections()
+            }
+        }
+        .sheet(isPresented: $showGenrePicker) {
+            GenrePickerSheet(genres: safeCanonicalGenres) { selected in
+                if let selected {
+                    showGenreHub = GenreHubPresentation(id: selected, genre: selected)
+                }
+                showGenrePicker = false
+            }
+        }
+        .sheet(item: $showGenreHub) { item in
+            GenreHubView(genre: item.genre)
+        }
+        .sheet(isPresented: $showFullEssentials) {
+            FullSectionView(title: "ESSENTIAL ANIME", items: vm.essentials)
+        }
+        .sheet(isPresented: $showFullClassics) {
+            FullSectionView(title: "CLASSICS", items: vm.classics)
+        }
+        .sheet(isPresented: $showFullNewToYou) {
+            FullSectionView(title: "NEW TO YOU", items: vm.newToYou)
+        }
+        .sheet(isPresented: $showFullAiringToday) {
+            FullSectionView(title: "AIRING TODAY", items: vm.airingToday)
+        }
+        .sheet(isPresented: $showFullCurrentSeason) {
+            FullSectionView(title: "CURRENT SEASON", items: vm.currentSeason)
+        }
+        .sheet(isPresented: $showFullTrending) {
+            FullSectionView(title: "TRENDING", items: vm.trending)
+        }
+        .sheet(isPresented: $showFullTopRated) {
+            FullSectionView(title: "TOP RATED", items: vm.topRated)
+        }
+        .sheet(isPresented: $showFullNewlyAdded) {
+            FullSectionView(title: "JUST ADDED", items: vm.newlyAdded)
+        }
+        .sheet(isPresented: $showFullEssentialsManga) {
+            FullMangaSectionView(title: "ESSENTIAL MANGA", items: vm.essentialsManga)
+        }
+        .sheet(isPresented: $showFullClassicsManga) {
+            FullMangaSectionView(title: "MANGA CLASSICS", items: vm.classicsManga)
+        }
+        .sheet(isPresented: $showFullNewToYouManga) {
+            FullMangaSectionView(title: "NEW TO YOU (MANGA)", items: vm.newToYouManga)
+        }
+    }
+
+    private func refreshSections() async {
+        let perf = KuroPerf.begin("discover.refresh")
+        let shouldSkip = await MainActor.run { () -> Bool in
+            if isLoadingSections { return true }
+            isLoadingSections = true
+            return false
+        }
+        if shouldSkip {
+            KuroPerf.end(perf, message: "skipped (already loading)")
+            return
+        }
+        defer {
+            Task { @MainActor in
+                isLoadingSections = false
+            }
+        }
+
+        let hadContentBefore = await MainActor.run { hasAnyContent }
+
+        // Keep local list state up to date for badges/progress, while fetching the server bundle.
+        async let _ = supabaseService.fetchUserLists()
+        let bundle = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24)
+
+        let gotAnyNew = bundle.map { b in
+            !(b.anime.essentials.isEmpty && b.anime.classics.isEmpty && b.anime.newToYou.isEmpty &&
+              b.anime.trending.isEmpty && b.anime.topRated.isEmpty && b.anime.newlyAdded.isEmpty &&
+              b.anime.airingToday.isEmpty && b.anime.currentSeason.isEmpty &&
+              b.manga.essentials.isEmpty && b.manga.classics.isEmpty && b.manga.newToYou.isEmpty &&
+              b.manga.trending.isEmpty && b.manga.topRated.isEmpty && b.manga.newlyAdded.isEmpty)
+        } ?? false
+
+        await MainActor.run {
+            guard let bundle else {
+                if hadContentBefore {
+                    showBanner("Couldn't refresh. Try again.")
+                }
+                return
+            }
+
+            vm.essentials = bundle.anime.essentials
+            vm.classics = bundle.anime.classics
+            vm.newToYou = bundle.anime.newToYou
+            vm.trending = bundle.anime.trending
+            vm.topRated = bundle.anime.topRated
+            vm.newlyAdded = bundle.anime.newlyAdded
+            vm.airingToday = bundle.anime.airingToday
+            vm.currentSeason = bundle.anime.currentSeason
+
+            vm.essentialsManga = bundle.manga.essentials
+            vm.classicsManga = bundle.manga.classics
+            vm.newToYouManga = bundle.manga.newToYou
+            vm.trendingManga = bundle.manga.trending
+            vm.topRatedManga = bundle.manga.topRated
+            vm.newlyAddedManga = bundle.manga.newlyAdded
+
+            // Featured: best available from current season, else trending.
+            let featuredCandidates = vm.currentSeason.isEmpty ? vm.trending : vm.currentSeason
+            vm.featured = featuredCandidates
+                .filter { ($0.averageScore ?? 0) > 80 }
+                .sorted { ($0.averageScore ?? 0) > ($1.averageScore ?? 0) }
+                .first ?? featuredCandidates.first
+
+            if hadContentBefore && !gotAnyNew {
+                showBanner("Couldn't refresh. Try again.")
+            }
+        }
+
+        KuroPerf.end(perf, message: gotAnyNew ? "ok" : "no new data")
+
+        // Prefetch covers so the next scroll feels instant.
+        let urls: [URL] = await MainActor.run {
+            let anime = (vm.essentials.prefix(14) + vm.newToYou.prefix(14) + vm.trending.prefix(14) + vm.topRated.prefix(10))
+                .compactMap { URL(string: $0.imageURL ?? "") }
+            let manga = (vm.essentialsManga.prefix(14) + vm.newToYouManga.prefix(14) + vm.trendingManga.prefix(14) + vm.topRatedManga.prefix(10))
+                .compactMap { URL(string: $0.imageURL ?? "") }
+            return Array((anime + manga).prefix(70))
+        }
+        if !urls.isEmpty {
+            Task { await ImagePipeline.shared.prefetch(urls: urls) }
+        }
+    }
+
+    private func currentSeasonQueryParams() -> (season: String, year: Int) {
+        let m = Calendar.current.component(.month, from: Date())
+        let season: String
+        switch m {
+        case 12, 1, 2: season = "WINTER"
+        case 3, 4, 5: season = "SPRING"
+        case 6, 7, 8: season = "SUMMER"
+        default: season = "FALL"
+        }
+        return (season, Calendar.current.component(.year, from: Date()))
+    }
+
+    @MainActor
+    private func showBanner(_ message: String) {
+        withAnimation(.easeInOut(duration: 0.18)) {
+            bannerMessage = message
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            withAnimation(.easeInOut(duration: 0.18)) {
+                bannerMessage = nil
+            }
+        }
+    }
+}
+
+// MARK: - Compact Horizontal Section
+// Dense horizontal scroll showing many anime
+struct CompactHorizontalSection<Item: MediaDisplayable>: View {
+    let title: String
+    let subtitle: String
+    let items: [Item]
+    var onSeeAll: (() -> Void)? = nil
+    var showFilters: Bool = false
+
+    @State private var selectedFilter: AnimeFilter = .all
+
+    enum AnimeFilter: String, CaseIterable {
+        case all = "All"
+        case short = "Short"
+        case long = "Long"
+        case completed = "Completed"
+    }
+
+    private var filteredItems: [Item] {
+        switch selectedFilter {
+        case .all:
+            return items
+        case .short:
+            return items.filter { ($0.episodes ?? 0) > 0 && ($0.episodes ?? 0) <= 13 }
+        case .long:
+            return items.filter { ($0.episodes ?? 0) > 50 }
+        case .completed:
+            return items.filter { $0.statusRaw == "FINISHED" }
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Clean section header with See All button
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .tracking(0.5)
+                        .foregroundColor(.black)
+
+                    Text(subtitle)
+                        .font(.system(size: 11, weight: .regular))
+                        .tracking(0.3)
+                        .foregroundColor(.black.opacity(0.5))
+                }
+
+                Spacer()
+
+                if onSeeAll != nil {
+                    Button(action: { onSeeAll?() }) {
+                        Text("See All")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.black.opacity(0.6))
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+
+            // Filter chips
+            if showFilters {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(AnimeFilter.allCases, id: \.self) { filter in
+                            FilterChip(
+                                title: filter.rawValue,
+                                isSelected: selectedFilter == filter,
+                                action: { selectedFilter = filter }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+
+            // Horizontal scroll with compact cards
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 12) {
+                    ForEach(filteredItems, id: \.id) { anime in
+                        CompactAnimeCard(media: anime)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+    }
+}
+
+// MARK: - Dense 2-Column Section
+// Efficient grid showing maximum anime with infinite scroll
+struct Dense2ColumnSection: View {
+    let title: String
+    let subtitle: String
+    let items: [Anime]
+    let geometry: GeometryProxy
+    @Environment(SupabaseService.self) private var supabaseService
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Clean section header
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .tracking(0.5)
+                    .foregroundColor(.black)
+
+                Text(subtitle)
+                    .font(.system(size: 11, weight: .regular))
+                    .tracking(0.3)
+                    .foregroundColor(.black.opacity(0.5))
+            }
+            .padding(.horizontal, 20)
+
+            // Dense 2-column grid with FIXED card dimensions
+            let horizontalPadding: CGFloat = 20
+            let spacing: CGFloat = 12
+            let totalHorizontalPadding = horizontalPadding * 2
+            let totalSpacing = spacing
+            let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
+            let cardWidth = floor(availableWidth / 2)
+            let imageHeight = floor(cardWidth / 0.7)
+            let textBlockHeight: CGFloat = 72
+            let cardSpacing: CGFloat = 8
+            let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
+
+            let columns = [
+                GridItem(.fixed(cardWidth), spacing: spacing),
+                GridItem(.fixed(cardWidth), spacing: spacing)
+            ]
+
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(items, id: \.id) { anime in
+                    GridAnimeCard(media: anime, cardWidth: cardWidth, cardHeight: totalCardHeight)
+                        .onAppear {
+                            // Load more when reaching last item
+                            if anime.id == items.last?.id && supabaseService.hasMoreAnime {
+                                Task {
+                                    await supabaseService.fetchNextAnimePage()
+                                }
+                            }
+                        }
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+}
+
+// MARK: - Compact Anime Card (for horizontal scrolls)
+// Small, efficient, shows key info
+struct CompactAnimeCard: View {
+    let media: any MediaDisplayable
+    @State private var showDetail = false
+
+    var body: some View {
+        Button(action: {
+            KuroAccessibility.impactHaptic(.light)
+            showDetail = true
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
+                // Image with score badge
+                ZStack(alignment: .topTrailing) {
+                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 110, height: 165)
+                                .clipped()
+                        case .failure, .empty:
+                            Rectangle()
+                                .fill(Color.black.opacity(0.05))
+                                .frame(width: 110, height: 165)
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                    .frame(width: 110, height: 165)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    if let rating = media.rating, rating > 0 {
+                        HStack(spacing: 2) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 8))
+                            Text(String(format: "%.1f", rating))
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(Color.black.opacity(0.75))
+                        )
+                        .padding(6)
+                    }
+                }
+
+                // Title and info
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(media.title)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.black)
+                        .lineLimit(2)
+                        .frame(height: 34, alignment: .top)
+
+                    HStack(spacing: 4) {
+                        Text(media.year)
+                            .font(.system(size: 10, weight: .regular))
+                            .foregroundColor(.black.opacity(0.6))
+
+                        if let episodes = media.episodes, episodes > 0 {
+                            Text("·")
+                                .foregroundColor(.black.opacity(0.4))
+                            Text("\(episodes) eps")
+                                .font(.system(size: 10, weight: .regular))
+                                .foregroundColor(.black.opacity(0.6))
+                        } else if let chapters = media.chapters, chapters > 0 {
+                            Text("·")
+                                .foregroundColor(.black.opacity(0.4))
+                            Text("\(chapters) ch")
+                                .font(.system(size: 10, weight: .regular))
+                                .foregroundColor(.black.opacity(0.6))
+                        }
+                    }
+                    .frame(height: 12, alignment: .topLeading)
+                }
+                .frame(width: 110)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabelText())
+        .accessibilityHint("Opens details")
+        .sheet(isPresented: $showDetail) {
+            MediaDetailSheet(kind: media.kind, id: media.id)
+        }
+    }
+
+    private func accessibilityLabelText() -> Text {
+        var parts: [String] = []
+        parts.append(media.title)
+        if !media.year.isEmpty { parts.append(media.year) }
+        if let episodes = media.episodes, episodes > 0 { parts.append("\(episodes) episodes") }
+        if let chapters = media.chapters, chapters > 0 { parts.append("\(chapters) chapters") }
+        if let rating = media.rating, rating > 0 { parts.append(String(format: "Rating %.1f", rating)) }
+        return Text(parts.joined(separator: ", "))
+    }
+}
+
+// MARK: - Grid Anime Card (for 2-column grids)
+// Vertical card optimized for grid layouts with FIXED dimensions
+struct GridAnimeCard: View {
+    let media: any MediaDisplayable
+    let cardWidth: CGFloat
+    let cardHeight: CGFloat
+    @State private var showDetail = false
+    @State private var showAddToList = false
+    @Environment(SupabaseService.self) private var supabaseService
+
+    private var mediaType: String {
+        media.kind.rawValue
+    }
+
+    private var isInCollection: Bool {
+        supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
+    }
+
+    var body: some View {
+        Button(action: {
+            KuroAccessibility.impactHaptic(.light)
+            showDetail = true
+        }) {
+            VStack(alignment: .leading, spacing: 8) {
+                // Image with score - FIXED HEIGHT
+                let imageHeight = max(100, floor(cardWidth / 0.7))
+
+                ZStack(alignment: .topTrailing) {
+                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: cardWidth, height: imageHeight)
+                                .clipped()
+                        case .failure, .empty:
+                            Rectangle()
+                                .fill(Color.black.opacity(0.05))
+                                .frame(width: cardWidth, height: imageHeight)
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                    .frame(width: cardWidth, height: imageHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                    VStack(alignment: .trailing, spacing: 6) {
+                        if let rating = media.rating, rating > 0 {
+                            HStack(spacing: 2) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 8))
+                                Text(String(format: "%.1f", rating))
+                                    .font(.system(size: 10, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule()
+                                    .fill(Color.black.opacity(0.75))
+                            )
+                        }
+
+                        if isInCollection {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.green)
+                                .background(
+                                    Circle()
+                                        .fill(Color.white)
+                                        .frame(width: 18, height: 18)
+                                )
+                        }
+                    }
+                    .padding(6)
+                }
+
+                // Title and info - FIXED HEIGHT
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(media.title)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.black)
+                        .lineLimit(2)
+                        .frame(height: 36, alignment: .top)
+
+                    HStack(spacing: 4) {
+                        Text(media.year)
+                            .font(.system(size: 10, weight: .regular))
+                            .foregroundColor(.black.opacity(0.6))
+
+                        if let episodes = media.episodes, episodes > 0 {
+                            Text("·")
+                                .foregroundColor(.black.opacity(0.4))
+                            Text("\(episodes) eps")
+                                .font(.system(size: 10, weight: .regular))
+                                .foregroundColor(.black.opacity(0.6))
+                        } else if let chapters = media.chapters, chapters > 0 {
+                            Text("·")
+                                .foregroundColor(.black.opacity(0.4))
+                            Text("\(chapters) ch")
+                                .font(.system(size: 10, weight: .regular))
+                                .foregroundColor(.black.opacity(0.6))
+                        }
+                    }
+
+                    if let genres = media.genres?.prefix(2) {
+                        Text(genres.joined(separator: ", "))
+                            .font(.system(size: 10, weight: .regular))
+                            .foregroundColor(.black.opacity(0.5))
+                            .lineLimit(1)
+                    }
+                }
+                .frame(width: cardWidth, height: 64, alignment: .top)
+            }
+            .frame(width: cardWidth, height: cardHeight, alignment: .top)
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabelText())
+        .accessibilityHint("Opens details")
+        .contextMenu {
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                supabaseService.toggleInCollection(mediaId: media.id, mediaType: mediaType)
+            }) {
+                Label(
+                    isInCollection ? "Remove from List" : "Quick Add (Planned)",
+                    systemImage: isInCollection ? "minus.circle" : "plus.circle"
+                )
+            }
+
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                showAddToList = true
+            }) {
+                Label(
+                    isInCollection ? "Edit List" : "Add to List…",
+                    systemImage: "slider.horizontal.3"
+                )
+            }
+        }
+        .sheet(isPresented: $showDetail) {
+            MediaDetailSheet(kind: media.kind, id: media.id)
+        }
+        .sheet(isPresented: $showAddToList) {
+            AddToListSheet(media: media)
+        }
+    }
+
+    private func accessibilityLabelText() -> Text {
+        var parts: [String] = []
+        parts.append(media.title)
+        if !media.year.isEmpty { parts.append(media.year) }
+        if let episodes = media.episodes, episodes > 0 { parts.append("\(episodes) episodes") }
+        if let chapters = media.chapters, chapters > 0 { parts.append("\(chapters) chapters") }
+        if let rating = media.rating, rating > 0 { parts.append(String(format: "Rating %.1f", rating)) }
+        if isInCollection { parts.append("Saved") }
+        return Text(parts.joined(separator: ", "))
+    }
+}
+
+// MARK: - Editorial Loading View
+struct EditorialLoadingView: View {
+    var body: some View {
+        VStack(spacing: 24) {
+            ForEach(0..<3, id: \.self) { _ in
+                VStack(alignment: .leading, spacing: 12) {
+                    Rectangle()
+                        .fill(Color.black.opacity(0.06))
+                        .frame(width: 120, height: 16)
+                        .padding(.horizontal, 20)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(0..<5, id: \.self) { _ in
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.04))
+                                    .frame(width: 110, height: 200)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                }
+            }
+        }
+        .padding(.top, 12)
+    }
+}
+
+// MARK: - Editorial Empty View
+struct EditorialEmptyView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("NO CONTENT")
+                .font(.system(size: 14, weight: .medium))
+                .tracking(1.5)
+                .foregroundColor(.black.opacity(0.3))
+
+            ProgressView()
+                .scaleEffect(0.8)
+                .tint(.black.opacity(0.3))
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 120)
+    }
+}
+
+// MARK: - Manga Section Components
+
+// Compact Horizontal Manga Section
+struct CompactHorizontalMangaSection<Item: MediaDisplayable>: View {
+    let title: String
+    let subtitle: String
+    let items: [Item]
+    var onSeeAll: (() -> Void)? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .tracking(0.5)
+                        .foregroundColor(.black)
+
+                    Text(subtitle)
+                        .font(.system(size: 11, weight: .regular))
+                        .tracking(0.3)
+                        .foregroundColor(.black.opacity(0.5))
+                }
+
+                Spacer()
+
+                if onSeeAll != nil {
+                    Button(action: { onSeeAll?() }) {
+                        Text("See All")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.black.opacity(0.6))
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(items, id: \.id) { manga in
+                        CompactAnimeCard(media: manga)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+    }
+}
+
+// Dense 2-Column Manga Section
+struct Dense2ColumnMangaSection<Item: MediaDisplayable>: View {
+    let title: String
+    let subtitle: String
+    let items: [Item]
+    let geometry: GeometryProxy
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                    .tracking(0.5)
+                    .foregroundColor(.black)
+
+                Text(subtitle)
+                    .font(.system(size: 11, weight: .regular))
+                    .tracking(0.3)
+                    .foregroundColor(.black.opacity(0.5))
+            }
+            .padding(.horizontal, 20)
+
+            let horizontalPadding: CGFloat = 20
+            let spacing: CGFloat = 12
+            let totalHorizontalPadding = horizontalPadding * 2
+            let totalSpacing = spacing
+            let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
+            let cardWidth = floor(availableWidth / 2)
+            let imageHeight = floor(cardWidth / 0.7)
+            let textBlockHeight: CGFloat = 72
+            let cardSpacing: CGFloat = 8
+            let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
+
+            let columns = [
+                GridItem(.fixed(cardWidth), spacing: spacing),
+                GridItem(.fixed(cardWidth), spacing: spacing)
+            ]
+
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(items, id: \.id) { manga in
+                    GridAnimeCard(media: manga, cardWidth: cardWidth, cardHeight: totalCardHeight)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+}
+
+#Preview {
+    EditorialDiscoverView()
+        .environment(SupabaseService.shared)
+}
+
+// MARK: - Dense 2-Column Section Fixed (No GeometryReader)
+struct Dense2ColumnSectionFixed<Item: MediaDisplayable>: View {
+    let title: String
+    let subtitle: String
+    let items: [Item]
+    let screenWidth: CGFloat
+    var onSeeAll: (() -> Void)? = nil
+    var showFilters: Bool = false
+
+    @State private var selectedFilter: AnimeFilter = .all
+
+    enum AnimeFilter: String, CaseIterable {
+        case all = "All"
+        case short = "Short"
+        case long = "Long"
+        case completed = "Completed"
+    }
+
+    private var filteredItems: [Item] {
+        switch selectedFilter {
+        case .all:
+            return items
+        case .short:
+            return items.filter { ($0.episodes ?? 0) > 0 && ($0.episodes ?? 0) <= 13 }
+        case .long:
+            return items.filter { ($0.episodes ?? 0) > 50 }
+        case .completed:
+            return items.filter { $0.statusRaw == "FINISHED" }
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .tracking(0.5)
+                        .foregroundColor(.black)
+
+                    Text(subtitle)
+                        .font(.system(size: 11, weight: .regular))
+                        .tracking(0.3)
+                        .foregroundColor(.black.opacity(0.5))
+                }
+
+                Spacer()
+
+                if onSeeAll != nil {
+                    Button(action: { onSeeAll?() }) {
+                        Text("See All")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.black.opacity(0.6))
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+
+            // Filter chips
+            if showFilters {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(AnimeFilter.allCases, id: \.self) { filter in
+                            FilterChip(
+                                title: filter.rawValue,
+                                isSelected: selectedFilter == filter,
+                                action: { selectedFilter = filter }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+
+            let horizontalPadding: CGFloat = 20
+            let spacing: CGFloat = 12
+            let totalHorizontalPadding = horizontalPadding * 2
+            let totalSpacing = spacing
+            let availableWidth = screenWidth - totalHorizontalPadding - totalSpacing
+            let cardWidth = floor(availableWidth / 2)
+            let imageHeight = floor(cardWidth / 0.7)
+            let textBlockHeight: CGFloat = 72
+            let cardSpacing: CGFloat = 8
+            let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
+
+            let columns = [
+                GridItem(.fixed(cardWidth), spacing: spacing),
+                GridItem(.fixed(cardWidth), spacing: spacing)
+            ]
+
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(filteredItems, id: \.id) { anime in
+                    GridAnimeCard(media: anime, cardWidth: cardWidth, cardHeight: totalCardHeight)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+}
+
+// MARK: - Dense 2-Column Manga Section Fixed
+struct Dense2ColumnMangaSectionFixed<Item: MediaDisplayable>: View {
+    let title: String
+    let subtitle: String
+    let items: [Item]
+    let screenWidth: CGFloat
+    var onSeeAll: (() -> Void)? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .tracking(0.5)
+                        .foregroundColor(.black)
+
+                    Text(subtitle)
+                        .font(.system(size: 11, weight: .regular))
+                        .tracking(0.3)
+                        .foregroundColor(.black.opacity(0.5))
+                }
+
+                Spacer()
+
+                if onSeeAll != nil {
+                    Button(action: { onSeeAll?() }) {
+                        Text("See All")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.black.opacity(0.6))
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+
+            let horizontalPadding: CGFloat = 20
+            let spacing: CGFloat = 12
+            let totalHorizontalPadding = horizontalPadding * 2
+            let totalSpacing = spacing
+            let availableWidth = screenWidth - totalHorizontalPadding - totalSpacing
+            let cardWidth = floor(availableWidth / 2)
+            let imageHeight = floor(cardWidth / 0.7)
+            let textBlockHeight: CGFloat = 72
+            let cardSpacing: CGFloat = 8
+            let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
+
+            let columns = [
+                GridItem(.fixed(cardWidth), spacing: spacing),
+                GridItem(.fixed(cardWidth), spacing: spacing)
+            ]
+
+            LazyVGrid(columns: columns, spacing: 16) {
+                ForEach(items, id: \.id) { manga in
+                    GridAnimeCard(media: manga, cardWidth: cardWidth, cardHeight: totalCardHeight)
+                }
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+}
+
+// MARK: - Full Section View (for "See All")
+struct FullSectionView<Item: MediaDisplayable>: View {
+    let title: String
+    let items: [Item]
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+    
+    private var filtered: [Item] {
+        if searchText.isEmpty {
+            return items
+        }
+        return items.filter { media in
+            media.title.localizedCaseInsensitiveContains(searchText) ||
+            media.displayDescription.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                // Search bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.black.opacity(0.3))
+                    TextField("Search \(title.lowercased())...", text: $searchText)
+                        .font(.system(size: 14))
+                }
+                .padding(12)
+                .background(Color.black.opacity(0.05))
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                
+                // Results count
+                Text("\(filtered.count) RESULTS")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(1.5)
+                    .foregroundColor(.black.opacity(0.5))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                
+                // Grid
+                GeometryReader { geometry in
+                    let cardWidth = floor((geometry.size.width - 52) / 2)
+                    let imageHeight = floor(cardWidth / 0.7)
+                    let totalCardHeight = imageHeight + 80
+                    
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.fixed(cardWidth), spacing: 12),
+                            GridItem(.fixed(cardWidth), spacing: 12)
+                        ],
+                        spacing: 16
+                    ) {
+                        ForEach(filtered, id: \.id) { anime in
+                            GridAnimeCard(media: anime, cardWidth: cardWidth, cardHeight: totalCardHeight)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .frame(height: CGFloat(filtered.count / 2) * 300)
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.black)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Full Manga Section View (for "See All")
+struct FullMangaSectionView<Item: MediaDisplayable>: View {
+    let title: String
+    let items: [Item]
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filtered: [Item] {
+        if searchText.isEmpty { return items }
+        return items.filter { media in
+            media.title.localizedCaseInsensitiveContains(searchText) ||
+            media.displayDescription.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.black.opacity(0.3))
+                    TextField("Search \(title.lowercased())...", text: $searchText)
+                        .font(.system(size: 14))
+                }
+                .padding(12)
+                .background(Color.black.opacity(0.05))
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+
+                Text("\(filtered.count) RESULTS")
+                    .font(.system(size: 10, weight: .medium))
+                    .tracking(1.5)
+                    .foregroundColor(.black.opacity(0.5))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+
+                GeometryReader { geometry in
+                    let cardWidth = floor((geometry.size.width - 52) / 2)
+                    let imageHeight = floor(cardWidth / 0.7)
+                    let totalCardHeight = imageHeight + 80
+
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.fixed(cardWidth), spacing: 12),
+                            GridItem(.fixed(cardWidth), spacing: 12)
+                        ],
+                        spacing: 16
+                    ) {
+                        ForEach(filtered, id: \.id) { manga in
+                            GridAnimeCard(media: manga, cardWidth: cardWidth, cardHeight: totalCardHeight)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .frame(height: CGFloat(filtered.count / 2) * 300)
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.black)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Genre Picker Sheet
+struct GenrePickerSheet: View {
+    let genres: [String]
+    let onSelect: (String?) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
+    ]
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                LazyVGrid(columns: columns, spacing: 10) {
+                    FilterChip(
+                        title: "Cancel",
+                        isSelected: false,
+                        action: {
+                            onSelect(nil)
+                            dismiss()
+                        }
+                    )
+
+                    ForEach(genres, id: \.self) { genre in
+                        FilterChip(
+                            title: genre,
+                            isSelected: false,
+                            action: {
+                                onSelect(genre)
+                                dismiss()
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+            }
+            .navigationTitle("Genres")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") { dismiss() }
+                        .foregroundColor(.black.opacity(0.8))
+                }
+            }
+        }
+    }
+}
