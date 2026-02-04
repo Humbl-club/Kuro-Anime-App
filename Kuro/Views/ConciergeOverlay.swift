@@ -128,13 +128,13 @@ struct ConciergeOverlay: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            KuroChanMascot(size: 26, style: .refined, showsSparkle: false, animates: true, showsShadow: false)
+            KuroConciergeMark(size: 26)
             VStack(alignment: .leading, spacing: 1) {
-                Text("KURO-CHAN")
+                Text("CONCIERGE")
                     .font(.system(size: 12, weight: .semibold))
                     .tracking(1.9)
                     .foregroundColor(.black.opacity(0.82))
-                Text("Concierge")
+                Text("Imports + recommendations")
                     .font(.system(size: 11, weight: .regular))
                     .foregroundColor(.black.opacity(0.55))
             }

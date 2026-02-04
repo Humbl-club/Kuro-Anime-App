@@ -1255,14 +1255,14 @@ private struct KuroConciergeAssistant: View {
                 KuroGlassCard(cornerRadius: 26) {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 10) {
-                            KuroChanMascot(size: 34, style: .refined, showsShadow: false)
+                            KuroConciergeMark(size: 34)
                                 .matchedGeometryEffect(id: "kurochan", in: mascotNS)
                             VStack(alignment: .leading, spacing: 1) {
-                                Text("KURO-CHAN")
+                                Text("CONCIERGE")
                                     .font(.system(size: 12, weight: .semibold))
                                     .tracking(2.0)
                                     .foregroundColor(.black.opacity(0.78))
-                                Text("Your pocket concierge")
+                                Text("Imports + recommendations")
                                     .font(.system(size: 11, weight: .regular))
                                     .foregroundColor(.black.opacity(0.55))
                             }
@@ -1360,7 +1360,7 @@ private struct KuroConciergeAssistant: View {
                             .opacity(pulse ? 1.0 : 0.0)
                             .allowsHitTesting(false)
 
-                        KuroChanMascot(size: 34, style: .refined, showsShadow: false)
+                        KuroConciergeMark(size: 24)
                             .matchedGeometryEffect(id: "kurochan", in: mascotNS)
                     }
                 }

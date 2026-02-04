@@ -395,7 +395,7 @@ struct KuroHeaderNew: View {
                                 Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
                             )
                             .overlay(
-                                KuroChanMascot(size: 22, style: .refined, showsSparkle: false, animates: true, showsShadow: false)
+                                KuroConciergeMark(size: 22)
                             )
                     }
                     .buttonStyle(KuroHeaderIconButtonStyle())
