@@ -9,11 +9,24 @@ struct MangaDetailView: View {
     @Environment(SupabaseService.self) private var supabaseService
     @State private var scrollOffset: CGFloat = 0
     @State private var showFullDescription = false
+    @State private var toast: KuroToastState? = nil
+    @State private var toastDismissTask: Task<Void, Never>? = nil
+    @State private var topTags: [TagFacet] = []
+    @State private var similar: [Manga] = []
     
     var body: some View {
         GeometryReader { geometry in
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
+                    GeometryReader { proxy in
+                        Color.clear
+                            .preference(
+                                key: KuroDetailScrollOffsetPreferenceKey.self,
+                                value: proxy.frame(in: .named("detail_scroll")).minY
+                            )
+                    }
+                    .frame(height: 0)
+
                     // Hero Section with Parallax Effect
                     MangaHeroSection(manga: manga, geometry: geometry, scrollOffset: $scrollOffset)
                     
@@ -22,8 +35,9 @@ struct MangaDetailView: View {
                         // Title & Quick Info
                         MangaTitleSection(manga: manga)
                         
-                        // Stats Grid
-                        MangaStatsGrid(manga: manga)
+                        MangaMetaLineSection(manga: manga)
+
+                        MangaNextUpSection(manga: manga)
                         
                         // Description
                         DescriptionSection(
@@ -35,6 +49,10 @@ struct MangaDetailView: View {
                         if let genres = manga.genreList, !genres.isEmpty {
                             GenresSection(genres: genres)
                         }
+
+                        if !topTags.isEmpty {
+                            TagChipsSection(title: "SUB‑GENRES", tags: topTags.map(\.name))
+                        }
                         
                         // Chapters Section (if available)
                         if let chapterCount = manga.chapterCount {
@@ -45,9 +63,10 @@ struct MangaDetailView: View {
                         if let volumeCount = manga.volumeCount {
                             VolumesSection(manga: manga, volumeCount: volumeCount)
                         }
-                        
-                        // Action Buttons
-                        MangaActionButtons(manga: manga)
+
+                        if !similar.isEmpty {
+                            MangaSimilarSection(title: "MORE LIKE THIS", items: similar)
+                        }
                     }
                     .padding(.horizontal, ResponsiveLayout.padding())
                     .padding(.top, KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width))
@@ -55,6 +74,10 @@ struct MangaDetailView: View {
                 }
             }
             .transaction { $0.animation = nil }
+            .coordinateSpace(name: "detail_scroll")
+            .onPreferenceChange(KuroDetailScrollOffsetPreferenceKey.self) { v in
+                scrollOffset = v
+            }
             .background(Color.kuroBackground)
             .ignoresSafeArea(edges: .top)
             .overlay(alignment: .topLeading) {
@@ -63,12 +86,166 @@ struct MangaDetailView: View {
                     .padding(.top, KuroScreen.safeAreaTop + KuroSpacing.sm)
                     .padding(.leading, ResponsiveLayout.padding())
             }
+            .safeAreaInset(edge: .bottom) {
+                MangaActionButtons(manga: manga, onToast: showToast)
+                    .padding(.horizontal, ResponsiveLayout.padding())
+                    .padding(.top, 10)
+                    .padding(.bottom, 10)
+                    .background(
+                        Rectangle()
+                            .fill(Color.kuroBackground.opacity(0.86))
+                            .overlay(
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.08))
+                                    .frame(height: 0.5),
+                                alignment: .top
+                            )
+                            .ignoresSafeArea()
+                    )
+            }
+            .overlay(alignment: .bottom) {
+                if let toast {
+                    KuroToast(toast: toast)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 96)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
         }
         #if os(iOS)
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         #else
         .toolbar(.hidden, for: .windowToolbar)
         #endif
+        .task(id: manga.id) {
+            async let tags = supabaseService.fetchTopTagsForManga(mangaId: manga.id, limit: 12)
+            async let sim = supabaseService.fetchSimilarManga(seed: manga, limit: 14)
+            topTags = await tags
+            similar = await sim
+        }
+    }
+
+    @MainActor
+    private func showToast(_ next: KuroToastState) {
+        toastDismissTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            toast = next
+        }
+        toastDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(2.2 * 1_000_000_000))
+            if !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    toast = nil
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Swiss-minimal metadata line (replaces grids)
+struct MangaMetaLineSection: View {
+    let manga: Manga
+
+    private var scoreText: String? {
+        guard let score = manga.averageScore, score > 0 else { return nil }
+        return String(format: "%.1f", Double(score) / 10.0)
+    }
+
+    private var chaptersText: String? {
+        manga.chapterCount.map { "\($0) CH" }
+    }
+
+    private var volumesText: String? {
+        manga.volumeCount.map { "\($0) VOL" }
+    }
+
+    private var statusText: String? {
+        manga.status?.replacingOccurrences(of: "_", with: " ").uppercased()
+    }
+
+    var body: some View {
+        let parts: [String] = [
+            scoreText.map { "SCORE \($0)" },
+            manga.year.isEmpty ? nil : manga.year,
+            manga.format?.uppercased(),
+            chaptersText,
+            volumesText,
+            statusText
+        ].compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+
+        if !parts.isEmpty {
+            Text(parts.joined(separator: " · "))
+                .font(.kuroMicro(weight: .light))
+                .tracking(1.2)
+                .foregroundColor(.kuroBlack60)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+// MARK: - Next up (minimal)
+struct MangaNextUpSection: View {
+    let manga: Manga
+    @Environment(SupabaseService.self) private var supabaseService
+
+    private var progress: Int {
+        supabaseService.userLists.first(where: { $0.mediaType.lowercased() == "manga" && $0.mediaId == manga.id })?.progress ?? 0
+    }
+    private var nextNumber: Int { max(1, progress + 1) }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text("NEXT UP")
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.8)
+                .foregroundColor(.kuroBlack80)
+
+            Spacer(minLength: 0)
+
+            Text("CH \(nextNumber)".uppercased())
+                .font(.kuroMicro(weight: .regular))
+                .tracking(1.2)
+                .foregroundColor(.kuroBlack80)
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+        )
+        .accessibilityElement(children: .combine)
+    }
+}
+
+struct MangaSimilarSection: View {
+    let title: String
+    let items: [Manga]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroSpacing.md) {
+            Text(title)
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.5)
+                .foregroundColor(.kuroBlack80)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(items.prefix(14), id: \.id) { item in
+                        KuroCompactCard(media: item)
+                    }
+                }
+            }
+            .kuroSwipeExclusionZone()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct KuroDetailScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
@@ -79,9 +256,13 @@ struct MangaHeroSection: View {
     @Binding var scrollOffset: CGFloat
     
     var body: some View {
+        let baseHeight = ResponsiveLayout.imageHeight(320)
+        let stretch = max(scrollOffset, 0)
+        let parallax = min(scrollOffset, 0) * 0.32
+
         ZStack(alignment: .bottom) {
             // Cover Image with Parallax
-            KuroCachedAsyncImage(url: URL(string: manga.displayImage)) { image in
+            KuroCachedAsyncImage(url: URL(string: manga.displayImage), maxPixelSize: 1100) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -95,31 +276,45 @@ struct MangaHeroSection: View {
                         )
                     )
             }
-            .frame(width: geometry.size.width, height: ResponsiveLayout.imageHeight(320))
+            .frame(width: geometry.size.width, height: baseHeight + stretch)
             .clipped()
-            .offset(y: scrollOffset * 0.5) // Parallax effect
+            .offset(y: parallax - stretch)
             
-            // Gradient Overlay
             LinearGradient(
-                colors: [
-                    Color.clear,
-                    Color.kuroBackground.opacity(0.8),
-                    Color.kuroBackground
-                ],
+                colors: [Color.clear, Color.kuroBackground.opacity(0.92), Color.kuroBackground],
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 200)
+            .frame(height: 88)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .allowsHitTesting(false)
             
-            // Media Type Badge
-            HStack {
-                Spacer()
+            HStack(alignment: .bottom, spacing: 12) {
+                KuroCachedAsyncImage(url: URL(string: manga.displayImage), maxPixelSize: 520) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Rectangle().fill(Color.kuroBlack08)
+                }
+                .frame(width: 92, height: 132)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.white.opacity(0.65), lineWidth: 0.6)
+                        .blendMode(.overlay)
+                )
+                .shadow(color: Color.black.opacity(0.22), radius: 18, x: 0, y: 12)
+
+                Spacer(minLength: 0)
+
                 KuroStyle.mediaBadge("MANGA", isAnime: false)
             }
             .padding(.horizontal, ResponsiveLayout.padding())
-            .padding(.bottom, KuroSpacing.lg)
+            .padding(.bottom, 16)
         }
-        .frame(height: ResponsiveLayout.imageHeight(320))
+        .frame(height: baseHeight)
+        .ignoresSafeArea(edges: .top)
     }
 }
 
@@ -256,7 +451,7 @@ struct ChaptersSection: View {
                     .background(Color.kuroBlack08)
                     .cornerRadius(KuroRadius.sm)
                 } else {
-                    ForEach(chapters.prefix(5)) { ch in
+                    ForEach(chapters.prefix(1)) { ch in
                         ChapterItemRow(
                             chapter: ch,
                             isRead: ch.number <= userProgress,
@@ -630,6 +825,7 @@ struct VolumeCard: View {
 // MARK: - Manga Action Buttons
 struct MangaActionButtons: View {
     let manga: Manga
+    let onToast: (KuroToastState) -> Void
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.openURL) private var openURL
     @State private var showAddToList = false
@@ -642,7 +838,40 @@ struct MangaActionButtons: View {
     }
 
     var body: some View {
-        VStack(spacing: KuroSpacing.md) {
+        HStack(spacing: 10) {
+            Button(action: toggleSaved) {
+                Image(systemName: isSaved ? "heart.fill" : "heart")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.kuroBlack)
+                    .frame(width: 38, height: 38)
+                    .background(Color.kuroBlack08)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isSaved ? "Saved" : "Save")
+
+            Button(action: {
+                KuroAccessibility.impactHaptic(.medium)
+                showAddToList = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(isSaved ? "EDIT LIST" : "ADD TO LIST")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(1.1)
+                }
+                .foregroundColor(.kuroWhite)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.kuroBlack)
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $showAddToList) {
+                AddToListSheet(media: manga)
+            }
+
             if let link = readLink, !link.url.isEmpty {
                 Button(action: {
                     if allLinks.count > 1 {
@@ -652,60 +881,37 @@ struct MangaActionButtons: View {
                         openURL(url)
                     }
                 }) {
-                    HStack {
-                        Text(link.label)
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.0)
-                        Spacer()
-                        Image(systemName: allLinks.count > 1 ? "list.bullet" : "arrow.up.right")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .foregroundColor(.kuroWhite)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, KuroSpacing.lg)
-                    .padding(.horizontal, KuroSpacing.md)
-                    .background(Color.kuroBlack)
-                    .cornerRadius(KuroRadius.sm)
+                    Image(systemName: "book.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.kuroBlack)
+                        .frame(width: 38, height: 38)
+                        .background(Color.kuroBlack08)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-            }
-
-            Button(action: {
-                KuroAccessibility.impactHaptic(.medium)
-                showAddToList = true
-            }) {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.kuroBody())
-
-                    Text("ADD TO LIST")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.5)
+                .buttonStyle(.plain)
+                .accessibilityLabel(link.label)
+            } else if let urlString = manga.siteUrl, let url = URL(string: urlString) {
+                ShareLink(item: url, subject: Text(manga.displayTitle)) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.kuroBlack)
+                        .frame(width: 38, height: 38)
+                        .background(Color.kuroBlack08)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                .foregroundColor(.kuroWhite)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, KuroSpacing.lg)
-                .background(Color.kuroBlack)
-                .cornerRadius(KuroRadius.sm)
-            }
-            .sheet(isPresented: $showAddToList) {
-                AddToListSheet(media: manga)
-            }
-
-            HStack(spacing: KuroSpacing.md) {
-                SecondaryActionButton(
-                    icon: isSaved ? "heart.fill" : "heart",
-                    label: isSaved ? "SAVED" : "SAVE"
-                ) {
-                    toggleSaved()
-                }
-
-                if let urlString = manga.siteUrl, let url = URL(string: urlString) {
-                    SecondaryShareButton(url: url, title: manga.displayTitle)
-                } else {
-                    SecondaryActionButton(icon: "square.and.arrow.up", label: "SHARE") { }
-                }
+                .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { KuroAccessibility.impactHaptic(.light) })
             }
         }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.kuroBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.8)
+                )
+        )
         .task(id: manga.id) {
             await refreshLinks()
         }
@@ -738,8 +944,22 @@ struct MangaActionButtons: View {
             }
             if let msg = supabaseService.errorMessage, !msg.isEmpty {
                 KuroAccessibility.errorHaptic()
+                await MainActor.run {
+                    onToast(.init(kind: .error, title: "Couldn’t save", subtitle: msg, actionTitle: nil, onAction: nil))
+                }
             } else {
                 KuroAccessibility.successHaptic()
+                await MainActor.run {
+                    onToast(
+                        .init(
+                            kind: .success,
+                            title: currentlySaved ? "Removed" : "Saved",
+                            subtitle: currentlySaved ? "Removed from your list" : "Added to Planning",
+                            actionTitle: nil,
+                            onAction: nil
+                        )
+                    )
+                }
             }
         }
     }

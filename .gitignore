@@ -1,0 +1,33 @@
+.DS_Store
+
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcuserdata
+xcuserdata/
+*.xccheckout
+*.xcscmblueprint
+*.moved-aside
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# SwiftPM
+.build/
+.swiftpm/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python / venv
+.venv/
+venv/
+
+# Editor
+.vscode/
+
+# Local artifacts
+*.bak
+mockups/

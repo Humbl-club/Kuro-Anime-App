@@ -26,6 +26,11 @@ protocol MediaDisplayable {
     var createdAtValue: Date? { get }
 }
 
+extension MediaDisplayable {
+    /// Stable identity across mixed feeds (anime + manga).
+    var stableKey: String { "\(kind.rawValue)-\(id)" }
+}
+
 // MARK: - Media struct for UI components
 struct Media: MediaDisplayable {
     let id: Int
@@ -57,7 +62,15 @@ extension Anime: MediaDisplayable {
         return description ?? "No description available" 
     }
     
-    var episodes: Int? { episodeCount }
+    var episodes: Int? {
+        if let episodeCount, episodeCount > 0 { return episodeCount }
+        // Some long-running series don't have a total episode count from AniList.
+        // If we have a next airing episode number, treat (next - 1) as the number aired so far.
+        if let nextEpisodeNumber, nextEpisodeNumber > 1 {
+            return nextEpisodeNumber - 1
+        }
+        return nil
+    }
     var chapters: Int? { nil } // Anime doesn't have chapters
     var rating: Double? { 
         if let score = averageScore {
@@ -125,6 +138,8 @@ struct AnimeCard: Identifiable, Codable, Sendable, MediaDisplayable {
     let favourites: Int?
     let genreList: [String]?
     let createdAt: Date?
+    // Present only for search RPCs (used for keyset pagination).
+    let rank: Double?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -145,6 +160,7 @@ struct AnimeCard: Identifiable, Codable, Sendable, MediaDisplayable {
         case favourites
         case genreList = "genres"
         case createdAt = "created_at"
+        case rank
     }
 
     // MediaDisplayable
@@ -181,6 +197,8 @@ struct MangaCard: Identifiable, Codable, Sendable, MediaDisplayable {
     let favourites: Int?
     let genreList: [String]?
     let createdAt: Date?
+    // Present only for search RPCs (used for keyset pagination).
+    let rank: Double?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -199,6 +217,7 @@ struct MangaCard: Identifiable, Codable, Sendable, MediaDisplayable {
         case favourites
         case genreList = "genres"
         case createdAt = "created_at"
+        case rank
     }
 
     // MediaDisplayable
@@ -260,7 +279,7 @@ struct Anime: Identifiable, Codable {
     let endDateDay: Int?
     
     // Next episode (for airing shows)
-    let nextAiringEpisode: Int?
+    let nextEpisodeNumber: Int?
     let nextAiringAt: Date?
     
     // Scores and popularity
@@ -315,7 +334,7 @@ struct Anime: Identifiable, Codable {
         case endDateYear = "end_date_year"
         case endDateMonth = "end_date_month"
         case endDateDay = "end_date_day"
-        case nextAiringEpisode = "next_airing_episode"
+        case nextEpisodeNumber = "next_episode_number"
         case nextAiringAt = "next_airing_at"
         case averageScore = "average_score"
         case meanScore = "mean_score"

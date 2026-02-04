@@ -9,6 +9,8 @@ struct KuroCachedAsyncImage<Content: View>: View {
     private let url: URL?
     private let scale: CGFloat
     private let transaction: Transaction
+    // Max dimension in points; internally scaled by UIScreen scale.
+    private let maxPixelSize: Int?
     private let content: (AsyncImagePhase) -> Content
 
     @State private var phase: AsyncImagePhase = .empty
@@ -17,11 +19,13 @@ struct KuroCachedAsyncImage<Content: View>: View {
         url: URL?,
         scale: CGFloat = 1.0,
         transaction: Transaction = Transaction(),
+        maxPixelSize: Int? = nil,
         @ViewBuilder content: @escaping (AsyncImagePhase) -> Content
     ) {
         self.url = url
         self.scale = scale
         self.transaction = transaction
+        self.maxPixelSize = maxPixelSize
         self.content = content
     }
 
@@ -29,10 +33,11 @@ struct KuroCachedAsyncImage<Content: View>: View {
         url: URL?,
         scale: CGFloat = 1.0,
         transaction: Transaction = Transaction(),
+        maxPixelSize: Int? = nil,
         @ViewBuilder content: @escaping (Image) -> I,
         @ViewBuilder placeholder: @escaping () -> P
     ) where Content == _ConditionalContent<I, P> {
-        self.init(url: url, scale: scale, transaction: transaction) { phase in
+        self.init(url: url, scale: scale, transaction: transaction, maxPixelSize: maxPixelSize) { phase in
             switch phase {
             case .success(let image):
                 content(image)
@@ -54,9 +59,10 @@ struct KuroCachedAsyncImage<Content: View>: View {
                 let maxPx: Int
 #if canImport(UIKit)
                 let scaleInt = max(1, Int(UIScreen.main.scale))
-                maxPx = 900 * scaleInt
+                // `maxPixelSize` is interpreted in points; convert to pixels for downsampling.
+                maxPx = (maxPixelSize ?? 900) * scaleInt
 #else
-                maxPx = 900
+                maxPx = maxPixelSize ?? 900
 #endif
 
                 let ui = await ImagePipeline.shared.image(url: url, maxPixelSize: maxPx)

@@ -544,6 +544,7 @@ struct BrowseControlBar: View {
                 }
                 .padding(.horizontal, 20)
             }
+            .kuroSwipeExclusionZone()
 
             if hasActiveFilters {
                 HStack(spacing: 12) {
@@ -666,17 +667,19 @@ struct BrowseHeroCard: View {
     let media: any MediaDisplayable
     let geometry: GeometryProxy
     @State private var showDetail = false
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     var body: some View {
         let width = geometry.size.width - 40
         let height = max(220, floor(width * 0.54))
 
         Button(action: {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }) {
             ZStack(alignment: .bottomLeading) {
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 700) { phase in
                     switch phase {
                     case .success(let image):
                         image

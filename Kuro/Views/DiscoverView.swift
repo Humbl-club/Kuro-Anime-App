@@ -253,9 +253,11 @@ struct HeroFeaturedCard: View {
     let geometry: GeometryProxy
     @State private var showDetail = false
     @State private var pressed = false
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     var body: some View {
         Button(action: {
+            guard !suppressCardTaps else { return }
             pressed = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { pressed = false }
             KuroAccessibility.impactHaptic(.medium)
@@ -404,6 +406,7 @@ struct HorizontalSection: View {
                 }
                 .padding(.horizontal, padding) // Apply padding inside scroll view
             }
+            .kuroSwipeExclusionZone()
             .scrollTargetBehavior(.viewAligned)
             .scrollBounceBehavior(.basedOnSize)
             .highPriorityGesture(DragGesture())
@@ -537,6 +540,7 @@ struct DiscoverLoadingView: View {
                         }
                         .padding(.horizontal, 20)
                     }
+                    .kuroSwipeExclusionZone()
                 }
             }
         }

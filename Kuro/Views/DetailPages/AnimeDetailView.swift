@@ -9,11 +9,24 @@ struct AnimeDetailView: View {
     @Environment(SupabaseService.self) private var supabaseService
     @State private var scrollOffset: CGFloat = 0
     @State private var showFullDescription = false
+    @State private var toast: KuroToastState? = nil
+    @State private var toastDismissTask: Task<Void, Never>? = nil
+    @State private var topTags: [TagFacet] = []
+    @State private var similar: [Anime] = []
     
     var body: some View {
         GeometryReader { geometry in
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)) {
+                    GeometryReader { proxy in
+                        Color.clear
+                            .preference(
+                                key: KuroDetailScrollOffsetPreferenceKey.self,
+                                value: proxy.frame(in: .named("detail_scroll")).minY
+                            )
+                    }
+                    .frame(height: 0)
+
                     // Hero Section with Parallax Effect
                     HeroSection(anime: anime, geometry: geometry, scrollOffset: $scrollOffset)
                     
@@ -22,8 +35,9 @@ struct AnimeDetailView: View {
                         // Title & Quick Info
                         TitleSection(anime: anime)
                         
-                        // Stats Grid
-                        StatsGrid(anime: anime)
+                        MetaLineSection(anime: anime)
+
+                        NextUpSection(anime: anime)
                         
                         // Description
                         DescriptionSection(
@@ -35,14 +49,23 @@ struct AnimeDetailView: View {
                         if let genres = anime.genreList, !genres.isEmpty {
                             GenresSection(genres: genres)
                         }
-                        
-                        // Episodes Section (if available)
-                        if let episodeCount = anime.episodeCount {
-                            EpisodesSection(anime: anime, episodeCount: episodeCount)
+
+                        if !topTags.isEmpty {
+                            TagChipsSection(title: "SUB‑GENRES", tags: topTags.map(\.name))
                         }
                         
-                        // Action Buttons
-                        ActionButtons(anime: anime)
+                        // Episodes Section (if available)
+                        if let episodeCount = anime.episodeCount ?? anime.nextEpisodeNumber.map({ max(0, $0 - 1) }), episodeCount > 0 {
+                            EpisodesSection(
+                                anime: anime,
+                                episodeCount: episodeCount,
+                                countLabel: anime.episodeCount == nil ? "SO FAR" : "TOTAL"
+                            )
+                        }
+
+                        if !similar.isEmpty {
+                            SimilarSection(title: "MORE LIKE THIS", items: similar)
+                        }
                     }
                     .padding(.horizontal, ResponsiveLayout.padding())
                     .padding(.top, KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width))
@@ -50,6 +73,10 @@ struct AnimeDetailView: View {
                 }
             }
             .transaction { $0.animation = nil }
+            .coordinateSpace(name: "detail_scroll")
+            .onPreferenceChange(KuroDetailScrollOffsetPreferenceKey.self) { v in
+                scrollOffset = v
+            }
             .background(Color.kuroBackground)
             .ignoresSafeArea(edges: .top)
             .overlay(alignment: .topLeading) {
@@ -58,12 +85,210 @@ struct AnimeDetailView: View {
                     .padding(.top, KuroScreen.safeAreaTop + KuroSpacing.sm)
                     .padding(.leading, ResponsiveLayout.padding())
             }
+            .safeAreaInset(edge: .bottom) {
+                ActionButtons(anime: anime, onToast: showToast)
+                    .padding(.horizontal, ResponsiveLayout.padding())
+                    .padding(.top, 10)
+                    .padding(.bottom, 10)
+                    .background(
+                        Rectangle()
+                            .fill(Color.kuroBackground.opacity(0.92))
+                            .overlay(
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.08))
+                                    .frame(height: 0.5),
+                                alignment: .top
+                            )
+                            .ignoresSafeArea()
+                    )
+            }
+            .overlay(alignment: .bottom) {
+                if let toast {
+                    KuroToast(toast: toast)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 96)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
         }
         #if os(iOS)
-        .navigationBarHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         #else
         .toolbar(.hidden, for: .windowToolbar)
         #endif
+        .task(id: anime.id) {
+            async let tags = supabaseService.fetchTopTagsForAnime(animeId: anime.id, limit: 12)
+            async let sim = supabaseService.fetchSimilarAnime(seed: anime, limit: 14)
+            topTags = await tags
+            similar = await sim
+        }
+    }
+
+    @MainActor
+    private func showToast(_ next: KuroToastState) {
+        toastDismissTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            toast = next
+        }
+        toastDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(2.2 * 1_000_000_000))
+            if !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    toast = nil
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Swiss-minimal metadata line (replaces grids)
+struct MetaLineSection: View {
+    let anime: Anime
+
+    private var scoreText: String? {
+        guard let score = anime.averageScore, score > 0 else { return nil }
+        return String(format: "%.1f", Double(score) / 10.0)
+    }
+
+    private var episodeText: String? {
+        if let e = anime.episodeCount, e > 0 { return "\(e) EPS" }
+        if let next = anime.nextEpisodeNumber, next > 1 { return "\(max(0, next - 1)) EPS" }
+        return nil
+    }
+
+    private var statusText: String? {
+        anime.status?.replacingOccurrences(of: "_", with: " ").uppercased()
+    }
+
+    var body: some View {
+        let parts: [String] = [
+            scoreText.map { "SCORE \($0)" },
+            anime.displayYear.isEmpty ? nil : anime.displayYear,
+            anime.format?.uppercased(),
+            episodeText,
+            statusText
+        ].compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+
+        if !parts.isEmpty {
+            Text(parts.joined(separator: " · "))
+                .font(.kuroMicro(weight: .light))
+                .tracking(1.2)
+                .foregroundColor(.kuroBlack60)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+// MARK: - Next up (minimal)
+struct NextUpSection: View {
+    let anime: Anime
+    @Environment(SupabaseService.self) private var supabaseService
+
+    private var progress: Int { supabaseService.getProgress(for: anime.id) ?? 0 }
+    private var nextNumber: Int { max(1, progress + 1) }
+
+    private var nextAiringLine: String? {
+        guard let date = anime.nextAiringAt else { return nil }
+        let fmt = RelativeDateTimeFormatter()
+        fmt.unitsStyle = .short
+        return fmt.localizedString(for: date, relativeTo: Date())
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text("NEXT UP")
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.8)
+                .foregroundColor(.kuroBlack80)
+
+            Spacer(minLength: 0)
+
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("EP \(nextNumber)".uppercased())
+                    .font(.kuroMicro(weight: .regular))
+                    .tracking(1.2)
+                    .foregroundColor(.kuroBlack80)
+
+                if let nextAiringLine {
+                    Text(nextAiringLine.uppercased())
+                        .font(.kuroMicro(weight: .light))
+                        .tracking(1.0)
+                        .foregroundColor(.kuroBlack30)
+                }
+            }
+        }
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+        )
+        .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Minimal tag chips
+struct TagChipsSection: View {
+    let title: String
+    let tags: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroSpacing.md) {
+            Text(title)
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.5)
+                .foregroundColor(.kuroBlack80)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(tags.prefix(18), id: \.self) { t in
+                        Text(t.uppercased())
+                            .font(.kuroMicro(weight: .light))
+                            .tracking(0.8)
+                            .foregroundColor(.kuroBlack60)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
+                            )
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Similar rail (minimal)
+struct SimilarSection: View {
+    let title: String
+    let items: [Anime]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroSpacing.md) {
+            Text(title)
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.5)
+                .foregroundColor(.kuroBlack80)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(items.prefix(14), id: \.id) { item in
+                        KuroCompactCard(media: item)
+                    }
+                }
+            }
+            .kuroSwipeExclusionZone()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct KuroDetailScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
@@ -74,9 +299,13 @@ struct HeroSection: View {
     @Binding var scrollOffset: CGFloat
     
     var body: some View {
+        let baseHeight = ResponsiveLayout.imageHeight(320)
+        let stretch = max(scrollOffset, 0)
+        let parallax = min(scrollOffset, 0) * 0.32
+
         ZStack(alignment: .bottom) {
             // Banner/Cover Image with Parallax
-            KuroCachedAsyncImage(url: URL(string: anime.bannerImage ?? anime.displayImage)) { image in
+            KuroCachedAsyncImage(url: URL(string: anime.bannerImage ?? anime.displayImage), maxPixelSize: 1400) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -90,31 +319,47 @@ struct HeroSection: View {
                         )
                     )
             }
-            .frame(width: geometry.size.width, height: ResponsiveLayout.imageHeight(320))
+            .frame(width: geometry.size.width, height: baseHeight + stretch)
             .clipped()
-            .offset(y: scrollOffset * 0.5) // Parallax effect
+            // Pull-down stretch + subtle parallax (prevents top whitespace while keeping it calm/minimal).
+            .offset(y: parallax - stretch)
             
-            // Gradient Overlay
+            // Tiny seam fade so the hero feels "full-bleed" (no big white wash).
             LinearGradient(
-                colors: [
-                    Color.clear,
-                    Color.kuroBackground.opacity(0.8),
-                    Color.kuroBackground
-                ],
+                colors: [Color.clear, Color.kuroBackground.opacity(0.92), Color.kuroBackground],
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 200)
+            .frame(height: 88)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .allowsHitTesting(false)
             
-            // Media Type Badge
-            HStack {
-                Spacer()
+            HStack(alignment: .bottom, spacing: 12) {
+                KuroCachedAsyncImage(url: URL(string: anime.displayImage), maxPixelSize: 520) { image in
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } placeholder: {
+                    Rectangle().fill(Color.kuroBlack08)
+                }
+                .frame(width: 92, height: 132)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.white.opacity(0.65), lineWidth: 0.6)
+                        .blendMode(.overlay)
+                )
+                .shadow(color: Color.black.opacity(0.22), radius: 18, x: 0, y: 12)
+
+                Spacer(minLength: 0)
+
                 KuroStyle.mediaBadge("ANIME", isAnime: true)
             }
             .padding(.horizontal, ResponsiveLayout.padding())
-            .padding(.bottom, KuroSpacing.lg)
+            .padding(.bottom, 16)
         }
-        .frame(height: ResponsiveLayout.imageHeight(320))
+        .frame(height: baseHeight)
+        .ignoresSafeArea(edges: .top)
     }
 }
 
@@ -308,6 +553,7 @@ struct GenreTag: View {
 struct EpisodesSection: View {
     let anime: Anime
     let episodeCount: Int
+    let countLabel: String
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.openURL) private var openURL
     @State private var episodes: [Episode] = []
@@ -333,7 +579,7 @@ struct EpisodesSection: View {
                 
                 Spacer()
                 
-                Text("\(episodeCount) TOTAL")
+                Text("\(episodeCount) \(countLabel)")
                     .font(.kuroMicro(weight: .light))
                     .tracking(0.5)
                     .foregroundColor(.kuroBlack60)
@@ -355,7 +601,7 @@ struct EpisodesSection: View {
                     .background(Color.kuroBlack08)
                     .cornerRadius(KuroRadius.sm)
                 } else {
-                    ForEach(episodes.prefix(5)) { ep in
+                    ForEach(episodes.prefix(1)) { ep in
                         EpisodeItemRow(
                             episode: ep,
                             isWatched: ep.number <= userProgress,
@@ -648,6 +894,7 @@ struct EpisodeListSheet: View {
 // MARK: - Action Buttons
 struct ActionButtons: View {
     let anime: Anime
+    let onToast: (KuroToastState) -> Void
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.openURL) private var openURL
     @State private var showAddToList = false
@@ -660,7 +907,40 @@ struct ActionButtons: View {
     }
 
     var body: some View {
-        VStack(spacing: KuroSpacing.md) {
+        HStack(spacing: 10) {
+            Button(action: toggleSaved) {
+                Image(systemName: isSaved ? "heart.fill" : "heart")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.kuroBlack)
+                    .frame(width: 38, height: 38)
+                    .background(Color.kuroBlack08)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isSaved ? "Saved" : "Save")
+
+            Button(action: {
+                KuroAccessibility.impactHaptic(.medium)
+                showAddToList = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(isSaved ? "EDIT LIST" : "ADD TO LIST")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(1.1)
+                }
+                .foregroundColor(.kuroWhite)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.kuroBlack)
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $showAddToList) {
+                AddToListSheet(media: anime)
+            }
+
             if let link = watchLink, !link.url.isEmpty {
                 Button(action: {
                     if allLinks.count > 1 {
@@ -670,62 +950,37 @@ struct ActionButtons: View {
                         openURL(url)
                     }
                 }) {
-                    HStack {
-                        Text(link.label)
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.0)
-                        Spacer()
-                        Image(systemName: allLinks.count > 1 ? "list.bullet" : "arrow.up.right")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .foregroundColor(.kuroWhite)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, KuroSpacing.md)
-                    .padding(.horizontal, KuroSpacing.md)
-                    .background(Color.kuroBlack)
-                    .cornerRadius(KuroRadius.sm)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.kuroBlack)
+                        .frame(width: 38, height: 38)
+                        .background(Color.kuroBlack08)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-            }
-
-            // Add to List Button
-            Button(action: {
-                KuroAccessibility.impactHaptic(.medium)
-                showAddToList = true
-            }) {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.kuroBody())
-                    
-                    Text("ADD TO LIST")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.5)
+                .buttonStyle(.plain)
+                .accessibilityLabel(link.label)
+            } else if let urlString = anime.siteUrl, let url = URL(string: urlString) {
+                ShareLink(item: url, subject: Text(anime.displayTitle)) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.kuroBlack)
+                        .frame(width: 38, height: 38)
+                        .background(Color.kuroBlack08)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                .foregroundColor(.kuroWhite)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, KuroSpacing.md)
-                .background(Color.kuroBlack)
-                .cornerRadius(KuroRadius.sm)
-            }
-            .sheet(isPresented: $showAddToList) {
-                AddToListSheet(media: anime)
-            }
-            
-            // Secondary Actions
-            HStack(spacing: KuroSpacing.md) {
-                SecondaryActionButton(
-                    icon: isSaved ? "heart.fill" : "heart",
-                    label: isSaved ? "SAVED" : "SAVE"
-                ) {
-                    toggleSaved()
-                }
-
-                if let urlString = anime.siteUrl, let url = URL(string: urlString) {
-                    SecondaryShareButton(url: url, title: anime.displayTitle)
-                } else {
-                    SecondaryActionButton(icon: "square.and.arrow.up", label: "SHARE") { }
-                }
+                .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { KuroAccessibility.impactHaptic(.light) })
             }
         }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.kuroBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.8)
+                )
+        )
         .task(id: supabaseService.getProgress(for: anime.id) ?? -1) {
             await refreshLinks()
         }
@@ -759,8 +1014,22 @@ struct ActionButtons: View {
             }
             if let msg = supabaseService.errorMessage, !msg.isEmpty {
                 KuroAccessibility.errorHaptic()
+                await MainActor.run {
+                    onToast(.init(kind: .error, title: "Couldn’t save", subtitle: msg, actionTitle: nil, onAction: nil))
+                }
             } else {
                 KuroAccessibility.successHaptic()
+                await MainActor.run {
+                    onToast(
+                        .init(
+                            kind: .success,
+                            title: currentlySaved ? "Removed" : "Saved",
+                            subtitle: currentlySaved ? "Removed from your list" : "Added to Planning",
+                            actionTitle: nil,
+                            onAction: nil
+                        )
+                    )
+                }
             }
         }
     }

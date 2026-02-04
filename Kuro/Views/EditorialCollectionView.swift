@@ -8,6 +8,7 @@ struct EditorialCollectionView: View {
     @Environment(SupabaseService.self) private var supabaseService
     @State private var selectedFilter: CollectionFilter = .all
     @State private var didInitialLoad = false
+    @State private var bannerMessage: String? = nil
 
     enum CollectionFilter: String, CaseIterable {
         case all = "ALL"
@@ -29,24 +30,10 @@ struct EditorialCollectionView: View {
         }
     }
 
-    private var filteredAnime: [Anime] {
-        let userAnimeIds: Set<Int> =
-            selectedFilter == .all
-            ? supabaseService.userMediaIds(mediaType: "anime")
-            : (selectedFilter.listStatus.map { supabaseService.userMediaIds(mediaType: "anime", status: $0) } ?? [])
-        return supabaseService.collectionAnimeItems.filter { userAnimeIds.contains($0.id) }
-    }
-
-    private var filteredManga: [Manga] {
-        let userMangaIds: Set<Int> =
-            selectedFilter == .all
-            ? supabaseService.userMediaIds(mediaType: "manga")
-            : (selectedFilter.listStatus.map { supabaseService.userMediaIds(mediaType: "manga", status: $0) } ?? [])
-        return supabaseService.collectionMangaItems.filter { userMangaIds.contains($0.id) }
-    }
+    private var items: [Media] { supabaseService.collectionFeedItems }
 
     private var hasContent: Bool {
-        !filteredAnime.isEmpty || !filteredManga.isEmpty
+        !items.isEmpty
     }
 
     var body: some View {
@@ -63,53 +50,92 @@ struct EditorialCollectionView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     if supabaseService.isCollectionLoading {
                         EditorialCollectionLoading()
-                    } else if let msg = supabaseService.collectionErrorMessage, !msg.isEmpty {
-                        VStack(spacing: 8) {
-                            Text("COULDN'T LOAD COLLECTION")
-                                .font(.kuroCaption())
-                                .tracking(1.5)
-                                .foregroundColor(.black.opacity(0.5))
-                            Text(msg)
-                                .font(.kuroMicro(weight: .light))
-                                .foregroundColor(.black.opacity(0.4))
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
-                        }
-                        .padding(.top, 80)
                     } else if !hasContent {
+                        if let msg = supabaseService.collectionErrorMessage, !msg.isEmpty {
+                            VStack(spacing: 8) {
+                                Text("COULDN'T LOAD COLLECTION")
+                                    .font(.kuroCaption())
+                                    .tracking(1.5)
+                                    .foregroundColor(.black.opacity(0.5))
+                                Text(msg)
+                                    .font(.kuroMicro(weight: .light))
+                                    .foregroundColor(.black.opacity(0.4))
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 24)
+                            }
+                            .padding(.top, 80)
+                        } else {
                         EditorialCollectionEmpty()
+                        }
                     } else {
-                        VStack(spacing: 24) {
-                            // Anime section
-                            if !filteredAnime.isEmpty {
-                                EditorialCollectionGrid(items: filteredAnime, geometry: geometry, title: "ANIME")
-                            }
-
-                            // Manga section
-                            if !filteredManga.isEmpty {
-                                EditorialCollectionGrid(items: filteredManga, geometry: geometry, title: "MANGA")
-                            }
+                        EditorialCollectionGrid(items: items, geometry: geometry, title: nil)
+                        KuroLoadMoreSentinel(
+                            itemCount: items.count,
+                            hasMore: supabaseService.hasMoreCollectionFeed,
+                            isLoading: supabaseService.isLoadingMoreCollectionFeed
+                        ) {
+                            _ = await supabaseService.fetchNextCollectionFeedPage(limit: 90)
                         }
                     }
                 }
                 .scrollDisabled(false)
                 .refreshable {
+                    let hadContentBefore = hasContent
                     await supabaseService.fetchUserLists()
-                    await supabaseService.fetchCollectionItems()
+                    await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
+                    if hadContentBefore, let msg = supabaseService.collectionErrorMessage, !msg.isEmpty {
+                        showBanner("Couldn't refresh. Try again.")
+                        return
+                    }
+
+                    let urls: [URL] = await MainActor.run {
+                        Array(supabaseService.collectionFeedItems.prefix(80).compactMap { URL(string: $0.imageURL ?? "") })
+                    }
+                    if !urls.isEmpty {
+                        Task { await ImagePipeline.shared.prefetch(urls: urls) }
+                    }
                 }
                 .background(Color.white)
+                .overlay(alignment: .top) {
+                    if let bannerMessage {
+                        KuroTransientBanner(message: bannerMessage)
+                            .padding(.top, 10)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                }
             }
         }
         .task {
             if !didInitialLoad {
                 didInitialLoad = true
                 await supabaseService.fetchUserLists()
-                await supabaseService.fetchCollectionItems()
+                await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
+
+                let urls: [URL] = await MainActor.run {
+                    Array(supabaseService.collectionFeedItems.prefix(80).compactMap { URL(string: $0.imageURL ?? "") })
+                }
+                if !urls.isEmpty {
+                    Task { await ImagePipeline.shared.prefetch(urls: urls) }
+                }
             }
         }
         .onChange(of: selectedFilter) { _, _ in
-            // Filter is handled in computed property filteredItems
-            // No need to refetch - just refilter client-side
+            Task {
+                await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
+            }
+        }
+    }
+
+    @MainActor
+    private func showBanner(_ message: String) {
+        withAnimation(.easeInOut(duration: 0.18)) {
+            bannerMessage = message
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            withAnimation(.easeInOut(duration: 0.18)) {
+                bannerMessage = nil
+            }
         }
     }
 }
@@ -135,6 +161,7 @@ struct EditorialFilterBar<Filter: RawRepresentable & CaseIterable & Hashable>: V
             }
             .padding(.horizontal, EditorialLayout.marginEditorial)
         }
+        .kuroSwipeExclusionZone()
     }
 }
 
@@ -207,7 +234,7 @@ struct EditorialCollectionGrid: View {
             ]
 
             LazyVGrid(columns: columns, spacing: 16) {
-                ForEach(Array(items.prefix(50).enumerated()), id: \.offset) { _, media in
+                ForEach(items, id: \.stableKey) { media in
                     CollectionGridCard(media: media, cardWidth: cardWidth, cardHeight: totalCardHeight)
                 }
             }
@@ -383,9 +410,19 @@ struct CollectionGridCard: View {
     @State private var showDetail = false
     @State private var showAddToList = false
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
-    // Countdown currently depends on the full Anime row (next airing fields aren't present on cards).
-    private var animeForCountdown: Anime? { media as? Anime }
+    private var upcomingAiring: SupabaseService.UpcomingAiring? {
+        guard media.kind == .anime else { return nil }
+        return supabaseService.upcomingAirings.first(where: { $0.anime_id == media.id })
+    }
+
+    private var shouldShowCountdown: Bool {
+        guard media.kind == .anime else { return false }
+        guard media.statusRaw == "RELEASING" else { return false }
+        guard let at = upcomingAiring?.next_airing_at else { return false }
+        return at > Date()
+    }
 
     private var mediaType: String {
         media.kind.rawValue
@@ -411,6 +448,7 @@ struct CollectionGridCard: View {
 
     var body: some View {
         Button(action: {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }) {
@@ -419,7 +457,7 @@ struct CollectionGridCard: View {
             let imageHeight = floor(cardWidth / 0.7)
 
             ZStack(alignment: .topTrailing) {
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 520) { phase in
                     switch phase {
                     case .success(let image):
                         image
@@ -436,6 +474,20 @@ struct CollectionGridCard: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                // Type badge (helps when the feed is mixed anime + manga).
+                Text(media.kind == .anime ? "ANIME" : "MANGA")
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundColor(.black.opacity(0.7))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.white.opacity(0.92))
+                    )
+                    .padding(6)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 VStack(alignment: .trailing, spacing: 6) {
                     // Score badge
@@ -511,11 +563,11 @@ struct CollectionGridCard: View {
                         .foregroundColor(.black.opacity(0.7))
                 }
 
-                // COUNTDOWN TIMER FOR AIRING ANIME
-                if let anime = animeForCountdown, anime.shouldShowCountdown {
+                // COUNTDOWN TIMER FOR AIRING ANIME (via upcomingAirings)
+                if shouldShowCountdown {
                     NextEpisodeCountdown(
-                        nextAiringAt: anime.nextAiringAt,
-                        nextEpisodeNumber: anime.nextAiringEpisode
+                        nextAiringAt: upcomingAiring?.next_airing_at,
+                        nextEpisodeNumber: upcomingAiring?.next_episode_number
                     )
                 }
 
@@ -566,7 +618,7 @@ struct CollectionGridCard: View {
         if let rating = media.rating, rating > 0 { parts.append(String(format: "Rating %.1f", rating)) }
         if let p = userProgress { parts.append("\(p.watched) of \(p.total) watched") }
         if let p = mangaProgress { parts.append("\(p.read) of \(p.total) read") }
-        if let anime = animeForCountdown, anime.shouldShowCountdown, let countdown = supabaseService.countdownByAnimeId[anime.id] {
+        if shouldShowCountdown, let countdown = supabaseService.countdownByAnimeId[media.id] {
             parts.append("Next episode in \(countdown)")
         }
         return Text(parts.joined(separator: ", "))

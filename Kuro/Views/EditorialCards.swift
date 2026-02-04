@@ -11,12 +11,13 @@ struct EditorialHeroCard: View {
     let media: any MediaDisplayable
     @State private var isPressed = false
     @State private var showDetail = false
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottomLeading) {
                 // Hero Image
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 1100) { phase in
                     switch phase {
                     case .success(let image):
                         image
@@ -81,6 +82,7 @@ struct EditorialHeroCard: View {
             .animation(KuroAnimation.editorial, value: isPressed)
         }
         .onTapGesture {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }
@@ -99,11 +101,12 @@ struct EditorialFeatureCard: View {
     let media: any MediaDisplayable
     @State private var isPressed = false
     @State private var showDetail = false
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Image
-            KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+            KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 700) { phase in
                 switch phase {
                 case .success(let image):
                     image
@@ -145,6 +148,7 @@ struct EditorialFeatureCard: View {
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .animation(KuroAnimation.editorial, value: isPressed)
         .onTapGesture {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }
@@ -162,11 +166,12 @@ struct EditorialFeatureCard: View {
 struct EditorialCompactCard: View {
     let media: any MediaDisplayable
     @State private var showDetail = false
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     var body: some View {
         HStack(spacing: 16) {
             // Thumbnail
-            KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+            KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 260) { phase in
                 switch phase {
                 case .success(let image):
                     image
@@ -215,6 +220,7 @@ struct EditorialCompactCard: View {
         .frame(height: 120)
         .contentShape(Rectangle())
         .onTapGesture {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }
@@ -231,6 +237,7 @@ struct EditorialGridCard: View {
     let size: GridSize
     @State private var isPressed = false
     @State private var showDetail = false
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     enum GridSize {
         case large
@@ -241,7 +248,10 @@ struct EditorialGridCard: View {
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             // Image
-            KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+            KuroCachedAsyncImage(
+                url: URL(string: media.imageURL ?? ""),
+                maxPixelSize: size == .large ? 900 : (size == .medium ? 700 : 520)
+            ) { phase in
                 switch phase {
                 case .success(let image):
                     image
@@ -291,6 +301,7 @@ struct EditorialGridCard: View {
         .animation(KuroAnimation.editorial, value: isPressed)
         .contentShape(Rectangle())
         .onTapGesture {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }
@@ -309,6 +320,7 @@ struct EditorialListRow: View {
     let media: any MediaDisplayable
     let number: Int?
     @State private var showDetail = false
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     var body: some View {
         HStack(spacing: 20) {
@@ -354,6 +366,7 @@ struct EditorialListRow: View {
         .padding(.vertical, 16)
         .contentShape(Rectangle())
         .onTapGesture {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }

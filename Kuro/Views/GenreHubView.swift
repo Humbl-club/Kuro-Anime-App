@@ -143,6 +143,7 @@ struct GenreHubView: View {
                 }
                 .padding(.horizontal, 20)
             }
+            .kuroSwipeExclusionZone()
         }
         .padding(.top, 6)
     }
@@ -206,4 +207,3 @@ struct GenreHubView: View {
         }
     }
 }
-

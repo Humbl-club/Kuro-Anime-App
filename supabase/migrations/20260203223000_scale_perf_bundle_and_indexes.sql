@@ -424,6 +424,10 @@ grant execute on function public.discover_bundle(integer, integer) to anon, auth
 
 -- 4) Browse keyset pagination RPCs (cards).
 -- This keeps the app fast at deeper pages and protects Postgres from OFFSET scans.
+-- NOTE: Reapplying migrations can fail if the function's return type changed in a later migration.
+-- Drop first so subsequent migrations can recreate with the newer return shape.
+drop function if exists public.browse_anime_page(text, text, integer, integer, text, integer, timestamptz, integer, integer);
+drop function if exists public.browse_manga_page(text, text, integer, integer, text, integer, timestamptz, integer, integer);
 create or replace function public.browse_anime_page(
   p_genre text default null,
   p_status text default null,

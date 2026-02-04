@@ -34,6 +34,28 @@ struct KuroScoreBadge: View {
     }
 }
 
+// MARK: - Year Badge (on poster)
+struct KuroYearBadge: View {
+    let yearText: String
+
+    var body: some View {
+        Text(yearText)
+            .font(.system(size: 9, weight: .medium))
+            .foregroundColor(.white)
+            .monospacedDigit()
+            .padding(.horizontal, 6)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.black.opacity(0.62))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .stroke(Color.white.opacity(0.14), lineWidth: 0.6)
+            )
+    }
+}
+
 // MARK: - Collection Status Indicator
 struct KuroStatusIndicator: View {
     let isInCollection: Bool
@@ -65,6 +87,7 @@ struct KuroPortraitCard: View {
     @State private var showDetail = false
     @State private var isPressed = false
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     
     private var mediaType: String {
         media.kind.rawValue
@@ -77,16 +100,40 @@ struct KuroPortraitCard: View {
     private var imageHeight: CGFloat {
         cardWidth / 0.7 // Standard poster ratio
     }
+
+    private var yearBadgeText: String? {
+        let digits = media.year.filter(\.isNumber)
+        guard digits.count >= 4 else { return nil }
+        return String(digits.prefix(4))
+    }
+
+    private var episodesLine: String? {
+        if let episodes = media.episodes, episodes > 0 {
+            return "\(KuroCardText.countString(episodes)) eps"
+        }
+        if let chapters = media.chapters, chapters > 0 {
+            return "\(KuroCardText.countString(chapters)) ch"
+        }
+        if let status = media.statusRaw?.uppercased() {
+            if status == "RELEASING" { return "airing" }
+            if status == "FINISHED" { return "finished" }
+        }
+        if let format = media.formatRaw, !format.isEmpty {
+            return format.lowercased()
+        }
+        return nil
+    }
     
     var body: some View {
         Button(action: {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }) {
             VStack(alignment: .leading, spacing: 0) {
                 // Image Container
-                ZStack(alignment: .topTrailing) {
-                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                ZStack(alignment: .top) {
+                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 520) { phase in
                         switch phase {
                         case .success(let image):
                             image
@@ -110,14 +157,21 @@ struct KuroPortraitCard: View {
                     .frame(width: cardWidth, height: imageHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     
-                    // Badge Stack
-                    VStack(alignment: .trailing, spacing: 6) {
-                        if let rating = media.rating, rating > 0 {
-                            KuroScoreBadge(score: rating)
+                    HStack(alignment: .top) {
+                        if let yearBadgeText {
+                            KuroYearBadge(yearText: yearBadgeText)
                         }
-                        
-                        if isInCollection {
-                            KuroStatusIndicator(isInCollection: true)
+
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 6) {
+                            if let rating = media.rating, rating > 0 {
+                                KuroScoreBadge(score: rating)
+                            }
+
+                            if isInCollection {
+                                KuroStatusIndicator(isInCollection: true)
+                            }
                         }
                     }
                     .padding(8)
@@ -125,34 +179,26 @@ struct KuroPortraitCard: View {
                 
                 // Text Block
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(media.title)
-                        .font(.system(size: 12, weight: .semibold))
+                    Text(KuroCardText.sanitizeTitleForCard(media.title))
+                        .font(.system(size: 13, weight: .light, design: .serif))
+                        .textCase(.uppercase)
+                        .tracking(media.title.count >= 26 ? 0.3 : 0.6)
                         .foregroundColor(.black.opacity(0.9))
                         .lineLimit(2)
-                        .frame(height: 32, alignment: .top)
-                    
-                    HStack(spacing: 4) {
-                        Text(media.year)
-                            .font(.system(size: 10, weight: .regular))
+                        .minimumScaleFactor(0.92)
+                        .allowsTightening(true)
+                        .truncationMode(.tail)
+                        .frame(height: 38, alignment: .top)
+
+                    if let episodesLine {
+                        Text(episodesLine)
+                            .font(.system(size: 9, weight: .light))
                             .foregroundColor(.black.opacity(0.5))
-                        
-                        if let episodes = media.episodes, episodes > 0 {
-                            Text("·")
-                                .foregroundColor(.black.opacity(0.3))
-                            Text("\(episodes) eps")
-                                .font(.system(size: 10, weight: .regular))
-                                .foregroundColor(.black.opacity(0.5))
-                        } else if let chapters = media.chapters, chapters > 0 {
-                            Text("·")
-                                .foregroundColor(.black.opacity(0.3))
-                            Text("\(chapters) ch")
-                                .font(.system(size: 10, weight: .regular))
-                                .foregroundColor(.black.opacity(0.5))
-                        }
+                            .lineLimit(1)
                     }
                 }
-                .frame(width: cardWidth, height: 52, alignment: .top)
-                .padding(.top, 8)
+                .frame(width: cardWidth, alignment: .topLeading)
+                .padding(.top, 10)
             }
             .frame(width: cardWidth, height: cardHeight, alignment: .top)
             .scaleEffect(isPressed ? 0.98 : 1.0)
@@ -173,19 +219,44 @@ struct KuroCompactCard: View {
     
     @State private var showDetail = false
     @State private var isPressed = false
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     
     private var height: CGFloat {
         width / 0.7
     }
+
+    private var yearBadgeText: String? {
+        let digits = media.year.filter(\.isNumber)
+        guard digits.count >= 4 else { return nil }
+        return String(digits.prefix(4))
+    }
+
+    private var episodesLine: String? {
+        if let episodes = media.episodes, episodes > 0 {
+            return "\(KuroCardText.countString(episodes)) eps"
+        }
+        if let chapters = media.chapters, chapters > 0 {
+            return "\(KuroCardText.countString(chapters)) ch"
+        }
+        if let status = media.statusRaw?.uppercased() {
+            if status == "RELEASING" { return "airing" }
+            if status == "FINISHED" { return "finished" }
+        }
+        if let format = media.formatRaw, !format.isEmpty {
+            return format.lowercased()
+        }
+        return nil
+    }
     
     var body: some View {
         Button(action: {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }) {
             VStack(alignment: .leading, spacing: 0) {
-                ZStack(alignment: .topTrailing) {
-                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                ZStack(alignment: .top) {
+                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 300) { phase in
                         switch phase {
                         case .success(let image):
                             image
@@ -204,35 +275,39 @@ struct KuroCompactCard: View {
                     .frame(width: width, height: height)
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     
-                    if let rating = media.rating, rating > 0 {
-                        KuroScoreBadge(score: rating)
-                            .padding(6)
-                    }
-                }
-                
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(media.title)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.black.opacity(0.9))
-                        .lineLimit(2)
-                        .frame(height: 28, alignment: .top)
-                    
-                    HStack(spacing: 3) {
-                        Text(media.year)
-                            .font(.system(size: 9, weight: .regular))
-                            .foregroundColor(.black.opacity(0.5))
-                        
-                        if let episodes = media.episodes, episodes > 0 {
-                            Text("·")
-                                .foregroundColor(.black.opacity(0.3))
-                            Text("\(episodes)")
-                                .font(.system(size: 9, weight: .regular))
-                                .foregroundColor(.black.opacity(0.5))
+                    HStack(alignment: .top) {
+                        if let yearBadgeText {
+                            KuroYearBadge(yearText: yearBadgeText)
+                        }
+                        Spacer()
+                        if let rating = media.rating, rating > 0 {
+                            KuroScoreBadge(score: rating)
                         }
                     }
+                    .padding(6)
                 }
-                .frame(width: width)
-                .padding(.top, 6)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(KuroCardText.sanitizeTitleForCard(media.title))
+                        .font(.system(size: 12, weight: .light, design: .serif))
+                        .textCase(.uppercase)
+                        .tracking(media.title.count >= 24 ? 0.25 : 0.55)
+                        .foregroundColor(.black.opacity(0.9))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.90)
+                        .allowsTightening(true)
+                        .truncationMode(.tail)
+                        .frame(height: 38, alignment: .top)
+
+                    if let episodesLine {
+                        Text(episodesLine)
+                            .font(.system(size: 9, weight: .light))
+                            .foregroundColor(.black.opacity(0.5))
+                            .lineLimit(1)
+                    }
+                }
+                .frame(width: width, alignment: .topLeading)
+                .padding(.top, 10)
             }
             .scaleEffect(isPressed ? 0.97 : 1.0)
             .opacity(isPressed ? 0.95 : 1.0)
@@ -252,6 +327,7 @@ struct KuroHeroCard: View {
     
     @State private var showDetail = false
     @State private var isPressed = false
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     
     private var height: CGFloat {
         max(220, floor(width * 0.54))
@@ -259,11 +335,12 @@ struct KuroHeroCard: View {
     
     var body: some View {
         Button(action: {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.medium)
             showDetail = true
         }) {
             ZStack(alignment: .bottomLeading) {
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 700) { phase in
                     switch phase {
                     case .success(let image):
                         image

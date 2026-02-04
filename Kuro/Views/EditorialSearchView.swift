@@ -75,7 +75,7 @@ struct EditorialSearchView: View {
                 }
                 .scrollDisabled(false)
                 .refreshable {
-                    await runSearch(reset: true)
+                    await supabaseService.refreshSearch()
                 }
                 .background(Color.white)
             }
@@ -123,6 +123,11 @@ struct EditorialSearchView: View {
         }
 
         supabaseService.setSearchFilters(filters)
+
+        // Avoid blanking the UI for very short queries; wait until the user has typed enough.
+        if trimmed.count < 2 && filters == nil {
+            return
+        }
 
         if reset {
             switch scope {
@@ -253,6 +258,7 @@ struct EditorialCategoryFilters: View {
             }
             .padding(.horizontal, EditorialLayout.marginEditorial)
         }
+        .kuroSwipeExclusionZone()
     }
 }
 
@@ -353,6 +359,7 @@ struct SearchResultRow: View {
     let query: String
     @State private var showDetail = false
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     private var mediaTypeLabel: String {
         switch media.kind {
@@ -380,12 +387,13 @@ struct SearchResultRow: View {
 
     var body: some View {
         Button(action: {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }) {
             HStack(spacing: 12) {
                 // Thumbnail
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 180) { phase in
                     switch phase {
                     case .success(let image):
                         image

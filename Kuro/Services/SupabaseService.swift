@@ -15,6 +15,11 @@ class SupabaseService {
     
     // Supabase client
     private let client: SupabaseClient
+    // Realtime (user-scoped) subscriptions
+    private var realtimeChannel: RealtimeChannelV2? = nil
+    private var realtimeListenTasks: [Task<Void, Never>] = []
+    private var realtimeDebounceTask: Task<Void, Never>? = nil
+    private var realtimeSubscribedUserId: String? = nil
 
     // Auth state
     var isAuthBootstrapping: Bool = true
@@ -25,8 +30,11 @@ class SupabaseService {
     var animeItems: [Anime] = []
     var mangaItems: [Manga] = []
     // User's personal collection (server-driven; doesn't rely on global prefetch)
-    var collectionAnimeItems: [Anime] = []
-    var collectionMangaItems: [Manga] = []
+    // Lightweight cards for collection grids; details are loaded on demand.
+    var collectionAnimeItems: [AnimeCard] = []
+    var collectionMangaItems: [MangaCard] = []
+    // Unified feed used by the main Collection screen (anime + manga interleaved by last updated).
+    var collectionFeedItems: [Media] = []
     var isCollectionLoading: Bool = false
     var collectionErrorMessage: String? = nil
     var userLists: [UserList] = []
@@ -34,6 +42,82 @@ class SupabaseService {
     // Detail caches: cards/grids only carry minimal fields; we fetch full details by id on demand.
     private var animeDetailCache: [Int: Anime] = [:]
     private var mangaDetailCache: [Int: Manga] = [:]
+    // De-dupe frequently called network fetches so multiple screens mounting doesn't fan-out.
+    private var userListsFetchInFlight: Task<Void, Never>? = nil
+    private var collectionFetchInFlight: Task<Void, Never>? = nil
+    private var collectionFetchGeneration: Int = 0
+    private var collectionFetchInFlightGeneration: Int = 0
+    private var collectionFeedFetchInFlight: Task<Void, Never>? = nil
+    private var collectionFeedFetchGeneration: Int = 0
+    private var collectionFeedFetchInFlightGeneration: Int = 0
+    private var upcomingFetchInFlight: Task<Void, Never>? = nil
+
+    // Lightweight response caches (avoid refetching the same rails/recs when a view reappears).
+    private struct TimedCache<T>: Sendable {
+        let value: T
+        let storedAt: Date
+    }
+
+    private var discoverBundleCache: [String: TimedCache<DiscoverBundle>] = [:]
+    private var discoverBundleInFlight: [String: Task<DiscoverBundle?, Never>] = [:]
+
+    private var conciergeRecommendCache: [String: TimedCache<ConciergeRecommendResponse>] = [:]
+    private var conciergeRecommendInFlight: [String: Task<ConciergeRecommendResponse, Error>] = [:]
+
+    private var conciergeParseCache: [String: TimedCache<ConciergeParseResponse>] = [:]
+    private var conciergeParseInFlight: [String: Task<ConciergeParseResponse, Error>] = [:]
+
+    private func trimCache<T>(_ cache: inout [String: TimedCache<T>], maxEntries: Int) {
+        guard cache.count > maxEntries else { return }
+        let sorted = cache.sorted { $0.value.storedAt < $1.value.storedAt }
+        let removeCount = max(0, sorted.count - maxEntries)
+        for (k, _) in sorted.prefix(removeCount) { cache.removeValue(forKey: k) }
+    }
+
+    private struct BackoffState: Sendable {
+        var failures: Int = 0
+        var until: Date? = nil
+
+        mutating func canAttempt(now: Date = Date()) -> Bool {
+            guard let until else { return true }
+            return now >= until
+        }
+
+        mutating func recordSuccess() {
+            failures = 0
+            until = nil
+        }
+
+        mutating func recordFailure(now: Date = Date()) {
+            failures = min(failures + 1, 6)
+            let base: Double = 2.0
+            let delay = min(60.0, base * pow(2.0, Double(failures - 1)))
+            until = now.addingTimeInterval(delay)
+        }
+    }
+
+    private var upcomingBackoff = BackoffState()
+    private var lastUpcomingFetchAt: Date? = nil
+    private var lastUpcomingDays: Int = 7
+
+    // Collection pagination state (keyset by list updated_at + list row id).
+    var hasMoreCollectionAnime: Bool = true
+    var hasMoreCollectionManga: Bool = true
+    var isLoadingMoreCollectionAnime: Bool = false
+    var isLoadingMoreCollectionManga: Bool = false
+    private var collectionAnimeCursorUpdatedAt: Date? = nil
+    private var collectionAnimeCursorRowId: Int? = nil
+    private var collectionMangaCursorUpdatedAt: Date? = nil
+    private var collectionMangaCursorRowId: Int? = nil
+
+    // Collection feed pagination state (keyset by updated_at + source_rank + list row id).
+    var hasMoreCollectionFeed: Bool = true
+    var isLoadingMoreCollectionFeed: Bool = false
+    private var collectionFeedCursorUpdatedAt: Date? = nil
+    private var collectionFeedCursorSourceRank: Int? = nil
+    private var collectionFeedCursorRowId: Int? = nil
+
+    private var currentCollectionStatusFilter: ListStatus? = nil
     // Upcoming airings for user's saved anime (next X days)
     struct UpcomingAiring: Decodable, Sendable {
         let anime_id: Int
@@ -128,19 +212,23 @@ class SupabaseService {
     }
 
     // Search state (paged server-side text search)
-    var searchAnimeItems: [Anime] = []
-    var searchMangaItems: [Manga] = []
+    // NOTE: These are lightweight cards (rank included for keyset pagination).
+    var searchAnimeItems: [AnimeCard] = []
+    var searchMangaItems: [MangaCard] = []
     private var currentSearchQuery: String = ""
     private enum SearchMode { case anime, manga, combined }
     private var searchMode: SearchMode = .anime
-    private var currentSearchPage = 0
-    private var currentSearchPageAnime = 0
-    private var currentSearchPageManga = 0
     private var searchPageSize = 20
     var hasMoreSearch = true
     var isSearching = false
     private var hasMoreSearchAnime = true
     private var hasMoreSearchManga = true
+    private var searchCursorAnimeRank: Double? = nil
+    private var searchCursorAnimePopularity: Int? = nil
+    private var searchCursorAnimeId: Int? = nil
+    private var searchCursorMangaRank: Double? = nil
+    private var searchCursorMangaPopularity: Int? = nil
+    private var searchCursorMangaId: Int? = nil
 
     struct SearchFilters {
         var trending: Bool = false
@@ -261,6 +349,7 @@ class SupabaseService {
         } catch {
             print("❌ signOut error: \(error)")
         }
+        await stopRealtimeSubscriptions()
         isAuthenticated = false
         authErrorMessage = nil
         stopCountdownUpdates()
@@ -271,6 +360,7 @@ class SupabaseService {
         userLists = []
         collectionAnimeItems = []
         collectionMangaItems = []
+        collectionFeedItems = []
         upcomingAirings = []
         countdownByAnimeId = [:]
     }
@@ -295,8 +385,10 @@ class SupabaseService {
         // Load user state early so collection indicators + progress are correct across the UI.
         await fetchUserLists()
         await fetchCollectionItems()
+        await fetchCollectionFeed()
         await fetchUpcomingForUser(days: 7)
         startCountdownUpdates()
+        subscribeToUpdates()
     }
 
     private func currentUserIdString() async -> String? {
@@ -441,12 +533,17 @@ class SupabaseService {
     func resetSearch(query: String, isManga: Bool) {
         currentSearchQuery = query
         searchMode = isManga ? .manga : .anime
-        currentSearchPage = 0
         hasMoreSearch = true
         hasMoreSearchAnime = true
         hasMoreSearchManga = true
         searchAnimeItems = []
         searchMangaItems = []
+        searchCursorAnimeRank = nil
+        searchCursorAnimePopularity = nil
+        searchCursorAnimeId = nil
+        searchCursorMangaRank = nil
+        searchCursorMangaPopularity = nil
+        searchCursorMangaId = nil
     }
 
     func setSearchFilters(_ filters: SearchFilters?) {
@@ -467,66 +564,46 @@ class SupabaseService {
         let trimmedQuery = currentSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         // Allow "filters-only" searches (no text) for category browsing; but don't fetch anything if both are empty.
         if trimmedQuery.isEmpty && currentSearchFilters == nil { return }
+        // Avoid hammering the DB for 1-character incremental typing.
+        if trimmedQuery.count < 2 && currentSearchFilters == nil { return }
         guard hasMoreSearch, !isSearching else { return }
         isSearching = true
         defer { isSearching = false }
 
         do {
-            let offset = currentSearchPage * searchPageSize
             if searchMode == .manga {
-                var query = client.from("manga").select()
-                if !trimmedQuery.isEmpty {
-                    query = query.textSearch("title_english,title_romaji,description_normalized", query: trimmedQuery)
+                let page = try await fetchSearchMangaPage(
+                    query: trimmedQuery,
+                    filters: currentSearchFilters,
+                    cursorRank: searchCursorMangaRank,
+                    cursorPopularity: searchCursorMangaPopularity,
+                    cursorId: searchCursorMangaId,
+                    limit: searchPageSize
+                )
+                searchMangaItems.append(contentsOf: page)
+                hasMoreSearch = page.count == searchPageSize
+                if let last = page.last {
+                    searchCursorMangaRank = last.rank ?? 0
+                    searchCursorMangaPopularity = last.popularity ?? 0
+                    searchCursorMangaId = last.id
                 }
-
-                if let f = currentSearchFilters {
-                    if f.trending { query = query.gt("trending", value: 0) }
-                    if f.newSeason { query = query.gte("start_date_year", value: newSeasonThresholdYear()) }
-                    if f.classics { query = query.lt("start_date_year", value: 2010) }
-                    if f.hiddenGems { query = query.gte("average_score", value: 85).lt("start_date_year", value: 2015) }
-                    // airingOnly/seasonName not applicable to manga in AniList terms; skip
-                }
-
-                // Order: trending if facet on, else popularity
-                let orderedQuery = (currentSearchFilters?.trending ?? false) ?
-                    query.order("trending", ascending: false) :
-                    query.order("popularity", ascending: false)
-
-                let response: [Manga] = try await orderedQuery
-                    .range(from: offset, to: offset + searchPageSize - 1)
-                    .execute()
-                    .value
-                searchMangaItems.append(contentsOf: response)
-                hasMoreSearch = response.count == searchPageSize
             } else {
-                var query = client.from("anime").select()
-                if !trimmedQuery.isEmpty {
-                    query = query.textSearch("title_english,title_romaji,description_normalized", query: trimmedQuery)
+                let page = try await fetchSearchAnimePage(
+                    query: trimmedQuery,
+                    filters: currentSearchFilters,
+                    cursorRank: searchCursorAnimeRank,
+                    cursorPopularity: searchCursorAnimePopularity,
+                    cursorId: searchCursorAnimeId,
+                    limit: searchPageSize
+                )
+                searchAnimeItems.append(contentsOf: page)
+                hasMoreSearch = page.count == searchPageSize
+                if let last = page.last {
+                    searchCursorAnimeRank = last.rank ?? 0
+                    searchCursorAnimePopularity = last.popularity ?? 0
+                    searchCursorAnimeId = last.id
                 }
-
-                if let f = currentSearchFilters {
-                    if f.trending { query = query.gt("trending", value: 0) }
-                    if f.newSeason { query = query.gte("season_year", value: newSeasonThresholdYear()) }
-                    if f.classics { query = query.lt("season_year", value: 2010) }
-                    if f.hiddenGems { query = query.gte("average_score", value: 85).lt("season_year", value: 2015) }
-                    if f.airingOnly { query = query.eq("status", value: "RELEASING") }
-                    if let s = f.seasonName, let y = f.seasonYear {
-                        query = query.eq("season", value: s).eq("season_year", value: y)
-                    }
-                }
-
-                let orderedQuery = (currentSearchFilters?.trending ?? false) ?
-                    query.order("trending", ascending: false) :
-                    query.order("popularity", ascending: false)
-
-                let response: [Anime] = try await orderedQuery
-                    .range(from: offset, to: offset + searchPageSize - 1)
-                    .execute()
-                    .value
-                searchAnimeItems.append(contentsOf: response)
-                hasMoreSearch = response.count == searchPageSize
             }
-            if hasMoreSearch { currentSearchPage += 1 }
         } catch {
             errorMessage = "Search failed: \(error.localizedDescription)"
             hasMoreSearch = false
@@ -537,77 +614,65 @@ class SupabaseService {
     func resetCombinedSearch(query: String) {
         currentSearchQuery = query
         searchMode = .combined
-        currentSearchPageAnime = 0
-        currentSearchPageManga = 0
         hasMoreSearchAnime = true
         hasMoreSearchManga = true
         hasMoreSearch = true
         searchAnimeItems = []
         searchMangaItems = []
+        searchCursorAnimeRank = nil
+        searchCursorAnimePopularity = nil
+        searchCursorAnimeId = nil
+        searchCursorMangaRank = nil
+        searchCursorMangaPopularity = nil
+        searchCursorMangaId = nil
     }
 
     func fetchNextCombinedSearchPage() async {
         let trimmedQuery = currentSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmedQuery.isEmpty && currentSearchFilters == nil { return }
+        if trimmedQuery.count < 2 && currentSearchFilters == nil { return }
         guard hasMoreSearch, !isSearching else { return }
 
         isSearching = true
         defer { isSearching = false }
 
         do {
-            // Avoid `async let` here: Supabase builders and service state are MainActor-isolated.
             let filters = currentSearchFilters
-            let orderByTrending = filters?.trending ?? false
-            let seasonFloor = newSeasonThresholdYear()
-
-            var animePage: [Anime] = []
-            if hasMoreSearchAnime {
-                var q = client.from("anime").select()
-                if !trimmedQuery.isEmpty {
-                    q = q.textSearch("title_english,title_romaji,description_normalized", query: trimmedQuery)
-                }
-                if let f = filters {
-                    if f.trending { q = q.gt("trending", value: 0) }
-                    if f.newSeason { q = q.gte("season_year", value: seasonFloor) }
-                    if f.classics { q = q.lt("season_year", value: 2010) }
-                    if f.hiddenGems { q = q.gte("average_score", value: 85).lt("season_year", value: 2015) }
-                    if f.airingOnly { q = q.eq("status", value: "RELEASING") }
-                    if let s = f.seasonName, let y = f.seasonYear {
-                        q = q.eq("season", value: s).eq("season_year", value: y)
-                    }
-                }
-                let ordered = orderByTrending ? q.order("trending", ascending: false) : q.order("popularity", ascending: false)
-                let offset = currentSearchPageAnime * searchPageSize
-                animePage = try await ordered.range(from: offset, to: offset + searchPageSize - 1).execute().value
-            }
-
-            var mangaPage: [Manga] = []
-            if hasMoreSearchManga {
-                var q = client.from("manga").select()
-                if !trimmedQuery.isEmpty {
-                    q = q.textSearch("title_english,title_romaji,description_normalized", query: trimmedQuery)
-                }
-                if let f = filters {
-                    if f.trending { q = q.gt("trending", value: 0) }
-                    if f.newSeason { q = q.gte("start_date_year", value: seasonFloor) }
-                    if f.classics { q = q.lt("start_date_year", value: 2010) }
-                    if f.hiddenGems { q = q.gte("average_score", value: 85).lt("start_date_year", value: 2015) }
-                }
-                let ordered = orderByTrending ? q.order("trending", ascending: false) : q.order("popularity", ascending: false)
-                let offset = currentSearchPageManga * searchPageSize
-                mangaPage = try await ordered.range(from: offset, to: offset + searchPageSize - 1).execute().value
-            }
 
             if hasMoreSearchAnime {
-                searchAnimeItems.append(contentsOf: animePage)
-                hasMoreSearchAnime = animePage.count == searchPageSize
-                if hasMoreSearchAnime { currentSearchPageAnime += 1 }
+                let page = try await fetchSearchAnimePage(
+                    query: trimmedQuery,
+                    filters: filters,
+                    cursorRank: searchCursorAnimeRank,
+                    cursorPopularity: searchCursorAnimePopularity,
+                    cursorId: searchCursorAnimeId,
+                    limit: searchPageSize
+                )
+                searchAnimeItems.append(contentsOf: page)
+                hasMoreSearchAnime = page.count == searchPageSize
+                if let last = page.last {
+                    searchCursorAnimeRank = last.rank ?? 0
+                    searchCursorAnimePopularity = last.popularity ?? 0
+                    searchCursorAnimeId = last.id
+                }
             }
 
             if hasMoreSearchManga {
-                searchMangaItems.append(contentsOf: mangaPage)
-                hasMoreSearchManga = mangaPage.count == searchPageSize
-                if hasMoreSearchManga { currentSearchPageManga += 1 }
+                let page = try await fetchSearchMangaPage(
+                    query: trimmedQuery,
+                    filters: filters,
+                    cursorRank: searchCursorMangaRank,
+                    cursorPopularity: searchCursorMangaPopularity,
+                    cursorId: searchCursorMangaId,
+                    limit: searchPageSize
+                )
+                searchMangaItems.append(contentsOf: page)
+                hasMoreSearchManga = page.count == searchPageSize
+                if let last = page.last {
+                    searchCursorMangaRank = last.rank ?? 0
+                    searchCursorMangaPopularity = last.popularity ?? 0
+                    searchCursorMangaId = last.id
+                }
             }
 
             hasMoreSearch = hasMoreSearchAnime || hasMoreSearchManga
@@ -620,30 +685,232 @@ class SupabaseService {
         }
     }
 
-    // MARK: - Discover bundle (single call)
-    func fetchDiscoverBundle(limit: Int = 30, hours: Int = 24) async -> DiscoverBundle? {
-        let perf = KuroPerf.begin("rpc.discover_bundle")
+    // MARK: - Search refresh (keeps old results on transient failures)
+    func refreshSearch() async {
+        let trimmedQuery = currentSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedQuery.isEmpty && currentSearchFilters == nil { return }
+        if trimmedQuery.count < 2 && currentSearchFilters == nil { return }
+        guard !isSearching else { return }
+
+        let oldAnime = searchAnimeItems
+        let oldManga = searchMangaItems
+        let oldHasMore = hasMoreSearch
+        let oldHasMoreAnime = hasMoreSearchAnime
+        let oldHasMoreManga = hasMoreSearchManga
+
+        isSearching = true
+        defer { isSearching = false }
+
         do {
-            let params = RPCDiscoverBundleParams(
-                p_limit: max(1, min(60, limit)),
-                p_hours: max(1, min(168, hours))
+            switch searchMode {
+            case .anime:
+                searchCursorAnimeRank = nil
+                searchCursorAnimePopularity = nil
+                searchCursorAnimeId = nil
+                let page = try await fetchSearchAnimePage(
+                    query: trimmedQuery,
+                    filters: currentSearchFilters,
+                    cursorRank: nil,
+                    cursorPopularity: nil,
+                    cursorId: nil,
+                    limit: searchPageSize
+                )
+                searchAnimeItems = page
+                hasMoreSearch = page.count == searchPageSize
+                if let last = page.last {
+                    searchCursorAnimeRank = last.rank ?? 0
+                    searchCursorAnimePopularity = last.popularity ?? 0
+                    searchCursorAnimeId = last.id
+                }
+            case .manga:
+                searchCursorMangaRank = nil
+                searchCursorMangaPopularity = nil
+                searchCursorMangaId = nil
+                let page = try await fetchSearchMangaPage(
+                    query: trimmedQuery,
+                    filters: currentSearchFilters,
+                    cursorRank: nil,
+                    cursorPopularity: nil,
+                    cursorId: nil,
+                    limit: searchPageSize
+                )
+                searchMangaItems = page
+                hasMoreSearch = page.count == searchPageSize
+                if let last = page.last {
+                    searchCursorMangaRank = last.rank ?? 0
+                    searchCursorMangaPopularity = last.popularity ?? 0
+                    searchCursorMangaId = last.id
+                }
+            case .combined:
+                // Reset both cursors.
+                searchCursorAnimeRank = nil
+                searchCursorAnimePopularity = nil
+                searchCursorAnimeId = nil
+                searchCursorMangaRank = nil
+                searchCursorMangaPopularity = nil
+                searchCursorMangaId = nil
+
+                let animePage = try await fetchSearchAnimePage(
+                    query: trimmedQuery,
+                    filters: currentSearchFilters,
+                    cursorRank: nil,
+                    cursorPopularity: nil,
+                    cursorId: nil,
+                    limit: searchPageSize
+                )
+                let mangaPage = try await fetchSearchMangaPage(
+                    query: trimmedQuery,
+                    filters: currentSearchFilters,
+                    cursorRank: nil,
+                    cursorPopularity: nil,
+                    cursorId: nil,
+                    limit: searchPageSize
+                )
+                searchAnimeItems = animePage
+                searchMangaItems = mangaPage
+                hasMoreSearchAnime = animePage.count == searchPageSize
+                hasMoreSearchManga = mangaPage.count == searchPageSize
+                hasMoreSearch = hasMoreSearchAnime || hasMoreSearchManga
+
+                if let last = animePage.last {
+                    searchCursorAnimeRank = last.rank ?? 0
+                    searchCursorAnimePopularity = last.popularity ?? 0
+                    searchCursorAnimeId = last.id
+                }
+                if let last = mangaPage.last {
+                    searchCursorMangaRank = last.rank ?? 0
+                    searchCursorMangaPopularity = last.popularity ?? 0
+                    searchCursorMangaId = last.id
+                }
+            }
+        } catch {
+            // Restore old state and surface a message.
+            searchAnimeItems = oldAnime
+            searchMangaItems = oldManga
+            hasMoreSearch = oldHasMore
+            hasMoreSearchAnime = oldHasMoreAnime
+            hasMoreSearchManga = oldHasMoreManga
+            errorMessage = "Search failed: \(error.localizedDescription)"
+            print("❌ search refresh: \(error)")
+        }
+    }
+
+    private func fetchSearchAnimePage(
+        query: String,
+        filters: SearchFilters?,
+        cursorRank: Double?,
+        cursorPopularity: Int?,
+        cursorId: Int?,
+        limit: Int
+    ) async throws -> [AnimeCard] {
+        let perf = KuroPerf.begin("rpc.search_anime_page")
+        do {
+            let params = RPCSearchAnimePageParams(
+                p_query: query,
+                p_limit: max(1, min(50, limit)),
+                p_cursor_rank: cursorRank,
+                p_cursor_popularity: cursorPopularity,
+                p_cursor_id: cursorId,
+                p_trending: filters?.trending ?? false,
+                p_new_season: filters?.newSeason ?? false,
+                p_classics: filters?.classics ?? false,
+                p_hidden_gems: filters?.hiddenGems ?? false,
+                p_airing_only: filters?.airingOnly ?? false,
+                p_season: filters?.seasonName,
+                p_season_year: filters?.seasonYear
             )
-            let bundle: DiscoverBundle = try await client
-                .rpc("discover_bundle", params: params)
+            let page: [AnimeCard] = try await client
+                .rpc("search_anime_page", params: params)
                 .execute()
                 .value
-            KuroPerf.end(perf, message: "ok")
-            return bundle
+            KuroPerf.end(perf, message: "ok \(page.count)")
+            return page
         } catch {
-            print("❌ discover_bundle rpc: \(error)")
             KuroPerf.end(perf, message: "error")
-            return nil
+            throw error
         }
+    }
+
+    private func fetchSearchMangaPage(
+        query: String,
+        filters: SearchFilters?,
+        cursorRank: Double?,
+        cursorPopularity: Int?,
+        cursorId: Int?,
+        limit: Int
+    ) async throws -> [MangaCard] {
+        let perf = KuroPerf.begin("rpc.search_manga_page")
+        do {
+            let params = RPCSearchMangaPageParams(
+                p_query: query,
+                p_limit: max(1, min(50, limit)),
+                p_cursor_rank: cursorRank,
+                p_cursor_popularity: cursorPopularity,
+                p_cursor_id: cursorId,
+                p_trending: filters?.trending ?? false,
+                p_new_season: filters?.newSeason ?? false,
+                p_classics: filters?.classics ?? false,
+                p_hidden_gems: filters?.hiddenGems ?? false
+            )
+            let page: [MangaCard] = try await client
+                .rpc("search_manga_page", params: params)
+                .execute()
+                .value
+            KuroPerf.end(perf, message: "ok \(page.count)")
+            return page
+        } catch {
+            KuroPerf.end(perf, message: "error")
+            throw error
+        }
+    }
+
+    // MARK: - Discover bundle (single call)
+    func fetchDiscoverBundle(limit: Int = 30, hours: Int = 24, force: Bool = false) async -> DiscoverBundle? {
+        let key = "discover_bundle|\(max(1, min(60, limit)))|\(max(1, min(168, hours)))"
+        let now = Date()
+        if !force, let cached = discoverBundleCache[key], now.timeIntervalSince(cached.storedAt) < 120 {
+            return cached.value
+        }
+        if let task = discoverBundleInFlight[key] {
+            return await task.value
+        }
+
+        let task = Task<DiscoverBundle?, Never> { @MainActor [weak self] in
+            guard let self else { return nil }
+            let perf = KuroPerf.begin("rpc.discover_bundle")
+            do {
+                let params = RPCDiscoverBundleParams(
+                    p_limit: max(1, min(60, limit)),
+                    p_hours: max(1, min(168, hours))
+                )
+                let bundle: DiscoverBundle = try await self.client
+                    .rpc("discover_bundle", params: params)
+                    .execute()
+                    .value
+                KuroPerf.end(perf, message: "ok")
+                self.discoverBundleCache[key] = TimedCache(value: bundle, storedAt: now)
+                self.trimCache(&self.discoverBundleCache, maxEntries: 6)
+                return bundle
+            } catch {
+                print("❌ discover_bundle rpc: \(error)")
+                KuroPerf.end(perf, message: "error")
+                return nil
+            }
+        }
+
+        discoverBundleInFlight[key] = task
+        let value = await task.value
+        discoverBundleInFlight[key] = nil
+        return value
     }
 
     // MARK: - Detail fetch by id (full models)
     func fetchAnimeById(_ animeId: Int) async throws -> Anime? {
         if let cached = animeDetailCache[animeId] { return cached }
+        if let disk: Anime = await KuroDiskDetailCache.read(kind: .anime, id: animeId, as: Anime.self) {
+            animeDetailCache[animeId] = disk
+            return disk
+        }
         let perf = KuroPerf.begin("db.anime_by_id")
         do {
             let rows: [Anime] = try await client
@@ -660,6 +927,7 @@ class SupabaseService {
                 if animeDetailCache.count > 200, let k = animeDetailCache.keys.first {
                     animeDetailCache.removeValue(forKey: k)
                 }
+                Task { await KuroDiskDetailCache.write(kind: .anime, id: animeId, value: item) }
             }
             KuroPerf.end(perf, message: item == nil ? "missing" : "ok")
             return item
@@ -671,6 +939,10 @@ class SupabaseService {
 
     func fetchMangaById(_ mangaId: Int) async throws -> Manga? {
         if let cached = mangaDetailCache[mangaId] { return cached }
+        if let disk: Manga = await KuroDiskDetailCache.read(kind: .manga, id: mangaId, as: Manga.self) {
+            mangaDetailCache[mangaId] = disk
+            return disk
+        }
         let perf = KuroPerf.begin("db.manga_by_id")
         do {
             let rows: [Manga] = try await client
@@ -686,6 +958,7 @@ class SupabaseService {
                 if mangaDetailCache.count > 200, let k = mangaDetailCache.keys.first {
                     mangaDetailCache.removeValue(forKey: k)
                 }
+                Task { await KuroDiskDetailCache.write(kind: .manga, id: mangaId, value: item) }
             }
             KuroPerf.end(perf, message: item == nil ? "missing" : "ok")
             return item
@@ -963,6 +1236,225 @@ class SupabaseService {
         }
     }
 
+    /// Returns top non-adult tags for a specific anime (used for "sub-genres" on detail pages).
+    func fetchTopTagsForAnime(animeId: Int, limit: Int = 12) async -> [TagFacet] {
+        do {
+            let rows: [_AnimeTagSampleRow] = try await client
+                .from("anime")
+                .select("id,anime_tags(rank,tags(id,name,category,is_adult))")
+                .eq("id", value: animeId)
+                .limit(1)
+                .execute()
+                .value
+            guard let row = rows.first else { return [] }
+            let tags = row.animeTags
+                .compactMap { edge -> (id: Int, name: String, category: String?, isAdult: Bool, rank: Int)? in
+                    guard let node = edge.tags else { return nil }
+                    let r = edge.rank ?? 0
+                    return (node.id, node.name, node.category, node.isAdult, r)
+                }
+                .filter { !$0.isAdult }
+                .sorted { $0.rank > $1.rank }
+                .prefix(limit)
+                .map { TagFacet(id: $0.id, name: $0.name, category: $0.category, count: 0) }
+            return Array(tags)
+        } catch {
+            print("❌ anime tag fetch: \(error)")
+            return []
+        }
+    }
+
+    /// Returns top non-adult tags for a specific manga (used for "sub-genres" on detail pages).
+    func fetchTopTagsForManga(mangaId: Int, limit: Int = 12) async -> [TagFacet] {
+        do {
+            let rows: [_MangaTagSampleRow] = try await client
+                .from("manga")
+                .select("id,manga_tags(rank,tags(id,name,category,is_adult))")
+                .eq("id", value: mangaId)
+                .limit(1)
+                .execute()
+                .value
+            guard let row = rows.first else { return [] }
+            let tags = row.mangaTags
+                .compactMap { edge -> (id: Int, name: String, category: String?, isAdult: Bool, rank: Int)? in
+                    guard let node = edge.tags else { return nil }
+                    let r = edge.rank ?? 0
+                    return (node.id, node.name, node.category, node.isAdult, r)
+                }
+                .filter { !$0.isAdult }
+                .sorted { $0.rank > $1.rank }
+                .prefix(limit)
+                .map { TagFacet(id: $0.id, name: $0.name, category: $0.category, count: 0) }
+            return Array(tags)
+        } catch {
+            print("❌ manga tag fetch: \(error)")
+            return []
+        }
+    }
+
+    /// Minimal "More like this" fetcher for detail pages (Swiss minimal: deterministic, no LLM).
+    /// Primary path uses the DB similarity RPC (tag overlap + editorial boosts/penalties).
+    /// Falls back to a lightweight genre anchor if the RPC isn't available.
+    func fetchSimilarAnime(seed: Anime, limit: Int = 14) async -> [Anime] {
+        let rpc = await fetchSimilarIdsViaRPC(mediaType: "ANIME", seedIds: [seed.id], limit: limit, allowGimmicks: false)
+        if !rpc.isEmpty, let items = await fetchAnimeByIdsPreservingOrder(rpc.map(\.mediaId)) {
+            return sanitizeAnimeForDiscovery(items)
+        }
+        return await fetchSimilarAnimeFallbackByGenre(seed: seed, limit: limit)
+    }
+
+    func fetchSimilarManga(seed: Manga, limit: Int = 14) async -> [Manga] {
+        let rpc = await fetchSimilarIdsViaRPC(mediaType: "MANGA", seedIds: [seed.id], limit: limit, allowGimmicks: false)
+        if !rpc.isEmpty, let items = await fetchMangaByIdsPreservingOrder(rpc.map(\.mediaId)) {
+            return sanitizeMangaForDiscovery(items)
+        }
+        return await fetchSimilarMangaFallbackByGenre(seed: seed, limit: limit)
+    }
+
+    private struct _RecommendSimilarRow: Decodable {
+        let mediaId: Int
+        let overlapCount: Int
+        let score: Double
+
+        enum CodingKeys: String, CodingKey {
+            case mediaId = "media_id"
+            case overlapCount = "overlap_count"
+            case score
+        }
+    }
+
+    private func fetchSimilarIdsViaRPC(
+        mediaType: String,
+        seedIds: [Int],
+        limit: Int,
+        allowGimmicks: Bool
+    ) async -> [_RecommendSimilarRow] {
+        // This RPC is a production-grade deterministic similarity engine (tag overlap + editorial weights).
+        // It may be missing in some DBs (or require auth, depending on migration state), so treat failure as "no results".
+        let perf = KuroPerf.begin("rpc.recommend_ids_similar_to_seeds")
+        do {
+            let params = RPCRecommendSimilarParams(
+                p_media_type: mediaType,
+                p_seed_ids: seedIds,
+                p_limit: max(1, min(50, limit)),
+                p_allow_gimmicks: allowGimmicks
+            )
+            let rows: [_RecommendSimilarRow] = try await client
+                .rpc("recommend_ids_similar_to_seeds", params: params)
+                .execute()
+                .value
+            KuroPerf.end(perf, message: "ok \(rows.count)")
+            return rows
+        } catch {
+            KuroPerf.end(perf, message: "error")
+            return []
+        }
+    }
+
+    private func fetchAnimeByIdsPreservingOrder(_ ids: [Int]) async -> [Anime]? {
+        if ids.isEmpty { return [] }
+        // Avoid hammering the API: fetch via cache first, then fill in missing ones concurrently.
+        // Keep ordering identical to the RPC output.
+        var resultsById: [Int: Anime] = [:]
+        resultsById.reserveCapacity(ids.count)
+
+        for id in ids {
+            if let cached = animeDetailCache[id] {
+                resultsById[id] = cached
+            }
+        }
+
+        let missing = ids.filter { resultsById[$0] == nil }
+        if !missing.isEmpty {
+            await withTaskGroup(of: Anime?.self) { group in
+                for id in missing {
+                    group.addTask { [weak self] in
+                        guard let self else { return nil }
+                        return try? await self.fetchAnimeById(id)
+                    }
+                }
+                for await item in group {
+                    if let item { resultsById[item.id] = item }
+                }
+            }
+        }
+
+        let ordered = ids.compactMap { resultsById[$0] }
+        return ordered.isEmpty ? nil : ordered
+    }
+
+    private func fetchMangaByIdsPreservingOrder(_ ids: [Int]) async -> [Manga]? {
+        if ids.isEmpty { return [] }
+        var resultsById: [Int: Manga] = [:]
+        resultsById.reserveCapacity(ids.count)
+
+        for id in ids {
+            if let cached = mangaDetailCache[id] {
+                resultsById[id] = cached
+            }
+        }
+
+        let missing = ids.filter { resultsById[$0] == nil }
+        if !missing.isEmpty {
+            await withTaskGroup(of: Manga?.self) { group in
+                for id in missing {
+                    group.addTask { [weak self] in
+                        guard let self else { return nil }
+                        return try? await self.fetchMangaById(id)
+                    }
+                }
+                for await item in group {
+                    if let item { resultsById[item.id] = item }
+                }
+            }
+        }
+
+        let ordered = ids.compactMap { resultsById[$0] }
+        return ordered.isEmpty ? nil : ordered
+    }
+
+    private func fetchSimilarAnimeFallbackByGenre(seed: Anime, limit: Int) async -> [Anime] {
+        guard let primaryGenre = seed.genreList?.first, !primaryGenre.isEmpty else { return [] }
+        do {
+            let rows: [Anime] = try await client
+                .from("anime")
+                .select()
+                .eq("is_adult", value: false)
+                .contains("genres", value: [primaryGenre])
+                .neq("id", value: seed.id)
+                .order("favourites", ascending: false)
+                .order("average_score", ascending: false)
+                .order("popularity", ascending: false)
+                .range(from: 0, to: max(0, limit - 1))
+                .execute()
+                .value
+            return sanitizeAnimeForDiscovery(rows)
+        } catch {
+            return []
+        }
+    }
+
+    private func fetchSimilarMangaFallbackByGenre(seed: Manga, limit: Int) async -> [Manga] {
+        guard let primaryGenre = seed.genreList?.first, !primaryGenre.isEmpty else { return [] }
+        do {
+            let rows: [Manga] = try await client
+                .from("manga")
+                .select()
+                .eq("is_adult", value: false)
+                .contains("genres", value: [primaryGenre])
+                .neq("id", value: seed.id)
+                .order("favourites", ascending: false)
+                .order("average_score", ascending: false)
+                .order("popularity", ascending: false)
+                .range(from: 0, to: max(0, limit - 1))
+                .execute()
+                .value
+            return sanitizeMangaForDiscovery(rows)
+        } catch {
+            return []
+        }
+    }
+
     private struct _MangaTagSampleRow: Decodable {
         let id: Int
         let mangaTags: [_TagEdge]
@@ -1093,45 +1585,478 @@ class SupabaseService {
     }
 
     // MARK: - Collection (server-driven)
+    func fetchCollectionItems(status: ListStatus? = nil) async {
+        currentCollectionStatusFilter = status
+        collectionFetchGeneration += 1
+        let gen = collectionFetchGeneration
+
+        collectionFetchInFlight?.cancel()
+        let t = Task { [weak self] in
+            guard let self else { return }
+            await self._fetchCollectionItemsImpl(status: status, generation: gen)
+        }
+        collectionFetchInFlight = t
+        collectionFetchInFlightGeneration = gen
+        await t.value
+        if collectionFetchInFlightGeneration == gen { collectionFetchInFlight = nil }
+    }
+
     func fetchCollectionItems() async {
+        await fetchCollectionItems(status: nil)
+    }
+
+    // MARK: - Collection feed (anime + manga interleaved)
+    func fetchCollectionFeed(status: ListStatus? = nil) async {
+        currentCollectionStatusFilter = status
+        collectionFeedFetchGeneration += 1
+        let gen = collectionFeedFetchGeneration
+
+        collectionFeedFetchInFlight?.cancel()
+        let t = Task { [weak self] in
+            guard let self else { return }
+            await self._fetchCollectionFeedImpl(status: status, generation: gen)
+        }
+        collectionFeedFetchInFlight = t
+        collectionFeedFetchInFlightGeneration = gen
+        await t.value
+        if collectionFeedFetchInFlightGeneration == gen { collectionFeedFetchInFlight = nil }
+    }
+
+    private struct CollectionPagingSnapshot: Sendable {
+        let anime: [AnimeCard]
+        let manga: [MangaCard]
+        let feed: [Media]
+        let animeHasMore: Bool
+        let mangaHasMore: Bool
+        let feedHasMore: Bool
+        let animeCursorUpdatedAt: Date?
+        let animeCursorRowId: Int?
+        let mangaCursorUpdatedAt: Date?
+        let mangaCursorRowId: Int?
+        let feedCursorUpdatedAt: Date?
+        let feedCursorSourceRank: Int?
+        let feedCursorRowId: Int?
+    }
+
+    private func _fetchCollectionItemsImpl(status: ListStatus?, generation: Int) async {
         guard let userId = await currentUserIdString() else { return }
+        _ = userId // user_id is derived via JWT in the RPCs.
         isCollectionLoading = true
         collectionErrorMessage = nil
         defer { isCollectionLoading = false }
 
-        struct AnimeListRow: Decodable {
-            let updated_at: Date
-            let anime: Anime
-        }
-
-        struct MangaListRow: Decodable {
-            let updated_at: Date
-            let manga: Manga
-        }
+        let snapshot = CollectionPagingSnapshot(
+            anime: collectionAnimeItems,
+            manga: collectionMangaItems,
+            feed: collectionFeedItems,
+            animeHasMore: hasMoreCollectionAnime,
+            mangaHasMore: hasMoreCollectionManga,
+            feedHasMore: hasMoreCollectionFeed,
+            animeCursorUpdatedAt: collectionAnimeCursorUpdatedAt,
+            animeCursorRowId: collectionAnimeCursorRowId,
+            mangaCursorUpdatedAt: collectionMangaCursorUpdatedAt,
+            mangaCursorRowId: collectionMangaCursorRowId,
+            feedCursorUpdatedAt: collectionFeedCursorUpdatedAt,
+            feedCursorSourceRank: collectionFeedCursorSourceRank,
+            feedCursorRowId: collectionFeedCursorRowId
+        )
 
         do {
-            let animeRows: [AnimeListRow] = try await client
-                .from("anime_user_lists")
-                .select("updated_at, anime:anime_id(*)")
-                .eq("user_id", value: userId)
-                .order("updated_at", ascending: false)
-                .execute()
-                .value
+            resetCollectionPaging()
 
-            let mangaRows: [MangaListRow] = try await client
-                .from("manga_user_lists")
-                .select("updated_at, manga:manga_id(*)")
-                .eq("user_id", value: userId)
-                .order("updated_at", ascending: false)
-                .execute()
-                .value
+            let listTypeAnime = status.map { dbListType(for: $0, mediaType: "anime") }
+            let listTypeManga = status.map { dbListType(for: $0, mediaType: "manga") }
 
-            collectionAnimeItems = animeRows.map(\.anime)
-            collectionMangaItems = mangaRows.map(\.manga)
+            _ = try await fetchNextCollectionAnimePage(
+                limit: 80,
+                listType: listTypeAnime,
+                generation: generation
+            )
+            _ = try await fetchNextCollectionMangaPage(
+                limit: 80,
+                listType: listTypeManga,
+                generation: generation
+            )
         } catch {
+            // Avoid blanking the UI on transient failures (e.g. pull-to-refresh).
+            // Keep the previous content and surface an error message.
             collectionErrorMessage = "Failed to load collection: \(error.localizedDescription)"
             print("❌ collection fetch: \(error)")
+            restoreCollectionSnapshot(snapshot)
         }
+    }
+
+    private func _fetchCollectionFeedImpl(status: ListStatus?, generation: Int) async {
+        guard (await currentUserIdString()) != nil else { return }
+        isCollectionLoading = true
+        collectionErrorMessage = nil
+        defer { isCollectionLoading = false }
+
+        let snapshot = CollectionPagingSnapshot(
+            anime: collectionAnimeItems,
+            manga: collectionMangaItems,
+            feed: collectionFeedItems,
+            animeHasMore: hasMoreCollectionAnime,
+            mangaHasMore: hasMoreCollectionManga,
+            feedHasMore: hasMoreCollectionFeed,
+            animeCursorUpdatedAt: collectionAnimeCursorUpdatedAt,
+            animeCursorRowId: collectionAnimeCursorRowId,
+            mangaCursorUpdatedAt: collectionMangaCursorUpdatedAt,
+            mangaCursorRowId: collectionMangaCursorRowId,
+            feedCursorUpdatedAt: collectionFeedCursorUpdatedAt,
+            feedCursorSourceRank: collectionFeedCursorSourceRank,
+            feedCursorRowId: collectionFeedCursorRowId
+        )
+
+        do {
+            resetCollectionFeedPaging()
+
+            let listTypeAnime = status.map { dbListType(for: $0, mediaType: "anime") }
+            let listTypeManga = status.map { dbListType(for: $0, mediaType: "manga") }
+
+            _ = try await fetchNextCollectionFeedPage(
+                limit: 90,
+                listTypeAnime: listTypeAnime,
+                listTypeManga: listTypeManga,
+                generation: generation
+            )
+        } catch {
+            collectionErrorMessage = "Failed to load collection: \(error.localizedDescription)"
+            print("❌ collection feed fetch: \(error)")
+            restoreCollectionSnapshot(snapshot)
+        }
+    }
+
+    private func restoreCollectionSnapshot(_ snapshot: CollectionPagingSnapshot) {
+        collectionAnimeItems = snapshot.anime
+        collectionMangaItems = snapshot.manga
+        collectionFeedItems = snapshot.feed
+        hasMoreCollectionAnime = snapshot.animeHasMore
+        hasMoreCollectionManga = snapshot.mangaHasMore
+        hasMoreCollectionFeed = snapshot.feedHasMore
+        collectionAnimeCursorUpdatedAt = snapshot.animeCursorUpdatedAt
+        collectionAnimeCursorRowId = snapshot.animeCursorRowId
+        collectionMangaCursorUpdatedAt = snapshot.mangaCursorUpdatedAt
+        collectionMangaCursorRowId = snapshot.mangaCursorRowId
+        collectionFeedCursorUpdatedAt = snapshot.feedCursorUpdatedAt
+        collectionFeedCursorSourceRank = snapshot.feedCursorSourceRank
+        collectionFeedCursorRowId = snapshot.feedCursorRowId
+    }
+
+    private func resetCollectionPaging() {
+        collectionAnimeItems = []
+        collectionMangaItems = []
+        hasMoreCollectionAnime = true
+        hasMoreCollectionManga = true
+        isLoadingMoreCollectionAnime = false
+        isLoadingMoreCollectionManga = false
+        collectionAnimeCursorUpdatedAt = nil
+        collectionAnimeCursorRowId = nil
+        collectionMangaCursorUpdatedAt = nil
+        collectionMangaCursorRowId = nil
+    }
+
+    private func resetCollectionFeedPaging() {
+        collectionFeedItems = []
+        hasMoreCollectionFeed = true
+        isLoadingMoreCollectionFeed = false
+        collectionFeedCursorUpdatedAt = nil
+        collectionFeedCursorSourceRank = nil
+        collectionFeedCursorRowId = nil
+    }
+
+    struct CollectionAnimeRow: Decodable, Sendable {
+        let list_updated_at: Date
+        let list_row_id: Int
+        let id: Int
+        let title_english: String?
+        let title_romaji: String?
+        let title_native: String?
+        let cover_image_large: String?
+        let cover_image_medium: String?
+        let banner_image: String?
+        let format: String?
+        let status: String?
+        let episode_count: Int?
+        let season_year: Int?
+        let start_date_year: Int?
+        let average_score: Int?
+        let popularity: Int?
+        let trending: Int?
+        let favourites: Int?
+        let genres: [String]?
+        let created_at: Date?
+
+        var card: AnimeCard {
+            AnimeCard(
+                id: id,
+                titleEnglish: title_english,
+                titleRomaji: title_romaji,
+                titleNative: title_native,
+                coverImageLarge: cover_image_large,
+                coverImageMedium: cover_image_medium,
+                bannerImage: banner_image,
+                format: format,
+                status: status,
+                episodeCount: episode_count,
+                seasonYear: season_year,
+                startDateYear: start_date_year,
+                averageScore: average_score,
+                popularity: popularity,
+                trending: trending,
+                favourites: favourites,
+                genreList: genres,
+                createdAt: created_at,
+                rank: nil
+            )
+        }
+    }
+
+    struct CollectionMangaRow: Decodable, Sendable {
+        let list_updated_at: Date
+        let list_row_id: Int
+        let id: Int
+        let title_english: String?
+        let title_romaji: String?
+        let title_native: String?
+        let cover_image_large: String?
+        let cover_image_medium: String?
+        let format: String?
+        let status: String?
+        let chapter_count: Int?
+        let start_date_year: Int?
+        let average_score: Int?
+        let popularity: Int?
+        let trending: Int?
+        let favourites: Int?
+        let genres: [String]?
+        let created_at: Date?
+
+        var card: MangaCard {
+            MangaCard(
+                id: id,
+                titleEnglish: title_english,
+                titleRomaji: title_romaji,
+                titleNative: title_native,
+                coverImageLarge: cover_image_large,
+                coverImageMedium: cover_image_medium,
+                format: format,
+                status: status,
+                chapterCount: chapter_count,
+                startDateYear: start_date_year,
+                averageScore: average_score,
+                popularity: popularity,
+                trending: trending,
+                favourites: favourites,
+                genreList: genres,
+                createdAt: created_at,
+                rank: nil
+            )
+        }
+    }
+
+    struct CollectionFeedRow: Decodable, Sendable {
+        let list_updated_at: Date
+        let source_rank: Int
+        let list_row_id: Int
+        let media_type: String
+        let id: Int
+        let title_english: String?
+        let title_romaji: String?
+        let title_native: String?
+        let cover_image_large: String?
+        let cover_image_medium: String?
+        let banner_image: String?
+        let format: String?
+        let status: String?
+        let episode_count: Int?
+        let chapter_count: Int?
+        let season_year: Int?
+        let start_date_year: Int?
+        let average_score: Int?
+        let popularity: Int?
+        let trending: Int?
+        let favourites: Int?
+        let genres: [String]?
+        let created_at: Date?
+
+        var media: Media {
+            let kind: MediaKind = media_type.uppercased() == "MANGA" ? .manga : .anime
+            let yearInt: Int? = kind == .anime ? (season_year ?? start_date_year) : start_date_year
+            let rating: Double? = average_score.map { Double($0) / 10.0 }
+            let image = cover_image_large ?? cover_image_medium
+            let title = (title_english?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? title_english : nil)
+                ?? title_romaji
+                ?? title_native
+                ?? "Untitled"
+
+            return Media(
+                id: id,
+                kind: kind,
+                title: title,
+                imageURL: image,
+                year: yearInt.map(String.init) ?? "TBA",
+                displayDescription: "",
+                episodes: episode_count,
+                chapters: chapter_count,
+                rating: rating,
+                genres: genres,
+                statusRaw: status,
+                formatRaw: format,
+                popularityValue: popularity,
+                trendingValue: trending,
+                createdAtValue: created_at
+            )
+        }
+    }
+
+    @discardableResult
+    func fetchNextCollectionFeedPage(limit: Int = 90) async -> Bool {
+        do {
+            let listTypeAnime = currentCollectionStatusFilter.map { dbListType(for: $0, mediaType: "anime") }
+            let listTypeManga = currentCollectionStatusFilter.map { dbListType(for: $0, mediaType: "manga") }
+            return try await fetchNextCollectionFeedPage(
+                limit: limit,
+                listTypeAnime: listTypeAnime,
+                listTypeManga: listTypeManga,
+                generation: collectionFeedFetchGeneration
+            )
+        } catch {
+            collectionErrorMessage = "Failed to load more: \(error.localizedDescription)"
+            print("❌ collection feed page: \(error)")
+            return false
+        }
+    }
+
+    @discardableResult
+    func fetchNextCollectionAnimePage(limit: Int = 80) async -> Bool {
+        do {
+            let listType = currentCollectionStatusFilter.map { dbListType(for: $0, mediaType: "anime") }
+            return try await fetchNextCollectionAnimePage(limit: limit, listType: listType, generation: collectionFetchGeneration)
+        } catch {
+            collectionErrorMessage = "Failed to load more: \(error.localizedDescription)"
+            print("❌ collection anime page: \(error)")
+            return false
+        }
+    }
+
+    @discardableResult
+    func fetchNextCollectionMangaPage(limit: Int = 80) async -> Bool {
+        do {
+            let listType = currentCollectionStatusFilter.map { dbListType(for: $0, mediaType: "manga") }
+            return try await fetchNextCollectionMangaPage(limit: limit, listType: listType, generation: collectionFetchGeneration)
+        } catch {
+            collectionErrorMessage = "Failed to load more: \(error.localizedDescription)"
+            print("❌ collection manga page: \(error)")
+            return false
+        }
+    }
+
+    private func fetchNextCollectionFeedPage(
+        limit: Int,
+        listTypeAnime: String?,
+        listTypeManga: String?,
+        generation: Int
+    ) async throws -> Bool {
+        guard hasMoreCollectionFeed, !isLoadingMoreCollectionFeed else { return false }
+        isLoadingMoreCollectionFeed = true
+        defer { isLoadingMoreCollectionFeed = false }
+        if Task.isCancelled { return false }
+
+        let perf = KuroPerf.begin("rpc.collection_feed_page")
+        let params = RPCCollectionFeedPageParams(
+            p_limit: max(1, min(120, limit)),
+            p_cursor_updated_at: collectionFeedCursorUpdatedAt,
+            p_cursor_source_rank: collectionFeedCursorSourceRank,
+            p_cursor_row_id: collectionFeedCursorRowId,
+            p_list_type_anime: listTypeAnime,
+            p_list_type_manga: listTypeManga
+        )
+        let rows: [CollectionFeedRow] = try await client
+            .rpc("collection_feed_page", params: params)
+            .execute()
+            .value
+        if Task.isCancelled || generation != collectionFeedFetchGeneration {
+            KuroPerf.end(perf, message: "cancelled")
+            return false
+        }
+
+        let items = rows.map(\.media)
+        collectionFeedItems.append(contentsOf: items)
+        hasMoreCollectionFeed = rows.count == params.p_limit
+        if let last = rows.last {
+            collectionFeedCursorUpdatedAt = last.list_updated_at
+            collectionFeedCursorSourceRank = last.source_rank
+            collectionFeedCursorRowId = last.list_row_id
+        }
+        KuroPerf.end(perf, message: "ok \(rows.count)")
+        return true
+    }
+
+    private func fetchNextCollectionAnimePage(limit: Int, listType: String?, generation: Int) async throws -> Bool {
+        guard hasMoreCollectionAnime, !isLoadingMoreCollectionAnime else { return false }
+        isLoadingMoreCollectionAnime = true
+        defer { isLoadingMoreCollectionAnime = false }
+        if Task.isCancelled { return false }
+
+        let perf = KuroPerf.begin("rpc.collection_anime_page")
+        let params = RPCCollectionAnimePageParams(
+            p_limit: max(1, min(120, limit)),
+            p_cursor_updated_at: collectionAnimeCursorUpdatedAt,
+            p_cursor_row_id: collectionAnimeCursorRowId,
+            p_list_type: listType
+        )
+        let rows: [CollectionAnimeRow] = try await client
+            .rpc("collection_anime_page", params: params)
+            .execute()
+            .value
+        if Task.isCancelled || generation != collectionFetchGeneration {
+            KuroPerf.end(perf, message: "cancelled")
+            return false
+        }
+
+        let cards = rows.map(\.card)
+        collectionAnimeItems.append(contentsOf: cards)
+        hasMoreCollectionAnime = rows.count == params.p_limit
+        if let last = rows.last {
+            collectionAnimeCursorUpdatedAt = last.list_updated_at
+            collectionAnimeCursorRowId = last.list_row_id
+        }
+        KuroPerf.end(perf, message: "ok \(rows.count)")
+        return true
+    }
+
+    private func fetchNextCollectionMangaPage(limit: Int, listType: String?, generation: Int) async throws -> Bool {
+        guard hasMoreCollectionManga, !isLoadingMoreCollectionManga else { return false }
+        isLoadingMoreCollectionManga = true
+        defer { isLoadingMoreCollectionManga = false }
+        if Task.isCancelled { return false }
+
+        let perf = KuroPerf.begin("rpc.collection_manga_page")
+        let params = RPCCollectionMangaPageParams(
+            p_limit: max(1, min(120, limit)),
+            p_cursor_updated_at: collectionMangaCursorUpdatedAt,
+            p_cursor_row_id: collectionMangaCursorRowId,
+            p_list_type: listType
+        )
+        let rows: [CollectionMangaRow] = try await client
+            .rpc("collection_manga_page", params: params)
+            .execute()
+            .value
+        if Task.isCancelled || generation != collectionFetchGeneration {
+            KuroPerf.end(perf, message: "cancelled")
+            return false
+        }
+
+        let cards = rows.map(\.card)
+        collectionMangaItems.append(contentsOf: cards)
+        hasMoreCollectionManga = rows.count == params.p_limit
+        if let last = rows.last {
+            collectionMangaCursorUpdatedAt = last.list_updated_at
+            collectionMangaCursorRowId = last.list_row_id
+        }
+        KuroPerf.end(perf, message: "ok \(rows.count)")
+        return true
     }
 
     // MARK: - Upsert user list entry (status/progress/rating/notes)
@@ -1202,7 +2127,8 @@ class SupabaseService {
 
             errorMessage = nil
             await fetchUserLists()
-            await fetchCollectionItems()
+            await fetchCollectionItems(status: currentCollectionStatusFilter)
+            await fetchCollectionFeed(status: currentCollectionStatusFilter)
 
             if mediaType.lowercased() == "anime" {
                 await scheduleAiringNotifications(animeId: mediaId)
@@ -1236,6 +2162,20 @@ class SupabaseService {
     }
 
     func fetchUserLists() async {
+        if let t = userListsFetchInFlight {
+            await t.value
+            return
+        }
+        let t = Task { [weak self] in
+            guard let self else { return }
+            await self._fetchUserListsImpl()
+        }
+        userListsFetchInFlight = t
+        await t.value
+        userListsFetchInFlight = nil
+    }
+
+    private func _fetchUserListsImpl() async {
         guard let userId = await currentUserIdString() else { return }
 
         struct AnimeListRow: Decodable {
@@ -1358,7 +2298,8 @@ class SupabaseService {
 
             errorMessage = nil
             await fetchUserLists()
-            await fetchCollectionItems()
+            await fetchCollectionItems(status: currentCollectionStatusFilter)
+            await fetchCollectionFeed(status: currentCollectionStatusFilter)
             print("✅ Removed from user list")
             if mediaType.lowercased() == "anime" {
                 cancelAiringNotifications(animeId: mediaId)
@@ -1374,6 +2315,29 @@ class SupabaseService {
 
     // MARK: - Upcoming Airings (user-scoped)
     func fetchUpcomingForUser(days: Int = 7) async {
+        if let t = upcomingFetchInFlight {
+            await t.value
+            return
+        }
+
+        // Don't hammer the API when multiple screens mount or when realtime emits bursts.
+        let now = Date()
+        if days == lastUpcomingDays, let last = lastUpcomingFetchAt, now.timeIntervalSince(last) < 20 {
+            return
+        }
+        guard upcomingBackoff.canAttempt(now: now) else { return }
+
+        lastUpcomingDays = days
+        let t = Task { [weak self] in
+            guard let self else { return }
+            await self._fetchUpcomingForUserImpl(days: days)
+        }
+        upcomingFetchInFlight = t
+        await t.value
+        upcomingFetchInFlight = nil
+    }
+
+    private func _fetchUpcomingForUserImpl(days: Int) async {
         guard let userId = await currentUserIdString() else { return }
         do {
             let nowISO = ISO8601DateFormatter().string(from: Date())
@@ -1390,7 +2354,10 @@ class SupabaseService {
                 .value
             self.upcomingAirings = rows
             updateCountdowns()
+            lastUpcomingFetchAt = Date()
+            upcomingBackoff.recordSuccess()
         } catch {
+            upcomingBackoff.recordFailure()
             print("❌ Failed to fetch upcoming airings: \(error)")
         }
     }
@@ -1860,6 +2827,36 @@ class SupabaseService {
         case both
     }
 
+    enum ConciergeGuardrailsError: LocalizedError, Sendable, Equatable {
+        case rateLimited(retryAfterSeconds: Int?)
+
+        var errorDescription: String? {
+            switch self {
+            case .rateLimited(let s):
+                if let s, s > 0 { return "Too many requests. Try again in \(s)s." }
+                return "Too many requests. Try again in a moment."
+            }
+        }
+    }
+
+    private func decodeRetryAfterSeconds(from data: Data) -> Int? {
+        // Edge functions return: { "error": "Rate limited", "retry_after_s": 30 }
+        guard !data.isEmpty else { return nil }
+        if let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+            if let n = obj["retry_after_s"] as? Int { return n }
+            if let d = obj["retry_after_s"] as? Double { return Int(d.rounded()) }
+            if let s = obj["retry_after_s"] as? String, let n = Int(s) { return n }
+        }
+        return nil
+    }
+
+    private func translateConciergeFunctionError(_ error: Error) -> Error {
+        if case let FunctionsError.httpError(code, data) = error, code == 429 {
+            return ConciergeGuardrailsError.rateLimited(retryAfterSeconds: decodeRetryAfterSeconds(from: data))
+        }
+        return error
+    }
+
     struct ConciergeCandidate: Decodable, Sendable, Hashable {
         let media_type: String
         let media_id: Int
@@ -1874,6 +2871,10 @@ class SupabaseService {
         let progressEpisodes: Int?
         let progressChapters: Int?
         let progressVolumes: Int?
+        let seasonNumber: Int?
+        let episodeInSeason: Int?
+        let caughtUp: Bool?
+        let lastEpisode: Bool?
         let completed: Bool?
     }
 
@@ -1894,18 +2895,42 @@ class SupabaseService {
     }
 
     func conciergeParse(text: String, scope: ConciergeScope = .both, limitPerItem: Int = 10) async throws -> ConciergeParseResponse {
-        let payload = [
-            "text": text,
-            "scope": scope.rawValue,
-            "limitPerItem": max(3, min(15, limitPerItem)),
-        ] as [String : Any]
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let lim = max(3, min(15, limitPerItem))
+        let user = await currentUserIdString() ?? "anon"
+        let key = "concierge_parse|\(user)|\(scope.rawValue)|\(lim)|\(normalized)"
 
-        // Encode payload as JSON (FunctionsClient encodes Encodable; use JSONSerialization here).
-        let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-        struct Raw: Encodable { let raw: Data }
-        // Use Data body directly so we don't fight Encodable boxing.
-        let options = FunctionInvokeOptions(method: .post, body: data)
-        return try await client.functions.invoke("concierge-parse", options: options)
+        let now = Date()
+        // Very short TTL: just enough to make back-to-back retries feel instant.
+        if let cached = conciergeParseCache[key], now.timeIntervalSince(cached.storedAt) < 600 {
+            return cached.value
+        }
+        if let task = conciergeParseInFlight[key] {
+            return try await task.value
+        }
+
+        let task = Task<ConciergeParseResponse, Error> { @MainActor [weak self] in
+            guard let self else { throw CancellationError() }
+            let payload = [
+                "text": text,
+                "scope": scope.rawValue,
+                "limitPerItem": lim,
+            ] as [String : Any]
+
+            do {
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                let options = FunctionInvokeOptions(method: .post, body: data)
+                let resp: ConciergeParseResponse = try await self.client.functions.invoke("concierge-parse", options: options)
+                self.conciergeParseCache[key] = TimedCache(value: resp, storedAt: now)
+                self.trimCache(&self.conciergeParseCache, maxEntries: 50)
+                return resp
+            } catch {
+                throw self.translateConciergeFunctionError(error)
+            }
+        }
+        conciergeParseInFlight[key] = task
+        defer { conciergeParseInFlight[key] = nil }
+        return try await task.value
     }
 
     struct ConciergeApplyResponse: Decodable, Sendable {
@@ -1926,12 +2951,16 @@ class SupabaseService {
     }
 
     func conciergeApply(items: [[String: Any]]) async throws -> ConciergeApplyResponse {
-        let payload: [String: Any] = [
-            "items": items,
-        ]
-        let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-        let options = FunctionInvokeOptions(method: .post, body: data)
-        return try await client.functions.invoke("concierge-apply", options: options)
+        do {
+            let payload: [String: Any] = [
+                "items": items,
+            ]
+            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+            let options = FunctionInvokeOptions(method: .post, body: data)
+            return try await client.functions.invoke("concierge-apply", options: options)
+        } catch {
+            throw translateConciergeFunctionError(error)
+        }
     }
 
     struct ConciergeUndoResponse: Decodable, Sendable {
@@ -1950,12 +2979,77 @@ class SupabaseService {
     }
 
     func conciergeUndo(sessionId: String) async throws -> ConciergeUndoResponse {
+        do {
+            let payload: [String: Any] = [
+                "sessionId": sessionId,
+            ]
+            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+            let options = FunctionInvokeOptions(method: .post, body: data)
+            return try await client.functions.invoke("concierge-undo", options: options)
+        } catch {
+            throw translateConciergeFunctionError(error)
+        }
+    }
+
+    struct ConciergeResolveResponse: Decodable, Sendable {
+        let success: Bool
+        struct Choice: Decodable, Sendable {
+            let i: Int
+            let pick: Int
+            let confidence: Double
+            let reason: String?
+            struct Chosen: Decodable, Sendable {
+                let id: String
+                let title: String
+            }
+            let chosen: Chosen?
+        }
+        let choices: [Choice]?
+        let error: String?
+    }
+
+    func conciergeResolve(items: [ConciergeParseItem], maxCandidates: Int = 6) async throws -> ConciergeResolveResponse {
+        let payloadItems: [[String: Any]] = items.prefix(20).map { item in
+            let parsed: [String: Any] = [
+                "mediaTypeHint": item.parsed.mediaTypeHint as Any,
+                "status": item.parsed.status as Any,
+                "progressEpisodes": item.parsed.progressEpisodes as Any,
+                "progressChapters": item.parsed.progressChapters as Any,
+                "progressVolumes": item.parsed.progressVolumes as Any,
+                "seasonNumber": item.parsed.seasonNumber as Any,
+                "episodeInSeason": item.parsed.episodeInSeason as Any,
+                "caughtUp": item.parsed.caughtUp as Any,
+                "lastEpisode": item.parsed.lastEpisode as Any,
+                "completed": item.parsed.completed as Any,
+            ]
+            let cands: [[String: Any]] = item.candidates.prefix(max(2, min(10, maxCandidates))).map { c in
+                [
+                    "media_type": c.media_type,
+                    "media_id": c.media_id,
+                    "variant_type": c.variant_type,
+                    "title_raw": c.title_raw,
+                    "score": c.score,
+                ]
+            }
+            return [
+                "raw": item.raw,
+                "normalized": item.normalized,
+                "parsed": parsed,
+                "candidates": cands,
+            ]
+        }
+
         let payload: [String: Any] = [
-            "sessionId": sessionId,
+            "items": payloadItems,
+            "maxCandidates": max(2, min(10, maxCandidates)),
         ]
-        let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-        let options = FunctionInvokeOptions(method: .post, body: data)
-        return try await client.functions.invoke("concierge-undo", options: options)
+        do {
+            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+            let options = FunctionInvokeOptions(method: .post, body: data)
+            return try await client.functions.invoke("concierge-resolve", options: options)
+        } catch {
+            throw translateConciergeFunctionError(error)
+        }
     }
 
     struct ConciergeRecommendResponse: Decodable, Sendable {
@@ -1972,35 +3066,136 @@ class SupabaseService {
             let format: String?
             let status: String?
             let siteUrl: String?
+            let signals: [String]?
+            let blurb: String?
 
             var id: String { "\(mediaType)|\(mediaId)" }
         }
         let items: [Item]?
         let message: String?
+        let narrated: Bool?
         let error: String?
     }
 
-    func conciergeRecommend(text: String, scope: ConciergeScope = .both, limit: Int = 8) async throws -> ConciergeRecommendResponse {
-        let payload: [String: Any] = [
-            "text": text,
-            "scope": scope.rawValue,
-            "limit": max(3, min(20, limit)),
-        ]
-        let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-        let options = FunctionInvokeOptions(method: .post, body: data)
-        return try await client.functions.invoke("concierge-recommend", options: options)
+    func conciergeRecommend(text: String, scope: ConciergeScope = .both, limit: Int = 8, narrate: Bool = true) async throws -> ConciergeRecommendResponse {
+        let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let lim = max(3, min(20, limit))
+        let user = await currentUserIdString() ?? "anon"
+        let key = "concierge_recommend|\(user)|\(scope.rawValue)|\(lim)|\(narrate ? 1 : 0)|\(normalized)"
+
+        let now = Date()
+        if let cached = conciergeRecommendCache[key], now.timeIntervalSince(cached.storedAt) < 3600 {
+            return cached.value
+        }
+        if let task = conciergeRecommendInFlight[key] {
+            return try await task.value
+        }
+
+        let task = Task<ConciergeRecommendResponse, Error> { @MainActor [weak self] in
+            guard let self else { throw CancellationError() }
+            do {
+                let payload: [String: Any] = [
+                    "text": text,
+                    "scope": scope.rawValue,
+                    "limit": lim,
+                    "narrate": narrate,
+                ]
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                let options = FunctionInvokeOptions(method: .post, body: data)
+                let resp: ConciergeRecommendResponse = try await self.client.functions.invoke("concierge-recommend", options: options)
+                self.conciergeRecommendCache[key] = TimedCache(value: resp, storedAt: now)
+                self.trimCache(&self.conciergeRecommendCache, maxEntries: 60)
+                return resp
+            } catch {
+                throw self.translateConciergeFunctionError(error)
+            }
+        }
+        conciergeRecommendInFlight[key] = task
+        defer { conciergeRecommendInFlight[key] = nil }
+        return try await task.value
     }
     
     // MARK: - Real-time Subscriptions  
     func subscribeToUpdates() {
-        // Optional: Add Supabase Realtime listeners here if your SDK version supports it.
-        // Fallback: Lightweight polling to refresh content and user lists.
-        Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { _ in
-            Task { @MainActor in
-                await self.fetchAnime(limit: 20)
-                await self.fetchUserLists()
-            }
+        Task { [weak self] in
+            guard let self else { return }
+            await self.startRealtimeSubscriptionsIfNeeded()
         }
+    }
+
+    private func startRealtimeSubscriptionsIfNeeded() async {
+        guard let userId = await currentUserIdString() else { return }
+        if realtimeSubscribedUserId == userId, realtimeChannel != nil { return }
+
+        await stopRealtimeSubscriptions()
+        realtimeSubscribedUserId = userId
+
+        await client.realtimeV2.connect()
+
+        let channel = client.channel("kuro.user.\(userId)")
+        realtimeChannel = channel
+
+        let animeStream = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "anime_user_lists",
+            filter: .eq("user_id", value: userId)
+        )
+        let mangaStream = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "manga_user_lists",
+            filter: .eq("user_id", value: userId)
+        )
+
+        realtimeListenTasks = [
+            Task { [weak self] in
+                guard let self else { return }
+                for await _ in animeStream {
+                    await MainActor.run { self.scheduleRealtimeRefresh() }
+                }
+            },
+            Task { [weak self] in
+                guard let self else { return }
+                for await _ in mangaStream {
+                    await MainActor.run { self.scheduleRealtimeRefresh() }
+                }
+            },
+        ]
+
+        await channel.subscribe()
+    }
+
+    @MainActor
+    private func scheduleRealtimeRefresh() {
+        // Coalesce bursts of changes (imports, batch edits) into a single refresh.
+        realtimeDebounceTask?.cancel()
+        realtimeDebounceTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard let self, !Task.isCancelled else { return }
+            await self.refreshAfterRealtimeEvent()
+        }
+    }
+
+    private func refreshAfterRealtimeEvent() async {
+        // These are all user-scoped; in-flight de-dupe + cancellation keep this cheap.
+        await fetchUserLists()
+        await fetchCollectionFeed(status: currentCollectionStatusFilter)
+        await fetchCollectionItems(status: currentCollectionStatusFilter)
+        await fetchUpcomingForUser(days: 7)
+    }
+
+    private func stopRealtimeSubscriptions() async {
+        realtimeDebounceTask?.cancel()
+        realtimeDebounceTask = nil
+        for t in realtimeListenTasks { t.cancel() }
+        realtimeListenTasks = []
+
+        if let channel = realtimeChannel {
+            await client.removeChannel(channel)
+        }
+        realtimeChannel = nil
+        realtimeSubscribedUserId = nil
     }
     
     // MARK: - Collection Management Helpers

@@ -390,6 +390,7 @@ struct BrowseControlBarRefined: View {
                 }
                 .padding(.horizontal, 20)
             }
+            .kuroSwipeExclusionZone()
             
             // Divider
             Rectangle()

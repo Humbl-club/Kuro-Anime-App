@@ -6,7 +6,10 @@
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = 'https://bkdifromsqxkndnllmdj.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZGlmcm9tc3F4a25kbmxsbWRqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjU5ODY2MywiZXhwIjoyMDY4MTc0NjYzfQ.qmEd0lxjs_cVIa4GRisDY9sNz35foJBEIQcs8XRrA9E';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!supabaseKey) {
+  throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var.');
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -92,4 +95,3 @@ async function testSupabaseConnection() {
 }
 
 testSupabaseConnection();
-

@@ -107,6 +107,7 @@ struct EditorialDiscoverView: View {
                             }
                             .padding(.horizontal, 20)
                         }
+                        .kuroSwipeExclusionZone()
                     }
                     .padding(.top, 8)
 
@@ -332,7 +333,7 @@ struct EditorialDiscoverView: View {
 
         // Keep local list state up to date for badges/progress, while fetching the server bundle.
         async let _ = supabaseService.fetchUserLists()
-        let bundle = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24)
+        let bundle = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
 
         let gotAnyNew = bundle.map { b in
             !(b.anime.essentials.isEmpty && b.anime.classics.isEmpty && b.anime.newToYou.isEmpty &&
@@ -492,17 +493,19 @@ struct CompactHorizontalSection<Item: MediaDisplayable>: View {
                     }
                     .padding(.horizontal, 20)
                 }
+                .kuroSwipeExclusionZone()
             }
 
             // Horizontal scroll with compact cards
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(filteredItems, id: \.id) { anime in
-                        CompactAnimeCard(media: anime)
+                        KuroCompactCard(media: anime)
                     }
                 }
                 .padding(.horizontal, 20)
             }
+            .kuroSwipeExclusionZone()
         }
     }
 }
@@ -572,32 +575,43 @@ struct Dense2ColumnSection: View {
 struct CompactAnimeCard: View {
     let media: any MediaDisplayable
     @State private var showDetail = false
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     var body: some View {
+        let cardWidth: CGFloat = 110
+        let imageHeight: CGFloat = 165
+        // Keep a fixed total height so horizontal rows never "wobble" based on title wrapping.
+        let titleHeight: CGFloat = 34
+        let metaHeight: CGFloat = 12
+        let innerSpacingImageToText: CGFloat = 8
+        let innerSpacingTitleToMeta: CGFloat = 4
+        let totalHeight = imageHeight + innerSpacingImageToText + titleHeight + innerSpacingTitleToMeta + metaHeight
+
         Button(action: {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }) {
             VStack(alignment: .leading, spacing: 8) {
                 // Image with score badge
                 ZStack(alignment: .topTrailing) {
-                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 420) { phase in
                         switch phase {
                         case .success(let image):
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
-                                .frame(width: 110, height: 165)
+                                .frame(width: cardWidth, height: imageHeight)
                                 .clipped()
                         case .failure, .empty:
                             Rectangle()
                                 .fill(Color.black.opacity(0.05))
-                                .frame(width: 110, height: 165)
+                                .frame(width: cardWidth, height: imageHeight)
                         @unknown default:
                             EmptyView()
                         }
                     }
-                    .frame(width: 110, height: 165)
+                    .frame(width: cardWidth, height: imageHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
                     if let rating = media.rating, rating > 0 {
@@ -624,7 +638,7 @@ struct CompactAnimeCard: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.black)
                         .lineLimit(2)
-                        .frame(height: 34, alignment: .top)
+                        .frame(height: titleHeight, alignment: .top)
 
                     HStack(spacing: 4) {
                         Text(media.year)
@@ -645,10 +659,11 @@ struct CompactAnimeCard: View {
                                 .foregroundColor(.black.opacity(0.6))
                         }
                     }
-                    .frame(height: 12, alignment: .topLeading)
+                    .frame(height: metaHeight, alignment: .topLeading)
                 }
-                .frame(width: 110)
+                .frame(width: cardWidth)
             }
+            .frame(width: cardWidth, height: totalHeight, alignment: .topLeading)
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
@@ -679,6 +694,7 @@ struct GridAnimeCard: View {
     @State private var showDetail = false
     @State private var showAddToList = false
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     private var mediaType: String {
         media.kind.rawValue
@@ -688,8 +704,37 @@ struct GridAnimeCard: View {
         supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
     }
 
+    private var yearBadgeText: String? {
+        let digits = media.year.filter(\.isNumber)
+        guard digits.count >= 4 else { return nil }
+        return String(digits.prefix(4))
+    }
+
+    private static let countFormatter: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.maximumFractionDigits = 0
+        return f
+    }()
+
+    private func countString(_ value: Int) -> String {
+        Self.countFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    private var episodesLine: String? {
+        if let episodes = media.episodes, episodes > 0 { return "\(countString(episodes)) eps" }
+        if let chapters = media.chapters, chapters > 0 { return "\(countString(chapters)) ch" }
+        if let status = media.statusRaw?.uppercased() {
+            if status == "RELEASING" { return "airing" }
+            if status == "FINISHED" { return "finished" }
+        }
+        if let format = media.formatRaw, !format.isEmpty { return format.lowercased() }
+        return nil
+    }
+
     var body: some View {
         Button(action: {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }) {
@@ -697,8 +742,8 @@ struct GridAnimeCard: View {
                 // Image with score - FIXED HEIGHT
                 let imageHeight = max(100, floor(cardWidth / 0.7))
 
-                ZStack(alignment: .topTrailing) {
-                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { phase in
+                ZStack(alignment: .top) {
+                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 520) { phase in
                         switch phase {
                         case .success(let image):
                             image
@@ -717,32 +762,28 @@ struct GridAnimeCard: View {
                     .frame(width: cardWidth, height: imageHeight)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                    VStack(alignment: .trailing, spacing: 6) {
-                        if let rating = media.rating, rating > 0 {
-                            HStack(spacing: 2) {
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 8))
-                                Text(String(format: "%.1f", rating))
-                                    .font(.system(size: 10, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(
-                                Capsule()
-                                    .fill(Color.black.opacity(0.75))
-                            )
+                    HStack(alignment: .top) {
+                        if let yearBadgeText {
+                            KuroYearBadge(yearText: yearBadgeText)
                         }
 
-                        if isInCollection {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.green)
-                                .background(
-                                    Circle()
-                                        .fill(Color.white)
-                                        .frame(width: 18, height: 18)
-                                )
+                        Spacer()
+
+                        VStack(alignment: .trailing, spacing: 6) {
+                            if let rating = media.rating, rating > 0 {
+                                KuroScoreBadge(score: rating)
+                            }
+
+                            if isInCollection {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.green)
+                                    .background(
+                                        Circle()
+                                            .fill(Color.white)
+                                            .frame(width: 18, height: 18)
+                                    )
+                            }
                         }
                     }
                     .padding(6)
@@ -750,30 +791,22 @@ struct GridAnimeCard: View {
 
                 // Title and info - FIXED HEIGHT
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(media.title)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.black)
+                    Text(KuroCardText.sanitizeTitleForCard(media.title))
+                        .font(.system(size: 13, weight: .light, design: .serif))
+                        .textCase(.uppercase)
+                        .tracking(media.title.count >= 26 ? 0.3 : 0.6)
+                        .foregroundColor(.black.opacity(0.9))
                         .lineLimit(2)
-                        .frame(height: 36, alignment: .top)
+                        .minimumScaleFactor(0.92)
+                        .allowsTightening(true)
+                        .truncationMode(.tail)
+                        .frame(height: 40, alignment: .top)
 
-                    HStack(spacing: 4) {
-                        Text(media.year)
-                            .font(.system(size: 10, weight: .regular))
-                            .foregroundColor(.black.opacity(0.6))
-
-                        if let episodes = media.episodes, episodes > 0 {
-                            Text("·")
-                                .foregroundColor(.black.opacity(0.4))
-                            Text("\(episodes) eps")
-                                .font(.system(size: 10, weight: .regular))
-                                .foregroundColor(.black.opacity(0.6))
-                        } else if let chapters = media.chapters, chapters > 0 {
-                            Text("·")
-                                .foregroundColor(.black.opacity(0.4))
-                            Text("\(chapters) ch")
-                                .font(.system(size: 10, weight: .regular))
-                                .foregroundColor(.black.opacity(0.6))
-                        }
+                    if let episodesLine {
+                        Text(episodesLine)
+                            .font(.system(size: 9, weight: .light))
+                            .foregroundColor(.black.opacity(0.5))
+                            .lineLimit(1)
                     }
 
                     if let genres = media.genres?.prefix(2) {
@@ -783,7 +816,7 @@ struct GridAnimeCard: View {
                             .lineLimit(1)
                     }
                 }
-                .frame(width: cardWidth, height: 64, alignment: .top)
+                .frame(width: cardWidth, alignment: .topLeading)
             }
             .frame(width: cardWidth, height: cardHeight, alignment: .top)
         }
@@ -853,6 +886,7 @@ struct EditorialLoadingView: View {
                         }
                         .padding(.horizontal, 20)
                     }
+                    .kuroSwipeExclusionZone()
                 }
             }
         }
@@ -922,6 +956,7 @@ struct CompactHorizontalMangaSection<Item: MediaDisplayable>: View {
                 }
                 .padding(.horizontal, 20)
             }
+            .kuroSwipeExclusionZone()
         }
     }
 }
@@ -1051,6 +1086,7 @@ struct Dense2ColumnSectionFixed<Item: MediaDisplayable>: View {
                     }
                     .padding(.horizontal, 20)
                 }
+                .kuroSwipeExclusionZone()
             }
 
             let horizontalPadding: CGFloat = 20

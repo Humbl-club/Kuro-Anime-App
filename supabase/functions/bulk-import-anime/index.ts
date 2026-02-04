@@ -141,9 +141,15 @@ async function fetchAniListAnimeData(page: number, perPage: number, includeRelat
 
 async function processAnimeItem(supabase: any, anime: any, results: any, includeRelations: boolean, includeEpisodes: boolean, forceRefresh: boolean) {
   const updatedAtAnilist = anime.updatedAt ? new Date(anime.updatedAt * 1000).toISOString() : null;
+  const derivedEpisodes =
+    anime.episodes ??
+    (anime.nextAiringEpisode?.episode && anime.nextAiringEpisode.episode > 1
+      ? Math.max(0, Number(anime.nextAiringEpisode.episode) - 1)
+      : null);
+
   const { data: existing, error: existingError } = await supabase
     .from('anime')
-    .select('id, updated_at_anilist')
+    .select('id, updated_at_anilist, episodes, duration')
     .eq('anilist_id', anime.id)
     .maybeSingle();
   if (existingError) {
@@ -151,7 +157,19 @@ async function processAnimeItem(supabase: any, anime: any, results: any, include
   }
   const isStale = forceRefresh || !existing || !existing.updated_at_anilist || (updatedAtAnilist && existing.updated_at_anilist !== updatedAtAnilist);
   if (existing && !isStale) {
-    await supabase.from('anime').update({ last_synced_at: new Date().toISOString() }).eq('id', existing.id);
+    // Even when the AniList payload hasn't changed, airing metadata can drift (next episode),
+    // and long-running shows may be missing a total episode count. Keep these fields fresh.
+    const patch: any = {
+      last_synced_at: new Date().toISOString(),
+      next_episode_number: anime.nextAiringEpisode?.episode ?? null,
+      next_airing_at: anime.nextAiringEpisode?.airingAt ? new Date(anime.nextAiringEpisode.airingAt * 1000).toISOString() : null,
+    };
+    if (derivedEpisodes && (!existing.episodes || Number(existing.episodes) < derivedEpisodes)) {
+      patch.episodes = derivedEpisodes;
+      const dur = anime.duration ?? existing.duration;
+      patch.total_duration = dur ? derivedEpisodes * dur : null;
+    }
+    await supabase.from('anime').update(patch).eq('id', existing.id);
     return;
   }
 
@@ -169,9 +187,12 @@ async function processAnimeItem(supabase: any, anime: any, results: any, include
     format: anime.format,
     status: anime.status,
     description: anime.description,
-    episodes: anime.episodes,
+    // AniList sometimes leaves `episodes` null for long-running RELEASING shows.
+    // For UX (and for our card metadata), derive a best-effort "episodes so far" from
+    // `nextAiringEpisode.episode - 1` when available.
+    episodes: derivedEpisodes,
     duration: anime.duration,
-    total_duration: anime.episodes && anime.duration ? anime.episodes * anime.duration : null,
+    total_duration: derivedEpisodes && anime.duration ? derivedEpisodes * anime.duration : null,
     season: anime.season,
     season_year: anime.seasonYear,
     next_episode_number: anime.nextAiringEpisode?.episode,

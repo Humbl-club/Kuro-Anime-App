@@ -1,5 +1,6 @@
 // uses PosterView.swift
 import SwiftUI
+import UIKit
 
 #if DEBUG
 // Debug mode: Set this to true to see spacing visualization
@@ -83,13 +84,14 @@ struct KuroLaunchView: View {
 
 // MARK: - Main View
 struct KuroMainView: View {
+    @Environment(SupabaseService.self) private var supabaseService
     // Removed: @State private var currentSection = 0
     // Removed: @State private var selectedMood: String? = nil
     // Removed: @State private var dragOffset: CGFloat = 0
     // Removed: let sections = ["DISCOVER", "COLLECTION", "SEARCH"]
 
     enum Section: Int, CaseIterable {
-        case discover, concierge, collection, browse, search
+        case discover, concierge, collection, browse, search, profile
 
         var title: String {
             switch self {
@@ -103,61 +105,155 @@ struct KuroMainView: View {
                 return "BROWSE"
             case .search:
                 return "SEARCH"
+            case .profile:
+                return "PROFILE"
             }
         }
     }
 
-    @State private var selection: Section = .discover
-    @State private var showProfile = false
-    @State private var mountedSections: Set<Section> = [.discover]
+	@State private var selection: Section = .discover
+	@State private var showConcierge = false
+	@State private var conciergeIconFrame: CGRect = .zero
+	@State private var mountedSections: Set<Section> = [.discover]
+	@State private var swipeExclusions: [CGRect] = []
+	// Swipe through core sections; Concierge is a modal so it doesn't hijack page swipes.
+	private let swipeOrder: [Section] = [.discover, .collection, .browse, .search, .profile]
+	private let swipeThreshold: CGFloat = 40
+	private let swipeEdgeMargin: CGFloat = 24
     
-	    var body: some View {
+    var body: some View {
 	        ZStack {
 	            Color.white.ignoresSafeArea()
-	            
+
 	            VStack(spacing: 0) {
-	                // Fixed Header - Three-part layout
-	                KuroHeaderNew(selection: $selection, showProfile: $showProfile)
-	                
-	                // Keep tabs snappy without breaking vertical scrolling: mount on first visit, then keep alive.
-                    ZStack {
-                        if mountedSections.contains(.concierge) {
-                            ConciergeView()
-                                .opacity(selection == .concierge ? 1 : 0)
-                                .allowsHitTesting(selection == .concierge)
-                        }
-
-                        EditorialDiscoverView()
-                            .opacity(selection == .discover ? 1 : 0)
-                            .allowsHitTesting(selection == .discover)
-
-                        if mountedSections.contains(.collection) {
-                            EditorialCollectionView()
-                                .opacity(selection == .collection ? 1 : 0)
-                                .allowsHitTesting(selection == .collection)
-                        }
-
-                        if mountedSections.contains(.browse) {
-                            BrowseView()
-                                .opacity(selection == .browse ? 1 : 0)
-                                .allowsHitTesting(selection == .browse)
-                        }
-
-                        if mountedSections.contains(.search) {
-                            EditorialSearchView()
-                                .opacity(selection == .search ? 1 : 0)
-                                .allowsHitTesting(selection == .search)
-                        }
+                // Fixed Header - Three-part layout
+                KuroHeaderNew(selection: $selection, showConcierge: $showConcierge)
+                    .onPreferenceChange(ConciergeIconFramePreferenceKey.self) { v in
+                        conciergeIconFrame = v
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // Header-driven pager: keeps sections mounted once visited.
+	                KuroSectionPager(
+	                    selection: $selection,
+	                    mountedSections: $mountedSections,
+	                    order: swipeOrder
+	                )
 	                .background(Color.clear)
 	            }
 	        }
-            .onChange(of: selection) { _, newValue in
-                mountedSections.insert(newValue)
+	        .coordinateSpace(name: "kuro_root")
+	        .onPreferenceChange(KuroSwipeExclusionPreferenceKey.self) { v in
+	            swipeExclusions = v
+	        }
+	        .simultaneousGesture(
+	            DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
+	                .onEnded { value in
+	                    let start = value.startLocation
+	                    #if os(iOS)
+	                    let rootWidth = UIScreen.main.bounds.width
+	                    #else
+	                    let rootWidth: CGFloat = 1024
+	                    #endif
+	                    let edgeAllowed = (start.x <= swipeEdgeMargin) || (start.x >= max(0, rootWidth - swipeEdgeMargin))
+
+	                    let expanded = swipeExclusions.map { $0.insetBy(dx: -14, dy: -14) }
+	                    if expanded.contains(where: { $0.contains(start) }) && !edgeAllowed { return }
+
+	                    let dx = value.translation.width
+	                    let dy = value.translation.height
+	                    // Be forgiving: people swipe slightly diagonally.
+	                    guard abs(dx) > abs(dy) * 0.85 else { return }
+
+	                    let predictedDx = value.predictedEndTranslation.width
+	                    let effectiveDx = abs(predictedDx) > abs(dx) ? predictedDx : dx
+	                    guard abs(effectiveDx) >= swipeThreshold else { return }
+
+	                    guard let currentIndex = swipeOrder.firstIndex(of: selection) else { return }
+	                    let nextIndex = currentIndex + (effectiveDx < 0 ? 1 : -1)
+	                    guard swipeOrder.indices.contains(nextIndex) else { return }
+	                    selection = swipeOrder[nextIndex]
+	                    KuroAccessibility.impactHaptic(.light)
+	                }
+	        )
+	            .onChange(of: selection) { _, newValue in
+	                mountedSections.insert(newValue)
+	            }
+	            .task {
+	                // Warm the Discover bundle so the first Discover render feels instant.
+                _ = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24)
             }
-	        .sheet(isPresented: $showProfile) {
-	            SettingsView()
+            .overlay {
+                if showConcierge {
+                    ConciergeOverlay(isPresented: $showConcierge, originFrame: conciergeIconFrame)
+                        .transition(.opacity)
+                        .zIndex(999)
+                }
+            }
+    }
+}
+
+private struct ConciergeIconFramePreferenceKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        let next = nextValue()
+        if next != .zero { value = next }
+    }
+}
+
+// MARK: - Interactive section pager (keeps tabs mounted once visited)
+private struct KuroSectionPager: View {
+    typealias Section = KuroMainView.Section
+
+    @Binding var selection: Section
+    @Binding var mountedSections: Set<Section>
+    let order: [Section]
+
+    private var selectionIndex: Int {
+        order.firstIndex(of: selection) ?? 0
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let width = max(1, geo.size.width)
+            let height = max(1, geo.size.height)
+
+            HStack(spacing: 0) {
+                ForEach(order, id: \.self) { section in
+                    page(for: section)
+                        .frame(width: width, height: height)
+                }
+            }
+            .environment(\.kuroSuppressCardTaps, false)
+            .offset(x: (-CGFloat(selectionIndex) * width))
+            .clipped()
+            // Animate only when the selection changes (header-driven paging).
+            // This avoids gesture conflicts with in-page horizontal carousels.
+            .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.92), value: selectionIndex)
+        }
+    }
+
+    @ViewBuilder
+    private func page(for section: Section) -> some View {
+        let shouldMount = mountedSections.contains(section) || section == selection
+
+        if shouldMount {
+            switch section {
+            case .discover:
+                EditorialDiscoverView()
+            case .concierge:
+                ConciergeView()
+            case .collection:
+                EditorialCollectionView()
+            case .browse:
+                BrowseView()
+            case .search:
+                EditorialSearchView()
+            case .profile:
+                ProfileView()
+            }
+        } else {
+            // Placeholder keeps layout stable without triggering `.task` in heavy pages.
+            Color.white
         }
     }
 }
@@ -165,11 +261,20 @@ struct KuroMainView: View {
 // MARK: - New Responsive Header Component (Fixed)
 struct KuroHeaderNew: View {
     @Binding var selection: KuroMainView.Section
-    @Binding var showProfile: Bool
+    @Binding var showConcierge: Bool
     
-    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .collection, .browse, .search]
-    private let swipeThreshold: CGFloat = 60
-    
+    private let swipeOrder: [KuroMainView.Section] = [.discover, .collection, .browse, .search, .profile]
+
+    private static let windowTextPaddingX: CGFloat = 14
+    private static let windowTextPaddingY: CGFloat = 7
+    private static let windowTextSlack: CGFloat = 10
+
+    @State private var displayedSection: KuroMainView.Section = .discover
+    @State private var previousSection: KuroMainView.Section? = nil
+    @State private var isForwardTransition = true
+    @State private var titleProgress: CGFloat = 1.0
+    @State private var titleTextWidth: CGFloat = 92
+
     private var currentTitle: String { selection.title }
     private var canSwipeLeft: Bool {
         guard let i = swipeOrder.firstIndex(of: selection) else { return false }
@@ -180,8 +285,61 @@ struct KuroHeaderNew: View {
         return i < (swipeOrder.count - 1)
     }
 
-	    var body: some View {
-	        VStack(spacing: 0) {
+    private static let titleFont = UIFont.systemFont(ofSize: 11, weight: .regular)
+    private static let titleTracking: CGFloat = 1.5
+
+    private static func measureTitleWidth(_ title: String) -> CGFloat {
+        let base = (title as NSString).size(withAttributes: [.font: titleFont]).width
+        let tracking = titleTracking * CGFloat(max(0, title.count - 1))
+        return ceil(base + tracking)
+    }
+
+    private var titleWindow: some View {
+        let hint = (canSwipeLeft || canSwipeRight)
+        // Rounded "window" with edge shading (no heavy fill) for a physical mask feel.
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let innerMask = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let titleHeight: CGFloat = 16
+        let travel = (titleTextWidth + (Self.windowTextPaddingX * 2) + 28)
+
+        return ZStack {
+            shape
+                .fill(Color.clear)
+                // Tiny fill keeps the shape "present" so the shadow reads, without tinting the interior.
+                .background(shape.fill(Color.white.opacity(0.001)))
+                .overlay(
+                    shape
+                        .stroke(Color.black.opacity(hint ? 0.12 : 0.06), lineWidth: 0.6)
+                )
+                // Subtle highlight to sell the "window" edge without changing the interior color.
+                .overlay(
+                    shape
+                        .stroke(Color.white.opacity(0.75), lineWidth: 0.6)
+                        .blendMode(.overlay)
+                )
+                .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 6)
+
+            TitleWindowAnimator(
+                current: displayedSection.title,
+                previous: previousSection?.title,
+                progress: titleProgress,
+                forward: isForwardTransition,
+                travel: travel
+            )
+            // Keep the window tight to the current word, but during the transition ensure
+            // we have enough width for BOTH titles so nothing gets clipped mid-slide.
+            .frame(width: max(54, titleTextWidth), height: titleHeight, alignment: .center)
+            .padding(.horizontal, Self.windowTextPaddingX)
+            .padding(.vertical, Self.windowTextPaddingY)
+            // Clip only the moving text layer (cheaper than masking the whole window).
+            .clipShape(innerMask)
+        }
+        .fixedSize(horizontal: true, vertical: true)
+        .accessibilityHidden(true)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
             // Three-part layout with proper spacing
             HStack(alignment: .center) {
                 // Left: Brand (30% opacity)
@@ -193,30 +351,13 @@ struct KuroHeaderNew: View {
 
                 // Center: Section (full opacity)
                 VStack(spacing: 4) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 10, weight: .regular))
-                            .foregroundColor(.black.opacity(canSwipeLeft ? 0.25 : 0.0))
-                            .frame(width: 10)
-                            .accessibilityHidden(true)
-
-                        Text(currentTitle)
-                            .font(.system(size: 11, weight: .regular))
-                            .tracking(1.5)
-                            .foregroundColor(.black)
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 10, weight: .regular))
-                            .foregroundColor(.black.opacity(canSwipeRight ? 0.25 : 0.0))
-                            .frame(width: 10)
-                            .accessibilityHidden(true)
-                    }
-
-                    Capsule(style: .continuous)
-                        .fill(Color.black.opacity((canSwipeLeft || canSwipeRight) ? 0.14 : 0.0))
-                        .frame(width: 34, height: 2)
-                        .accessibilityHidden(true)
+                    titleWindow
                 }
+                .contentShape(Rectangle())
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Section")
+                .accessibilityValue(currentTitle)
+                .accessibilityHint("Swipe left or right to change sections.")
                 .frame(maxWidth: .infinity, alignment: .center)
 
                 // Right: Action (minimal interaction)
@@ -224,19 +365,42 @@ struct KuroHeaderNew: View {
                     Spacer()
                     Button(action: {
                         KuroAccessibility.impactHaptic(.light)
-                        showProfile.toggle()
+                        showConcierge = true
                     }) {
                         Circle()
-                            .fill(Color.black.opacity(0.08))
+                            .fill(.ultraThinMaterial)
                             .frame(width: 32, height: 32)
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear.preference(
+                                        key: ConciergeIconFramePreferenceKey.self,
+                                        value: geo.frame(in: .global)
+                                    )
+                                }
+                            )
                             .overlay(
-                                Text("M")
-                                    .font(.system(size: 14, weight: .light))
-                                    .foregroundColor(.black)
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.55), Color.black.opacity(0.06)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                                .clipShape(Circle())
+                                .opacity(0.9)
+                            )
+                            .overlay(
+                                Circle().stroke(Color.white.opacity(0.75), lineWidth: 0.7)
+                                    .blendMode(.overlay)
+                            )
+                            .overlay(
+                                Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
+                            )
+                            .overlay(
+                                KuroChanMascot(size: 22, style: .refined, showsSparkle: false, animates: true, showsShadow: false)
                             )
                     }
-                    .accessibilityLabel("Settings")
-                    .accessibilityHint("Opens settings")
+                    .buttonStyle(KuroHeaderIconButtonStyle())
+                    .accessibilityLabel("Concierge")
+                    .accessibilityHint("Opens recommendations and imports")
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
@@ -247,32 +411,89 @@ struct KuroHeaderNew: View {
             .accessibilityLabel("Section navigation")
             .accessibilityValue(currentTitle)
             .accessibilityHint("Swipe left or right to change sections.")
-            .gesture(
-                DragGesture(minimumDistance: 12, coordinateSpace: .local)
-                    .onEnded { value in
-                        let dx = value.translation.width
-                        guard abs(dx) >= swipeThreshold else { return }
-                        guard let currentIndex = swipeOrder.firstIndex(of: selection) else { return }
-                        // User preference: swipe left -> concierge (previous), swipe right -> next.
-                        let nextIndex = currentIndex + (dx < 0 ? -1 : 1)
-                        guard swipeOrder.indices.contains(nextIndex) else { return }
-                        // Keep the gesture snappy; avoid the page-swipe animation which can feel like a reload.
-                        withTransaction(Transaction(animation: nil)) {
-                            selection = swipeOrder[nextIndex]
+            .onAppear {
+                displayedSection = selection
+                previousSection = nil
+                titleProgress = 1.0
+                titleTextWidth = Self.measureTitleWidth(selection.title) + Self.windowTextSlack
+            }
+            .onChange(of: selection) { _, newValue in
+                let oldIndex = swipeOrder.firstIndex(of: displayedSection) ?? 0
+                let newIndex = swipeOrder.firstIndex(of: newValue) ?? 0
+                isForwardTransition = newIndex > oldIndex
+                let from = displayedSection
+                let fromWidth = Self.measureTitleWidth(from.title) + Self.windowTextSlack
+                let toWidth = Self.measureTitleWidth(newValue.title) + Self.windowTextSlack
+
+                previousSection = from
+                displayedSection = newValue
+                titleTextWidth = max(fromWidth, toWidth)
+
+                titleProgress = 0.0
+                withAnimation(.easeOut(duration: 0.18)) {
+                    titleProgress = 1.0
+                }
+
+                // Clear previous after animation; avoids unnecessary layout work.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                    if displayedSection == newValue {
+                        previousSection = nil
+                        withAnimation(.easeOut(duration: 0.12)) {
+                            titleTextWidth = toWidth
                         }
                     }
-            )
+                }
+            }
 
-	            // Subtle divider
-	            Rectangle()
-	                .fill(Color.black.opacity(0.08))
-	                .frame(height: 0.5)
-	        }
-	        .frame(height: 48)
-	        .background(Color.white)
-	        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 6)
-	    }
-	}
+            // Subtle divider
+            Rectangle()
+                .fill(Color.black.opacity(0.08))
+                .frame(height: 0.5)
+        }
+        .frame(height: 48)
+        .background(Color.white)
+        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 6)
+    }
+}
+
+private struct TitleWindowAnimator: View {
+    let current: String
+    let previous: String?
+    let progress: CGFloat
+    let forward: Bool
+    let travel: CGFloat
+
+    var body: some View {
+        let dir: CGFloat = forward ? 1 : -1
+
+        return ZStack {
+            if let previous {
+                Text(previous)
+                    .font(.system(size: 11, weight: .regular))
+                    .tracking(1.5)
+                    .foregroundColor(.black)
+                    .lineLimit(1)
+                    .offset(x: (-progress) * dir * travel)
+            }
+
+            Text(current)
+                .font(.system(size: 11, weight: .regular))
+                .tracking(1.5)
+                .foregroundColor(.black)
+                .lineLimit(1)
+                .offset(x: (1 - progress) * dir * travel)
+        }
+    }
+}
+
+private struct KuroHeaderIconButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.93 : 1.0)
+            .rotationEffect(.degrees(configuration.isPressed ? -4 : 0))
+            .animation(.interactiveSpring(response: 0.22, dampingFraction: 0.82), value: configuration.isPressed)
+    }
+}
 
 // MARK: - New Discover View (Single Column Sophistication)
 struct DiscoverViewNew: View {
@@ -798,6 +1019,7 @@ struct CollectionViewSimple: View {
 }
 
 // MARK: - New Search View (Single Column)
+#if false
 struct SearchViewNew: View {
     @Environment(SupabaseService.self) private var supabaseService
     @State private var searchText: String = ""
@@ -1150,6 +1372,12 @@ struct SearchViewNew: View {
             }
         }
     }
+}
+#endif
+
+// Legacy search UI is kept for reference; the app uses the RPC-backed `EditorialSearchView`.
+struct SearchViewNew: View {
+    var body: some View { EditorialSearchView() }
 }
 
 // MARK: - Search View with debounce

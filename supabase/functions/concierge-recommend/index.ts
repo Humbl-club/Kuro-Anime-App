@@ -14,6 +14,14 @@ function uniq<T>(arr: T[]) {
   return Array.from(new Set(arr));
 }
 
+function inferLanguage(text: string): "de" | "en" {
+  const t = text.toLowerCase();
+  // Minimal heuristic: just enough for DE narration.
+  if (/\b(ich|habe|hab|schaue|gucke|sehe|lese|staffel|folge|kapitel|band|bitte|empfehl)\b/.test(t)) return "de";
+  if (/[äöüß]/i.test(t)) return "de";
+  return "en";
+}
+
 function inferMediaType(text: string, scope: string): MediaType | "BOTH" {
   const s = (scope || "").toLowerCase();
   if (s === "anime") return "ANIME";
@@ -35,15 +43,36 @@ function inferCategories(text: string): string[] {
   const t = text.toLowerCase();
   const out: string[] = [];
 
+  // EN
   if (/\b(fun|funny|comedy|laugh)\b/.test(t)) out.push("Theme-Comedy");
   if (/\b(sad|cry|tears?|heartbreak)\b/.test(t)) out.push("Theme-Drama");
   if (/\b(cozy|comfort|chill|relax)\b/.test(t)) out.push("Theme-Slice of Life");
   if (/\b(romance|love)\b/.test(t)) out.push("Theme-Romance");
   if (/\b(action)\b/.test(t)) out.push("Theme-Action");
   if (/\b(fantasy)\b/.test(t)) out.push("Theme-Fantasy");
-  if (/\b(sci[- ]?fi|scifi)\b/.test(t)) out.push("Theme-Sci-Fi");
+  if (/\b(sci[- ]?fi|scifi|science fiction)\b/.test(t)) out.push("Theme-Sci-Fi");
   if (/\b(sports?)\b/.test(t)) out.push("Theme-Game-Sport");
   if (/\b(music)\b/.test(t)) out.push("Theme-Arts-Music");
+
+  // DE (keep lightweight; only high-signal words)
+  if (/\b(lustig|witzig|kom(ö|oe)die|zum lachen)\b/.test(t)) out.push("Theme-Comedy");
+  if (/\b(traurig|heul|weinen|herzschmerz)\b/.test(t)) out.push("Theme-Drama");
+  if (/\b(gem(ü|ue)tlich|comfort|chillen|entspann)\b/.test(t)) out.push("Theme-Slice of Life");
+  if (/\b(liebe|romantik|romance)\b/.test(t)) out.push("Theme-Romance");
+  if (/\b(action)\b/.test(t)) out.push("Theme-Action");
+  if (/\b(fantasy|fantasie)\b/.test(t)) out.push("Theme-Fantasy");
+  if (/\b(sci[- ]?fi|science fiction)\b/.test(t)) out.push("Theme-Sci-Fi");
+  if (/\b(sport)\b/.test(t)) out.push("Theme-Game-Sport");
+  if (/\b(musik)\b/.test(t)) out.push("Theme-Arts-Music");
+
+  // “First anime/manga” intent nudges toward accessible, broadly-liked picks.
+  // This is not hardcoded curation; it just biases toward general-audience categories.
+  if (/\b(first anime|first manga|getting into anime|getting into manga)\b/.test(t)) {
+    out.push("Theme-Slice of Life", "Theme-Drama", "Theme-Adventure");
+  }
+  if (/\b(erstes anime|erstes manga|anime anfangen|manga anfangen|neu bei anime|neu bei manga)\b/.test(t)) {
+    out.push("Theme-Slice of Life", "Theme-Drama", "Theme-Adventure");
+  }
   // Explicit modes that should be discoverable.
   if (/\b(isekai)\b/.test(t)) out.push("Theme-Fantasy");
   if (/\b(reincarnat)/.test(t)) out.push("Theme-Other");
@@ -51,15 +80,135 @@ function inferCategories(text: string): string[] {
   return uniq(out);
 }
 
-function inferFocusTagIds(text: string): number[] {
+function inferGimmickTagIds(text: string): number[] {
   const t = text.toLowerCase();
   const ids: number[] = [];
   if (/\b(isekai)\b/.test(t)) ids.push(350);
-  if (/\b(reincarnat|reborn|tensei)\b/.test(t)) ids.push(1023);
+  if (/\b(reincarnat|reborn|tensei|wiedergeboren|reinkarnat)\b/.test(t)) ids.push(1023);
   if (/\b(another world|in another world|isekai)\b/.test(t)) ids.push(350);
   if (/\b(slime)\b/.test(t)) ids.push(350, 1023);
   if (/\b(harem)\b/.test(t)) ids.push(358, 9154, 18064);
   return uniq(ids);
+}
+
+function inferMoodFocusTagIds(text: string): number[] {
+  const t = text.toLowerCase();
+  const ids: number[] = [];
+
+  // Comedy-focused tags (keeps “funny” results actually funny).
+  if (/\b(fun|funny|comedy|laugh|lustig|witzig|kom(ö|oe)die)\b/.test(t)) {
+    ids.push(48, 161, 163); // Slapstick, Parody, Satire
+  }
+
+  // Drama-leaning “sad” tags.
+  if (/\b(sad|cry|tears?|heartbreak|traurig|heul|weinen|herzschmerz)\b/.test(t)) {
+    ids.push(3, 22); // Tragedy, Coming of Age
+  }
+
+  return uniq(ids);
+}
+
+async function groqNarrate(opts: {
+  apiKey: string;
+  model: string;
+  lang: "de" | "en";
+  userText: string;
+  debug?: boolean;
+  items: Array<{ id: string; title: string; year?: number | null; format?: string | null; signals: string[] }>;
+}): Promise<{ blurbs: Record<string, string>; usageTotal: number | null }> {
+  const url = "https://api.groq.com/openai/v1/chat/completions";
+  // NOTE: Groq's GPT-OSS models sometimes return empty `content` if the system prompt is too "policy-like".
+  // Keep the system prompt extremely short and drive style via a single user instruction.
+  const system =
+    opts.lang === "de"
+      ? `Gib nur JSON zurück: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`
+      : `Return JSON only: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`;
+
+  const user =
+    opts.lang === "de"
+      ? `User prompt: ${opts.userText}\n\nItems:\n${opts.items
+          .map((it) => `- ${it.id}: ${it.title} (${it.year ?? "?"}) ${it.format ?? ""} [${it.signals.join(", ")}]`)
+          .join("\n")}\n\nSchreibe pro Item genau einen kurzen, spoilerfreien Satz. Gib nur JSON zurück: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`
+      : `User prompt: ${opts.userText}\n\nItems:\n${opts.items
+          .map((it) => `- ${it.id}: ${it.title} (${it.year ?? "?"}) ${it.format ?? ""} [${it.signals.join(", ")}]`)
+          .join("\n")}\n\nWrite one short, spoiler-free sentence per item. Return JSON only: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${opts.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: opts.model,
+      // Keep this deterministic and tiny. We're only writing 5–10 single-sentence blurbs.
+      temperature: 0.2,
+      // We only need short JSON blurbs; keeping this low improves latency/cost.
+      max_tokens: 260,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+
+  const jsonRes = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(`Groq error: ${res.status} ${JSON.stringify(jsonRes)?.slice(0, 300)}`);
+  }
+
+  const usageTotal = Number(
+    jsonRes?.usage?.total_tokens ??
+      ((Number(jsonRes?.usage?.prompt_tokens ?? 0) || 0) + (Number(jsonRes?.usage?.completion_tokens ?? 0) || 0)),
+  );
+  const usage = Number.isFinite(usageTotal) && usageTotal > 0 ? usageTotal : null;
+
+  const content = jsonRes?.choices?.[0]?.message?.content;
+  if (typeof content !== "string" || !content.trim()) {
+    if (opts.debug) {
+      throw new Error(
+        `Groq narration missing content. status=${res.status} body_snippet=${JSON.stringify(jsonRes)?.slice(0, 600)}`,
+      );
+    }
+    return { blurbs: {}, usageTotal: usage };
+  }
+  try {
+    // Be forgiving: some models wrap JSON in text/code fences.
+    const start = content.indexOf("{");
+    const end = content.lastIndexOf("}");
+    const candidate = start >= 0 && end > start ? content.slice(start, end + 1) : content;
+    const parsed = JSON.parse(candidate);
+    const blurbs = parsed?.blurbs;
+    if (blurbs && typeof blurbs === "object") return { blurbs, usageTotal: usage };
+  } catch {
+    // ignore
+  }
+  if (opts.debug) {
+    throw new Error(`Groq narration JSON parse failed. content_snippet=${content.slice(0, 400)}`);
+  }
+  return { blurbs: {}, usageTotal: usage };
+}
+
+function clampBlurb(s: string, maxWords: number, maxChars: number) {
+  const trimmed = s.replace(/\s+/g, " ").trim();
+  if (!trimmed) return "";
+  const words = trimmed.split(" ");
+  const clippedWords = words.slice(0, maxWords).join(" ");
+  const clippedChars = clippedWords.slice(0, maxChars).trim();
+  return clippedChars.replace(/[,\s]+$/g, "").trim();
+}
+
+function clientIp(req: Request): string | null {
+  const xf = req.headers.get("x-forwarded-for");
+  if (xf) {
+    const first = xf.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real;
+  const cf = req.headers.get("cf-connecting-ip")?.trim();
+  if (cf) return cf;
+  return null;
 }
 
 serve(async (req) => {
@@ -82,15 +231,36 @@ serve(async (req) => {
     const { data: userData, error: userErr } = await client.auth.getUser();
     if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
 
+    // Server-side rate limiting (per-user + per-IP).
+    const ip = clientIp(req);
+    const { data: rl } = await client.rpc("check_concierge_rate_limit", {
+      p_kind: "recommend",
+      p_ip: ip,
+      p_window_seconds: null,
+      p_max_user: null,
+      p_max_ip: null,
+    });
+    if (rl && rl.allowed === false) {
+      return json(
+        { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
+        { status: 429, headers: { "Retry-After": String(rl.retry_after_s ?? 30) } },
+      );
+    }
+
     const body = await req.json().catch(() => ({}));
     const text: string = String(body?.text ?? "");
     const scope: string = String(body?.scope ?? "both");
     const limit = Math.max(3, Math.min(20, Number(body?.limit ?? 8)));
+    let narrate: boolean = Boolean(body?.narrate ?? false);
+    const debugNarration: boolean = Boolean(body?.debugNarration ?? false);
 
     const categories = inferCategories(text);
-    const focusTagIds = inferFocusTagIds(text);
+    const gimmickTagIds = inferGimmickTagIds(text);
+    const moodTagIds = inferMoodFocusTagIds(text);
+    const focusTagIds = uniq([...gimmickTagIds, ...moodTagIds]);
     const allowGimmicks =
-      focusTagIds.length > 0 || /\b(slime)\b/.test(text.toLowerCase());
+      gimmickTagIds.length > 0 || /\b(slime)\b/.test(text.toLowerCase());
+    const lang = inferLanguage(text);
 
     const mediaType = inferMediaType(text, scope);
     const results: any[] = [];
@@ -152,9 +322,56 @@ serve(async (req) => {
       if (mediaErr) throw mediaErr;
       const byId = new Map<number, any>((mediaRows ?? []).map((r: any) => [r.id, r]));
 
+      // Signals for premium feel (deterministic; no hallucinations).
+      const { data: boosts } = await client
+        .from("editorial_boosts")
+        .select("media_id,label,weight")
+        .eq("media_type", mt)
+        .in("media_id", idList);
+      const boostById = new Map<number, any>((boosts ?? []).map((b: any) => [b.media_id, b]));
+
+      const { data: tagBoosts } = await client
+        .from("editorial_tag_boosts")
+        .select("tag_id,boost,reason");
+      const tagBoostByTag = new Map<number, any>((tagBoosts ?? []).map((t: any) => [t.tag_id, t]));
+      const boostTagIds = Array.from(tagBoostByTag.keys());
+
+      // Get which boosted tags apply to each media id.
+      let tagLinks: any[] = [];
+      if (boostTagIds.length > 0) {
+        const linkTable = mt === "ANIME" ? "anime_tags" : "manga_tags";
+        const idCol = mt === "ANIME" ? "anime_id" : "manga_id";
+        const resLinks = await client
+          .from(linkTable)
+          .select(`${idCol},tag_id`)
+          .in(idCol, idList)
+          .in("tag_id", boostTagIds);
+        if (!resLinks.error) tagLinks = resLinks.data ?? [];
+      }
+
+      const boostedReasonsById = new Map<number, string[]>();
+      for (const row of tagLinks) {
+        const mediaId = Number(row[mt === "ANIME" ? "anime_id" : "manga_id"]);
+        const tagId = Number(row.tag_id);
+        const tb = tagBoostByTag.get(tagId);
+        const reason = String(tb?.reason ?? "").trim();
+        if (!reason) continue;
+        const arr = boostedReasonsById.get(mediaId) ?? [];
+        if (!arr.includes(reason)) arr.push(reason);
+        boostedReasonsById.set(mediaId, arr);
+      }
+
       for (const r of rows) {
         const m = byId.get(r.media_id);
         if (!m) continue;
+        const idKey = `${mt}|${r.media_id}`;
+        const signals: string[] = [];
+        const b = boostById.get(r.media_id);
+        if (b?.label === "classic") signals.push("CLASSIC");
+        const reasons = boostedReasonsById.get(r.media_id) ?? [];
+        for (const x of reasons.slice(0, 3)) signals.push(String(x).toUpperCase());
+        if ((r.match_count ?? 0) >= 2) signals.push("MATCH");
+
         results.push({
           mediaType: mt,
           mediaId: r.media_id,
@@ -167,6 +384,7 @@ serve(async (req) => {
           format: m.format ?? null,
           status: m.status ?? null,
           siteUrl: m.site_url ?? null,
+          signals,
         });
       }
     };
@@ -193,7 +411,132 @@ serve(async (req) => {
       categories.length === 0
         ? "Premium picks (new to you). Tell me a vibe like “funny”, “sad”, “cozy”, or a genre to sharpen it."
         : null;
-    return json({ success: true, categories, items: results, message });
+
+    // Optional narration (pure presentation layer).
+    let narrationError: string | null = null;
+    if (narrate) {
+      // Global kill-switch: keep core recommendations deterministic if disabled.
+      const { data: llmEnabled } = await client.rpc("is_flag_enabled", { p_key: "llm_enabled" });
+      if (llmEnabled === false) narrate = false;
+    }
+
+    if (narrate) {
+      const groqKey = Deno.env.get("GROQ_API_KEY");
+      const groqModel = Deno.env.get("GROQ_MODEL") ?? "openai/gpt-oss-20b";
+      if (groqKey) {
+        const maxCompletion = 260;
+        const packed = results.slice(0, 8).map((it) => ({
+          id: `${it.mediaType}|${it.mediaId}`,
+          title: it.title,
+          year: it.year,
+          format: it.format,
+          signals: Array.isArray(it.signals) ? it.signals : [],
+        }));
+
+        const promptChars = 1200 + text.length + JSON.stringify(packed).length;
+        const reserveTokens = Math.min(9000, Math.max(160, Math.ceil(promptChars / 4) + maxCompletion));
+
+        // Reserve budget. If exceeded, just return without blurbs.
+        const { data: budget } = await client.rpc("llm_budget_reserve", {
+          p_reserved_tokens: reserveTokens,
+          p_max_daily_tokens: null,
+          p_max_daily_calls: null,
+          p_model: groqModel,
+        });
+        if (budget && budget.allowed === false) {
+          narrate = false;
+        }
+
+        // Global budget (prevents "many users" abuse).
+        let gReserveOk = true;
+        if (narrate) {
+          try {
+            const { data: cfg } = await client.rpc("get_concierge_config");
+            const globalBudget = cfg?.global_llm_budget ?? null;
+            const globalDailyTokens = Number(globalBudget?.daily_tokens ?? 250000);
+            const globalDailyCalls = Number(globalBudget?.daily_calls ?? 600);
+            const { data: gBudget } = await client.rpc("llm_global_budget_reserve", {
+              p_reserved_tokens: reserveTokens,
+              p_max_daily_tokens: Number.isFinite(globalDailyTokens) ? globalDailyTokens : 250000,
+              p_max_daily_calls: Number.isFinite(globalDailyCalls) ? globalDailyCalls : 600,
+            });
+            if (gBudget && gBudget.allowed === false) gReserveOk = false;
+          } catch {
+            // If config/global budget fails for some reason, fail closed (no narration).
+            gReserveOk = false;
+          }
+          if (!gReserveOk) {
+            narrate = false;
+            try {
+              await client.rpc("llm_budget_finalize", { p_reserved_tokens: reserveTokens, p_actual_tokens: 0, p_model: groqModel });
+            } catch {
+              // ignore
+            }
+          }
+        }
+
+        try {
+          if (!narrate) throw new Error("LLM budget exceeded");
+
+          const { blurbs, usageTotal } = await groqNarrate({
+            apiKey: groqKey,
+            model: groqModel,
+            lang,
+            userText: text,
+            debug: debugNarration,
+            items: packed,
+          });
+          for (const it of results) {
+            const key = `${it.mediaType}|${it.mediaId}`;
+            const b = blurbs[key];
+            if (typeof b === "string" && b.trim()) it.blurb = clampBlurb(b, 18, 180);
+          }
+
+          // Finalize with actual usage if available; else treat reserve as actual.
+          try {
+            const actual = usageTotal ?? reserveTokens;
+            await client.rpc("llm_budget_finalize", {
+              p_reserved_tokens: reserveTokens,
+              p_actual_tokens: actual,
+              p_model: groqModel,
+            });
+            await client.rpc("llm_global_budget_finalize", {
+              p_reserved_tokens: reserveTokens,
+              p_actual_tokens: actual,
+            });
+          } catch {
+            // best-effort
+          }
+        } catch (e) {
+          // Release reservation on failure (best-effort).
+          try {
+            await client.rpc("llm_budget_finalize", {
+              p_reserved_tokens: reserveTokens,
+              p_actual_tokens: 0,
+              p_model: groqModel,
+            });
+            await client.rpc("llm_global_budget_finalize", {
+              p_reserved_tokens: reserveTokens,
+              p_actual_tokens: 0,
+            });
+          } catch {
+            // best-effort
+          }
+          narrationError = (e as Error)?.message ?? String(e);
+        }
+      } else {
+        narrate = false;
+      }
+    }
+
+    return json({
+      success: true,
+      categories,
+      items: results,
+      message,
+      narrated: narrate,
+      ...(debugNarration ? { narrationError } : {}),
+    });
   } catch (e) {
     const err = e as Error;
     return json({ error: "Internal error", message: err?.message ?? String(e) }, { status: 500 });

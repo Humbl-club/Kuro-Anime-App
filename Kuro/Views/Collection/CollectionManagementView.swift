@@ -63,6 +63,26 @@ struct CollectionManagementView: View {
                         }
                         .padding(.horizontal, ResponsiveLayout.padding())
                         .padding(.top, KuroSpacing.lg)
+
+                        if mediaIsManga {
+                            KuroLoadMoreSentinel(
+                                itemCount: supabaseService.collectionMangaItems.count,
+                                hasMore: supabaseService.hasMoreCollectionManga,
+                                isLoading: supabaseService.isLoadingMoreCollectionManga,
+                                tint: .kuroBlack60
+                            ) {
+                                _ = await supabaseService.fetchNextCollectionMangaPage(limit: 80)
+                            }
+                        } else {
+                            KuroLoadMoreSentinel(
+                                itemCount: supabaseService.collectionAnimeItems.count,
+                                hasMore: supabaseService.hasMoreCollectionAnime,
+                                isLoading: supabaseService.isLoadingMoreCollectionAnime,
+                                tint: .kuroBlack60
+                            ) {
+                                _ = await supabaseService.fetchNextCollectionAnimePage(limit: 80)
+                            }
+                        }
                     }
                 }
                 .transaction { $0.animation = nil }
@@ -77,7 +97,7 @@ struct CollectionManagementView: View {
         }
     }
     
-    private var filteredItems: [Anime] {
+    private var filteredItems: [AnimeCard] {
         let ids: Set<Int> = Set(
             supabaseService.userLists
                 .filter { $0.mediaType.lowercased() == "anime" }
@@ -85,12 +105,12 @@ struct CollectionManagementView: View {
                 .map { $0.mediaId }
         )
         if ids.isEmpty { return [] }
-        let lookup: [Int: Anime] = Dictionary(uniqueKeysWithValues: supabaseService.collectionAnimeItems.map { ($0.id, $0) })
+        let lookup: [Int: AnimeCard] = Dictionary(uniqueKeysWithValues: supabaseService.collectionAnimeItems.map { ($0.id, $0) })
         return ids.compactMap { lookup[$0] }
-            .sorted { $0.updatedAt > $1.updatedAt }
+            .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
     }
 
-    private var filteredMangaItems: [Manga] {
+    private var filteredMangaItems: [MangaCard] {
         let ids: Set<Int> = Set(
             supabaseService.userLists
                 .filter { $0.mediaType.lowercased() == "manga" }
@@ -98,9 +118,9 @@ struct CollectionManagementView: View {
                 .map { $0.mediaId }
         )
         if ids.isEmpty { return [] }
-        let lookup: [Int: Manga] = Dictionary(uniqueKeysWithValues: supabaseService.collectionMangaItems.map { ($0.id, $0) })
+        let lookup: [Int: MangaCard] = Dictionary(uniqueKeysWithValues: supabaseService.collectionMangaItems.map { ($0.id, $0) })
         return ids.compactMap { lookup[$0] }
-            .sorted { $0.updatedAt > $1.updatedAt }
+            .sorted { ($0.createdAt ?? .distantPast) > ($1.createdAt ?? .distantPast) }
     }
     
     private func adaptiveColumns(for width: CGFloat) -> [GridItem] {
@@ -175,6 +195,7 @@ struct StatusFilterBar: View {
             .padding(.horizontal, ResponsiveLayout.padding())
             .padding(.vertical, KuroSpacing.lg)
         }
+        .kuroSwipeExclusionZone()
         .background(Color.kuroBackground)
     }
 }
@@ -205,10 +226,11 @@ struct StatusFilterButton: View {
 
 // MARK: - Collection Item Card
 struct CollectionItemCard: View {
-    let item: Anime
+    let item: AnimeCard
     @State private var showDetail = false
     @State private var showProgress = false
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     private var userProgress: Int {
         supabaseService.userLists.first(where: { $0.mediaType.lowercased() == "anime" && $0.mediaId == item.id })?.progress ?? 0
@@ -216,12 +238,13 @@ struct CollectionItemCard: View {
     
     var body: some View {
         Button(action: {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         }) {
             VStack(alignment: .leading, spacing: KuroSpacing.xs) {
                 // Cover Image
-                KuroCachedAsyncImage(url: URL(string: item.displayImage)) { image in
+                KuroCachedAsyncImage(url: URL(string: item.imageURL ?? ""), maxPixelSize: 360) { image in
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
@@ -238,12 +261,12 @@ struct CollectionItemCard: View {
                 .cornerRadius(4)
                 
                 // Progress Bar (if watching/reading)
-                if let total = item.episodeCount, total > 0 {
+                if let total = item.episodes, total > 0 {
                     ProgressBar(current: min(userProgress, total), total: total)
                 }
                 
                 // Title
-                Text(item.displayTitle.uppercased())
+                Text(item.title.uppercased())
                     .font(.kuroMicro(weight: .medium))
                     .tracking(0.5)
                     .foregroundColor(.kuroBlack80)
@@ -251,7 +274,7 @@ struct CollectionItemCard: View {
                     .multilineTextAlignment(.leading)
                 
                 // Episode/Chapter count
-                Text(item.episodeText)
+                Text(item.episodes.map { "\($0) EPS" } ?? "TBA")
                     .font(.kuroMicro(weight: .light))
                     .tracking(0.5)
                     .foregroundColor(.kuroBlack60)
@@ -261,7 +284,7 @@ struct CollectionItemCard: View {
         }
         .buttonStyle(PlainButtonStyle())
         .sheet(isPresented: $showDetail) {
-            AnimeDetailView(anime: item)
+            MediaDetailSheet(kind: .anime, id: item.id)
         }
     }
 }
@@ -618,7 +641,7 @@ struct MediaPreview: View {
     
     var body: some View {
         HStack(spacing: KuroSpacing.md) {
-            KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { image in
+            KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 260) { image in
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fill)

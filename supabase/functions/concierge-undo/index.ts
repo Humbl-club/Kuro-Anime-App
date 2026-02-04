@@ -17,6 +17,19 @@ function clampInt(v: unknown, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+function clientIp(req: Request): string | null {
+  const xf = req.headers.get("x-forwarded-for");
+  if (xf) {
+    const first = xf.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real;
+  const cf = req.headers.get("cf-connecting-ip")?.trim();
+  if (cf) return cf;
+  return null;
+}
+
 serve(async (req) => {
   try {
     if (req.method !== "POST") return json({ error: "Method not allowed" }, { status: 405 });
@@ -37,6 +50,21 @@ serve(async (req) => {
     const { data: userData, error: userErr } = await client.auth.getUser();
     if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
     const userId = userData.user.id;
+
+    const ip = clientIp(req);
+    const { data: rl } = await client.rpc("check_concierge_rate_limit", {
+      p_kind: "undo",
+      p_ip: ip,
+      p_window_seconds: null,
+      p_max_user: null,
+      p_max_ip: null,
+    });
+    if (rl && rl.allowed === false) {
+      return json(
+        { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
+        { status: 429, headers: { "Retry-After": String(rl.retry_after_s ?? 30) } },
+      );
+    }
 
     const body = await req.json().catch(() => ({}));
     const sessionId = typeof body?.sessionId === "string" ? body.sessionId : null;

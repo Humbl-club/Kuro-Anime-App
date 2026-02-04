@@ -182,6 +182,7 @@ struct SharedVerticalAnimeCard: View {
     @State private var isInList = false
     @State private var showDetail = false
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     
     init(anime: Anime, showBadge: Bool = true, tap: @escaping () -> Void) {
         self.anime = anime
@@ -201,7 +202,7 @@ struct SharedVerticalAnimeCard: View {
     }
     
     private var imageSection: some View {
-        KuroCachedAsyncImage(url: URL(string: anime.coverImageLarge ?? anime.coverImageMedium ?? "")) { phase in
+        KuroCachedAsyncImage(url: URL(string: anime.coverImageLarge ?? anime.coverImageMedium ?? ""), maxPixelSize: 520) { phase in
             switch phase {
             case .empty:
                 Rectangle()
@@ -280,6 +281,7 @@ struct SharedVerticalAnimeCard: View {
                     }
                 }
             }
+            .kuroSwipeExclusionZone()
             .padding(.top, 4)
         }
 
@@ -287,6 +289,7 @@ struct SharedVerticalAnimeCard: View {
             isFavorited: $isFavorited,
             isInList: $isInList,
             onInfo: {
+                guard !suppressCardTaps else { return }
                 showDetail = true
                 tap()
             },
@@ -405,7 +408,7 @@ struct SharedHorizontalAnimeCard: View {
     }
     
     private var horizontalImageView: some View {
-        KuroCachedAsyncImage(url: URL(string: anime.coverImageLarge ?? anime.coverImageMedium ?? "")) { phase in
+        KuroCachedAsyncImage(url: URL(string: anime.coverImageLarge ?? anime.coverImageMedium ?? ""), maxPixelSize: 520) { phase in
             switch phase {
             case .empty:
                 Rectangle()

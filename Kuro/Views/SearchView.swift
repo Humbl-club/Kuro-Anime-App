@@ -87,6 +87,7 @@ struct SearchView: View {
                 }
                 .padding(.horizontal, 24)
             }
+            .kuroSwipeExclusionZone()
             .padding(.vertical, 20)
 
             // Results or hints
