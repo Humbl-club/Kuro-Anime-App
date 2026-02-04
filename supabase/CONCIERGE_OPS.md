@@ -7,6 +7,17 @@ Guardrails are driven by a single JSON row:
 - Table: `public.concierge_config` (single row, `id=true`)
 - Reader: `public.get_concierge_config()` (RPC)
 
+Current defaults (safe “natural usage”, anti-abuse):
+- Rate limits (per 60s window)
+  - parse: user 120/min, ip 300/min
+  - recommend: user 20/min, ip 80/min
+  - resolve: user 10/min, ip 40/min
+  - apply: user 12/min, ip 50/min
+  - undo: user 6/min, ip 20/min
+- LLM budgets
+  - per user per day: 50,000 tokens, 40 calls
+  - global per day: 1,000,000 tokens, 600 calls
+
 To update limits/budgets in the Supabase SQL editor, example:
 
 ```sql
@@ -60,4 +71,3 @@ Low-confidence parse lines are logged (best-effort) into:
 - `public.concierge_parse_feedback`
 
 This is meant for building a real-world corpus of "hard cases" and improving parsing safely over time.
-
