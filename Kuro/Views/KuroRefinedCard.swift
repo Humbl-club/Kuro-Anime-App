@@ -101,27 +101,26 @@ struct KuroPortraitCard: View {
         cardWidth / 0.7 // Standard poster ratio
     }
 
-    private var yearBadgeText: String? {
-        let digits = media.year.filter(\.isNumber)
-        guard digits.count >= 4 else { return nil }
-        return String(digits.prefix(4))
-    }
+    private var metaLine: String? {
+        var parts: [String] = []
 
-    private var episodesLine: String? {
+        let digits = media.year.filter(\.isNumber)
+        if digits.count >= 4 {
+            parts.append(String(digits.prefix(4)))
+        }
+
         if let episodes = media.episodes, episodes > 0 {
-            return "\(KuroCardText.countString(episodes)) eps"
+            parts.append("\(KuroCardText.countString(episodes)) eps")
+        } else if let chapters = media.chapters, chapters > 0 {
+            parts.append("\(KuroCardText.countString(chapters)) ch")
+        } else if let status = media.statusRaw?.uppercased() {
+            if status == "RELEASING" { parts.append("airing") }
+            if status == "FINISHED" { parts.append("finished") }
+        } else if let format = media.formatRaw, !format.isEmpty {
+            parts.append(format.lowercased())
         }
-        if let chapters = media.chapters, chapters > 0 {
-            return "\(KuroCardText.countString(chapters)) ch"
-        }
-        if let status = media.statusRaw?.uppercased() {
-            if status == "RELEASING" { return "airing" }
-            if status == "FINISHED" { return "finished" }
-        }
-        if let format = media.formatRaw, !format.isEmpty {
-            return format.lowercased()
-        }
-        return nil
+
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
     
     var body: some View {
@@ -158,10 +157,6 @@ struct KuroPortraitCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     
                     HStack(alignment: .top) {
-                        if let yearBadgeText {
-                            KuroYearBadge(yearText: yearBadgeText)
-                        }
-
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 6) {
@@ -190,8 +185,8 @@ struct KuroPortraitCard: View {
                         .truncationMode(.tail)
                         .frame(height: 38, alignment: .top)
 
-                    if let episodesLine {
-                        Text(episodesLine)
+                    if let metaLine {
+                        Text(metaLine)
                             .font(.system(size: 9, weight: .light))
                             .foregroundColor(.black.opacity(0.5))
                             .lineLimit(1)
@@ -225,27 +220,26 @@ struct KuroCompactCard: View {
         width / 0.7
     }
 
-    private var yearBadgeText: String? {
-        let digits = media.year.filter(\.isNumber)
-        guard digits.count >= 4 else { return nil }
-        return String(digits.prefix(4))
-    }
+    private var metaLine: String? {
+        var parts: [String] = []
 
-    private var episodesLine: String? {
+        let digits = media.year.filter(\.isNumber)
+        if digits.count >= 4 {
+            parts.append(String(digits.prefix(4)))
+        }
+
         if let episodes = media.episodes, episodes > 0 {
-            return "\(KuroCardText.countString(episodes)) eps"
+            parts.append("\(KuroCardText.countString(episodes)) eps")
+        } else if let chapters = media.chapters, chapters > 0 {
+            parts.append("\(KuroCardText.countString(chapters)) ch")
+        } else if let status = media.statusRaw?.uppercased() {
+            if status == "RELEASING" { parts.append("airing") }
+            if status == "FINISHED" { parts.append("finished") }
+        } else if let format = media.formatRaw, !format.isEmpty {
+            parts.append(format.lowercased())
         }
-        if let chapters = media.chapters, chapters > 0 {
-            return "\(KuroCardText.countString(chapters)) ch"
-        }
-        if let status = media.statusRaw?.uppercased() {
-            if status == "RELEASING" { return "airing" }
-            if status == "FINISHED" { return "finished" }
-        }
-        if let format = media.formatRaw, !format.isEmpty {
-            return format.lowercased()
-        }
-        return nil
+
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
     
     var body: some View {
@@ -276,9 +270,6 @@ struct KuroCompactCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     
                     HStack(alignment: .top) {
-                        if let yearBadgeText {
-                            KuroYearBadge(yearText: yearBadgeText)
-                        }
                         Spacer()
                         if let rating = media.rating, rating > 0 {
                             KuroScoreBadge(score: rating)
@@ -299,8 +290,8 @@ struct KuroCompactCard: View {
                         .truncationMode(.tail)
                         .frame(height: 38, alignment: .top)
 
-                    if let episodesLine {
-                        Text(episodesLine)
+                    if let metaLine {
+                        Text(metaLine)
                             .font(.system(size: 9, weight: .light))
                             .foregroundColor(.black.opacity(0.5))
                             .lineLimit(1)

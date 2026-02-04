@@ -14,7 +14,7 @@ enum KuroCardText {
 
     static func sanitizeTitleForCard(_ raw: String) -> String {
         var t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Remove "(2011)" / "(1999)" style suffixes since year is shown on the poster.
+        // Remove "(2011)" / "(1999)" style suffixes; the year is shown in the metadata line.
         t = t.replacingOccurrences(
             of: #"\s*\(\s*(?:19|20)\d{2}\s*\)\s*$"#,
             with: "",
@@ -32,4 +32,3 @@ enum KuroCardText {
         return t.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
-

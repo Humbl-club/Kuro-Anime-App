@@ -63,21 +63,10 @@ struct ConciergeView: View {
                     ScrollView(.vertical, showsIndicators: false) {
                         LazyVStack(alignment: .leading, spacing: 12) {
                             if messages.isEmpty {
-                                // Empty state stays clean: the assistant lives as a floating glass widget,
-                                // so we keep the feed minimal.
-                                VStack(spacing: 10) {
-                                    Text("KURO-CHAN")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .tracking(2.2)
-                                        .foregroundColor(.black.opacity(0.35))
-                                    Text("Ask for a vibe, or paste an import list.\nI’ll handle the rest.")
-                                        .font(.system(size: 14, weight: .regular))
-                                        .foregroundColor(.black.opacity(0.55))
-                                        .multilineTextAlignment(.center)
-                                }
+                                ConciergeIntroCard()
                                 .frame(maxWidth: .infinity)
-                                .padding(.top, 18)
-                                .padding(.bottom, 6)
+                                .padding(.top, 14)
+                                .padding(.bottom, 8)
                             }
 
                             ForEach(messages) { msg in
@@ -1230,6 +1219,37 @@ private struct ConciergeTypingIndicator: View {
                 phase = (phase + 1) % 3
             }
         }
+    }
+}
+
+private struct ConciergeIntroCard: View {
+    var body: some View {
+        KuroGlassCard(cornerRadius: 24) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    KuroConciergeMark(size: 34)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("CONCIERGE")
+                            .font(.system(size: 12, weight: .semibold))
+                            .tracking(2.0)
+                            .foregroundColor(.black.opacity(0.80))
+                        Text("Imports + recommendations")
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(.black.opacity(0.55))
+                    }
+
+                    Spacer(minLength: 0)
+                }
+
+                Text("Paste titles to import, or describe the mood.\nDefaults are clean — no adult content.")
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(.black.opacity(0.62))
+            }
+            .padding(16)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Concierge. Paste titles to import, or ask for a vibe.")
     }
 }
 

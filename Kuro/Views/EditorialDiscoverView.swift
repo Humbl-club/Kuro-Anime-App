@@ -704,12 +704,6 @@ struct GridAnimeCard: View {
         supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
     }
 
-    private var yearBadgeText: String? {
-        let digits = media.year.filter(\.isNumber)
-        guard digits.count >= 4 else { return nil }
-        return String(digits.prefix(4))
-    }
-
     private static let countFormatter: NumberFormatter = {
         let f = NumberFormatter()
         f.numberStyle = .decimal
@@ -721,15 +715,26 @@ struct GridAnimeCard: View {
         Self.countFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
-    private var episodesLine: String? {
-        if let episodes = media.episodes, episodes > 0 { return "\(countString(episodes)) eps" }
-        if let chapters = media.chapters, chapters > 0 { return "\(countString(chapters)) ch" }
-        if let status = media.statusRaw?.uppercased() {
-            if status == "RELEASING" { return "airing" }
-            if status == "FINISHED" { return "finished" }
+    private var metaLine: String? {
+        var parts: [String] = []
+
+        let digits = media.year.filter(\.isNumber)
+        if digits.count >= 4 {
+            parts.append(String(digits.prefix(4)))
         }
-        if let format = media.formatRaw, !format.isEmpty { return format.lowercased() }
-        return nil
+
+        if let episodes = media.episodes, episodes > 0 {
+            parts.append("\(countString(episodes)) eps")
+        } else if let chapters = media.chapters, chapters > 0 {
+            parts.append("\(countString(chapters)) ch")
+        } else if let status = media.statusRaw?.uppercased() {
+            if status == "RELEASING" { parts.append("airing") }
+            if status == "FINISHED" { parts.append("finished") }
+        } else if let format = media.formatRaw, !format.isEmpty {
+            parts.append(format.lowercased())
+        }
+
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     var body: some View {
@@ -763,10 +768,6 @@ struct GridAnimeCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
                     HStack(alignment: .top) {
-                        if let yearBadgeText {
-                            KuroYearBadge(yearText: yearBadgeText)
-                        }
-
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 6) {
@@ -802,8 +803,8 @@ struct GridAnimeCard: View {
                         .truncationMode(.tail)
                         .frame(height: 40, alignment: .top)
 
-                    if let episodesLine {
-                        Text(episodesLine)
+                    if let metaLine {
+                        Text(metaLine)
                             .font(.system(size: 9, weight: .light))
                             .foregroundColor(.black.opacity(0.5))
                             .lineLimit(1)

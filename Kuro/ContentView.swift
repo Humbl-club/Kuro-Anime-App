@@ -91,33 +91,30 @@ struct KuroMainView: View {
     // Removed: let sections = ["DISCOVER", "COLLECTION", "SEARCH"]
 
     enum Section: Int, CaseIterable {
-        case discover, concierge, collection, browse, search, profile
+        case concierge, discover, collection, browse, search
 
         var title: String {
             switch self {
-            case .discover:
-                return "DISCOVER"
             case .concierge:
                 return "CONCIERGE"
+            case .discover:
+                return "DISCOVER"
             case .collection:
                 return "COLLECTION"
             case .browse:
                 return "BROWSE"
             case .search:
                 return "SEARCH"
-            case .profile:
-                return "PROFILE"
             }
         }
     }
 
 	@State private var selection: Section = .discover
-	@State private var showConcierge = false
-	@State private var conciergeIconFrame: CGRect = .zero
+	@State private var showProfileSheet = false
 	@State private var mountedSections: Set<Section> = [.discover]
 	@State private var swipeExclusions: [CGRect] = []
-	// Swipe through core sections; Concierge is a modal so it doesn't hijack page swipes.
-	private let swipeOrder: [Section] = [.discover, .collection, .browse, .search, .profile]
+	// Concierge is a first-class page to the LEFT of Discover.
+	private let swipeOrder: [Section] = [.concierge, .discover, .collection, .browse, .search]
 	private let swipeThreshold: CGFloat = 40
 	private let swipeEdgeMargin: CGFloat = 24
     
@@ -127,10 +124,7 @@ struct KuroMainView: View {
 
 	            VStack(spacing: 0) {
                 // Fixed Header - Three-part layout
-                KuroHeaderNew(selection: $selection, showConcierge: $showConcierge)
-                    .onPreferenceChange(ConciergeIconFramePreferenceKey.self) { v in
-                        conciergeIconFrame = v
-                    }
+                KuroHeaderNew(selection: $selection, showProfileSheet: $showProfileSheet)
 
                 // Header-driven pager: keeps sections mounted once visited.
 	                KuroSectionPager(
@@ -182,21 +176,10 @@ struct KuroMainView: View {
 	                // Warm the Discover bundle so the first Discover render feels instant.
                 _ = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24)
             }
-            .overlay {
-                if showConcierge {
-                    ConciergeOverlay(isPresented: $showConcierge, originFrame: conciergeIconFrame)
-                        .transition(.opacity)
-                        .zIndex(999)
-                }
+            .sheet(isPresented: $showProfileSheet) {
+                ProfileView()
+                    .environment(supabaseService)
             }
-    }
-}
-
-private struct ConciergeIconFramePreferenceKey: PreferenceKey {
-    static var defaultValue: CGRect = .zero
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        let next = nextValue()
-        if next != .zero { value = next }
     }
 }
 
@@ -238,18 +221,16 @@ private struct KuroSectionPager: View {
 
         if shouldMount {
             switch section {
+            case .concierge:
+                ConciergeView(assistantEnabled: false)
             case .discover:
                 EditorialDiscoverView()
-            case .concierge:
-                ConciergeView()
             case .collection:
                 EditorialCollectionView()
             case .browse:
                 BrowseView()
             case .search:
                 EditorialSearchView()
-            case .profile:
-                ProfileView()
             }
         } else {
             // Placeholder keeps layout stable without triggering `.task` in heavy pages.
@@ -261,9 +242,10 @@ private struct KuroSectionPager: View {
 // MARK: - New Responsive Header Component (Fixed)
 struct KuroHeaderNew: View {
     @Binding var selection: KuroMainView.Section
-    @Binding var showConcierge: Bool
+    @Binding var showProfileSheet: Bool
+    @Environment(SupabaseService.self) private var supabaseService
     
-    private let swipeOrder: [KuroMainView.Section] = [.discover, .collection, .browse, .search, .profile]
+    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .collection, .browse, .search]
 
     private static let windowTextPaddingX: CGFloat = 14
     private static let windowTextPaddingY: CGFloat = 7
@@ -343,11 +325,32 @@ struct KuroHeaderNew: View {
             // Three-part layout with proper spacing
             HStack(alignment: .center) {
                 // Left: Brand (30% opacity)
-                Text("KURO")
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(1.5)
-                    .foregroundColor(.black.opacity(0.3))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 10) {
+                    Text("KURO")
+                        .font(.system(size: 11, weight: .regular))
+                        .tracking(1.5)
+                        .foregroundColor(.black.opacity(0.3))
+
+                    Button {
+                        // Quick jump to Concierge (still swipeable from Discover).
+                        KuroAccessibility.impactHaptic(.light)
+                        selection = .concierge
+                    } label: {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 30, height: 30)
+                            .overlay(
+                                Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
+                            )
+                            .overlay(
+                                KuroConciergeGlyph(size: 16)
+                            )
+                    }
+                    .buttonStyle(KuroHeaderIconButtonStyle())
+                    .accessibilityLabel("Concierge")
+                    .accessibilityHint("Go to Concierge page")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Center: Section (full opacity)
                 VStack(spacing: 4) {
@@ -363,44 +366,29 @@ struct KuroHeaderNew: View {
                 // Right: Action (minimal interaction)
                 HStack {
                     Spacer()
-                    Button(action: {
-                        KuroAccessibility.impactHaptic(.light)
-                        showConcierge = true
-                    }) {
+                    Menu {
+                        Button("Profile") {
+                            showProfileSheet = true
+                        }
+                        Button("Sign Out", role: .destructive) {
+                            Task { await supabaseService.signOut() }
+                        }
+                    } label: {
                         Circle()
-                            .fill(.ultraThinMaterial)
+                            .fill(Color.black.opacity(0.06))
                             .frame(width: 32, height: 32)
-                            .background(
-                                GeometryReader { geo in
-                                    Color.clear.preference(
-                                        key: ConciergeIconFramePreferenceKey.self,
-                                        value: geo.frame(in: .global)
-                                    )
-                                }
-                            )
                             .overlay(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.55), Color.black.opacity(0.06)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                .clipShape(Circle())
-                                .opacity(0.9)
-                            )
-                            .overlay(
-                                Circle().stroke(Color.white.opacity(0.75), lineWidth: 0.7)
-                                    .blendMode(.overlay)
+                                Text(supabaseService.currentUserInitial)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.black.opacity(0.80))
                             )
                             .overlay(
                                 Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
                             )
-                            .overlay(
-                                KuroConciergeMark(size: 22)
-                            )
                     }
                     .buttonStyle(KuroHeaderIconButtonStyle())
-                    .accessibilityLabel("Concierge")
-                    .accessibilityHint("Opens recommendations and imports")
+                    .accessibilityLabel("Profile")
+                    .accessibilityHint("Opens account menu")
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }

@@ -25,6 +25,13 @@ class SupabaseService {
     var isAuthBootstrapping: Bool = true
     var isAuthenticated: Bool = false
     var authErrorMessage: String? = nil
+    // Lightweight identity for UI (header menus, etc.)
+    var currentUserEmail: String? = nil
+
+    var currentUserInitial: String {
+        let c = currentUserEmail?.trimmingCharacters(in: .whitespacesAndNewlines).first
+        return c.map { String($0).uppercased() } ?? "M"
+    }
     
     // Observable properties (no @Published needed with @Observable)
     var animeItems: [Anime] = []
@@ -300,9 +307,10 @@ class SupabaseService {
         defer { isAuthBootstrapping = false }
 
         do {
-            _ = try await client.auth.session
+            let session = try await client.auth.session
             isAuthenticated = true
             authErrorMessage = nil
+            currentUserEmail = session.user.email
             await ensureProfileRow()
             await bootstrapAfterAuth()
         } catch {
@@ -314,8 +322,9 @@ class SupabaseService {
         authErrorMessage = nil
         do {
             _ = try await client.auth.signIn(email: email, password: password)
-            _ = try await client.auth.session
+            let session = try await client.auth.session
             isAuthenticated = true
+            currentUserEmail = session.user.email
             await ensureProfileRow()
             await bootstrapAfterAuth()
         } catch {
@@ -330,8 +339,9 @@ class SupabaseService {
         do {
             _ = try await client.auth.signUp(email: email, password: password)
             // Depending on Supabase settings, user may need email confirmation. We still attempt bootstrap if a session exists.
-            if (try? await client.auth.session) != nil {
+            if let session = (try? await client.auth.session) {
                 isAuthenticated = true
+                currentUserEmail = session.user.email
                 await ensureProfileRow()
                 await bootstrapAfterAuth()
             } else {
@@ -351,6 +361,7 @@ class SupabaseService {
         }
         await stopRealtimeSubscriptions()
         isAuthenticated = false
+        currentUserEmail = nil
         authErrorMessage = nil
         stopCountdownUpdates()
         resetUserState()
