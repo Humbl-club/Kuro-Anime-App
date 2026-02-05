@@ -871,6 +871,7 @@ Generated: **2026-02-05T14:50:07.318Z** (git: `a5923e7`)
 
 ## 14) Change Log (append-only)
 
+- 2026-02-05: Added full "include everything" documentation pipeline (source excerpts + codebase bundle) and optional live DB snapshot tooling (`admin_schema_snapshot`). Commits: `307ae69`, `a109c9e`, `c1a7f8b`, `a5923e7`, `76f2d4d`, `1c9dea3`
 - 2026-02-05: Added auto-generated inventory + maps (migrations, edge functions, iOS RPC usage) via scripts.
 - 2026-02-05: Added deep appendices (data dictionary, RPC catalog, edge function examples, operator runbook).
 - 2026-02-05: Expanded CURRENT_APP_STATE with appendices (full DDL + concierge guardrails).
