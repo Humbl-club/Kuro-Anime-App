@@ -3,6 +3,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 type MediaType = "ANIME" | "MANGA";
 
+type ConciergeMode = {
+  id: string;
+  title: string;
+  synonyms?: string[];
+  required_genres?: string[];
+  exclude_genres?: string[];
+  min_score?: number;
+  min_popularity?: number;
+  max_popularity?: number;
+  exclude_formats?: string[];
+  classic_year_max?: number;
+};
+
+type ModePick = { id: string; title: string; confidence: number; reason: string };
+
+type CandidateRow = { media_id: number; match_count?: number | null; score?: number | null };
+
 function json(res: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(res), {
     ...init,
@@ -12,6 +29,209 @@ function json(res: unknown, init: ResponseInit = {}) {
 
 function uniq<T>(arr: T[]) {
   return Array.from(new Set(arr));
+}
+
+function safeStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return uniq(
+    v
+      .map((x) => (typeof x === "string" ? x.trim() : ""))
+      .filter((x) => x.length > 0),
+  );
+}
+
+function safeNumber(v: unknown): number | null {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeText(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[_/\\-]+/g, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseModesFromConfig(cfg: any): ConciergeMode[] {
+  const raw = cfg?.modes;
+  if (!Array.isArray(raw)) return [];
+  const out: ConciergeMode[] = [];
+  for (const r of raw) {
+    if (!r || typeof r !== "object") continue;
+    const id = typeof r.id === "string" ? r.id.trim() : "";
+    const title = typeof r.title === "string" ? r.title.trim() : "";
+    if (!id || !title) continue;
+    out.push({
+      id,
+      title,
+      synonyms: safeStringArray((r as any).synonyms),
+      required_genres: safeStringArray((r as any).required_genres),
+      exclude_genres: safeStringArray((r as any).exclude_genres),
+      min_score: safeNumber((r as any).min_score) ?? undefined,
+      min_popularity: safeNumber((r as any).min_popularity) ?? undefined,
+      max_popularity: safeNumber((r as any).max_popularity) ?? undefined,
+      exclude_formats: safeStringArray((r as any).exclude_formats),
+      classic_year_max: safeNumber((r as any).classic_year_max) ?? undefined,
+    });
+  }
+  return out;
+}
+
+function defaultModes(): ConciergeMode[] {
+  // Safe fallback if config/migration hasn't been applied yet.
+  return [
+    {
+      id: "premium_action",
+      title: "Premium Action",
+      synonyms: ["premium action", "best action", "action premium", "hype action", "fight scenes"],
+      required_genres: ["Action"],
+      min_score: 75,
+      min_popularity: 3500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "cozy_comfort",
+      title: "Cozy / Comfort",
+      synonyms: ["cozy", "comfort", "chill", "relax", "healing", "iyashikei", "gemütlich"],
+      required_genres: ["Slice of Life"],
+      min_score: 70,
+      min_popularity: 1200,
+      exclude_formats: ["MUSIC"],
+    },
+    {
+      id: "premium_comedy_grownup",
+      title: "Premium Comedy (grown-up)",
+      synonyms: ["funny but not childish", "grown up comedy", "smart comedy", "adult humor", "witzig aber nicht kindisch"],
+      required_genres: ["Comedy"],
+      min_score: 75,
+      min_popularity: 3500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "dark_serious",
+      title: "Dark / Serious",
+      synonyms: ["dark", "serious", "mature", "grown up", "not childish", "psychological", "thriller", "mind game"],
+      required_genres: ["Drama", "Thriller", "Psychological", "Mystery"],
+      min_score: 78,
+      min_popularity: 2500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "hidden_gems",
+      title: "Hidden Gems",
+      synonyms: ["hidden gems", "underrated", "less known", "something new", "new to me", "surprise me"],
+      min_score: 78,
+      max_popularity: 45000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "classics_expanded",
+      title: "Classics (expanded)",
+      synonyms: ["classic", "classics", "must watch", "essentials", "goat", "greatest of all time"],
+      classic_year_max: 2012,
+      min_score: 80,
+      min_popularity: 1500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+  ];
+}
+
+function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[]): { score: number; reason: string } {
+  const t = normalizeText(text);
+  let score = 0;
+  let reason = "";
+
+  const synonyms = mode.synonyms ?? [];
+  for (const syn of synonyms) {
+    const s = normalizeText(syn);
+    if (!s) continue;
+    if (t.includes(s)) {
+      score += Math.max(2, Math.min(5, Math.ceil(s.split(" ").length / 2) + 2));
+      if (!reason) reason = `matches "${syn}"`;
+    }
+  }
+
+  // Genre overlap is a strong signal (even if the user doesn't use the mode's exact synonyms).
+  const req = mode.required_genres ?? [];
+  const overlap = req.filter((g) => inferredGenres.includes(g));
+  if (overlap.length > 0) {
+    score += 2 + Math.min(3, overlap.length);
+    if (!reason) reason = `genre: ${overlap.slice(0, 2).join(", ")}`;
+  }
+
+  // Classic intent boosts the classics mode and slightly downweights gimmick modes.
+  const wantsClassic = /\b(classic|classics|must watch|essentials|goat|greatest)\b/i.test(text);
+  if (wantsClassic && mode.id.includes("classic")) {
+    score += 3;
+    if (!reason) reason = "classic intent";
+  }
+  const wantsHidden = /\b(hidden gem|underrated|less known|new to me|surprise)\b/i.test(text);
+  if (wantsHidden && mode.id.includes("hidden")) {
+    score += 3;
+    if (!reason) reason = "hidden gems intent";
+  }
+
+  // Cheap maturity heuristic.
+  const mature = /\b(not childish|grown[- ]?up|mature|serious|dark)\b/i.test(text);
+  if (mature && (mode.id.includes("grown") || mode.id.includes("dark"))) {
+    score += 2;
+    if (!reason) reason = "mature tone";
+  }
+
+  return { score, reason: reason || "default" };
+}
+
+function pickTwoModes(text: string, modes: ConciergeMode[], inferredGenres: string[]): ModePick[] {
+  const scored = modes.map((m) => {
+    const { score, reason } = scoreMode(text, m, inferredGenres);
+    return { mode: m, score, reason };
+  });
+
+  // Always keep a classics rail as a stable anchor, unless we don't have such a mode.
+  const classics = scored.find((x) => x.mode.id.includes("classic"))?.mode ?? null;
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const primary = scored.find((x) => !x.mode.id.includes("classic"))?.mode ?? scored[0]?.mode ?? null;
+  const primaryReason = scored.find((x) => x.mode.id === primary?.id)?.reason ?? "default";
+  const primaryScore = scored.find((x) => x.mode.id === primary?.id)?.score ?? 0;
+
+  let secondary: ConciergeMode | null = null;
+  let secondaryReason = "default";
+  let secondaryScore = 0;
+
+  if (classics && classics.id !== primary?.id) {
+    secondary = classics;
+    const hit = scored.find((x) => x.mode.id === classics.id);
+    secondaryReason = hit?.reason ?? "classic rail";
+    secondaryScore = hit?.score ?? 0;
+  } else {
+    const next = scored.find((x) => x.mode.id !== primary?.id);
+    secondary = next?.mode ?? null;
+    secondaryReason = next?.reason ?? "default";
+    secondaryScore = next?.score ?? 0;
+  }
+
+  const mk = (m: ConciergeMode | null, score: number, reason: string): ModePick | null => {
+    if (!m) return null;
+    // Convert a small integer-ish score to a [0..1] confidence for UI/debugging.
+    const confidence = Math.max(0, Math.min(1, score / 10));
+    return { id: m.id, title: m.title, confidence, reason };
+  };
+
+  const out: ModePick[] = [];
+  const p = mk(primary, primaryScore, primaryReason);
+  if (p) out.push(p);
+  const s = mk(secondary, secondaryScore, secondaryReason);
+  if (s) out.push(s);
+  return out.slice(0, 2);
 }
 
 function inferLanguage(text: string): "de" | "en" {
@@ -313,6 +533,11 @@ serve(async (req) => {
     const requiredGenres = inferRequiredGenres(text);
     const quality = inferQualityFloor(text);
 
+    // Concierge config (tunable without redeploy): used for modes + global LLM budgets.
+    const { data: conciergeCfg } = await client.rpc("get_concierge_config");
+    const configuredModes = parseModesFromConfig(conciergeCfg);
+    const modes = configuredModes.length ? configuredModes : defaultModes();
+
     // Focus tags are only used for explicit "gimmicks" (isekai, reincarnation, etc.)
     // because `recommend_ids_premium` *requires* focus tags to match when provided.
     const focusTagIds = await mapTagAnilistIdsToInternal(client, gimmickTagIds);
@@ -321,56 +546,66 @@ serve(async (req) => {
     const lang = inferLanguage(text);
 
     const mediaType = inferMediaType(text, scope);
-    const results: any[] = [];
-
     const seedQuery = inferSeedQuery(text);
 
-    const run = async (mt: MediaType) => {
-      let rows: any[] = [];
+    // Load editorial tag boosts once; used to add deterministic "premium" signals.
+    const { data: tagBoosts } = await client
+      .from("editorial_tag_boosts")
+      .select("tag_id,boost,reason");
+    const tagBoostByTag = new Map<number, any>((tagBoosts ?? []).map((t: any) => [t.tag_id, t]));
+    const boostTagIds = Array.from(tagBoostByTag.keys());
 
-      // If the user gives an explicit seed ("like Vagabond"), prefer similarity over generic premium.
-      if (seedQuery) {
-        const seedType = mt;
-        const { data: seeds, error: seedErr } = await client.rpc("search_titles", {
-          p_query: seedQuery,
-          p_media_type: seedType,
-          p_limit: 6,
-        });
-        if (!seedErr && Array.isArray(seeds) && seeds.length > 0) {
-          const top = seeds[0];
-          if ((top?.score ?? 0) >= 0.35) {
-            const seedIds = [Number(top.media_id)];
-            const { data: sim, error: simErr } = await client.rpc("recommend_ids_similar_to_seeds", {
-              p_media_type: mt,
-              p_seed_ids: seedIds,
-              p_limit: limit,
-              p_allow_gimmicks: allowGimmicks,
-            });
-            if (!simErr && Array.isArray(sim)) {
-              rows = sim.map((r: any) => ({
-                media_id: r.media_id,
-                match_count: r.overlap_count ?? r.match_count ?? 0,
-                score: r.score ?? null,
-              }));
-            }
-          }
-        }
+    const mergeAlternating = <T>(a: T[], b: T[], max: number): T[] => {
+      const out: T[] = [];
+      let i = 0;
+      while (out.length < max && (i < a.length || i < b.length)) {
+        if (i < a.length) out.push(a[i]);
+        if (out.length >= max) break;
+        if (i < b.length) out.push(b[i]);
+        i++;
       }
+      return out;
+    };
 
-      if (rows.length === 0) {
-        const { data: ids, error } = await client.rpc("recommend_ids_premium", {
-          p_media_type: mt,
-          p_categories: categories.length ? categories : null,
-          p_limit: limit,
-          p_allow_gimmicks: allowGimmicks,
-          p_focus_tag_ids: focusTagIds.length ? focusTagIds : null,
-        });
-        if (error) throw error;
-        rows = Array.isArray(ids) ? ids : [];
+    const compileQuality = (mode: ConciergeMode | null) => {
+      const minScore = Math.max(quality.minScore, Number(mode?.min_score ?? 0) || 0);
+      const minPopularity = Math.max(quality.minPopularity, Number(mode?.min_popularity ?? 0) || 0);
+      const maxPopularityRaw = mode?.max_popularity;
+      const maxPopularity = Number.isFinite(Number(maxPopularityRaw)) ? Number(maxPopularityRaw) : null;
+      const excludeFormats = new Set<string>(Array.from(quality.excludeFormats));
+      for (const f of safeStringArray(mode?.exclude_formats)) {
+        excludeFormats.add(String(f).toUpperCase());
       }
+      return { minScore, minPopularity, maxPopularity, excludeFormats };
+    };
 
-      const idList = rows.map((r) => r.media_id);
-      if (idList.length === 0) return;
+    const getPremiumCandidates = async (mt: MediaType, pCategories: string[] | null): Promise<CandidateRow[]> => {
+      const { data: ids, error } = await client.rpc("recommend_ids_premium", {
+        p_media_type: mt,
+        p_categories: pCategories && pCategories.length ? pCategories : null,
+        p_limit: 50,
+        p_allow_gimmicks: allowGimmicks,
+        p_focus_tag_ids: focusTagIds.length ? focusTagIds : null,
+      });
+      if (error) throw error;
+      const rows = Array.isArray(ids) ? ids : [];
+      return rows.map((r: any) => ({
+        media_id: Number(r.media_id),
+        match_count: r.match_count ?? r.overlap_count ?? 0,
+        score: r.score ?? null,
+      }));
+    };
+
+    const assembleItems = async (mt: MediaType, rows: CandidateRow[], opts: {
+      limit: number;
+      requiredGenres: string[];
+      excludeGenres: string[];
+      classicYearMax?: number;
+      quality: { minScore: number; minPopularity: number; maxPopularity: number | null; excludeFormats: Set<string> };
+      prioritizeClassicBoost?: boolean;
+    }) => {
+      const idList = uniq(rows.map((r) => r.media_id)).filter((x) => Number.isFinite(x) && x > 0);
+      if (idList.length === 0) return [] as any[];
 
       const table = mt === "ANIME" ? "anime" : "manga";
       const { data: mediaRows, error: mediaErr } = await client
@@ -387,12 +622,6 @@ serve(async (req) => {
         .eq("media_type", mt)
         .in("media_id", idList);
       const boostById = new Map<number, any>((boosts ?? []).map((b: any) => [b.media_id, b]));
-
-      const { data: tagBoosts } = await client
-        .from("editorial_tag_boosts")
-        .select("tag_id,boost,reason");
-      const tagBoostByTag = new Map<number, any>((tagBoosts ?? []).map((t: any) => [t.tag_id, t]));
-      const boostTagIds = Array.from(tagBoostByTag.keys());
 
       // Get which boosted tags apply to each media id.
       let tagLinks: any[] = [];
@@ -419,16 +648,6 @@ serve(async (req) => {
         boostedReasonsById.set(mediaId, arr);
       }
 
-      const passes = (m: any) => {
-        if (!m) return false;
-        if (quality.excludeFormats.has(String(m.format ?? "").toUpperCase())) return false;
-        const score = Number(m.average_score ?? 0);
-        const pop = Number(m.popularity ?? 0);
-        if (quality.minScore > 0 && score > 0 && score < quality.minScore) return false;
-        if (quality.minPopularity > 0 && pop > 0 && pop < quality.minPopularity) return false;
-        return true;
-      };
-
       const hasGenres = (m: any, required: string[]) => {
         if (!required.length) return true;
         const gs = Array.isArray(m?.genres) ? m.genres.map((x: any) => String(x)) : [];
@@ -437,25 +656,60 @@ serve(async (req) => {
         return required.some((g) => gs.includes(g));
       };
 
+      const hasExcludedGenres = (m: any, excluded: string[]) => {
+        if (!excluded.length) return false;
+        const gs = Array.isArray(m?.genres) ? m.genres.map((x: any) => String(x)) : [];
+        if (!gs.length) return false;
+        return excluded.some((g) => gs.includes(g));
+      };
+
+      const passes = (m: any) => {
+        if (!m) return false;
+        if (m.is_adult === true) return false;
+        if (opts.quality.excludeFormats.has(String(m.format ?? "").toUpperCase())) return false;
+        if (hasExcludedGenres(m, opts.excludeGenres)) return false;
+
+        const year = Number(m.start_date_year ?? 0);
+        if (opts.classicYearMax && year > 0 && year > opts.classicYearMax) return false;
+
+        const score = Number(m.average_score ?? 0);
+        const pop = Number(m.popularity ?? 0);
+        if (opts.quality.minScore > 0 && score > 0 && score < opts.quality.minScore) return false;
+        if (opts.quality.minPopularity > 0 && pop > 0 && pop < opts.quality.minPopularity) return false;
+        if (opts.quality.maxPopularity != null && pop > 0 && pop > opts.quality.maxPopularity) return false;
+        return true;
+      };
+
       // Prefer: genre match + quality; then quality; then anything (no hard failures).
-      const primary: any[] = [];
-      const secondary: any[] = [];
-      const tertiary: any[] = [];
+      const primary: CandidateRow[] = [];
+      const secondary: CandidateRow[] = [];
+      const tertiary: CandidateRow[] = [];
 
       for (const r of rows) {
         const m = byId.get(r.media_id);
         if (!m) continue;
-        if (passes(m) && hasGenres(m, requiredGenres)) primary.push(r);
+        if (passes(m) && hasGenres(m, opts.requiredGenres)) primary.push(r);
         else if (passes(m)) secondary.push(r);
         else tertiary.push(r);
       }
 
-      const ordered = [...primary, ...secondary, ...tertiary].slice(0, limit);
+      let ordered = [...primary, ...secondary, ...tertiary];
+      if (opts.prioritizeClassicBoost) {
+        const boosted: CandidateRow[] = [];
+        const rest: CandidateRow[] = [];
+        for (const r of ordered) {
+          const b = boostById.get(r.media_id);
+          if (b?.label === "classic") boosted.push(r);
+          else rest.push(r);
+        }
+        ordered = [...boosted, ...rest];
+      }
+      ordered = ordered.slice(0, opts.limit);
 
+      const out: any[] = [];
       for (const r of ordered) {
         const m = byId.get(r.media_id);
         if (!m) continue;
-        const idKey = `${mt}|${r.media_id}`;
         const signals: string[] = [];
         const b = boostById.get(r.media_id);
         if (b?.label === "classic") signals.push("CLASSIC");
@@ -463,7 +717,7 @@ serve(async (req) => {
         for (const x of reasons.slice(0, 3)) signals.push(String(x).toUpperCase());
         if ((r.match_count ?? 0) >= 2) signals.push("MATCH");
 
-        results.push({
+        out.push({
           mediaType: mt,
           mediaId: r.media_id,
           matchCount: r.match_count ?? 0,
@@ -476,17 +730,153 @@ serve(async (req) => {
           status: m.status ?? null,
           siteUrl: m.site_url ?? null,
           signals,
-          // Keep the raw genres around; the client can choose to show them or not.
           genres: Array.isArray(m.genres) ? m.genres : null,
         });
       }
+      return out;
     };
 
-    if (mediaType === "BOTH") {
-      await run("ANIME");
-      await run("MANGA");
-    } else {
-      await run(mediaType);
+    const modePicks = pickTwoModes(text, modes, requiredGenres);
+    const modeById = new Map<string, ConciergeMode>(modes.map((m) => [m.id, m]));
+
+    // Build up to 2 rails (modes). Always keep a classics rail as the second choice where possible.
+    const sets: any[] = [];
+
+    for (const mp of modePicks) {
+      const mode = modeById.get(mp.id) ?? null;
+      const isClassicMode = (mode?.id ?? mp.id).includes("classic");
+      const perSetTotal = isClassicMode ? Math.min(20, Math.max(limit, 14)) : limit;
+      const perType = mediaType === "BOTH" ? Math.max(3, Math.ceil(perSetTotal / 2)) : perSetTotal;
+
+      const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
+      const modeExcluded = mode?.exclude_genres ?? [];
+
+      // Feed the DB scorer with a small, mode-aware category set, but don't overconstrain.
+      const modeCats = uniq([...(categories ?? []), ...(mode?.required_genres ?? [])]);
+      const pCats = modeCats.length ? modeCats : (categories.length ? categories : null);
+      const q = compileQuality(mode);
+
+      const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getPremiumCandidates("ANIME", pCats) : [];
+      const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getPremiumCandidates("MANGA", pCats) : [];
+
+      const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
+        ? await assembleItems("ANIME", animeRows, {
+          limit: perType,
+          requiredGenres: modeRequired,
+          excludeGenres: modeExcluded,
+          classicYearMax: mode?.classic_year_max,
+          quality: q,
+          prioritizeClassicBoost: isClassicMode,
+        })
+        : [];
+      const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
+        ? await assembleItems("MANGA", mangaRows, {
+          limit: perType,
+          requiredGenres: modeRequired,
+          excludeGenres: modeExcluded,
+          classicYearMax: mode?.classic_year_max,
+          quality: q,
+          prioritizeClassicBoost: isClassicMode,
+        })
+        : [];
+
+      const merged = mediaType === "BOTH" ? mergeAlternating(animeItems, mangaItems, perSetTotal) : [...animeItems, ...mangaItems].slice(0, perSetTotal);
+
+      sets.push({
+        id: mp.id,
+        title: mp.title,
+        modeId: mp.id,
+        confidence: mp.confidence,
+        reason: mp.reason,
+        items: merged,
+      });
+    }
+
+    // If the user is explicit ("like Vagabond"), offer a similarity rail as the first mode.
+    // This keeps the UX feeling "smart" without spending LLM tokens.
+    if (seedQuery) {
+      // Only override when we can find a decent seed title.
+      const pickSeed = async (mt: MediaType) => {
+        const { data: seeds, error: seedErr } = await client.rpc("search_titles", {
+          p_query: seedQuery,
+          p_media_type: mt,
+          p_limit: 6,
+        });
+        if (seedErr || !Array.isArray(seeds) || seeds.length === 0) return null;
+        const top = seeds[0];
+        if ((top?.score ?? 0) < 0.35) return null;
+        return { mt, mediaId: Number(top.media_id), title: String(top.title ?? "").trim() };
+      };
+
+      const seed = mediaType === "MANGA" ? await pickSeed("MANGA")
+        : mediaType === "ANIME" ? await pickSeed("ANIME")
+        : (await pickSeed("ANIME")) ?? (await pickSeed("MANGA"));
+
+      if (seed && Number.isFinite(seed.mediaId) && seed.mediaId > 0) {
+        const perSetTotal = limit;
+        const perType = mediaType === "BOTH" ? Math.max(3, Math.ceil(perSetTotal / 2)) : perSetTotal;
+        const q = compileQuality(null);
+
+        const getSim = async (mt: MediaType) => {
+          const { data: sim, error: simErr } = await client.rpc("recommend_ids_similar_to_seeds", {
+            p_media_type: mt,
+            p_seed_ids: [seed.mediaId],
+            p_limit: 50,
+            p_allow_gimmicks: allowGimmicks,
+          });
+          if (simErr || !Array.isArray(sim)) return [] as CandidateRow[];
+          return sim.map((r: any) => ({
+            media_id: Number(r.media_id),
+            match_count: r.overlap_count ?? r.match_count ?? 0,
+            score: r.score ?? null,
+          }));
+        };
+
+        const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getSim("ANIME") : [];
+        const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getSim("MANGA") : [];
+        const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
+          ? await assembleItems("ANIME", animeRows, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+          : [];
+        const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
+          ? await assembleItems("MANGA", mangaRows, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+          : [];
+
+        const merged = mediaType === "BOTH" ? mergeAlternating(animeItems, mangaItems, perSetTotal) : [...animeItems, ...mangaItems].slice(0, perSetTotal);
+        const title = seed.title || seedQuery;
+
+        // Keep the classics rail as the secondary mode, but replace the primary.
+        if (sets.length >= 1) {
+          sets[0] = {
+            id: "similar_to_seed",
+            title: `Similar to “${title}”`,
+            modeId: "similar_to_seed",
+            confidence: 1,
+            reason: "seed similarity",
+            items: merged,
+          };
+        } else {
+          sets.unshift({
+            id: "similar_to_seed",
+            title: `Similar to “${title}”`,
+            modeId: "similar_to_seed",
+            confidence: 1,
+            reason: "seed similarity",
+            items: merged,
+          });
+        }
+      }
+    }
+
+    // Flatten for backwards compatibility + LLM narration.
+    const allItems: any[] = [];
+    const seen = new Set<string>();
+    for (const s of sets) {
+      for (const it of (s?.items ?? [])) {
+        const key = `${it.mediaType}|${it.mediaId}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        allItems.push(it);
+      }
     }
 
     try {
@@ -494,16 +884,23 @@ serve(async (req) => {
         p_kind: "recommend",
         p_status: "success",
         p_input_chars: text.length,
-        p_items_count: results.length,
+        p_items_count: allItems.length,
       });
     } catch {
       // best-effort
     }
 
-    const message =
-      categories.length === 0
-        ? "Premium picks (new to you). Tell me a vibe like “funny”, “sad”, “cozy”, or a genre to sharpen it."
-        : null;
+    const message = (() => {
+      if (sets.length === 0) {
+        return categories.length === 0
+          ? "Premium picks (new to you). Tell me a vibe like “funny”, “sad”, “cozy”, or a genre to sharpen it."
+          : null;
+      }
+      const titles = sets.slice(0, 2).map((s: any) => String(s.title ?? "")).filter(Boolean);
+      if (titles.length >= 2) return `Two rails for you: ${titles[0]} + ${titles[1]}.`;
+      if (titles.length === 1) return `Here’s a rail for you: ${titles[0]}.`;
+      return null;
+    })();
 
     // Optional narration (pure presentation layer).
     let narrationError: string | null = null;
@@ -518,7 +915,7 @@ serve(async (req) => {
       const groqModel = Deno.env.get("GROQ_MODEL") ?? "openai/gpt-oss-20b";
       if (groqKey) {
         const maxCompletion = 260;
-        const packed = results.slice(0, 8).map((it) => ({
+        const packed = allItems.slice(0, 8).map((it) => ({
           id: `${it.mediaType}|${it.mediaId}`,
           title: it.title,
           year: it.year,
@@ -544,8 +941,7 @@ serve(async (req) => {
         let gReserveOk = true;
         if (narrate) {
           try {
-            const { data: cfg } = await client.rpc("get_concierge_config");
-            const globalBudget = cfg?.global_llm_budget ?? null;
+            const globalBudget = conciergeCfg?.global_llm_budget ?? null;
             const globalDailyTokens = Number(globalBudget?.daily_tokens ?? 250000);
             const globalDailyCalls = Number(globalBudget?.daily_calls ?? 600);
             const { data: gBudget } = await client.rpc("llm_global_budget_reserve", {
@@ -579,7 +975,7 @@ serve(async (req) => {
             debug: debugNarration,
             items: packed,
           });
-          for (const it of results) {
+          for (const it of allItems) {
             const key = `${it.mediaType}|${it.mediaId}`;
             const b = blurbs[key];
             if (typeof b === "string" && b.trim()) it.blurb = clampBlurb(b, 18, 180);
@@ -625,7 +1021,10 @@ serve(async (req) => {
     return json({
       success: true,
       categories,
-      items: results,
+      modes: modePicks,
+      sets,
+      // Backwards compat: clients that only understand `items` still get a useful response.
+      items: allItems,
       message,
       narrated: narrate,
       ...(debugNarration ? { narrationError } : {}),
