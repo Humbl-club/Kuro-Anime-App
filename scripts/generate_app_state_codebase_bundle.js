@@ -85,9 +85,9 @@ function redactSecrets(s) {
   // (The actual source files remain unchanged; this is documentation output.)
   return s
     // Supabase "secret" keys (should never be committed).
-    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'sb_secret_[REDACTED_DO_NOT_COMMIT]')
+    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'SUPABASE_SERVICE_KEY_REDACTED')
     // Supabase access tokens (PAT-like).
-    .replace(/sbp_[A-Za-z0-9_]+/g, 'sbp_[REDACTED_DO_NOT_COMMIT]')
+    .replace(/sbp_[A-Za-z0-9_]+/g, 'SUPABASE_ACCESS_TOKEN_REDACTED')
     // JWT-ish tokens (covers anon keys too; safe for docs).
     .replace(/eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g, '[REDACTED_JWT]');
 }

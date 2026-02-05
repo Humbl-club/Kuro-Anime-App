@@ -52,8 +52,8 @@ function fenceFor(p) {
 function redactSecrets(s) {
   // Same policy as the codebase bundle: never inline credentials into docs.
   return s
-    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'sb_secret_[REDACTED_DO_NOT_COMMIT]')
-    .replace(/sbp_[A-Za-z0-9_]+/g, 'sbp_[REDACTED_DO_NOT_COMMIT]')
+    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'SUPABASE_SERVICE_KEY_REDACTED')
+    .replace(/sbp_[A-Za-z0-9_]+/g, 'SUPABASE_ACCESS_TOKEN_REDACTED')
     .replace(/eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g, '[REDACTED_JWT]');
 }
 
