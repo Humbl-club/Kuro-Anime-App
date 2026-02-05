@@ -85,7 +85,7 @@ This file is a **contract**. It must be updated **after every single change** to
 
 ## 2.1) Auto-generated inventory (exhaustive file lists)
 
-Generated: **2026-02-05T14:50:07.250Z**  (git: `a5923e7` on `codex/app-state-docs-chunked`)
+Generated: **2026-02-05T15:15:51.818Z**  (git: `3626d46` on `main`)
 
 This section is auto-generated. Rebuild it after any repo change:
 ```bash
@@ -312,7 +312,7 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 
 ## 3.2) Auto iOS backend usage index
 
-Generated: **2026-02-05T14:50:07.318Z** (git: `a5923e7`)
+Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
 
 - Swift files scanned: **45** (all `Kuro/**/*.swift`)
 
@@ -490,7 +490,7 @@ Client + edge functions rely on these RPCs:
 
 ## 7.1) Auto migration map (objects by migration)
 
-Generated: **2026-02-05T14:50:07.318Z** (git: `a5923e7`)
+Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
 
 Each migration is summarized by the objects it defines. For full SQL, open the file.
 
@@ -698,7 +698,7 @@ Request JSON:
 
 ## 8.2) Auto edge-function map (contracts + dependencies)
 
-Generated: **2026-02-05T14:50:07.318Z** (git: `a5923e7`)
+Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
 
 ### bulk-import-anime
 - Source: `supabase/functions/bulk-import-anime/index.ts`
@@ -3623,7 +3623,7 @@ node scripts/generate_app_state_live_snapshot.js
 
 <!-- BEGIN AUTO-LIVE-DB-SNAPSHOT -->
 
-Generated: **2026-02-05T14:50:07.437Z** (git: `a5923e7`)
+Generated: **2026-02-05T15:15:52.059Z** (git: `3626d46`)
 
 Status: **SKIPPED** (missing `SUPABASE_URL` and/or `SUPABASE_SERVICE_ROLE_KEY` in environment).
 
@@ -3653,7 +3653,7 @@ node scripts/generate_app_state_codebase_bundle.js
 
 <!-- BEGIN AUTO-SOURCE-EXCERPTS -->
 
-Generated: **2026-02-05T14:50:07.372Z** (git: `a5923e7`)
+Generated: **2026-02-05T15:17:23.372Z** (git: `3626d46`)
 
 This section is auto-generated. Rebuild after any change to the referenced files:
 ```bash
@@ -6087,7 +6087,7 @@ class SupabaseService {
         // Initialize Supabase client from configuration; fallback to embedded defaults to avoid breaking the app
         let fallbackURL = URL(string: "https://bkdifromsqxkndnllmdj.supabase.co")!
         // NOTE: keeping this hardcoded per current preference; move to Info.plist/env before shipping.
-        let fallbackKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZGlmcm9tc3F4a25kbmxsbWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTg2NjMsImV4cCI6MjA2ODE3NDY2M30.xWtSNgApX5jMZqdWJLjsqNlsXbwubFwW39Hs3x9hOoo"
+        let fallbackKey = "[REDACTED_JWT]"
         let url = AppConfig.supabaseURL ?? fallbackURL
         let key = AppConfig.supabaseAnonKey ?? fallbackKey
 

@@ -1,6 +1,6 @@
 # Kuro — Codebase Bundle (LLM Source of Truth)
 
-Generated: **2026-02-05T14:50:58.844Z** (git: `76f2d4d` on `codex/app-state-docs-chunked`)
+Generated: **2026-02-05T15:17:23.433Z** (git: `3626d46` on `main`)
 
 This file is **auto-generated**. It is intentionally large.
 
@@ -4860,7 +4860,6 @@ AsyncImage       // Built-in caching
 
 *This document represents the complete, current state of the KURO anime/manga application as of October 8, 2025. All information is accurate and reflects the actual implementation in the codebase.*
 
-
 ```
 
 ## `CURRENT_APP_STATE.md`
@@ -4953,7 +4952,7 @@ This file is a **contract**. It must be updated **after every single change** to
 
 ## 2.1) Auto-generated inventory (exhaustive file lists)
 
-Generated: **2026-02-05T14:50:07.250Z**  (git: `a5923e7` on `codex/app-state-docs-chunked`)
+Generated: **2026-02-05T15:15:51.818Z**  (git: `3626d46` on `main`)
 
 This section is auto-generated. Rebuild it after any repo change:
 ```bash
@@ -5180,7 +5179,7 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 
 ## 3.2) Auto iOS backend usage index
 
-Generated: **2026-02-05T14:50:07.318Z** (git: `a5923e7`)
+Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
 
 - Swift files scanned: **45** (all `Kuro/**/*.swift`)
 
@@ -5358,7 +5357,7 @@ Client + edge functions rely on these RPCs:
 
 ## 7.1) Auto migration map (objects by migration)
 
-Generated: **2026-02-05T14:50:07.318Z** (git: `a5923e7`)
+Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
 
 Each migration is summarized by the objects it defines. For full SQL, open the file.
 
@@ -5566,7 +5565,7 @@ Request JSON:
 
 ## 8.2) Auto edge-function map (contracts + dependencies)
 
-Generated: **2026-02-05T14:50:07.318Z** (git: `a5923e7`)
+Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
 
 ### bulk-import-anime
 - Source: `supabase/functions/bulk-import-anime/index.ts`
@@ -5739,6 +5738,7 @@ Generated: **2026-02-05T14:50:07.318Z** (git: `a5923e7`)
 
 ## 14) Change Log (append-only)
 
+- 2026-02-05: Added full "include everything" documentation pipeline (source excerpts + codebase bundle) and optional live DB snapshot tooling (`admin_schema_snapshot`). Commits: `307ae69`, `a109c9e`, `c1a7f8b`, `a5923e7`, `76f2d4d`, `1c9dea3`
 - 2026-02-05: Added auto-generated inventory + maps (migrations, edge functions, iOS RPC usage) via scripts.
 - 2026-02-05: Added deep appendices (data dictionary, RPC catalog, edge function examples, operator runbook).
 - 2026-02-05: Expanded CURRENT_APP_STATE with appendices (full DDL + concierge guardrails).
@@ -8490,7 +8490,7 @@ node scripts/generate_app_state_live_snapshot.js
 
 <!-- BEGIN AUTO-LIVE-DB-SNAPSHOT -->
 
-Generated: **2026-02-05T14:50:07.437Z** (git: `a5923e7`)
+Generated: **2026-02-05T15:15:52.059Z** (git: `3626d46`)
 
 Status: **SKIPPED** (missing `SUPABASE_URL` and/or `SUPABASE_SERVICE_ROLE_KEY` in environment).
 
@@ -8520,7 +8520,7 @@ node scripts/generate_app_state_codebase_bundle.js
 
 <!-- BEGIN AUTO-SOURCE-EXCERPTS -->
 
-Generated: **2026-02-05T14:50:07.372Z** (git: `a5923e7`)
+Generated: **2026-02-05T15:17:23.372Z** (git: `3626d46`)
 
 This section is auto-generated. Rebuild after any change to the referenced files:
 ```bash
@@ -10954,7 +10954,7 @@ class SupabaseService {
         // Initialize Supabase client from configuration; fallback to embedded defaults to avoid breaking the app
         let fallbackURL = URL(string: "https://bkdifromsqxkndnllmdj.supabase.co")!
         // NOTE: keeping this hardcoded per current preference; move to Info.plist/env before shipping.
-        let fallbackKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZGlmcm9tc3F4a25kbmxsbWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTg2NjMsImV4cCI6MjA2ODE3NDY2M30.xWtSNgApX5jMZqdWJLjsqNlsXbwubFwW39Hs3x9hOoo"
+        let fallbackKey = "[REDACTED_JWT]"
         let url = AppConfig.supabaseURL ?? fallbackURL
         let key = AppConfig.supabaseAnonKey ?? fallbackKey
 
@@ -30047,7 +30047,7 @@ class SupabaseService {
         // Initialize Supabase client from configuration; fallback to embedded defaults to avoid breaking the app
         let fallbackURL = URL(string: "https://bkdifromsqxkndnllmdj.supabase.co")!
         // NOTE: keeping this hardcoded per current preference; move to Info.plist/env before shipping.
-        let fallbackKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZGlmcm9tc3F4a25kbmxsbWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTg2NjMsImV4cCI6MjA2ODE3NDY2M30.xWtSNgApX5jMZqdWJLjsqNlsXbwubFwW39Hs3x9hOoo"
+        let fallbackKey = "[REDACTED_JWT]"
         let url = AppConfig.supabaseURL ?? fallbackURL
         let key = AppConfig.supabaseAnonKey ?? fallbackKey
 
@@ -51063,13 +51063,26 @@ function readUtf8(p) {
   }
 }
 
+function redactSecrets(s) {
+  // Redact common credential patterns to avoid committing secrets into the bundle.
+  // (The actual source files remain unchanged; this is documentation output.)
+  return s
+    // Supabase "secret" keys (should never be committed).
+    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'sb_secret_[REDACTED_DO_NOT_COMMIT]')
+    // Supabase access tokens (PAT-like).
+    .replace(/sbp_[A-Za-z0-9_]+/g, 'sbp_[REDACTED_DO_NOT_COMMIT]')
+    // JWT-ish tokens (covers anon keys too; safe for docs).
+    .replace(/eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g, '[REDACTED_JWT]');
+}
+
 function section(title) {
   return `\n---\n\n# ${title}\n\n`;
 }
 
 function fileBlock(p) {
   const r = rel(p);
-  const src = readUtf8(p);
+  const srcRaw = readUtf8(p);
+  const src = srcRaw == null ? null : redactSecrets(srcRaw);
   if (src == null) return null;
   const lang = fenceFor(r);
   return `## \`${r}\`\n\n\`\`\`${lang}\n${src}\n\`\`\`\n`;
@@ -51687,6 +51700,14 @@ function fenceFor(p) {
   return '';
 }
 
+function redactSecrets(s) {
+  // Same policy as the codebase bundle: never inline credentials into docs.
+  return s
+    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'sb_secret_[REDACTED_DO_NOT_COMMIT]')
+    .replace(/sbp_[A-Za-z0-9_]+/g, 'sbp_[REDACTED_DO_NOT_COMMIT]')
+    .replace(/eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g, '[REDACTED_JWT]');
+}
+
 function excerptBlock(relPath, { title } = {}) {
   const src = readText(relPath);
   const lang = fenceFor(relPath);
@@ -51695,7 +51716,7 @@ function excerptBlock(relPath, { title } = {}) {
     return `${header}\n\n_(Missing in repo at generation time.)_\n`;
   }
   // NOTE: For "minute detail" we inline the full file. This can be large, but remains authoritative.
-  return `${header}\n\n\`\`\`${lang}\n${src}\n\`\`\`\n`;
+  return `${header}\n\n\`\`\`${lang}\n${redactSecrets(src)}\n\`\`\`\n`;
 }
 
 function main() {
