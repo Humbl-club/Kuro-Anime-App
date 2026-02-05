@@ -3079,6 +3079,12 @@ class SupabaseService {
     struct ConciergeRecommendResponse: Decodable, Sendable {
         let success: Bool
         let categories: [String]?
+        struct Mode: Decodable, Sendable, Identifiable {
+            let id: String
+            let title: String
+            let confidence: Double?
+            let reason: String?
+        }
         struct Item: Decodable, Sendable, Identifiable {
             let mediaType: String
             let mediaId: Int
@@ -3095,6 +3101,16 @@ class SupabaseService {
 
             var id: String { "\(mediaType)|\(mediaId)" }
         }
+        struct Set: Decodable, Sendable, Identifiable {
+            let id: String
+            let title: String
+            let modeId: String?
+            let confidence: Double?
+            let reason: String?
+            let items: [Item]?
+        }
+        let modes: [Mode]?
+        let sets: [Set]?
         let items: [Item]?
         let message: String?
         let narrated: Bool?

@@ -368,9 +368,13 @@ struct ConciergeView: View {
                 }
             } else {
                 let rec = try await supabaseService.conciergeRecommend(text: text, scope: .both, limit: 8)
-                if rec.success, let items = rec.items, !items.isEmpty {
+                let sets = (rec.sets ?? []).filter { ($0.items ?? []).isEmpty == false }
+                let flattened = sets.flatMap { $0.items ?? [] }
+                let displayItems = !flattened.isEmpty ? flattened : (rec.items ?? [])
+
+                if rec.success, !displayItems.isEmpty {
                     // Prefetch covers so the recommendation rail renders instantly.
-                    let urls = items
+                    let urls = displayItems
                         .compactMap { URL(string: $0.coverImageMedium ?? "") }
                         .prefix(16)
                     if !urls.isEmpty {
@@ -382,7 +386,8 @@ struct ConciergeView: View {
                                 role: .assistant,
                                 text: rec.message ?? "Here are a few picks:",
                                 items: nil,
-                                recommendations: items,
+                                recommendations: displayItems,
+                                recommendationSets: sets.isEmpty ? nil : sets,
                                 recommendationCategories: rec.categories
                             )
                         )
@@ -954,10 +959,19 @@ private struct ConciergeBubble: View {
                 }
             }
 
-            if let recs = message.recommendations, !recs.isEmpty {
-                if let cats = message.recommendationCategories, !cats.isEmpty {
-                    ConciergeCategoryPills(categories: cats)
-                }
+            if let cats = message.recommendationCategories, !cats.isEmpty,
+               ((message.recommendationSets ?? []).isEmpty == false || (message.recommendations ?? []).isEmpty == false) {
+                ConciergeCategoryPills(categories: cats)
+            }
+
+            if let sets = message.recommendationSets, !sets.isEmpty {
+                ConciergeRecommendationSetsDeck(
+                    sets: sets,
+                    hiddenIds: $hiddenRecommendationIds,
+                    onOpen: onOpenRecommendation,
+                    onSave: onQuickSave
+                )
+            } else if let recs = message.recommendations, !recs.isEmpty {
                 ConciergeRecommendationDeck(
                     items: recs,
                     hiddenIds: $hiddenRecommendationIds,
@@ -1034,6 +1048,30 @@ private struct ConciergeRecommendationDeck: View {
                     ConciergeRecommendationRail(
                         title: "CLASSICS",
                         items: classics,
+                        hiddenIds: $hiddenIds,
+                        onOpen: onOpen,
+                        onSave: onSave
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct ConciergeRecommendationSetsDeck: View {
+    let sets: [SupabaseService.ConciergeRecommendResponse.Set]
+    @Binding var hiddenIds: Set<String>
+    let onOpen: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
+    let onSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(sets) { set in
+                let items = set.items ?? []
+                if !items.isEmpty {
+                    ConciergeRecommendationRail(
+                        title: set.title.uppercased(),
+                        items: items,
                         hiddenIds: $hiddenIds,
                         onOpen: onOpen,
                         onSave: onSave
@@ -1594,6 +1632,7 @@ private struct KuroConciergeAssistant: View {
     let text: String
     let items: [SupabaseService.ConciergeParseItem]?
     let recommendations: [SupabaseService.ConciergeRecommendResponse.Item]?
+    let recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]?
     let recommendationCategories: [String]?
 
     init(
@@ -1601,12 +1640,14 @@ private struct KuroConciergeAssistant: View {
         text: String,
         items: [SupabaseService.ConciergeParseItem]? = nil,
         recommendations: [SupabaseService.ConciergeRecommendResponse.Item]? = nil,
+        recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]? = nil,
         recommendationCategories: [String]? = nil
     ) {
         self.role = role
         self.text = text
         self.items = items
         self.recommendations = recommendations
+        self.recommendationSets = recommendationSets
         self.recommendationCategories = recommendationCategories
     }
 }
