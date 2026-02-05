@@ -12,6 +12,9 @@ Every time the app changes (design, features, backend, data, schedules, etc.), t
 
 For the technical “source of truth” and auto-generated inventories, see `CURRENT_APP_STATE.md`.
 
+If you need the *literal code* in one place for another model to read, see:
+- `CURRENT_APP_STATE_CODEBASE.md` (auto-generated; very large)
+
 ---
 
 ## 2) What Kuro is (in one paragraph)
@@ -112,6 +115,19 @@ flowchart LR
 
 ---
 
+## 4.3) Cost + abuse protection (so the Concierge cannot be exploited)
+
+Kuro is built so it won't "accidentally bankrupt you" if someone spams the chat:
+- **Deterministic-first**: most requests are handled by rules + database queries (no LLM call).
+- **Rate limits**: frequent callers get temporarily blocked.
+- **Daily token budgets** (per day):
+  - **Per user**: 50,000 tokens/day
+  - **Global**: 1,000,000 tokens/day
+
+If budgets are exceeded, the app should keep working but the LLM-heavy behaviors get reduced (for example: less narration / fewer disambiguation calls).
+
+---
+
 ## 5) Where the data comes from
 
 Kuro’s anime and manga catalog is mostly imported from **AniList**. This includes:
@@ -176,9 +192,9 @@ No one else can read your private list data because of row‑level security.
 
 ## 8.3) What to update when things change
 
-Whenever you change the app or backend, update these two files:\n
-- `CURRENT_APP_STATE.md` (technical)\n
-- `CURRENT_APP_STATE_PLAIN.md` (plain English)\n
+Whenever you change the app or backend, update these two files:
+- `CURRENT_APP_STATE.md` (technical)
+- `CURRENT_APP_STATE_PLAIN.md` (plain English)
 
 Then add a line to the Change Log at the bottom.
 
@@ -194,6 +210,47 @@ flowchart LR
   U --> C
   U --> D[Collection Page]
 ```
+
+---
+
+## 8.4) Database (high-level view)
+
+This is a simplified map (not every table/column, just the big groups):
+
+```mermaid
+flowchart TB
+  subgraph Catalog["Catalog (public data)"]
+    A1[anime / manga]
+    A2[episodes / chapters]
+    A3[tags / genres]
+    A4[characters / staff]
+  end
+
+  subgraph Users["Users (private, RLS protected)"]
+    U1[profiles]
+    U2[anime_user_lists / manga_user_lists]
+    U3[import_sessions + items]
+  end
+
+  subgraph Concierge["Concierge ops"]
+    C1[concierge_runs]
+    C2[rate limits]
+    C3[LLM budgets]
+  end
+
+  subgraph Editorial["Editorial tuning"]
+    E1[editorial boosts/penalties]
+  end
+
+  Users --> Catalog
+  Users --> Concierge
+  Concierge --> Catalog
+  Editorial --> Catalog
+```
+
+If you need the full table/column-level definition, use:
+- `CURRENT_APP_STATE.md` (schema + object maps)
+- `CURRENT_APP_STATE_CODEBASE.md` (all migrations included)
 
 ---
 
@@ -254,6 +311,7 @@ flowchart TD
 
 ## 14) Change Log (append-only)
 
+- 2026-02-05: Added Concierge cost guardrails + a high-level database diagram; fixed formatting glitches.
 - 2026-02-05: Added non-technical runbook and glossary sections.
 - 2026-02-05: Expanded this plain-English snapshot with deeper flows and diagrams.
 - 2026-02-05: Added/expanded this plain-English snapshot for non-technical readers.
