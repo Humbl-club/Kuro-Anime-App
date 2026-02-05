@@ -90,6 +90,7 @@ function main() {
 
   const now = new Date();
   const iso = now.toISOString();
+  // Use HEAD only (not --dirty) so regenerated docs don't perpetually claim "dirty".
   const head = sh('git rev-parse --short HEAD');
   const branch = sh('git rev-parse --abbrev-ref HEAD');
 

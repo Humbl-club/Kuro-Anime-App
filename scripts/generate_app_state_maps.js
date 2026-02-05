@@ -126,6 +126,7 @@ function main() {
   let doc = fs.readFileSync(DOC, 'utf8');
 
   const now = new Date().toISOString();
+  // Use HEAD only (not --dirty) so regenerated docs don't perpetually claim "dirty".
   const head = sh('git rev-parse --short HEAD').trim();
 
   // 1) Migration map
@@ -192,9 +193,23 @@ function main() {
   }
 
   // 3) iOS usage index
-  const svcPath = path.join(ROOT, 'Kuro', 'Services', 'SupabaseService.swift');
-  const svc = fs.existsSync(svcPath) ? fs.readFileSync(svcPath, 'utf8') : '';
-  const swiftAll = svc;
+  const swiftFiles = [];
+  const stack = [path.join(ROOT, 'Kuro')];
+  while (stack.length) {
+    const cur = stack.pop();
+    for (const e of fs.readdirSync(cur, { withFileTypes: true })) {
+      const p = path.join(cur, e.name);
+      if (e.isDirectory()) {
+        // Skip build-like dirs if they ever appear under Kuro/.
+        if (e.name === 'DerivedData' || e.name === 'build') continue;
+        stack.push(p);
+      } else if (e.isFile() && p.endsWith('.swift')) {
+        swiftFiles.push(p);
+      }
+    }
+  }
+  swiftFiles.sort();
+  const swiftAll = swiftFiles.map(p => fs.readFileSync(p, 'utf8')).join('\n\n// ----\n\n');
   const u = extractSwiftRpcAndFunctions(swiftAll);
 
   const iosLines = [];
@@ -202,7 +217,7 @@ function main() {
   iosLines.push('');
   iosLines.push(`Generated: **${now}** (git: \`${head}\`)`);
   iosLines.push('');
-  iosLines.push('- Swift file scanned: `Kuro/Services/SupabaseService.swift`');
+  iosLines.push(`- Swift files scanned: **${swiftFiles.length}** (all \`Kuro/**/*.swift\`)`);
   iosLines.push('');
   iosLines.push(`### RPCs used by iOS (count: ${u.rpc.size})`);
   iosLines.push([...[...u.rpc].sort()].map(v => `- \`${v}\``).join('\n') || '- (none found)');
