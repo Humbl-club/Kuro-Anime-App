@@ -1,6 +1,6 @@
 # Kuro — Codebase Bundle (LLM Source of Truth)
 
-Generated: **2026-02-05T17:49:36.241Z** (git: `d1efdb0` on `main`)
+Generated: **2026-02-05T17:59:23.218Z** (git: `ca671d5` on `main`)
 
 This file is **auto-generated**. It is intentionally large.
 
@@ -4952,7 +4952,7 @@ This file is a **contract**. It must be updated **after every single change** to
 
 ## 2.1) Auto-generated inventory (exhaustive file lists)
 
-Generated: **2026-02-05T17:49:36.018Z**  (git: `d1efdb0` on `main`)
+Generated: **2026-02-05T17:59:23.062Z**  (git: `ca671d5` on `main`)
 
 This section is auto-generated. Rebuild it after any repo change:
 ```bash
@@ -5180,7 +5180,7 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 
 ## 3.2) Auto iOS backend usage index
 
-Generated: **2026-02-05T17:49:36.123Z** (git: `d1efdb0`)
+Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 - Swift files scanned: **45** (all `Kuro/**/*.swift`)
 
@@ -5358,7 +5358,7 @@ Client + edge functions rely on these RPCs:
 
 ## 7.1) Auto migration map (objects by migration)
 
-Generated: **2026-02-05T17:49:36.123Z** (git: `d1efdb0`)
+Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 Each migration is summarized by the objects it defines. For full SQL, open the file.
 
@@ -5568,7 +5568,7 @@ Request JSON:
 
 ## 8.2) Auto edge-function map (contracts + dependencies)
 
-Generated: **2026-02-05T17:49:36.123Z** (git: `d1efdb0`)
+Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ### bulk-import-anime
 - Source: `supabase/functions/bulk-import-anime/index.ts`
@@ -5741,6 +5741,7 @@ Generated: **2026-02-05T17:49:36.123Z** (git: `d1efdb0`)
 
 ## 14) Change Log (append-only)
 
+- 2026-02-05: Concierge recommendations: added configurable **vibe modes** (2 curated rails per prompt) + expanded Classics rail; response now includes `modes` + `sets` (backwards compatible `items`). Commits: `3bcc32f`, `a23e5b8`, `d1efdb0`
 - 2026-02-05: Added full "include everything" documentation pipeline (source excerpts + codebase bundle) and optional live DB snapshot tooling (`admin_schema_snapshot`). Commits: `889b9c8`, `7a87228`, `7d07be7`, `c2d0414`, `5eb4168`, `9c734db`
 - 2026-02-05: Redacted Supabase secrets from docs and from generated bundles/excerpts (docs remain reflective, but credentials are never inlined). Commits: `590e8a0`, `8da8b68`, `68f9a11`, `bce062f`, `16d3826`, `c8b9c3a`
 - 2026-02-05: Added auto-generated inventory + maps (migrations, edge functions, iOS RPC usage) via scripts.
@@ -8524,7 +8525,7 @@ node scripts/generate_app_state_codebase_bundle.js
 
 <!-- BEGIN AUTO-SOURCE-EXCERPTS -->
 
-Generated: **2026-02-05T17:49:36.082Z** (git: `d1efdb0`)
+Generated: **2026-02-05T17:59:23.130Z** (git: `ca671d5`)
 
 This section is auto-generated. Rebuild after any change to the referenced files:
 ```bash
@@ -17537,34 +17538,32 @@ serve(async (req) => {
       }));
     };
 
-    const assembleItems = async (mt: MediaType, rows: CandidateRow[], opts: {
-      limit: number;
-      requiredGenres: string[];
-      excludeGenres: string[];
-      classicYearMax?: number;
-      quality: { minScore: number; minPopularity: number; maxPopularity: number | null; excludeFormats: Set<string> };
-      prioritizeClassicBoost?: boolean;
-    }) => {
-      const idList = uniq(rows.map((r) => r.media_id)).filter((x) => Number.isFinite(x) && x > 0);
-      if (idList.length === 0) return [] as any[];
+    type MediaContext = {
+      byId: Map<number, any>;
+      boostById: Map<number, any>;
+      boostedReasonsById: Map<number, string[]>;
+    };
+
+    const fetchMediaContext = async (mt: MediaType, idList: number[]): Promise<MediaContext> => {
+      const ids = uniq(idList).filter((x) => Number.isFinite(x) && x > 0);
+      if (ids.length === 0) return { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
 
       const table = mt === "ANIME" ? "anime" : "manga";
       const { data: mediaRows, error: mediaErr } = await client
         .from(table)
         .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres")
-        .in("id", idList);
+        .in("id", ids);
       if (mediaErr) throw mediaErr;
       const byId = new Map<number, any>((mediaRows ?? []).map((r: any) => [r.id, r]));
 
-      // Signals for premium feel (deterministic; no hallucinations).
       const { data: boosts } = await client
         .from("editorial_boosts")
         .select("media_id,label,weight")
         .eq("media_type", mt)
-        .in("media_id", idList);
+        .in("media_id", ids);
       const boostById = new Map<number, any>((boosts ?? []).map((b: any) => [b.media_id, b]));
 
-      // Get which boosted tags apply to each media id.
+      // Get which boosted tags apply to each media id (signals only; not used for ranking).
       let tagLinks: any[] = [];
       if (boostTagIds.length > 0) {
         const linkTable = mt === "ANIME" ? "anime_tags" : "manga_tags";
@@ -17572,7 +17571,7 @@ serve(async (req) => {
         const resLinks = await client
           .from(linkTable)
           .select(`${idCol},tag_id`)
-          .in(idCol, idList)
+          .in(idCol, ids)
           .in("tag_id", boostTagIds);
         if (!resLinks.error) tagLinks = resLinks.data ?? [];
       }
@@ -17589,6 +17588,17 @@ serve(async (req) => {
         boostedReasonsById.set(mediaId, arr);
       }
 
+      return { byId, boostById, boostedReasonsById };
+    };
+
+    const buildItemsFromRows = (mt: MediaType, rows: CandidateRow[], ctx: MediaContext, opts: {
+      limit: number;
+      requiredGenres: string[];
+      excludeGenres: string[];
+      classicYearMax?: number;
+      quality: { minScore: number; minPopularity: number; maxPopularity: number | null; excludeFormats: Set<string> };
+      prioritizeClassicBoost?: boolean;
+    }) => {
       const hasGenres = (m: any, required: string[]) => {
         if (!required.length) return true;
         const gs = Array.isArray(m?.genres) ? m.genres.map((x: any) => String(x)) : [];
@@ -17627,7 +17637,7 @@ serve(async (req) => {
       const tertiary: CandidateRow[] = [];
 
       for (const r of rows) {
-        const m = byId.get(r.media_id);
+        const m = ctx.byId.get(r.media_id);
         if (!m) continue;
         if (passes(m) && hasGenres(m, opts.requiredGenres)) primary.push(r);
         else if (passes(m)) secondary.push(r);
@@ -17639,7 +17649,7 @@ serve(async (req) => {
         const boosted: CandidateRow[] = [];
         const rest: CandidateRow[] = [];
         for (const r of ordered) {
-          const b = boostById.get(r.media_id);
+          const b = ctx.boostById.get(r.media_id);
           if (b?.label === "classic") boosted.push(r);
           else rest.push(r);
         }
@@ -17649,12 +17659,12 @@ serve(async (req) => {
 
       const out: any[] = [];
       for (const r of ordered) {
-        const m = byId.get(r.media_id);
+        const m = ctx.byId.get(r.media_id);
         if (!m) continue;
         const signals: string[] = [];
-        const b = boostById.get(r.media_id);
+        const b = ctx.boostById.get(r.media_id);
         if (b?.label === "classic") signals.push("CLASSIC");
-        const reasons = boostedReasonsById.get(r.media_id) ?? [];
+        const reasons = ctx.boostedReasonsById.get(r.media_id) ?? [];
         for (const x of reasons.slice(0, 3)) signals.push(String(x).toUpperCase());
         if ((r.match_count ?? 0) >= 2) signals.push("MATCH");
 
@@ -17680,6 +17690,52 @@ serve(async (req) => {
     const modePicks = pickTwoModes(text, modes, requiredGenres);
     const modeById = new Map<string, ConciergeMode>(modes.map((m) => [m.id, m]));
 
+    const resolvedModes = modePicks
+      .map((mp) => modeById.get(mp.id))
+      .filter((m): m is ConciergeMode => Boolean(m));
+
+    const hasClassicMode = resolvedModes.some((m) => m.id.includes("classic"));
+    const nonClassicModes = resolvedModes.filter((m) => !m.id.includes("classic"));
+
+    // Pull candidate pools once (per media type), then slice/filter into rails in-memory.
+    const unionCats = uniq([
+      ...categories,
+      ...nonClassicModes.flatMap((m) => m.required_genres ?? []),
+    ]);
+    const premiumCats = unionCats.length ? unionCats : (categories.length ? categories : null);
+    const classicCats = hasClassicMode ? (categories.length ? categories : null) : null;
+
+    const premiumRowsByType: Record<MediaType, CandidateRow[]> = { ANIME: [], MANGA: [] };
+    const classicRowsByType: Record<MediaType, CandidateRow[]> = { ANIME: [], MANGA: [] };
+
+    if (mediaType === "ANIME" || mediaType === "BOTH") {
+      premiumRowsByType.ANIME = await getPremiumCandidates("ANIME", premiumCats);
+      if (hasClassicMode) classicRowsByType.ANIME = await getPremiumCandidates("ANIME", classicCats);
+    }
+    if (mediaType === "MANGA" || mediaType === "BOTH") {
+      premiumRowsByType.MANGA = await getPremiumCandidates("MANGA", premiumCats);
+      if (hasClassicMode) classicRowsByType.MANGA = await getPremiumCandidates("MANGA", classicCats);
+    }
+
+    const ctxByType: Record<MediaType, MediaContext> = {
+      ANIME: { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() },
+      MANGA: { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() },
+    };
+    if (mediaType === "ANIME" || mediaType === "BOTH") {
+      const ids = uniq([
+        ...premiumRowsByType.ANIME.map((r) => r.media_id),
+        ...classicRowsByType.ANIME.map((r) => r.media_id),
+      ]);
+      ctxByType.ANIME = await fetchMediaContext("ANIME", ids);
+    }
+    if (mediaType === "MANGA" || mediaType === "BOTH") {
+      const ids = uniq([
+        ...premiumRowsByType.MANGA.map((r) => r.media_id),
+        ...classicRowsByType.MANGA.map((r) => r.media_id),
+      ]);
+      ctxByType.MANGA = await fetchMediaContext("MANGA", ids);
+    }
+
     // Build up to 2 rails (modes). Always keep a classics rail as the second choice where possible.
     const sets: any[] = [];
 
@@ -17692,16 +17748,19 @@ serve(async (req) => {
       const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
       const modeExcluded = mode?.exclude_genres ?? [];
 
-      // Feed the DB scorer with a small, mode-aware category set, but don't overconstrain.
-      const modeCats = uniq([...(categories ?? []), ...(mode?.required_genres ?? [])]);
-      const pCats = modeCats.length ? modeCats : (categories.length ? categories : null);
       const q = compileQuality(mode);
 
-      const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getPremiumCandidates("ANIME", pCats) : [];
-      const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getPremiumCandidates("MANGA", pCats) : [];
+      const animeRows =
+        (mediaType === "ANIME" || mediaType === "BOTH")
+          ? (isClassicMode ? classicRowsByType.ANIME : premiumRowsByType.ANIME)
+          : [];
+      const mangaRows =
+        (mediaType === "MANGA" || mediaType === "BOTH")
+          ? (isClassicMode ? classicRowsByType.MANGA : premiumRowsByType.MANGA)
+          : [];
 
       const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
-        ? await assembleItems("ANIME", animeRows, {
+        ? buildItemsFromRows("ANIME", animeRows, ctxByType.ANIME, {
           limit: perType,
           requiredGenres: modeRequired,
           excludeGenres: modeExcluded,
@@ -17711,7 +17770,7 @@ serve(async (req) => {
         })
         : [];
       const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
-        ? await assembleItems("MANGA", mangaRows, {
+        ? buildItemsFromRows("MANGA", mangaRows, ctxByType.MANGA, {
           limit: perType,
           requiredGenres: modeRequired,
           excludeGenres: modeExcluded,
@@ -17775,11 +17834,18 @@ serve(async (req) => {
 
         const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getSim("ANIME") : [];
         const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getSim("MANGA") : [];
+        const simCtxAnime = (mediaType === "ANIME" || mediaType === "BOTH")
+          ? await fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
+          : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+        const simCtxManga = (mediaType === "MANGA" || mediaType === "BOTH")
+          ? await fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
+          : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+
         const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
-          ? await assembleItems("ANIME", animeRows, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+          ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
           : [];
         const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
-          ? await assembleItems("MANGA", mangaRows, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+          ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
           : [];
 
         const merged = mediaType === "BOTH" ? mergeAlternating(animeItems, mangaItems, perSetTotal) : [...animeItems, ...mangaItems].slice(0, perSetTotal);
@@ -19277,12 +19343,16 @@ flowchart TD
 - It avoids adult content by default.
 - If you say “like X”, it finds similar titles first.
 - The LLM only adds wording or resolves ambiguity.
+- Your prompt is routed into **up to 2 curated rails (“modes”)**:
+  - Rail A: a best-fit “vibe mode” (e.g. Premium Action / Cozy / Hidden Gems)
+  - Rail B: **Classics (expanded)** (keeps your existing classics picks, but returns more)
+- The modes are configurable in the database (`public.concierge_config.config.modes`) so we can tune them without redeploying the app.
 
 ```mermaid
 flowchart LR
   A[User request] --> B[Category + tag logic]
-  B --> C[Premium ranking]
-  C --> D[Final list]
+  B --> C["Mode router (2 rails)"]
+  C --> D[Premium ranking + filters]
   D --> E[Optional LLM narration]
 ```
 
@@ -19484,6 +19554,7 @@ flowchart TD
 
 ## 14) Change Log (append-only)
 
+- 2026-02-05: Concierge recommendations now return **two curated rails (modes)** and an **expanded Classics rail** (configurable via database).
 - 2026-02-05: Added Concierge cost guardrails + a high-level database diagram; fixed formatting glitches.
 - 2026-02-05: Added non-technical runbook and glossary sections.
 - 2026-02-05: Expanded this plain-English snapshot with deeper flows and diagrams.
@@ -56996,34 +57067,32 @@ serve(async (req) => {
       }));
     };
 
-    const assembleItems = async (mt: MediaType, rows: CandidateRow[], opts: {
-      limit: number;
-      requiredGenres: string[];
-      excludeGenres: string[];
-      classicYearMax?: number;
-      quality: { minScore: number; minPopularity: number; maxPopularity: number | null; excludeFormats: Set<string> };
-      prioritizeClassicBoost?: boolean;
-    }) => {
-      const idList = uniq(rows.map((r) => r.media_id)).filter((x) => Number.isFinite(x) && x > 0);
-      if (idList.length === 0) return [] as any[];
+    type MediaContext = {
+      byId: Map<number, any>;
+      boostById: Map<number, any>;
+      boostedReasonsById: Map<number, string[]>;
+    };
+
+    const fetchMediaContext = async (mt: MediaType, idList: number[]): Promise<MediaContext> => {
+      const ids = uniq(idList).filter((x) => Number.isFinite(x) && x > 0);
+      if (ids.length === 0) return { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
 
       const table = mt === "ANIME" ? "anime" : "manga";
       const { data: mediaRows, error: mediaErr } = await client
         .from(table)
         .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres")
-        .in("id", idList);
+        .in("id", ids);
       if (mediaErr) throw mediaErr;
       const byId = new Map<number, any>((mediaRows ?? []).map((r: any) => [r.id, r]));
 
-      // Signals for premium feel (deterministic; no hallucinations).
       const { data: boosts } = await client
         .from("editorial_boosts")
         .select("media_id,label,weight")
         .eq("media_type", mt)
-        .in("media_id", idList);
+        .in("media_id", ids);
       const boostById = new Map<number, any>((boosts ?? []).map((b: any) => [b.media_id, b]));
 
-      // Get which boosted tags apply to each media id.
+      // Get which boosted tags apply to each media id (signals only; not used for ranking).
       let tagLinks: any[] = [];
       if (boostTagIds.length > 0) {
         const linkTable = mt === "ANIME" ? "anime_tags" : "manga_tags";
@@ -57031,7 +57100,7 @@ serve(async (req) => {
         const resLinks = await client
           .from(linkTable)
           .select(`${idCol},tag_id`)
-          .in(idCol, idList)
+          .in(idCol, ids)
           .in("tag_id", boostTagIds);
         if (!resLinks.error) tagLinks = resLinks.data ?? [];
       }
@@ -57048,6 +57117,17 @@ serve(async (req) => {
         boostedReasonsById.set(mediaId, arr);
       }
 
+      return { byId, boostById, boostedReasonsById };
+    };
+
+    const buildItemsFromRows = (mt: MediaType, rows: CandidateRow[], ctx: MediaContext, opts: {
+      limit: number;
+      requiredGenres: string[];
+      excludeGenres: string[];
+      classicYearMax?: number;
+      quality: { minScore: number; minPopularity: number; maxPopularity: number | null; excludeFormats: Set<string> };
+      prioritizeClassicBoost?: boolean;
+    }) => {
       const hasGenres = (m: any, required: string[]) => {
         if (!required.length) return true;
         const gs = Array.isArray(m?.genres) ? m.genres.map((x: any) => String(x)) : [];
@@ -57086,7 +57166,7 @@ serve(async (req) => {
       const tertiary: CandidateRow[] = [];
 
       for (const r of rows) {
-        const m = byId.get(r.media_id);
+        const m = ctx.byId.get(r.media_id);
         if (!m) continue;
         if (passes(m) && hasGenres(m, opts.requiredGenres)) primary.push(r);
         else if (passes(m)) secondary.push(r);
@@ -57098,7 +57178,7 @@ serve(async (req) => {
         const boosted: CandidateRow[] = [];
         const rest: CandidateRow[] = [];
         for (const r of ordered) {
-          const b = boostById.get(r.media_id);
+          const b = ctx.boostById.get(r.media_id);
           if (b?.label === "classic") boosted.push(r);
           else rest.push(r);
         }
@@ -57108,12 +57188,12 @@ serve(async (req) => {
 
       const out: any[] = [];
       for (const r of ordered) {
-        const m = byId.get(r.media_id);
+        const m = ctx.byId.get(r.media_id);
         if (!m) continue;
         const signals: string[] = [];
-        const b = boostById.get(r.media_id);
+        const b = ctx.boostById.get(r.media_id);
         if (b?.label === "classic") signals.push("CLASSIC");
-        const reasons = boostedReasonsById.get(r.media_id) ?? [];
+        const reasons = ctx.boostedReasonsById.get(r.media_id) ?? [];
         for (const x of reasons.slice(0, 3)) signals.push(String(x).toUpperCase());
         if ((r.match_count ?? 0) >= 2) signals.push("MATCH");
 
@@ -57139,6 +57219,52 @@ serve(async (req) => {
     const modePicks = pickTwoModes(text, modes, requiredGenres);
     const modeById = new Map<string, ConciergeMode>(modes.map((m) => [m.id, m]));
 
+    const resolvedModes = modePicks
+      .map((mp) => modeById.get(mp.id))
+      .filter((m): m is ConciergeMode => Boolean(m));
+
+    const hasClassicMode = resolvedModes.some((m) => m.id.includes("classic"));
+    const nonClassicModes = resolvedModes.filter((m) => !m.id.includes("classic"));
+
+    // Pull candidate pools once (per media type), then slice/filter into rails in-memory.
+    const unionCats = uniq([
+      ...categories,
+      ...nonClassicModes.flatMap((m) => m.required_genres ?? []),
+    ]);
+    const premiumCats = unionCats.length ? unionCats : (categories.length ? categories : null);
+    const classicCats = hasClassicMode ? (categories.length ? categories : null) : null;
+
+    const premiumRowsByType: Record<MediaType, CandidateRow[]> = { ANIME: [], MANGA: [] };
+    const classicRowsByType: Record<MediaType, CandidateRow[]> = { ANIME: [], MANGA: [] };
+
+    if (mediaType === "ANIME" || mediaType === "BOTH") {
+      premiumRowsByType.ANIME = await getPremiumCandidates("ANIME", premiumCats);
+      if (hasClassicMode) classicRowsByType.ANIME = await getPremiumCandidates("ANIME", classicCats);
+    }
+    if (mediaType === "MANGA" || mediaType === "BOTH") {
+      premiumRowsByType.MANGA = await getPremiumCandidates("MANGA", premiumCats);
+      if (hasClassicMode) classicRowsByType.MANGA = await getPremiumCandidates("MANGA", classicCats);
+    }
+
+    const ctxByType: Record<MediaType, MediaContext> = {
+      ANIME: { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() },
+      MANGA: { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() },
+    };
+    if (mediaType === "ANIME" || mediaType === "BOTH") {
+      const ids = uniq([
+        ...premiumRowsByType.ANIME.map((r) => r.media_id),
+        ...classicRowsByType.ANIME.map((r) => r.media_id),
+      ]);
+      ctxByType.ANIME = await fetchMediaContext("ANIME", ids);
+    }
+    if (mediaType === "MANGA" || mediaType === "BOTH") {
+      const ids = uniq([
+        ...premiumRowsByType.MANGA.map((r) => r.media_id),
+        ...classicRowsByType.MANGA.map((r) => r.media_id),
+      ]);
+      ctxByType.MANGA = await fetchMediaContext("MANGA", ids);
+    }
+
     // Build up to 2 rails (modes). Always keep a classics rail as the second choice where possible.
     const sets: any[] = [];
 
@@ -57151,16 +57277,19 @@ serve(async (req) => {
       const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
       const modeExcluded = mode?.exclude_genres ?? [];
 
-      // Feed the DB scorer with a small, mode-aware category set, but don't overconstrain.
-      const modeCats = uniq([...(categories ?? []), ...(mode?.required_genres ?? [])]);
-      const pCats = modeCats.length ? modeCats : (categories.length ? categories : null);
       const q = compileQuality(mode);
 
-      const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getPremiumCandidates("ANIME", pCats) : [];
-      const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getPremiumCandidates("MANGA", pCats) : [];
+      const animeRows =
+        (mediaType === "ANIME" || mediaType === "BOTH")
+          ? (isClassicMode ? classicRowsByType.ANIME : premiumRowsByType.ANIME)
+          : [];
+      const mangaRows =
+        (mediaType === "MANGA" || mediaType === "BOTH")
+          ? (isClassicMode ? classicRowsByType.MANGA : premiumRowsByType.MANGA)
+          : [];
 
       const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
-        ? await assembleItems("ANIME", animeRows, {
+        ? buildItemsFromRows("ANIME", animeRows, ctxByType.ANIME, {
           limit: perType,
           requiredGenres: modeRequired,
           excludeGenres: modeExcluded,
@@ -57170,7 +57299,7 @@ serve(async (req) => {
         })
         : [];
       const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
-        ? await assembleItems("MANGA", mangaRows, {
+        ? buildItemsFromRows("MANGA", mangaRows, ctxByType.MANGA, {
           limit: perType,
           requiredGenres: modeRequired,
           excludeGenres: modeExcluded,
@@ -57234,11 +57363,18 @@ serve(async (req) => {
 
         const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getSim("ANIME") : [];
         const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getSim("MANGA") : [];
+        const simCtxAnime = (mediaType === "ANIME" || mediaType === "BOTH")
+          ? await fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
+          : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+        const simCtxManga = (mediaType === "MANGA" || mediaType === "BOTH")
+          ? await fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
+          : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+
         const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
-          ? await assembleItems("ANIME", animeRows, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+          ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
           : [];
         const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
-          ? await assembleItems("MANGA", mangaRows, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+          ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
           : [];
 
         const merged = mediaType === "BOTH" ? mergeAlternating(animeItems, mangaItems, perSetTotal) : [...animeItems, ...mangaItems].slice(0, perSetTotal);
