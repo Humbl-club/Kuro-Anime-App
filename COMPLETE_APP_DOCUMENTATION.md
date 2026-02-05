@@ -1459,4 +1459,3 @@ AsyncImage       // Built-in caching
 **END OF DOCUMENTATION**
 
 *This document represents the complete, current state of the KURO anime/manga application as of October 8, 2025. All information is accurate and reflects the actual implementation in the codebase.*
-
