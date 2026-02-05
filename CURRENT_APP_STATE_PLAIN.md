@@ -74,6 +74,42 @@ There are built-in usage limits so it can’t be abused.
 
 ---
 
+## 4.1) How an import works (simple steps)
+
+1. You paste a list.
+2. The system tries to match titles.
+3. If something is unclear, it asks or uses the LLM to resolve.
+4. It applies the results to your list and saves a session so you can undo.
+
+```mermaid
+flowchart TD
+  A[Paste list] --> B[Parser]
+  B --> C{Clear match?}
+  C -->|Yes| D[Apply to list]
+  C -->|No| E[LLM resolve]
+  E --> D
+  D --> F[Undo possible]
+```
+
+---
+
+## 4.2) How recommendations are chosen
+
+- The system prefers **classics** and **premium picks**.
+- It avoids adult content by default.
+- If you say “like X”, it finds similar titles first.
+- The LLM only adds wording or resolves ambiguity.
+
+```mermaid
+flowchart LR
+  A[User request] --> B[Category + tag logic]
+  B --> C[Premium ranking]
+  C --> D[Final list]
+  D --> E[Optional LLM narration]
+```
+
+---
+
 ## 5) Where the data comes from
 
 Kuro’s anime and manga catalog is mostly imported from **AniList**. This includes:
@@ -125,6 +161,27 @@ Supabase also runs the Concierge server logic and provides secure APIs.
 
 ---
 
+## 8.2) What data is stored about a user
+
+- A **profile** row (your account basics)
+- Your **anime/manga list** entries (status, progress, rating)
+- Concierge **import sessions** (so you can undo)
+- Concierge **logs** (for improving the parser and debugging)
+
+No one else can read your private list data because of row‑level security.
+
+---
+
+## 8.3) What to update when things change
+
+Whenever you change the app or backend, update these two files:\n
+- `CURRENT_APP_STATE.md` (technical)\n
+- `CURRENT_APP_STATE_PLAIN.md` (plain English)\n
+
+Then add a line to the Change Log at the bottom.
+
+---
+
 ## 8.1) Simplified data model
 
 ```mermaid
@@ -167,5 +224,6 @@ flowchart TD
 
 ## 11) Change Log (append-only)
 
+- 2026-02-05: Expanded this plain-English snapshot with deeper flows and diagrams.
 - 2026-02-05: Added/expanded this plain-English snapshot for non-technical readers.
 - 2026-02-05: Concierge moved to left swipe page. Profile is a top-right menu. Cards now show YEAR · EPS. Concierge intro + quick-start pills added.

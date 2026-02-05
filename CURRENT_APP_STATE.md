@@ -110,6 +110,7 @@ This file is a **contract**. It must be updated **after every single change** to
 - `scripts/genre_audit.js`, `scripts/report_airing_window.js` — data QA
 - `scripts/concierge_eval_parse.js`, `scripts/concierge_corpus_generate.js`, `scripts/load_test_concierge.js` — concierge QA/ops
 - `scripts/check_cron_health.js`, `scripts/collect_db_metrics.js` — ops
+- `scripts/db_state.sql` — DB snapshot queries (row counts, coverage, etc.)
 
 ---
 
@@ -276,6 +277,7 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 - `concierge_metrics_hourly`
 - `llm_usage_daily_totals`
 - `rate_limit_recent_top`
+- `import_state` (cursor table for scheduled AniList imports)
 
 **Schema definitions are in** `supabase/migrations/`.
 
@@ -536,6 +538,7 @@ Request JSON:
 
 ## 14) Change Log (append-only)
 
+- 2026-02-05: Expanded CURRENT_APP_STATE with appendices (full DDL + concierge guardrails).
 - 2026-02-05: Added/expanded CURRENT_APP_STATE docs with full technical + plain-English snapshots.
 - 2026-02-05: Concierge left page + profile menu. Header simplified. Cards show `YEAR · EPS`. Concierge intro + quick-start glass pills added. Commits: `2565d4d`, `a9d0e2c`
 
@@ -545,3 +548,2213 @@ Request JSON:
 
 - Are mirror-images / bulk import functions running on a scheduled Supabase schedule or via external cron? (Not found in migrations; assumed manual/external.)
 - Exact current state of all RLS policies is in migrations; confirm if additional tables were added after 2026-02-05.
+
+---
+
+## 16) Appendix A — Core Schema DDL (02_comprehensive_table_creation.sql)
+
+```sql
+-- ============================================
+-- COMPREHENSIVE TABLE CREATION SCRIPT
+-- Optimal structure with internal IDs + external references
+-- ============================================
+
+-- ============================================
+-- 1. ANIME TABLE (Internal ID + External References)
+-- ============================================
+CREATE TABLE anime (
+    id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
+    
+    -- External API References (for sync only)
+    anilist_id INTEGER UNIQUE,
+    mal_id INTEGER UNIQUE,
+    kitsu_id INTEGER UNIQUE,
+    
+    -- Basic Info
+    title_english TEXT,
+    title_romaji TEXT,
+    title_native TEXT,
+    title_synonyms TEXT[],
+    
+    -- Visual
+    cover_image_large TEXT,
+    cover_image_medium TEXT,
+    cover_image_color TEXT,
+    banner_image TEXT,
+    
+    -- Anime-specific
+    format TEXT, -- 'TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL'
+    status TEXT, -- 'FINISHED', 'RELEASING', 'NOT_YET_RELEASED'
+    description TEXT,
+    description_normalized TEXT,
+    
+    -- Episodes
+    episodes INTEGER,
+    duration INTEGER, -- minutes per episode
+    total_duration INTEGER, -- total runtime in minutes
+    season TEXT, -- 'SPRING', 'SUMMER', 'FALL', 'WINTER'
+    season_year INTEGER,
+    
+    -- Airing schedule
+    next_episode_number INTEGER,
+    next_airing_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Dates
+    start_date_year INTEGER,
+    start_date_month INTEGER,
+    start_date_day INTEGER,
+    end_date_year INTEGER,
+    end_date_month INTEGER,
+    end_date_day INTEGER,
+    
+    -- Ratings
+    average_score INTEGER,
+    mean_score INTEGER,
+    popularity INTEGER,
+    trending INTEGER,
+    favourites INTEGER,
+    
+    -- Content
+    genres TEXT[],
+    source TEXT,
+    country_of_origin TEXT,
+    is_adult BOOLEAN DEFAULT false,
+    age_rating TEXT,
+    
+    -- External links
+    site_url TEXT,
+    
+    -- System
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_synced_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at_anilist TIMESTAMP WITH TIME ZONE
+);
+
+-- ============================================
+-- 2. MANGA TABLE (Internal ID + External References)
+-- ============================================
+CREATE TABLE manga (
+    id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
+    
+    -- External API References (for sync only)
+    anilist_id INTEGER UNIQUE,
+    mal_id INTEGER UNIQUE,
+    kitsu_id INTEGER UNIQUE,
+    
+    -- Basic Info
+    title_english TEXT,
+    title_romaji TEXT,
+    title_native TEXT,
+    title_synonyms TEXT[],
+    
+    -- Visual
+    cover_image_large TEXT,
+    cover_image_medium TEXT,
+    cover_image_color TEXT,
+    banner_image TEXT,
+    
+    -- Manga-specific
+    format TEXT, -- 'MANGA', 'NOVEL', 'ONE_SHOT', 'DOUJINSHI', 'MANHWA', 'MANHUA'
+    status TEXT, -- 'FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'HIATUS'
+    description TEXT,
+    description_normalized TEXT,
+    
+    -- Chapters/Volumes
+    chapters INTEGER,
+    volumes INTEGER,
+    
+    -- Chapter schedule
+    next_chapter_number INTEGER,
+    next_chapter_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Dates
+    start_date_year INTEGER,
+    start_date_month INTEGER,
+    start_date_day INTEGER,
+    end_date_year INTEGER,
+    end_date_month INTEGER,
+    end_date_day INTEGER,
+    
+    -- Ratings
+    average_score INTEGER,
+    mean_score INTEGER,
+    popularity INTEGER,
+    trending INTEGER,
+    favourites INTEGER,
+    
+    -- Content
+    genres TEXT[],
+    source TEXT,
+    country_of_origin TEXT,
+    is_adult BOOLEAN DEFAULT false,
+    age_rating TEXT,
+    
+    -- External links
+    site_url TEXT,
+    
+    -- System
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    last_synced_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at_anilist TIMESTAMP WITH TIME ZONE
+);
+
+-- ============================================
+-- 3. EPISODES TABLE (Internal ID + External References)
+-- ============================================
+CREATE TABLE episodes (
+    id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE, -- INTERNAL reference
+    
+    -- External API References (for sync only)
+    anilist_id INTEGER UNIQUE,
+    mal_id INTEGER UNIQUE,
+    
+    -- Episode info
+    number INTEGER NOT NULL,
+    title TEXT,
+    title_romaji TEXT,
+    description TEXT,
+    
+    -- Airing info
+    air_date DATE,
+    air_at TIMESTAMP WITH TIME ZONE,
+    thumbnail TEXT,
+    duration INTEGER, -- minutes
+    
+    -- Episode metadata
+    is_filler BOOLEAN DEFAULT false,
+    is_recap BOOLEAN DEFAULT false,
+    is_mixed BOOLEAN DEFAULT false,
+    filler_source TEXT,
+    
+    -- System
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- 4. CHAPTERS TABLE (Internal ID + External References)
+-- ============================================
+CREATE TABLE chapters (
+    id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
+    manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE, -- INTERNAL reference
+    
+    -- External API References (for sync only)
+    anilist_id INTEGER UNIQUE,
+    mal_id INTEGER UNIQUE,
+    
+    -- Chapter info
+    number INTEGER NOT NULL,
+    title TEXT,
+    title_romaji TEXT,
+    description TEXT,
+    
+    -- Release info
+    release_date DATE,
+    release_at TIMESTAMP WITH TIME ZONE,
+    thumbnail TEXT,
+    pages INTEGER,
+    
+    -- Chapter metadata
+    is_side_story BOOLEAN DEFAULT false,
+    is_extra BOOLEAN DEFAULT false,
+    is_omake BOOLEAN DEFAULT false,
+    
+    -- System
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- 5. VOLUMES TABLE (Internal ID + External References)
+-- ============================================
+CREATE TABLE volumes (
+    id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
+    manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE, -- INTERNAL reference
+    
+    -- External API References (for sync only)
+    anilist_id INTEGER UNIQUE,
+    mal_id INTEGER UNIQUE,
+    
+    -- Volume info
+    number INTEGER NOT NULL,
+    title TEXT,
+    title_romaji TEXT,
+    description TEXT,
+    
+    -- Visual
+    cover_image_large TEXT,
+    cover_image_medium TEXT,
+    
+    -- Release info
+    release_date DATE,
+    release_at TIMESTAMP WITH TIME ZONE,
+    pages INTEGER,
+    
+    -- Volume metadata
+    isbn TEXT,
+    price_jpy INTEGER,
+    price_usd DECIMAL(10,2),
+    
+    -- System
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- 6. CHARACTERS TABLE (Internal ID + External References)
+-- ============================================
+CREATE TABLE characters (
+    id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
+    
+    -- External API References (for sync only)
+    anilist_id INTEGER UNIQUE,
+    mal_id INTEGER UNIQUE,
+    kitsu_id INTEGER UNIQUE,
+    
+    -- Character info
+    name_full TEXT,
+    name_native TEXT,
+    name_alternative TEXT[],
+    
+    -- Visual
+    image_large TEXT,
+    image_medium TEXT,
+    
+    -- Character details
+    description TEXT,
+    gender TEXT, -- 'Male', 'Female', 'Non-binary', 'Unknown'
+    age INTEGER,
+    birthday DATE,
+    blood_type TEXT, -- 'A', 'B', 'AB', 'O', 'Unknown'
+    
+    -- Physical attributes
+    height INTEGER, -- cm
+    weight INTEGER, -- kg
+    hair_color TEXT,
+    eye_color TEXT,
+    
+    -- System
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- 7. STUDIOS TABLE (Internal ID + External References)
+-- ============================================
+CREATE TABLE studios (
+    id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
+    
+    -- External API References (for sync only)
+    anilist_id INTEGER UNIQUE,
+    mal_id INTEGER UNIQUE,
+    kitsu_id INTEGER UNIQUE,
+    
+    -- Studio info
+    name TEXT NOT NULL,
+    name_romaji TEXT,
+    name_native TEXT,
+    
+    -- Studio details
+    description TEXT,
+    is_animation_studio BOOLEAN DEFAULT false,
+    is_producer BOOLEAN DEFAULT false,
+    is_licensor BOOLEAN DEFAULT false,
+    
+    -- External
+    site_url TEXT,
+    favourites INTEGER DEFAULT 0,
+    
+    -- System
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- 8. AUTHORS TABLE (Internal ID + External References)
+-- ============================================
+CREATE TABLE authors (
+    id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
+    
+    -- External API References (for sync only)
+    anilist_id INTEGER UNIQUE,
+    mal_id INTEGER UNIQUE,
+    kitsu_id INTEGER UNIQUE,
+    
+    -- Author info
+    name_full TEXT,
+    name_native TEXT,
+    name_romaji TEXT,
+    
+    -- Visual
+    image_large TEXT,
+    image_medium TEXT,
+    
+    -- Author details
+    description TEXT,
+    birth_date DATE,
+    death_date DATE,
+    hometown TEXT,
+    blood_type TEXT,
+    
+    -- System
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- 9. STAFF TABLE (Internal ID + External References)
+-- ============================================
+CREATE TABLE staff (
+    id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
+    
+    -- External API References (for sync only)
+    anilist_id INTEGER UNIQUE,
+    mal_id INTEGER UNIQUE,
+    kitsu_id INTEGER UNIQUE,
+    
+    -- Staff info
+    name_full TEXT,
+    name_native TEXT,
+    name_romaji TEXT,
+    
+    -- Visual
+    image_large TEXT,
+    image_medium TEXT,
+    
+    -- Staff details
+    description TEXT,
+    primary_occupations TEXT[], -- ['Director', 'Writer', 'Music', 'Character Design']
+    birth_date DATE,
+    death_date DATE,
+    hometown TEXT,
+    blood_type TEXT,
+    
+    -- System
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- 10. TAGS TABLE (Internal ID + External References)
+-- ============================================
+CREATE TABLE tags (
+    id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
+    
+    -- External API References (for sync only)
+    anilist_id INTEGER UNIQUE,
+    mal_id INTEGER UNIQUE,
+    
+    -- Tag info
+    name TEXT NOT NULL,
+    name_romaji TEXT,
+    name_native TEXT,
+    description TEXT,
+    
+    -- Tag metadata
+    category TEXT, -- 'Genre', 'Theme', 'Demographic', 'Content'
+    is_general_spoiler BOOLEAN DEFAULT false,
+    is_media_spoiler BOOLEAN DEFAULT false,
+    is_adult BOOLEAN DEFAULT false,
+    rank INTEGER DEFAULT 0,
+    
+    -- System
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- 11. RELATIONSHIP TABLES (All use INTERNAL IDs)
+-- ============================================
+
+-- Anime-Character relationship
+CREATE TABLE anime_characters (
+    id SERIAL PRIMARY KEY, -- Auto-increment for relationship ID
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE, -- INTERNAL reference
+    character_id INTEGER REFERENCES characters(id) ON DELETE CASCADE, -- INTERNAL reference
+    role TEXT, -- 'Main', 'Supporting', 'Background'
+    role_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(anime_id, character_id)
+);
+
+-- Manga-Character relationship
+CREATE TABLE manga_characters (
+    id SERIAL PRIMARY KEY, -- Auto-increment for relationship ID
+    manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE, -- INTERNAL reference
+    character_id INTEGER REFERENCES characters(id) ON DELETE CASCADE, -- INTERNAL reference
+    role TEXT, -- 'Main', 'Supporting', 'Background'
+    role_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(manga_id, character_id)
+);
+
+-- Anime-Studio relationship
+CREATE TABLE anime_studios (
+    id SERIAL PRIMARY KEY, -- Auto-increment for relationship ID
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE, -- INTERNAL reference
+    studio_id INTEGER REFERENCES studios(id) ON DELETE CASCADE, -- INTERNAL reference
+    role TEXT, -- 'Animation', 'Production', 'Licensor'
+    role_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(anime_id, studio_id)
+);
+
+-- Manga-Author relationship
+CREATE TABLE manga_authors (
+    id SERIAL PRIMARY KEY, -- Auto-increment for relationship ID
+    manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE, -- INTERNAL reference
+    author_id INTEGER REFERENCES authors(id) ON DELETE CASCADE, -- INTERNAL reference
+    role TEXT, -- 'Story', 'Art', 'Story & Art', 'Supervision'
+    role_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(manga_id, author_id)
+);
+
+-- Anime-Staff relationship
+CREATE TABLE anime_staff (
+    id SERIAL PRIMARY KEY, -- Auto-increment for relationship ID
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE, -- INTERNAL reference
+    staff_id INTEGER REFERENCES staff(id) ON DELETE CASCADE, -- INTERNAL reference
+    role TEXT, -- 'Director', 'Writer', 'Music', 'Character Design'
+    role_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(anime_id, staff_id)
+);
+
+-- Manga-Staff relationship
+CREATE TABLE manga_staff (
+    id SERIAL PRIMARY KEY, -- Auto-increment for relationship ID
+    manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE, -- INTERNAL reference
+    staff_id INTEGER REFERENCES staff(id) ON DELETE CASCADE, -- INTERNAL reference
+    role TEXT, -- 'Editor', 'Publisher', 'Translator'
+    role_notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(manga_id, staff_id)
+);
+
+-- Anime-Tag relationship
+CREATE TABLE anime_tags (
+    id SERIAL PRIMARY KEY, -- Auto-increment for relationship ID
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE, -- INTERNAL reference
+    tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE, -- INTERNAL reference
+    rank INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(anime_id, tag_id)
+);
+
+-- Manga-Tag relationship
+CREATE TABLE manga_tags (
+    id SERIAL PRIMARY KEY, -- Auto-increment for relationship ID
+    manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE, -- INTERNAL reference
+    tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE, -- INTERNAL reference
+    rank INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(manga_id, tag_id)
+);
+
+-- ============================================
+-- 12. USER INTERACTION TABLES (All use INTERNAL IDs)
+-- ============================================
+
+-- Anime user lists
+CREATE TABLE anime_user_lists (
+    id SERIAL PRIMARY KEY, -- Auto-increment for user list entry ID
+    user_id INTEGER NOT NULL, -- Your user system ID
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE, -- INTERNAL reference
+    list_type TEXT NOT NULL, -- 'WATCHING', 'COMPLETED', 'PLANNING', 'DROPPED', 'PAUSED'
+    progress INTEGER DEFAULT 0, -- episodes watched
+    rating INTEGER CHECK (rating >= 1 AND rating <= 10),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, anime_id)
+);
+
+-- Manga user lists
+CREATE TABLE manga_user_lists (
+    id SERIAL PRIMARY KEY, -- Auto-increment for user list entry ID
+    user_id INTEGER NOT NULL, -- Your user system ID
+    manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE, -- INTERNAL reference
+    list_type TEXT NOT NULL, -- 'READING', 'COMPLETED', 'PLANNING', 'DROPPED', 'PAUSED'
+    progress INTEGER DEFAULT 0, -- chapters read
+    rating INTEGER CHECK (rating >= 1 AND rating <= 10),
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, manga_id)
+);
+
+-- Anime comments
+CREATE TABLE anime_comments (
+    id SERIAL PRIMARY KEY, -- Auto-increment for comment ID
+    anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE, -- INTERNAL reference
+    user_id INTEGER NOT NULL, -- Your user system ID
+    comment TEXT NOT NULL,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 10),
+    is_spoiler BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Manga comments
+CREATE TABLE manga_comments (
+    id SERIAL PRIMARY KEY, -- Auto-increment for comment ID
+    manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE, -- INTERNAL reference
+    user_id INTEGER NOT NULL, -- Your user system ID
+    comment TEXT NOT NULL,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 10),
+    is_spoiler BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ============================================
+-- 13. PERFORMANCE INDEXES
+-- ============================================
+
+-- Primary entity indexes (INTERNAL IDs)
+CREATE INDEX idx_anime_id ON anime(id);
+CREATE INDEX idx_manga_id ON manga(id);
+CREATE INDEX idx_episodes_id ON episodes(id);
+CREATE INDEX idx_chapters_id ON chapters(id);
+CREATE INDEX idx_volumes_id ON volumes(id);
+CREATE INDEX idx_characters_id ON characters(id);
+CREATE INDEX idx_studios_id ON studios(id);
+CREATE INDEX idx_authors_id ON authors(id);
+CREATE INDEX idx_staff_id ON staff(id);
+CREATE INDEX idx_tags_id ON tags(id);
+
+-- External ID indexes (for sync)
+CREATE INDEX idx_anime_anilist_id ON anime(anilist_id);
+CREATE INDEX idx_anime_mal_id ON anime(mal_id);
+CREATE INDEX idx_manga_anilist_id ON manga(anilist_id);
+CREATE INDEX idx_manga_mal_id ON manga(mal_id);
+CREATE INDEX idx_characters_anilist_id ON characters(anilist_id);
+CREATE INDEX idx_characters_mal_id ON characters(mal_id);
+CREATE INDEX idx_studios_anilist_id ON studios(anilist_id);
+CREATE INDEX idx_studios_mal_id ON studios(mal_id);
+CREATE INDEX idx_authors_anilist_id ON authors(anilist_id);
+CREATE INDEX idx_authors_mal_id ON authors(mal_id);
+CREATE INDEX idx_staff_anilist_id ON staff(anilist_id);
+CREATE INDEX idx_staff_mal_id ON staff(mal_id);
+CREATE INDEX idx_tags_anilist_id ON tags(anilist_id);
+CREATE INDEX idx_tags_mal_id ON tags(mal_id);
+
+-- Content indexes
+CREATE INDEX idx_anime_title_english ON anime(title_english);
+CREATE INDEX idx_anime_title_romaji ON anime(title_romaji);
+CREATE INDEX idx_anime_status ON anime(status);
+CREATE INDEX idx_anime_popularity ON anime(popularity DESC);
+CREATE INDEX idx_anime_average_score ON anime(average_score DESC);
+CREATE INDEX idx_anime_genres ON anime USING GIN(genres);
+CREATE INDEX idx_anime_season_year ON anime(season_year);
+CREATE INDEX idx_anime_next_airing ON anime(next_airing_at);
+
+CREATE INDEX idx_manga_title_english ON manga(title_english);
+CREATE INDEX idx_manga_title_romaji ON manga(title_romaji);
+CREATE INDEX idx_manga_status ON manga(status);
+CREATE INDEX idx_manga_popularity ON manga(popularity DESC);
+CREATE INDEX idx_manga_average_score ON manga(average_score DESC);
+CREATE INDEX idx_manga_genres ON manga USING GIN(genres);
+CREATE INDEX idx_manga_next_chapter ON manga(next_chapter_at);
+
+-- Relationship indexes (INTERNAL IDs)
+CREATE INDEX idx_anime_characters_anime_id ON anime_characters(anime_id);
+CREATE INDEX idx_anime_characters_character_id ON anime_characters(character_id);
+CREATE INDEX idx_manga_characters_manga_id ON manga_characters(manga_id);
+CREATE INDEX idx_manga_characters_character_id ON manga_characters(character_id);
+CREATE INDEX idx_anime_studios_anime_id ON anime_studios(anime_id);
+CREATE INDEX idx_anime_studios_studio_id ON anime_studios(studio_id);
+CREATE INDEX idx_manga_authors_manga_id ON manga_authors(manga_id);
+CREATE INDEX idx_manga_authors_author_id ON manga_authors(author_id);
+CREATE INDEX idx_anime_staff_anime_id ON anime_staff(anime_id);
+CREATE INDEX idx_anime_staff_staff_id ON anime_staff(staff_id);
+CREATE INDEX idx_manga_staff_manga_id ON manga_staff(manga_id);
+CREATE INDEX idx_manga_staff_staff_id ON manga_staff(staff_id);
+CREATE INDEX idx_anime_tags_anime_id ON anime_tags(anime_id);
+CREATE INDEX idx_anime_tags_tag_id ON anime_tags(tag_id);
+CREATE INDEX idx_manga_tags_manga_id ON manga_tags(manga_id);
+CREATE INDEX idx_manga_tags_tag_id ON manga_tags(tag_id);
+
+-- User interaction indexes
+CREATE INDEX idx_anime_user_lists_user_id ON anime_user_lists(user_id);
+CREATE INDEX idx_anime_user_lists_anime_id ON anime_user_lists(anime_id);
+CREATE INDEX idx_anime_user_lists_list_type ON anime_user_lists(list_type);
+CREATE INDEX idx_manga_user_lists_user_id ON manga_user_lists(user_id);
+CREATE INDEX idx_manga_user_lists_manga_id ON manga_user_lists(manga_id);
+CREATE INDEX idx_manga_user_lists_list_type ON manga_user_lists(list_type);
+CREATE INDEX idx_anime_comments_anime_id ON anime_comments(anime_id);
+CREATE INDEX idx_anime_comments_user_id ON anime_comments(user_id);
+CREATE INDEX idx_manga_comments_manga_id ON manga_comments(manga_id);
+CREATE INDEX idx_manga_comments_user_id ON manga_comments(user_id);
+
+-- ============================================
+-- 14. AUTO-UPDATE TRIGGERS
+-- ============================================
+
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Triggers for all tables
+CREATE TRIGGER update_anime_updated_at BEFORE UPDATE ON anime FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_manga_updated_at BEFORE UPDATE ON manga FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_episodes_updated_at BEFORE UPDATE ON episodes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_chapters_updated_at BEFORE UPDATE ON chapters FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_volumes_updated_at BEFORE UPDATE ON volumes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_characters_updated_at BEFORE UPDATE ON characters FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_studios_updated_at BEFORE UPDATE ON studios FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_authors_updated_at BEFORE UPDATE ON authors FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_staff_updated_at BEFORE UPDATE ON staff FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_tags_updated_at BEFORE UPDATE ON tags FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- 15. ROW LEVEL SECURITY (RLS)
+-- ============================================
+
+-- Enable RLS on all tables
+ALTER TABLE anime ENABLE ROW LEVEL SECURITY;
+ALTER TABLE manga ENABLE ROW LEVEL SECURITY;
+ALTER TABLE episodes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chapters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE volumes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE characters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE studios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE authors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE anime_characters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE manga_characters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE anime_studios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE manga_authors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE anime_staff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE manga_staff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE anime_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE manga_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE anime_user_lists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE manga_user_lists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE anime_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE manga_comments ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for public read access
+CREATE POLICY "Public read access" ON anime FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON manga FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON episodes FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON chapters FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON volumes FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON characters FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON studios FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON authors FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON staff FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON tags FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON anime_characters FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON manga_characters FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON anime_studios FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON manga_authors FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON anime_staff FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON manga_staff FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON anime_tags FOR SELECT USING (true);
+CREATE POLICY "Public read access" ON manga_tags FOR SELECT USING (true);
+
+-- User-specific policies for user lists and comments
+CREATE POLICY "Users can manage their own lists" ON anime_user_lists USING (auth.uid()::text = user_id::text);
+CREATE POLICY "Users can manage their own lists" ON manga_user_lists USING (auth.uid()::text = user_id::text);
+CREATE POLICY "Users can manage their own comments" ON anime_comments USING (auth.uid()::text = user_id::text);
+CREATE POLICY "Users can manage their own comments" ON manga_comments USING (auth.uid()::text = user_id::text);
+
+-- ============================================
+-- 16. VERIFICATION
+-- ============================================
+
+-- Verify all tables were created
+SELECT 
+    schemaname,
+    tablename,
+    tableowner
+FROM pg_tables 
+WHERE schemaname = 'public' 
+ORDER BY tablename;
+
+-- Verify all indexes were created
+SELECT 
+    schemaname,
+    tablename,
+    indexname
+FROM pg_indexes 
+WHERE schemaname = 'public' 
+ORDER BY tablename, indexname;
+
+-- Verify all triggers were created
+SELECT 
+    trigger_name,
+    event_object_table,
+    action_timing,
+    event_manipulation
+FROM information_schema.triggers 
+WHERE trigger_schema = 'public'
+ORDER BY event_object_table, trigger_name;
+
+```
+
+---
+
+## 17) Appendix B — Core Views + Aux Tables
+
+### 08_create_user_lists_view.sql
+```sql
+-- ============================================
+-- CREATE UNIFIED VIEW: user_lists
+-- Bridges anime_user_lists and manga_user_lists into a single shape expected by the app
+-- ============================================
+
+CREATE OR REPLACE VIEW public.user_lists AS
+SELECT
+  aul.id AS id,
+  aul.user_id::text AS user_id,
+  aul.anime_id AS media_id,
+  'anime'::text AS media_type,
+  aul.list_type AS status,
+  aul.progress AS progress,
+  NULL::integer AS progress_volumes,
+  CASE WHEN aul.rating IS NULL THEN NULL ELSE aul.rating * 10 END AS score,
+  aul.notes AS notes,
+  NULL::timestamp with time zone AS started_at,
+  NULL::timestamp with time zone AS completed_at,
+  FALSE AS private,
+  aul.created_at AS created_at,
+  aul.updated_at AS updated_at
+FROM public.anime_user_lists aul
+UNION ALL
+SELECT
+  mul.id AS id,
+  mul.user_id::text AS user_id,
+  mul.manga_id AS media_id,
+  'manga'::text AS media_type,
+  mul.list_type AS status,
+  mul.progress AS progress,
+  NULL::integer AS progress_volumes,
+  CASE WHEN mul.rating IS NULL THEN NULL ELSE mul.rating * 10 END AS score,
+  mul.notes AS notes,
+  NULL::timestamp with time zone AS started_at,
+  NULL::timestamp with time zone AS completed_at,
+  FALSE AS private,
+  mul.created_at AS created_at,
+  mul.updated_at AS updated_at
+FROM public.manga_user_lists mul;
+
+-- Optional helper indexes on the view via materialized pattern could be added if needed.
+
+```
+
+### 09_import_state.sql
+```sql
+-- Cursor table for scheduled imports
+CREATE TABLE IF NOT EXISTS public.import_state (
+  media_type text PRIMARY KEY, -- 'ANIME' | 'MANGA'
+  last_page integer NOT NULL DEFAULT 0,
+  updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Seed rows if not present
+INSERT INTO public.import_state (media_type, last_page)
+VALUES ('ANIME', 0)
+ON CONFLICT (media_type) DO NOTHING;
+
+INSERT INTO public.import_state (media_type, last_page)
+VALUES ('MANGA', 0)
+ON CONFLICT (media_type) DO NOTHING;
+
+```
+
+### 10_create_user_airing_next_view.sql
+```sql
+-- ============================================
+-- CREATE USER-SCOPED UPCOMING AIRINGS VIEW (ANIME)
+-- Only includes titles saved by a user, with a future next_airing_at
+-- Requires: 12_fix_user_id_type.sql must be run FIRST
+-- ============================================
+
+CREATE OR REPLACE VIEW public.user_airing_next AS
+SELECT
+  aul.user_id        AS user_id,           -- TEXT (after migration)
+  a.id               AS anime_id,          -- anime PK
+  a.title_english    AS title_english,
+  a.title_romaji     AS title_romaji,
+  a.next_episode_number AS next_episode_number,
+  a.next_airing_at   AS next_airing_at,
+  aul.list_type      AS list_type,         -- WATCHING, COMPLETED, etc.
+  aul.progress       AS progress,          -- Episodes watched
+  aul.updated_at     AS list_updated_at
+FROM public.anime_user_lists aul
+JOIN public.anime a ON a.id = aul.anime_id
+WHERE a.next_airing_at IS NOT NULL
+  AND a.next_airing_at > now()
+ORDER BY a.next_airing_at ASC;
+
+-- Notes:
+-- - RLS applies on underlying tables
+-- - Client should filter: WHERE user_id = auth.uid()::text
+-- - Can add additional filters for date windows (e.g., next 7 days)
+-- - Ordered by airing date (soonest first)
+
+-- Verification query (optional):
+-- SELECT * FROM user_airing_next WHERE user_id = auth.uid()::text LIMIT 5;
+```
+
+### 11_airing_next_rpc.sql
+```sql
+-- ============================================
+-- OPTIONAL: RPC to fetch the caller's upcoming airings within N days
+-- Uses auth.uid() for scoping; SECURITY INVOKER respects RLS
+-- Requires: 12_fix_user_id_type.sql must be run FIRST
+-- ============================================
+
+CREATE OR REPLACE FUNCTION public.airing_next(days integer DEFAULT 7)
+RETURNS TABLE(
+  anime_id int,
+  title_english text,
+  title_romaji text,
+  next_episode_number int,
+  next_airing_at timestamptz,
+  list_type text,
+  progress int
+) AS $$
+  SELECT
+    a.id,
+    a.title_english,
+    a.title_romaji,
+    a.next_episode_number,
+    a.next_airing_at,
+    aul.list_type,
+    aul.progress
+  FROM public.anime a
+  JOIN public.anime_user_lists aul ON aul.anime_id = a.id
+  WHERE aul.user_id = auth.uid()::text  -- Matches TEXT user_id
+    AND a.next_airing_at IS NOT NULL
+    AND a.next_airing_at BETWEEN now() AND (now() + (days || ' days')::interval)
+  ORDER BY a.next_airing_at ASC
+  LIMIT 500;
+$$ LANGUAGE sql SECURITY INVOKER STABLE;
+
+-- Notes:
+-- - SECURITY INVOKER: Executes with caller's permissions (respects RLS)
+-- - STABLE: Query result doesn't change within transaction (optimization)
+-- - Returns up to 500 upcoming episodes within specified days window
+-- - Ordered by airing date (soonest first)
+
+-- Usage example:
+-- SELECT * FROM airing_next(7);  -- Next 7 days
+-- SELECT * FROM airing_next(1);  -- Next 24 hours
+```
+
+### 13_alter_episodes_add_stream_fields.sql
+```sql
+-- Adds streaming link fields to episodes for Watch CTA support
+ALTER TABLE public.episodes
+  ADD COLUMN IF NOT EXISTS stream_url TEXT;
+
+ALTER TABLE public.episodes
+  ADD COLUMN IF NOT EXISTS stream_site TEXT;
+```
+
+### 14_create_external_links.sql
+```sql
+-- Stores curated external streaming links for anime/manga detail CTAs
+CREATE TABLE IF NOT EXISTS public.external_links (
+  id SERIAL PRIMARY KEY,
+  media_type TEXT CHECK (media_type IN ('ANIME','MANGA')) NOT NULL,
+  media_id INT NOT NULL,
+  site TEXT,
+  url TEXT NOT NULL,
+  language TEXT,
+  color TEXT,
+  priority INT DEFAULT 999,
+  is_disabled BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(media_type, media_id, url)
+);
+
+CREATE INDEX IF NOT EXISTS idx_external_links_media ON public.external_links(media_type, media_id);
+
+ALTER TABLE public.external_links ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  BEGIN
+    CREATE POLICY "Public read access" ON public.external_links FOR SELECT USING (true);
+  EXCEPTION WHEN duplicate_object THEN
+    NULL;
+  END;
+END;
+$$;
+```
+
+### 20260204124500_title_aliases.sql
+```sql
+-- User-specific title aliases for "magic" parsing.
+-- Stores previously-confirmed mappings from noisy user input -> canonical media id.
+
+begin;
+
+create table if not exists public.title_aliases (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  alias_norm text not null,
+  media_type text not null check (media_type in ('ANIME','MANGA')),
+  media_id integer not null,
+  title_raw text,
+  hits integer not null default 1,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, alias_norm, media_type)
+);
+
+create index if not exists idx_title_aliases_user_updated on public.title_aliases (user_id, updated_at desc);
+create index if not exists idx_title_aliases_user_alias on public.title_aliases (user_id, alias_norm);
+
+alter table public.title_aliases enable row level security;
+
+do $$ begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public' and tablename='title_aliases' and policyname='title_aliases_own_all'
+  ) then
+    create policy title_aliases_own_all on public.title_aliases
+      for all
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  end if;
+end $$;
+
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'title_aliases_set_updated_at') then
+    create trigger title_aliases_set_updated_at
+      before update on public.title_aliases
+      for each row execute function public.set_updated_at();
+  end if;
+end $$;
+
+commit;
+
+```
+
+### 20260203233500_mirror_runs.sql
+```sql
+begin;
+
+-- Track mirror-images runs so schedules can be verified and failures diagnosed.
+create table if not exists public.mirror_runs (
+  id bigserial primary key,
+  status text not null default 'running', -- running | success | error | skipped
+  payload jsonb,
+  results jsonb,
+  message text,
+  started_at timestamptz not null default now(),
+  finished_at timestamptz,
+  duration_ms integer
+);
+
+create index if not exists idx_mirror_runs_started_at on public.mirror_runs (started_at desc);
+
+commit;
+
+```
+
+---
+
+## 18) Appendix C — Concierge Guardrails + Budgets DDL
+
+### 20260204221500_concierge_rate_limits_and_llm_budgets.sql
+```sql
+-- Server-side guardrails for Concierge:
+-- - Rate limits (per-user and per-IP) for Edge Functions
+-- - LLM daily budget + global kill-switch flag
+
+begin;
+
+-- 1) Kill switch / flags (readable via SECURITY DEFINER function).
+create table if not exists public.system_flags (
+  key text primary key,
+  enabled boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.system_flags enable row level security;
+
+-- No policies: clients cannot read flags directly.
+
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'system_flags_set_updated_at') then
+    create trigger system_flags_set_updated_at
+      before update on public.system_flags
+      for each row execute function public.set_updated_at();
+  end if;
+end $$;
+
+insert into public.system_flags(key, enabled)
+values ('llm_enabled', true)
+on conflict (key) do nothing;
+
+create or replace function public.is_flag_enabled(p_key text)
+returns boolean
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare v boolean;
+begin
+  select enabled into v from public.system_flags where key = p_key;
+  return coalesce(v, true);
+end $$;
+
+grant execute on function public.is_flag_enabled(text) to anon, authenticated;
+
+-- 2) Rate limit buckets (atomic upsert increments).
+create table if not exists public.rate_limit_buckets (
+  bucket_key text not null,
+  window_start timestamptz not null,
+  hits integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (bucket_key, window_start)
+);
+
+create index if not exists idx_rate_limit_buckets_window_start on public.rate_limit_buckets (window_start desc);
+
+alter table public.rate_limit_buckets enable row level security;
+-- No policies: users cannot read/write buckets directly.
+
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'rate_limit_buckets_set_updated_at') then
+    create trigger rate_limit_buckets_set_updated_at
+      before update on public.rate_limit_buckets
+      for each row execute function public.set_updated_at();
+  end if;
+end $$;
+
+create or replace function public.rate_limit_hit(
+  p_bucket_key text,
+  p_window_seconds integer
+)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare wstart timestamptz;
+declare v integer;
+begin
+  if p_bucket_key is null or length(p_bucket_key) = 0 then
+    raise exception 'rate_limit_hit: missing bucket_key';
+  end if;
+  if p_window_seconds is null or p_window_seconds < 1 or p_window_seconds > 86400 then
+    raise exception 'rate_limit_hit: invalid window_seconds';
+  end if;
+
+  -- Fixed window bucket aligned to epoch.
+  wstart := to_timestamp(floor(extract(epoch from now()) / p_window_seconds) * p_window_seconds);
+
+  insert into public.rate_limit_buckets(bucket_key, window_start, hits)
+  values (p_bucket_key, wstart, 1)
+  on conflict (bucket_key, window_start)
+  do update set hits = public.rate_limit_buckets.hits + 1, updated_at = now()
+  returning hits into v;
+
+  return v;
+end $$;
+
+grant execute on function public.rate_limit_hit(text, integer) to anon, authenticated;
+
+create or replace function public.check_concierge_rate_limit(
+  p_kind text,
+  p_ip text,
+  p_window_seconds integer default 60,
+  p_max_user integer default 40,
+  p_max_ip integer default 120
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare uid uuid;
+declare u_hits integer;
+declare ip_hits integer;
+declare allow boolean := true;
+declare retry_after integer;
+declare kind text;
+begin
+  uid := auth.uid();
+  kind := coalesce(nullif(p_kind, ''), 'any');
+
+  if uid is null and (p_ip is null or length(p_ip) = 0) then
+    return jsonb_build_object('allowed', true, 'note', 'no uid/ip');
+  end if;
+
+  if uid is not null then
+    u_hits := public.rate_limit_hit('user:' || uid::text || ':' || kind || ':' || p_window_seconds::text, p_window_seconds);
+    if u_hits > coalesce(p_max_user, 0) then allow := false; end if;
+  end if;
+
+  if p_ip is not null and length(p_ip) > 0 then
+    ip_hits := public.rate_limit_hit('ip:' || p_ip || ':' || kind || ':' || p_window_seconds::text, p_window_seconds);
+    if ip_hits > coalesce(p_max_ip, 0) then allow := false; end if;
+  end if;
+
+  retry_after := p_window_seconds - (extract(epoch from now())::integer % p_window_seconds);
+  return jsonb_build_object(
+    'allowed', allow,
+    'user_hits', u_hits,
+    'ip_hits', ip_hits,
+    'retry_after_s', retry_after
+  );
+end $$;
+
+grant execute on function public.check_concierge_rate_limit(text, text, integer, integer, integer) to anon, authenticated;
+
+-- 3) LLM daily budget (reserve + finalize to keep budgets accurate and concurrency-safe).
+create table if not exists public.llm_daily_usage (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  day date not null,
+  reserved_tokens integer not null default 0,
+  actual_tokens integer not null default 0,
+  calls integer not null default 0,
+  last_model text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, day)
+);
+
+alter table public.llm_daily_usage enable row level security;
+-- No policies: users cannot read/write usage directly.
+
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'llm_daily_usage_set_updated_at') then
+    create trigger llm_daily_usage_set_updated_at
+      before update on public.llm_daily_usage
+      for each row execute function public.set_updated_at();
+  end if;
+end $$;
+
+create or replace function public.llm_budget_reserve(
+  p_reserved_tokens integer,
+  p_max_daily_tokens integer default 20000,
+  p_max_daily_calls integer default 80,
+  p_model text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare uid uuid;
+declare d date;
+declare used_tokens integer;
+declare used_calls integer;
+declare next_tokens integer;
+declare next_calls integer;
+declare allow boolean;
+declare lock_key bigint;
+begin
+  uid := auth.uid();
+  if uid is null then
+    return jsonb_build_object('allowed', false, 'reason', 'unauthenticated');
+  end if;
+
+  d := (timezone('utc', now()))::date;
+  if p_reserved_tokens is null or p_reserved_tokens < 0 or p_reserved_tokens > 500000 then
+    return jsonb_build_object('allowed', false, 'reason', 'invalid_reserved_tokens');
+  end if;
+
+  lock_key := hashtext(uid::text || ':' || d::text || ':llm')::bigint;
+  perform pg_advisory_xact_lock(lock_key);
+
+  select
+    coalesce(actual_tokens, 0) + coalesce(reserved_tokens, 0),
+    coalesce(calls, 0)
+  into used_tokens, used_calls
+  from public.llm_daily_usage
+  where user_id = uid and day = d;
+
+  next_tokens := coalesce(used_tokens, 0) + p_reserved_tokens;
+  next_calls := coalesce(used_calls, 0) + 1;
+
+  allow :=
+    next_tokens <= coalesce(p_max_daily_tokens, 0)
+    and next_calls <= coalesce(p_max_daily_calls, 0);
+
+  if allow then
+    insert into public.llm_daily_usage(user_id, day, reserved_tokens, actual_tokens, calls, last_model)
+    values (uid, d, p_reserved_tokens, 0, 1, p_model)
+    on conflict (user_id, day)
+    do update set
+      reserved_tokens = public.llm_daily_usage.reserved_tokens + excluded.reserved_tokens,
+      calls = public.llm_daily_usage.calls + 1,
+      last_model = coalesce(excluded.last_model, public.llm_daily_usage.last_model),
+      updated_at = now();
+  end if;
+
+  return jsonb_build_object(
+    'allowed', allow,
+    'day', d::text,
+    'used_tokens', coalesce(used_tokens, 0),
+    'used_calls', coalesce(used_calls, 0),
+    'next_tokens', next_tokens,
+    'next_calls', next_calls,
+    'max_daily_tokens', p_max_daily_tokens,
+    'max_daily_calls', p_max_daily_calls
+  );
+end $$;
+
+create or replace function public.llm_budget_finalize(
+  p_reserved_tokens integer,
+  p_actual_tokens integer,
+  p_model text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare uid uuid;
+declare d date;
+declare lock_key bigint;
+declare r integer;
+declare a integer;
+declare tokens_total integer;
+declare reserved_total integer;
+declare actual_total integer;
+declare calls_total integer;
+begin
+  uid := auth.uid();
+  if uid is null then
+    return jsonb_build_object('success', false, 'reason', 'unauthenticated');
+  end if;
+
+  d := (timezone('utc', now()))::date;
+  r := greatest(0, least(coalesce(p_reserved_tokens, 0), 500000));
+  a := greatest(0, least(coalesce(p_actual_tokens, 0), 500000));
+
+  lock_key := hashtext(uid::text || ':' || d::text || ':llm')::bigint;
+  perform pg_advisory_xact_lock(lock_key);
+
+  -- Ensure row exists even if finalize is called after a failed reserve (best-effort).
+  insert into public.llm_daily_usage(user_id, day, reserved_tokens, actual_tokens, calls, last_model)
+  values (uid, d, 0, 0, 0, p_model)
+  on conflict (user_id, day) do nothing;
+
+  update public.llm_daily_usage
+  set
+    reserved_tokens = greatest(0, reserved_tokens - r),
+    actual_tokens = actual_tokens + a,
+    last_model = coalesce(p_model, last_model),
+    updated_at = now()
+  where user_id = uid and day = d;
+
+  select reserved_tokens, actual_tokens, calls
+  into reserved_total, actual_total, calls_total
+  from public.llm_daily_usage
+  where user_id = uid and day = d;
+
+  tokens_total := coalesce(reserved_total, 0) + coalesce(actual_total, 0);
+  return jsonb_build_object(
+    'success', true,
+    'day', d::text,
+    'reserved_tokens', coalesce(reserved_total, 0),
+    'actual_tokens', coalesce(actual_total, 0),
+    'tokens_total', coalesce(tokens_total, 0),
+    'calls', coalesce(calls_total, 0)
+  );
+end $$;
+
+grant execute on function public.llm_budget_reserve(integer, integer, integer, text) to authenticated;
+grant execute on function public.llm_budget_finalize(integer, integer, text) to authenticated;
+
+commit;
+```
+
+### 20260204233010_concierge_ops_observability_and_retention.sql
+```sql
+-- Concierge ops hardening:
+-- - Config table for tunable guardrails without redeploy
+-- - Parse feedback logging (low-confidence/no-match)
+-- - Retention + housekeeping (pg_cron)
+-- - Admin-only metrics views (no grants)
+
+begin;
+
+-- 1) Config (single-row JSON, simple to edit in the dashboard).
+create table if not exists public.concierge_config (
+  id boolean primary key default true, -- single row: id=true
+  config jsonb not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.concierge_config enable row level security;
+-- No policies: clients cannot read/write config directly.
+
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'concierge_config_set_updated_at') then
+    create trigger concierge_config_set_updated_at
+      before update on public.concierge_config
+      for each row execute function public.set_updated_at();
+  end if;
+end $$;
+
+-- Default config (safe launch defaults).
+insert into public.concierge_config(id, config)
+values (
+  true,
+  jsonb_build_object(
+    'rate_limits', jsonb_build_object(
+      'parse', jsonb_build_object('window_seconds', 60, 'max_user', 140, 'max_ip', 240),
+      'apply', jsonb_build_object('window_seconds', 60, 'max_user', 18, 'max_ip', 80),
+      'undo', jsonb_build_object('window_seconds', 60, 'max_user', 12, 'max_ip', 50),
+      'resolve', jsonb_build_object('window_seconds', 60, 'max_user', 18, 'max_ip', 80),
+      'recommend', jsonb_build_object('window_seconds', 60, 'max_user', 30, 'max_ip', 100)
+    ),
+    'llm_budget', jsonb_build_object(
+      'daily_tokens', 20000,
+      'daily_calls', 80
+    ),
+    'parse_feedback', jsonb_build_object(
+      'enabled', true,
+      'low_confidence_score', 0.55,
+      'max_log_chars', 140
+    ),
+    'retention_days', jsonb_build_object(
+      'rate_limit_buckets', 2,
+      'llm_daily_usage', 90,
+      'import_sessions', 30,
+      'concierge_runs', 60,
+      'parse_feedback', 14
+    )
+  )
+)
+on conflict (id) do nothing;
+
+create or replace function public.get_concierge_config()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare cfg jsonb;
+begin
+  select config into cfg from public.concierge_config where id = true;
+  return coalesce(cfg, '{}'::jsonb);
+end $$;
+
+grant execute on function public.get_concierge_config() to anon, authenticated;
+
+-- 2) Parse feedback table (for iterative improvement).
+create table if not exists public.concierge_parse_feedback (
+  id bigserial primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  raw_snippet text,
+  normalized text,
+  alias_norm text,
+  best_score real,
+  candidates_count integer,
+  top_media_type text,
+  top_media_id integer,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_concierge_parse_feedback_created on public.concierge_parse_feedback (created_at desc);
+create index if not exists idx_concierge_parse_feedback_user_created on public.concierge_parse_feedback (user_id, created_at desc);
+
+alter table public.concierge_parse_feedback enable row level security;
+-- No policies: do not expose raw user text to other clients.
+
+create or replace function public.log_concierge_parse_feedback(
+  p_raw text,
+  p_normalized text,
+  p_alias_norm text,
+  p_best_score real,
+  p_candidates_count integer,
+  p_top_media_type text,
+  p_top_media_id integer
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare uid uuid;
+declare cfg jsonb;
+declare enabled boolean;
+declare low_score real;
+declare max_chars integer;
+begin
+  uid := auth.uid();
+  if uid is null then
+    return;
+  end if;
+
+  cfg := public.get_concierge_config();
+  enabled := coalesce((cfg->'parse_feedback'->>'enabled')::boolean, true);
+  if not enabled then
+    return;
+  end if;
+
+  low_score := coalesce((cfg->'parse_feedback'->>'low_confidence_score')::real, 0.55);
+  if p_best_score is not null and p_best_score >= low_score then
+    return;
+  end if;
+
+  max_chars := greatest(20, least(coalesce((cfg->'parse_feedback'->>'max_log_chars')::int, 140), 400));
+
+  insert into public.concierge_parse_feedback(
+    user_id, raw_snippet, normalized, alias_norm, best_score, candidates_count, top_media_type, top_media_id
+  )
+  values(
+    uid,
+    left(coalesce(p_raw, ''), max_chars),
+    left(coalesce(p_normalized, ''), max_chars),
+    left(coalesce(p_alias_norm, ''), max_chars),
+    p_best_score,
+    p_candidates_count,
+    left(coalesce(p_top_media_type, ''), 16),
+    p_top_media_id
+  );
+end $$;
+
+grant execute on function public.log_concierge_parse_feedback(text, text, text, real, integer, text, integer) to authenticated;
+
+-- 3) Make guardrail functions read defaults from config when caller passes null.
+create or replace function public.check_concierge_rate_limit(
+  p_kind text,
+  p_ip text,
+  p_window_seconds integer default 60,
+  p_max_user integer default 40,
+  p_max_ip integer default 120
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare uid uuid;
+declare u_hits integer;
+declare ip_hits integer;
+declare allow boolean := true;
+declare retry_after integer;
+declare kind text;
+declare cfg jsonb;
+declare rl jsonb;
+declare win_s integer;
+declare max_u integer;
+declare max_i integer;
+begin
+  uid := auth.uid();
+  kind := coalesce(nullif(p_kind, ''), 'any');
+
+  cfg := public.get_concierge_config();
+  rl := cfg->'rate_limits'->kind;
+
+  win_s := coalesce(p_window_seconds, (rl->>'window_seconds')::int, 60);
+  max_u := coalesce(p_max_user, (rl->>'max_user')::int, 40);
+  max_i := coalesce(p_max_ip, (rl->>'max_ip')::int, 120);
+
+  if uid is null and (p_ip is null or length(p_ip) = 0) then
+    return jsonb_build_object('allowed', true, 'note', 'no uid/ip');
+  end if;
+
+  if uid is not null then
+    u_hits := public.rate_limit_hit('user:' || uid::text || ':' || kind || ':' || win_s::text, win_s);
+    if u_hits > coalesce(max_u, 0) then allow := false; end if;
+  end if;
+
+  if p_ip is not null and length(p_ip) > 0 then
+    ip_hits := public.rate_limit_hit('ip:' || p_ip || ':' || kind || ':' || win_s::text, win_s);
+    if ip_hits > coalesce(max_i, 0) then allow := false; end if;
+  end if;
+
+  retry_after := win_s - (extract(epoch from now())::integer % win_s);
+  return jsonb_build_object(
+    'allowed', allow,
+    'user_hits', u_hits,
+    'ip_hits', ip_hits,
+    'retry_after_s', retry_after,
+    'window_seconds', win_s,
+    'max_user', max_u,
+    'max_ip', max_i
+  );
+end $$;
+
+-- LLM budget defaults from config when caller passes null.
+create or replace function public.llm_budget_reserve(
+  p_reserved_tokens integer,
+  p_max_daily_tokens integer default 20000,
+  p_max_daily_calls integer default 80,
+  p_model text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare uid uuid;
+declare d date;
+declare used_tokens integer;
+declare used_calls integer;
+declare next_tokens integer;
+declare next_calls integer;
+declare allow boolean;
+declare lock_key bigint;
+declare cfg jsonb;
+declare budget jsonb;
+declare max_tokens integer;
+declare max_calls integer;
+begin
+  uid := auth.uid();
+  if uid is null then
+    return jsonb_build_object('allowed', false, 'reason', 'unauthenticated');
+  end if;
+
+  d := (timezone('utc', now()))::date;
+  if p_reserved_tokens is null or p_reserved_tokens < 0 or p_reserved_tokens > 500000 then
+    return jsonb_build_object('allowed', false, 'reason', 'invalid_reserved_tokens');
+  end if;
+
+  cfg := public.get_concierge_config();
+  budget := cfg->'llm_budget';
+  max_tokens := coalesce(p_max_daily_tokens, (budget->>'daily_tokens')::int, 20000);
+  max_calls := coalesce(p_max_daily_calls, (budget->>'daily_calls')::int, 80);
+
+  lock_key := hashtext(uid::text || ':' || d::text || ':llm')::bigint;
+  perform pg_advisory_xact_lock(lock_key);
+
+  select
+    coalesce(actual_tokens, 0) + coalesce(reserved_tokens, 0),
+    coalesce(calls, 0)
+  into used_tokens, used_calls
+  from public.llm_daily_usage
+  where user_id = uid and day = d;
+
+  next_tokens := coalesce(used_tokens, 0) + p_reserved_tokens;
+  next_calls := coalesce(used_calls, 0) + 1;
+
+  allow :=
+    next_tokens <= coalesce(max_tokens, 0)
+    and next_calls <= coalesce(max_calls, 0);
+
+  if allow then
+    insert into public.llm_daily_usage(user_id, day, reserved_tokens, actual_tokens, calls, last_model)
+    values (uid, d, p_reserved_tokens, 0, 1, p_model)
+    on conflict (user_id, day)
+    do update set
+      reserved_tokens = public.llm_daily_usage.reserved_tokens + excluded.reserved_tokens,
+      calls = public.llm_daily_usage.calls + 1,
+      last_model = coalesce(excluded.last_model, public.llm_daily_usage.last_model),
+      updated_at = now();
+  end if;
+
+  return jsonb_build_object(
+    'allowed', allow,
+    'day', d::text,
+    'used_tokens', coalesce(used_tokens, 0),
+    'used_calls', coalesce(used_calls, 0),
+    'next_tokens', next_tokens,
+    'next_calls', next_calls,
+    'max_daily_tokens', max_tokens,
+    'max_daily_calls', max_calls
+  );
+end $$;
+
+-- 4) Housekeeping + retention.
+create or replace function public.concierge_housekeeping()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare cfg jsonb;
+declare r jsonb;
+declare days_rate integer;
+declare days_llm integer;
+declare days_import integer;
+declare days_runs integer;
+declare days_feedback integer;
+begin
+  cfg := public.get_concierge_config();
+  r := cfg->'retention_days';
+  days_rate := coalesce((r->>'rate_limit_buckets')::int, 2);
+  days_llm := coalesce((r->>'llm_daily_usage')::int, 90);
+  days_import := coalesce((r->>'import_sessions')::int, 30);
+  days_runs := coalesce((r->>'concierge_runs')::int, 60);
+  days_feedback := coalesce((r->>'parse_feedback')::int, 14);
+
+  delete from public.rate_limit_buckets
+  where window_start < now() - make_interval(days => greatest(1, days_rate));
+
+  delete from public.llm_daily_usage
+  where day < (timezone('utc', now())::date - greatest(7, days_llm));
+
+  -- Import sessions/items (only completed/cancelled/failed; keep drafts).
+  delete from public.import_session_items i
+  using public.import_sessions s
+  where i.session_id = s.id
+    and s.status in ('applied','cancelled','failed')
+    and s.updated_at < now() - make_interval(days => greatest(7, days_import));
+
+  delete from public.import_sessions
+  where status in ('applied','cancelled','failed')
+    and updated_at < now() - make_interval(days => greatest(7, days_import));
+
+  delete from public.concierge_runs
+  where created_at < now() - make_interval(days => greatest(14, days_runs));
+
+  delete from public.concierge_parse_feedback
+  where created_at < now() - make_interval(days => greatest(7, days_feedback));
+end $$;
+
+-- Schedule housekeeping daily (best-effort). If pg_cron isn't available, the function still exists.
+do $$
+begin
+  begin
+    create extension if not exists pg_cron;
+  exception when others then
+    -- ignore if extension not available in this environment
+    return;
+  end;
+
+  -- Ensure we don't double-schedule.
+  if not exists (select 1 from cron.job where jobname = 'concierge_housekeeping_daily') then
+    perform cron.schedule('concierge_housekeeping_daily', '0 4 * * *', 'select public.concierge_housekeeping();');
+  end if;
+end $$;
+
+-- 5) Admin views (no grants; use dashboard/service role).
+create or replace view public.concierge_metrics_hourly as
+select
+  date_trunc('hour', created_at) as hour,
+  kind,
+  status,
+  count(*)::int as runs,
+  coalesce(sum(items_count), 0)::int as items_total,
+  coalesce(avg(latency_ms), 0)::real as avg_latency_ms,
+  coalesce(sum(case when error is null then 0 else 1 end), 0)::int as errors
+from public.concierge_runs
+group by 1, 2, 3;
+
+create or replace view public.llm_usage_daily_totals as
+select
+  day,
+  count(*)::int as users,
+  sum(actual_tokens)::bigint as actual_tokens,
+  sum(reserved_tokens)::bigint as reserved_tokens,
+  sum(calls)::bigint as calls
+from public.llm_daily_usage
+group by 1
+order by day desc;
+
+create or replace view public.rate_limit_recent_top as
+select
+  window_start,
+  bucket_key,
+  hits
+from public.rate_limit_buckets
+where window_start > now() - interval '6 hours'
+order by hits desc, window_start desc
+limit 200;
+
+commit;
+```
+
+### 20260205000500_concierge_global_llm_budget_and_default_tuning.sql
+```sql
+-- Add global LLM daily budget + tune default "natural usage" limits.
+-- Goal: prevent LLM spend abuse even with many users.
+
+begin;
+
+-- 1) Global daily usage table.
+create table if not exists public.llm_global_daily_usage (
+  day date primary key,
+  reserved_tokens integer not null default 0,
+  actual_tokens integer not null default 0,
+  calls integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.llm_global_daily_usage enable row level security;
+-- No policies: clients cannot read/write global usage directly.
+
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'llm_global_daily_usage_set_updated_at') then
+    create trigger llm_global_daily_usage_set_updated_at
+      before update on public.llm_global_daily_usage
+      for each row execute function public.set_updated_at();
+  end if;
+end $$;
+
+create or replace function public.llm_global_budget_reserve(
+  p_reserved_tokens integer,
+  p_max_daily_tokens integer,
+  p_max_daily_calls integer
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare d date;
+declare used_tokens integer;
+declare used_calls integer;
+declare next_tokens integer;
+declare next_calls integer;
+declare allow boolean;
+declare lock_key bigint;
+begin
+  d := (timezone('utc', now()))::date;
+  if p_reserved_tokens is null or p_reserved_tokens < 0 or p_reserved_tokens > 500000 then
+    return jsonb_build_object('allowed', false, 'reason', 'invalid_reserved_tokens');
+  end if;
+  if p_max_daily_tokens is null or p_max_daily_tokens < 0 then
+    return jsonb_build_object('allowed', false, 'reason', 'invalid_max_daily_tokens');
+  end if;
+  if p_max_daily_calls is null or p_max_daily_calls < 0 then
+    return jsonb_build_object('allowed', false, 'reason', 'invalid_max_daily_calls');
+  end if;
+
+  lock_key := hashtext(d::text || ':global_llm')::bigint;
+  perform pg_advisory_xact_lock(lock_key);
+
+  select coalesce(actual_tokens, 0) + coalesce(reserved_tokens, 0), coalesce(calls, 0)
+  into used_tokens, used_calls
+  from public.llm_global_daily_usage
+  where day = d;
+
+  next_tokens := coalesce(used_tokens, 0) + p_reserved_tokens;
+  next_calls := coalesce(used_calls, 0) + 1;
+
+  allow := next_tokens <= p_max_daily_tokens and next_calls <= p_max_daily_calls;
+
+  if allow then
+    insert into public.llm_global_daily_usage(day, reserved_tokens, actual_tokens, calls)
+    values (d, p_reserved_tokens, 0, 1)
+    on conflict (day) do update set
+      reserved_tokens = public.llm_global_daily_usage.reserved_tokens + excluded.reserved_tokens,
+      calls = public.llm_global_daily_usage.calls + 1,
+      updated_at = now();
+  end if;
+
+  return jsonb_build_object(
+    'allowed', allow,
+    'day', d::text,
+    'used_tokens', coalesce(used_tokens, 0),
+    'used_calls', coalesce(used_calls, 0),
+    'next_tokens', next_tokens,
+    'next_calls', next_calls,
+    'max_daily_tokens', p_max_daily_tokens,
+    'max_daily_calls', p_max_daily_calls
+  );
+end $$;
+
+create or replace function public.llm_global_budget_finalize(
+  p_reserved_tokens integer,
+  p_actual_tokens integer
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare d date;
+declare lock_key bigint;
+declare r integer;
+declare a integer;
+declare reserved_total integer;
+declare actual_total integer;
+declare calls_total integer;
+begin
+  d := (timezone('utc', now()))::date;
+  r := greatest(0, least(coalesce(p_reserved_tokens, 0), 500000));
+  a := greatest(0, least(coalesce(p_actual_tokens, 0), 500000));
+
+  lock_key := hashtext(d::text || ':global_llm')::bigint;
+  perform pg_advisory_xact_lock(lock_key);
+
+  insert into public.llm_global_daily_usage(day, reserved_tokens, actual_tokens, calls)
+  values (d, 0, 0, 0)
+  on conflict (day) do nothing;
+
+  update public.llm_global_daily_usage
+  set
+    reserved_tokens = greatest(0, reserved_tokens - r),
+    actual_tokens = actual_tokens + a,
+    updated_at = now()
+  where day = d;
+
+  select reserved_tokens, actual_tokens, calls
+  into reserved_total, actual_total, calls_total
+  from public.llm_global_daily_usage
+  where day = d;
+
+  return jsonb_build_object(
+    'success', true,
+    'day', d::text,
+    'reserved_tokens', coalesce(reserved_total, 0),
+    'actual_tokens', coalesce(actual_total, 0),
+    'calls', coalesce(calls_total, 0)
+  );
+end $$;
+
+grant execute on function public.llm_global_budget_reserve(integer, integer, integer) to authenticated;
+grant execute on function public.llm_global_budget_finalize(integer, integer) to authenticated;
+
+-- 2) Patch default config with "natural usage" limits + global budget.
+update public.concierge_config
+set config =
+  jsonb_set(
+    jsonb_set(
+      jsonb_set(
+        config,
+        '{llm_budget}',
+        jsonb_build_object('daily_tokens', 12000, 'daily_calls', 40),
+        true
+      ),
+      '{global_llm_budget}',
+      jsonb_build_object('daily_tokens', 250000, 'daily_calls', 600),
+      true
+    ),
+    '{rate_limits}',
+    jsonb_build_object(
+      'parse', jsonb_build_object('window_seconds', 60, 'max_user', 120, 'max_ip', 300),
+      'apply', jsonb_build_object('window_seconds', 60, 'max_user', 12, 'max_ip', 50),
+      'undo', jsonb_build_object('window_seconds', 60, 'max_user', 6, 'max_ip', 20),
+      'resolve', jsonb_build_object('window_seconds', 60, 'max_user', 10, 'max_ip', 40),
+      'recommend', jsonb_build_object('window_seconds', 60, 'max_user', 20, 'max_ip', 80)
+    ),
+    true
+  )
+where id = true;
+
+commit;
+
+```
+
+### 20260205002000_concierge_budget_raise.sql
+```sql
+-- Raise LLM token budgets (requested):
+-- - global daily tokens: 1,000,000
+-- - per-user daily tokens: 50,000
+
+begin;
+
+update public.concierge_config
+set config =
+  jsonb_set(
+    jsonb_set(
+      config,
+      '{llm_budget,daily_tokens}',
+      to_jsonb(50000),
+      true
+    ),
+    '{global_llm_budget,daily_tokens}',
+    to_jsonb(1000000),
+    true
+  )
+where id = true;
+
+commit;
+
+```
+
+---
+
+## 19) Appendix D — Recommendation & Search RPC DDL (selected)
+
+### 20260203183000_concierge_recommend_rpc.sql
+```sql
+-- Deterministic recommendation primitives (no LLM).
+-- Uses tags + join tables to produce "new to you" premium-ish candidates.
+
+begin;
+
+create or replace function public.recommend_ids_by_tag_categories(
+  p_media_type text,
+  p_categories text[],
+  p_limit integer default 10
+)
+returns table (
+  media_type text,
+  media_id integer,
+  match_count integer
+)
+language sql stable as $$
+  select media_type, media_id, match_count from (
+    select
+      'ANIME'::text as media_type,
+      at.anime_id as media_id,
+      count(*)::int as match_count,
+      max(a.average_score) as avg_score,
+      max(a.popularity) as pop
+    from public.anime_tags at
+    join public.tags t on t.id = at.tag_id
+    join public.anime a on a.id = at.anime_id
+    where p_media_type = 'ANIME'
+      and auth.uid() is not null
+      and t.category = any(p_categories)
+      and coalesce(t.is_adult, false) = false
+      and coalesce(a.is_adult, false) = false
+      and not ('Hentai' = any(coalesce(a.genres, '{}'::text[])))
+      and not ('Ecchi' = any(coalesce(a.genres, '{}'::text[])))
+      and not exists (
+        select 1
+        from public.user_lists ul
+        where ul.user_id = auth.uid()::text
+          and ul.media_type = 'anime'
+          and ul.media_id = at.anime_id
+      )
+    group by at.anime_id
+
+    union all
+
+    select
+      'MANGA'::text as media_type,
+      mt.manga_id as media_id,
+      count(*)::int as match_count,
+      max(m.average_score) as avg_score,
+      max(m.popularity) as pop
+    from public.manga_tags mt
+    join public.tags t on t.id = mt.tag_id
+    join public.manga m on m.id = mt.manga_id
+    where p_media_type = 'MANGA'
+      and auth.uid() is not null
+      and t.category = any(p_categories)
+      and coalesce(t.is_adult, false) = false
+      and coalesce(m.is_adult, false) = false
+      and not ('Hentai' = any(coalesce(m.genres, '{}'::text[])))
+      and not ('Ecchi' = any(coalesce(m.genres, '{}'::text[])))
+      and not exists (
+        select 1
+        from public.user_lists ul
+        where ul.user_id = auth.uid()::text
+          and ul.media_type = 'manga'
+          and ul.media_id = mt.manga_id
+      )
+    group by mt.manga_id
+  ) ranked
+  order by match_count desc, avg_score desc nulls last, pop desc nulls last
+  limit greatest(1, least(p_limit, 50));
+$$;
+
+grant execute on function public.recommend_ids_by_tag_categories(text, text[], integer) to authenticated;
+
+commit;
+```
+
+### 20260203190000_editorial_recommend_engine.sql
+```sql
+-- Editorial weighting for premium recommendations.
+-- Goal: push classics/masterpieces up front; softly de-emphasize gimmick isekai/reincarnation/harem,
+-- while still keeping everything searchable and accessible.
+
+begin;
+
+create table if not exists public.editorial_boosts (
+  media_type text not null check (media_type in ('ANIME','MANGA')),
+  media_id integer not null,
+  weight integer not null default 0,
+  label text not null default '',
+  created_at timestamptz not null default now(),
+  primary key (media_type, media_id)
+);
+
+create table if not exists public.editorial_penalty_tags (
+  tag_id integer primary key references public.tags(id) on delete cascade,
+  penalty integer not null default 0,
+  reason text,
+  created_at timestamptz not null default now()
+);
+
+-- Seed: core classics/masterpieces (internal ids, not AniList ids).
+insert into public.editorial_boosts (media_type, media_id, weight, label) values
+  ('MANGA', 14, 25, 'classic'),   -- Vagabond
+  ('MANGA', 97, 22, 'classic'),   -- Kingdom
+  ('MANGA', 30, 25, 'classic'),   -- 20th Century Boys
+  ('MANGA', 29, 22, 'classic'),   -- Monster
+  ('MANGA', 5, 25, 'classic'),    -- Berserk
+  ('MANGA', 16, 18, 'classic'),   -- Vinland Saga
+  ('MANGA', 11, 18, 'classic'),   -- Oyasumi Punpun
+  ('MANGA', 98, 18, 'classic'),   -- Slam Dunk
+  ('MANGA', 162, 16, 'classic'),  -- Real
+  ('MANGA', 116, 14, 'classic'),  -- The Climber
+  ('MANGA', 169, 18, 'classic'),  -- Akira
+  ('ANIME', 12, 16, 'classic'),   -- Fullmetal Alchemist: Brotherhood
+  ('ANIME', 29, 14, 'classic'),   -- Steins;Gate
+  ('ANIME', 117, 12, 'classic'),  -- Cowboy Bebop
+  ('ANIME', 1072, 14, 'classic')  -- Legend of the Galactic Heroes
+on conflict (media_type, media_id) do update
+  set weight = excluded.weight, label = excluded.label;
+
+-- Seed: de-emphasize gimmick clusters by default (not a ban).
+insert into public.editorial_penalty_tags (tag_id, penalty, reason) values
+  (350, -12, 'Isekai'),
+  (1023, -10, 'Reincarnation'),
+  (358, -6, 'Female Harem'),
+  (9154, -6, 'Male Harem'),
+  (18064, -6, 'Mixed Gender Harem')
+on conflict (tag_id) do update
+  set penalty = excluded.penalty, reason = excluded.reason;
+
+create or replace function public.recommend_ids_premium(
+  p_media_type text,
+  p_categories text[] default null,
+  p_limit integer default 10,
+  p_allow_gimmicks boolean default false
+)
+returns table (
+  media_id integer,
+  match_count integer,
+  score real
+)
+language sql stable security definer
+set search_path = public
+as $$
+  with req as (
+    select
+      greatest(1, least(coalesce(p_limit, 10), 50))::int as lim,
+      p_categories as cats,
+      p_allow_gimmicks as allow_gimmicks
+  ),
+  me as (
+    select auth.uid()::text as user_id
+  ),
+  anime_pen as (
+    select at.anime_id as media_id, coalesce(sum(p.penalty), 0)::int as penalty
+    from public.anime_tags at
+    join public.editorial_penalty_tags p on p.tag_id = at.tag_id
+    group by at.anime_id
+  ),
+  manga_pen as (
+    select mt.manga_id as media_id, coalesce(sum(p.penalty), 0)::int as penalty
+    from public.manga_tags mt
+    join public.editorial_penalty_tags p on p.tag_id = mt.tag_id
+    group by mt.manga_id
+  ),
+  anime_match as (
+    select
+      at.anime_id as media_id,
+      count(*)::int as match_count
+    from public.anime_tags at
+    join public.tags t on t.id = at.tag_id
+    where p_categories is not null
+      and t.category = any(p_categories)
+      and coalesce(t.is_adult, false) = false
+      and coalesce(t.category, '') <> 'Sexual Content'
+    group by at.anime_id
+  ),
+  manga_match as (
+    select
+      mt.manga_id as media_id,
+      count(*)::int as match_count
+    from public.manga_tags mt
+    join public.tags t on t.id = mt.tag_id
+    where p_categories is not null
+      and t.category = any(p_categories)
+      and coalesce(t.is_adult, false) = false
+      and coalesce(t.category, '') <> 'Sexual Content'
+    group by mt.manga_id
+  )
+  select *
+  from (
+    select
+      a.id as media_id,
+      coalesce(am.match_count, 0) as match_count,
+      (
+        -- Tag fit (dominant when the user gives a vibe)
+        coalesce(am.match_count, 0) * 8
+        -- Quality (multi-signal, not rating-only)
+        + ln(1 + coalesce(a.favourites, 0)) * 2.0
+        + ln(1 + coalesce(a.popularity, 0)) * 1.0
+        + (coalesce(a.average_score, 0) / 10.0)
+        -- Classic bias
+        + case
+            when a.start_date_year is not null and a.start_date_year <= 2005 then 7
+            when a.start_date_year is not null and a.start_date_year <= 2015 then 4
+            else 0
+          end
+        -- Editorial boost
+        + coalesce(eb.weight, 0)
+        -- Soft penalties (unless user asks for gimmicks)
+        + case
+            when (select allow_gimmicks from req) then 0
+            else coalesce(ap.penalty, 0)
+          end
+      )::real as score
+    from public.anime a
+    left join anime_match am on am.media_id = a.id
+    left join public.editorial_boosts eb on eb.media_type = 'ANIME' and eb.media_id = a.id
+    left join anime_pen ap on ap.media_id = a.id
+    where p_media_type = 'ANIME'
+      and (select user_id from me) is not null
+      and coalesce(a.is_adult, false) = false
+      and not ('Hentai' = any(coalesce(a.genres, '{}'::text[])))
+      and not ('Ecchi' = any(coalesce(a.genres, '{}'::text[])))
+      and not exists (
+        select 1 from public.user_lists ul
+        where ul.user_id = (select user_id from me)
+          and ul.media_type = 'anime'
+          and ul.media_id = a.id
+      )
+
+    union all
+
+    select
+      m.id as media_id,
+      coalesce(mm.match_count, 0) as match_count,
+      (
+        coalesce(mm.match_count, 0) * 8
+        + ln(1 + coalesce(m.favourites, 0)) * 2.0
+        + ln(1 + coalesce(m.popularity, 0)) * 1.0
+        + (coalesce(m.average_score, 0) / 10.0)
+        + case
+            when m.start_date_year is not null and m.start_date_year <= 2000 then 6
+            when m.start_date_year is not null and m.start_date_year <= 2015 then 4
+            else 0
+          end
+        + coalesce(eb.weight, 0)
+        + case
+            when (select allow_gimmicks from req) then 0
+            else coalesce(mp.penalty, 0)
+          end
+      )::real as score
+    from public.manga m
+    left join manga_match mm on mm.media_id = m.id
+    left join public.editorial_boosts eb on eb.media_type = 'MANGA' and eb.media_id = m.id
+    left join manga_pen mp on mp.media_id = m.id
+    where p_media_type = 'MANGA'
+      and (select user_id from me) is not null
+      and coalesce(m.is_adult, false) = false
+      and not ('Hentai' = any(coalesce(m.genres, '{}'::text[])))
+      and not ('Ecchi' = any(coalesce(m.genres, '{}'::text[])))
+      and not exists (
+        select 1 from public.user_lists ul
+        where ul.user_id = (select user_id from me)
+          and ul.media_type = 'manga'
+          and ul.media_id = m.id
+      )
+  ) ranked
+  order by score desc
+  limit (select lim from req);
+$$;
+
+grant execute on function public.recommend_ids_premium(text, text[], integer, boolean) to authenticated;
+
+commit;
+```
