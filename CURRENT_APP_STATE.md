@@ -85,7 +85,7 @@ This file is a **contract**. It must be updated **after every single change** to
 
 ## 2.1) Auto-generated inventory (exhaustive file lists)
 
-Generated: **2026-02-05T15:15:51.818Z**  (git: `3626d46` on `main`)
+Generated: **2026-02-05T17:49:36.018Z**  (git: `d1efdb0` on `main`)
 
 This section is auto-generated. Rebuild it after any repo change:
 ```bash
@@ -139,7 +139,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/SettingsView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 28)
+### Supabase migrations (count: 29)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql`
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -168,6 +168,7 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260205000500_concierge_global_llm_budget_and_default_tuning.sql`
 - `supabase/migrations/20260205002000_concierge_budget_raise.sql`
 - `supabase/migrations/20260205160000_admin_schema_snapshot.sql`
+- `supabase/migrations/20260205190000_concierge_modes_config.sql`
 
 ### Supabase Edge Functions (index.ts) (count: 8)
 - `supabase/functions/bulk-import-anime/index.ts`
@@ -312,7 +313,7 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 
 ## 3.2) Auto iOS backend usage index
 
-Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
+Generated: **2026-02-05T17:49:36.123Z** (git: `d1efdb0`)
 
 - Swift files scanned: **45** (all `Kuro/**/*.swift`)
 
@@ -490,7 +491,7 @@ Client + edge functions rely on these RPCs:
 
 ## 7.1) Auto migration map (objects by migration)
 
-Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
+Generated: **2026-02-05T17:49:36.123Z** (git: `d1efdb0`)
 
 Each migration is summarized by the objects it defines. For full SQL, open the file.
 
@@ -599,6 +600,8 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
 ### supabase/migrations/20260205160000_admin_schema_snapshot.sql
 - Functions (1): `public.admin_schema_snapshot`
 
+### supabase/migrations/20260205190000_concierge_modes_config.sql
+
 
 <!-- END AUTO-MIGRATION-MAP -->
 
@@ -698,7 +701,7 @@ Request JSON:
 
 ## 8.2) Auto edge-function map (contracts + dependencies)
 
-Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
+Generated: **2026-02-05T17:49:36.123Z** (git: `d1efdb0`)
 
 ### bulk-import-anime
 - Source: `supabase/functions/bulk-import-anime/index.ts`
@@ -728,7 +731,7 @@ Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
 - Source: `supabase/functions/concierge-recommend/index.ts`
 - Env vars: `GROQ_API_KEY`, `GROQ_MODEL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - RPCs: `check_concierge_rate_limit`, `get_concierge_config`, `is_flag_enabled`, `llm_budget_finalize`, `llm_budget_reserve`, `llm_global_budget_finalize`, `llm_global_budget_reserve`, `log_concierge_run`, `recommend_ids_premium`, `recommend_ids_similar_to_seeds`, `search_titles`
-- Tables touched: `editorial_boosts`, `editorial_tag_boosts`
+- Tables touched: `editorial_boosts`, `editorial_tag_boosts`, `tags`
 
 ### concierge-resolve
 - Source: `supabase/functions/concierge-resolve/index.ts`
@@ -871,6 +874,7 @@ Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
 
 ## 14) Change Log (append-only)
 
+- 2026-02-05: Concierge recommendations: added configurable **vibe modes** (2 curated rails per prompt) + expanded Classics rail; response now includes `modes` + `sets` (backwards compatible `items`). Commits: `3bcc32f`, `a23e5b8`, `d1efdb0`
 - 2026-02-05: Added full "include everything" documentation pipeline (source excerpts + codebase bundle) and optional live DB snapshot tooling (`admin_schema_snapshot`). Commits: `889b9c8`, `7a87228`, `7d07be7`, `c2d0414`, `5eb4168`, `9c734db`
 - 2026-02-05: Redacted Supabase secrets from docs and from generated bundles/excerpts (docs remain reflective, but credentials are never inlined). Commits: `590e8a0`, `8da8b68`, `68f9a11`, `bce062f`, `16d3826`, `c8b9c3a`
 - 2026-02-05: Added auto-generated inventory + maps (migrations, edge functions, iOS RPC usage) via scripts.
@@ -3624,7 +3628,7 @@ node scripts/generate_app_state_live_snapshot.js
 
 <!-- BEGIN AUTO-LIVE-DB-SNAPSHOT -->
 
-Generated: **2026-02-05T15:15:52.059Z** (git: `3626d46`)
+Generated: **2026-02-05T17:49:36.205Z** (git: `d1efdb0`)
 
 Status: **SKIPPED** (missing `SUPABASE_URL` and/or `SUPABASE_SERVICE_ROLE_KEY` in environment).
 
@@ -3654,7 +3658,7 @@ node scripts/generate_app_state_codebase_bundle.js
 
 <!-- BEGIN AUTO-SOURCE-EXCERPTS -->
 
-Generated: **2026-02-05T15:22:43.354Z** (git: `68f9a11`)
+Generated: **2026-02-05T17:49:36.082Z** (git: `d1efdb0`)
 
 This section is auto-generated. Rebuild after any change to the referenced files:
 ```bash
@@ -8723,28 +8727,29 @@ class SupabaseService {
             return try await task.value
         }
 
-        let task = Task<ConciergeParseResponse, Error> { @MainActor [weak self] in
-            guard let self else { throw CancellationError() }
+        // Run decoding off the main actor to avoid UI jank (keyboard/input stutter).
+        let client = self.client
+        let task = Task<ConciergeParseResponse, Error>.detached(priority: .userInitiated) {
             let payload = [
                 "text": text,
                 "scope": scope.rawValue,
                 "limitPerItem": lim,
             ] as [String : Any]
-
-            do {
-                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-                let options = FunctionInvokeOptions(method: .post, body: data)
-                let resp: ConciergeParseResponse = try await self.client.functions.invoke("concierge-parse", options: options)
-                self.conciergeParseCache[key] = TimedCache(value: resp, storedAt: now)
-                self.trimCache(&self.conciergeParseCache, maxEntries: 50)
-                return resp
-            } catch {
-                throw self.translateConciergeFunctionError(error)
-            }
+            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+            let options = FunctionInvokeOptions(method: .post, body: data)
+            let resp: ConciergeParseResponse = try await client.functions.invoke("concierge-parse", options: options)
+            return resp
         }
         conciergeParseInFlight[key] = task
         defer { conciergeParseInFlight[key] = nil }
-        return try await task.value
+        do {
+            let resp = try await task.value
+            conciergeParseCache[key] = TimedCache(value: resp, storedAt: now)
+            trimCache(&conciergeParseCache, maxEntries: 50)
+            return resp
+        } catch {
+            throw translateConciergeFunctionError(error)
+        }
     }
 
     struct ConciergeApplyResponse: Decodable, Sendable {
@@ -8769,9 +8774,13 @@ class SupabaseService {
             let payload: [String: Any] = [
                 "items": items,
             ]
-            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-            let options = FunctionInvokeOptions(method: .post, body: data)
-            return try await client.functions.invoke("concierge-apply", options: options)
+            let client = self.client
+            let task = Task<ConciergeApplyResponse, Error>.detached(priority: .userInitiated) {
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                let options = FunctionInvokeOptions(method: .post, body: data)
+                return try await client.functions.invoke("concierge-apply", options: options)
+            }
+            return try await task.value
         } catch {
             throw translateConciergeFunctionError(error)
         }
@@ -8797,9 +8806,13 @@ class SupabaseService {
             let payload: [String: Any] = [
                 "sessionId": sessionId,
             ]
-            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-            let options = FunctionInvokeOptions(method: .post, body: data)
-            return try await client.functions.invoke("concierge-undo", options: options)
+            let client = self.client
+            let task = Task<ConciergeUndoResponse, Error>.detached(priority: .userInitiated) {
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                let options = FunctionInvokeOptions(method: .post, body: data)
+                return try await client.functions.invoke("concierge-undo", options: options)
+            }
+            return try await task.value
         } catch {
             throw translateConciergeFunctionError(error)
         }
@@ -8858,9 +8871,13 @@ class SupabaseService {
             "maxCandidates": max(2, min(10, maxCandidates)),
         ]
         do {
-            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-            let options = FunctionInvokeOptions(method: .post, body: data)
-            return try await client.functions.invoke("concierge-resolve", options: options)
+            let client = self.client
+            let task = Task<ConciergeResolveResponse, Error>.detached(priority: .userInitiated) {
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                let options = FunctionInvokeOptions(method: .post, body: data)
+                return try await client.functions.invoke("concierge-resolve", options: options)
+            }
+            return try await task.value
         } catch {
             throw translateConciergeFunctionError(error)
         }
@@ -8869,6 +8886,12 @@ class SupabaseService {
     struct ConciergeRecommendResponse: Decodable, Sendable {
         let success: Bool
         let categories: [String]?
+        struct Mode: Decodable, Sendable, Identifiable {
+            let id: String
+            let title: String
+            let confidence: Double?
+            let reason: String?
+        }
         struct Item: Decodable, Sendable, Identifiable {
             let mediaType: String
             let mediaId: Int
@@ -8885,6 +8908,16 @@ class SupabaseService {
 
             var id: String { "\(mediaType)|\(mediaId)" }
         }
+        struct Set: Decodable, Sendable, Identifiable {
+            let id: String
+            let title: String
+            let modeId: String?
+            let confidence: Double?
+            let reason: String?
+            let items: [Item]?
+        }
+        let modes: [Mode]?
+        let sets: [Set]?
         let items: [Item]?
         let message: String?
         let narrated: Bool?
@@ -8905,28 +8938,30 @@ class SupabaseService {
             return try await task.value
         }
 
-        let task = Task<ConciergeRecommendResponse, Error> { @MainActor [weak self] in
-            guard let self else { throw CancellationError() }
-            do {
-                let payload: [String: Any] = [
-                    "text": text,
-                    "scope": scope.rawValue,
-                    "limit": lim,
-                    "narrate": narrate,
-                ]
-                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-                let options = FunctionInvokeOptions(method: .post, body: data)
-                let resp: ConciergeRecommendResponse = try await self.client.functions.invoke("concierge-recommend", options: options)
-                self.conciergeRecommendCache[key] = TimedCache(value: resp, storedAt: now)
-                self.trimCache(&self.conciergeRecommendCache, maxEntries: 60)
-                return resp
-            } catch {
-                throw self.translateConciergeFunctionError(error)
-            }
+        // Run decoding off the main actor to keep the chat input responsive.
+        let client = self.client
+        let task = Task<ConciergeRecommendResponse, Error>.detached(priority: .userInitiated) {
+            let payload: [String: Any] = [
+                "text": text,
+                "scope": scope.rawValue,
+                "limit": lim,
+                "narrate": narrate,
+            ]
+            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+            let options = FunctionInvokeOptions(method: .post, body: data)
+            let resp: ConciergeRecommendResponse = try await client.functions.invoke("concierge-recommend", options: options)
+            return resp
         }
         conciergeRecommendInFlight[key] = task
         defer { conciergeRecommendInFlight[key] = nil }
-        return try await task.value
+        do {
+            let resp = try await task.value
+            conciergeRecommendCache[key] = TimedCache(value: resp, storedAt: now)
+            trimCache(&conciergeRecommendCache, maxEntries: 60)
+            return resp
+        } catch {
+            throw translateConciergeFunctionError(error)
+        }
     }
     
     // MARK: - Real-time Subscriptions  
@@ -9383,6 +9418,9 @@ struct ConciergeView: View {
                         Color.clear
                     }
                 )
+                // Prevent the global pager swipe gesture from stealing drags/taps while typing.
+                // This fixes "faulty" keyboard interactions and accidental page switches.
+                .kuroSwipeExclusionZone()
                 .padding(.horizontal, 16)
                 .padding(.bottom, 14)
                 .padding(.top, 8)
@@ -9569,9 +9607,13 @@ struct ConciergeView: View {
                 }
             } else {
                 let rec = try await supabaseService.conciergeRecommend(text: text, scope: .both, limit: 8)
-                if rec.success, let items = rec.items, !items.isEmpty {
+                let sets = (rec.sets ?? []).filter { ($0.items ?? []).isEmpty == false }
+                let flattened = sets.flatMap { $0.items ?? [] }
+                let displayItems = !flattened.isEmpty ? flattened : (rec.items ?? [])
+
+                if rec.success, !displayItems.isEmpty {
                     // Prefetch covers so the recommendation rail renders instantly.
-                    let urls = items
+                    let urls = displayItems
                         .compactMap { URL(string: $0.coverImageMedium ?? "") }
                         .prefix(16)
                     if !urls.isEmpty {
@@ -9581,9 +9623,11 @@ struct ConciergeView: View {
                         messages.append(
                             ConciergeMessage(
                                 role: .assistant,
-                                text: "Here are a few picks:",
+                                text: rec.message ?? "Here are a few picks:",
                                 items: nil,
-                                recommendations: items
+                                recommendations: displayItems,
+                                recommendationSets: sets.isEmpty ? nil : sets,
+                                recommendationCategories: rec.categories
                             )
                         )
                     }
@@ -9614,19 +9658,65 @@ struct ConciergeView: View {
     }
 
     private func looksLikeImport(_ text: String) -> Bool {
-        let t = text.lowercased()
-        if text.contains("\n") { return true }
-        if text.contains(",") && text.count < 180 { return true }
-        if t.contains("watching") || t.contains("reading") || t.contains("completed") || t.contains("finished") || t.contains("dropped") { return true }
-        if t.contains("i watched") || t.contains("i'm watching") || t.contains("im watching") { return true }
-        if t.contains("caught up") || t.contains("up to date") { return true }
-        if t.contains("ich habe") || t.contains("ich schaue") || t.contains("ich gucke") || t.contains("ich sehe") || t.contains("ich lese") { return true }
-        if t.contains("staffel") || t.contains("folge") || t.contains("kapitel") || t.contains("band") { return true }
-        if t.contains(" ep ") || t.contains("episode") || t.contains("chapter") || t.contains(" vol") { return true }
-        if t.range(of: #"s\d{1,2}\s*e\d{1,4}"#, options: .regularExpression) != nil { return true }
-        if t.range(of: #"\b\d{1,2}\s*x\s*\d{1,4}\b"#, options: .regularExpression) != nil { return true }
+        // High precision: false positives feel like "wrong responses" because we route to import parsing
+        // instead of recommendations. We prefer a few false negatives over misrouting vibes.
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let l = t.lowercased()
+
+        if t.contains("\n") { return true }
+
+        // Explicit import language (EN + DE)
+        if l.contains("watching") || l.contains("reading") || l.contains("completed") || l.contains("finished") || l.contains("dropped") { return true }
+        if l.contains("i watched") || l.contains("i'm watching") || l.contains("im watching") { return true }
+        if l.contains("caught up") || l.contains("up to date") { return true }
+        if l.contains("ich habe") || l.contains("ich schaue") || l.contains("ich gucke") || l.contains("ich sehe") || l.contains("ich lese") { return true }
+        if l.contains("staffel") || l.contains("folge") || l.contains("kapitel") || l.contains("band") { return true }
+
+        // Progress patterns
+        if l.contains(" ep ") || l.contains("episode") || l.contains("chapter") || l.contains(" vol") { return true }
+        if l.range(of: #"s\d{1,2}\s*e\d{1,4}"#, options: .regularExpression) != nil { return true }
+        if l.range(of: #"\b\d{1,2}\s*x\s*\d{1,4}\b"#, options: .regularExpression) != nil { return true }
+
+        // Comma-separated lists are common for vibes ("funny, not childish") so only treat commas
+        // as import if we have multiple title-like segments.
+        if t.contains(",") {
+            let parts = t.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            if parts.count >= 2 {
+                let titleLikeCount = parts.filter { segmentLooksTitleLike($0) }.count
+                if titleLikeCount >= 2 { return true }
+            }
+        }
+
         // Short prompts like "funny anime" shouldn't be treated as import.
-        if text.count <= 28 { return false }
+        if t.count <= 28 { return false }
+        return false
+    }
+
+    private func segmentLooksTitleLike(_ s: String) -> Bool {
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard t.count >= 2 else { return false }
+        let l = t.lowercased()
+
+        // Natural language / vibe words are not titles.
+        let vibeMarkers = ["something", "funny", "sad", "cozy", "vibe", "recommend", "suggest", "like", "but", "not", "please", "anime", "manga"]
+        if vibeMarkers.contains(where: { l.contains($0) }) && t.split(separator: " ").count <= 6 {
+            return false
+        }
+
+        // Strong title hints.
+        if t.contains("(") || t.contains(")") { return true }
+        if t.range(of: #"\b(19|20)\d{2}\b"#, options: .regularExpression) != nil { return true }
+        if l.range(of: #"\b(ep|episode|ch|chapter|vol|volume|s\d+e\d+|\d+x\d+)\b"#, options: .regularExpression) != nil { return true }
+
+        // Heuristic: multiple words + some uppercase characters.
+        let words = t.split(separator: " ")
+        if words.count >= 2 && t.range(of: #"[A-Z]"#, options: .regularExpression) != nil {
+            return true
+        }
+
+        // If user pasted lowercased titles, allow "two+ words" as a weak signal.
+        if words.count >= 3 { return true }
+
         return false
     }
 
@@ -10108,11 +10198,22 @@ private struct ConciergeBubble: View {
                 }
             }
 
-            if let recs = message.recommendations, !recs.isEmpty {
-                ConciergeRecommendationStepper(
+            if let cats = message.recommendationCategories, !cats.isEmpty,
+               ((message.recommendationSets ?? []).isEmpty == false || (message.recommendations ?? []).isEmpty == false) {
+                ConciergeCategoryPills(categories: cats)
+            }
+
+            if let sets = message.recommendationSets, !sets.isEmpty {
+                ConciergeRecommendationSetsDeck(
+                    sets: sets,
+                    hiddenIds: $hiddenRecommendationIds,
+                    onOpen: onOpenRecommendation,
+                    onSave: onQuickSave
+                )
+            } else if let recs = message.recommendations, !recs.isEmpty {
+                ConciergeRecommendationDeck(
                     items: recs,
                     hiddenIds: $hiddenRecommendationIds,
-                    index: $stepIndex,
                     onOpen: onOpenRecommendation,
                     onSave: onQuickSave
                 )
@@ -10122,10 +10223,35 @@ private struct ConciergeBubble: View {
     }
 }
 
-private struct ConciergeRecommendationStepper: View {
+private struct ConciergeCategoryPills: View {
+    let categories: [String]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(categories, id: \.self) { c in
+                    Text(c.uppercased())
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(1.3)
+                        .foregroundColor(.black.opacity(0.55))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.black.opacity(0.05))
+                        )
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+        .frame(height: 26)
+        .kuroSwipeExclusionZone()
+    }
+}
+
+private struct ConciergeRecommendationDeck: View {
     let items: [SupabaseService.ConciergeRecommendResponse.Item]
     @Binding var hiddenIds: Set<String>
-    @Binding var index: Int
     let onOpen: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
     let onSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
 
@@ -10133,89 +10259,120 @@ private struct ConciergeRecommendationStepper: View {
         items.filter { !hiddenIds.contains($0.id) }
     }
 
-    private func clampIndex() {
-        if index < 0 { index = 0 }
-        if index >= visible.count { index = max(0, visible.count - 1) }
+    private var classics: [SupabaseService.ConciergeRecommendResponse.Item] {
+        visible.filter { ($0.signals ?? []).map { $0.uppercased() }.contains("CLASSIC") }
+    }
+    private var picks: [SupabaseService.ConciergeRecommendResponse.Item] {
+        let classicIds = Set(classics.map { $0.id })
+        return visible.filter { !classicIds.contains($0.id) }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            header
-            if visible.isEmpty {
+        VStack(alignment: .leading, spacing: 12) {
+            if picks.isEmpty && classics.isEmpty {
                 Text("Nothing else in this set — try a different vibe.")
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(.black.opacity(0.5))
             } else {
-                card(for: visible[index])
+                if !picks.isEmpty {
+                    ConciergeRecommendationRail(
+                        title: "PICKS",
+                        items: picks,
+                        hiddenIds: $hiddenIds,
+                        onOpen: onOpen,
+                        onSave: onSave
+                    )
+                }
+                if !classics.isEmpty {
+                    ConciergeRecommendationRail(
+                        title: "CLASSICS",
+                        items: classics,
+                        hiddenIds: $hiddenIds,
+                        onOpen: onOpen,
+                        onSave: onSave
+                    )
+                }
             }
         }
-        .onAppear { clampIndex() }
-        .onChange(of: hiddenIds) { _, _ in clampIndex() }
-    }
-
-    private var header: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Text("PICKS")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(1.6)
-                .foregroundColor(.black.opacity(0.55))
-
-            Spacer()
-
-            Button {
-                KuroAccessibility.impactHaptic(.light)
-                index = max(0, index - 1)
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.black.opacity(index > 0 ? 0.65 : 0.15))
-            }
-            .buttonStyle(.plain)
-            .disabled(index == 0)
-
-            Text("\(min(index + 1, max(visible.count, 1))) / \(max(visible.count, 1))")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(1.0)
-                .foregroundColor(.black.opacity(0.4))
-
-            Button {
-                KuroAccessibility.impactHaptic(.light)
-                index = min(max(visible.count - 1, 0), index + 1)
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.black.opacity(index < (visible.count - 1) ? 0.65 : 0.15))
-            }
-            .buttonStyle(.plain)
-            .disabled(index >= visible.count - 1)
-        }
-        .padding(.top, 2)
-    }
-
-    private func card(for item: SupabaseService.ConciergeRecommendResponse.Item) -> some View {
-        ConciergeRecommendationStepCard(
-            item: item,
-            onOpen: { onOpen(item) },
-            onSave: {
-                onSave(item)
-                hiddenIds.insert(item.id)
-            },
-            onSkip: {
-                KuroAccessibility.impactHaptic(.light)
-                hiddenIds.insert(item.id)
-            }
-        )
     }
 }
 
-private struct ConciergeRecommendationStepCard: View {
+private struct ConciergeRecommendationSetsDeck: View {
+    let sets: [SupabaseService.ConciergeRecommendResponse.Set]
+    @Binding var hiddenIds: Set<String>
+    let onOpen: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
+    let onSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(sets) { set in
+                let items = set.items ?? []
+                if !items.isEmpty {
+                    ConciergeRecommendationRail(
+                        title: set.title.uppercased(),
+                        items: items,
+                        hiddenIds: $hiddenIds,
+                        onOpen: onOpen,
+                        onSave: onSave
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct ConciergeRecommendationRail: View {
+    let title: String
+    let items: [SupabaseService.ConciergeRecommendResponse.Item]
+    @Binding var hiddenIds: Set<String>
+    let onOpen: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
+    let onSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
+
+    private var visible: [SupabaseService.ConciergeRecommendResponse.Item] {
+        items.filter { !hiddenIds.contains($0.id) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundColor(.black.opacity(0.55))
+                Spacer()
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 12) {
+                    ForEach(visible) { item in
+                        ConciergeRecommendationCompactCard(
+                            item: item,
+                            onOpen: { onOpen(item) },
+                            onSave: {
+                                onSave(item)
+                                hiddenIds.insert(item.id)
+                            },
+                            onSkip: {
+                                KuroAccessibility.impactHaptic(.light)
+                                hiddenIds.insert(item.id)
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+            .kuroSwipeExclusionZone()
+        }
+    }
+}
+
+private struct ConciergeRecommendationCompactCard: View {
     let item: SupabaseService.ConciergeRecommendResponse.Item
     let onOpen: () -> Void
     let onSave: () -> Void
     let onSkip: () -> Void
 
-    private let width: CGFloat = 200
-    private var height: CGFloat { width / 0.7 }
+    private let width: CGFloat = 176
+    private var height: CGFloat { width / 0.72 }
 
     private var displayScore: Double? {
         guard let s = item.averageScore else { return nil }
@@ -10262,7 +10419,7 @@ private struct ConciergeRecommendationStepCard: View {
                                 .frame(width: width, height: height)
                                 .clipped()
                         case .failure, .empty:
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(Color.black.opacity(0.06))
                                 .frame(width: width, height: height)
                         @unknown default:
@@ -10270,7 +10427,7 @@ private struct ConciergeRecommendationStepCard: View {
                         }
                     }
                     .frame(width: width, height: height)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                     if let s = displayScore, s > 0 {
                         KuroScoreBadge(score: s)
@@ -10282,10 +10439,10 @@ private struct ConciergeRecommendationStepCard: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.black.opacity(0.92))
                     .lineLimit(2)
-                    .frame(height: 38, alignment: .top)
+                    .frame(height: 34, alignment: .top)
 
                 HStack(spacing: 6) {
                     if let y = item.year { Text(String(y)) }
@@ -10298,41 +10455,20 @@ private struct ConciergeRecommendationStepCard: View {
                 .foregroundColor(.black.opacity(0.55))
                 .frame(height: 14, alignment: .topLeading)
 
-                if !signals.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(signals, id: \.self) { b in
-                            Text(b)
-                                .font(.system(size: 10, weight: .semibold))
-                                .tracking(1.1)
-                                .foregroundColor(.black.opacity(0.55))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 999, style: .continuous)
-                                        .fill(Color.black.opacity(0.04))
-                                )
-                        }
-                    }
-                    .padding(.top, 2)
-                }
-
                 if let blurb = item.blurb, !blurb.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text(blurb)
                         .font(.system(size: 12, weight: .regular))
                         .foregroundColor(.black.opacity(0.62))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 2)
                 }
 
                 HStack(spacing: 10) {
                     Button(action: onSkip) {
-                        Text("SKIP")
-                            .font(.system(size: 11, weight: .semibold))
-                            .tracking(1.4)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.black.opacity(0.55))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
+                            .frame(width: 34, height: 34)
                             .background(
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                                     .fill(Color.black.opacity(0.03))
@@ -10341,16 +10477,20 @@ private struct ConciergeRecommendationStepCard: View {
                     .buttonStyle(.plain)
 
                     Button(action: onSave) {
-                        Text("SAVE")
-                            .font(.system(size: 11, weight: .semibold))
-                            .tracking(1.4)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color.black.opacity(0.9))
-                            )
+                        HStack(spacing: 8) {
+                            Image(systemName: "bookmark.fill")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text("SAVE")
+                                .font(.system(size: 11, weight: .semibold))
+                                .tracking(1.4)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 34)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color.black.opacity(0.90))
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -10731,17 +10871,23 @@ private struct KuroConciergeAssistant: View {
     let text: String
     let items: [SupabaseService.ConciergeParseItem]?
     let recommendations: [SupabaseService.ConciergeRecommendResponse.Item]?
+    let recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]?
+    let recommendationCategories: [String]?
 
     init(
         role: Role,
         text: String,
         items: [SupabaseService.ConciergeParseItem]? = nil,
-        recommendations: [SupabaseService.ConciergeRecommendResponse.Item]? = nil
+        recommendations: [SupabaseService.ConciergeRecommendResponse.Item]? = nil,
+        recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]? = nil,
+        recommendationCategories: [String]? = nil
     ) {
         self.role = role
         self.text = text
         self.items = items
         self.recommendations = recommendations
+        self.recommendationSets = recommendationSets
+        self.recommendationCategories = recommendationCategories
     }
 }
 
@@ -11932,6 +12078,23 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 type MediaType = "ANIME" | "MANGA";
 
+type ConciergeMode = {
+  id: string;
+  title: string;
+  synonyms?: string[];
+  required_genres?: string[];
+  exclude_genres?: string[];
+  min_score?: number;
+  min_popularity?: number;
+  max_popularity?: number;
+  exclude_formats?: string[];
+  classic_year_max?: number;
+};
+
+type ModePick = { id: string; title: string; confidence: number; reason: string };
+
+type CandidateRow = { media_id: number; match_count?: number | null; score?: number | null };
+
 function json(res: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(res), {
     ...init,
@@ -11941,6 +12104,209 @@ function json(res: unknown, init: ResponseInit = {}) {
 
 function uniq<T>(arr: T[]) {
   return Array.from(new Set(arr));
+}
+
+function safeStringArray(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return uniq(
+    v
+      .map((x) => (typeof x === "string" ? x.trim() : ""))
+      .filter((x) => x.length > 0),
+  );
+}
+
+function safeNumber(v: unknown): number | null {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function normalizeText(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[_/\\-]+/g, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseModesFromConfig(cfg: any): ConciergeMode[] {
+  const raw = cfg?.modes;
+  if (!Array.isArray(raw)) return [];
+  const out: ConciergeMode[] = [];
+  for (const r of raw) {
+    if (!r || typeof r !== "object") continue;
+    const id = typeof r.id === "string" ? r.id.trim() : "";
+    const title = typeof r.title === "string" ? r.title.trim() : "";
+    if (!id || !title) continue;
+    out.push({
+      id,
+      title,
+      synonyms: safeStringArray((r as any).synonyms),
+      required_genres: safeStringArray((r as any).required_genres),
+      exclude_genres: safeStringArray((r as any).exclude_genres),
+      min_score: safeNumber((r as any).min_score) ?? undefined,
+      min_popularity: safeNumber((r as any).min_popularity) ?? undefined,
+      max_popularity: safeNumber((r as any).max_popularity) ?? undefined,
+      exclude_formats: safeStringArray((r as any).exclude_formats),
+      classic_year_max: safeNumber((r as any).classic_year_max) ?? undefined,
+    });
+  }
+  return out;
+}
+
+function defaultModes(): ConciergeMode[] {
+  // Safe fallback if config/migration hasn't been applied yet.
+  return [
+    {
+      id: "premium_action",
+      title: "Premium Action",
+      synonyms: ["premium action", "best action", "action premium", "hype action", "fight scenes"],
+      required_genres: ["Action"],
+      min_score: 75,
+      min_popularity: 3500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "cozy_comfort",
+      title: "Cozy / Comfort",
+      synonyms: ["cozy", "comfort", "chill", "relax", "healing", "iyashikei", "gemütlich"],
+      required_genres: ["Slice of Life"],
+      min_score: 70,
+      min_popularity: 1200,
+      exclude_formats: ["MUSIC"],
+    },
+    {
+      id: "premium_comedy_grownup",
+      title: "Premium Comedy (grown-up)",
+      synonyms: ["funny but not childish", "grown up comedy", "smart comedy", "adult humor", "witzig aber nicht kindisch"],
+      required_genres: ["Comedy"],
+      min_score: 75,
+      min_popularity: 3500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "dark_serious",
+      title: "Dark / Serious",
+      synonyms: ["dark", "serious", "mature", "grown up", "not childish", "psychological", "thriller", "mind game"],
+      required_genres: ["Drama", "Thriller", "Psychological", "Mystery"],
+      min_score: 78,
+      min_popularity: 2500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "hidden_gems",
+      title: "Hidden Gems",
+      synonyms: ["hidden gems", "underrated", "less known", "something new", "new to me", "surprise me"],
+      min_score: 78,
+      max_popularity: 45000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "classics_expanded",
+      title: "Classics (expanded)",
+      synonyms: ["classic", "classics", "must watch", "essentials", "goat", "greatest of all time"],
+      classic_year_max: 2012,
+      min_score: 80,
+      min_popularity: 1500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+  ];
+}
+
+function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[]): { score: number; reason: string } {
+  const t = normalizeText(text);
+  let score = 0;
+  let reason = "";
+
+  const synonyms = mode.synonyms ?? [];
+  for (const syn of synonyms) {
+    const s = normalizeText(syn);
+    if (!s) continue;
+    if (t.includes(s)) {
+      score += Math.max(2, Math.min(5, Math.ceil(s.split(" ").length / 2) + 2));
+      if (!reason) reason = `matches "${syn}"`;
+    }
+  }
+
+  // Genre overlap is a strong signal (even if the user doesn't use the mode's exact synonyms).
+  const req = mode.required_genres ?? [];
+  const overlap = req.filter((g) => inferredGenres.includes(g));
+  if (overlap.length > 0) {
+    score += 2 + Math.min(3, overlap.length);
+    if (!reason) reason = `genre: ${overlap.slice(0, 2).join(", ")}`;
+  }
+
+  // Classic intent boosts the classics mode and slightly downweights gimmick modes.
+  const wantsClassic = /\b(classic|classics|must watch|essentials|goat|greatest)\b/i.test(text);
+  if (wantsClassic && mode.id.includes("classic")) {
+    score += 3;
+    if (!reason) reason = "classic intent";
+  }
+  const wantsHidden = /\b(hidden gem|underrated|less known|new to me|surprise)\b/i.test(text);
+  if (wantsHidden && mode.id.includes("hidden")) {
+    score += 3;
+    if (!reason) reason = "hidden gems intent";
+  }
+
+  // Cheap maturity heuristic.
+  const mature = /\b(not childish|grown[- ]?up|mature|serious|dark)\b/i.test(text);
+  if (mature && (mode.id.includes("grown") || mode.id.includes("dark"))) {
+    score += 2;
+    if (!reason) reason = "mature tone";
+  }
+
+  return { score, reason: reason || "default" };
+}
+
+function pickTwoModes(text: string, modes: ConciergeMode[], inferredGenres: string[]): ModePick[] {
+  const scored = modes.map((m) => {
+    const { score, reason } = scoreMode(text, m, inferredGenres);
+    return { mode: m, score, reason };
+  });
+
+  // Always keep a classics rail as a stable anchor, unless we don't have such a mode.
+  const classics = scored.find((x) => x.mode.id.includes("classic"))?.mode ?? null;
+
+  scored.sort((a, b) => b.score - a.score);
+
+  const primary = scored.find((x) => !x.mode.id.includes("classic"))?.mode ?? scored[0]?.mode ?? null;
+  const primaryReason = scored.find((x) => x.mode.id === primary?.id)?.reason ?? "default";
+  const primaryScore = scored.find((x) => x.mode.id === primary?.id)?.score ?? 0;
+
+  let secondary: ConciergeMode | null = null;
+  let secondaryReason = "default";
+  let secondaryScore = 0;
+
+  if (classics && classics.id !== primary?.id) {
+    secondary = classics;
+    const hit = scored.find((x) => x.mode.id === classics.id);
+    secondaryReason = hit?.reason ?? "classic rail";
+    secondaryScore = hit?.score ?? 0;
+  } else {
+    const next = scored.find((x) => x.mode.id !== primary?.id);
+    secondary = next?.mode ?? null;
+    secondaryReason = next?.reason ?? "default";
+    secondaryScore = next?.score ?? 0;
+  }
+
+  const mk = (m: ConciergeMode | null, score: number, reason: string): ModePick | null => {
+    if (!m) return null;
+    // Convert a small integer-ish score to a [0..1] confidence for UI/debugging.
+    const confidence = Math.max(0, Math.min(1, score / 10));
+    return { id: m.id, title: m.title, confidence, reason };
+  };
+
+  const out: ModePick[] = [];
+  const p = mk(primary, primaryScore, primaryReason);
+  if (p) out.push(p);
+  const s = mk(secondary, secondaryScore, secondaryReason);
+  if (s) out.push(s);
+  return out.slice(0, 2);
 }
 
 function inferLanguage(text: string): "de" | "en" {
@@ -11972,39 +12338,56 @@ function inferCategories(text: string): string[] {
   const t = text.toLowerCase();
   const out: string[] = [];
 
+  // NOTE:
+  // `recommend_ids_premium` uses `tags.category` (as imported from AniList tag.category) to compute matches.
+  // AniList category strings are usually "Comedy", "Drama", "Slice of Life", etc. (not "Theme-...").
+  //
+  // We also do a genre gate later using `anime.genres` / `manga.genres` for higher precision.
+
   // EN
-  if (/\b(fun|funny|comedy|laugh)\b/.test(t)) out.push("Theme-Comedy");
-  if (/\b(sad|cry|tears?|heartbreak)\b/.test(t)) out.push("Theme-Drama");
-  if (/\b(cozy|comfort|chill|relax)\b/.test(t)) out.push("Theme-Slice of Life");
-  if (/\b(romance|love)\b/.test(t)) out.push("Theme-Romance");
-  if (/\b(action)\b/.test(t)) out.push("Theme-Action");
-  if (/\b(fantasy)\b/.test(t)) out.push("Theme-Fantasy");
-  if (/\b(sci[- ]?fi|scifi|science fiction)\b/.test(t)) out.push("Theme-Sci-Fi");
-  if (/\b(sports?)\b/.test(t)) out.push("Theme-Game-Sport");
-  if (/\b(music)\b/.test(t)) out.push("Theme-Arts-Music");
+  if (/\b(fun|funny|comedy|laugh)\b/.test(t)) out.push("Comedy");
+  if (/\b(sad|cry|tears?|heartbreak)\b/.test(t)) out.push("Drama");
+  if (/\b(cozy|comfort|chill|relax)\b/.test(t)) out.push("Slice of Life");
+  if (/\b(romance|love|romcom)\b/.test(t)) out.push("Romance");
+  if (/\b(action)\b/.test(t)) out.push("Action");
+  if (/\b(adventure)\b/.test(t)) out.push("Adventure");
+  if (/\b(fantasy)\b/.test(t)) out.push("Fantasy");
+  if (/\b(sci[- ]?fi|scifi|science fiction)\b/.test(t)) out.push("Sci-Fi");
+  if (/\b(mystery|detective)\b/.test(t)) out.push("Mystery");
+  if (/\b(thriller)\b/.test(t)) out.push("Thriller");
+  if (/\b(horror|scary)\b/.test(t)) out.push("Horror");
+  if (/\b(psychological|mind[- ]?game)\b/.test(t)) out.push("Psychological");
+  if (/\b(supernatural)\b/.test(t)) out.push("Supernatural");
+  if (/\b(sports?)\b/.test(t)) out.push("Sports");
+  if (/\b(music)\b/.test(t)) out.push("Music");
 
   // DE (keep lightweight; only high-signal words)
-  if (/\b(lustig|witzig|kom(ö|oe)die|zum lachen)\b/.test(t)) out.push("Theme-Comedy");
-  if (/\b(traurig|heul|weinen|herzschmerz)\b/.test(t)) out.push("Theme-Drama");
-  if (/\b(gem(ü|ue)tlich|comfort|chillen|entspann)\b/.test(t)) out.push("Theme-Slice of Life");
-  if (/\b(liebe|romantik|romance)\b/.test(t)) out.push("Theme-Romance");
-  if (/\b(action)\b/.test(t)) out.push("Theme-Action");
-  if (/\b(fantasy|fantasie)\b/.test(t)) out.push("Theme-Fantasy");
-  if (/\b(sci[- ]?fi|science fiction)\b/.test(t)) out.push("Theme-Sci-Fi");
-  if (/\b(sport)\b/.test(t)) out.push("Theme-Game-Sport");
-  if (/\b(musik)\b/.test(t)) out.push("Theme-Arts-Music");
+  if (/\b(lustig|witzig|kom(ö|oe)die|zum lachen)\b/.test(t)) out.push("Comedy");
+  if (/\b(traurig|heul|weinen|herzschmerz)\b/.test(t)) out.push("Drama");
+  if (/\b(gem(ü|ue)tlich|comfort|chillen|entspann)\b/.test(t)) out.push("Slice of Life");
+  if (/\b(liebe|romantik|romance|romcom)\b/.test(t)) out.push("Romance");
+  if (/\b(action)\b/.test(t)) out.push("Action");
+  if (/\b(abenteuer)\b/.test(t)) out.push("Adventure");
+  if (/\b(fantasy|fantasie)\b/.test(t)) out.push("Fantasy");
+  if (/\b(sci[- ]?fi|science fiction)\b/.test(t)) out.push("Sci-Fi");
+  if (/\b(krimi|mystery|detektiv)\b/.test(t)) out.push("Mystery");
+  if (/\b(thriller)\b/.test(t)) out.push("Thriller");
+  if (/\b(horror|gruselig)\b/.test(t)) out.push("Horror");
+  if (/\b(psychologisch)\b/.test(t)) out.push("Psychological");
+  if (/\b(übernatürlich)\b/.test(t)) out.push("Supernatural");
+  if (/\b(sport)\b/.test(t)) out.push("Sports");
+  if (/\b(musik)\b/.test(t)) out.push("Music");
 
   // “First anime/manga” intent nudges toward accessible, broadly-liked picks.
   // This is not hardcoded curation; it just biases toward general-audience categories.
   if (/\b(first anime|first manga|getting into anime|getting into manga)\b/.test(t)) {
-    out.push("Theme-Slice of Life", "Theme-Drama", "Theme-Adventure");
+    out.push("Slice of Life", "Drama", "Adventure");
   }
   if (/\b(erstes anime|erstes manga|anime anfangen|manga anfangen|neu bei anime|neu bei manga)\b/.test(t)) {
-    out.push("Theme-Slice of Life", "Theme-Drama", "Theme-Adventure");
+    out.push("Slice of Life", "Drama", "Adventure");
   }
   // Explicit modes that should be discoverable.
-  if (/\b(isekai)\b/.test(t)) out.push("Theme-Fantasy");
-  if (/\b(reincarnat)/.test(t)) out.push("Theme-Other");
+  if (/\b(isekai)\b/.test(t)) out.push("Fantasy");
 
   return uniq(out);
 }
@@ -12020,21 +12403,58 @@ function inferGimmickTagIds(text: string): number[] {
   return uniq(ids);
 }
 
-function inferMoodFocusTagIds(text: string): number[] {
+function inferRequiredGenres(text: string): string[] {
   const t = text.toLowerCase();
-  const ids: number[] = [];
+  const out: string[] = [];
+  if (/\b(fun|funny|comedy|laugh|lustig|witzig|kom(ö|oe)die)\b/.test(t)) out.push("Comedy");
+  if (/\b(romance|love|romcom|liebe|romantik)\b/.test(t)) out.push("Romance");
+  if (/\b(action)\b/.test(t)) out.push("Action");
+  if (/\b(adventure|abenteuer)\b/.test(t)) out.push("Adventure");
+  if (/\b(fantasy|fantasie|isekai)\b/.test(t)) out.push("Fantasy");
+  if (/\b(sci[- ]?fi|scifi|science fiction)\b/.test(t)) out.push("Sci-Fi");
+  if (/\b(slice of life|sol|comfort|cozy|gem(ü|ue)tlich)\b/.test(t)) out.push("Slice of Life");
+  if (/\b(drama|sad|cry|traurig|herzschmerz)\b/.test(t)) out.push("Drama");
+  if (/\b(mystery|detective|krimi|detektiv)\b/.test(t)) out.push("Mystery");
+  if (/\b(thriller)\b/.test(t)) out.push("Thriller");
+  if (/\b(horror|scary|gruselig)\b/.test(t)) out.push("Horror");
+  if (/\b(psychological|psychologisch)\b/.test(t)) out.push("Psychological");
+  if (/\b(supernatural|übernatürlich)\b/.test(t)) out.push("Supernatural");
+  if (/\b(sports?|sport)\b/.test(t)) out.push("Sports");
+  return uniq(out);
+}
 
-  // Comedy-focused tags (keeps “funny” results actually funny).
-  if (/\b(fun|funny|comedy|laugh|lustig|witzig|kom(ö|oe)die)\b/.test(t)) {
-    ids.push(48, 161, 163); // Slapstick, Parody, Satire
+function inferQualityFloor(text: string): { minScore: number; minPopularity: number; excludeFormats: Set<string> } {
+  const t = text.toLowerCase();
+  const wantsPremium = /\b(premium|masterpiece|must[- ]?watch|classic|classics|top tier|best)\b/.test(t);
+  const noChildish = /\b(not childish|grown[- ]?up|mature|serious|not for kids)\b/.test(t);
+
+  // Defaults: avoid over-filtering; the DB may be small in early imports.
+  let minScore = 0;
+  let minPopularity = 0;
+
+  if (wantsPremium) {
+    minScore = 75;
+    minPopularity = 5000;
+  }
+  if (noChildish) {
+    minScore = Math.max(minScore, 75);
+    minPopularity = Math.max(minPopularity, 3500);
   }
 
-  // Drama-leaning “sad” tags.
-  if (/\b(sad|cry|tears?|heartbreak|traurig|heul|weinen|herzschmerz)\b/.test(t)) {
-    ids.push(3, 22); // Tragedy, Coming of Age
+  // Exclude shortform/noise formats unless explicitly requested.
+  const excludeFormats = new Set<string>(["TV_SHORT", "SPECIAL", "MUSIC"]);
+  if (/\b(short|mini|shortform)\b/.test(t)) {
+    excludeFormats.delete("TV_SHORT");
   }
+  return { minScore, minPopularity, excludeFormats };
+}
 
-  return uniq(ids);
+async function mapTagAnilistIdsToInternal(client: any, anilistIds: number[]): Promise<number[]> {
+  const ids = uniq(anilistIds).filter((x) => Number.isFinite(x) && x > 0);
+  if (!ids.length) return [];
+  const { data, error } = await client.from("tags").select("id,anilist_id").in("anilist_id", ids);
+  if (error || !Array.isArray(data)) return [];
+  return uniq(data.map((r: any) => Number(r.id)).filter((x: any) => Number.isFinite(x) && x > 0));
 }
 
 async function groqNarrate(opts: {
@@ -12185,68 +12605,87 @@ serve(async (req) => {
 
     const categories = inferCategories(text);
     const gimmickTagIds = inferGimmickTagIds(text);
-    const moodTagIds = inferMoodFocusTagIds(text);
-    const focusTagIds = uniq([...gimmickTagIds, ...moodTagIds]);
+    const requiredGenres = inferRequiredGenres(text);
+    const quality = inferQualityFloor(text);
+
+    // Concierge config (tunable without redeploy): used for modes + global LLM budgets.
+    const { data: conciergeCfg } = await client.rpc("get_concierge_config");
+    const configuredModes = parseModesFromConfig(conciergeCfg);
+    const modes = configuredModes.length ? configuredModes : defaultModes();
+
+    // Focus tags are only used for explicit "gimmicks" (isekai, reincarnation, etc.)
+    // because `recommend_ids_premium` *requires* focus tags to match when provided.
+    const focusTagIds = await mapTagAnilistIdsToInternal(client, gimmickTagIds);
     const allowGimmicks =
       gimmickTagIds.length > 0 || /\b(slime)\b/.test(text.toLowerCase());
     const lang = inferLanguage(text);
 
     const mediaType = inferMediaType(text, scope);
-    const results: any[] = [];
-
     const seedQuery = inferSeedQuery(text);
 
-    const run = async (mt: MediaType) => {
-      let rows: any[] = [];
+    // Load editorial tag boosts once; used to add deterministic "premium" signals.
+    const { data: tagBoosts } = await client
+      .from("editorial_tag_boosts")
+      .select("tag_id,boost,reason");
+    const tagBoostByTag = new Map<number, any>((tagBoosts ?? []).map((t: any) => [t.tag_id, t]));
+    const boostTagIds = Array.from(tagBoostByTag.keys());
 
-      // If the user gives an explicit seed ("like Vagabond"), prefer similarity over generic premium.
-      if (seedQuery) {
-        const seedType = mt;
-        const { data: seeds, error: seedErr } = await client.rpc("search_titles", {
-          p_query: seedQuery,
-          p_media_type: seedType,
-          p_limit: 6,
-        });
-        if (!seedErr && Array.isArray(seeds) && seeds.length > 0) {
-          const top = seeds[0];
-          if ((top?.score ?? 0) >= 0.35) {
-            const seedIds = [Number(top.media_id)];
-            const { data: sim, error: simErr } = await client.rpc("recommend_ids_similar_to_seeds", {
-              p_media_type: mt,
-              p_seed_ids: seedIds,
-              p_limit: limit,
-              p_allow_gimmicks: allowGimmicks,
-            });
-            if (!simErr && Array.isArray(sim)) {
-              rows = sim.map((r: any) => ({
-                media_id: r.media_id,
-                match_count: r.overlap_count ?? r.match_count ?? 0,
-                score: r.score ?? null,
-              }));
-            }
-          }
-        }
+    const mergeAlternating = <T>(a: T[], b: T[], max: number): T[] => {
+      const out: T[] = [];
+      let i = 0;
+      while (out.length < max && (i < a.length || i < b.length)) {
+        if (i < a.length) out.push(a[i]);
+        if (out.length >= max) break;
+        if (i < b.length) out.push(b[i]);
+        i++;
       }
+      return out;
+    };
 
-      if (rows.length === 0) {
-        const { data: ids, error } = await client.rpc("recommend_ids_premium", {
-          p_media_type: mt,
-          p_categories: categories.length ? categories : null,
-          p_limit: limit,
-          p_allow_gimmicks: allowGimmicks,
-          p_focus_tag_ids: focusTagIds.length ? focusTagIds : null,
-        });
-        if (error) throw error;
-        rows = Array.isArray(ids) ? ids : [];
+    const compileQuality = (mode: ConciergeMode | null) => {
+      const minScore = Math.max(quality.minScore, Number(mode?.min_score ?? 0) || 0);
+      const minPopularity = Math.max(quality.minPopularity, Number(mode?.min_popularity ?? 0) || 0);
+      const maxPopularityRaw = mode?.max_popularity;
+      const maxPopularity = Number.isFinite(Number(maxPopularityRaw)) ? Number(maxPopularityRaw) : null;
+      const excludeFormats = new Set<string>(Array.from(quality.excludeFormats));
+      for (const f of safeStringArray(mode?.exclude_formats)) {
+        excludeFormats.add(String(f).toUpperCase());
       }
+      return { minScore, minPopularity, maxPopularity, excludeFormats };
+    };
 
-      const idList = rows.map((r) => r.media_id);
-      if (idList.length === 0) return;
+    const getPremiumCandidates = async (mt: MediaType, pCategories: string[] | null): Promise<CandidateRow[]> => {
+      const { data: ids, error } = await client.rpc("recommend_ids_premium", {
+        p_media_type: mt,
+        p_categories: pCategories && pCategories.length ? pCategories : null,
+        p_limit: 50,
+        p_allow_gimmicks: allowGimmicks,
+        p_focus_tag_ids: focusTagIds.length ? focusTagIds : null,
+      });
+      if (error) throw error;
+      const rows = Array.isArray(ids) ? ids : [];
+      return rows.map((r: any) => ({
+        media_id: Number(r.media_id),
+        match_count: r.match_count ?? r.overlap_count ?? 0,
+        score: r.score ?? null,
+      }));
+    };
+
+    const assembleItems = async (mt: MediaType, rows: CandidateRow[], opts: {
+      limit: number;
+      requiredGenres: string[];
+      excludeGenres: string[];
+      classicYearMax?: number;
+      quality: { minScore: number; minPopularity: number; maxPopularity: number | null; excludeFormats: Set<string> };
+      prioritizeClassicBoost?: boolean;
+    }) => {
+      const idList = uniq(rows.map((r) => r.media_id)).filter((x) => Number.isFinite(x) && x > 0);
+      if (idList.length === 0) return [] as any[];
 
       const table = mt === "ANIME" ? "anime" : "manga";
       const { data: mediaRows, error: mediaErr } = await client
         .from(table)
-        .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,start_date_year,format,status,site_url,is_adult,genres")
+        .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres")
         .in("id", idList);
       if (mediaErr) throw mediaErr;
       const byId = new Map<number, any>((mediaRows ?? []).map((r: any) => [r.id, r]));
@@ -12258,12 +12697,6 @@ serve(async (req) => {
         .eq("media_type", mt)
         .in("media_id", idList);
       const boostById = new Map<number, any>((boosts ?? []).map((b: any) => [b.media_id, b]));
-
-      const { data: tagBoosts } = await client
-        .from("editorial_tag_boosts")
-        .select("tag_id,boost,reason");
-      const tagBoostByTag = new Map<number, any>((tagBoosts ?? []).map((t: any) => [t.tag_id, t]));
-      const boostTagIds = Array.from(tagBoostByTag.keys());
 
       // Get which boosted tags apply to each media id.
       let tagLinks: any[] = [];
@@ -12290,10 +12723,68 @@ serve(async (req) => {
         boostedReasonsById.set(mediaId, arr);
       }
 
+      const hasGenres = (m: any, required: string[]) => {
+        if (!required.length) return true;
+        const gs = Array.isArray(m?.genres) ? m.genres.map((x: any) => String(x)) : [];
+        if (!gs.length) return false;
+        // Require at least one requested genre to match.
+        return required.some((g) => gs.includes(g));
+      };
+
+      const hasExcludedGenres = (m: any, excluded: string[]) => {
+        if (!excluded.length) return false;
+        const gs = Array.isArray(m?.genres) ? m.genres.map((x: any) => String(x)) : [];
+        if (!gs.length) return false;
+        return excluded.some((g) => gs.includes(g));
+      };
+
+      const passes = (m: any) => {
+        if (!m) return false;
+        if (m.is_adult === true) return false;
+        if (opts.quality.excludeFormats.has(String(m.format ?? "").toUpperCase())) return false;
+        if (hasExcludedGenres(m, opts.excludeGenres)) return false;
+
+        const year = Number(m.start_date_year ?? 0);
+        if (opts.classicYearMax && year > 0 && year > opts.classicYearMax) return false;
+
+        const score = Number(m.average_score ?? 0);
+        const pop = Number(m.popularity ?? 0);
+        if (opts.quality.minScore > 0 && score > 0 && score < opts.quality.minScore) return false;
+        if (opts.quality.minPopularity > 0 && pop > 0 && pop < opts.quality.minPopularity) return false;
+        if (opts.quality.maxPopularity != null && pop > 0 && pop > opts.quality.maxPopularity) return false;
+        return true;
+      };
+
+      // Prefer: genre match + quality; then quality; then anything (no hard failures).
+      const primary: CandidateRow[] = [];
+      const secondary: CandidateRow[] = [];
+      const tertiary: CandidateRow[] = [];
+
       for (const r of rows) {
         const m = byId.get(r.media_id);
         if (!m) continue;
-        const idKey = `${mt}|${r.media_id}`;
+        if (passes(m) && hasGenres(m, opts.requiredGenres)) primary.push(r);
+        else if (passes(m)) secondary.push(r);
+        else tertiary.push(r);
+      }
+
+      let ordered = [...primary, ...secondary, ...tertiary];
+      if (opts.prioritizeClassicBoost) {
+        const boosted: CandidateRow[] = [];
+        const rest: CandidateRow[] = [];
+        for (const r of ordered) {
+          const b = boostById.get(r.media_id);
+          if (b?.label === "classic") boosted.push(r);
+          else rest.push(r);
+        }
+        ordered = [...boosted, ...rest];
+      }
+      ordered = ordered.slice(0, opts.limit);
+
+      const out: any[] = [];
+      for (const r of ordered) {
+        const m = byId.get(r.media_id);
+        if (!m) continue;
         const signals: string[] = [];
         const b = boostById.get(r.media_id);
         if (b?.label === "classic") signals.push("CLASSIC");
@@ -12301,7 +12792,7 @@ serve(async (req) => {
         for (const x of reasons.slice(0, 3)) signals.push(String(x).toUpperCase());
         if ((r.match_count ?? 0) >= 2) signals.push("MATCH");
 
-        results.push({
+        out.push({
           mediaType: mt,
           mediaId: r.media_id,
           matchCount: r.match_count ?? 0,
@@ -12314,15 +12805,153 @@ serve(async (req) => {
           status: m.status ?? null,
           siteUrl: m.site_url ?? null,
           signals,
+          genres: Array.isArray(m.genres) ? m.genres : null,
         });
       }
+      return out;
     };
 
-    if (mediaType === "BOTH") {
-      await run("ANIME");
-      await run("MANGA");
-    } else {
-      await run(mediaType);
+    const modePicks = pickTwoModes(text, modes, requiredGenres);
+    const modeById = new Map<string, ConciergeMode>(modes.map((m) => [m.id, m]));
+
+    // Build up to 2 rails (modes). Always keep a classics rail as the second choice where possible.
+    const sets: any[] = [];
+
+    for (const mp of modePicks) {
+      const mode = modeById.get(mp.id) ?? null;
+      const isClassicMode = (mode?.id ?? mp.id).includes("classic");
+      const perSetTotal = isClassicMode ? Math.min(20, Math.max(limit, 14)) : limit;
+      const perType = mediaType === "BOTH" ? Math.max(3, Math.ceil(perSetTotal / 2)) : perSetTotal;
+
+      const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
+      const modeExcluded = mode?.exclude_genres ?? [];
+
+      // Feed the DB scorer with a small, mode-aware category set, but don't overconstrain.
+      const modeCats = uniq([...(categories ?? []), ...(mode?.required_genres ?? [])]);
+      const pCats = modeCats.length ? modeCats : (categories.length ? categories : null);
+      const q = compileQuality(mode);
+
+      const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getPremiumCandidates("ANIME", pCats) : [];
+      const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getPremiumCandidates("MANGA", pCats) : [];
+
+      const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
+        ? await assembleItems("ANIME", animeRows, {
+          limit: perType,
+          requiredGenres: modeRequired,
+          excludeGenres: modeExcluded,
+          classicYearMax: mode?.classic_year_max,
+          quality: q,
+          prioritizeClassicBoost: isClassicMode,
+        })
+        : [];
+      const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
+        ? await assembleItems("MANGA", mangaRows, {
+          limit: perType,
+          requiredGenres: modeRequired,
+          excludeGenres: modeExcluded,
+          classicYearMax: mode?.classic_year_max,
+          quality: q,
+          prioritizeClassicBoost: isClassicMode,
+        })
+        : [];
+
+      const merged = mediaType === "BOTH" ? mergeAlternating(animeItems, mangaItems, perSetTotal) : [...animeItems, ...mangaItems].slice(0, perSetTotal);
+
+      sets.push({
+        id: mp.id,
+        title: mp.title,
+        modeId: mp.id,
+        confidence: mp.confidence,
+        reason: mp.reason,
+        items: merged,
+      });
+    }
+
+    // If the user is explicit ("like Vagabond"), offer a similarity rail as the first mode.
+    // This keeps the UX feeling "smart" without spending LLM tokens.
+    if (seedQuery) {
+      // Only override when we can find a decent seed title.
+      const pickSeed = async (mt: MediaType) => {
+        const { data: seeds, error: seedErr } = await client.rpc("search_titles", {
+          p_query: seedQuery,
+          p_media_type: mt,
+          p_limit: 6,
+        });
+        if (seedErr || !Array.isArray(seeds) || seeds.length === 0) return null;
+        const top = seeds[0];
+        if ((top?.score ?? 0) < 0.35) return null;
+        return { mt, mediaId: Number(top.media_id), title: String(top.title ?? "").trim() };
+      };
+
+      const seed = mediaType === "MANGA" ? await pickSeed("MANGA")
+        : mediaType === "ANIME" ? await pickSeed("ANIME")
+        : (await pickSeed("ANIME")) ?? (await pickSeed("MANGA"));
+
+      if (seed && Number.isFinite(seed.mediaId) && seed.mediaId > 0) {
+        const perSetTotal = limit;
+        const perType = mediaType === "BOTH" ? Math.max(3, Math.ceil(perSetTotal / 2)) : perSetTotal;
+        const q = compileQuality(null);
+
+        const getSim = async (mt: MediaType) => {
+          const { data: sim, error: simErr } = await client.rpc("recommend_ids_similar_to_seeds", {
+            p_media_type: mt,
+            p_seed_ids: [seed.mediaId],
+            p_limit: 50,
+            p_allow_gimmicks: allowGimmicks,
+          });
+          if (simErr || !Array.isArray(sim)) return [] as CandidateRow[];
+          return sim.map((r: any) => ({
+            media_id: Number(r.media_id),
+            match_count: r.overlap_count ?? r.match_count ?? 0,
+            score: r.score ?? null,
+          }));
+        };
+
+        const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getSim("ANIME") : [];
+        const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getSim("MANGA") : [];
+        const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
+          ? await assembleItems("ANIME", animeRows, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+          : [];
+        const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
+          ? await assembleItems("MANGA", mangaRows, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+          : [];
+
+        const merged = mediaType === "BOTH" ? mergeAlternating(animeItems, mangaItems, perSetTotal) : [...animeItems, ...mangaItems].slice(0, perSetTotal);
+        const title = seed.title || seedQuery;
+
+        // Keep the classics rail as the secondary mode, but replace the primary.
+        if (sets.length >= 1) {
+          sets[0] = {
+            id: "similar_to_seed",
+            title: `Similar to “${title}”`,
+            modeId: "similar_to_seed",
+            confidence: 1,
+            reason: "seed similarity",
+            items: merged,
+          };
+        } else {
+          sets.unshift({
+            id: "similar_to_seed",
+            title: `Similar to “${title}”`,
+            modeId: "similar_to_seed",
+            confidence: 1,
+            reason: "seed similarity",
+            items: merged,
+          });
+        }
+      }
+    }
+
+    // Flatten for backwards compatibility + LLM narration.
+    const allItems: any[] = [];
+    const seen = new Set<string>();
+    for (const s of sets) {
+      for (const it of (s?.items ?? [])) {
+        const key = `${it.mediaType}|${it.mediaId}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        allItems.push(it);
+      }
     }
 
     try {
@@ -12330,16 +12959,23 @@ serve(async (req) => {
         p_kind: "recommend",
         p_status: "success",
         p_input_chars: text.length,
-        p_items_count: results.length,
+        p_items_count: allItems.length,
       });
     } catch {
       // best-effort
     }
 
-    const message =
-      categories.length === 0
-        ? "Premium picks (new to you). Tell me a vibe like “funny”, “sad”, “cozy”, or a genre to sharpen it."
-        : null;
+    const message = (() => {
+      if (sets.length === 0) {
+        return categories.length === 0
+          ? "Premium picks (new to you). Tell me a vibe like “funny”, “sad”, “cozy”, or a genre to sharpen it."
+          : null;
+      }
+      const titles = sets.slice(0, 2).map((s: any) => String(s.title ?? "")).filter(Boolean);
+      if (titles.length >= 2) return `Two rails for you: ${titles[0]} + ${titles[1]}.`;
+      if (titles.length === 1) return `Here’s a rail for you: ${titles[0]}.`;
+      return null;
+    })();
 
     // Optional narration (pure presentation layer).
     let narrationError: string | null = null;
@@ -12354,7 +12990,7 @@ serve(async (req) => {
       const groqModel = Deno.env.get("GROQ_MODEL") ?? "openai/gpt-oss-20b";
       if (groqKey) {
         const maxCompletion = 260;
-        const packed = results.slice(0, 8).map((it) => ({
+        const packed = allItems.slice(0, 8).map((it) => ({
           id: `${it.mediaType}|${it.mediaId}`,
           title: it.title,
           year: it.year,
@@ -12380,8 +13016,7 @@ serve(async (req) => {
         let gReserveOk = true;
         if (narrate) {
           try {
-            const { data: cfg } = await client.rpc("get_concierge_config");
-            const globalBudget = cfg?.global_llm_budget ?? null;
+            const globalBudget = conciergeCfg?.global_llm_budget ?? null;
             const globalDailyTokens = Number(globalBudget?.daily_tokens ?? 250000);
             const globalDailyCalls = Number(globalBudget?.daily_calls ?? 600);
             const { data: gBudget } = await client.rpc("llm_global_budget_reserve", {
@@ -12415,7 +13050,7 @@ serve(async (req) => {
             debug: debugNarration,
             items: packed,
           });
-          for (const it of results) {
+          for (const it of allItems) {
             const key = `${it.mediaType}|${it.mediaId}`;
             const b = blurbs[key];
             if (typeof b === "string" && b.trim()) it.blurb = clampBlurb(b, 18, 180);
@@ -12461,7 +13096,10 @@ serve(async (req) => {
     return json({
       success: true,
       categories,
-      items: results,
+      modes: modePicks,
+      sets,
+      // Backwards compat: clients that only understand `items` still get a useful response.
+      items: allItems,
       message,
       narrated: narrate,
       ...(debugNarration ? { narrationError } : {}),

@@ -104,12 +104,16 @@ flowchart TD
 - It avoids adult content by default.
 - If you say “like X”, it finds similar titles first.
 - The LLM only adds wording or resolves ambiguity.
+- Your prompt is routed into **up to 2 curated rails (“modes”)**:
+  - Rail A: a best-fit “vibe mode” (e.g. Premium Action / Cozy / Hidden Gems)
+  - Rail B: **Classics (expanded)** (keeps your existing classics picks, but returns more)
+- The modes are configurable in the database (`public.concierge_config.config.modes`) so we can tune them without redeploying the app.
 
 ```mermaid
 flowchart LR
   A[User request] --> B[Category + tag logic]
-  B --> C[Premium ranking]
-  C --> D[Final list]
+  B --> C["Mode router (2 rails)"]
+  C --> D[Premium ranking + filters]
   D --> E[Optional LLM narration]
 ```
 
@@ -311,6 +315,7 @@ flowchart TD
 
 ## 14) Change Log (append-only)
 
+- 2026-02-05: Concierge recommendations now return **two curated rails (modes)** and an **expanded Classics rail** (configurable via database).
 - 2026-02-05: Added Concierge cost guardrails + a high-level database diagram; fixed formatting glitches.
 - 2026-02-05: Added non-technical runbook and glossary sections.
 - 2026-02-05: Expanded this plain-English snapshot with deeper flows and diagrams.
