@@ -65,7 +65,7 @@
 ### 2.2 Backend
 - **Database:** Supabase (PostgreSQL)
 - **Project URL:** `https://bkdifromsqxkndnllmdj.supabase.co`
-- **Service Key:** `sb_secret_[REDACTED_DO_NOT_COMMIT]`
+- **Service Key:** `SUPABASE_SERVICE_KEY_REDACTED`
 - **Authentication:** Anonymous sign-in (enabled)
 - **CDN:** Supabase Storage
 - **Edge Functions:** Deno-based serverless
@@ -971,7 +971,7 @@ class SupabaseService: ObservableObject {
 init() {
     client = SupabaseClient(
         supabaseURL: URL(string: "https://bkdifromsqxkndnllmdj.supabase.co")!,
-        supabaseKey: "sb_secret_[REDACTED_DO_NOT_COMMIT]"
+        supabaseKey: "SUPABASE_SERVICE_KEY_REDACTED"
     )
     
     Task {

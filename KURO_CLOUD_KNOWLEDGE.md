@@ -713,7 +713,7 @@ HStack(spacing: 16) {
 **Credentials:**
 ```swift
 supabaseURL: "https://bkdifromsqxkndnllmdj.supabase.co"
-supabaseKey: "sb_secret_[REDACTED_DO_NOT_COMMIT]"
+supabaseKey: "SUPABASE_SERVICE_KEY_REDACTED"
 ```
 
 **Initialization:**
