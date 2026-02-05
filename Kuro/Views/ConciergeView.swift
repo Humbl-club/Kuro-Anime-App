@@ -179,6 +179,9 @@ struct ConciergeView: View {
                         Color.clear
                     }
                 )
+                // Prevent the global pager swipe gesture from stealing drags/taps while typing.
+                // This fixes "faulty" keyboard interactions and accidental page switches.
+                .kuroSwipeExclusionZone()
                 .padding(.horizontal, 16)
                 .padding(.bottom, 14)
                 .padding(.top, 8)
@@ -377,9 +380,10 @@ struct ConciergeView: View {
                         messages.append(
                             ConciergeMessage(
                                 role: .assistant,
-                                text: "Here are a few picks:",
+                                text: rec.message ?? "Here are a few picks:",
                                 items: nil,
-                                recommendations: items
+                                recommendations: items,
+                                recommendationCategories: rec.categories
                             )
                         )
                     }
@@ -410,19 +414,65 @@ struct ConciergeView: View {
     }
 
     private func looksLikeImport(_ text: String) -> Bool {
-        let t = text.lowercased()
-        if text.contains("\n") { return true }
-        if text.contains(",") && text.count < 180 { return true }
-        if t.contains("watching") || t.contains("reading") || t.contains("completed") || t.contains("finished") || t.contains("dropped") { return true }
-        if t.contains("i watched") || t.contains("i'm watching") || t.contains("im watching") { return true }
-        if t.contains("caught up") || t.contains("up to date") { return true }
-        if t.contains("ich habe") || t.contains("ich schaue") || t.contains("ich gucke") || t.contains("ich sehe") || t.contains("ich lese") { return true }
-        if t.contains("staffel") || t.contains("folge") || t.contains("kapitel") || t.contains("band") { return true }
-        if t.contains(" ep ") || t.contains("episode") || t.contains("chapter") || t.contains(" vol") { return true }
-        if t.range(of: #"s\d{1,2}\s*e\d{1,4}"#, options: .regularExpression) != nil { return true }
-        if t.range(of: #"\b\d{1,2}\s*x\s*\d{1,4}\b"#, options: .regularExpression) != nil { return true }
+        // High precision: false positives feel like "wrong responses" because we route to import parsing
+        // instead of recommendations. We prefer a few false negatives over misrouting vibes.
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let l = t.lowercased()
+
+        if t.contains("\n") { return true }
+
+        // Explicit import language (EN + DE)
+        if l.contains("watching") || l.contains("reading") || l.contains("completed") || l.contains("finished") || l.contains("dropped") { return true }
+        if l.contains("i watched") || l.contains("i'm watching") || l.contains("im watching") { return true }
+        if l.contains("caught up") || l.contains("up to date") { return true }
+        if l.contains("ich habe") || l.contains("ich schaue") || l.contains("ich gucke") || l.contains("ich sehe") || l.contains("ich lese") { return true }
+        if l.contains("staffel") || l.contains("folge") || l.contains("kapitel") || l.contains("band") { return true }
+
+        // Progress patterns
+        if l.contains(" ep ") || l.contains("episode") || l.contains("chapter") || l.contains(" vol") { return true }
+        if l.range(of: #"s\d{1,2}\s*e\d{1,4}"#, options: .regularExpression) != nil { return true }
+        if l.range(of: #"\b\d{1,2}\s*x\s*\d{1,4}\b"#, options: .regularExpression) != nil { return true }
+
+        // Comma-separated lists are common for vibes ("funny, not childish") so only treat commas
+        // as import if we have multiple title-like segments.
+        if t.contains(",") {
+            let parts = t.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            if parts.count >= 2 {
+                let titleLikeCount = parts.filter { segmentLooksTitleLike($0) }.count
+                if titleLikeCount >= 2 { return true }
+            }
+        }
+
         // Short prompts like "funny anime" shouldn't be treated as import.
-        if text.count <= 28 { return false }
+        if t.count <= 28 { return false }
+        return false
+    }
+
+    private func segmentLooksTitleLike(_ s: String) -> Bool {
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard t.count >= 2 else { return false }
+        let l = t.lowercased()
+
+        // Natural language / vibe words are not titles.
+        let vibeMarkers = ["something", "funny", "sad", "cozy", "vibe", "recommend", "suggest", "like", "but", "not", "please", "anime", "manga"]
+        if vibeMarkers.contains(where: { l.contains($0) }) && t.split(separator: " ").count <= 6 {
+            return false
+        }
+
+        // Strong title hints.
+        if t.contains("(") || t.contains(")") { return true }
+        if t.range(of: #"\b(19|20)\d{2}\b"#, options: .regularExpression) != nil { return true }
+        if l.range(of: #"\b(ep|episode|ch|chapter|vol|volume|s\d+e\d+|\d+x\d+)\b"#, options: .regularExpression) != nil { return true }
+
+        // Heuristic: multiple words + some uppercase characters.
+        let words = t.split(separator: " ")
+        if words.count >= 2 && t.range(of: #"[A-Z]"#, options: .regularExpression) != nil {
+            return true
+        }
+
+        // If user pasted lowercased titles, allow "two+ words" as a weak signal.
+        if words.count >= 3 { return true }
+
         return false
     }
 
@@ -905,6 +955,9 @@ private struct ConciergeBubble: View {
             }
 
             if let recs = message.recommendations, !recs.isEmpty {
+                if let cats = message.recommendationCategories, !cats.isEmpty {
+                    ConciergeCategoryPills(categories: cats)
+                }
                 ConciergeRecommendationStepper(
                     items: recs,
                     hiddenIds: $hiddenRecommendationIds,
@@ -915,6 +968,32 @@ private struct ConciergeBubble: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
+    }
+}
+
+private struct ConciergeCategoryPills: View {
+    let categories: [String]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(categories, id: \.self) { c in
+                    Text(c.uppercased())
+                        .font(.system(size: 9, weight: .semibold))
+                        .tracking(1.3)
+                        .foregroundColor(.black.opacity(0.55))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.black.opacity(0.05))
+                        )
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+        .frame(height: 26)
+        .kuroSwipeExclusionZone()
     }
 }
 
@@ -1527,17 +1606,20 @@ private struct KuroConciergeAssistant: View {
     let text: String
     let items: [SupabaseService.ConciergeParseItem]?
     let recommendations: [SupabaseService.ConciergeRecommendResponse.Item]?
+    let recommendationCategories: [String]?
 
     init(
         role: Role,
         text: String,
         items: [SupabaseService.ConciergeParseItem]? = nil,
-        recommendations: [SupabaseService.ConciergeRecommendResponse.Item]? = nil
+        recommendations: [SupabaseService.ConciergeRecommendResponse.Item]? = nil,
+        recommendationCategories: [String]? = nil
     ) {
         self.role = role
         self.text = text
         self.items = items
         self.recommendations = recommendations
+        self.recommendationCategories = recommendationCategories
     }
 }
 
