@@ -2920,28 +2920,29 @@ class SupabaseService {
             return try await task.value
         }
 
-        let task = Task<ConciergeParseResponse, Error> { @MainActor [weak self] in
-            guard let self else { throw CancellationError() }
+        // Run decoding off the main actor to avoid UI jank (keyboard/input stutter).
+        let client = self.client
+        let task = Task<ConciergeParseResponse, Error>.detached(priority: .userInitiated) {
             let payload = [
                 "text": text,
                 "scope": scope.rawValue,
                 "limitPerItem": lim,
             ] as [String : Any]
-
-            do {
-                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-                let options = FunctionInvokeOptions(method: .post, body: data)
-                let resp: ConciergeParseResponse = try await self.client.functions.invoke("concierge-parse", options: options)
-                self.conciergeParseCache[key] = TimedCache(value: resp, storedAt: now)
-                self.trimCache(&self.conciergeParseCache, maxEntries: 50)
-                return resp
-            } catch {
-                throw self.translateConciergeFunctionError(error)
-            }
+            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+            let options = FunctionInvokeOptions(method: .post, body: data)
+            let resp: ConciergeParseResponse = try await client.functions.invoke("concierge-parse", options: options)
+            return resp
         }
         conciergeParseInFlight[key] = task
         defer { conciergeParseInFlight[key] = nil }
-        return try await task.value
+        do {
+            let resp = try await task.value
+            conciergeParseCache[key] = TimedCache(value: resp, storedAt: now)
+            trimCache(&conciergeParseCache, maxEntries: 50)
+            return resp
+        } catch {
+            throw translateConciergeFunctionError(error)
+        }
     }
 
     struct ConciergeApplyResponse: Decodable, Sendable {
@@ -2966,9 +2967,13 @@ class SupabaseService {
             let payload: [String: Any] = [
                 "items": items,
             ]
-            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-            let options = FunctionInvokeOptions(method: .post, body: data)
-            return try await client.functions.invoke("concierge-apply", options: options)
+            let client = self.client
+            let task = Task<ConciergeApplyResponse, Error>.detached(priority: .userInitiated) {
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                let options = FunctionInvokeOptions(method: .post, body: data)
+                return try await client.functions.invoke("concierge-apply", options: options)
+            }
+            return try await task.value
         } catch {
             throw translateConciergeFunctionError(error)
         }
@@ -2994,9 +2999,13 @@ class SupabaseService {
             let payload: [String: Any] = [
                 "sessionId": sessionId,
             ]
-            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-            let options = FunctionInvokeOptions(method: .post, body: data)
-            return try await client.functions.invoke("concierge-undo", options: options)
+            let client = self.client
+            let task = Task<ConciergeUndoResponse, Error>.detached(priority: .userInitiated) {
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                let options = FunctionInvokeOptions(method: .post, body: data)
+                return try await client.functions.invoke("concierge-undo", options: options)
+            }
+            return try await task.value
         } catch {
             throw translateConciergeFunctionError(error)
         }
@@ -3055,9 +3064,13 @@ class SupabaseService {
             "maxCandidates": max(2, min(10, maxCandidates)),
         ]
         do {
-            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-            let options = FunctionInvokeOptions(method: .post, body: data)
-            return try await client.functions.invoke("concierge-resolve", options: options)
+            let client = self.client
+            let task = Task<ConciergeResolveResponse, Error>.detached(priority: .userInitiated) {
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                let options = FunctionInvokeOptions(method: .post, body: data)
+                return try await client.functions.invoke("concierge-resolve", options: options)
+            }
+            return try await task.value
         } catch {
             throw translateConciergeFunctionError(error)
         }
@@ -3102,28 +3115,30 @@ class SupabaseService {
             return try await task.value
         }
 
-        let task = Task<ConciergeRecommendResponse, Error> { @MainActor [weak self] in
-            guard let self else { throw CancellationError() }
-            do {
-                let payload: [String: Any] = [
-                    "text": text,
-                    "scope": scope.rawValue,
-                    "limit": lim,
-                    "narrate": narrate,
-                ]
-                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-                let options = FunctionInvokeOptions(method: .post, body: data)
-                let resp: ConciergeRecommendResponse = try await self.client.functions.invoke("concierge-recommend", options: options)
-                self.conciergeRecommendCache[key] = TimedCache(value: resp, storedAt: now)
-                self.trimCache(&self.conciergeRecommendCache, maxEntries: 60)
-                return resp
-            } catch {
-                throw self.translateConciergeFunctionError(error)
-            }
+        // Run decoding off the main actor to keep the chat input responsive.
+        let client = self.client
+        let task = Task<ConciergeRecommendResponse, Error>.detached(priority: .userInitiated) {
+            let payload: [String: Any] = [
+                "text": text,
+                "scope": scope.rawValue,
+                "limit": lim,
+                "narrate": narrate,
+            ]
+            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+            let options = FunctionInvokeOptions(method: .post, body: data)
+            let resp: ConciergeRecommendResponse = try await client.functions.invoke("concierge-recommend", options: options)
+            return resp
         }
         conciergeRecommendInFlight[key] = task
         defer { conciergeRecommendInFlight[key] = nil }
-        return try await task.value
+        do {
+            let resp = try await task.value
+            conciergeRecommendCache[key] = TimedCache(value: resp, storedAt: now)
+            trimCache(&conciergeRecommendCache, maxEntries: 60)
+            return resp
+        } catch {
+            throw translateConciergeFunctionError(error)
+        }
     }
     
     // MARK: - Real-time Subscriptions  
