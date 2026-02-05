@@ -330,31 +330,29 @@ struct KuroHeaderNew: View {
                         .font(.system(size: 11, weight: .regular))
                         .tracking(1.5)
                         .foregroundColor(.black.opacity(0.3))
-
-                    Button {
-                        // Quick jump to Concierge (still swipeable from Discover).
-                        KuroAccessibility.impactHaptic(.light)
-                        selection = .concierge
-                    } label: {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .frame(width: 30, height: 30)
-                            .overlay(
-                                Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
-                            )
-                            .overlay(
-                                KuroConciergeGlyph(size: 16)
-                            )
-                    }
-                    .buttonStyle(KuroHeaderIconButtonStyle())
-                    .accessibilityLabel("Concierge")
-                    .accessibilityHint("Go to Concierge page")
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Center: Section (full opacity)
                 VStack(spacing: 4) {
-                    titleWindow
+                    HStack(spacing: 10) {
+                        if selection == .concierge {
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                                .frame(width: 30, height: 30)
+                                .overlay(
+                                    Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
+                                )
+                                .overlay(
+                                    Image(systemName: "bubble.left.and.bubble.right.fill")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.black.opacity(0.70))
+                                )
+                                .accessibilityHidden(true)
+                        }
+
+                        titleWindow
+                    }
                 }
                 .contentShape(Rectangle())
                 .accessibilityElement(children: .ignore)

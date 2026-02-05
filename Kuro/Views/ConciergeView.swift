@@ -64,9 +64,16 @@ struct ConciergeView: View {
                         LazyVStack(alignment: .leading, spacing: 12) {
                             if messages.isEmpty {
                                 ConciergeIntroCard()
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.top, 14)
+                                    .padding(.bottom, 8)
+
+                                ConciergeStarterActions(
+                                    onPaste: { pasteFromClipboard() },
+                                    onExampleImport: { seedExampleImport() },
+                                    onExampleVibe: { seedExampleVibe() }
+                                )
                                 .frame(maxWidth: .infinity)
-                                .padding(.top, 14)
-                                .padding(.bottom, 8)
                             }
 
                             ForEach(messages) { msg in
@@ -744,6 +751,36 @@ struct ConciergeView: View {
             }
         }
     }
+
+    private func pasteFromClipboard() {
+        #if os(iOS)
+        guard let t = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !t.isEmpty
+        else {
+            showToast(.init(kind: .info, title: "Clipboard is empty", subtitle: "Copy a list of titles, then tap Paste.", actionTitle: nil, onAction: nil))
+            return
+        }
+        input = t
+        inputFocused = true
+        KuroAccessibility.impactHaptic(.light)
+        #endif
+    }
+
+    private func seedExampleImport() {
+        input = """
+        Attack on Titan (completed)
+        Jujutsu Kaisen up to ep 12
+        Hunter x Hunter (2011)
+        """
+        inputFocused = true
+        KuroAccessibility.impactHaptic(.light)
+    }
+
+    private func seedExampleVibe() {
+        input = "Something funny, premium, not childish."
+        inputFocused = true
+        KuroAccessibility.impactHaptic(.light)
+    }
 }
 
 private struct ConciergeBubble: View {
@@ -1250,6 +1287,51 @@ private struct ConciergeIntroCard: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Concierge. Paste titles to import, or ask for a vibe.")
+    }
+}
+
+private struct ConciergeStarterActions: View {
+    let onPaste: () -> Void
+    let onExampleImport: () -> Void
+    let onExampleVibe: () -> Void
+
+    @State private var appeared: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            KuroGlassPill(
+                title: "Paste from clipboard",
+                subtitle: "Fast import",
+                systemImage: "doc.on.clipboard",
+                action: onPaste
+            )
+            .offset(y: appeared ? 0 : 6)
+            .opacity(appeared ? 1 : 0)
+
+            KuroGlassPill(
+                title: "Try an import example",
+                subtitle: "Shows the format",
+                systemImage: "text.append",
+                action: onExampleImport
+            )
+            .offset(y: appeared ? 0 : 10)
+            .opacity(appeared ? 1 : 0)
+
+            KuroGlassPill(
+                title: "Give me a vibe",
+                subtitle: "Recommendations",
+                systemImage: "sparkles",
+                action: onExampleVibe
+            )
+            .offset(y: appeared ? 0 : 14)
+            .opacity(appeared ? 1 : 0)
+        }
+        .padding(.horizontal, 20)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.22)) {
+                appeared = true
+            }
+        }
     }
 }
 
