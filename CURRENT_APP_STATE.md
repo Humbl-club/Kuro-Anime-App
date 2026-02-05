@@ -871,12 +871,13 @@ Generated: **2026-02-05T15:15:51.882Z** (git: `3626d46`)
 
 ## 14) Change Log (append-only)
 
-- 2026-02-05: Added full "include everything" documentation pipeline (source excerpts + codebase bundle) and optional live DB snapshot tooling (`admin_schema_snapshot`). Commits: `307ae69`, `a109c9e`, `c1a7f8b`, `a5923e7`, `76f2d4d`, `1c9dea3`
+- 2026-02-05: Added full "include everything" documentation pipeline (source excerpts + codebase bundle) and optional live DB snapshot tooling (`admin_schema_snapshot`). Commits: `889b9c8`, `7a87228`, `7d07be7`, `c2d0414`, `5eb4168`, `9c734db`
+- 2026-02-05: Redacted Supabase secrets from docs and from generated bundles/excerpts (docs remain reflective, but credentials are never inlined). Commits: `590e8a0`, `8da8b68`, `68f9a11`, `bce062f`, `16d3826`, `c8b9c3a`
 - 2026-02-05: Added auto-generated inventory + maps (migrations, edge functions, iOS RPC usage) via scripts.
 - 2026-02-05: Added deep appendices (data dictionary, RPC catalog, edge function examples, operator runbook).
 - 2026-02-05: Expanded CURRENT_APP_STATE with appendices (full DDL + concierge guardrails).
 - 2026-02-05: Added/expanded CURRENT_APP_STATE docs with full technical + plain-English snapshots.
-- 2026-02-05: Concierge left page + profile menu. Header simplified. Cards show `YEAR · EPS`. Concierge intro + quick-start glass pills added. Commits: `2565d4d`, `a9d0e2c`
+- 2026-02-05: Concierge left page + profile menu. Header simplified. Cards show `YEAR · EPS`. Concierge intro + quick-start glass pills added. Commits: `e8430fe`, `2451b46`
 
 ---
 
