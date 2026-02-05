@@ -1,6 +1,6 @@
 # Kuro — Codebase Bundle (LLM Source of Truth)
 
-Generated: **2026-02-05T15:17:23.433Z** (git: `3626d46` on `main`)
+Generated: **2026-02-05T15:22:43.404Z** (git: `68f9a11` on `main`)
 
 This file is **auto-generated**. It is intentionally large.
 
@@ -3465,7 +3465,7 @@ SELECT
 ### 2.2 Backend
 - **Database:** Supabase (PostgreSQL)
 - **Project URL:** `https://bkdifromsqxkndnllmdj.supabase.co`
-- **Service Key:** `sb_secret_[REDACTED_DO_NOT_COMMIT]`
+- **Service Key:** `SUPABASE_SERVICE_KEY_REDACTED`
 - **Authentication:** Anonymous sign-in (enabled)
 - **CDN:** Supabase Storage
 - **Edge Functions:** Deno-based serverless
@@ -4371,7 +4371,7 @@ class SupabaseService: ObservableObject {
 init() {
     client = SupabaseClient(
         supabaseURL: URL(string: "https://bkdifromsqxkndnllmdj.supabase.co")!,
-        supabaseKey: "sb_secret_[REDACTED_DO_NOT_COMMIT]"
+        supabaseKey: "SUPABASE_SERVICE_KEY_REDACTED"
     )
     
     Task {
@@ -8520,7 +8520,7 @@ node scripts/generate_app_state_codebase_bundle.js
 
 <!-- BEGIN AUTO-SOURCE-EXCERPTS -->
 
-Generated: **2026-02-05T15:17:23.372Z** (git: `3626d46`)
+Generated: **2026-02-05T15:22:43.354Z** (git: `68f9a11`)
 
 This section is auto-generated. Rebuild after any change to the referenced files:
 ```bash
@@ -22616,7 +22616,7 @@ HStack(spacing: 16) {
 **Credentials:**
 ```swift
 supabaseURL: "https://bkdifromsqxkndnllmdj.supabase.co"
-supabaseKey: "sb_secret_[REDACTED_DO_NOT_COMMIT]"
+supabaseKey: "SUPABASE_SERVICE_KEY_REDACTED"
 ```
 
 **Initialization:**
@@ -51068,9 +51068,9 @@ function redactSecrets(s) {
   // (The actual source files remain unchanged; this is documentation output.)
   return s
     // Supabase "secret" keys (should never be committed).
-    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'sb_secret_[REDACTED_DO_NOT_COMMIT]')
+    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'SUPABASE_SERVICE_KEY_REDACTED')
     // Supabase access tokens (PAT-like).
-    .replace(/sbp_[A-Za-z0-9_]+/g, 'sbp_[REDACTED_DO_NOT_COMMIT]')
+    .replace(/sbp_[A-Za-z0-9_]+/g, 'SUPABASE_ACCESS_TOKEN_REDACTED')
     // JWT-ish tokens (covers anon keys too; safe for docs).
     .replace(/eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g, '[REDACTED_JWT]');
 }
@@ -51703,8 +51703,8 @@ function fenceFor(p) {
 function redactSecrets(s) {
   // Same policy as the codebase bundle: never inline credentials into docs.
   return s
-    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'sb_secret_[REDACTED_DO_NOT_COMMIT]')
-    .replace(/sbp_[A-Za-z0-9_]+/g, 'sbp_[REDACTED_DO_NOT_COMMIT]')
+    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'SUPABASE_SERVICE_KEY_REDACTED')
+    .replace(/sbp_[A-Za-z0-9_]+/g, 'SUPABASE_ACCESS_TOKEN_REDACTED')
     .replace(/eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g, '[REDACTED_JWT]');
 }
 
