@@ -958,10 +958,9 @@ private struct ConciergeBubble: View {
                 if let cats = message.recommendationCategories, !cats.isEmpty {
                     ConciergeCategoryPills(categories: cats)
                 }
-                ConciergeRecommendationStepper(
+                ConciergeRecommendationDeck(
                     items: recs,
                     hiddenIds: $hiddenRecommendationIds,
-                    index: $stepIndex,
                     onOpen: onOpenRecommendation,
                     onSave: onQuickSave
                 )
@@ -997,10 +996,9 @@ private struct ConciergeCategoryPills: View {
     }
 }
 
-private struct ConciergeRecommendationStepper: View {
+private struct ConciergeRecommendationDeck: View {
     let items: [SupabaseService.ConciergeRecommendResponse.Item]
     @Binding var hiddenIds: Set<String>
-    @Binding var index: Int
     let onOpen: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
     let onSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
 
@@ -1008,89 +1006,96 @@ private struct ConciergeRecommendationStepper: View {
         items.filter { !hiddenIds.contains($0.id) }
     }
 
-    private func clampIndex() {
-        if index < 0 { index = 0 }
-        if index >= visible.count { index = max(0, visible.count - 1) }
+    private var classics: [SupabaseService.ConciergeRecommendResponse.Item] {
+        visible.filter { ($0.signals ?? []).map { $0.uppercased() }.contains("CLASSIC") }
+    }
+    private var picks: [SupabaseService.ConciergeRecommendResponse.Item] {
+        let classicIds = Set(classics.map { $0.id })
+        return visible.filter { !classicIds.contains($0.id) }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            header
-            if visible.isEmpty {
+        VStack(alignment: .leading, spacing: 12) {
+            if picks.isEmpty && classics.isEmpty {
                 Text("Nothing else in this set — try a different vibe.")
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(.black.opacity(0.5))
             } else {
-                card(for: visible[index])
+                if !picks.isEmpty {
+                    ConciergeRecommendationRail(
+                        title: "PICKS",
+                        items: picks,
+                        hiddenIds: $hiddenIds,
+                        onOpen: onOpen,
+                        onSave: onSave
+                    )
+                }
+                if !classics.isEmpty {
+                    ConciergeRecommendationRail(
+                        title: "CLASSICS",
+                        items: classics,
+                        hiddenIds: $hiddenIds,
+                        onOpen: onOpen,
+                        onSave: onSave
+                    )
+                }
             }
         }
-        .onAppear { clampIndex() }
-        .onChange(of: hiddenIds) { _, _ in clampIndex() }
-    }
-
-    private var header: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Text("PICKS")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(1.6)
-                .foregroundColor(.black.opacity(0.55))
-
-            Spacer()
-
-            Button {
-                KuroAccessibility.impactHaptic(.light)
-                index = max(0, index - 1)
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.black.opacity(index > 0 ? 0.65 : 0.15))
-            }
-            .buttonStyle(.plain)
-            .disabled(index == 0)
-
-            Text("\(min(index + 1, max(visible.count, 1))) / \(max(visible.count, 1))")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(1.0)
-                .foregroundColor(.black.opacity(0.4))
-
-            Button {
-                KuroAccessibility.impactHaptic(.light)
-                index = min(max(visible.count - 1, 0), index + 1)
-            } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.black.opacity(index < (visible.count - 1) ? 0.65 : 0.15))
-            }
-            .buttonStyle(.plain)
-            .disabled(index >= visible.count - 1)
-        }
-        .padding(.top, 2)
-    }
-
-    private func card(for item: SupabaseService.ConciergeRecommendResponse.Item) -> some View {
-        ConciergeRecommendationStepCard(
-            item: item,
-            onOpen: { onOpen(item) },
-            onSave: {
-                onSave(item)
-                hiddenIds.insert(item.id)
-            },
-            onSkip: {
-                KuroAccessibility.impactHaptic(.light)
-                hiddenIds.insert(item.id)
-            }
-        )
     }
 }
 
-private struct ConciergeRecommendationStepCard: View {
+private struct ConciergeRecommendationRail: View {
+    let title: String
+    let items: [SupabaseService.ConciergeRecommendResponse.Item]
+    @Binding var hiddenIds: Set<String>
+    let onOpen: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
+    let onSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
+
+    private var visible: [SupabaseService.ConciergeRecommendResponse.Item] {
+        items.filter { !hiddenIds.contains($0.id) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(title)
+                    .font(.system(size: 10, weight: .semibold))
+                    .tracking(1.6)
+                    .foregroundColor(.black.opacity(0.55))
+                Spacer()
+            }
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 12) {
+                    ForEach(visible) { item in
+                        ConciergeRecommendationCompactCard(
+                            item: item,
+                            onOpen: { onOpen(item) },
+                            onSave: {
+                                onSave(item)
+                                hiddenIds.insert(item.id)
+                            },
+                            onSkip: {
+                                KuroAccessibility.impactHaptic(.light)
+                                hiddenIds.insert(item.id)
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal, 2)
+            }
+            .kuroSwipeExclusionZone()
+        }
+    }
+}
+
+private struct ConciergeRecommendationCompactCard: View {
     let item: SupabaseService.ConciergeRecommendResponse.Item
     let onOpen: () -> Void
     let onSave: () -> Void
     let onSkip: () -> Void
 
-    private let width: CGFloat = 200
-    private var height: CGFloat { width / 0.7 }
+    private let width: CGFloat = 176
+    private var height: CGFloat { width / 0.72 }
 
     private var displayScore: Double? {
         guard let s = item.averageScore else { return nil }
@@ -1137,7 +1142,7 @@ private struct ConciergeRecommendationStepCard: View {
                                 .frame(width: width, height: height)
                                 .clipped()
                         case .failure, .empty:
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .fill(Color.black.opacity(0.06))
                                 .frame(width: width, height: height)
                         @unknown default:
@@ -1145,7 +1150,7 @@ private struct ConciergeRecommendationStepCard: View {
                         }
                     }
                     .frame(width: width, height: height)
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                     if let s = displayScore, s > 0 {
                         KuroScoreBadge(score: s)
@@ -1157,10 +1162,10 @@ private struct ConciergeRecommendationStepCard: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.black.opacity(0.92))
                     .lineLimit(2)
-                    .frame(height: 38, alignment: .top)
+                    .frame(height: 34, alignment: .top)
 
                 HStack(spacing: 6) {
                     if let y = item.year { Text(String(y)) }
@@ -1173,41 +1178,20 @@ private struct ConciergeRecommendationStepCard: View {
                 .foregroundColor(.black.opacity(0.55))
                 .frame(height: 14, alignment: .topLeading)
 
-                if !signals.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(signals, id: \.self) { b in
-                            Text(b)
-                                .font(.system(size: 10, weight: .semibold))
-                                .tracking(1.1)
-                                .foregroundColor(.black.opacity(0.55))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 999, style: .continuous)
-                                        .fill(Color.black.opacity(0.04))
-                                )
-                        }
-                    }
-                    .padding(.top, 2)
-                }
-
                 if let blurb = item.blurb, !blurb.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text(blurb)
                         .font(.system(size: 12, weight: .regular))
                         .foregroundColor(.black.opacity(0.62))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 2)
                 }
 
                 HStack(spacing: 10) {
                     Button(action: onSkip) {
-                        Text("SKIP")
-                            .font(.system(size: 11, weight: .semibold))
-                            .tracking(1.4)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.black.opacity(0.55))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
+                            .frame(width: 34, height: 34)
                             .background(
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                                     .fill(Color.black.opacity(0.03))
@@ -1216,16 +1200,20 @@ private struct ConciergeRecommendationStepCard: View {
                     .buttonStyle(.plain)
 
                     Button(action: onSave) {
-                        Text("SAVE")
-                            .font(.system(size: 11, weight: .semibold))
-                            .tracking(1.4)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color.black.opacity(0.9))
-                            )
+                        HStack(spacing: 8) {
+                            Image(systemName: "bookmark.fill")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text("SAVE")
+                                .font(.system(size: 11, weight: .semibold))
+                                .tracking(1.4)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 34)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(Color.black.opacity(0.90))
+                        )
                     }
                     .buttonStyle(.plain)
                 }
