@@ -43,39 +43,56 @@ function inferCategories(text: string): string[] {
   const t = text.toLowerCase();
   const out: string[] = [];
 
+  // NOTE:
+  // `recommend_ids_premium` uses `tags.category` (as imported from AniList tag.category) to compute matches.
+  // AniList category strings are usually "Comedy", "Drama", "Slice of Life", etc. (not "Theme-...").
+  //
+  // We also do a genre gate later using `anime.genres` / `manga.genres` for higher precision.
+
   // EN
-  if (/\b(fun|funny|comedy|laugh)\b/.test(t)) out.push("Theme-Comedy");
-  if (/\b(sad|cry|tears?|heartbreak)\b/.test(t)) out.push("Theme-Drama");
-  if (/\b(cozy|comfort|chill|relax)\b/.test(t)) out.push("Theme-Slice of Life");
-  if (/\b(romance|love)\b/.test(t)) out.push("Theme-Romance");
-  if (/\b(action)\b/.test(t)) out.push("Theme-Action");
-  if (/\b(fantasy)\b/.test(t)) out.push("Theme-Fantasy");
-  if (/\b(sci[- ]?fi|scifi|science fiction)\b/.test(t)) out.push("Theme-Sci-Fi");
-  if (/\b(sports?)\b/.test(t)) out.push("Theme-Game-Sport");
-  if (/\b(music)\b/.test(t)) out.push("Theme-Arts-Music");
+  if (/\b(fun|funny|comedy|laugh)\b/.test(t)) out.push("Comedy");
+  if (/\b(sad|cry|tears?|heartbreak)\b/.test(t)) out.push("Drama");
+  if (/\b(cozy|comfort|chill|relax)\b/.test(t)) out.push("Slice of Life");
+  if (/\b(romance|love|romcom)\b/.test(t)) out.push("Romance");
+  if (/\b(action)\b/.test(t)) out.push("Action");
+  if (/\b(adventure)\b/.test(t)) out.push("Adventure");
+  if (/\b(fantasy)\b/.test(t)) out.push("Fantasy");
+  if (/\b(sci[- ]?fi|scifi|science fiction)\b/.test(t)) out.push("Sci-Fi");
+  if (/\b(mystery|detective)\b/.test(t)) out.push("Mystery");
+  if (/\b(thriller)\b/.test(t)) out.push("Thriller");
+  if (/\b(horror|scary)\b/.test(t)) out.push("Horror");
+  if (/\b(psychological|mind[- ]?game)\b/.test(t)) out.push("Psychological");
+  if (/\b(supernatural)\b/.test(t)) out.push("Supernatural");
+  if (/\b(sports?)\b/.test(t)) out.push("Sports");
+  if (/\b(music)\b/.test(t)) out.push("Music");
 
   // DE (keep lightweight; only high-signal words)
-  if (/\b(lustig|witzig|kom(ö|oe)die|zum lachen)\b/.test(t)) out.push("Theme-Comedy");
-  if (/\b(traurig|heul|weinen|herzschmerz)\b/.test(t)) out.push("Theme-Drama");
-  if (/\b(gem(ü|ue)tlich|comfort|chillen|entspann)\b/.test(t)) out.push("Theme-Slice of Life");
-  if (/\b(liebe|romantik|romance)\b/.test(t)) out.push("Theme-Romance");
-  if (/\b(action)\b/.test(t)) out.push("Theme-Action");
-  if (/\b(fantasy|fantasie)\b/.test(t)) out.push("Theme-Fantasy");
-  if (/\b(sci[- ]?fi|science fiction)\b/.test(t)) out.push("Theme-Sci-Fi");
-  if (/\b(sport)\b/.test(t)) out.push("Theme-Game-Sport");
-  if (/\b(musik)\b/.test(t)) out.push("Theme-Arts-Music");
+  if (/\b(lustig|witzig|kom(ö|oe)die|zum lachen)\b/.test(t)) out.push("Comedy");
+  if (/\b(traurig|heul|weinen|herzschmerz)\b/.test(t)) out.push("Drama");
+  if (/\b(gem(ü|ue)tlich|comfort|chillen|entspann)\b/.test(t)) out.push("Slice of Life");
+  if (/\b(liebe|romantik|romance|romcom)\b/.test(t)) out.push("Romance");
+  if (/\b(action)\b/.test(t)) out.push("Action");
+  if (/\b(abenteuer)\b/.test(t)) out.push("Adventure");
+  if (/\b(fantasy|fantasie)\b/.test(t)) out.push("Fantasy");
+  if (/\b(sci[- ]?fi|science fiction)\b/.test(t)) out.push("Sci-Fi");
+  if (/\b(krimi|mystery|detektiv)\b/.test(t)) out.push("Mystery");
+  if (/\b(thriller)\b/.test(t)) out.push("Thriller");
+  if (/\b(horror|gruselig)\b/.test(t)) out.push("Horror");
+  if (/\b(psychologisch)\b/.test(t)) out.push("Psychological");
+  if (/\b(übernatürlich)\b/.test(t)) out.push("Supernatural");
+  if (/\b(sport)\b/.test(t)) out.push("Sports");
+  if (/\b(musik)\b/.test(t)) out.push("Music");
 
   // “First anime/manga” intent nudges toward accessible, broadly-liked picks.
   // This is not hardcoded curation; it just biases toward general-audience categories.
   if (/\b(first anime|first manga|getting into anime|getting into manga)\b/.test(t)) {
-    out.push("Theme-Slice of Life", "Theme-Drama", "Theme-Adventure");
+    out.push("Slice of Life", "Drama", "Adventure");
   }
   if (/\b(erstes anime|erstes manga|anime anfangen|manga anfangen|neu bei anime|neu bei manga)\b/.test(t)) {
-    out.push("Theme-Slice of Life", "Theme-Drama", "Theme-Adventure");
+    out.push("Slice of Life", "Drama", "Adventure");
   }
   // Explicit modes that should be discoverable.
-  if (/\b(isekai)\b/.test(t)) out.push("Theme-Fantasy");
-  if (/\b(reincarnat)/.test(t)) out.push("Theme-Other");
+  if (/\b(isekai)\b/.test(t)) out.push("Fantasy");
 
   return uniq(out);
 }
@@ -91,21 +108,58 @@ function inferGimmickTagIds(text: string): number[] {
   return uniq(ids);
 }
 
-function inferMoodFocusTagIds(text: string): number[] {
+function inferRequiredGenres(text: string): string[] {
   const t = text.toLowerCase();
-  const ids: number[] = [];
+  const out: string[] = [];
+  if (/\b(fun|funny|comedy|laugh|lustig|witzig|kom(ö|oe)die)\b/.test(t)) out.push("Comedy");
+  if (/\b(romance|love|romcom|liebe|romantik)\b/.test(t)) out.push("Romance");
+  if (/\b(action)\b/.test(t)) out.push("Action");
+  if (/\b(adventure|abenteuer)\b/.test(t)) out.push("Adventure");
+  if (/\b(fantasy|fantasie|isekai)\b/.test(t)) out.push("Fantasy");
+  if (/\b(sci[- ]?fi|scifi|science fiction)\b/.test(t)) out.push("Sci-Fi");
+  if (/\b(slice of life|sol|comfort|cozy|gem(ü|ue)tlich)\b/.test(t)) out.push("Slice of Life");
+  if (/\b(drama|sad|cry|traurig|herzschmerz)\b/.test(t)) out.push("Drama");
+  if (/\b(mystery|detective|krimi|detektiv)\b/.test(t)) out.push("Mystery");
+  if (/\b(thriller)\b/.test(t)) out.push("Thriller");
+  if (/\b(horror|scary|gruselig)\b/.test(t)) out.push("Horror");
+  if (/\b(psychological|psychologisch)\b/.test(t)) out.push("Psychological");
+  if (/\b(supernatural|übernatürlich)\b/.test(t)) out.push("Supernatural");
+  if (/\b(sports?|sport)\b/.test(t)) out.push("Sports");
+  return uniq(out);
+}
 
-  // Comedy-focused tags (keeps “funny” results actually funny).
-  if (/\b(fun|funny|comedy|laugh|lustig|witzig|kom(ö|oe)die)\b/.test(t)) {
-    ids.push(48, 161, 163); // Slapstick, Parody, Satire
+function inferQualityFloor(text: string): { minScore: number; minPopularity: number; excludeFormats: Set<string> } {
+  const t = text.toLowerCase();
+  const wantsPremium = /\b(premium|masterpiece|must[- ]?watch|classic|classics|top tier|best)\b/.test(t);
+  const noChildish = /\b(not childish|grown[- ]?up|mature|serious|not for kids)\b/.test(t);
+
+  // Defaults: avoid over-filtering; the DB may be small in early imports.
+  let minScore = 0;
+  let minPopularity = 0;
+
+  if (wantsPremium) {
+    minScore = 75;
+    minPopularity = 5000;
+  }
+  if (noChildish) {
+    minScore = Math.max(minScore, 75);
+    minPopularity = Math.max(minPopularity, 3500);
   }
 
-  // Drama-leaning “sad” tags.
-  if (/\b(sad|cry|tears?|heartbreak|traurig|heul|weinen|herzschmerz)\b/.test(t)) {
-    ids.push(3, 22); // Tragedy, Coming of Age
+  // Exclude shortform/noise formats unless explicitly requested.
+  const excludeFormats = new Set<string>(["TV_SHORT", "SPECIAL", "MUSIC"]);
+  if (/\b(short|mini|shortform)\b/.test(t)) {
+    excludeFormats.delete("TV_SHORT");
   }
+  return { minScore, minPopularity, excludeFormats };
+}
 
-  return uniq(ids);
+async function mapTagAnilistIdsToInternal(client: any, anilistIds: number[]): Promise<number[]> {
+  const ids = uniq(anilistIds).filter((x) => Number.isFinite(x) && x > 0);
+  if (!ids.length) return [];
+  const { data, error } = await client.from("tags").select("id,anilist_id").in("anilist_id", ids);
+  if (error || !Array.isArray(data)) return [];
+  return uniq(data.map((r: any) => Number(r.id)).filter((x: any) => Number.isFinite(x) && x > 0));
 }
 
 async function groqNarrate(opts: {
@@ -256,8 +310,12 @@ serve(async (req) => {
 
     const categories = inferCategories(text);
     const gimmickTagIds = inferGimmickTagIds(text);
-    const moodTagIds = inferMoodFocusTagIds(text);
-    const focusTagIds = uniq([...gimmickTagIds, ...moodTagIds]);
+    const requiredGenres = inferRequiredGenres(text);
+    const quality = inferQualityFloor(text);
+
+    // Focus tags are only used for explicit "gimmicks" (isekai, reincarnation, etc.)
+    // because `recommend_ids_premium` *requires* focus tags to match when provided.
+    const focusTagIds = await mapTagAnilistIdsToInternal(client, gimmickTagIds);
     const allowGimmicks =
       gimmickTagIds.length > 0 || /\b(slime)\b/.test(text.toLowerCase());
     const lang = inferLanguage(text);
@@ -317,7 +375,7 @@ serve(async (req) => {
       const table = mt === "ANIME" ? "anime" : "manga";
       const { data: mediaRows, error: mediaErr } = await client
         .from(table)
-        .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,start_date_year,format,status,site_url,is_adult,genres")
+        .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres")
         .in("id", idList);
       if (mediaErr) throw mediaErr;
       const byId = new Map<number, any>((mediaRows ?? []).map((r: any) => [r.id, r]));
@@ -361,7 +419,40 @@ serve(async (req) => {
         boostedReasonsById.set(mediaId, arr);
       }
 
+      const passes = (m: any) => {
+        if (!m) return false;
+        if (quality.excludeFormats.has(String(m.format ?? "").toUpperCase())) return false;
+        const score = Number(m.average_score ?? 0);
+        const pop = Number(m.popularity ?? 0);
+        if (quality.minScore > 0 && score > 0 && score < quality.minScore) return false;
+        if (quality.minPopularity > 0 && pop > 0 && pop < quality.minPopularity) return false;
+        return true;
+      };
+
+      const hasGenres = (m: any, required: string[]) => {
+        if (!required.length) return true;
+        const gs = Array.isArray(m?.genres) ? m.genres.map((x: any) => String(x)) : [];
+        if (!gs.length) return false;
+        // Require at least one requested genre to match.
+        return required.some((g) => gs.includes(g));
+      };
+
+      // Prefer: genre match + quality; then quality; then anything (no hard failures).
+      const primary: any[] = [];
+      const secondary: any[] = [];
+      const tertiary: any[] = [];
+
       for (const r of rows) {
+        const m = byId.get(r.media_id);
+        if (!m) continue;
+        if (passes(m) && hasGenres(m, requiredGenres)) primary.push(r);
+        else if (passes(m)) secondary.push(r);
+        else tertiary.push(r);
+      }
+
+      const ordered = [...primary, ...secondary, ...tertiary].slice(0, limit);
+
+      for (const r of ordered) {
         const m = byId.get(r.media_id);
         if (!m) continue;
         const idKey = `${mt}|${r.media_id}`;
@@ -385,6 +476,8 @@ serve(async (req) => {
           status: m.status ?? null,
           siteUrl: m.site_url ?? null,
           signals,
+          // Keep the raw genres around; the client can choose to show them or not.
+          genres: Array.isArray(m.genres) ? m.genres : null,
         });
       }
     };
