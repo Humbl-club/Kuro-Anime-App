@@ -10,6 +10,8 @@ This file explains the app in everyday language for non-technical readers. It is
 
 Every time the app changes (design, features, backend, data, schedules, etc.), this file must be updated. Add a new line to the **Change Log** at the bottom with the date and a short summary.
 
+For the technical “source of truth” and auto-generated inventories, see `CURRENT_APP_STATE.md`.
+
 ---
 
 ## 2) What Kuro is (in one paragraph)

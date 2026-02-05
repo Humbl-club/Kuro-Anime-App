@@ -20,6 +20,11 @@ This file is a **contract**. It must be updated **after every single change** to
    - Commit hash(es)
 3. If you are unsure where a change belongs, add a note under **Open Questions / Unknowns**.
 4. If you are making changes for a new chat/LLM, this file must be the **first reference** and must reflect the current state.
+5. After changes, refresh the auto-generated sections:
+   ```bash
+   node scripts/generate_app_state_inventory.js
+   node scripts/generate_app_state_maps.js
+   ```
 
 **Failure to update this file = incorrect system state.**
 
@@ -71,6 +76,124 @@ This file is a **contract**. It must be updated **after every single change** to
 - `scripts/` — import scripts, audits, load tests, ops tools
 - `mockups/` — UI references
 - `BROWSE_REFINED_SUMMARY.md`, `MASTER_PLAN.md`, `COMPLETE_APP_DOCUMENTATION.md` — historical docs
+
+<!-- BEGIN AUTO-INVENTORY -->
+
+## 2.1) Auto-generated inventory (exhaustive file lists)
+
+Generated: **2026-02-05T13:05:07.006Z**  (git: `4d470f8` on `main`)
+
+This section is auto-generated. Rebuild it after any repo change:
+```bash
+node scripts/generate_app_state_inventory.js
+```
+
+### iOS (Swift) files (count: 45)
+- `Kuro/ContentView.swift`
+- `Kuro/Design/KuroDesignSystem.swift`
+- `Kuro/KuroApp.swift`
+- `Kuro/Models/DiscoverBundle.swift`
+- `Kuro/Models/SupabaseModels.swift`
+- `Kuro/Services/AppConfig.swift`
+- `Kuro/Services/ImagePipeline.swift`
+- `Kuro/Services/KuroDiskDetailCache.swift`
+- `Kuro/Services/KuroPerf.swift`
+- `Kuro/Services/SupabaseRPCParams.swift`
+- `Kuro/Services/SupabaseService.swift`
+- `Kuro/Views/AuthView.swift`
+- `Kuro/Views/BrowseView.swift`
+- `Kuro/Views/BrowseViewRefined.swift`
+- `Kuro/Views/Cards.swift`
+- `Kuro/Views/Collection/CollectionManagementView.swift`
+- `Kuro/Views/ConciergeOverlay.swift`
+- `Kuro/Views/ConciergeView.swift`
+- `Kuro/Views/CountdownTimer.swift`
+- `Kuro/Views/DetailPages/AnimeDetailView.swift`
+- `Kuro/Views/DetailPages/MangaDetailView.swift`
+- `Kuro/Views/DetailPages/MediaDetailSheet.swift`
+- `Kuro/Views/DiscoverView.swift`
+- `Kuro/Views/DiscoverViewModel.swift`
+- `Kuro/Views/EditorialCards.swift`
+- `Kuro/Views/EditorialCollectionView.swift`
+- `Kuro/Views/EditorialDiscoverView.swift`
+- `Kuro/Views/EditorialSearchView.swift`
+- `Kuro/Views/GenreHubView.swift`
+- `Kuro/Views/KuroCachedAsyncImage.swift`
+- `Kuro/Views/KuroCardText.swift`
+- `Kuro/Views/KuroChanMascot.swift`
+- `Kuro/Views/KuroConciergeMark.swift`
+- `Kuro/Views/KuroGlass.swift`
+- `Kuro/Views/KuroInteractionEnvironment.swift`
+- `Kuro/Views/KuroLoadMoreSentinel.swift`
+- `Kuro/Views/KuroPagingGesture.swift`
+- `Kuro/Views/KuroRefinedCard.swift`
+- `Kuro/Views/KuroToast.swift`
+- `Kuro/Views/KuroTransientBanner.swift`
+- `Kuro/Views/ProfileView.swift`
+- `Kuro/Views/SearchView.swift`
+- `Kuro/Views/SearchViewModel.swift`
+- `Kuro/Views/SettingsView.swift`
+- `Kuro/Views/UIComponents.swift`
+
+### Supabase migrations (count: 27)
+- `supabase/migrations/20250109_remote_applied_placeholder.sql`
+- `supabase/migrations/20250909_remote_applied_placeholder.sql`
+- `supabase/migrations/20250917_remote_applied_placeholder.sql`
+- `supabase/migrations/20260203171100_concierge_core.sql`
+- `supabase/migrations/20260203171110_concierge_title_search_rebuild.sql`
+- `supabase/migrations/20260203181000_profiles_insert_policy.sql`
+- `supabase/migrations/20260203183000_concierge_recommend_rpc.sql`
+- `supabase/migrations/20260203190000_editorial_recommend_engine.sql`
+- `supabase/migrations/20260203191500_recommend_focus_tags.sql`
+- `supabase/migrations/20260203194500_recommend_focus_filter.sql`
+- `supabase/migrations/20260203201000_editorial_story_boosts.sql`
+- `supabase/migrations/20260203203000_recommend_seed_similarity.sql`
+- `supabase/migrations/20260203223000_scale_perf_bundle_and_indexes.sql`
+- `supabase/migrations/20260203224500_browse_rpc_add_created_at.sql`
+- `supabase/migrations/20260203233500_mirror_runs.sql`
+- `supabase/migrations/20260203235500_search_rpc_keyset.sql`
+- `supabase/migrations/20260204010500_collection_paging_rpc.sql`
+- `supabase/migrations/20260204124500_title_aliases.sql`
+- `supabase/migrations/20260204133000_collection_feed_paging_rpc.sql`
+- `supabase/migrations/20260204221500_concierge_rate_limits_and_llm_budgets.sql`
+- `supabase/migrations/20260204233000_recommend_seed_similarity_allow_anon.sql`
+- `supabase/migrations/20260204233010_concierge_ops_observability_and_retention.sql`
+- `supabase/migrations/20260204234500_recommend_seed_similarity_ranked_tags.sql`
+- `supabase/migrations/20260204235500_recommend_seed_similarity_genre_gate.sql`
+- `supabase/migrations/20260204240500_backfill_anime_episodes_from_next_airing.sql`
+- `supabase/migrations/20260205000500_concierge_global_llm_budget_and_default_tuning.sql`
+- `supabase/migrations/20260205002000_concierge_budget_raise.sql`
+
+### Supabase Edge Functions (index.ts) (count: 8)
+- `supabase/functions/bulk-import-anime/index.ts`
+- `supabase/functions/bulk-import-manga/index.ts`
+- `supabase/functions/concierge-apply/index.ts`
+- `supabase/functions/concierge-parse/index.ts`
+- `supabase/functions/concierge-recommend/index.ts`
+- `supabase/functions/concierge-resolve/index.ts`
+- `supabase/functions/concierge-undo/index.ts`
+- `supabase/functions/mirror-images/index.ts`
+
+### Repo scripts (count: 16)
+- `scripts/apply_remote_sql.js`
+- `scripts/check_cron_health.js`
+- `scripts/collect_db_metrics.js`
+- `scripts/concierge_corpus_generate.js`
+- `scripts/concierge_eval_parse.js`
+- `scripts/db_state.sql`
+- `scripts/generate_app_state_inventory.js`
+- `scripts/generate_app_state_maps.js`
+- `scripts/genre_audit.js`
+- `scripts/import_anilist_fast.js`
+- `scripts/import_anilist_local.js`
+- `scripts/load_test_concierge.js`
+- `scripts/report_airing_window.js`
+- `scripts/run_full_import.js`
+- `scripts/smoke_concierge_recommend.js`
+- `scripts/smoke_magic_parse_apply.js`
+
+
+<!-- END AUTO-INVENTORY -->
 
 ### iOS app structure (`/Kuro`)
 - `Kuro/ContentView.swift` — app entry point + navigation/swipe pager + top header
@@ -177,6 +300,35 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 - **Realtime**: subscribes to user-scoped channel to refresh list/collection data on changes.
 - **Local caches**: `discoverBundleCache`, `conciergeParseCache`, `conciergeRecommendCache` (in-memory, TTL-based).
 
+<!-- BEGIN AUTO-IOS-MAP -->
+
+## 3.2) Auto iOS backend usage index
+
+Generated: **2026-02-05T13:05:07.075Z** (git: `4d470f8`)
+
+- Swift file scanned: `Kuro/Services/SupabaseService.swift`
+
+### RPCs used by iOS (count: 9)
+- `browse_anime_page`
+- `browse_manga_page`
+- `collection_anime_page`
+- `collection_feed_page`
+- `collection_manga_page`
+- `discover_bundle`
+- `recommend_ids_similar_to_seeds`
+- `search_anime_page`
+- `search_manga_page`
+
+### Edge Functions invoked by iOS (count: 5)
+- `concierge-apply`
+- `concierge-parse`
+- `concierge-recommend`
+- `concierge-resolve`
+- `concierge-undo`
+
+
+<!-- END AUTO-IOS-MAP -->
+
 ---
 
 ## 4) Design system (current)
@@ -278,6 +430,7 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 - `llm_usage_daily_totals`
 - `rate_limit_recent_top`
 - `import_state` (cursor table for scheduled AniList imports)
+- `import_runs` (optional; bulk-import functions write run history if present)
 
 **Schema definitions are in** `supabase/migrations/`.
 
@@ -324,6 +477,119 @@ Client + edge functions rely on these RPCs:
 - `llm_global_budget_reserve`, `llm_global_budget_finalize`
 - `is_flag_enabled`
 - `acquire_import_lock`, `release_import_lock`
+
+<!-- BEGIN AUTO-MIGRATION-MAP -->
+
+## 7.1) Auto migration map (objects by migration)
+
+Generated: **2026-02-05T13:05:07.075Z** (git: `4d470f8`)
+
+Each migration is summarized by the objects it defines. For full SQL, open the file.
+
+### supabase/migrations/20250109_remote_applied_placeholder.sql
+
+### supabase/migrations/20250909_remote_applied_placeholder.sql
+
+### supabase/migrations/20250917_remote_applied_placeholder.sql
+
+### supabase/migrations/20260203171100_concierge_core.sql
+- Extensions (1): `pg_trgm`
+- Tables (6): `public.concierge_runs`, `public.import_session_items`, `public.import_sessions`, `public.profiles`, `public.title_search`, `public.user_taste_profiles`
+- Functions (4): `public.log_concierge_run`, `public.normalize_title`, `public.search_titles`, `public.set_updated_at`
+- Policies (6): `public.import_session_items:import_session_items_own_all`, `public.import_sessions:import_sessions_own_all`, `public.profiles:profiles_select_own`, `public.profiles:profiles_update_own`, `public.title_search:title_search_select_all`, `public.user_taste_profiles:taste_profiles_own_all`
+- Indexes (5): `idx_concierge_runs_user_created`, `idx_import_session_items_session`, `idx_import_sessions_user_created`, `idx_title_search_media`, `idx_title_search_title_norm_trgm`
+- Triggers (3): `import_session_items_set_updated_at`, `import_sessions_set_updated_at`, `profiles_set_updated_at`
+
+### supabase/migrations/20260203171110_concierge_title_search_rebuild.sql
+- Functions (1): `public.rebuild_title_search`
+
+### supabase/migrations/20260203181000_profiles_insert_policy.sql
+- Policies (1): `public.profiles:profiles_insert_own`
+
+### supabase/migrations/20260203183000_concierge_recommend_rpc.sql
+- Functions (1): `public.recommend_ids_by_tag_categories`
+
+### supabase/migrations/20260203190000_editorial_recommend_engine.sql
+- Tables (2): `public.editorial_boosts`, `public.editorial_penalty_tags`
+- Functions (1): `public.recommend_ids_premium`
+
+### supabase/migrations/20260203191500_recommend_focus_tags.sql
+- Functions (1): `public.recommend_ids_premium`
+
+### supabase/migrations/20260203194500_recommend_focus_filter.sql
+- Functions (1): `public.recommend_ids_premium`
+
+### supabase/migrations/20260203201000_editorial_story_boosts.sql
+- Tables (1): `public.editorial_tag_boosts`
+- Functions (1): `public.recommend_ids_premium`
+
+### supabase/migrations/20260203203000_recommend_seed_similarity.sql
+- Functions (1): `public.recommend_ids_similar_to_seeds`
+
+### supabase/migrations/20260203223000_scale_perf_bundle_and_indexes.sql
+- Functions (4): `public.browse_anime_page`, `public.browse_manga_page`, `public.current_season_name`, `public.discover_bundle`
+- Indexes (15): `idx_anime_created_id`, `idx_anime_genres_gin`, `idx_anime_next_airing_at`, `idx_anime_popularity_id`, `idx_anime_score_id`, `idx_anime_search_tsv`, `idx_anime_season_year_popularity_id`, `idx_anime_status_popularity_id`, `idx_anime_trending_id`, `idx_manga_created_id`, `idx_manga_genres_gin`, `idx_manga_popularity_id`, `idx_manga_score_id`, `idx_manga_search_tsv`, `idx_manga_trending_id`
+
+### supabase/migrations/20260203224500_browse_rpc_add_created_at.sql
+- Functions (2): `public.browse_anime_page`, `public.browse_manga_page`
+
+### supabase/migrations/20260203233500_mirror_runs.sql
+- Tables (1): `public.mirror_runs`
+- Indexes (1): `idx_mirror_runs_started_at`
+
+### supabase/migrations/20260203235500_search_rpc_keyset.sql
+- Extensions (1): `pg_trgm`
+- Functions (2): `public.search_anime_page`, `public.search_manga_page`
+- Indexes (2): `idx_anime_title_trgm`, `idx_manga_title_trgm`
+
+### supabase/migrations/20260204010500_collection_paging_rpc.sql
+- Functions (2): `public.collection_anime_page`, `public.collection_manga_page`
+- Indexes (2): `idx_anime_user_lists_user_updated_id`, `idx_manga_user_lists_user_updated_id`
+
+### supabase/migrations/20260204124500_title_aliases.sql
+- Tables (1): `public.title_aliases`
+- Policies (1): `public.title_aliases:title_aliases_own_all`
+- Indexes (2): `idx_title_aliases_user_alias`, `idx_title_aliases_user_updated`
+- Triggers (1): `title_aliases_set_updated_at`
+
+### supabase/migrations/20260204133000_collection_feed_paging_rpc.sql
+- Functions (1): `public.collection_feed_page`
+
+### supabase/migrations/20260204221500_concierge_rate_limits_and_llm_budgets.sql
+- Tables (3): `public.llm_daily_usage`, `public.rate_limit_buckets`, `public.system_flags`
+- Functions (5): `public.check_concierge_rate_limit`, `public.is_flag_enabled`, `public.llm_budget_finalize`, `public.llm_budget_reserve`, `public.rate_limit_hit`
+- Indexes (1): `idx_rate_limit_buckets_window_start`
+- Triggers (3): `llm_daily_usage_set_updated_at`, `rate_limit_buckets_set_updated_at`, `system_flags_set_updated_at`
+
+### supabase/migrations/20260204233000_recommend_seed_similarity_allow_anon.sql
+- Functions (1): `public.recommend_ids_similar_to_seeds`
+
+### supabase/migrations/20260204233010_concierge_ops_observability_and_retention.sql
+- Extensions (1): `pg_cron`
+- Tables (2): `public.concierge_config`, `public.concierge_parse_feedback`
+- Views (3): `public.concierge_metrics_hourly`, `public.llm_usage_daily_totals`, `public.rate_limit_recent_top`
+- Functions (5): `public.check_concierge_rate_limit`, `public.concierge_housekeeping`, `public.get_concierge_config`, `public.llm_budget_reserve`, `public.log_concierge_parse_feedback`
+- Indexes (2): `idx_concierge_parse_feedback_created`, `idx_concierge_parse_feedback_user_created`
+- Triggers (1): `concierge_config_set_updated_at`
+- Cron (1): `concierge_housekeeping_daily @ 0 4 * * *`
+
+### supabase/migrations/20260204234500_recommend_seed_similarity_ranked_tags.sql
+- Functions (1): `public.recommend_ids_similar_to_seeds`
+
+### supabase/migrations/20260204235500_recommend_seed_similarity_genre_gate.sql
+- Functions (1): `public.recommend_ids_similar_to_seeds`
+
+### supabase/migrations/20260204240500_backfill_anime_episodes_from_next_airing.sql
+
+### supabase/migrations/20260205000500_concierge_global_llm_budget_and_default_tuning.sql
+- Tables (1): `public.llm_global_daily_usage`
+- Functions (2): `public.llm_global_budget_finalize`, `public.llm_global_budget_reserve`
+- Triggers (1): `llm_global_daily_usage_set_updated_at`
+
+### supabase/migrations/20260205002000_concierge_budget_raise.sql
+
+
+<!-- END AUTO-MIGRATION-MAP -->
 
 ---
 
@@ -416,6 +682,62 @@ Response JSON:
 **concierge-undo** (rollback)
 Request JSON:
 - `sessionId` (optional; defaults to last applied)
+
+<!-- BEGIN AUTO-EDGE-MAP -->
+
+## 8.2) Auto edge-function map (contracts + dependencies)
+
+Generated: **2026-02-05T13:05:07.075Z** (git: `4d470f8`)
+
+### bulk-import-anime
+- Source: `supabase/functions/bulk-import-anime/index.ts`
+- Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `acquire_import_lock`, `release_import_lock`
+- Tables touched: `anime`, `anime_characters`, `anime_staff`, `anime_studios`, `anime_tags`, `characters`, `episodes`, `external_links`, `import_runs`, `import_state`, `staff`, `studios`, `tags`
+
+### bulk-import-manga
+- Source: `supabase/functions/bulk-import-manga/index.ts`
+- Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `acquire_import_lock`, `release_import_lock`
+- Tables touched: `authors`, `chapters`, `characters`, `external_links`, `import_runs`, `import_state`, `manga`, `manga_authors`, `manga_characters`, `manga_staff`, `manga_tags`, `staff`, `tags`, `volumes`
+
+### concierge-apply
+- Source: `supabase/functions/concierge-apply/index.ts`
+- Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `check_concierge_rate_limit`, `log_concierge_run`
+- Tables touched: `anime`, `anime_user_lists`, `episodes`, `import_session_items`, `import_sessions`, `manga`, `manga_user_lists`, `title_aliases`
+
+### concierge-parse
+- Source: `supabase/functions/concierge-parse/index.ts`
+- Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `check_concierge_rate_limit`, `get_concierge_config`, `log_concierge_parse_feedback`, `log_concierge_run`, `search_titles`
+- Tables touched: `title_aliases`
+
+### concierge-recommend
+- Source: `supabase/functions/concierge-recommend/index.ts`
+- Env vars: `GROQ_API_KEY`, `GROQ_MODEL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `check_concierge_rate_limit`, `get_concierge_config`, `is_flag_enabled`, `llm_budget_finalize`, `llm_budget_reserve`, `llm_global_budget_finalize`, `llm_global_budget_reserve`, `log_concierge_run`, `recommend_ids_premium`, `recommend_ids_similar_to_seeds`, `search_titles`
+- Tables touched: `editorial_boosts`, `editorial_tag_boosts`
+
+### concierge-resolve
+- Source: `supabase/functions/concierge-resolve/index.ts`
+- Env vars: `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_MODEL_RESOLVE`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `check_concierge_rate_limit`, `get_concierge_config`, `is_flag_enabled`, `llm_budget_finalize`, `llm_budget_reserve`, `llm_global_budget_finalize`, `llm_global_budget_reserve`
+
+### concierge-undo
+- Source: `supabase/functions/concierge-undo/index.ts`
+- Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `check_concierge_rate_limit`, `log_concierge_run`
+- Tables touched: `anime_user_lists`, `import_session_items`, `import_sessions`, `manga_user_lists`
+
+### mirror-images
+- Source: `supabase/functions/mirror-images/index.ts`
+- Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `acquire_import_lock`
+- Tables touched: `anime`, `characters`, `manga`, `mirror_runs`, `staff`
+
+
+<!-- END AUTO-EDGE-MAP -->
 
 ---
 
@@ -538,6 +860,7 @@ Request JSON:
 
 ## 14) Change Log (append-only)
 
+- 2026-02-05: Added auto-generated inventory + maps (migrations, edge functions, iOS RPC usage) via scripts.
 - 2026-02-05: Added deep appendices (data dictionary, RPC catalog, edge function examples, operator runbook).
 - 2026-02-05: Expanded CURRENT_APP_STATE with appendices (full DDL + concierge guardrails).
 - 2026-02-05: Added/expanded CURRENT_APP_STATE docs with full technical + plain-English snapshots.
@@ -549,6 +872,8 @@ Request JSON:
 
 - Are mirror-images / bulk import functions running on a scheduled Supabase schedule or via external cron? (Not found in migrations; assumed manual/external.)
 - Exact current state of all RLS policies is in migrations; confirm if additional tables were added after 2026-02-05.
+- `import_runs` table is referenced by bulk-import edge functions but is not created in `supabase/migrations/` in this repo; it may exist remotely or be optional.
+- Unused/legacy Swift files exist (e.g., `Kuro/Views/KuroChanMascot.swift`, `Kuro/Views/ConciergeOverlay.swift`). Inventory lists them; decide whether to delete or keep as reference.
 
 ---
 
