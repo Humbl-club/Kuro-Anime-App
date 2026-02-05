@@ -49,6 +49,14 @@ function fenceFor(p) {
   return '';
 }
 
+function redactSecrets(s) {
+  // Same policy as the codebase bundle: never inline credentials into docs.
+  return s
+    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'sb_secret_[REDACTED_DO_NOT_COMMIT]')
+    .replace(/sbp_[A-Za-z0-9_]+/g, 'sbp_[REDACTED_DO_NOT_COMMIT]')
+    .replace(/eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g, '[REDACTED_JWT]');
+}
+
 function excerptBlock(relPath, { title } = {}) {
   const src = readText(relPath);
   const lang = fenceFor(relPath);
@@ -57,7 +65,7 @@ function excerptBlock(relPath, { title } = {}) {
     return `${header}\n\n_(Missing in repo at generation time.)_\n`;
   }
   // NOTE: For "minute detail" we inline the full file. This can be large, but remains authoritative.
-  return `${header}\n\n\`\`\`${lang}\n${src}\n\`\`\`\n`;
+  return `${header}\n\n\`\`\`${lang}\n${redactSecrets(src)}\n\`\`\`\n`;
 }
 
 function main() {

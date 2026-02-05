@@ -80,13 +80,26 @@ function readUtf8(p) {
   }
 }
 
+function redactSecrets(s) {
+  // Redact common credential patterns to avoid committing secrets into the bundle.
+  // (The actual source files remain unchanged; this is documentation output.)
+  return s
+    // Supabase "secret" keys (should never be committed).
+    .replace(/sb_secret_[A-Za-z0-9_]+/g, 'sb_secret_[REDACTED_DO_NOT_COMMIT]')
+    // Supabase access tokens (PAT-like).
+    .replace(/sbp_[A-Za-z0-9_]+/g, 'sbp_[REDACTED_DO_NOT_COMMIT]')
+    // JWT-ish tokens (covers anon keys too; safe for docs).
+    .replace(/eyJ[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*\.[a-zA-Z0-9_-]*/g, '[REDACTED_JWT]');
+}
+
 function section(title) {
   return `\n---\n\n# ${title}\n\n`;
 }
 
 function fileBlock(p) {
   const r = rel(p);
-  const src = readUtf8(p);
+  const srcRaw = readUtf8(p);
+  const src = srcRaw == null ? null : redactSecrets(srcRaw);
   if (src == null) return null;
   const lang = fenceFor(r);
   return `## \`${r}\`\n\n\`\`\`${lang}\n${src}\n\`\`\`\n`;
