@@ -24,6 +24,10 @@ This file is a **contract**. It must be updated **after every single change** to
    ```bash
    node scripts/generate_app_state_inventory.js
    node scripts/generate_app_state_maps.js
+   node scripts/generate_app_state_sources.js
+   node scripts/generate_app_state_codebase_bundle.js
+   # Optional (requires SUPABASE_SERVICE_ROLE_KEY + deployed admin_schema_snapshot RPC):
+   node scripts/generate_app_state_live_snapshot.js
    ```
 
 **Failure to update this file = incorrect system state.**
@@ -3592,3 +3596,41 @@ Response:
 - If swipe/paging is broken: check `ContentView.swift` for swipe order + exclusions.
 
 ---
+
+## 24) Appendix I — Live Supabase DB Snapshot (auto-generated, service-role only)
+
+This appendix is **optional** and exists to detect **drift** between:
+- the repo's declared schema (migrations), and
+- the **live** Supabase database (production/dev).
+
+It requires:
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- the RPC `public.admin_schema_snapshot()` to be deployed (see migration `supabase/migrations/20260205160000_admin_schema_snapshot.sql`).
+
+Rebuild:
+```bash
+node scripts/generate_app_state_live_snapshot.js
+```
+
+<!-- BEGIN AUTO-LIVE-DB-SNAPSHOT -->
+_Not generated yet._
+<!-- END AUTO-LIVE-DB-SNAPSHOT -->
+
+---
+
+## 25) Appendix J — Source of truth excerpts (auto-generated)
+
+This appendix inlines the **exact current source** for the most important runtime components so another LLM can reason from ground truth without opening the repo.
+
+For a complete (very large) source bundle, see: `CURRENT_APP_STATE_CODEBASE.md` (auto-generated).
+
+Rebuild:
+```bash
+node scripts/generate_app_state_sources.js
+node scripts/generate_app_state_codebase_bundle.js
+```
+
+<!-- BEGIN AUTO-SOURCE-EXCERPTS -->
+_Not generated yet._
+<!-- END AUTO-SOURCE-EXCERPTS -->
