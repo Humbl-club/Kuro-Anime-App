@@ -538,6 +538,7 @@ Request JSON:
 
 ## 14) Change Log (append-only)
 
+- 2026-02-05: Added deep appendices (data dictionary, RPC catalog, edge function examples, operator runbook).
 - 2026-02-05: Expanded CURRENT_APP_STATE with appendices (full DDL + concierge guardrails).
 - 2026-02-05: Added/expanded CURRENT_APP_STATE docs with full technical + plain-English snapshots.
 - 2026-02-05: Concierge left page + profile menu. Header simplified. Cards show `YEAR · EPS`. Concierge intro + quick-start glass pills added. Commits: `2565d4d`, `a9d0e2c`
@@ -2758,3 +2759,511 @@ grant execute on function public.recommend_ids_premium(text, text[], integer, bo
 
 commit;
 ```
+
+---
+
+## 20) Appendix E — Data Dictionary (human-readable)
+
+Notes:
+- Column types and constraints are defined in the DDL appendices above.
+- This section provides **semantic meaning** for each column.
+- If a column is not listed in a downstream migration, assume it still exists from the base DDL unless dropped later.
+
+### anime
+- id: internal primary key (may or may not match AniList id; see schema note below).
+- anilist_id, mal_id, kitsu_id: external IDs for sync/dedup.
+- title_english, title_romaji, title_native: localized titles.
+- title_synonyms: extra title aliases from source.
+- cover_image_large, cover_image_medium, cover_image_color, banner_image: artwork URLs.
+- format: TV/MOVIE/OVA/etc.
+- status: FINISHED/RELEASING/NOT_YET_RELEASED.
+- description: raw synopsis text.
+- description_normalized: sanitized/plain text for search.
+- episodes: total episodes (if known).
+- duration: minutes per episode.
+- total_duration: episodes * duration.
+- season, season_year: seasonal metadata.
+- next_episode_number, next_airing_at: next airing info.
+- start_date_year/month/day, end_date_year/month/day: date components.
+- average_score, mean_score: ratings.
+- popularity, trending, favourites: ranking stats.
+- genres: text array.
+- source: original source type (manga, original, etc).
+- country_of_origin: two-letter origin.
+- is_adult: adult flag.
+- age_rating: content rating string.
+- site_url: AniList page.
+- created_at, updated_at, last_synced_at, updated_at_anilist: system timestamps.
+
+### manga
+- id: internal primary key.
+- anilist_id, mal_id, kitsu_id: external IDs.
+- title_english, title_romaji, title_native, title_synonyms: titles.
+- cover_image_large/medium/color, banner_image: artwork.
+- format: MANGA/NOVEL/ONE_SHOT/etc.
+- status: FINISHED/RELEASING/HIATUS/etc.
+- description, description_normalized: synopsis.
+- chapters, volumes: totals.
+- next_chapter_number, next_chapter_at: next release info.
+- start/end date components.
+- average_score, mean_score, popularity, trending, favourites.
+- genres, source, country_of_origin.
+- is_adult, age_rating.
+- site_url.
+- created_at, updated_at, last_synced_at, updated_at_anilist.
+
+### episodes
+- id: internal PK.
+- anime_id: FK to anime.
+- anilist_id, mal_id: external episode IDs.
+- number: episode number.
+- title, title_romaji: names.
+- description: episode synopsis.
+- air_date, air_at: date/time.
+- thumbnail: image URL.
+- duration: minutes.
+- is_filler, is_recap, is_mixed, filler_source: content classification.
+- stream_url, stream_site: streaming CTA info (migration 13).
+- created_at, updated_at.
+
+### chapters
+- id: internal PK.
+- manga_id: FK to manga.
+- anilist_id, mal_id: external chapter IDs.
+- number: chapter number.
+- title, title_romaji, description.
+- release_date, release_at.
+- created_at, updated_at.
+
+### volumes
+- id: internal PK.
+- manga_id: FK to manga.
+- number, title, description.
+- release_date.
+- created_at, updated_at.
+
+### characters
+- id: internal PK.
+- anilist_id, mal_id, kitsu_id: external IDs.
+- name_full, name_native.
+- image_large, image_medium.
+- description, gender, age, blood_type.
+- site_url.
+- favourites.
+- created_at, updated_at, last_synced_at.
+
+### studios
+- id: internal PK.
+- anilist_id, mal_id, kitsu_id.
+- name.
+- site_url.
+- favourites.
+- created_at, updated_at, last_synced_at.
+
+### authors
+- id: internal PK.
+- anilist_id, mal_id, kitsu_id.
+- name_full, name_native.
+- image_large, image_medium.
+- description.
+- site_url.
+- favourites.
+- created_at, updated_at, last_synced_at.
+
+### staff
+- id: internal PK.
+- anilist_id, mal_id, kitsu_id.
+- name_full, name_native.
+- image_large, image_medium.
+- description.
+- primary_occupations.
+- site_url.
+- favourites.
+- created_at, updated_at, last_synced_at.
+
+### tags
+- id: internal PK (AniList tag id).
+- name, description.
+- category.
+- rank.
+- is_spoiler, is_adult.
+- created_at, updated_at.
+
+### anime_characters / manga_characters
+- anime_id or manga_id.
+- character_id.
+- role (main, supporting, etc).
+- created_at, updated_at.
+
+### anime_studios / manga_authors
+- anime_id or manga_id.
+- studio_id or author_id.
+- is_main (for studios).
+- created_at, updated_at.
+
+### anime_staff / manga_staff
+- anime_id or manga_id.
+- staff_id.
+- role (string).
+- created_at, updated_at.
+
+### anime_tags / manga_tags
+- anime_id or manga_id.
+- tag_id.
+- rank.
+- is_spoiler, is_adult.
+- created_at, updated_at.
+
+### anime_user_lists / manga_user_lists
+- id: list row PK.
+- user_id: auth user id.
+- anime_id or manga_id.
+- list_type: WATCHING/PLANNING/COMPLETED/etc.
+- progress: episodes/chapters count.
+- rating: integer (0-10, converted to 0-100 in view).
+- notes.
+- created_at, updated_at.
+
+### anime_comments / manga_comments
+- id: PK.
+- user_id.
+- anime_id or manga_id.
+- comment text.
+- created_at, updated_at.
+
+### external_links
+- id: PK.
+- media_type: ANIME/MANGA.
+- media_id.
+- site: source site name.
+- url: link.
+- language, color.
+- priority: rank for display.
+- is_disabled.
+- created_at, updated_at.
+
+### profiles
+- id: auth user id.
+- display_name.
+- adult_opt_in.
+- created_at, updated_at.
+
+### title_search
+- id: PK.
+- media_type, media_id.
+- variant_type: english/romaji/native/synonym/alias/user_alias.
+- title_raw, title_norm.
+- lang.
+- popularity.
+- created_at.
+
+### title_aliases
+- user_id.
+- alias_norm.
+- media_type, media_id.
+- title_raw.
+- hits.
+- created_at, updated_at.
+
+### import_state
+- media_type: ANIME/MANGA.
+- last_page: cursor for imports.
+- updated_at.
+
+### import_sessions
+- id: UUID.
+- user_id.
+- status: draft/applied/failed/cancelled.
+- source: chat (default).
+- created_at, updated_at.
+
+### import_session_items
+- id: UUID.
+- session_id.
+- raw: raw input line.
+- parsed: json payload of parsed info.
+- candidates: json candidate list.
+- chosen: selected candidate.
+- action: final action payload.
+- confidence: float score.
+- state: needs_choice/ready/applied/error/skipped.
+- error: error text.
+- created_at, updated_at.
+
+### concierge_runs
+- id: PK.
+- user_id (nullable).
+- kind: parse/recommend/apply/llm_router/llm_resolve.
+- status: success/error/skipped.
+- input_chars, items_count.
+- latency_ms.
+- token_in, token_out.
+- error.
+- created_at.
+
+### concierge_parse_feedback
+- id: PK.
+- user_id.
+- raw_snippet, normalized, alias_norm.
+- best_score, candidates_count.
+- top_media_type, top_media_id.
+- created_at.
+
+### concierge_config
+- id: single row (true).
+- config: jsonb.
+- created_at, updated_at.
+
+### system_flags
+- key (e.g., llm_enabled).
+- enabled.
+- created_at, updated_at.
+
+### rate_limit_buckets
+- bucket_key.
+- window_start.
+- hits.
+- created_at, updated_at.
+
+### llm_daily_usage
+- user_id.
+- day (date).
+- reserved_tokens, actual_tokens.
+- calls.
+- last_model.
+- created_at, updated_at.
+
+### llm_global_daily_usage
+- day.
+- reserved_tokens, actual_tokens.
+- calls.
+- created_at, updated_at.
+
+### mirror_runs
+- id: PK.
+- status: running/success/error/skipped.
+- payload, results.
+- message.
+- started_at, finished_at, duration_ms.
+
+### user_taste_profiles
+- user_id.
+- vector (jsonb).
+- updated_at.
+
+### user_lists (view)
+- Unified view over anime_user_lists + manga_user_lists.
+- Fields: media_type, media_id, status, progress, score, notes, timestamps.
+
+### user_airing_next (view)
+- User-scoped upcoming airings for anime in list.
+
+Schema note:
+- Some edge functions comment that `anime.id` and `manga.id` are AniList ids. The base DDL defines internal ids + `anilist_id` columns. If a migration or import strategy makes `id` = AniList id, update this section and the import scripts accordingly.
+
+---
+
+## 21) Appendix F — RPC Catalog (with examples)
+
+These RPCs are used by the app and Edge Functions. For full SQL definitions, see migrations.
+
+### discover_bundle(p_limit int, p_hours int) -> jsonb
+- Returns: JSON with multiple rails (essentials, classics, trending, etc).
+- Example:
+```sql
+select public.discover_bundle(30, 24);
+```
+
+### search_titles(p_query text, p_media_type text, p_limit int) -> setof (media_type, media_id, variant_type, title_raw, score)
+- Example:
+```sql
+select * from public.search_titles('attack on titan', 'ANIME', 10);
+```
+
+### search_anime_page / search_manga_page
+- Used by Search UI. Returns paged rows.
+- Example:
+```sql
+select * from public.search_anime_page('naruto', 0, 30, null);
+```
+
+### browse_anime_page / browse_manga_page
+- Used by Browse UI with sort keys.
+- Example:
+```sql
+select * from public.browse_anime_page('popular', 0, 30, null);
+```
+
+### collection_feed_page
+- Unified feed (anime + manga) sorted by updated_at.
+- Example:
+```sql
+select * from public.collection_feed_page(null, null, null, 40);
+```
+
+### collection_anime_page / collection_manga_page
+- Keyset paging for anime_user_lists / manga_user_lists.
+- Example:
+```sql
+select * from public.collection_anime_page(null, null, 40);
+```
+
+### airing_next(days int)
+- User upcoming airing episodes.
+- Example:
+```sql
+select * from public.airing_next(7);
+```
+
+### recommend_ids_premium / recommend_ids_similar_to_seeds
+- Deterministic recommendation primitives.
+- Example:
+```sql
+select * from public.recommend_ids_premium('ANIME', array['Action'], 10, false);
+```
+
+### check_concierge_rate_limit(p_kind, p_ip, p_window_seconds, p_max_user, p_max_ip) -> jsonb
+- Example:
+```sql
+select public.check_concierge_rate_limit('parse', '1.2.3.4', 60, null, null);
+```
+
+### get_concierge_config() -> jsonb
+- Example:
+```sql
+select public.get_concierge_config();
+```
+
+### log_concierge_run(...)
+- Used by Edge Functions to log runs (SECURITY DEFINER).
+
+### log_concierge_parse_feedback(...)
+- Stores low-confidence parse events.
+
+### llm_budget_reserve / llm_budget_finalize
+- Reserve + finalize per-user budget.
+
+### llm_global_budget_reserve / llm_global_budget_finalize
+- Reserve + finalize global daily budget.
+
+### is_flag_enabled(p_key)
+- Example:
+```sql
+select public.is_flag_enabled('llm_enabled');
+```
+
+### acquire_import_lock / release_import_lock
+- Used by bulk imports + mirror-images to prevent overlap.
+
+---
+
+## 22) Appendix G — Edge Function HTTP API (examples)
+
+All functions are invoked via:
+```
+POST https://<project-ref>.supabase.co/functions/v1/<function-name>
+Authorization: Bearer <user-access-token>
+Content-Type: application/json
+```
+
+### concierge-parse
+Request:
+```json
+{ "text": "AoT completed, JJK ep 12", "scope": "both", "limitPerItem": 10 }
+```
+Response (shape):
+```json
+{ "success": true, "items": [ { "id": "...", "raw": "...", "candidates": [ ... ] } ], "userId": "..." }
+```
+
+### concierge-resolve
+Request:
+```json
+{ "items": [ { "raw": "JJK", "parsed": {"status":"COMPLETED"}, "candidates": [ ... ] } ], "maxCandidates": 6 }
+```
+Response:
+```json
+{ "success": true, "choices": [ { "i": 0, "pick": 1 } ] }
+```
+
+### concierge-recommend
+Request:
+```json
+{ "text": "something funny, not childish", "scope": "anime", "limit": 8, "narrate": true }
+```
+Response:
+```json
+{ "success": true, "items": [ { "mediaId": 12, "title": "...", "blurb": "..." } ] }
+```
+
+### concierge-apply
+Request:
+```json
+{ "items": [ { "mediaType": "ANIME", "mediaId": 16498, "status": "COMPLETED", "progressEpisodes": 25 } ] }
+```
+Response:
+```json
+{ "success": true, "applied": 1, "sessionId": "...", "errors": [] }
+```
+
+### concierge-undo
+Request:
+```json
+{ "sessionId": "<optional>" }
+```
+Response:
+```json
+{ "success": true, "reverted": 3 }
+```
+
+### bulk-import-anime / bulk-import-manga
+Request:
+```json
+{ "startPage": 1, "pageCount": 10, "concurrency": 2 }
+```
+Response:
+```json
+{ "success": true, "pages": 10, "updated": 500 }
+```
+
+### mirror-images
+Request:
+```json
+{ "bucket": "media", "mediaTypes": ["ANIME","MANGA"], "limit": 200, "offset": 0, "overwrite": false }
+```
+Response:
+```json
+{ "success": true, "results": { "anime": 180, "manga": 170 } }
+```
+
+---
+
+## 23) Appendix H — Operator Runbook (step-by-step)
+
+### Imports (AniList)
+1. Set `SUPABASE_SERVICE_ROLE_KEY` in environment.
+2. Run `scripts/run_full_import.js` or call `bulk-import-anime`/`bulk-import-manga` functions.
+3. Verify `import_state` updates.
+4. Run `scripts/db_state.sql` for counts.
+
+### Image mirroring (CDN)
+1. Call `mirror-images` edge function with mediaTypes.
+2. Check `mirror_runs` table for status.
+3. Verify storage URLs in `anime`/`manga`/`characters`/`staff`.
+
+### Concierge budgets / rate limits
+1. Update `public.concierge_config` JSON in SQL editor.
+2. To disable LLM globally: `update public.system_flags set enabled=false where key='llm_enabled';`.
+3. Check `llm_usage_daily_totals` and `rate_limit_recent_top` views.
+
+### Housekeeping
+- Manual run: `select public.concierge_housekeeping();`
+- Scheduled job: `concierge_housekeeping_daily` (04:00 UTC).
+
+### Troubleshooting
+- If parse/recommend fails: check `concierge_runs` + edge function logs.
+- If recommendations are empty: verify `user_lists` view and `recommend_*` RPCs.
+- If images slow: ensure mirror-images has run and Storage URLs are used.
+- If swipe/paging is broken: check `ContentView.swift` for swipe order + exclusions.
+
+---

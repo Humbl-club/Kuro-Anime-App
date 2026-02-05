@@ -222,8 +222,37 @@ flowchart TD
 
 ---
 
-## 11) Change Log (append-only)
+## 11) Where to find things (non-technical)
 
+- **App UI code:** `Kuro/Views/`
+- **Main navigation:** `Kuro/ContentView.swift`
+- **Data + API calls:** `Kuro/Services/SupabaseService.swift`
+- **Backend SQL changes:** `supabase/migrations/`
+- **Backend functions (Concierge, imports):** `supabase/functions/`
+
+---
+
+## 12) Operator checklist (plain English)
+
+- If images look slow: run image mirroring.
+- If Concierge seems broken: check its usage limits and logs.
+- If recommendations look bad: verify the recommendation tables and see if imports are stale.
+- If imports stop: check the import cursor and re-run import scripts.
+
+---
+
+## 13) Glossary (plain English)
+
+- **RPC:** A database function that the app can call like an API.
+- **Edge Function:** A small backend function that runs on Supabase.
+- **RLS:** Row Level Security; ensures users can only see their own data.
+- **CDN:** Fast image delivery system.
+
+---
+
+## 14) Change Log (append-only)
+
+- 2026-02-05: Added non-technical runbook and glossary sections.
 - 2026-02-05: Expanded this plain-English snapshot with deeper flows and diagrams.
 - 2026-02-05: Added/expanded this plain-English snapshot for non-technical readers.
 - 2026-02-05: Concierge moved to left swipe page. Profile is a top-right menu. Cards now show YEAR · EPS. Concierge intro + quick-start pills added.
