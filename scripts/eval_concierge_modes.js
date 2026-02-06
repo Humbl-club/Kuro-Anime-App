@@ -67,6 +67,12 @@ async function main() {
     "hidden gems",
     "anime like Vagabond",
     "first anime where do i start",
+    "anime movie night",
+    "recommend a short one season anime",
+    "romcom",
+    "serious romance",
+    "fantasy no isekai",
+    "isekai with magic and adventure",
   ];
 
   for (const p of prompts) {
