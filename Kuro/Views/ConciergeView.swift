@@ -260,7 +260,8 @@ struct ConciergeView: View {
 
                             // Only auto-apply LLM picks when confidence is high.
                             let titleSafe = isTitleAutoApplySafe(normalized: item.normalized, parsed: item.parsed, candidateTitle: picked.title_raw)
-                            let canAutoApply = choice.confidence >= 0.88 && picked.score >= 0.70 && titleSafe
+                            let ambiguous = hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention)
+                            let canAutoApply = choice.confidence >= 0.88 && picked.score >= 0.70 && titleSafe && !ambiguous
                             if !canAutoApply { continue }
 
                             let status = normalizedStatus(for: item.parsed.status, mediaType: picked.media_type)
@@ -505,7 +506,8 @@ struct ConciergeView: View {
                 (top.score >= 1.10 && margin >= 0.10) ||
                 (top.score >= 1.00 && margin >= 0.22)
             let titleSafe = isTitleAutoApplySafe(normalized: item.normalized, parsed: item.parsed, candidateTitle: top.title_raw)
-            if !confident || !titleSafe { remaining.append(item); continue }
+            let ambiguous = hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention)
+            if !confident || !titleSafe || ambiguous { remaining.append(item); continue }
 
             let status = normalizedStatus(for: item.parsed.status, mediaType: top.media_type)
             var payload: [String: Any] = [
@@ -584,6 +586,43 @@ struct ConciergeView: View {
 
         // Avoid auto-apply to long variants when the user gave a short base title.
         if c.count - q.count >= 4 { return false }
+
+        return true
+    }
+
+    /// Returns true when the top two candidates look like different adaptations of the same
+    /// series (e.g. HxH 1999 vs 2011, FMA 2003 vs Brotherhood). Only blocks auto-apply;
+    /// the user still sees choices. A matching yearMention overrides the ambiguity.
+    private func hasAmbiguousAdaptations(
+        candidates: [SupabaseService.ConciergeCandidate],
+        yearMention: Int?
+    ) -> Bool {
+        guard candidates.count >= 2 else { return false }
+        let first = candidates[0]
+        let second = candidates[1]
+
+        // Different underlying media — could be different adaptations.
+        guard first.media_id != second.media_id else { return false }
+
+        // Same media_type required (two ANIME entries, not ANIME vs MANGA).
+        guard first.media_type == second.media_type else { return false }
+
+        // Strip subtitles/parentheticals to get the base title.
+        func baseTitle(_ raw: String) -> String {
+            var s = raw.lowercased()
+            s = s.replacingOccurrences(of: #"\(.*?\)"#, with: "", options: .regularExpression)
+            s = s.replacingOccurrences(of: #":.*"#, with: "", options: .regularExpression)
+            return s.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        let base1 = baseTitle(first.title_raw)
+        let base2 = baseTitle(second.title_raw)
+        guard base1 == base2 else { return false }
+
+        // Year override: if the user mentioned a year and the top candidate matches, not ambiguous.
+        if let ym = yearMention, let topYear = first.year, topYear == ym {
+            return false
+        }
 
         return true
     }
@@ -893,68 +932,113 @@ private struct ConciergeBubble: View {
             }
 
             if let items = message.items, !items.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 14) {
                     ForEach(items) { item in
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text(item.raw)
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.black)
-                                Spacer()
-                                if let hint = item.parsed.mediaTypeHint {
-                                    Text(hint)
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .tracking(1.0)
-                                        .foregroundColor(.black.opacity(0.45))
-                                }
-                            }
-
-                            if !item.candidates.isEmpty {
-                                let top = item.candidates.prefix(5)
-                                let picked = selected(item)
-                                ForEach(Array(top.enumerated()), id: \.offset) { _, c in
-                                    Button(action: { onSelect(item, c) }) {
-                                        HStack(spacing: 10) {
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(c.title_raw)
-                                                    .font(.system(size: 13, weight: .regular))
-                                                    .foregroundColor(.black.opacity(0.85))
-                                                    .lineLimit(1)
-                                                Text("\(c.media_type) • \(String(format: "%.2f", c.score))")
-                                                    .font(.system(size: 10, weight: .semibold))
-                                                    .tracking(1.0)
-                                                    .foregroundColor(.black.opacity(0.35))
-                                            }
-                                            Spacer()
-                                            Image(systemName: picked == c ? "checkmark.circle.fill" : "circle")
-                                                .font(.system(size: 16, weight: .regular))
-                                                .foregroundColor(picked == c ? .black : .black.opacity(0.2))
-                                        }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 12)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .fill(picked == c ? Color.black.opacity(0.07) : Color.black.opacity(0.03))
-                                        )
+                        glassBubble(cornerRadius: 14) {
+                            VStack(alignment: .leading, spacing: 0) {
+                                // Header: raw title + media type capsule
+                                HStack(alignment: .center) {
+                                    Text(item.raw)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.black)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    if let hint = item.parsed.mediaTypeHint {
+                                        Text(hint)
+                                            .font(.system(size: 8, weight: .bold))
+                                            .tracking(1.0)
+                                            .foregroundColor(.black.opacity(0.50))
+                                            .padding(.horizontal, 7)
+                                            .padding(.vertical, 3)
+                                            .background(
+                                                Capsule()
+                                                    .fill(Color.black.opacity(0.06))
+                                            )
                                     }
-                                    .buttonStyle(.plain)
                                 }
-                            } else if let err = item.candidateError, !err.isEmpty {
-                                Text("No candidates (missing title_search/search_titles?)")
-                                    .font(.system(size: 12, weight: .regular))
-                                    .foregroundColor(.black.opacity(0.5))
-                            } else {
-                                Text("No candidates")
-                                    .font(.system(size: 12, weight: .regular))
-                                    .foregroundColor(.black.opacity(0.5))
+                                .padding(.horizontal, 14)
+                                .padding(.top, 12)
+                                .padding(.bottom, 8)
+
+                                if !item.candidates.isEmpty {
+                                    // Thin divider
+                                    Rectangle()
+                                        .fill(Color.black.opacity(0.08))
+                                        .frame(height: 0.5)
+                                        .padding(.horizontal, 14)
+
+                                    let top = item.candidates.prefix(5)
+                                    let picked = selected(item)
+                                    VStack(alignment: .leading, spacing: 0) {
+                                        ForEach(Array(top.enumerated()), id: \.offset) { _, c in
+                                            let isSelected = picked == c
+                                            Button(action: { onSelect(item, c) }) {
+                                                HStack(spacing: 0) {
+                                                    // Left accent bar
+                                                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                                                        .fill(Color.black.opacity(isSelected ? 0.80 : 0))
+                                                        .frame(width: 3, height: 28)
+                                                        .padding(.trailing, 10)
+
+                                                    // Radio dot
+                                                    Circle()
+                                                        .fill(isSelected ? Color.black : Color.clear)
+                                                        .frame(width: 8, height: 8)
+                                                        .overlay(
+                                                            Circle()
+                                                                .strokeBorder(Color.black.opacity(isSelected ? 1 : 0.25), lineWidth: 1.5)
+                                                        )
+                                                        .padding(.trailing, 10)
+
+                                                    // Title + score
+                                                    VStack(alignment: .leading, spacing: 2) {
+                                                        Text(c.title_raw)
+                                                            .font(.system(size: 13, weight: .regular, design: .serif))
+                                                            .foregroundColor(.black.opacity(0.85))
+                                                            .lineLimit(1)
+                                                        Text("Score \(Int(round(c.score * 100)))%")
+                                                            .font(.system(size: 10, weight: .regular))
+                                                            .foregroundColor(.black.opacity(0.35))
+                                                    }
+
+                                                    Spacer()
+
+                                                    // Year + format metadata
+                                                    let meta = [c.year.map { "\($0)" }, c.format].compactMap { $0 }
+                                                    if !meta.isEmpty {
+                                                        Text(meta.joined(separator: " · "))
+                                                            .font(.system(size: 11, weight: .regular))
+                                                            .foregroundColor(.black.opacity(0.45))
+                                                    }
+                                                }
+                                                .padding(.horizontal, 14)
+                                                .padding(.vertical, 10)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                        .fill(isSelected ? Color.black.opacity(0.06) : Color.clear)
+                                                        .padding(.horizontal, 6)
+                                                )
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                } else if let err = item.candidateError, !err.isEmpty {
+                                    Text("No candidates (missing title_search/search_titles?)")
+                                        .font(.system(size: 12, weight: .regular))
+                                        .foregroundColor(.black.opacity(0.5))
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 10)
+                                } else {
+                                    Text("No candidates")
+                                        .font(.system(size: 12, weight: .regular))
+                                        .foregroundColor(.black.opacity(0.5))
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 10)
+                                }
                             }
+                            .padding(.bottom, 2)
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.black.opacity(0.03))
-                        )
                     }
                 }
             }

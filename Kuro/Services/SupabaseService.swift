@@ -2837,6 +2837,8 @@ class SupabaseService {
         let variant_type: String
         let title_raw: String
         let score: Double
+        let year: Int?
+        let format: String?
     }
 
     struct ConciergeParseItemParsed: Decodable, Sendable {
@@ -2850,6 +2852,7 @@ class SupabaseService {
         let caughtUp: Bool?
         let lastEpisode: Bool?
         let completed: Bool?
+        let yearMention: Int?
     }
 
     struct ConciergeParseItem: Decodable, Sendable, Identifiable {
@@ -3004,15 +3007,19 @@ class SupabaseService {
                 "caughtUp": item.parsed.caughtUp as Any,
                 "lastEpisode": item.parsed.lastEpisode as Any,
                 "completed": item.parsed.completed as Any,
+                "yearMention": item.parsed.yearMention as Any,
             ]
             let cands: [[String: Any]] = item.candidates.prefix(max(2, min(10, maxCandidates))).map { c in
-                [
+                var d: [String: Any] = [
                     "media_type": c.media_type,
                     "media_id": c.media_id,
                     "variant_type": c.variant_type,
                     "title_raw": c.title_raw,
                     "score": c.score,
                 ]
+                if let y = c.year { d["year"] = y }
+                if let f = c.format { d["format"] = f }
+                return d
             }
             return [
                 "raw": item.raw,
