@@ -31,3 +31,6 @@ venv/
 # Local artifacts
 *.bak
 mockups/
+
+# Local MCP config (developer machine specific)
+.mcp.json
