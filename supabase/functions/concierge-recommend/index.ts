@@ -354,12 +354,20 @@ function isHiddenGemsIntent(text: string) {
 
 function mapStrongGenreToModeId(text: string): string | null {
   const t = text.toLowerCase();
+  // High-signal intent should win over generic genre words.
+  if (/\b(movie|movies|film|movie night|feature film|standalone movie)\b/.test(t)) return "movie_night";
+  if (/\b(short|one season|quick watch|binge|one cour|12 ep|13 ep)\b/.test(t)) return "short_one_season";
+  if (/\b(isekai|reincarnat|reborn|another world|truck[- ]?kun)\b/.test(t)) return "isekai";
+  if (/\b(no isekai|not isekai|ohne isekai|non[- ]?isekai)\b/.test(t)) return "fantasy_non_isekai";
+  if (/\b(romcom|rom com|romantic comedy)\b/.test(t)) return "romcom";
+  if (/\b(serious romance|romance drama|bittersweet|heartbreak|deep romance)\b/.test(t)) return "romance_serious";
+  if (/\b(romance|love story|romantic)\b/.test(t)) return "romcom";
   if (/\b(action)\b/.test(t)) return "premium_action";
   if (/\b(comedy|funny|laugh)\b/.test(t)) return "premium_comedy_grownup";
   if (/\b(slice of life|cozy|comfort|chill|relax)\b/.test(t)) return "cozy_comfort";
   if (/\b(thriller|psychological|mind[- ]?game|mystery|horror|dark|serious)\b/.test(t)) return "dark_serious";
   if (/\b(sports?)\b/.test(t)) return "premium_picks"; // keep broad; sports is a genre but not a dedicated mode yet
-  if (/\b(romance|romcom)\b/.test(t)) return "premium_picks"; // not a dedicated mode yet
+  if (/\b(fantasy|magic)\b/.test(t)) return "fantasy_non_isekai";
   return null;
 }
 
