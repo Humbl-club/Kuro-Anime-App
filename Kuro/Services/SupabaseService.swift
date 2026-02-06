@@ -2792,44 +2792,7 @@ class SupabaseService {
         
         isLoading = false
     }
-    
-    // MARK: - Get by Mood (using your genre system)
-    func getByMood(_ mood: String) -> [Anime] {
-        switch mood {
-        case "Contemplative":
-            return animeItems.filter { anime in
-                anime.genres?.contains(where: { genre in
-                    ["Drama", "Psychological", "Mystery"].contains(genre)
-                }) ?? false
-            }
-        case "Energetic":
-            return animeItems.filter { anime in
-                anime.genres?.contains(where: { genre in
-                    ["Action", "Sports", "Adventure"].contains(genre)
-                }) ?? false
-            }
-        case "Melancholic":
-            return animeItems.filter { anime in
-                anime.genres?.contains(where: { genre in
-                    ["Drama", "Romance", "Slice of Life"].contains(genre)
-                }) ?? false
-            }
-        case "Uplifting":
-            return animeItems.filter { anime in
-                anime.genres?.contains(where: { genre in
-                    ["Comedy", "Adventure", "Music"].contains(genre)
-                }) ?? false
-            }
-        case "Mysterious":
-            return animeItems.filter { anime in
-                anime.genres?.contains(where: { genre in
-                    ["Thriller", "Horror", "Supernatural", "Mystery"].contains(genre)
-                }) ?? false
-            }
-        default:
-            return Array(animeItems.prefix(10))
-        }
-    }
+
 
     // MARK: - Concierge (Edge Functions)
     enum ConciergeScope: String, Sendable {
