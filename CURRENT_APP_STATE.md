@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-02-05
+**Last updated:** 2026-02-06
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -109,7 +109,6 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/BrowseViewRefined.swift`
 - `Kuro/Views/Cards.swift`
 - `Kuro/Views/Collection/CollectionManagementView.swift`
-- `Kuro/Views/ConciergeOverlay.swift`
 - `Kuro/Views/ConciergeView.swift`
 - `Kuro/Views/CountdownTimer.swift`
 - `Kuro/Views/DetailPages/AnimeDetailView.swift`
@@ -124,7 +123,6 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/GenreHubView.swift`
 - `Kuro/Views/KuroCachedAsyncImage.swift`
 - `Kuro/Views/KuroCardText.swift`
-- `Kuro/Views/KuroChanMascot.swift`
 - `Kuro/Views/KuroConciergeMark.swift`
 - `Kuro/Views/KuroGlass.swift`
 - `Kuro/Views/KuroInteractionEnvironment.swift`
@@ -139,8 +137,8 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/SettingsView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 29)
-- `supabase/migrations/20250109_remote_applied_placeholder.sql`
+### Supabase migrations (count: 37)
+- `supabase/migrations/20250109_remote_applied_placeholder.sql` *(baseline schema SQL; already applied in production migration history; used for fresh project bootstrap)*
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
 - `supabase/migrations/20260203171100_concierge_core.sql`
@@ -169,6 +167,14 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260205002000_concierge_budget_raise.sql`
 - `supabase/migrations/20260205160000_admin_schema_snapshot.sql`
 - `supabase/migrations/20260205190000_concierge_modes_config.sql`
+- `supabase/migrations/20260205231000_curated_rails.sql`
+- `supabase/migrations/20260205232000_concierge_mode_cache.sql`
+- `supabase/migrations/20260205232500_concierge_router_flag_and_retention.sql`
+- `supabase/migrations/20260205233000_concierge_modes_v2_config.sql`
+- `supabase/migrations/20260205234000_curated_rails_seed.sql`
+- `supabase/migrations/20260205235000_discover_bundle_use_curated_rails.sql`               
+- `supabase/migrations/20260206100000_concierge_modes_v3_expanded.sql` *(14 modes; +6 new: short, movie, romance, romcom, fantasy, isekai)*                                           
+- `supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql` *(prod schema drift fix: tags.kitsu_id, comments.user_id type)*                                           
 
 ### Supabase Edge Functions (index.ts) (count: 8)
 - `supabase/functions/bulk-import-anime/index.ts`
@@ -496,6 +502,16 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 Each migration is summarized by the objects it defines. For full SQL, open the file.
 
 ### supabase/migrations/20250109_remote_applied_placeholder.sql
+- Tables (24): `public.anime`, `public.manga`, `public.episodes`, `public.chapters`, `public.volumes`, `public.characters`, `public.studios`, `public.authors`, `public.staff`, `public.tags`, `public.anime_characters`, `public.manga_characters`, `public.anime_studios`, `public.manga_authors`, `public.anime_staff`, `public.manga_staff`, `public.anime_tags`, `public.manga_tags`, `public.anime_user_lists`, `public.manga_user_lists`, `public.anime_comments`, `public.manga_comments`, `public.external_links`, `public.import_state`, `public.import_runs`, `public.import_locks`
+- Functions (5): `public.update_updated_at_column`, `public.normalize_description`, `public.airing_next`, `public.acquire_import_lock`, `public.release_import_lock`
+- Views (2): `public.user_lists`, `public.user_airing_next`
+- Materialized views (7): `public.mv_anime_trending`, `public.mv_anime_top_rated`, `public.mv_anime_current_season`, `public.mv_anime_newly_added`, `public.mv_manga_trending`, `public.mv_manga_top_rated`, `public.mv_manga_newly_added`
+- Cron (1): `kuro-refresh-matviews @ 30 1 * * *` (refreshes all discover matviews; conditional on pg_cron)
+- Indexes (50+): external ID lookups, content search (GIN), relationship FKs, user list indexes, FTS, MV unique indexes
+- Triggers (12): `update_*_updated_at` (10 tables), `set_anime_description_normalized`, `set_manga_description_normalized`
+- RLS + Policies (25 tables enabled; public read on catalog, user-scoped on lists/comments)
+- Defensive fixes: `tags.kitsu_id` ADD COLUMN, `comments.user_id` INTEGER→TEXT migration
+- *Mostly idempotent* — `CREATE TABLE/INDEX IF NOT EXISTS` and policy guards are true no-ops; `CREATE OR REPLACE FUNCTION/VIEW` and `DROP+CREATE TRIGGER` overwrite definitions (safe if identical to existing)
 
 ### supabase/migrations/20250909_remote_applied_placeholder.sql
 
@@ -874,6 +890,9 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ## 14) Change Log (append-only)
 
+- 2026-02-06: Baseline schema SQL captured in `supabase/migrations/20250109_remote_applied_placeholder.sql`: consolidates legacy root SQL (02-14) **plus** remote-only objects (`import_runs`, `import_locks`, lock RPCs, 7 materialized views incl. `mv_anime_current_season`, and the `kuro-refresh-matviews` pg_cron job). Defensive fixes for `tags.kitsu_id` and `comments.user_id` type drift. Original SQL files moved to `legacy_sql/`.
+- 2026-02-06: Removed iOS dead code: `ConciergeOverlay.swift`, `KuroChanMascot.swift`, `getByMood()`, `#if false SearchViewNew` block (~500 lines total).
+- 2026-02-06: Concierge modes expanded to 14 (v3) and deployed: added `short_one_season`, `movie_night`, `romance_serious`, `romcom`, `fantasy_non_isekai`, `isekai`. Enriched synonyms (incl. German) across all modes. Migration: `20260206100000_concierge_modes_v3_expanded.sql`. Edge function deployed: `supabase/functions/concierge-recommend/index.ts`.
 - 2026-02-05: Concierge recommend perf: reuse shared candidate pools + media context across rails to reduce DB queries/latency. Commit: `ca671d5`
 - 2026-02-05: Concierge recommendations: added configurable **vibe modes** (2 curated rails per prompt) + expanded Classics rail; response now includes `modes` + `sets` (backwards compatible `items`). Commits: `3bcc32f`, `a23e5b8`, `d1efdb0`
 - 2026-02-05: Added full "include everything" documentation pipeline (source excerpts + codebase bundle) and optional live DB snapshot tooling (`admin_schema_snapshot`). Commits: `889b9c8`, `7a87228`, `7d07be7`, `c2d0414`, `5eb4168`, `9c734db`
@@ -888,14 +907,13 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ## 15) Open Questions / Unknowns
 
-- Are mirror-images / bulk import functions running on a scheduled Supabase schedule or via external cron? (Not found in migrations; assumed manual/external.)
-- Exact current state of all RLS policies is in migrations; confirm if additional tables were added after 2026-02-05.
-- `import_runs` table is referenced by bulk-import edge functions but is not created in `supabase/migrations/` in this repo; it may exist remotely or be optional.
-- Unused/legacy Swift files exist (e.g., `Kuro/Views/KuroChanMascot.swift`, `Kuro/Views/ConciergeOverlay.swift`). Inventory lists them; decide whether to delete or keep as reference.
+- Exact current state of all RLS policies is in migrations; confirm if additional tables were added after 2026-02-06.
+- Materialized view definitions in the foundation migration are inferred from usage (discover_bundle RPC + Swift client). If the remote MV definitions differ (e.g., different LIMIT, extra WHERE clauses), update the foundation to match.
+- v3 modes are deployed; if you add new modes later, deploy with `supabase db push --linked` + `supabase functions deploy concierge-recommend --linked`.
 
 ---
 
-## 16) Appendix A — Core Schema DDL (02_comprehensive_table_creation.sql)
+## 16) Appendix A — Core Schema DDL (now in `supabase/migrations/20250109_remote_applied_placeholder.sql`; original files archived in `legacy_sql/`)
 
 ```sql
 -- ============================================

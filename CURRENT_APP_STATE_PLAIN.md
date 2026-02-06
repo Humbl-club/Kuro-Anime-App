@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-02-05
+**Last updated:** 2026-02-06
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -104,9 +104,10 @@ flowchart TD
 - It avoids adult content by default.
 - If you say “like X”, it finds similar titles first.
 - The LLM only adds wording or resolves ambiguity.
-- Your prompt is routed into **up to 2 curated rails (“modes”)**:
-  - Rail A: a best-fit “vibe mode” (e.g. Premium Action / Cozy / Hidden Gems)
+- Your prompt is routed into **up to 2 curated rails ("modes")**:
+  - Rail A: a best-fit "vibe mode" (e.g. Premium Action / Cozy / Movie Night / Romcom)
   - Rail B: **Classics (expanded)** (keeps your existing classics picks, but returns more)
+- Production currently has **14 modes** (v3): Premium Picks, Start Here, Premium Action, Premium Comedy, Cozy/Comfort, Dark/Serious, Hidden Gems, Classics, Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai.
 - The modes are configurable in the database (`public.concierge_config.config.modes`) so we can tune them without redeploying the app.
 
 ```mermaid
@@ -291,6 +292,9 @@ flowchart TD
 - **Main navigation:** `Kuro/ContentView.swift`
 - **Data + API calls:** `Kuro/Services/SupabaseService.swift`
 - **Backend SQL changes:** `supabase/migrations/`
+- **Legacy DB fixes:** `supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql`
+- **Foundation schema:** `supabase/migrations/20250109_remote_applied_placeholder.sql` (baseline core tables; already in prod migration history)                                                                                        
+- **Legacy SQL originals:** `legacy_sql/` (archived; no longer used directly)
 - **Backend functions (Concierge, imports):** `supabase/functions/`
 
 ---
@@ -315,9 +319,13 @@ flowchart TD
 
 ## 14) Change Log (append-only)
 
+- 2026-02-06: Schema drift fixed: baseline schema SQL captured in `supabase/migrations/20250109_remote_applied_placeholder.sql` (core catalog tables + import tracking + materialized views + matview refresh cron). Original root SQL files archived to `legacy_sql/`.
+- 2026-02-06: Removed unused iOS code: ConciergeOverlay, KuroChanMascot, getByMood, dead SearchViewNew block (~500 lines).
+- 2026-02-06: Concierge modes expanded from 8 to **14** and deployed: added Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai. Enriched synonyms (incl. German) + new intent detectors.
 - 2026-02-05: Concierge recommendations now return **two curated rails (modes)** and an **expanded Classics rail** (configurable via database).
 - 2026-02-05: Added Concierge cost guardrails + a high-level database diagram; fixed formatting glitches.
 - 2026-02-05: Added non-technical runbook and glossary sections.
+- 2026-02-06: Added a production schema drift fix migration for `tags.kitsu_id` and `comments.user_id` types: `supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql`.
 - 2026-02-05: Expanded this plain-English snapshot with deeper flows and diagrams.
 - 2026-02-05: Added/expanded this plain-English snapshot for non-technical readers.
 - 2026-02-05: Concierge moved to left swipe page. Profile is a top-right menu. Cards now show YEAR · EPS. Concierge intro + quick-start pills added.

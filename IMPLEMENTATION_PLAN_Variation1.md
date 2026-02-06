@@ -2,9 +2,9 @@
 
 This file documents the idea of routing free-text "vibe" prompts into curated recommendation rails (modes), with the LLM used only as an optional presentation layer.
 
-## Current status (as of 2026-02-05)
+## Current status (as of 2026-02-06)
 
-The core of this plan is already implemented in the codebase, but this file was accidentally created as an empty placeholder.
+The core of this plan is fully implemented and expanded.
 
 Implemented:
 - Config-driven "modes" (curated rails) stored in DB config JSON.
@@ -12,6 +12,11 @@ Implemented:
 - Backend returns grouped rails (`sets`) plus backward-compatible flattened items.
 - iOS renders rails from backend `sets`.
 - Classics rail expanded (do not remove existing classic boosts; return more classics by heuristic + config filters).
+- **14 modes** (v3, deployed): Premium Picks, Start Here, Premium Action, Premium Comedy (grown-up), Cozy/Comfort, Dark/Serious, Hidden Gems, Classics (expanded), Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai.
+- Intent detectors in `scoreMode()` for movie, short, isekai/non-isekai, romcom/serious-romance disambiguation.
+- Enriched synonyms with German translations across all modes.
+- Foundation migration consolidating all core catalog tables + import tracking + materialized views + lock RPCs (schema drift resolved).
+- Migration to fix legacy production drift (`tags.kitsu_id`, `comments.user_id` type): `/Applications/Kuro/supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql`.
 
 Not implemented yet:
 - On-device Core ML classifier.
@@ -32,19 +37,22 @@ It makes Concierge feel premium without paying LLM costs for every request:
 ## Current implementation (where it lives)
 
 ### 1) Modes config
-- Migration writes `config.modes` into the single-row JSON config:
-  - `/Applications/Kuro/supabase/migrations/20260205190000_concierge_modes_config.sql`
+- Migrations write `config.modes` into the single-row JSON config:
+  - v1: `/Applications/Kuro/supabase/migrations/20260205190000_concierge_modes_config.sql` (6 modes)
+  - v2: `/Applications/Kuro/supabase/migrations/20260205233000_concierge_modes_v2_config.sql` (8 modes + rail_id + router_llm knobs)
+  - v3: `/Applications/Kuro/supabase/migrations/20260206100000_concierge_modes_v3_expanded.sql` (14 modes + enriched synonyms)
 - Modes are stored at:
   - `public.concierge_config.config.modes`
 
 Each mode supports (subset may be omitted):
 - `id`, `title`
-- `synonyms` (phrase matches)
+- `synonyms` (phrase matches, including German translations)
 - `required_genres`
 - `exclude_genres`
 - `min_score`, `min_popularity`, `max_popularity`
 - `exclude_formats`
 - `classic_year_max` (for classics mode)
+- `rail_id` (maps media type to a pinned curated rail)
 
 ### 2) Mode router + rails output
 - Implemented in:
@@ -82,14 +90,14 @@ Keep the current design as the default:
 
 ### What to improve next (highest leverage)
 
-1. Expand and tune modes in config (no app deploy needed)
-- Add modes you mentioned but are not yet present:
-  - `Gateway / First Anime`
-  - `Short One-Season`
-  - `Movie Night`
-  - `Romance (serious)` vs `Romcom`
-  - `Fantasy (non-isekai)` vs `Isekai`
-- Keep mode count roughly 20-50 max. Too many rails makes routing worse and UI noisier.
+1. ~~Expand and tune modes in config~~ **(DONE as of v3)**
+- All originally planned modes have been added:
+  - `Gateway / First Anime` (v2)
+  - `Short One-Season` (v3: `short_one_season`)
+  - `Movie Night` (v3: `movie_night`)
+  - `Romance (serious)` vs `Romcom` (v3: `romance_serious`, `romcom`)
+  - `Fantasy (non-isekai)` vs `Isekai` (v3: `fantasy_non_isekai`, `isekai`)
+- Current count: **14 modes** (within the recommended 20-50 ceiling). Room for more.
 
 2. Add a feedback loop (active learning)
 - Add UI actions like:
@@ -136,10 +144,13 @@ If you ever want to switch to 1-mode:
 
 ## Deployment notes
 
-To get the new rails live, you must deploy:
-- DB migration:
-  - `/Applications/Kuro/supabase/migrations/20260205190000_concierge_modes_config.sql`
+To get the latest 14-mode router live, you must deploy:
+- DB migrations (in order):
+  - `20250109_remote_applied_placeholder.sql` (baseline schema SQL; already applied in production migration history)
+  - `20260205190000_concierge_modes_config.sql` (v1 modes)
+  - `20260205233000_concierge_modes_v2_config.sql` (v2 modes + rail_id + router_llm)
+  - `20260206100000_concierge_modes_v3_expanded.sql` (v3: 14 modes)
 - Edge function:
-  - `/Applications/Kuro/supabase/functions/concierge-recommend/index.ts`
+  - `/Applications/Kuro/supabase/functions/concierge-recommend/index.ts` (updated `defaultModes()` + `scoreMode()`)
 
 The iOS UI is already compatible (renders `sets` when present).
