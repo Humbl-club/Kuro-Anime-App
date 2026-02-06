@@ -19,8 +19,14 @@ begin
       and column_name = 'user_id'
       and data_type = 'integer'
   ) then
+    -- Policies depend on column types. Drop/recreate the policy so ALTER TYPE can run.
+    execute format('drop policy if exists %I on public.anime_comments', 'Users can manage their own comments');
     alter table public.anime_comments
       alter column user_id type text using user_id::text;
+    execute format(
+      'create policy %I on public.anime_comments for all using (auth.uid()::text = user_id) with check (auth.uid()::text = user_id)',
+      'Users can manage their own comments'
+    );
   end if;
 
   if exists (
@@ -30,10 +36,14 @@ begin
       and column_name = 'user_id'
       and data_type = 'integer'
   ) then
+    execute format('drop policy if exists %I on public.manga_comments', 'Users can manage their own comments');
     alter table public.manga_comments
       alter column user_id type text using user_id::text;
+    execute format(
+      'create policy %I on public.manga_comments for all using (auth.uid()::text = user_id) with check (auth.uid()::text = user_id)',
+      'Users can manage their own comments'
+    );
   end if;
 end $$;
 
 commit;
-
