@@ -7,6 +7,10 @@ type ConciergeMode = {
   id: string;
   title: string;
   synonyms?: string[];
+  // Optional linkage to a pinned curated rail (per media type).
+  // Example config:
+  //   "rail_id": {"anime":"classics_anime","manga":"classics_manga"}
+  rail_id?: string | { anime?: string; manga?: string; both?: string };
   required_genres?: string[];
   exclude_genres?: string[];
   min_score?: number;
@@ -63,10 +67,25 @@ function parseModesFromConfig(cfg: any): ConciergeMode[] {
     const id = typeof r.id === "string" ? r.id.trim() : "";
     const title = typeof r.title === "string" ? r.title.trim() : "";
     if (!id || !title) continue;
+    let rail_id: ConciergeMode["rail_id"] | undefined = undefined;
+    const rid = (r as any).rail_id;
+    if (typeof rid === "string" && rid.trim()) {
+      rail_id = rid.trim();
+    } else if (rid && typeof rid === "object") {
+      const anime = typeof (rid as any).anime === "string" ? (rid as any).anime.trim() : "";
+      const manga = typeof (rid as any).manga === "string" ? (rid as any).manga.trim() : "";
+      const both = typeof (rid as any).both === "string" ? (rid as any).both.trim() : "";
+      rail_id = {
+        ...(anime ? { anime } : {}),
+        ...(manga ? { manga } : {}),
+        ...(both ? { both } : {}),
+      };
+    }
     out.push({
       id,
       title,
       synonyms: safeStringArray((r as any).synonyms),
+      rail_id,
       required_genres: safeStringArray((r as any).required_genres),
       exclude_genres: safeStringArray((r as any).exclude_genres),
       min_score: safeNumber((r as any).min_score) ?? undefined,
@@ -82,6 +101,21 @@ function parseModesFromConfig(cfg: any): ConciergeMode[] {
 function defaultModes(): ConciergeMode[] {
   // Safe fallback if config/migration hasn't been applied yet.
   return [
+    {
+      id: "premium_picks",
+      title: "Premium Picks",
+      synonyms: ["something good", "recommend something", "surprise me", "premium", "best", "top tier"],
+      min_score: 75,
+      min_popularity: 2500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "gateway_start_here",
+      title: "Start Here",
+      synonyms: ["first anime", "first manga", "where do i start", "getting into anime", "getting into manga"],
+      rail_id: { anime: "gateway_anime", manga: "gateway_manga" },
+    },
     {
       id: "premium_action",
       title: "Premium Action",
@@ -134,6 +168,7 @@ function defaultModes(): ConciergeMode[] {
       id: "classics_expanded",
       title: "Classics (expanded)",
       synonyms: ["classic", "classics", "must watch", "essentials", "goat", "greatest of all time"],
+      rail_id: { anime: "classics_anime", manga: "classics_manga" },
       classic_year_max: 2012,
       min_score: 80,
       min_popularity: 1500,
@@ -188,51 +223,47 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[]):
   return { score, reason: reason || "default" };
 }
 
-function pickTwoModes(text: string, modes: ConciergeMode[], inferredGenres: string[]): ModePick[] {
-  const scored = modes.map((m) => {
-    const { score, reason } = scoreMode(text, m, inferredGenres);
-    return { mode: m, score, reason };
-  });
-
-  // Always keep a classics rail as a stable anchor, unless we don't have such a mode.
-  const classics = scored.find((x) => x.mode.id.includes("classic"))?.mode ?? null;
-
-  scored.sort((a, b) => b.score - a.score);
-
-  const primary = scored.find((x) => !x.mode.id.includes("classic"))?.mode ?? scored[0]?.mode ?? null;
-  const primaryReason = scored.find((x) => x.mode.id === primary?.id)?.reason ?? "default";
-  const primaryScore = scored.find((x) => x.mode.id === primary?.id)?.score ?? 0;
-
-  let secondary: ConciergeMode | null = null;
-  let secondaryReason = "default";
-  let secondaryScore = 0;
-
-  if (classics && classics.id !== primary?.id) {
-    secondary = classics;
-    const hit = scored.find((x) => x.mode.id === classics.id);
-    secondaryReason = hit?.reason ?? "classic rail";
-    secondaryScore = hit?.score ?? 0;
-  } else {
-    const next = scored.find((x) => x.mode.id !== primary?.id);
-    secondary = next?.mode ?? null;
-    secondaryReason = next?.reason ?? "default";
-    secondaryScore = next?.score ?? 0;
-  }
-
-  const mk = (m: ConciergeMode | null, score: number, reason: string): ModePick | null => {
-    if (!m) return null;
-    // Convert a small integer-ish score to a [0..1] confidence for UI/debugging.
-    const confidence = Math.max(0, Math.min(1, score / 10));
-    return { id: m.id, title: m.title, confidence, reason };
-  };
-
-  const out: ModePick[] = [];
-  const p = mk(primary, primaryScore, primaryReason);
-  if (p) out.push(p);
-  const s = mk(secondary, secondaryScore, secondaryReason);
-  if (s) out.push(s);
-  return out.slice(0, 2);
+function sigmoid(x: number) {
+  const v = 1 / (1 + Math.exp(-x));
+  return Math.max(0, Math.min(1, v));
 }
+
+function isClassicIntent(text: string) {
+  return /\b(classic|classics|must watch|essentials|goat|greatest)\b/i.test(text);
+}
+
+function isGatewayIntent(text: string) {
+  return /\b(first anime|first manga|where do i start|getting into anime|getting into manga|neu bei anime|neu bei manga|anime anfangen|manga anfangen)\b/i.test(text);
+}
+
+function isHiddenGemsIntent(text: string) {
+  return /\b(hidden gem|hidden gems|underrated|less known|new to me)\b/i.test(text);
+}
+
+function mapStrongGenreToModeId(text: string): string | null {
+  const t = text.toLowerCase();
+  if (/\b(action)\b/.test(t)) return "premium_action";
+  if (/\b(comedy|funny|laugh)\b/.test(t)) return "premium_comedy_grownup";
+  if (/\b(slice of life|cozy|comfort|chill|relax)\b/.test(t)) return "cozy_comfort";
+  if (/\b(thriller|psychological|mind[- ]?game|mystery|horror|dark|serious)\b/.test(t)) return "dark_serious";
+  if (/\b(sports?)\b/.test(t)) return "premium_picks"; // keep broad; sports is a genre but not a dedicated mode yet
+  if (/\b(romance|romcom)\b/.test(t)) return "premium_picks"; // not a dedicated mode yet
+  return null;
+}
+
+function normalizePromptForCache(text: string) {
+  return normalizeText(text).slice(0, 220);
+}
+
+type RouterDecision = {
+  primaryId: string;
+  secondaryId: string;
+  primaryConfidence: number;
+  primaryReason: string;
+  usedLLM: boolean;
+  topScore: number;
+};
+
 
 function inferLanguage(text: string): "de" | "en" {
   const t = text.toLowerCase();
@@ -461,6 +492,73 @@ async function groqNarrate(opts: {
     throw new Error(`Groq narration JSON parse failed. content_snippet=${content.slice(0, 400)}`);
   }
   return { blurbs: {}, usageTotal: usage };
+}
+
+async function groqRouteMode(opts: {
+  apiKey: string;
+  model: string;
+  userText: string;
+  modes: Array<{ id: string; title: string; synonyms: string[] }>;
+  maxTokens: number;
+  debug?: boolean;
+}): Promise<{ primaryModeId: string | null; usageTotal: number | null }> {
+  const url = "https://api.groq.com/openai/v1/chat/completions";
+  const system = `Return JSON only: {"primary_mode_id":"..."} (no prose).`;
+  const compact = opts.modes.map((m) => ({
+    id: m.id,
+    title: m.title,
+    // Keep synonyms short; they help the model map user slang to mode ids.
+    synonyms: (m.synonyms ?? []).slice(0, 8),
+  }));
+  const user = `User prompt: ${opts.userText}\n\nAllowed modes:\n${JSON.stringify(compact)}\n\nPick exactly one primary_mode_id from the allowed ids. Return JSON only.`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${opts.apiKey}`,
+    },
+    body: JSON.stringify({
+      model: opts.model,
+      temperature: 0,
+      max_tokens: Math.max(20, Math.min(120, opts.maxTokens)),
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+
+  const jsonRes = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(`Groq router error: ${res.status} ${JSON.stringify(jsonRes)?.slice(0, 300)}`);
+  }
+
+  const usageTotal = Number(
+    jsonRes?.usage?.total_tokens ??
+      ((Number(jsonRes?.usage?.prompt_tokens ?? 0) || 0) + (Number(jsonRes?.usage?.completion_tokens ?? 0) || 0)),
+  );
+  const usage = Number.isFinite(usageTotal) && usageTotal > 0 ? usageTotal : null;
+
+  const content = jsonRes?.choices?.[0]?.message?.content;
+  if (typeof content !== "string" || !content.trim()) {
+    if (opts.debug) throw new Error(`Groq router missing content. body_snippet=${JSON.stringify(jsonRes)?.slice(0, 600)}`);
+    return { primaryModeId: null, usageTotal: usage };
+  }
+
+  try {
+    const start = content.indexOf("{");
+    const end = content.lastIndexOf("}");
+    const candidate = start >= 0 && end > start ? content.slice(start, end + 1) : content;
+    const parsed = JSON.parse(candidate);
+    const id = parsed?.primary_mode_id;
+    if (typeof id === "string" && id.trim()) return { primaryModeId: id.trim(), usageTotal: usage };
+  } catch {
+    // ignore
+  }
+
+  if (opts.debug) throw new Error(`Groq router JSON parse failed. content_snippet=${String(content).slice(0, 400)}`);
+  return { primaryModeId: null, usageTotal: usage };
 }
 
 function clampBlurb(s: string, maxWords: number, maxChars: number) {
@@ -745,115 +843,326 @@ serve(async (req) => {
       return out;
     };
 
-    const modePicks = pickTwoModes(text, modes, requiredGenres);
     const modeById = new Map<string, ConciergeMode>(modes.map((m) => [m.id, m]));
+    const classicsMode = modeById.get("classics_expanded") ?? Array.from(modeById.values()).find((m) => m.id.includes("classic")) ?? null;
+    const premiumMode = modeById.get("premium_picks") ?? Array.from(modeById.values()).find((m) => m.id.includes("premium")) ?? null;
 
-    const resolvedModes = modePicks
-      .map((mp) => modeById.get(mp.id))
-      .filter((m): m is ConciergeMode => Boolean(m));
+    const routerCfg = conciergeCfg?.router_llm ?? {};
+    const routerEnabledCfg = Boolean(routerCfg?.enabled ?? false);
+    const minConfidence = Number(routerCfg?.min_confidence ?? 0.45);
+    const minTopScore = Number(routerCfg?.min_top_score ?? 2);
+    const routerMaxTokens = Number(routerCfg?.max_tokens ?? 80);
+    const cacheTtlDays = Number(routerCfg?.cache_ttl_days ?? 30);
 
-    const hasClassicMode = resolvedModes.some((m) => m.id.includes("classic"));
-    const nonClassicModes = resolvedModes.filter((m) => !m.id.includes("classic"));
+    const userId = userData.user.id;
+    const promptNorm = normalizePromptForCache(text);
 
-    // Pull candidate pools once (per media type), then slice/filter into rails in-memory.
-    const unionCats = uniq([
-      ...categories,
-      ...nonClassicModes.flatMap((m) => m.required_genres ?? []),
-    ]);
-    const premiumCats = unionCats.length ? unionCats : (categories.length ? categories : null);
-    const classicCats = hasClassicMode ? (categories.length ? categories : null) : null;
-
-    const premiumRowsByType: Record<MediaType, CandidateRow[]> = { ANIME: [], MANGA: [] };
-    const classicRowsByType: Record<MediaType, CandidateRow[]> = { ANIME: [], MANGA: [] };
-
-    if (mediaType === "ANIME" || mediaType === "BOTH") {
-      premiumRowsByType.ANIME = await getPremiumCandidates("ANIME", premiumCats);
-      if (hasClassicMode) classicRowsByType.ANIME = await getPremiumCandidates("ANIME", classicCats);
-    }
-    if (mediaType === "MANGA" || mediaType === "BOTH") {
-      premiumRowsByType.MANGA = await getPremiumCandidates("MANGA", premiumCats);
-      if (hasClassicMode) classicRowsByType.MANGA = await getPremiumCandidates("MANGA", classicCats);
-    }
-
-    const ctxByType: Record<MediaType, MediaContext> = {
-      ANIME: { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() },
-      MANGA: { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() },
+    const resolveSecondary = (primaryId: string) => {
+      const classicsId = classicsMode?.id ?? "classics_expanded";
+      if (primaryId === classicsId) return premiumMode?.id ?? "premium_picks";
+      return classicsId;
     };
-    if (mediaType === "ANIME" || mediaType === "BOTH") {
-      const ids = uniq([
-        ...premiumRowsByType.ANIME.map((r) => r.media_id),
-        ...classicRowsByType.ANIME.map((r) => r.media_id),
-      ]);
-      ctxByType.ANIME = await fetchMediaContext("ANIME", ids);
-    }
-    if (mediaType === "MANGA" || mediaType === "BOTH") {
-      const ids = uniq([
-        ...premiumRowsByType.MANGA.map((r) => r.media_id),
-        ...classicRowsByType.MANGA.map((r) => r.media_id),
-      ]);
-      ctxByType.MANGA = await fetchMediaContext("MANGA", ids);
-    }
 
-    // Build up to 2 rails (modes). Always keep a classics rail as the second choice where possible.
-    const sets: any[] = [];
+    const mkPick = (id: string, title: string, confidence: number, reason: string): ModePick => ({
+      id,
+      title,
+      confidence: Math.max(0, Math.min(1, confidence)),
+      reason,
+    });
 
-    for (const mp of modePicks) {
-      const mode = modeById.get(mp.id) ?? null;
-      const isClassicMode = (mode?.id ?? mp.id).includes("classic");
-      const perSetTotal = isClassicMode ? Math.min(20, Math.max(limit, 14)) : limit;
-      const perType = mediaType === "BOTH" ? Math.max(3, Math.ceil(perSetTotal / 2)) : perSetTotal;
+    const loadCache = async (): Promise<RouterDecision | null> => {
+      if (!cacheTtlDays || cacheTtlDays <= 0) return null;
+      const { data, error } = await client
+        .from("concierge_mode_cache")
+        .select("primary_mode_id,secondary_mode_id,used_llm,updated_at")
+        .eq("user_id", userId)
+        .eq("prompt_norm", promptNorm)
+        .maybeSingle();
+      if (error || !data) return null;
+      const updatedAt = Date.parse(String((data as any).updated_at ?? ""));
+      if (!Number.isFinite(updatedAt)) return null;
+      const ageDays = (Date.now() - updatedAt) / (1000 * 60 * 60 * 24);
+      if (ageDays > cacheTtlDays) return null;
+      const primaryId = String((data as any).primary_mode_id ?? "").trim();
+      const secondaryId = String((data as any).secondary_mode_id ?? "").trim();
+      if (!primaryId || !secondaryId) return null;
+      return {
+        primaryId,
+        secondaryId,
+        primaryConfidence: 0.75,
+        primaryReason: "cache",
+        usedLLM: Boolean((data as any).used_llm ?? false),
+        topScore: 999,
+      };
+    };
 
-      const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
-      const modeExcluded = mode?.exclude_genres ?? [];
+    const saveCache = async (dec: RouterDecision) => {
+      if (!cacheTtlDays || cacheTtlDays <= 0) return;
+      try {
+        await client
+          .from("concierge_mode_cache")
+          .upsert(
+            {
+              user_id: userId,
+              prompt_norm: promptNorm,
+              primary_mode_id: dec.primaryId,
+              secondary_mode_id: dec.secondaryId,
+              used_llm: dec.usedLLM,
+            },
+            { onConflict: "user_id,prompt_norm" },
+          );
+      } catch {
+        // best-effort
+      }
+    };
 
-      const q = compileQuality(mode);
+    const decideModes = async (): Promise<RouterDecision> => {
+      const classicsId = classicsMode?.id ?? "classics_expanded";
 
-      const animeRows =
-        (mediaType === "ANIME" || mediaType === "BOTH")
-          ? (isClassicMode ? classicRowsByType.ANIME : premiumRowsByType.ANIME)
-          : [];
-      const mangaRows =
-        (mediaType === "MANGA" || mediaType === "BOTH")
-          ? (isClassicMode ? classicRowsByType.MANGA : premiumRowsByType.MANGA)
-          : [];
+      // Cache (prevents repeated LLM spend and stabilizes routing).
+      const cached = await loadCache();
+      if (cached) return cached;
 
-      const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
-        ? buildItemsFromRows("ANIME", animeRows, ctxByType.ANIME, {
-          limit: perType,
-          requiredGenres: modeRequired,
-          excludeGenres: modeExcluded,
-          classicYearMax: mode?.classic_year_max,
-          quality: q,
-          prioritizeClassicBoost: isClassicMode,
-        })
+      // Hard overrides (one-shot magic).
+      if (seedQuery) {
+        const secondaryId = resolveSecondary("similar_to_seed");
+        const dec: RouterDecision = {
+          primaryId: "similar_to_seed",
+          secondaryId,
+          primaryConfidence: 1,
+          primaryReason: "seed similarity",
+          usedLLM: false,
+          topScore: 999,
+        };
+        await saveCache(dec);
+        return dec;
+      }
+      if (isClassicIntent(text)) {
+        const secondaryId = resolveSecondary(classicsId);
+        const dec: RouterDecision = {
+          primaryId: classicsId,
+          secondaryId,
+          primaryConfidence: 1,
+          primaryReason: "classic intent",
+          usedLLM: false,
+          topScore: 999,
+        };
+        await saveCache(dec);
+        return dec;
+      }
+      if (isGatewayIntent(text)) {
+        const primaryId = modeById.has("gateway_start_here") ? "gateway_start_here" : (premiumMode?.id ?? "premium_picks");
+        const secondaryId = resolveSecondary(primaryId);
+        const dec: RouterDecision = {
+          primaryId,
+          secondaryId,
+          primaryConfidence: 1,
+          primaryReason: "start here intent",
+          usedLLM: false,
+          topScore: 999,
+        };
+        await saveCache(dec);
+        return dec;
+      }
+      if (isHiddenGemsIntent(text)) {
+        const primaryId = modeById.has("hidden_gems") ? "hidden_gems" : (premiumMode?.id ?? "premium_picks");
+        const secondaryId = resolveSecondary(primaryId);
+        const dec: RouterDecision = {
+          primaryId,
+          secondaryId,
+          primaryConfidence: 1,
+          primaryReason: "hidden gems intent",
+          usedLLM: false,
+          topScore: 999,
+        };
+        await saveCache(dec);
+        return dec;
+      }
+      const genreMapped = mapStrongGenreToModeId(text);
+      if (genreMapped && modeById.has(genreMapped)) {
+        const secondaryId = resolveSecondary(genreMapped);
+        const dec: RouterDecision = {
+          primaryId: genreMapped,
+          secondaryId,
+          primaryConfidence: 0.9,
+          primaryReason: "strong genre signal",
+          usedLLM: false,
+          topScore: 999,
+        };
+        await saveCache(dec);
+        return dec;
+      }
+
+      // Deterministic scoring (fallback).
+      const candidates = Array.from(modeById.values()).filter((m) => m.id !== classicsId);
+      const scored = candidates.map((m) => {
+        const s = scoreMode(text, m, requiredGenres);
+        let score = s.score;
+        // Tie-breaker so vague prompts don't pick random modes.
+        if (m.id === "premium_picks") score += 1;
+        return { mode: m, score, reason: s.reason };
+      }).sort((a, b) => b.score - a.score);
+
+      const top = scored[0] ?? null;
+      const runner = scored[1] ?? null;
+      const topId = top?.mode?.id ?? (premiumMode?.id ?? "premium_picks");
+      const topScore = Number(top?.score ?? 0);
+      const delta = Number(top?.score ?? 0) - Number(runner?.score ?? 0);
+      const confidence = sigmoid(delta - 1);
+      const lowConfidence = confidence < minConfidence || topScore <= minTopScore;
+
+      let primaryId = topId;
+      let usedLLM = false;
+      let primaryReason = top?.reason ?? "scored";
+      let primaryConfidence = confidence;
+
+      // Low-confidence LLM router (one-shot, budgeted, cached).
+      if (lowConfidence && routerEnabledCfg) {
+        try {
+          const { data: llmEnabled } = await client.rpc("is_flag_enabled", { p_key: "llm_enabled" });
+          const { data: routerEnabledFlag } = await client.rpc("is_flag_enabled", { p_key: "llm_router_enabled" });
+          if (llmEnabled !== false && routerEnabledFlag === true) {
+            const groqKey = Deno.env.get("GROQ_API_KEY");
+            const groqModel = Deno.env.get("GROQ_MODEL_ROUTER") ?? (Deno.env.get("GROQ_MODEL") ?? "openai/gpt-oss-20b");
+            if (groqKey) {
+              const allow = candidates.map((m) => ({ id: m.id, title: m.title, synonyms: m.synonyms ?? [] }));
+
+              // Budget reserve: router is tiny.
+              const reserveTokens = Math.min(600, Math.max(120, Math.ceil((text.length + JSON.stringify(allow).length) / 4) + routerMaxTokens));
+              const { data: budget } = await client.rpc("llm_budget_reserve", {
+                p_reserved_tokens: reserveTokens,
+                p_max_daily_tokens: null,
+                p_max_daily_calls: null,
+                p_model: groqModel,
+              });
+              if (budget && budget.allowed !== false) {
+                // Global budget.
+                const globalBudget = conciergeCfg?.global_llm_budget ?? null;
+                const globalDailyTokens = Number(globalBudget?.daily_tokens ?? 250000);
+                const globalDailyCalls = Number(globalBudget?.daily_calls ?? 600);
+                const { data: gBudget } = await client.rpc("llm_global_budget_reserve", {
+                  p_reserved_tokens: reserveTokens,
+                  p_max_daily_tokens: Number.isFinite(globalDailyTokens) ? globalDailyTokens : 250000,
+                  p_max_daily_calls: Number.isFinite(globalDailyCalls) ? globalDailyCalls : 600,
+                });
+                if (gBudget && gBudget.allowed !== false) {
+                  let usageTotal: number | null = null;
+                  let ok = false;
+                  try {
+                    const routed = await groqRouteMode({
+                      apiKey: groqKey,
+                      model: groqModel,
+                      userText: text,
+                      modes: allow,
+                      maxTokens: routerMaxTokens,
+                    });
+                    usageTotal = routed.usageTotal ?? null;
+                    const chosen = String(routed.primaryModeId ?? "").trim();
+                    if (chosen && modeById.has(chosen) && chosen !== classicsId) {
+                      primaryId = chosen;
+                      usedLLM = true;
+                      primaryReason = "llm router";
+                      primaryConfidence = 0.65;
+                    }
+                    ok = true;
+                  } finally {
+                    // Always finalize reservations (prevents budget leakage on exceptions/timeouts).
+                    const actual = ok ? (usageTotal ?? reserveTokens) : 0;
+                    try {
+                      await client.rpc("llm_budget_finalize", { p_reserved_tokens: reserveTokens, p_actual_tokens: actual, p_model: groqModel });
+                      await client.rpc("llm_global_budget_finalize", { p_reserved_tokens: reserveTokens, p_actual_tokens: actual });
+                    } catch {
+                      // best-effort
+                    }
+                  }
+                } else {
+                  try {
+                    await client.rpc("llm_budget_finalize", { p_reserved_tokens: reserveTokens, p_actual_tokens: 0, p_model: groqModel });
+                  } catch {
+                    // best-effort
+                  }
+                }
+              }
+            }
+          }
+        } catch {
+          // Fail closed: keep deterministic result.
+        }
+      }
+
+      const secondaryId = resolveSecondary(primaryId);
+      const dec: RouterDecision = {
+        primaryId,
+        secondaryId,
+        primaryConfidence,
+        primaryReason,
+        usedLLM,
+        topScore,
+      };
+      await saveCache(dec);
+      return dec;
+    };
+
+    const decision = await decideModes();
+
+    const modePicks: ModePick[] = [];
+    const primaryModeTitle = decision.primaryId === "similar_to_seed"
+      ? "Similar to your seed"
+      : (modeById.get(decision.primaryId)?.title ?? decision.primaryId);
+    modePicks.push(mkPick(decision.primaryId, primaryModeTitle, decision.primaryConfidence, decision.primaryReason));
+    const secondaryTitle = modeById.get(decision.secondaryId)?.title ?? decision.secondaryId;
+    modePicks.push(mkPick(decision.secondaryId, secondaryTitle, 1, "anchor rail"));
+
+    const perTypeLimit = (total: number) => mediaType === "BOTH" ? Math.max(3, Math.ceil(total / 2)) : total;
+
+    const mapCuratedRowToItem = (row: any) => {
+      const mt = String(row?.media_type ?? row?.mediaType ?? "").toUpperCase();
+      const mediaTypeOut = mt === "MANGA" ? "MANGA" : "ANIME";
+      const mediaId = Number(row?.media_id ?? row?.mediaId ?? 0);
+      const title = row?.title_english ?? row?.title_romaji ?? row?.title_native ?? "Unknown";
+      return {
+        mediaType: mediaTypeOut,
+        mediaId,
+        matchCount: null,
+        score: null,
+        title,
+        coverImageMedium: row?.cover_image_medium ?? row?.coverImageMedium ?? null,
+        averageScore: row?.average_score ?? row?.averageScore ?? null,
+        year: row?.year ?? null,
+        format: row?.format ?? null,
+        status: row?.status ?? null,
+        siteUrl: row?.site_url ?? row?.siteUrl ?? null,
+        signals: Array.isArray(row?.signals) ? row.signals : [],
+        genres: Array.isArray(row?.genres) ? row.genres : null,
+      };
+    };
+
+    const railIdFor = (mode: ConciergeMode | null, mt: MediaType): string | null => {
+      if (!mode?.rail_id) return null;
+      if (typeof mode.rail_id === "string") return mode.rail_id;
+      const both = mode.rail_id.both;
+      if (both) return both;
+      return mt === "ANIME" ? (mode.rail_id.anime ?? null) : (mode.rail_id.manga ?? null);
+    };
+
+    const fetchCurated = async (mode: ConciergeMode, total: number) => {
+      const perType = perTypeLimit(total);
+      const animeRid = railIdFor(mode, "ANIME");
+      const mangaRid = railIdFor(mode, "MANGA");
+      const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") && animeRid
+        ? (await client.rpc("curated_rail_cards", { p_rail_id: animeRid, p_limit: perType, p_exclude_seen: true })).data
         : [];
-      const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
-        ? buildItemsFromRows("MANGA", mangaRows, ctxByType.MANGA, {
-          limit: perType,
-          requiredGenres: modeRequired,
-          excludeGenres: modeExcluded,
-          classicYearMax: mode?.classic_year_max,
-          quality: q,
-          prioritizeClassicBoost: isClassicMode,
-        })
+      const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") && mangaRid
+        ? (await client.rpc("curated_rail_cards", { p_rail_id: mangaRid, p_limit: perType, p_exclude_seen: true })).data
         : [];
+      const a = Array.isArray(animeRows) ? animeRows.map(mapCuratedRowToItem) : [];
+      const m = Array.isArray(mangaRows) ? mangaRows.map(mapCuratedRowToItem) : [];
+      const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
+      return merged;
+    };
 
-      const merged = mediaType === "BOTH" ? mergeAlternating(animeItems, mangaItems, perSetTotal) : [...animeItems, ...mangaItems].slice(0, perSetTotal);
-
-      sets.push({
-        id: mp.id,
-        title: mp.title,
-        modeId: mp.id,
-        confidence: mp.confidence,
-        reason: mp.reason,
-        items: merged,
-      });
-    }
-
-    // If the user is explicit ("like Vagabond"), offer a similarity rail as the first mode.
-    // This keeps the UX feeling "smart" without spending LLM tokens.
-    if (seedQuery) {
-      // Only override when we can find a decent seed title.
+    const buildSimilarToSeedRail = async (total: number) => {
+      // Only build when we have a decent seed title.
       const pickSeed = async (mt: MediaType) => {
         const { data: seeds, error: seedErr } = await client.rpc("search_titles", {
           p_query: seedQuery,
@@ -863,74 +1172,134 @@ serve(async (req) => {
         if (seedErr || !Array.isArray(seeds) || seeds.length === 0) return null;
         const top = seeds[0];
         if ((top?.score ?? 0) < 0.35) return null;
-        return { mt, mediaId: Number(top.media_id), title: String(top.title ?? "").trim() };
+        return { mt, mediaId: Number(top.media_id), title: String(top.title_raw ?? top.title ?? "").trim() };
       };
 
       const seed = mediaType === "MANGA" ? await pickSeed("MANGA")
         : mediaType === "ANIME" ? await pickSeed("ANIME")
         : (await pickSeed("ANIME")) ?? (await pickSeed("MANGA"));
+      if (!seed || !Number.isFinite(seed.mediaId) || seed.mediaId <= 0) return { title: "Similar", items: [] as any[] };
 
-      if (seed && Number.isFinite(seed.mediaId) && seed.mediaId > 0) {
-        const perSetTotal = limit;
-        const perType = mediaType === "BOTH" ? Math.max(3, Math.ceil(perSetTotal / 2)) : perSetTotal;
-        const q = compileQuality(null);
+      const perType = perTypeLimit(total);
+      const q = compileQuality(null);
+      const getSim = async (mt: MediaType) => {
+        const { data: sim, error: simErr } = await client.rpc("recommend_ids_similar_to_seeds", {
+          p_media_type: mt,
+          p_seed_ids: [seed.mediaId],
+          p_limit: 50,
+          p_allow_gimmicks: allowGimmicks,
+        });
+        if (simErr || !Array.isArray(sim)) return [] as CandidateRow[];
+        return sim.map((r: any) => ({
+          media_id: Number(r.media_id),
+          match_count: r.overlap_count ?? r.match_count ?? 0,
+          score: r.score ?? null,
+        }));
+      };
 
-        const getSim = async (mt: MediaType) => {
-          const { data: sim, error: simErr } = await client.rpc("recommend_ids_similar_to_seeds", {
-            p_media_type: mt,
-            p_seed_ids: [seed.mediaId],
-            p_limit: 50,
-            p_allow_gimmicks: allowGimmicks,
-          });
-          if (simErr || !Array.isArray(sim)) return [] as CandidateRow[];
-          return sim.map((r: any) => ({
-            media_id: Number(r.media_id),
-            match_count: r.overlap_count ?? r.match_count ?? 0,
-            score: r.score ?? null,
-          }));
-        };
+      const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getSim("ANIME") : [];
+      const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getSim("MANGA") : [];
+      const simCtxAnime = (mediaType === "ANIME" || mediaType === "BOTH")
+        ? await fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
+        : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+      const simCtxManga = (mediaType === "MANGA" || mediaType === "BOTH")
+        ? await fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
+        : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
 
-        const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getSim("ANIME") : [];
-        const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getSim("MANGA") : [];
-        const simCtxAnime = (mediaType === "ANIME" || mediaType === "BOTH")
-          ? await fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
-          : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
-        const simCtxManga = (mediaType === "MANGA" || mediaType === "BOTH")
-          ? await fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
-          : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+      const a = (mediaType === "ANIME" || mediaType === "BOTH")
+        ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+        : [];
+      const m = (mediaType === "MANGA" || mediaType === "BOTH")
+        ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+        : [];
 
-        const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
-          ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
-          : [];
-        const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
-          ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
-          : [];
+      const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
+      const title = seed.title || seedQuery || "seed";
+      return { title: `Similar to “${title}”`, items: merged };
+    };
 
-        const merged = mediaType === "BOTH" ? mergeAlternating(animeItems, mangaItems, perSetTotal) : [...animeItems, ...mangaItems].slice(0, perSetTotal);
-        const title = seed.title || seedQuery;
+    const buildAlgorithmicRail = async (mode: ConciergeMode | null, total: number) => {
+      const perType = perTypeLimit(total);
+      const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
+      const modeExcluded = mode?.exclude_genres ?? [];
+      const q = compileQuality(mode);
+      const pCats = uniq([...categories, ...(mode?.required_genres ?? [])]);
+      const cats = pCats.length ? pCats : (categories.length ? categories : null);
 
-        // Keep the classics rail as the secondary mode, but replace the primary.
-        if (sets.length >= 1) {
-          sets[0] = {
-            id: "similar_to_seed",
-            title: `Similar to “${title}”`,
-            modeId: "similar_to_seed",
-            confidence: 1,
-            reason: "seed similarity",
-            items: merged,
-          };
-        } else {
-          sets.unshift({
-            id: "similar_to_seed",
-            title: `Similar to “${title}”`,
-            modeId: "similar_to_seed",
-            confidence: 1,
-            reason: "seed similarity",
-            items: merged,
-          });
+      const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getPremiumCandidates("ANIME", cats) : [];
+      const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getPremiumCandidates("MANGA", cats) : [];
+      const ctxAnime = (mediaType === "ANIME" || mediaType === "BOTH")
+        ? await fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
+        : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+      const ctxManga = (mediaType === "MANGA" || mediaType === "BOTH")
+        ? await fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
+        : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+
+      const a = (mediaType === "ANIME" || mediaType === "BOTH")
+        ? buildItemsFromRows("ANIME", animeRows, ctxAnime, {
+          limit: perType,
+          requiredGenres: modeRequired,
+          excludeGenres: modeExcluded,
+          classicYearMax: mode?.classic_year_max,
+          quality: q,
+          prioritizeClassicBoost: (mode?.id ?? "").includes("classic"),
+        })
+        : [];
+      const m = (mediaType === "MANGA" || mediaType === "BOTH")
+        ? buildItemsFromRows("MANGA", mangaRows, ctxManga, {
+          limit: perType,
+          requiredGenres: modeRequired,
+          excludeGenres: modeExcluded,
+          classicYearMax: mode?.classic_year_max,
+          quality: q,
+          prioritizeClassicBoost: (mode?.id ?? "").includes("classic"),
+        })
+        : [];
+      return mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
+    };
+
+    const buildRailItems = async (modeId: string, total: number) => {
+      if (modeId === "similar_to_seed") {
+        return await buildSimilarToSeedRail(total);
+      }
+      const mode = modeById.get(modeId) ?? null;
+      // Curated rail if configured; fallback to algorithmic if empty/unavailable.
+      if (mode?.rail_id) {
+        try {
+          const curated = await fetchCurated(mode, total);
+          if (curated.length > 0) return { title: mode.title, items: curated };
+        } catch {
+          // ignore
         }
       }
-    }
+      const items = await buildAlgorithmicRail(mode, total);
+      return { title: mode?.title ?? modeId, items };
+    };
+
+    // Exactly 2 rails: primary + classics anchor (unless primary is classics, then secondary becomes premium picks).
+    const primaryTotal = limit;
+    const classicsTotal = Math.min(20, Math.max(limit, 14));
+    const primaryBuilt = await buildRailItems(decision.primaryId, primaryTotal);
+    const secondaryBuilt = await buildRailItems(decision.secondaryId, classicsTotal);
+
+    const sets: any[] = [
+      {
+        id: decision.primaryId,
+        title: primaryBuilt.title,
+        modeId: decision.primaryId,
+        confidence: modePicks[0].confidence,
+        reason: modePicks[0].reason,
+        items: primaryBuilt.items,
+      },
+      {
+        id: decision.secondaryId,
+        title: secondaryBuilt.title,
+        modeId: decision.secondaryId,
+        confidence: 1,
+        reason: "anchor rail",
+        items: secondaryBuilt.items,
+      },
+    ];
 
     // Flatten for backwards compatibility + LLM narration.
     const allItems: any[] = [];
