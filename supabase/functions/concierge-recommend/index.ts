@@ -100,11 +100,13 @@ function parseModesFromConfig(cfg: any): ConciergeMode[] {
 
 function defaultModes(): ConciergeMode[] {
   // Safe fallback if config/migration hasn't been applied yet.
+  // Matches the v3 migration (20260206100000_concierge_modes_v3_expanded).
   return [
+    // ── Existing 8 modes (enriched synonyms) ──
     {
       id: "premium_picks",
       title: "Premium Picks",
-      synonyms: ["something good", "recommend something", "surprise me", "premium", "best", "top tier"],
+      synonyms: ["something good", "recommend something", "surprise me", "premium", "best", "top tier", "what should i watch", "anything good", "just pick something", "quality"],
       min_score: 75,
       min_popularity: 2500,
       exclude_genres: ["Kids"],
@@ -113,14 +115,23 @@ function defaultModes(): ConciergeMode[] {
     {
       id: "gateway_start_here",
       title: "Start Here",
-      synonyms: ["first anime", "first manga", "where do i start", "getting into anime", "getting into manga"],
+      synonyms: ["first anime", "first manga", "where do i start", "getting into anime", "getting into manga", "beginner", "new to anime", "new to manga", "gateway", "never watched anime"],
       rail_id: { anime: "gateway_anime", manga: "gateway_manga" },
     },
     {
       id: "premium_action",
       title: "Premium Action",
-      synonyms: ["premium action", "best action", "action premium", "hype action", "fight scenes"],
+      synonyms: ["action", "hype action", "action premium", "best action", "sakuga", "fight scenes", "battle", "tournament", "shounen", "epic fights", "adrenaline"],
       required_genres: ["Action"],
+      min_score: 75,
+      min_popularity: 3500,
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "premium_comedy_grownup",
+      title: "Premium Comedy (grown-up)",
+      synonyms: ["funny but not childish", "grown up comedy", "adult humor", "smart comedy", "witzig aber nicht kindisch", "sitcom", "parody", "satire", "clever humor", "comedy for adults"],
+      required_genres: ["Comedy"],
       min_score: 75,
       min_popularity: 3500,
       exclude_genres: ["Kids"],
@@ -129,26 +140,16 @@ function defaultModes(): ConciergeMode[] {
     {
       id: "cozy_comfort",
       title: "Cozy / Comfort",
-      synonyms: ["cozy", "comfort", "chill", "relax", "healing", "iyashikei", "gemütlich"],
+      synonyms: ["cozy", "comfort", "chill", "relax", "healing", "iyashikei", "gemütlich", "wholesome", "feel good", "heartwarming", "warm", "gentle", "peaceful"],
       required_genres: ["Slice of Life"],
       min_score: 70,
       min_popularity: 1200,
       exclude_formats: ["MUSIC"],
     },
     {
-      id: "premium_comedy_grownup",
-      title: "Premium Comedy (grown-up)",
-      synonyms: ["funny but not childish", "grown up comedy", "smart comedy", "adult humor", "witzig aber nicht kindisch"],
-      required_genres: ["Comedy"],
-      min_score: 75,
-      min_popularity: 3500,
-      exclude_genres: ["Kids"],
-      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
-    },
-    {
       id: "dark_serious",
       title: "Dark / Serious",
-      synonyms: ["dark", "serious", "mature", "grown up", "not childish", "psychological", "thriller", "mind game"],
+      synonyms: ["dark", "serious", "mature", "grown up", "not childish", "psychological", "thriller", "mind game", "seinen", "gore", "violent", "gritty", "brutal", "mind bending"],
       required_genres: ["Drama", "Thriller", "Psychological", "Mystery"],
       min_score: 78,
       min_popularity: 2500,
@@ -158,7 +159,7 @@ function defaultModes(): ConciergeMode[] {
     {
       id: "hidden_gems",
       title: "Hidden Gems",
-      synonyms: ["hidden gems", "underrated", "less known", "something new", "new to me", "surprise me"],
+      synonyms: ["hidden gems", "underrated", "less known", "something new", "new to me", "overlooked", "sleeper", "cult", "niche", "off the beaten path"],
       min_score: 78,
       max_popularity: 45000,
       exclude_genres: ["Kids"],
@@ -167,11 +168,70 @@ function defaultModes(): ConciergeMode[] {
     {
       id: "classics_expanded",
       title: "Classics (expanded)",
-      synonyms: ["classic", "classics", "must watch", "essentials", "goat", "greatest of all time"],
+      synonyms: ["classic", "classics", "must watch", "essentials", "goat", "greatest of all time", "old school", "retro", "90s anime", "80s anime", "iconic", "all time best"],
       rail_id: { anime: "classics_anime", manga: "classics_manga" },
       classic_year_max: 2012,
       min_score: 80,
       min_popularity: 1500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    // ── 6 new modes ──
+    {
+      id: "short_one_season",
+      title: "Short & Complete",
+      synonyms: ["short", "one season", "12 episodes", "13 episodes", "quick watch", "binge", "one cour", "single season", "short anime"],
+      min_score: 74,
+      min_popularity: 2000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC", "MOVIE", "ONA"],
+    },
+    {
+      id: "movie_night",
+      title: "Movie Night",
+      synonyms: ["movie", "movies", "film", "anime movie", "movie night", "feature film", "standalone movie"],
+      min_score: 76,
+      min_popularity: 2000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV", "TV_SHORT", "SPECIAL", "MUSIC", "ONA", "OVA"],
+    },
+    {
+      id: "romance_serious",
+      title: "Romance (serious)",
+      synonyms: ["serious romance", "love story", "romantic drama", "romance drama", "emotional romance", "bittersweet", "heartbreak", "romance not comedy", "deep romance"],
+      required_genres: ["Romance", "Drama"],
+      min_score: 74,
+      min_popularity: 2000,
+      exclude_genres: ["Kids", "Comedy"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "romcom",
+      title: "Romcom",
+      synonyms: ["romcom", "romantic comedy", "rom com", "funny romance", "lighthearted romance", "love comedy", "cute romance", "fluffy", "sweet romance"],
+      required_genres: ["Romance", "Comedy"],
+      min_score: 72,
+      min_popularity: 2000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "fantasy_non_isekai",
+      title: "Fantasy (no isekai)",
+      synonyms: ["fantasy", "high fantasy", "swords and sorcery", "magic", "epic fantasy", "fantasy no isekai", "traditional fantasy", "pure fantasy"],
+      required_genres: ["Fantasy"],
+      min_score: 74,
+      min_popularity: 2000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "isekai",
+      title: "Isekai",
+      synonyms: ["isekai", "transported to another world", "reincarnated", "another world", "reborn", "other world", "parallel world", "summoned to another world", "truck-kun"],
+      required_genres: ["Fantasy", "Adventure"],
+      min_score: 72,
+      min_popularity: 2500,
       exclude_genres: ["Kids"],
       exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
     },
@@ -218,6 +278,58 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[]):
   if (mature && (mode.id.includes("grown") || mode.id.includes("dark"))) {
     score += 2;
     if (!reason) reason = "mature tone";
+  }
+
+  // Movie intent.
+  const wantsMovie = /\b(movie|film|movie night|filmabend|kinofilm)\b/i.test(text);
+  if (wantsMovie && mode.id === "movie_night") {
+    score += 3;
+    if (!reason) reason = "movie intent";
+  }
+
+  // Short/binge intent.
+  const wantsShort = /\b(short|one season|quick watch|binge|one cour|12 ep|13 ep|kurz)\b/i.test(text);
+  if (wantsShort && mode.id === "short_one_season") {
+    score += 3;
+    if (!reason) reason = "short series intent";
+  }
+
+  // Isekai intent (boost isekai, penalize fantasy_non_isekai).
+  const wantsIsekai = /\b(isekai|reincarnated|another world|reborn|truck[- ]?kun)\b/i.test(text);
+  if (wantsIsekai && mode.id === "isekai") {
+    score += 3;
+    if (!reason) reason = "isekai intent";
+  }
+  if (wantsIsekai && mode.id === "fantasy_non_isekai") {
+    score -= 4; // suppress non-isekai fantasy when user explicitly wants isekai
+  }
+
+  // "No isekai" intent (boost fantasy_non_isekai, penalize isekai).
+  const noIsekai = /\b(no isekai|not isekai|ohne isekai|fantasy no isekai|non[- ]?isekai)\b/i.test(text);
+  if (noIsekai && mode.id === "fantasy_non_isekai") {
+    score += 4;
+    if (!reason) reason = "non-isekai intent";
+  }
+  if (noIsekai && mode.id === "isekai") {
+    score -= 4;
+  }
+
+  // Romance sub-type disambiguation.
+  const wantsRomcom = /\b(romcom|rom com|romantic comedy|funny romance|cute romance|fluffy)\b/i.test(text);
+  if (wantsRomcom && mode.id === "romcom") {
+    score += 3;
+    if (!reason) reason = "romcom intent";
+  }
+  if (wantsRomcom && mode.id === "romance_serious") {
+    score -= 2;
+  }
+  const wantsSeriousRomance = /\b(serious romance|romance drama|heartbreak|bittersweet|deep romance)\b/i.test(text);
+  if (wantsSeriousRomance && mode.id === "romance_serious") {
+    score += 3;
+    if (!reason) reason = "serious romance intent";
+  }
+  if (wantsSeriousRomance && mode.id === "romcom") {
+    score -= 2;
   }
 
   return { score, reason: reason || "default" };
