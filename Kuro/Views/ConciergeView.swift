@@ -930,11 +930,11 @@ private struct ConciergeBubble: View {
                                                 .font(.system(size: 16, weight: .regular))
                                                 .foregroundColor(picked == c ? .black : .black.opacity(0.2))
                                         }
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 10)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 12)
                                         .background(
                                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .fill(picked == c ? Color.black.opacity(0.06) : Color.black.opacity(0.03))
+                                                .fill(picked == c ? Color.black.opacity(0.07) : Color.black.opacity(0.03))
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -1095,12 +1095,14 @@ private struct ConciergeRecommendationRail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            HStack(spacing: 10) {
                 Text(title)
                     .font(.system(size: 10, weight: .semibold))
                     .tracking(1.6)
                     .foregroundColor(.black.opacity(0.55))
-                Spacer()
+                Rectangle()
+                    .fill(Color.black.opacity(0.08))
+                    .frame(height: 0.5)
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 12) {
@@ -1198,9 +1200,27 @@ private struct ConciergeRecommendationCompactCard: View {
             }
             .buttonStyle(.plain)
 
+            if !signals.isEmpty {
+                HStack(spacing: 5) {
+                    ForEach(signals.prefix(3), id: \.self) { sig in
+                        Text(sig)
+                            .font(.system(size: 8, weight: .bold))
+                            .tracking(1.0)
+                            .foregroundColor(.black.opacity(0.50))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(Color.black.opacity(0.05))
+                            )
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 13, weight: .medium, design: .serif))
                     .foregroundColor(.black.opacity(0.92))
                     .lineLimit(2)
                     .frame(height: 34, alignment: .top)
@@ -1373,20 +1393,25 @@ private struct ConciergeIntroCard: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("CONCIERGE")
-                            .font(.system(size: 12, weight: .semibold))
-                            .tracking(2.0)
+                            .font(.system(size: 14, weight: .light, design: .serif))
+                            .tracking(2.4)
                             .foregroundColor(.black.opacity(0.80))
                         Text("Imports + recommendations")
-                            .font(.system(size: 12, weight: .regular))
+                            .font(.system(size: 12, weight: .light))
                             .foregroundColor(.black.opacity(0.55))
                     }
 
                     Spacer(minLength: 0)
                 }
 
+                Rectangle()
+                    .fill(Color.black.opacity(0.06))
+                    .frame(height: 0.5)
+
                 Text("Paste titles to import, or describe the mood.\nDefaults are clean — no adult content.")
-                    .font(.system(size: 13, weight: .regular))
+                    .font(.system(size: 13, weight: .light))
                     .foregroundColor(.black.opacity(0.62))
+                    .lineSpacing(3)
             }
             .padding(16)
         }
@@ -1466,11 +1491,11 @@ private struct KuroConciergeAssistant: View {
                                 .matchedGeometryEffect(id: "kurochan", in: mascotNS)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text("CONCIERGE")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .tracking(2.0)
+                                    .font(.system(size: 14, weight: .light, design: .serif))
+                                    .tracking(2.4)
                                     .foregroundColor(.black.opacity(0.78))
                                 Text("Imports + recommendations")
-                                    .font(.system(size: 11, weight: .regular))
+                                    .font(.system(size: 11, weight: .light))
                                     .foregroundColor(.black.opacity(0.55))
                             }
                             Spacer(minLength: 0)

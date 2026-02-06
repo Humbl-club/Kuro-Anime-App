@@ -137,7 +137,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/SettingsView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 37)
+### Supabase migrations (count: 38)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql` *(baseline schema SQL; already applied in production migration history; used for fresh project bootstrap)*
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -174,7 +174,9 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260205234000_curated_rails_seed.sql`
 - `supabase/migrations/20260205235000_discover_bundle_use_curated_rails.sql`               
 - `supabase/migrations/20260206100000_concierge_modes_v3_expanded.sql` *(14 modes; +6 new: short, movie, romance, romcom, fantasy, isekai)*                                           
-- `supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql` *(prod schema drift fix: tags.kitsu_id, comments.user_id type)*                                           
+- `supabase/migrations/20260206120000_curated_rails_expansion.sql` *(+366 editorial picks across 4 rails; ecchi/low-score excluded)*
+- `supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql` *(prod schema drift fix: tags.kitsu_id, comments.user_id type)*
+- `supabase/migrations/20260206150000_security_hardening_rls_and_views.sql` *(RLS on 5 tables + SECURITY INVOKER on 5 views)*
 
 ### Supabase Edge Functions (index.ts) (count: 8)
 - `supabase/functions/bulk-import-anime/index.ts`
@@ -890,6 +892,10 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ## 14) Change Log (append-only)
 
+- 2026-02-06: Security hardening: enabled RLS on 5 unprotected tables (`editorial_boosts`, `editorial_penalty_tags`, `editorial_tag_boosts`, `import_state`, `mirror_runs`) + switched 5 views to SECURITY INVOKER. Migration: `20260206150000_security_hardening_rls_and_views.sql`.
+- 2026-02-06: Deleted legacy edge functions `Bulk-import-anime` (capital B, v7) and `manga-bulk-import-` (trailing dash, v5). Active functions now: 8.
+- 2026-02-06: Concierge UI polish: signal badges (MASTERPIECE/CLASSIC/MATCH) now visible on recommendation cards, serif title fonts, editorial divider on rail headers, larger import candidate hit targets (10→12px), serif CONCIERGE header + editorial divider on intro card.
+- 2026-02-06: Curated rail expansion: +366 editorial picks (90 classics_anime, 97 classics_manga, 75 gateway_anime, 104 gateway_manga). All picks verified: no Ecchi/Hentai genres, score >= 76 (classics) / >= 78 (gateway). Removed problematic picks from initial draft (ecchi-tagged, low-score). Fixed candidate generation script criteria. Migration: `20260206120000_curated_rails_expansion.sql`.
 - 2026-02-06: Baseline schema SQL captured in `supabase/migrations/20250109_remote_applied_placeholder.sql`: consolidates legacy root SQL (02-14) **plus** remote-only objects (`import_runs`, `import_locks`, lock RPCs, 7 materialized views incl. `mv_anime_current_season`, and the `kuro-refresh-matviews` pg_cron job). Defensive fixes for `tags.kitsu_id` and `comments.user_id` type drift. Original SQL files moved to `legacy_sql/`.
 - 2026-02-06: Removed iOS dead code: `ConciergeOverlay.swift`, `KuroChanMascot.swift`, `getByMood()`, `#if false SearchViewNew` block (~500 lines total).
 - 2026-02-06: Concierge modes expanded to 14 (v3) and deployed: added `short_one_season`, `movie_night`, `romance_serious`, `romcom`, `fantasy_non_isekai`, `isekai`. Enriched synonyms (incl. German) across all modes. Migration: `20260206100000_concierge_modes_v3_expanded.sql`. Edge function deployed: `supabase/functions/concierge-recommend/index.ts`.
