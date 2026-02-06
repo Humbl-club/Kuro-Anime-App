@@ -17,6 +17,7 @@ type ParsedItem = {
   caughtUp?: boolean;
   lastEpisode?: boolean;
   completed?: boolean;
+  yearMention?: number;
 };
 
 function romanToInt(input: string): number | null {
@@ -403,6 +404,22 @@ function mediaTypeHint(raw: string): MediaType | undefined {
   return undefined;
 }
 
+function extractYearMention(raw: string): number | undefined {
+  // Match parenthesized year first: "Hunter x Hunter (2011)"
+  const paren = raw.match(/\((\d{4})\)/);
+  if (paren) {
+    const y = Number(paren[1]);
+    if (y >= 1950 && y <= 2099) return y;
+  }
+  // Match standalone 4-digit year not part of a larger number
+  const standalone = raw.match(/(?<!\d)(\d{4})(?!\d)/);
+  if (standalone) {
+    const y = Number(standalone[1]);
+    if (y >= 1950 && y <= 2099) return y;
+  }
+  return undefined;
+}
+
 function stripMeta(raw: string): string {
   // remove parenthetical notes and common suffixes without nuking the title
   let s = raw;
@@ -703,12 +720,14 @@ serve(async (req) => {
     const progress = parseProgress(cleaned);
     const hint = mediaTypeHint(cleaned);
     const flags = parseMagicFlags(cleaned);
+    const yearMention = extractYearMention(cleaned);
     return {
       raw: cleaned,
       normalized: stripMeta(cleaned),
       mediaTypeHint: hint,
       status: status.status,
       completed: status.completed,
+      yearMention,
       ...flags,
       ...progress,
     };
@@ -770,8 +789,9 @@ serve(async (req) => {
         const penalty = variantPenalty(item.raw, { title_raw: c.title_raw, variant_type: c.variant_type });
         const aliasBoost =
           aliasTarget && aliasTarget.media_type === c.media_type && Number(aliasTarget.media_id) === Number(c.media_id) ? 0.80 : 0;
+        const yearBoost = item.yearMention && typeof c.year === "number" && c.year === item.yearMention ? 0.25 : 0;
         // Allow a tiny score > 1 so "Season 2" variants can beat the base title when both match at 1.0.
-        const adjusted = Math.max(0, Math.min(1.25, baseScore + seasonBoost + overlapBoost + aliasBoost - penalty));
+        const adjusted = Math.max(0, Math.min(1.25, baseScore + seasonBoost + overlapBoost + aliasBoost + yearBoost - penalty));
         const existing = merged.get(key);
         if (!existing || (existing.score ?? 0) < adjusted) {
           merged.set(key, { ...c, score: adjusted });
@@ -845,6 +865,7 @@ serve(async (req) => {
         caughtUp: item.caughtUp ?? null,
         lastEpisode: item.lastEpisode ?? null,
         completed: item.completed ?? null,
+        yearMention: item.yearMention ?? null,
       },
       candidates: finalCandidates,
       candidateError,

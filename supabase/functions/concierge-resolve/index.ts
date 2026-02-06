@@ -7,6 +7,8 @@ type Candidate = {
   title_raw: string;
   variant_type?: string;
   score?: number;
+  year?: number;
+  format?: string;
 };
 
 type Parsed = {
@@ -20,6 +22,7 @@ type Parsed = {
   caughtUp?: boolean | null;
   lastEpisode?: boolean | null;
   completed?: boolean | null;
+  yearMention?: number | null;
 };
 
 type ResolveItem = {
@@ -58,7 +61,7 @@ function extractJsonObject(text: string): any | null {
 async function groqResolve(opts: {
   apiKey: string;
   model: string;
-  items: Array<{ raw: string; parsed: Parsed; options: Array<{ id: string; title: string; variant?: string; score?: number }> }>;
+  items: Array<{ raw: string; parsed: Parsed; options: Array<{ id: string; title: string; variant?: string; score?: number; year?: number; format?: string }> }>;
 }): Promise<{ resolved: any | null; usageTotal: number | null }> {
   const url = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -71,6 +74,7 @@ Rules:
 - If none match, set pick to -1.
 - If the user explicitly says watched/saw/schaue/geschaut => prefer ANIME; read/lese/gelesen => prefer MANGA.
 - If seasonNumber is present, prefer an option whose title includes that season (e.g., "Season 2", "2nd Season") IF the base title also matches.
+- If the user mentions a year (yearMention in parsed), prefer the option whose year matches that year.
 - DO NOT hallucinate. Only choose from options.
 - Output must be valid JSON ONLY, matching:
   {"choices":[{"i":number,"pick":number,"confidence":number,"reason":string}...]}
@@ -79,7 +83,7 @@ Items:
 ${opts.items
   .map((it, idx) =>
     `#${idx} raw="${it.raw}" parsed=${JSON.stringify(it.parsed ?? {})}\noptions:\n${it.options
-      .map((o, j) => `  [${j}] ${o.id} ${o.title}${o.variant ? ` (${o.variant})` : ""}${typeof o.score === "number" ? ` score=${o.score.toFixed(3)}` : ""}`)
+      .map((o, j) => `  [${j}] ${o.id} ${o.title}${o.year ? ` [${o.year}]` : ""}${o.format ? ` ${o.format}` : ""}${o.variant ? ` (${o.variant})` : ""}${typeof o.score === "number" ? ` score=${o.score.toFixed(3)}` : ""}`)
       .join("\n")}`,
   )
   .join("\n\n")}`;
@@ -191,6 +195,8 @@ serve(async (req) => {
           title: String(c.title_raw ?? "").slice(0, 120),
           variant: String(c.variant_type ?? ""),
           score: typeof c.score === "number" ? c.score : undefined,
+          year: typeof c.year === "number" ? c.year : undefined,
+          format: typeof c.format === "string" && c.format ? c.format : undefined,
         }));
       return { raw, parsed, options };
     });
