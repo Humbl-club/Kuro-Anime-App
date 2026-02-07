@@ -137,7 +137,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/SettingsView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 38)
+### Supabase migrations (count: 41)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql` *(baseline schema SQL; already applied in production migration history; used for fresh project bootstrap)*
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -177,6 +177,9 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260206120000_curated_rails_expansion.sql` *(+366 editorial picks across 4 rails; ecchi/low-score excluded)*
 - `supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql` *(prod schema drift fix: tags.kitsu_id, comments.user_id type)*
 - `supabase/migrations/20260206150000_security_hardening_rls_and_views.sql` *(RLS on 5 tables + SECURITY INVOKER on 5 views)*
+- `supabase/migrations/20260207000000_search_titles_enrich_year_format.sql` *(search_titles() returns year+format for better disambiguation)*
+- `supabase/migrations/20260207011000_curated_rails_vibes_seed.sql` *(seed pinned vibe rails for Action/Comedy/Cozy/Dark/Hidden Gems)*
+- `supabase/migrations/20260207012000_concierge_modes_v4_add_vibe_rail_ids.sql` *(attach rail_id to additional vibe modes so Concierge serves pinned rails when available)*
 
 ### Supabase Edge Functions (index.ts) (count: 8)
 - `supabase/functions/bulk-import-anime/index.ts`
@@ -892,6 +895,8 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ## 14) Change Log (append-only)
 
+- 2026-02-07: Added pinned curated vibe rails for core modes (Action, Comedy, Cozy, Dark, Hidden Gems) and wired them into Concierge via `rail_id` config. Migrations: `20260207011000_curated_rails_vibes_seed.sql`, `20260207012000_concierge_modes_v4_add_vibe_rail_ids.sql`.
+- 2026-02-07: Improved disambiguation by enriching `search_titles()` with `year` + `format` (used by Concierge parse/resolve + iOS auto-apply safety). Migration: `20260207000000_search_titles_enrich_year_format.sql`.
 - 2026-02-06: Security hardening: enabled RLS on 5 unprotected tables (`editorial_boosts`, `editorial_penalty_tags`, `editorial_tag_boosts`, `import_state`, `mirror_runs`) + switched 5 views to SECURITY INVOKER. Migration: `20260206150000_security_hardening_rls_and_views.sql`.
 - 2026-02-06: Deleted legacy edge functions `Bulk-import-anime` (capital B, v7) and `manga-bulk-import-` (trailing dash, v5). Active functions now: 8.
 - 2026-02-06: Concierge UI polish: signal badges (MASTERPIECE/CLASSIC/MATCH) now visible on recommendation cards, serif title fonts, editorial divider on rail headers, larger import candidate hit targets (10→12px), serif CONCIERGE header + editorial divider on intro card.
