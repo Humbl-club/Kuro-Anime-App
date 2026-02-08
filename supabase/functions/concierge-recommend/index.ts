@@ -235,6 +235,40 @@ function defaultModes(): ConciergeMode[] {
       exclude_genres: ["Kids"],
       exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
     },
+    // ── 3 additional modes (Phase 1 expansion) ──
+    {
+      id: "sports",
+      title: "Sports",
+      synonyms: ["sports", "sport", "basketball", "soccer", "football", "volleyball", "boxing", "tennis", "baseball", "cycling", "running", "swimming", "haikyuu", "blue lock", "kuroko"],
+      required_genres: ["Sports"],
+      min_score: 72,
+      min_popularity: 1500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+      rail_id: { anime: "sports_anime", manga: "sports_manga" },
+    },
+    {
+      id: "scifi",
+      title: "Sci-Fi",
+      synonyms: ["sci-fi", "science fiction", "scifi", "cyberpunk", "space", "futuristic", "dystopian", "robots", "space opera", "mecha"],
+      required_genres: ["Sci-Fi"],
+      min_score: 74,
+      min_popularity: 2000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+      rail_id: { anime: "scifi_anime", manga: "scifi_manga" },
+    },
+    {
+      id: "horror_supernatural",
+      title: "Horror & Supernatural",
+      synonyms: ["horror", "scary", "creepy", "supernatural", "ghost", "demon", "occult", "vampire", "zombie", "curse", "haunted", "junji ito"],
+      required_genres: ["Horror", "Supernatural"],
+      min_score: 70,
+      min_popularity: 1500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+      rail_id: { anime: "horror_supernatural_anime", manga: "horror_supernatural_manga" },
+    },
   ];
 }
 
@@ -332,6 +366,30 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[]):
     score -= 2;
   }
 
+  // Sports intent.
+  const wantsSports = /\b(sports?|soccer|basketball|volleyball|boxing|tennis|baseball|haikyuu|blue lock|kuroko)\b/i.test(text);
+  if (wantsSports && mode.id === "sports") {
+    score += 3;
+    if (!reason) reason = "sports intent";
+  }
+
+  // Sci-fi intent.
+  const wantsScifi = /\b(sci[- ]?fi|scifi|science fiction|cyberpunk|space|futuristic|dystopian|space opera|mecha)\b/i.test(text);
+  if (wantsScifi && mode.id === "scifi") {
+    score += 3;
+    if (!reason) reason = "sci-fi intent";
+  }
+
+  // Horror/supernatural intent (disambiguate from dark_serious).
+  const wantsHorror = /\b(horror|scary|creepy|ghost|demon|occult|vampire|zombie|curse|haunted|junji ito)\b/i.test(text);
+  if (wantsHorror && mode.id === "horror_supernatural") {
+    score += 3;
+    if (!reason) reason = "horror intent";
+  }
+  if (wantsHorror && mode.id === "dark_serious") {
+    score -= 2; // prefer horror_supernatural over dark_serious for explicit horror queries
+  }
+
   return { score, reason: reason || "default" };
 }
 
@@ -365,8 +423,10 @@ function mapStrongGenreToModeId(text: string): string | null {
   if (/\b(action)\b/.test(t)) return "premium_action";
   if (/\b(comedy|funny|laugh)\b/.test(t)) return "premium_comedy_grownup";
   if (/\b(slice of life|cozy|comfort|chill|relax)\b/.test(t)) return "cozy_comfort";
-  if (/\b(thriller|psychological|mind[- ]?game|mystery|horror|dark|serious)\b/.test(t)) return "dark_serious";
-  if (/\b(sports?)\b/.test(t)) return "premium_picks"; // keep broad; sports is a genre but not a dedicated mode yet
+  if (/\b(horror|scary|creepy|supernatural|ghost|demon|occult|vampire|zombie)\b/.test(t)) return "horror_supernatural";
+  if (/\b(thriller|psychological|mind[- ]?game|mystery|dark|serious)\b/.test(t)) return "dark_serious";
+  if (/\b(sci[- ]?fi|scifi|science fiction|cyberpunk|space opera|dystopian|futuristic)\b/.test(t)) return "scifi";
+  if (/\b(sports?|soccer|basketball|volleyball|boxing|tennis|baseball)\b/.test(t)) return "sports";
   if (/\b(fantasy|magic)\b/.test(t)) return "fantasy_non_isekai";
   return null;
 }
@@ -497,6 +557,49 @@ function inferRequiredGenres(text: string): string[] {
   if (/\b(supernatural|übernatürlich)\b/.test(t)) out.push("Supernatural");
   if (/\b(sports?|sport)\b/.test(t)) out.push("Sports");
   return uniq(out);
+}
+
+function inferExcludedGenres(text: string): string[] {
+  const excluded: string[] = [];
+  const lower = text.toLowerCase();
+
+  // Patterns: "no romance", "without harem", "not isekai", "minus comedy"
+  // German: "kein romance", "keine comedy", "ohne harem"
+  const negPatterns = [
+    /\b(?:no|without|not|minus|keine?|ohne)\s+(\w+)/gi,
+  ];
+
+  const genreMap: Record<string, string> = {
+    romance: "Romance",
+    comedy: "Comedy",
+    action: "Action",
+    horror: "Horror",
+    harem: "Harem",
+    ecchi: "Ecchi",
+    isekai: "Isekai",
+    mecha: "Mecha",
+    sports: "Sports",
+    music: "Music",
+    kids: "Kids",
+    fantasy: "Fantasy",
+    scifi: "Sci-Fi",
+    "sci-fi": "Sci-Fi",
+    drama: "Drama",
+    thriller: "Thriller",
+    mystery: "Mystery",
+    supernatural: "Supernatural",
+  };
+
+  for (const pat of negPatterns) {
+    pat.lastIndex = 0;
+    let m;
+    while ((m = pat.exec(lower)) !== null) {
+      const mapped = genreMap[m[1].toLowerCase()];
+      if (mapped && !excluded.includes(mapped)) excluded.push(mapped);
+    }
+  }
+
+  return excluded;
 }
 
 function inferQualityFloor(text: string): { minScore: number; minPopularity: number; excludeFormats: Set<string> } {
@@ -749,6 +852,7 @@ serve(async (req) => {
     const categories = inferCategories(text);
     const gimmickTagIds = inferGimmickTagIds(text);
     const requiredGenres = inferRequiredGenres(text);
+    const userExcludedGenres = inferExcludedGenres(text);
     const quality = inferQualityFloor(text);
 
     // Concierge config (tunable without redeploy): used for modes + global LLM budgets.
@@ -1265,8 +1369,18 @@ serve(async (req) => {
       return mt === "ANIME" ? (mode.rail_id.anime ?? null) : (mode.rail_id.manga ?? null);
     };
 
+    const filterExcludedGenres = (items: any[]) => {
+      if (!userExcludedGenres.length) return items;
+      return items.filter((it) => {
+        const gs = Array.isArray(it.genres) ? it.genres.map((g: any) => String(g)) : [];
+        return !userExcludedGenres.some((eg) => gs.includes(eg));
+      });
+    };
+
     const fetchCurated = async (mode: ConciergeMode, total: number) => {
-      const perType = perTypeLimit(total);
+      // Fetch extra to compensate for post-filtering by user-excluded genres.
+      const fetchLimit = userExcludedGenres.length > 0 ? total + 20 : total;
+      const perType = perTypeLimit(fetchLimit);
       const animeRid = railIdFor(mode, "ANIME");
       const mangaRid = railIdFor(mode, "MANGA");
       const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") && animeRid
@@ -1275,8 +1389,8 @@ serve(async (req) => {
       const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") && mangaRid
         ? (await client.rpc("curated_rail_cards", { p_rail_id: mangaRid, p_limit: perType, p_exclude_seen: true })).data
         : [];
-      const a = Array.isArray(animeRows) ? animeRows.map(mapCuratedRowToItem) : [];
-      const m = Array.isArray(mangaRows) ? mangaRows.map(mapCuratedRowToItem) : [];
+      const a = filterExcludedGenres(Array.isArray(animeRows) ? animeRows.map(mapCuratedRowToItem) : []);
+      const m = filterExcludedGenres(Array.isArray(mangaRows) ? mangaRows.map(mapCuratedRowToItem) : []);
       const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
       return merged;
     };
@@ -1327,10 +1441,10 @@ serve(async (req) => {
         : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
 
       const a = (mediaType === "ANIME" || mediaType === "BOTH")
-        ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+        ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, quality: q })
         : [];
       const m = (mediaType === "MANGA" || mediaType === "BOTH")
-        ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
+        ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, quality: q })
         : [];
 
       const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
@@ -1341,7 +1455,7 @@ serve(async (req) => {
     const buildAlgorithmicRail = async (mode: ConciergeMode | null, total: number) => {
       const perType = perTypeLimit(total);
       const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
-      const modeExcluded = mode?.exclude_genres ?? [];
+      const modeExcluded = uniq([...(mode?.exclude_genres ?? []), ...userExcludedGenres]);
       const q = compileQuality(mode);
       const pCats = uniq([...categories, ...(mode?.required_genres ?? [])]);
       const cats = pCats.length ? pCats : (categories.length ? categories : null);
@@ -1383,11 +1497,26 @@ serve(async (req) => {
         return await buildSimilarToSeedRail(total);
       }
       const mode = modeById.get(modeId) ?? null;
-      // Curated rail if configured; fallback to algorithmic if empty/unavailable.
+      // Curated rail if configured; fall back to algorithmic if empty/unavailable.
+      // If curated returns fewer than requested, fill the remainder algorithmically (still one-shot).
       if (mode?.rail_id) {
         try {
           const curated = await fetchCurated(mode, total);
-          if (curated.length > 0) return { title: mode.title, items: curated };
+          if (curated.length > 0) {
+            if (curated.length >= total) return { title: mode.title, items: curated.slice(0, total) };
+
+            const algo = await buildAlgorithmicRail(mode, total);
+            const seen = new Set(curated.map((it: any) => `${it.mediaType}|${it.mediaId}`));
+            const filled = [...curated];
+            for (const it of algo) {
+              if (filled.length >= total) break;
+              const k = `${it.mediaType}|${it.mediaId}`;
+              if (seen.has(k)) continue;
+              seen.add(k);
+              filled.push(it);
+            }
+            return { title: mode.title, items: filled };
+          }
         } catch {
           // ignore
         }

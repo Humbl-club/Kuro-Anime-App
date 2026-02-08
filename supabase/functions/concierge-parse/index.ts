@@ -48,9 +48,10 @@ function expandCommonAbbreviations(title: string): string | null {
   const compact = raw.toLowerCase().replace(/[^a-z0-9]+/g, "");
   const map: Record<string, string> = {
     aot: "Attack on Titan",
-    snk: "Attack on Titan", // Shingeki no Kyojin (common abbreviation)
+    snk: "Attack on Titan", // Shingeki no Kyojin
     jjk: "Jujutsu Kaisen",
     mha: "My Hero Academia",
+    bnha: "My Hero Academia", // Boku no Hero Academia
     hxh: "Hunter x Hunter",
     fmab: "Fullmetal Alchemist: Brotherhood",
     fma: "Fullmetal Alchemist",
@@ -58,6 +59,24 @@ function expandCommonAbbreviations(title: string): string | null {
     csm: "Chainsaw Man",
     jjba: "JoJo's Bizarre Adventure",
     kny: "Demon Slayer: Kimetsu no Yaiba",
+    op: "One Piece",
+    db: "Dragon Ball",
+    dbz: "Dragon Ball Z",
+    dbs: "Dragon Ball Super",
+    sao: "Sword Art Online",
+    bc: "Black Clover",
+    tog: "Tower of God",
+    mia: "Made in Abyss",
+    rezero: "Re:ZERO -Starting Life in Another World-",
+    konosuba: "Kono Subarashii Sekai ni Shukufuku wo!",
+    mp100: "Mob Psycho 100",
+    nge: "Neon Genesis Evangelion",
+    eva: "Neon Genesis Evangelion",
+    lotgh: "Legend of the Galactic Heroes",
+    logh: "Legend of the Galactic Heroes",
+    tpn: "The Promised Neverland",
+    dm: "Dungeon Meshi",
+    cote: "Classroom of the Elite",
   };
 
   // Only expand when we have a known mapping. Avoid risky short acronyms like "DS".
