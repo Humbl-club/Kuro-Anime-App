@@ -73,6 +73,50 @@ The app reads the Supabase URL and anon key from `Kuro/Services/SupabaseService.
 | Parser abbreviations | 30 |
 | Audit script checks | 5 (overlap, franchise, classics year, rail size, score floor) |
 
+## Changing curated rails
+
+All 38 curated rails are defined in `scripts/rail_config.json`. To make changes:
+
+1. Edit `scripts/rail_config.json` (add/remove/reorder items, change rail metadata)
+2. Generate a migration:
+   ```bash
+   node scripts/generate_rail_migration.js supabase/migrations/YYYYMMDDHHMMSS_rail_update.sql
+   ```
+3. Review the generated SQL (should be a clean diff)
+4. Apply to the remote DB:
+   ```bash
+   supabase db push --linked
+   ```
+5. Verify with the quality audit:
+   ```bash
+   node scripts/audit_curated_rails_quality.js
+   ```
+
+The generator validates constraints (no duplicates, max 100 items per rail, valid media types)
+and fails with clear errors if the config is invalid. The output is deterministic: same config
+always produces the same SQL.
+
+**Note:** The older query-based generator scripts (`generate_vibe_rails_migration.js`,
+`generate_curated_rails_migration.js`, `generate_more_vibe_rails_migration.js`,
+`generate_premium_picks_rails_migration.js`, `generate_refined_short_and_fantasy_rails_migration.js`)
+are **deprecated**. They were used to produce the initial rail seeds from live DB queries.
+All rail changes should now go through `rail_config.json` + `generate_rail_migration.js`.
+
+## Running the router eval
+
+Tests that the concierge mode router returns the expected mode for known prompts:
+
+```bash
+node scripts/eval_router.js
+```
+
+Uses anonymous auth by default. For authenticated eval, set env vars:
+```bash
+SUPABASE_TEST_EMAIL="..." SUPABASE_TEST_PASSWORD="..." node scripts/eval_router.js
+```
+
+Expected: 90%+ pass rate across 64 test cases. Exit 1 if below threshold.
+
 ## Verification commands
 
 ```bash
