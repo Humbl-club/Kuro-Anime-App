@@ -172,9 +172,12 @@ To get the latest 17-mode router live, you must deploy:
     - `20260208022326_phase0_slim_and_rerank.sql`
     - `20260208022404_phase0_fix_classics.sql`
 - Edge functions (deployed):
-  - `concierge-recommend` v30 (negative genre mode suppression in router + scorer)
-  - `concierge-recommend` v29 (3 new modes, negative genre filtering, mode analytics)
-  - `concierge-parse` v30 (30 abbreviations, negative genre extraction)
+  - `concierge-parse` (year mention extraction + boost; strips years from trigram search queries)
+  - `concierge-resolve` (includes year/format tags in LLM prompt and passes them through in response)
+  - `concierge-recommend` (negative-genre suppression in routing + scoring; improved seed/classics intent)
+- Note: Avoid pinning Edge Function version numbers in docs. Verify actual deployed versions with:
+  - `supabase functions list --project-ref bkdifromsqxkndnllmdj`
+- **Adaptation disambiguation** (iOS): auto-apply guard blocks when top candidates share base title but differ in media_id. Year override: if user mentions a year matching the top candidate, auto-apply proceeds.
 
 The iOS UI is already compatible (renders `sets` when present).
 
