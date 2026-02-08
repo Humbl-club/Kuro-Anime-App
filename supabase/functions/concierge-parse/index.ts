@@ -423,20 +423,36 @@ function mediaTypeHint(raw: string): MediaType | undefined {
   return undefined;
 }
 
+// Year mention policy (product): used to disambiguate adaptations (e.g. "HxH 2011").
+// Keep this small to reduce false positives on random numbers in prompts.
+const YEAR_MENTION_MIN = 1960;
+const YEAR_MENTION_MAX = 2030;
+
+function isPlausibleYearMention(y: number): boolean {
+  return Number.isFinite(y) && y >= YEAR_MENTION_MIN && y <= YEAR_MENTION_MAX;
+}
+
 function extractYearMention(raw: string): number | undefined {
-  // Match parenthesized year first: "Hunter x Hunter (2011)"
-  const paren = raw.match(/\((\d{4})\)/);
-  if (paren) {
-    const y = Number(paren[1]);
-    if (y >= 1950 && y <= 2099) return y;
+  // Must run BEFORE stripMeta() removes parenthesized content.
+  // Collect all 4-digit numbers that look like plausible anime/manga years.
+  const matches: number[] = [];
+
+  // Parenthesized years: "Hunter x Hunter (2011)"
+  for (const m of raw.matchAll(/\((\d{4})\)/g)) {
+    const y = Number(m[1]);
+    if (isPlausibleYearMention(y)) matches.push(y);
   }
-  // Match standalone 4-digit year not part of a larger number
-  const standalone = raw.match(/(?<!\d)(\d{4})(?!\d)/);
-  if (standalone) {
-    const y = Number(standalone[1]);
-    if (y >= 1950 && y <= 2099) return y;
+
+  // Standalone 4-digit years (not part of larger number)
+  for (const m of raw.matchAll(/(?<!\d)(\d{4})(?!\d)/g)) {
+    const y = Number(m[1]);
+    if (isPlausibleYearMention(y) && !matches.includes(y)) matches.push(y);
   }
-  return undefined;
+
+  // If multiple distinct years found (e.g. "FMA 2003 vs 2009"), ambiguous: return nothing.
+  const unique = Array.from(new Set(matches));
+  if (unique.length !== 1) return undefined;
+  return unique[0];
 }
 
 function stripMeta(raw: string): string {
@@ -481,6 +497,15 @@ function stripMeta(raw: string): string {
   );
   s = s.replace(/\b\d{1,2}\s*x\s*\d{1,4}\b/gi, " ");
   s = s.replace(/\bs\d{1,2}\s*e\d{1,4}\b/gi, " ");
+  // Strip standalone year mentions so they don't pollute trigram search.
+  // Parenthesized years are already removed above. Keep year-only queries (e.g. manga "1984").
+  s = s.replace(/\s+/g, " ").trim();
+  if (!/^\d{4}$/.test(s)) {
+    s = s.replace(/(?<!\d)(\d{4})(?!\d)/g, (m, yy) => {
+      const y = Number(yy);
+      return isPlausibleYearMention(y) ? " " : m;
+    });
+  }
   s = s.replace(/\s+/g, " ").trim();
   return s;
 }

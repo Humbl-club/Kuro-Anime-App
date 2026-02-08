@@ -257,7 +257,7 @@ serve(async (req) => {
         pick,
         confidence,
         reason,
-        chosen: opt ? { id: opt.id, title: opt.title } : null,
+        chosen: opt ? { id: opt.id, title: opt.title, year: opt.year ?? null, format: opt.format ?? null } : null,
       });
     }
 
