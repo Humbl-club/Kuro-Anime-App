@@ -137,7 +137,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/SettingsView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 41)
+### Supabase migrations (count: 63)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql` *(baseline schema SQL; already applied in production migration history; used for fresh project bootstrap)*
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -180,6 +180,27 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260207000000_search_titles_enrich_year_format.sql` *(search_titles() returns year+format for better disambiguation)*
 - `supabase/migrations/20260207011000_curated_rails_vibes_seed.sql` *(seed pinned vibe rails for Action/Comedy/Cozy/Dark/Hidden Gems)*
 - `supabase/migrations/20260207012000_concierge_modes_v4_add_vibe_rail_ids.sql` *(attach rail_id to additional vibe modes so Concierge serves pinned rails when available)*
+- `supabase/migrations/20260207020000_curated_rails_more_vibes_seed.sql` *(seed pinned rails for additional modes: romcom, romance_serious, short, movie, isekai, fantasy_no_isekai)*
+- `supabase/migrations/20260207021000_concierge_modes_v5_add_more_vibe_rail_ids.sql` *(attach rail_id to the additional modes seeded by 20260207020000)*
+- `supabase/migrations/20260208090000_refine_short_and_fantasy_rails.sql` *(refine pinned rails: short_one_season now <=13 eps + finished; fantasy_no_isekai caps length + requires finished)*
+- `supabase/migrations/20260208091500_curated_rails_premium_picks_seed.sql` *(seed pinned Premium Picks rails used as the default fallback mode)*
+- `supabase/migrations/20260208092000_concierge_modes_v6_add_premium_picks_rail_id.sql` *(attach rail_id to premium_picks so vague prompts use pinned rails first)*
+- `supabase/migrations/20260206162329_curated_rails_expansion.sql` *(idempotent re-run of curated expansion; safe no-op)*
+- `supabase/migrations/20260206164200_security_hardening_rls_and_views.sql` *(idempotent re-run of RLS hardening; safe no-op)*
+- `supabase/migrations/20260208022035_phase0_remove_sequels.sql` *(Phase 0: remove sequel entries from all anime rails — one entry per franchise)*
+- `supabase/migrations/20260208022043_concierge_mode_analytics.sql` *(Phase 3: analytics table for mode routing telemetry)*
+- `supabase/migrations/20260208022110_add_sports_mode.sql` *(Phase 1: sports_anime + sports_manga rails, 35 items each)*
+- `supabase/migrations/20260208022136_phase0_remove_misclassified.sql` *(Phase 0: remove non-isekai from isekai, IDOLiSH7 from dark_serious, etc.)*
+- `supabase/migrations/20260208022153_add_scifi_mode.sql` *(Phase 1: scifi_anime + scifi_manga rails, 45+32 items)*
+- `supabase/migrations/20260208022239_add_horror_supernatural_mode.sql` *(Phase 1: horror_supernatural rails, 38+36 items)*
+- `supabase/migrations/20260208022250_phase0_dedup_rails.sql` *(Phase 0: remove cross-rail duplicates to below 40% overlap)*
+- `supabase/migrations/20260208022326_phase0_slim_and_rerank.sql` *(Phase 0: trim all rails to 30-80 target sizes, re-rank)*
+- `supabase/migrations/20260208022342_add_demographic_rails.sql` *(Phase 1: seinen/shoujo/josei rails for anime + manga)*
+- `supabase/migrations/20260208022356_update_concierge_config_new_modes.sql` *(Phase 1: add sports/scifi/horror_supernatural to concierge_config modes)*
+- `supabase/migrations/20260208022404_phase0_fix_classics.sql` *(Phase 0: add missing cornerstone classics — Akira, Galaxy Express 999, Macross DYRL, Rurouni Kenshin)*
+- `supabase/migrations/20260208023052_phase0_backfill_underpopulated_rails.sql` *(backfill premium_picks/action/short after dedup thinned them)*
+- `supabase/migrations/20260208023221_phase0_dedup_backfilled_rails.sql` *(dedup newly backfilled items against existing rails)*
+- `supabase/migrations/20260208023331_phase0_final_backfill.sql` *(final fill to target sizes for picks/short/manga)*
 
 ### Supabase Edge Functions (index.ts) (count: 8)
 - `supabase/functions/bulk-import-anime/index.ts`
@@ -895,6 +916,10 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ## 14) Change Log (append-only)
 
+- 2026-02-08: **Curated content overhaul** — Phase 0: removed ~200 sequel entries (one-entry-per-franchise), purged misclassified items (Sailor Moon/Precure from isekai, IDOLiSH7 from dark_serious), deduped cross-rail overlap (94% → 36%), slimmed all rails to 30-80 targets, fixed classics (removed post-2014, added Akira/Galaxy Express 999/Macross DYRL/Rurouni Kenshin). Phase 1: added 3 new vibe modes (Sports, Sci-Fi, Horror/Supernatural) + 11 new rails + 5 demographic rails (seinen/shoujo/josei). Phase 2: expanded parser abbreviations (10→30), added negative genre filtering ("no romance"/"without harem"), updated mode router for new modes, deployed concierge-parse v30 + concierge-recommend v29. Phase 3: enhanced audit script (overlap/franchise/year/size/score checks), created `concierge_mode_analytics` table. Total: 17 vibe modes, 38 curated rails, 63 migrations.
+- 2026-02-08: **UI cleanup** — removed genre text (Action, Adventure) from all card types across the app (EditorialDiscoverView, EditorialCollectionView, EditorialSearchView, EditorialCards, Cards). Tightened title-to-meta spacing on compact and grid cards.
+- 2026-02-08: Pinned the default fallback mode (**Premium Picks**) to curated rails so vague prompts ("recommend something") return consistent, premium-quality results. Migrations: `20260208091500_curated_rails_premium_picks_seed.sql`, `20260208092000_concierge_modes_v6_add_premium_picks_rail_id.sql`.
+- 2026-02-08: Refined pinned curated rails that were producing off-vibe picks: `short_one_season_*` is now truly short (<=13 eps, FINISHED) and `fantasy_non_isekai_*` now excludes ongoing and caps length (FINISHED, <=60 eps / <=220 chapters). Migration: `20260208090000_refine_short_and_fantasy_rails.sql`.
 - 2026-02-07: Added pinned curated vibe rails for core modes (Action, Comedy, Cozy, Dark, Hidden Gems) and wired them into Concierge via `rail_id` config. Migrations: `20260207011000_curated_rails_vibes_seed.sql`, `20260207012000_concierge_modes_v4_add_vibe_rail_ids.sql`.
 - 2026-02-07: Improved disambiguation by enriching `search_titles()` with `year` + `format` (used by Concierge parse/resolve + iOS auto-apply safety). Migration: `20260207000000_search_titles_enrich_year_format.sql`.
 - 2026-02-06: Security hardening: enabled RLS on 5 unprotected tables (`editorial_boosts`, `editorial_penalty_tags`, `editorial_tag_boosts`, `import_state`, `mirror_runs`) + switched 5 views to SECURITY INVOKER. Migration: `20260206150000_security_hardening_rls_and_views.sql`.

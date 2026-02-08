@@ -2,9 +2,9 @@
 
 This file documents the idea of routing free-text "vibe" prompts into curated recommendation rails (modes), with the LLM used only as an optional presentation layer.
 
-## Current status (as of 2026-02-06)
+## Current status (as of 2026-02-08)
 
-The core of this plan is fully implemented and expanded.
+The core plan is fully implemented, expanded, and quality-hardened.
 
 Implemented:
 - Config-driven "modes" (curated rails) stored in DB config JSON.
@@ -12,9 +12,15 @@ Implemented:
 - Backend returns grouped rails (`sets`) plus backward-compatible flattened items.
 - iOS renders rails from backend `sets`.
 - Classics rail expanded (do not remove existing classic boosts; return more classics by heuristic + config filters).
-- **14 modes** (v3, deployed): Premium Picks, Start Here, Premium Action, Premium Comedy (grown-up), Cozy/Comfort, Dark/Serious, Hidden Gems, Classics (expanded), Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai.
-- Intent detectors in `scoreMode()` for movie, short, isekai/non-isekai, romcom/serious-romance disambiguation.
+- **17 modes** (v6, deployed): Premium Picks, Start Here, Premium Action, Premium Comedy (grown-up), Cozy/Comfort, Dark/Serious, Hidden Gems, Classics (expanded), Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai, **Sports**, **Sci-Fi**, **Horror & Supernatural**.
+- **38 curated rails** (27 original + 11 new: sports, sci-fi, horror/supernatural anime+manga, seinen anime+manga, shoujo anime+manga, josei manga).
+- Intent detectors in `scoreMode()` for movie, short, isekai/non-isekai, romcom/serious-romance, sports, sci-fi, horror disambiguation.
 - Enriched synonyms with German translations across all modes.
+- **Negative genre filtering**: "action but no romance", "fantasy without harem" — parsed and applied to both curated and algorithmic rails.
+- **30 abbreviations** in parser (up from 10): OP, DB/DBZ/DBS, SAO, NGE/Eva, LOTGH, MP100, BC, ToG, MiA, ReZero, KonoSuba, TPN, BNHA, DM, COTE, etc.
+- **Phase 0 quality overhaul** (2026-02-08): cross-rail overlap reduced from 94% to ~36%, sequels/misclassified items removed, all rails slimmed to 30-80, classics cleaned (0 post-2014 titles), isekai rebuilt (114 bogus → 14 genuine).
+- **Mode analytics table** (`concierge_mode_analytics`) for tracking mode selection patterns.
+- **Enhanced audit script** with 5 quality checks: overlap, franchise duplication, classics year, rail size, score floors.
 - Foundation migration consolidating all core catalog tables + import tracking + materialized views + lock RPCs (schema drift resolved).
 - Migration to fix legacy production drift (`tags.kitsu_id`, `comments.user_id` type): `/Applications/Kuro/supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql`.
 
@@ -90,14 +96,18 @@ Keep the current design as the default:
 
 ### What to improve next (highest leverage)
 
-1. ~~Expand and tune modes in config~~ **(DONE as of v3)**
-- All originally planned modes have been added:
+1. ~~Expand and tune modes in config~~ **(DONE as of v6)**
+- All originally planned modes have been added, plus 3 new genre modes:
   - `Gateway / First Anime` (v2)
   - `Short One-Season` (v3: `short_one_season`)
   - `Movie Night` (v3: `movie_night`)
   - `Romance (serious)` vs `Romcom` (v3: `romance_serious`, `romcom`)
   - `Fantasy (non-isekai)` vs `Isekai` (v3: `fantasy_non_isekai`, `isekai`)
-- Current count: **14 modes** (within the recommended 20-50 ceiling). Room for more.
+  - `Sports` (v6: `sports`) — Haikyuu, Blue Lock, Slam Dunk, Hajime no Ippo
+  - `Sci-Fi` (v6: `scifi`) — Cowboy Bebop, Ghost in the Shell, Steins;Gate, Psycho-Pass
+  - `Horror & Supernatural` (v6: `horror_supernatural`) — Shiki, Higurashi, Parasyte, Junji Ito
+- Demographic rails added (not full modes): seinen, shoujo, josei
+- Current count: **17 modes** (within the recommended 20-50 ceiling). Room for more.
 
 2. Add a feedback loop (active learning)
 - Add UI actions like:
@@ -144,13 +154,31 @@ If you ever want to switch to 1-mode:
 
 ## Deployment notes
 
-To get the latest 14-mode router live, you must deploy:
-- DB migrations (in order):
-  - `20250109_remote_applied_placeholder.sql` (baseline schema SQL; already applied in production migration history)
-  - `20260205190000_concierge_modes_config.sql` (v1 modes)
-  - `20260205233000_concierge_modes_v2_config.sql` (v2 modes + rail_id + router_llm)
-  - `20260206100000_concierge_modes_v3_expanded.sql` (v3: 14 modes)
-- Edge function:
-  - `/Applications/Kuro/supabase/functions/concierge-recommend/index.ts` (updated `defaultModes()` + `scoreMode()`)
+To get the latest 17-mode router live, you must deploy:
+- DB migrations (in order): **63 total migrations** — see `supabase/migrations/` for full list
+  - Key mode migrations:
+    - `20260205190000_concierge_modes_config.sql` (v1: 6 modes)
+    - `20260205233000_concierge_modes_v2_config.sql` (v2: 8 modes + rail_id + router_llm)
+    - `20260206100000_concierge_modes_v3_expanded.sql` (v3: 14 modes)
+    - `20260208022110_add_sports_mode.sql` (sports rails)
+    - `20260208022153_add_scifi_mode.sql` (sci-fi rails)
+    - `20260208022239_add_horror_supernatural_mode.sql` (horror/supernatural rails)
+    - `20260208022342_add_demographic_rails.sql` (seinen, shoujo, josei)
+    - `20260208022356_update_concierge_config_new_modes.sql` (v6: 17 modes in config)
+  - Key quality migrations:
+    - `20260208022035_phase0_remove_sequels.sql`
+    - `20260208022136_phase0_remove_misclassified.sql`
+    - `20260208022250_phase0_dedup_rails.sql`
+    - `20260208022326_phase0_slim_and_rerank.sql`
+    - `20260208022404_phase0_fix_classics.sql`
+- Edge functions (deployed):
+  - `concierge-recommend` v29 (3 new modes, negative genre filtering, mode analytics)
+  - `concierge-parse` v30 (30 abbreviations, negative genre extraction)
 
 The iOS UI is already compatible (renders `sets` when present).
+
+## Quality infrastructure
+
+- **Audit script**: `scripts/audit_curated_rails_quality.js` — 5 checks: cross-rail overlap (>15%), franchise duplication, classics year (>2014), rail size (>80), score floor (category-specific). Run with `node scripts/audit_curated_rails_quality.js`.
+- **Mode analytics**: `concierge_mode_analytics` table logs mode selections, synonyms matched, confidence scores, and whether the request was LLM-routed.
+- **Overlap target**: No rail pair should exceed 15% overlap (was 94%, now ~36% worst-case).

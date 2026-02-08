@@ -107,7 +107,10 @@ flowchart TD
 - Your prompt is routed into **up to 2 curated rails ("modes")**:
   - Rail A: a best-fit "vibe mode" (e.g. Premium Action / Cozy / Movie Night / Romcom)
   - Rail B: **Classics (expanded)** (keeps your existing classics picks, but returns more)
-- Production currently has **14 modes** (v3): Premium Picks, Start Here, Premium Action, Premium Comedy, Cozy/Comfort, Dark/Serious, Hidden Gems, Classics, Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai.
+- Production currently has **17 modes** (v6): Premium Picks, Start Here, Premium Action, Premium Comedy, Cozy/Comfort, Dark/Serious, Hidden Gems, Classics, Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai, **Sports**, **Sci-Fi**, **Horror & Supernatural**.
+- **38 curated rails** total (27 original + 11 new: sports, sci-fi, horror/supernatural anime+manga, seinen, shoujo, josei).
+- Negative genre filtering supported: "action but no romance", "fantasy without harem".
+- 30 abbreviations in the parser (up from 10): OP, DB/DBZ/DBS, SAO, NGE/Eva, LOTGH, etc.
 - The modes are configurable in the database (`public.concierge_config.config.modes`) so we can tune them without redeploying the app.
 
 ```mermaid
@@ -319,6 +322,10 @@ flowchart TD
 
 ## 14) Change Log (append-only)
 
+- 2026-02-08: **Major curated content overhaul**: cleaned up all existing rails (removed sequels, misclassified items, cross-rail duplicates; slimmed from 120-210 items to 30-80 per rail; fixed classics definition). Added 3 new vibe modes (Sports, Sci-Fi, Horror & Supernatural) + demographic rails (Seinen, Shoujo, Josei). Parser now has 30 abbreviations and supports negative filtering ("no romance"). Total: 17 modes, 38 rails, 63 migrations. Enhanced audit script with overlap/franchise/year/size checks.
+- 2026-02-08: Removed genre labels (Action, Adventure) from all card types — only year + episode count shown. Tightened card text spacing.
+- 2026-02-08: "Recommend something" is now pinned to curated Premium Picks, so vague prompts return consistently great results.
+- 2026-02-08: Fixed some “off vibe” picks in pinned rails. Short & Complete is now truly short (<= 13 episodes) and Fantasy (no isekai) no longer includes ongoing or huge long-runners. Migration: `supabase/migrations/20260208090000_refine_short_and_fantasy_rails.sql`.
 - 2026-02-07: More "vibe" recommendations are now pinned/curated (Action, Comedy, Cozy, Dark, Hidden Gems) so Concierge feels more consistent and premium.
 - 2026-02-06: Security hardening: RLS enabled on 5 unprotected tables + 5 views fixed. Deleted 2 legacy edge functions (duplicates). Concierge UI polished: signal badges now visible on recommendation cards, serif fonts for editorial feel, larger tap targets, rail header dividers.
 - 2026-02-06: Curated rail expansion: +366 editorial picks across 4 rails (classics_anime +90, classics_manga +97, gateway_anime +75, gateway_manga +104). All Ecchi/Hentai titles excluded, quality thresholds enforced (score >= 76 classics, >= 78 gateway). Total curated items: ~676.
