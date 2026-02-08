@@ -107,15 +107,18 @@ All rail changes should now go through `rail_config.json` + `generate_rail_migra
 Tests that the concierge mode router returns the expected mode for known prompts:
 
 ```bash
-node scripts/eval_router.js
+SUPABASE_URL="https://<project>.supabase.co" SUPABASE_ANON_KEY="<anon>" node scripts/eval_router.js
 ```
 
 Uses anonymous auth by default. For authenticated eval, set env vars:
 ```bash
-SUPABASE_TEST_EMAIL="..." SUPABASE_TEST_PASSWORD="..." node scripts/eval_router.js
+SUPABASE_TEST_EMAIL="..." SUPABASE_TEST_PASSWORD="..." SUPABASE_URL="https://<project>.supabase.co" SUPABASE_ANON_KEY="<anon>" node scripts/eval_router.js
 ```
 
-Expected: 90%+ pass rate across 64 test cases. Exit 1 if below threshold.
+Expected: 90%+ pass rate across 63 test cases. Exit 1 if below threshold.
+Retries 429/5xx with exponential backoff (up to 3 retries, honours Retry-After).
+Infra errors (rate limits after retries) are reported separately and excluded
+from the pass rate so flaky infra doesn't mask routing regressions.
 
 ## Verification commands
 
