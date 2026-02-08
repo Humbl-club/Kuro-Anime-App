@@ -1,0 +1,317 @@
+[
+  {
+    "prompt": "recommend something",
+    "expectedMode": "premium_picks",
+    "note": "vague -> premium_picks (synonym match)"
+  },
+  {
+    "prompt": "surprise me with anything good",
+    "expectedMode": "premium_picks",
+    "note": "vague quality request -> premium_picks"
+  },
+  {
+    "prompt": "what should i watch",
+    "expectedMode": "premium_picks",
+    "note": "vague intent -> premium_picks (synonym match)"
+  },
+  {
+    "prompt": "first anime recommendations",
+    "expectedMode": "gateway_start_here",
+    "note": "gateway intent hard override"
+  },
+  {
+    "prompt": "getting into anime, where do i start",
+    "expectedMode": "gateway_start_here",
+    "note": "gateway intent hard override"
+  },
+  {
+    "prompt": "never watched anime before",
+    "expectedMode": "gateway_start_here",
+    "note": "gateway intent from synonym"
+  },
+  {
+    "prompt": "best action anime",
+    "expectedMode": "premium_action",
+    "note": "strong genre signal: action"
+  },
+  {
+    "prompt": "hype action with epic fights",
+    "expectedMode": "premium_action",
+    "note": "action synonyms: hype action, epic fights"
+  },
+  {
+    "prompt": "funny but not childish anime",
+    "expectedMode": "premium_comedy_grownup",
+    "note": "strong genre: comedy + mature tone"
+  },
+  {
+    "prompt": "smart comedy with adult humor",
+    "expectedMode": "premium_comedy_grownup",
+    "note": "comedy synonyms"
+  },
+  {
+    "prompt": "cozy anime for a rainy day",
+    "expectedMode": "cozy_comfort",
+    "note": "strong genre: slice of life via 'cozy'"
+  },
+  {
+    "prompt": "something chill and relaxing",
+    "expectedMode": "cozy_comfort",
+    "note": "cozy synonyms: chill, relax"
+  },
+  {
+    "prompt": "iyashikei healing anime",
+    "expectedMode": "cozy_comfort",
+    "note": "iyashikei synonym"
+  },
+  {
+    "prompt": "dark psychological thriller",
+    "expectedMode": "dark_serious",
+    "note": "strong genre: thriller/psychological via 'dark'"
+  },
+  {
+    "prompt": "serious mature anime not for kids",
+    "expectedMode": "dark_serious",
+    "note": "dark/serious synonyms + mature tone boost"
+  },
+  {
+    "prompt": "mind bending seinen anime",
+    "expectedMode": "dark_serious",
+    "note": "mind bending + seinen synonyms"
+  },
+  {
+    "prompt": "hidden gems I haven't seen",
+    "expectedMode": "hidden_gems",
+    "note": "hidden gems intent hard override"
+  },
+  {
+    "prompt": "underrated anime that people miss",
+    "expectedMode": "hidden_gems",
+    "note": "hidden gems intent via 'underrated'"
+  },
+  {
+    "prompt": "classic must watch anime",
+    "expectedMode": "classics_expanded",
+    "note": "classic intent hard override"
+  },
+  {
+    "prompt": "greatest of all time essentials",
+    "expectedMode": "classics_expanded",
+    "note": "classic intent via 'greatest' and 'essentials'"
+  },
+  {
+    "prompt": "90s anime retro vibes",
+    "expectedMode": "classics_expanded",
+    "note": "classic synonyms: 90s anime, retro"
+  },
+  {
+    "prompt": "short anime I can binge in one night",
+    "expectedMode": "short_one_season",
+    "note": "strong genre: short/binge intent"
+  },
+  {
+    "prompt": "one season quick watch",
+    "expectedMode": "short_one_season",
+    "note": "short intent: one season + quick watch"
+  },
+  {
+    "prompt": "anime movie recommendations",
+    "expectedMode": "movie_night",
+    "note": "strong genre: movie intent"
+  },
+  {
+    "prompt": "good film for movie night",
+    "expectedMode": "movie_night",
+    "note": "movie intent: film + movie night"
+  },
+  {
+    "prompt": "serious romance anime with heartbreak",
+    "expectedMode": "romance_serious",
+    "note": "strong genre: serious romance via 'heartbreak'"
+  },
+  {
+    "prompt": "deep romance drama not comedy",
+    "expectedMode": "romance_serious",
+    "note": "serious romance intent: deep romance + drama"
+  },
+  {
+    "prompt": "romcom recommendations",
+    "expectedMode": "romcom",
+    "note": "strong genre: romcom"
+  },
+  {
+    "prompt": "cute funny romance anime",
+    "expectedMode": "romcom",
+    "note": "romcom via 'romance' strong genre (maps to romcom before romance_serious)"
+  },
+  {
+    "prompt": "fluffy lighthearted romance",
+    "expectedMode": "romcom",
+    "note": "romcom synonyms: fluffy + romcom intent regex"
+  },
+  {
+    "prompt": "high fantasy no isekai",
+    "expectedMode": "fantasy_non_isekai",
+    "note": "strong genre: no isekai intent"
+  },
+  {
+    "prompt": "swords and sorcery traditional fantasy",
+    "expectedMode": "fantasy_non_isekai",
+    "note": "fantasy strong genre (no isekai keywords)"
+  },
+  {
+    "prompt": "isekai anime where they get reincarnated",
+    "expectedMode": "isekai",
+    "note": "strong genre: isekai + reincarnated"
+  },
+  {
+    "prompt": "transported to another world adventure",
+    "expectedMode": "isekai",
+    "note": "isekai intent: another world"
+  },
+  {
+    "prompt": "truck-kun anime",
+    "expectedMode": "isekai",
+    "note": "isekai intent via truck-kun"
+  },
+  {
+    "prompt": "best sports anime",
+    "expectedMode": "sports",
+    "note": "strong genre: sports"
+  },
+  {
+    "prompt": "anime about basketball and kuroko",
+    "expectedMode": "sports",
+    "note": "sports intent: basketball + kuroko"
+  },
+  {
+    "prompt": "volleyball anime haikyuu style",
+    "expectedMode": "sports",
+    "note": "sports intent: volleyball + haikyuu"
+  },
+  {
+    "prompt": "sci-fi anime recommendations",
+    "expectedMode": "scifi",
+    "note": "strong genre: sci-fi"
+  },
+  {
+    "prompt": "cyberpunk dystopian future anime",
+    "expectedMode": "scifi",
+    "note": "scifi intent: cyberpunk + dystopian + futuristic"
+  },
+  {
+    "prompt": "space opera mecha anime",
+    "expectedMode": "scifi",
+    "note": "scifi intent: space opera + mecha"
+  },
+  {
+    "prompt": "something scary and creepy",
+    "expectedMode": "horror_supernatural",
+    "note": "strong genre: horror via 'scary' + 'creepy'"
+  },
+  {
+    "prompt": "anime with ghosts and demons",
+    "expectedMode": "horror_supernatural",
+    "note": "horror intent: ghost + demon"
+  },
+  {
+    "prompt": "junji ito style horror",
+    "expectedMode": "horror_supernatural",
+    "note": "horror intent: junji ito"
+  },
+  {
+    "prompt": "gemütlich anime zum entspannen",
+    "expectedMode": "cozy_comfort",
+    "note": "German: gemütlich -> cozy synonym, entspannen -> cozy"
+  },
+  {
+    "prompt": "gruselig horror anime empfehlung",
+    "expectedMode": "horror_supernatural",
+    "note": "German: gruselig -> horror via inferCategories"
+  },
+  {
+    "prompt": "something like FMAB",
+    "expectedMode": "similar_to_seed",
+    "note": "seed-based: 'like FMAB' -> similar_to_seed"
+  },
+  {
+    "prompt": "similar to Attack on Titan",
+    "expectedMode": "similar_to_seed",
+    "note": "seed-based: 'similar to' -> similar_to_seed"
+  },
+  {
+    "prompt": "action but no romance",
+    "expectedMode": "premium_action",
+    "note": "negative filtering: action is strong genre, 'no romance' is exclude filter"
+  },
+  {
+    "prompt": "fantasy non-isekai pure magic anime",
+    "expectedMode": "fantasy_non_isekai",
+    "note": "non-isekai intent regex + fantasy strong genre"
+  },
+  {
+    "prompt": "bittersweet love story that will make me cry",
+    "expectedMode": "romance_serious",
+    "note": "serious romance intent via 'bittersweet' + 'heartbreak' regex"
+  },
+  {
+    "prompt": "reccomend me some good actoin anime",
+    "expectedMode": "premium_action",
+    "note": "typo: reccomend, actoin -> should still route to action"
+  },
+  {
+    "prompt": "psycological thriller anime",
+    "expectedMode": "dark_serious",
+    "note": "typo: psycological -> should still match psychological/thriller"
+  },
+  {
+    "prompt": "shounen ai romance",
+    "expectedMode": "romance_serious",
+    "note": "romanji: shounen ai is a romance sub-genre"
+  },
+  {
+    "prompt": "mahou shoujo magical girl anime",
+    "expectedMode": "premium_picks",
+    "note": "romanji: mahou shoujo - no dedicated mode, falls to premium_picks"
+  },
+  {
+    "prompt": "AOT",
+    "expectedMode": "similar_to_seed",
+    "note": "abbreviation-only input: AOT -> Attack on Titan seed"
+  },
+  {
+    "prompt": "HxH 2011",
+    "expectedMode": "similar_to_seed",
+    "note": "abbreviation + year: should treat as seed title"
+  },
+  {
+    "prompt": "ISEKAI ANIME WITH OP MC",
+    "expectedMode": "isekai",
+    "note": "all-caps: should still route to isekai"
+  },
+  {
+    "prompt": "RomCom with school setting",
+    "expectedMode": "romcom",
+    "note": "mixed-case: RomCom should match romcom"
+  },
+  {
+    "prompt": "asdfghjkl",
+    "expectedMode": "premium_picks",
+    "note": "gibberish: no signal, should fall back to premium_picks"
+  },
+  {
+    "prompt": "",
+    "expectedMode": "premium_picks",
+    "note": "empty string: should fall back to premium_picks or handle gracefully"
+  },
+  {
+    "prompt": "vagabond",
+    "expectedMode": "similar_to_seed",
+    "note": "bare series name: should be treated as a seed for similarity"
+  },
+  {
+    "prompt": "one piece",
+    "expectedMode": "similar_to_seed",
+    "note": "bare series name: popular title as seed"
+  }
+]
