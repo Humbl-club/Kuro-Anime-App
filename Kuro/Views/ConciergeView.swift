@@ -368,9 +368,12 @@ struct ConciergeView: View {
                 )
             }
             
-            // Pre-select top candidates
+            // Pre-select top candidates (skip when adaptations are ambiguous)
             for item in response.items {
                 if let top = item.candidates.first, top.score >= 0.60 {
+                    if hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention) {
+                        continue
+                    }
                     selectedByItemId[item.id] = top
                 }
             }
@@ -577,6 +580,50 @@ struct ConciergeView: View {
         return s
     }
     
+    // MARK: Adaptation Ambiguity Guard
+
+    /// Strips parenthetical suffixes, colon-delimited suffixes, and whitespace to get a base title.
+    /// e.g. "Hunter x Hunter (2011)" → "hunter x hunter"
+    ///      "Fullmetal Alchemist: Brotherhood" → "fullmetal alchemist"
+    private func strippedBaseTitle(_ raw: String) -> String {
+        var t = raw
+        // Remove anything in parentheses at the end: "Title (2011)" → "Title"
+        if let range = t.range(of: #"\s*\([^)]*\)\s*$"#, options: .regularExpression) {
+            t.removeSubrange(range)
+        }
+        // Remove ": Subtitle" style suffixes (space after colon required to avoid "Re:ZERO")
+        if let range = t.range(of: ": ") {
+            t = String(t[t.startIndex..<range.lowerBound])
+        }
+        return t.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// Returns true when top candidates look like different adaptations of the same work
+    /// (e.g. HxH 1999 vs HxH 2011) and the user hasn't disambiguated via year mention.
+    private func hasAmbiguousAdaptations(
+        candidates: [SupabaseService.ConciergeCandidate],
+        yearMention: Int?
+    ) -> Bool {
+        guard candidates.count >= 2 else { return false }
+
+        let top = candidates[0]
+        let second = candidates[1]
+
+        // Different series but same base title → adaptation pair
+        guard top.media_id != second.media_id else { return false }
+
+        let baseTop = strippedBaseTitle(top.title_raw)
+        let baseSecond = strippedBaseTitle(second.title_raw)
+        guard baseTop == baseSecond else { return false }
+
+        // If user mentioned a year and the top candidate's year matches, not ambiguous
+        if let mentioned = yearMention, let topYear = top.year, topYear == mentioned {
+            return false
+        }
+
+        return true
+    }
+
     // MARK: Existing Helper Methods (Wired)
     private var activeItems: [SupabaseService.ConciergeParseItem]? {
         messages.last(where: { $0.role == .assistant && ($0.items?.isEmpty == false) })?.items

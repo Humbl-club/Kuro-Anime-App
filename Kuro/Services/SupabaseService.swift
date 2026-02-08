@@ -2987,6 +2987,8 @@ class SupabaseService {
             struct Chosen: Decodable, Sendable {
                 let id: String
                 let title: String
+                let year: Int?
+                let format: String?
             }
             let chosen: Chosen?
         }
