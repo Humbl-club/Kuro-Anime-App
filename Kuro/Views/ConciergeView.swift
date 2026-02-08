@@ -2,7 +2,6 @@
 // Fully wired with 4 new states, proper error handling, and complete integration
 
 import SwiftUI
-import NukeUI
 
 // MARK: - Display State
 enum ConciergeDisplayState: Equatable {
@@ -401,14 +400,6 @@ struct ConciergeView: View {
             let displayItems = !flattened.isEmpty ? flattened : (rec.items ?? [])
             
             if rec.success, !displayItems.isEmpty {
-                // Prefetch covers
-                let urls = displayItems
-                    .compactMap { URL(string: $0.coverImageMedium ?? "") }
-                    .prefix(16)
-                if !urls.isEmpty {
-                    Task { await ImagePipeline.shared.prefetch(urls: Array(urls), maxPixelSize: 520) }
-                }
-                
                 // Convert to present items
                 presentItems = displayItems.map { item in
                     ConciergePresentItem(
@@ -416,8 +407,8 @@ struct ConciergeView: View {
                         mediaId: item.mediaId,
                         mediaType: item.mediaType,
                         title: item.title,
-                        meta: "\(item.year ?? "Unknown") · \(item.mediaType.capitalized)",
-                        score: item.averageScore ?? 0,
+                        meta: "\((item.year.map(String.init)) ?? "Unknown") · \(item.mediaType.capitalized)",
+                        score: Double(item.averageScore ?? 0) / 10.0,
                         imageURL: item.coverImageMedium,
                         posterColors: posterColors(for: item.mediaType)
                     )
@@ -586,7 +577,7 @@ struct ConciergeView: View {
         return s
     }
     
-    // MARK: Existing Helper Methods (Placeholder - implement as needed)
+    // MARK: Existing Helper Methods (Wired)
     private var activeItems: [SupabaseService.ConciergeParseItem]? {
         messages.last(where: { $0.role == .assistant && ($0.items?.isEmpty == false) })?.items
     }
@@ -596,15 +587,181 @@ struct ConciergeView: View {
         return items.reduce(0) { acc, item in acc + (selectedByItemId[item.id] != nil ? 1 : 0) }
     }
     
-    private func applyActiveItems() async { /* Existing implementation */ }
-    private func undoLastApply() async { /* Existing implementation */ }
-    private func openRecommendation(_ item: SupabaseService.ConciergeRecommendResponse.Item) async { /* Existing */ }
-    private func quickSaveRecommendation(_ item: SupabaseService.ConciergeRecommendResponse.Item) async { /* Existing */ }
-    private func pasteFromClipboard() { /* Existing implementation */ }
-    private func seedExampleImport() { /* Existing implementation */ }
-    private func seedExampleVibe() { /* Existing implementation */ }
-    private func showToast(_ toast: KuroToastState, autoDismissSeconds: Double = 2.5) { /* Existing */ }
-    private func looksLikeImport(_ text: String) -> Bool { /* Existing implementation */ return false }
+    private func applyActiveItems() async {
+        await confirmImport()
+    }
+
+    private func undoLastApply() async {
+        guard let sessionId = lastApplySessionId else { return }
+        isWorking = true
+        errorText = nil
+        defer { isWorking = false }
+
+        do {
+            let res = try await supabaseService.conciergeUndo(sessionId: sessionId)
+            await supabaseService.fetchUserLists()
+            await supabaseService.fetchCollectionItems()
+            await supabaseService.fetchCollectionFeed(status: nil)
+            lastApplySessionId = nil
+
+            if res.success {
+                showToast(.init(kind: .success, title: "Undid last batch", subtitle: nil, actionTitle: nil, onAction: nil))
+            } else {
+                showToast(.init(kind: .error, title: "Undo failed", subtitle: "Try again.", actionTitle: nil, onAction: nil))
+            }
+        } catch {
+            errorText = "Undo failed: \(error.localizedDescription)"
+            showToast(.init(kind: .error, title: "Undo failed", subtitle: error.localizedDescription, actionTitle: nil, onAction: nil))
+        }
+    }
+
+    private func openRecommendation(_ item: SupabaseService.ConciergeRecommendResponse.Item) async {
+        isWorking = true
+        errorText = nil
+        defer { isWorking = false }
+
+        do {
+            if item.mediaType.uppercased() == "ANIME" {
+                let anime = try await supabaseService.fetchAnimeById(item.mediaId)
+                guard let anime else {
+                    errorText = "Couldn't find that anime in the database."
+                    return
+                }
+                selectedAnime = anime
+            } else {
+                let manga = try await supabaseService.fetchMangaById(item.mediaId)
+                guard let manga else {
+                    errorText = "Couldn't find that manga in the database."
+                    return
+                }
+                selectedManga = manga
+            }
+        } catch {
+            errorText = "Couldn't open: \(error.localizedDescription)"
+        }
+    }
+
+    private func quickSaveRecommendation(_ item: SupabaseService.ConciergeRecommendResponse.Item) async {
+        let mediaType = item.mediaType.uppercased() == "ANIME" ? "anime" : "manga"
+        await supabaseService.upsertUserListEntry(
+            mediaId: item.mediaId,
+            mediaType: mediaType,
+            status: .planning,
+            progress: 0,
+            rating: nil,
+            notes: nil
+        )
+        showToast(.init(kind: .success, title: "Added to Planning", subtitle: item.title, actionTitle: nil, onAction: nil))
+    }
+
+    @MainActor
+    private func showToast(_ next: KuroToastState, autoDismissSeconds: Double = 2.5) {
+        toastDismissTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            toast = next
+        }
+        toastDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(max(0.8, autoDismissSeconds) * 1_000_000_000))
+            if !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    toast = nil
+                }
+            }
+        }
+    }
+
+    private func pasteFromClipboard() {
+        #if os(iOS)
+        guard let t = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !t.isEmpty
+        else {
+            showToast(.init(kind: .info, title: "Clipboard is empty", subtitle: "Copy a list of titles, then tap Paste.", actionTitle: nil, onAction: nil))
+            return
+        }
+        input = t
+        inputFocused = true
+        KuroAccessibility.impactHaptic(.light)
+        #endif
+    }
+
+    private func seedExampleImport() {
+        input = """
+        Attack on Titan (completed)
+        Jujutsu Kaisen up to ep 12
+        Hunter x Hunter (2011)
+        """
+        inputFocused = true
+        KuroAccessibility.impactHaptic(.light)
+    }
+
+    private func seedExampleVibe() {
+        input = "Something funny, premium, not childish."
+        inputFocused = true
+        KuroAccessibility.impactHaptic(.light)
+    }
+
+    private func looksLikeImport(_ text: String) -> Bool {
+        // High precision: false positives feel like wrong responses because we route to import parsing.
+        // Prefer a few false negatives over misrouting vibes.
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let l = t.lowercased()
+
+        if t.contains("\n") { return true }
+
+        // Explicit import language (EN + DE)
+        if l.contains("watching") || l.contains("reading") || l.contains("completed") || l.contains("finished") || l.contains("dropped") { return true }
+        if l.contains("i watched") || l.contains("i'm watching") || l.contains("im watching") { return true }
+        if l.contains("caught up") || l.contains("up to date") { return true }
+        if l.contains("ich habe") || l.contains("ich schaue") || l.contains("ich gucke") || l.contains("ich sehe") || l.contains("ich lese") { return true }
+        if l.contains("staffel") || l.contains("folge") || l.contains("kapitel") || l.contains("band") { return true }
+
+        // Progress patterns
+        if l.contains(" ep ") || l.contains("episode") || l.contains("chapter") || l.contains(" vol") { return true }
+        if l.range(of: #"s\d{1,2}\s*e\d{1,4}"#, options: .regularExpression) != nil { return true }
+        if l.range(of: #"\b\d{1,2}\s*x\s*\d{1,4}\b"#, options: .regularExpression) != nil { return true }
+
+        // Comma-separated lists are common for vibes ("funny, not childish") so only treat commas
+        // as import if we have multiple title-like segments.
+        if t.contains(",") {
+            let parts = t.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            if parts.count >= 2 {
+                let titleLikeCount = parts.filter { segmentLooksTitleLike($0) }.count
+                if titleLikeCount >= 2 { return true }
+            }
+        }
+
+        // Short prompts like "funny anime" shouldn't be treated as import.
+        if t.count <= 28 { return false }
+        return false
+    }
+
+    private func segmentLooksTitleLike(_ s: String) -> Bool {
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard t.count >= 2 else { return false }
+        let l = t.lowercased()
+
+        // Natural language / vibe words are not titles.
+        let vibeMarkers = ["something", "funny", "sad", "cozy", "vibe", "recommend", "suggest", "like", "but", "not", "please", "anime", "manga"]
+        if vibeMarkers.contains(where: { l.contains($0) }) && t.split(separator: " ").count <= 6 {
+            return false
+        }
+
+        // Strong title hints.
+        if t.contains("(") || t.contains(")") { return true }
+        if t.range(of: #"\b(19|20)\d{2}\b"#, options: .regularExpression) != nil { return true }
+        if l.range(of: #"\b(ep|episode|ch|chapter|vol|volume|s\d+e\d+|\d+x\d+)\b"#, options: .regularExpression) != nil { return true }
+
+        // Heuristic: multiple words + some uppercase characters.
+        let words = t.split(separator: " ")
+        if words.count >= 2 && t.range(of: #"[A-Z]"#, options: .regularExpression) != nil {
+            return true
+        }
+
+        // If user pasted lowercased titles, allow "two+ words" as a weak signal.
+        if words.count >= 3 { return true }
+
+        return false
+    }
 }
 
 // MARK: - Supporting Views
