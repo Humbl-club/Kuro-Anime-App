@@ -272,7 +272,7 @@ function defaultModes(): ConciergeMode[] {
   ];
 }
 
-function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[]): { score: number; reason: string } {
+function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], excludedGenres: string[] = []): { score: number; reason: string } {
   const t = normalizeText(text);
   let score = 0;
   let reason = "";
@@ -295,8 +295,15 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[]):
     if (!reason) reason = `genre: ${overlap.slice(0, 2).join(", ")}`;
   }
 
+  // Penalize modes whose core genres are excluded by user (e.g. "no romance" suppresses romcom).
+  const exclLower = new Set(excludedGenres.map((g) => g.toLowerCase()));
+  const exclOverlap = req.filter((g) => exclLower.has(g.toLowerCase()));
+  if (exclOverlap.length > 0) {
+    score -= 5 * exclOverlap.length;
+  }
+
   // Classic intent boosts the classics mode and slightly downweights gimmick modes.
-  const wantsClassic = /\b(classic|classics|must watch|essentials|goat|greatest)\b/i.test(text);
+  const wantsClassic = /\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s)\b/i.test(text);
   if (wantsClassic && mode.id.includes("classic")) {
     score += 3;
     if (!reason) reason = "classic intent";
@@ -399,7 +406,7 @@ function sigmoid(x: number) {
 }
 
 function isClassicIntent(text: string) {
-  return /\b(classic|classics|must watch|essentials|goat|greatest)\b/i.test(text);
+  return /\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s)\b/i.test(text);
 }
 
 function isGatewayIntent(text: string) {
@@ -410,24 +417,31 @@ function isHiddenGemsIntent(text: string) {
   return /\b(hidden gem|hidden gems|underrated|less known|new to me)\b/i.test(text);
 }
 
-function mapStrongGenreToModeId(text: string): string | null {
+function mapStrongGenreToModeId(text: string, excludedGenres: string[] = []): string | null {
   const t = text.toLowerCase();
+  const excl = new Set(excludedGenres.map((g) => g.toLowerCase()));
   // High-signal intent should win over generic genre words.
+  // Structural intents (movie, short, no-isekai) are never blocked by genre exclusions.
+  if (/\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s)\b/.test(t)) return "classics_expanded";
   if (/\b(movie|movies|film|movie night|feature film|standalone movie)\b/.test(t)) return "movie_night";
   if (/\b(short|one season|quick watch|binge|one cour|12 ep|13 ep)\b/.test(t)) return "short_one_season";
   if (/\b(no isekai|not isekai|ohne isekai|non[- ]?isekai)\b/.test(t)) return "fantasy_non_isekai";
-  if (/\b(isekai|reincarnat|reborn|another world|truck[- ]?kun)\b/.test(t)) return "isekai";
-  if (/\b(romcom|rom com|romantic comedy)\b/.test(t)) return "romcom";
-  if (/\b(serious romance|romance drama|bittersweet|heartbreak|deep romance)\b/.test(t)) return "romance_serious";
-  if (/\b(romance|love story|romantic)\b/.test(t)) return "romcom";
-  if (/\b(action)\b/.test(t)) return "premium_action";
-  if (/\b(comedy|funny|laugh)\b/.test(t)) return "premium_comedy_grownup";
-  if (/\b(slice of life|cozy|comfort|chill|relax)\b/.test(t)) return "cozy_comfort";
-  if (/\b(horror|scary|creepy|supernatural|ghost|demon|occult|vampire|zombie)\b/.test(t)) return "horror_supernatural";
-  if (/\b(thriller|psychological|mind[- ]?game|mystery|dark|serious)\b/.test(t)) return "dark_serious";
-  if (/\b(sci[- ]?fi|scifi|science fiction|cyberpunk|space opera|dystopian|futuristic)\b/.test(t)) return "scifi";
-  if (/\b(sports?|soccer|basketball|volleyball|boxing|tennis|baseball)\b/.test(t)) return "sports";
-  if (/\b(fantasy|magic)\b/.test(t)) return "fantasy_non_isekai";
+  // Special romance sub-genres (no dedicated mode, but we prefer serious romance over romcom).
+  if (!excl.has("romance") && /\b(shounen ai|shonen ai)\b/.test(t)) return "romance_serious";
+  // "Magical girl" / mahou shoujo shouldn't be treated as generic fantasy.
+  if (/\b(mahou shoujo|magical girl)\b/.test(t)) return "premium_picks";
+  if (!excl.has("isekai") && /\b(isekai|reincarnat|reborn|another world|truck[- ]?kun)\b/.test(t)) return "isekai";
+  if (!excl.has("romance") && /\b(romcom|rom com|romantic comedy)\b/.test(t)) return "romcom";
+  if (!excl.has("romance") && /\b(serious romance|romance drama|bittersweet|heartbreak|deep romance)\b/.test(t)) return "romance_serious";
+  if (!excl.has("romance") && /\b(romance|love story|romantic)\b/.test(t)) return "romcom";
+  if (!excl.has("action") && /\b(action)\b/.test(t)) return "premium_action";
+  if (!excl.has("comedy") && /\b(comedy|funny|laugh)\b/.test(t)) return "premium_comedy_grownup";
+  if (!excl.has("slice of life") && /\b(slice of life|cozy|comfort|chill|relax)\b/.test(t)) return "cozy_comfort";
+  if (!excl.has("horror") && !excl.has("supernatural") && /\b(horror|scary|creepy|supernatural|ghost|demon|occult|vampire|zombie)\b/.test(t)) return "horror_supernatural";
+  if (!excl.has("thriller") && !excl.has("psychological") && !excl.has("mystery") && /\b(thriller|psychological|mind[- ]?game|mystery|dark|serious)\b/.test(t)) return "dark_serious";
+  if (!excl.has("sci-fi") && /\b(sci[- ]?fi|scifi|science fiction|cyberpunk|space opera|dystopian|futuristic)\b/.test(t)) return "scifi";
+  if (!excl.has("sports") && /\b(sports?|soccer|basketball|volleyball|boxing|tennis|baseball)\b/.test(t)) return "sports";
+  if (!excl.has("fantasy") && /\b(fantasy|magic)\b/.test(t)) return "fantasy_non_isekai";
   return null;
 }
 
@@ -468,6 +482,45 @@ function inferSeedQuery(text: string): string | null {
   const m1 = t.match(/\b(?:like|similar to)\s+(.+?)(?:[.?!]|$)/i);
   if (m1?.[1]) return m1[1].trim().replace(/^["']|["']$/g, "");
   return null;
+}
+
+type SeedOverride = { mt: MediaType; mediaId: number; title: string };
+
+function expandKnownAbbrevSeed(raw: string): string | null {
+  const t = raw.trim();
+  // Keep this small and high-signal; it only runs for bare/short prompts.
+  const map: Record<string, string> = {
+    aot: "Attack on Titan",
+    hxh: "Hunter x Hunter",
+    fmab: "Fullmetal Alchemist: Brotherhood",
+    nge: "Neon Genesis Evangelion",
+    eva: "Neon Genesis Evangelion",
+    lotgh: "Legend of the Galactic Heroes",
+    op: "One Piece",
+  };
+  const key = t.toLowerCase();
+  return map[key] ?? null;
+}
+
+function inferBareSeedCandidate(text: string): string | null {
+  const t = text.trim();
+  if (!t) return null;
+  // Avoid treating normal recommendation prompts as seeds.
+  if (/\b(recommend|something|give me|suggest|looking for|i want|show me|find me)\b/i.test(t)) return null;
+  // Limit to short queries: bare titles or abbreviations.
+  const words = t.split(/\s+/).filter(Boolean);
+  if (words.length === 0 || words.length > 5) return null;
+  if (t.length > 40) return null;
+
+  // Abbrev + optional year (e.g. "HxH 2011").
+  const yearMatch = t.match(/\b(19|20)\d{2}\b/);
+  const year = yearMatch ? yearMatch[0] : null;
+  const tokenNoYear = year ? t.replace(year, "").trim() : t;
+  const expanded = expandKnownAbbrevSeed(tokenNoYear);
+  if (expanded) return year ? `${expanded} ${year}` : expanded;
+
+  // Single/bare title candidate; verified against DB before use.
+  return t;
 }
 
 function inferCategories(text: string): string[] {
@@ -868,7 +921,8 @@ serve(async (req) => {
     const lang = inferLanguage(text);
 
     const mediaType = inferMediaType(text, scope);
-    const seedQuery = inferSeedQuery(text);
+    let seedQuery = inferSeedQuery(text);
+    let seedOverride: SeedOverride | null = null;
 
     // Load editorial tag boosts once; used to add deterministic "premium" signals.
     const { data: tagBoosts } = await client
@@ -1161,6 +1215,44 @@ serve(async (req) => {
         await saveCache(dec);
         return dec;
       }
+
+      // Bare-title seed: verify against DB first (prevents gibberish => empty Similar rail).
+      const bareCandidate = inferBareSeedCandidate(text);
+      if (bareCandidate) {
+        const pickSeedVerified = async (mt: MediaType) => {
+          const { data: seeds, error: seedErr } = await client.rpc("search_titles", {
+            p_query: bareCandidate,
+            p_media_type: mt,
+            p_limit: 6,
+          });
+          if (seedErr || !Array.isArray(seeds) || seeds.length === 0) return null;
+          const top = seeds[0];
+          if ((top?.score ?? 0) < 0.45) return null;
+          return { mt, mediaId: Number(top.media_id), title: String(top.title_raw ?? top.title ?? "").trim() };
+        };
+
+        const verified =
+          mediaType === "MANGA" ? await pickSeedVerified("MANGA")
+            : mediaType === "ANIME" ? await pickSeedVerified("ANIME")
+            : (await pickSeedVerified("ANIME")) ?? (await pickSeedVerified("MANGA"));
+
+        if (verified && Number.isFinite(verified.mediaId) && verified.mediaId > 0) {
+          seedQuery = bareCandidate;
+          seedOverride = verified;
+          const secondaryId = resolveSecondary("similar_to_seed");
+          const dec: RouterDecision = {
+            primaryId: "similar_to_seed",
+            secondaryId,
+            primaryConfidence: 1,
+            primaryReason: "bare title seed similarity",
+            usedLLM: false,
+            topScore: 999,
+          };
+          await saveCache(dec);
+          return dec;
+        }
+      }
+
       if (isClassicIntent(text)) {
         const secondaryId = resolveSecondary(classicsId);
         const dec: RouterDecision = {
@@ -1202,7 +1294,7 @@ serve(async (req) => {
         await saveCache(dec);
         return dec;
       }
-      const genreMapped = mapStrongGenreToModeId(text);
+      const genreMapped = mapStrongGenreToModeId(text, userExcludedGenres);
       if (genreMapped && modeById.has(genreMapped)) {
         const secondaryId = resolveSecondary(genreMapped);
         const dec: RouterDecision = {
@@ -1220,7 +1312,7 @@ serve(async (req) => {
       // Deterministic scoring (fallback).
       const candidates = Array.from(modeById.values()).filter((m) => m.id !== classicsId);
       const scored = candidates.map((m) => {
-        const s = scoreMode(text, m, requiredGenres);
+        const s = scoreMode(text, m, requiredGenres, userExcludedGenres);
         let score = s.score;
         // Tie-breaker so vague prompts don't pick random modes.
         if (m.id === "premium_picks") score += 1;
@@ -1409,7 +1501,9 @@ serve(async (req) => {
         return { mt, mediaId: Number(top.media_id), title: String(top.title_raw ?? top.title ?? "").trim() };
       };
 
-      const seed = mediaType === "MANGA" ? await pickSeed("MANGA")
+      const seed = seedOverride
+        ? seedOverride
+        : mediaType === "MANGA" ? await pickSeed("MANGA")
         : mediaType === "ANIME" ? await pickSeed("ANIME")
         : (await pickSeed("ANIME")) ?? (await pickSeed("MANGA"));
       if (!seed || !Number.isFinite(seed.mediaId) || seed.mediaId <= 0) return { title: "Similar", items: [] as any[] };
