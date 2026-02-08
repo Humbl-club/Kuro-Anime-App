@@ -571,12 +571,6 @@ struct CollectionGridCard: View {
                     )
                 }
 
-                if let genres = media.genres?.prefix(2) {
-                    Text(genres.joined(separator: ", "))
-                        .font(.system(size: 10, weight: .regular))
-                        .foregroundColor(.black.opacity(0.5))
-                        .lineLimit(1)
-                }
             }
             .frame(width: cardWidth, height: 64, alignment: .top)
         }

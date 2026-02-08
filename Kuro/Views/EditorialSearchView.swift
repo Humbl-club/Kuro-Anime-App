@@ -442,12 +442,6 @@ struct SearchResultRow: View {
                         }
                     }
 
-                    if let genres = media.genres?.prefix(2) {
-                        Text(genres.joined(separator: ", "))
-                            .font(.system(size: 10, weight: .regular))
-                            .foregroundColor(.black.opacity(0.5))
-                            .lineLimit(1)
-                    }
                 }
 
                 Spacer()

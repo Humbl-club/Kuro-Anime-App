@@ -268,22 +268,6 @@ struct SharedVerticalAnimeCard: View {
 
     @ViewBuilder
     private var expandedContent: some View {
-        if let genres = anime.genres, !genres.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(genres.prefix(3), id: \.self) { genre in
-                        Text(genre)
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.black.opacity(0.7))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Capsule().fill(Color.black.opacity(0.06)))
-                    }
-                }
-            }
-            .kuroSwipeExclusionZone()
-            .padding(.top, 4)
-        }
 
         QuickActionBar(
             isFavorited: $isFavorited,

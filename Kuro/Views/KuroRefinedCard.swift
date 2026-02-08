@@ -278,7 +278,7 @@ struct KuroCompactCard: View {
                     .padding(6)
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(KuroCardText.sanitizeTitleForCard(media.title))
                         .font(.system(size: 12, weight: .light, design: .serif))
                         .textCase(.uppercase)
@@ -288,7 +288,7 @@ struct KuroCompactCard: View {
                         .minimumScaleFactor(0.90)
                         .allowsTightening(true)
                         .truncationMode(.tail)
-                        .frame(height: 38, alignment: .top)
+                        .frame(height: 32, alignment: .top)
 
                     if let metaLine {
                         Text(metaLine)

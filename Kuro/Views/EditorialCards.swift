@@ -65,13 +65,6 @@ struct EditorialHeroCard: View {
                         .lineLimit(2)
                         .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 2)
 
-                    // Refined caption
-                    if let genres = media.genres?.prefix(2) {
-                        Text(genres.joined(separator: " · ").uppercased())
-                            .font(.kuroCaption())
-                            .tracking(1.8)
-                            .foregroundColor(.white.opacity(0.8))
-                    }
                 }
                 .padding(EditorialLayout.marginEditorial)
                 .allowsHitTesting(false)
@@ -136,12 +129,6 @@ struct EditorialFeatureCard: View {
                     .foregroundColor(.black)
                     .lineLimit(2)
 
-                if let genres = media.genres?.prefix(2) {
-                    Text(genres.joined(separator: " · ").uppercased())
-                        .font(.kuroCaption())
-                        .tracking(1.6)
-                        .foregroundColor(.black.opacity(0.5))
-                }
             }
             .allowsHitTesting(false)
         }
@@ -202,13 +189,6 @@ struct EditorialCompactCard: View {
                     .foregroundColor(.black)
                     .lineLimit(2)
 
-                if let genres = media.genres?.prefix(2) {
-                    Text(genres.joined(separator: " · ").uppercased())
-                        .font(.kuroCaption())
-                        .tracking(1.4)
-                        .foregroundColor(.black.opacity(0.5))
-                        .lineLimit(1)
-                }
 
                 Spacer()
             }

@@ -543,7 +543,7 @@ struct Dense2ColumnSection: View {
             let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
             let cardWidth = floor(availableWidth / 2)
             let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 72
+            let textBlockHeight: CGFloat = 56
             let cardSpacing: CGFloat = 8
             let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
 
@@ -790,8 +790,8 @@ struct GridAnimeCard: View {
                     .padding(6)
                 }
 
-                // Title and info - FIXED HEIGHT
-                VStack(alignment: .leading, spacing: 4) {
+                // Title and info
+                VStack(alignment: .leading, spacing: 2) {
                     Text(KuroCardText.sanitizeTitleForCard(media.title))
                         .font(.system(size: 13, weight: .light, design: .serif))
                         .textCase(.uppercase)
@@ -801,7 +801,7 @@ struct GridAnimeCard: View {
                         .minimumScaleFactor(0.92)
                         .allowsTightening(true)
                         .truncationMode(.tail)
-                        .frame(height: 40, alignment: .top)
+                        .frame(height: 34, alignment: .top)
 
                     if let metaLine {
                         Text(metaLine)
@@ -810,12 +810,6 @@ struct GridAnimeCard: View {
                             .lineLimit(1)
                     }
 
-                    if let genres = media.genres?.prefix(2) {
-                        Text(genres.joined(separator: ", "))
-                            .font(.system(size: 10, weight: .regular))
-                            .foregroundColor(.black.opacity(0.5))
-                            .lineLimit(1)
-                    }
                 }
                 .frame(width: cardWidth, alignment: .topLeading)
             }
@@ -991,7 +985,7 @@ struct Dense2ColumnMangaSection<Item: MediaDisplayable>: View {
             let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
             let cardWidth = floor(availableWidth / 2)
             let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 72
+            let textBlockHeight: CGFloat = 56
             let cardSpacing: CGFloat = 8
             let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
 
@@ -1097,7 +1091,7 @@ struct Dense2ColumnSectionFixed<Item: MediaDisplayable>: View {
             let availableWidth = screenWidth - totalHorizontalPadding - totalSpacing
             let cardWidth = floor(availableWidth / 2)
             let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 72
+            let textBlockHeight: CGFloat = 56
             let cardSpacing: CGFloat = 8
             let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
 
@@ -1158,7 +1152,7 @@ struct Dense2ColumnMangaSectionFixed<Item: MediaDisplayable>: View {
             let availableWidth = screenWidth - totalHorizontalPadding - totalSpacing
             let cardWidth = floor(availableWidth / 2)
             let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 72
+            let textBlockHeight: CGFloat = 56
             let cardSpacing: CGFloat = 8
             let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
 
@@ -1222,7 +1216,7 @@ struct FullSectionView<Item: MediaDisplayable>: View {
                 GeometryReader { geometry in
                     let cardWidth = floor((geometry.size.width - 52) / 2)
                     let imageHeight = floor(cardWidth / 0.7)
-                    let totalCardHeight = imageHeight + 80
+                    let totalCardHeight = imageHeight + 64
                     
                     LazyVGrid(
                         columns: [
@@ -1293,7 +1287,7 @@ struct FullMangaSectionView<Item: MediaDisplayable>: View {
                 GeometryReader { geometry in
                     let cardWidth = floor((geometry.size.width - 52) / 2)
                     let imageHeight = floor(cardWidth / 0.7)
-                    let totalCardHeight = imageHeight + 80
+                    let totalCardHeight = imageHeight + 64
 
                     LazyVGrid(
                         columns: [
