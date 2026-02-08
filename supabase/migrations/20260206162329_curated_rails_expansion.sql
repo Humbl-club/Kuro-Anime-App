@@ -376,3 +376,4 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('gateway_manga','MANGA',30145,153,null),
 ('gateway_manga','MANGA',85143,154,null)
 on conflict (rail_id, media_type, anilist_id) do nothing;
+;

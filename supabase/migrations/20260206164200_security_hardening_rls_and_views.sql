@@ -12,3 +12,4 @@ ALTER VIEW public.llm_usage_daily_totals SET (security_invoker = on);
 ALTER VIEW public.user_airing_next SET (security_invoker = on);
 ALTER VIEW public.concierge_metrics_hourly SET (security_invoker = on);
 ALTER VIEW public.user_lists SET (security_invoker = on);
+;
