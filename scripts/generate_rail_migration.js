@@ -7,7 +7,7 @@
 
   Validates constraints before generating:
   - No duplicate anilist_ids within a rail
-  - Item count <= max_items_per_rail (default 120)
+  - Item count <= max_items_per_rail (default 100)
   - No empty rails
   - Rail ids must be non-empty strings
   - Media type must be ANIME or MANGA

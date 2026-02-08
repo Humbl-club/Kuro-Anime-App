@@ -16,7 +16,7 @@ Implemented:
 - **38 curated rails** (27 original + 11 new: sports, sci-fi, horror/supernatural anime+manga, seinen anime+manga, shoujo anime+manga, josei manga).
 - Intent detectors in `scoreMode()` for movie, short, isekai/non-isekai, romcom/serious-romance, sports, sci-fi, horror disambiguation.
 - Enriched synonyms with German translations across all modes.
-- **Negative genre filtering**: "action but no romance", "fantasy without harem" — parsed and applied to both curated and algorithmic rails.
+- **Negative genre filtering**: "action but no romance", "fantasy without harem" — parsed and applied to both curated/algorithmic rails AND mode selection (excluded genres suppress conflicting mode matches in `mapStrongGenreToModeId` and penalize conflicting modes in `scoreMode`).
 - **30 abbreviations** in parser (up from 10): OP, DB/DBZ/DBS, SAO, NGE/Eva, LOTGH, MP100, BC, ToG, MiA, ReZero, KonoSuba, TPN, BNHA, DM, COTE, etc.
 - **Phase 0 quality overhaul** (2026-02-08): cross-rail overlap reduced from 94% to ~36%, sequels/misclassified items removed, all rails slimmed to 30-80, classics cleaned (0 post-2014 titles), isekai rebuilt (114 bogus → 14 genuine).
 - **Mode analytics table** (`concierge_mode_analytics`) for tracking mode selection patterns.
@@ -172,6 +172,7 @@ To get the latest 17-mode router live, you must deploy:
     - `20260208022326_phase0_slim_and_rerank.sql`
     - `20260208022404_phase0_fix_classics.sql`
 - Edge functions (deployed):
+  - `concierge-recommend` v30 (negative genre mode suppression in router + scorer)
   - `concierge-recommend` v29 (3 new modes, negative genre filtering, mode analytics)
   - `concierge-parse` v30 (30 abbreviations, negative genre extraction)
 
@@ -180,5 +181,7 @@ The iOS UI is already compatible (renders `sets` when present).
 ## Quality infrastructure
 
 - **Audit script**: `scripts/audit_curated_rails_quality.js` — 5 checks: cross-rail overlap (>15%), franchise duplication, classics year (>2014), rail size (>80), score floor (category-specific). Run with `node scripts/audit_curated_rails_quality.js`.
+- **Router eval**: `scripts/eval_router.js` — 63 test cases against live endpoint, 90% pass threshold. Exponential backoff for 429/5xx (up to 3 retries, honours Retry-After). Infra errors excluded from pass rate.
+- **Rail generator**: `scripts/generate_rail_migration.js` — deterministic SQL from `scripts/rail_config.json`. Validates: no duplicates, max 100 items/rail, valid media types. Same config always produces same SQL.
 - **Mode analytics**: `concierge_mode_analytics` table logs mode selections, synonyms matched, confidence scores, and whether the request was LLM-routed.
 - **Overlap target**: No rail pair should exceed 15% overlap (was 94%, now ~36% worst-case).
