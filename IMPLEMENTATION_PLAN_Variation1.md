@@ -4,7 +4,9 @@ This file documents the idea of routing free-text "vibe" prompts into curated re
 
 ## Current status (as of 2026-02-09)
 
-The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed.
+The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed. Production-readiness session completed: Apple FM integration, on-device intelligence features, and comprehensive security/stability hardening across DB, edge functions, storage, and iOS.
+
+**Production readiness completed (2026-02-09)**: Apple FM migration (on-device classify, disambiguate, condense, search intent), synopsis condenser, NL collection search, Next Up picks, NetworkMonitor, lifecycle handling, IMPORT_SECRET auth, storage MIME + RLS + 5MB limits, 11 DB fixes, 5 edge function hardening items, mirror cron contention fix, 64 print→DEBUG, withRetry helper, UIScreen.main deprecation fix, 6 migrations applied, 6 edge functions deployed.
 
 **Concierge redesign completed (2026-02-09)**: State machine removed, inline chat architecture, visual token alignment with KuroDesignSystem, German NLP hardening (vibe allowlist, intent keywords, umlaut normalization), 6 new vibe modes (23 total), 12 new curated rails (50 total), auth+rate-limit parallelized, edge function warmup, auto-apply for high-confidence imports.
 
@@ -331,3 +333,87 @@ Full feature launch across 5 phases:
 ## Bug fix: Progress data forwarding (2026-02-09) -- COMPLETED
 
 **P0 fix**: `confirmImport()` in ConciergeView.swift now forwards all parsed progress fields (`progressEpisodes`, `progressChapters`, `progressVolumes`, `seasonNumber`, `episodeInSeason`, `caughtUp`, `lastEpisode`, `completed`) to the `concierge-apply` edge function. Previously these were all dropped, causing every import to land with progress=0 regardless of user input.
+
+## Production readiness (2026-02-09) -- COMPLETED
+
+Comprehensive production-readiness pass covering Apple FM integration, on-device intelligence features, and security/stability hardening across the full stack.
+
+### Apple FM Migration (Partial) -- COMPLETED
+
+On-device intelligence via Apple Foundation Models, replacing server-side LLM where possible:
+
+- **AppleFMService.swift created** with 4 capabilities:
+  - `classify` — on-device intent classification
+  - `disambiguate` — on-device disambiguation for ambiguous matches
+  - `condenseSynopsis` — on-device synopsis summarization
+  - `parseSearchIntent` — on-device natural language search intent extraction
+- **FMProvider protocol** + **StubFMProvider** for non-FM-capable devices (graceful fallback)
+- **Integrated into SupabaseService.fmService** — available app-wide
+- **groqRouteMode removed** from concierge-recommend: LLM router deleted entirely (only 1.36% fallback rate did not justify the cost/latency)
+- **groqNarrate kept** — narration still uses Groq server-side (Apple FM not suited for long-form creative text)
+
+### New Features -- COMPLETED
+
+Three new on-device intelligence features shipped:
+
+1. **Synopsis Condenser**
+   - `AnimeDetailView` and `MangaDetailView` call `fmService.condenseSynopsis()` to generate concise summaries
+   - Runs entirely on-device via Apple FM; falls back gracefully on non-FM devices
+
+2. **Natural Language Collection Search**
+   - `parseSearchIntent()` in AppleFMService extracts structured search parameters from free-text queries
+   - Enables queries like "show me my completed manga from 2023" against local collections
+
+3. **Next Up Pick**
+   - `NextUpSection` (anime) and `MangaNextUpSection` (manga) added to detail views
+   - Surfaces contextual "what to watch/read next" recommendations within series pages
+
+### Production Blockers (P0) -- COMPLETED
+
+| ID | Issue | Fix |
+|----|-------|-----|
+| P0-2 | No network monitoring | `NetworkMonitor.swift` created with `NWPathMonitor` |
+| P0-3 | No lifecycle handling | `scenePhase` handling added to `KuroApp.swift` |
+| P0-4 | Bulk imports unauthenticated | `IMPORT_SECRET` auth header required on all bulk import edge functions |
+| P0-6 | Storage accepts any MIME type | MIME type restrictions applied to storage buckets |
+| P0-7 | Storage missing RLS | RLS policies added to storage buckets |
+
+### Production Hardening (P1) -- COMPLETED
+
+| ID | Issue | Fix |
+|----|-------|-----|
+| P1-1 through P1-6 | DB schema issues | NOT NULL constraints, RLS initplan optimization, anon policies, indexes |
+| P1-10 | pg_trgm in wrong schema | Moved to `extensions` schema |
+| P1-11 | concierge-parse no input limit | 5,000 character limit enforced |
+| P1-12 | concierge-apply no item cap | 100 item cap per request |
+| P1-13 | LLM prompt injection | Input sanitization added to all LLM-facing prompts |
+| P1-14 | mirror-images lock leak | Lock release guaranteed in finally block |
+| P1-15 | Storage no size limit | 5MB per-file limit enforced |
+| P1-16 | Mirror cron contention | Per-batch advisory locks, 120s TTL, 200-item batches, 15-min spacing between cron runs |
+| P1-17 | 64 print() in production | All converted to `#if DEBUG` conditional compilation |
+| P1-18 | No retry logic | `withRetry` helper added (exponential backoff, applied to 5 call sites) |
+| P1-19 | UIScreen.main deprecated | Replaced with `displayScale` / window scene APIs |
+
+### Infrastructure -- COMPLETED
+
+- **6 DB migrations applied** to production
+- **6 edge functions deployed** (concierge-parse, concierge-recommend, concierge-apply, concierge-resolve, concierge-undo, mirror-images)
+- **IMPORT_SECRET** environment variable set in Supabase project + **4 pg_cron jobs** updated to include secret header
+- **xcconfig files created** for environment configuration (Debug.xcconfig, Release.xcconfig)
+- **Mock SupabaseService** cleaned up for testability
+
+### Still Pending (deferred)
+
+These items were evaluated and intentionally deferred:
+
+| ID | Issue | Reason Deferred |
+|----|-------|-----------------|
+| P0-1 | Anon key hardcoded in SupabaseService.swift | Actually safe — this is the public anon key (not service_role). xcconfig infrastructure created for future migration. |
+| P0-5 | Image mirroring backlog (2.7%) | Long-term data backfill issue, not a code fix. Mirror cron will catch up over time. |
+| P1-7 | Postgres version upgrade | Dashboard-only operation (Supabase console) |
+| P1-8 | OTP configuration | Dashboard-only operation (Supabase console) |
+| P1-9 | Leaked password detection | Dashboard-only operation (Supabase console) |
+| — | Concierge Redesign phases 1-8 | Already completed in earlier session (see above) |
+| — | On-device Core ML classifier | Deferred until sufficient labeled data from feedback loop |
+| — | Active learning / feedback loop | Next priority after production stabilization |
+| — | Admin UI for modes | Low priority — DB JSON editing sufficient for now |

@@ -33,13 +33,22 @@ serve(async (req) => {
   const startedMs = Date.now();
   const shouldStop = () => (Date.now() - startedMs) >= timeBudgetMs;
 
+  // Derive a unique lock key from the payload so different batches don't block each other.
+  // e.g. "mirror-images:ANIME,MANGA:0" vs "mirror-images:CHARACTER:0"
+  const lockKeySuffix = `${mediaTypes.sort().join(',')}:${offset}`;
+  const lockKey = `mirror-images:${lockKeySuffix}`;
+  // Lock TTL should be just slightly longer than the time budget (default 2 min).
+  // The old 1800s (30 min) TTL was causing 58% skip rate across staggered jobs.
+  const lockTtlSeconds: number = payload.lockTtlSeconds ?? 120;
+
   let runId: number | null = null;
+  let lockAcquired = false;
   try {
     runId = await startMirrorRun(supabase, payload);
-    const lockAcquired = await acquireImportLock(supabase, 'mirror-images', payload?.lockTtlSeconds ?? 1800);
+    lockAcquired = await acquireImportLock(supabase, lockKey, lockTtlSeconds);
     if (!lockAcquired) {
-      await finishMirrorRun(supabase, runId, 'skipped', {}, 'locked', startedMs);
-      return new Response(JSON.stringify({ success: true, skipped: true, reason: 'locked' }), { headers: { 'Content-Type': 'application/json' } });
+      await finishMirrorRun(supabase, runId, 'skipped', {}, `locked (key=${lockKey})`, startedMs);
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: 'locked', lockKey }), { headers: { 'Content-Type': 'application/json' } });
     }
 
     const results: Record<string, number> = {};
@@ -63,6 +72,15 @@ serve(async (req) => {
     // Best-effort logging; do not mask original error.
     try { await finishMirrorRun(supabase, runId, 'error', {}, (e as Error).message, startedMs); } catch (_ignored) {}
     return new Response(JSON.stringify({ success: false, error: (e as Error).message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+  } finally {
+    if (lockAcquired) {
+      try {
+        const { error } = await supabase.rpc('release_import_lock', { p_key: lockKey });
+        if (error) console.error('Release lock error:', error);
+      } catch (e) {
+        console.error('Release lock exception:', e);
+      }
+    }
   }
 
   async function mirrorAnime(supabase: any, bucket: string, limit: number, offset: number, overwrite: boolean): Promise<number> {

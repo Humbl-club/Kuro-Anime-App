@@ -13,6 +13,7 @@ struct AnimeDetailView: View {
     @State private var toastDismissTask: Task<Void, Never>? = nil
     @State private var topTags: [TagFacet] = []
     @State private var similar: [Anime] = []
+    @State private var condensedSynopsis: String?
 
     var body: some View {
         GeometryReader { geometry in
@@ -43,7 +44,8 @@ struct AnimeDetailView: View {
                         // Description
                         DescriptionSection(
                             description: anime.displayDescription,
-                            showFull: $showFullDescription
+                            showFull: $showFullDescription,
+                            condensedSynopsis: condensedSynopsis
                         )
                         
                         // Genres
@@ -61,6 +63,15 @@ struct AnimeDetailView: View {
                                 anime: anime,
                                 episodeCount: episodeCount,
                                 countLabel: anime.episodeCount == nil ? "SO FAR" : "TOTAL"
+                            )
+                        }
+
+                        // "NEXT" pick when user has completed this series
+                        if !similar.isEmpty {
+                            NextPickSection(
+                                mediaId: anime.id,
+                                mediaType: "anime",
+                                similar: similar
                             )
                         }
 
@@ -130,6 +141,16 @@ struct AnimeDetailView: View {
             async let sim = supabaseService.fetchSimilarAnime(seed: anime, limit: 14)
             topTags = await tags
             similar = await sim
+
+            // Condense long synopses on-device via Apple FM (no-op on unsupported devices)
+            if let desc = anime.description, !desc.isEmpty, desc.count > 200 {
+                condensedSynopsis = await supabaseService.fmService.condenseSynopsis(
+                    mediaId: anime.id,
+                    description: desc,
+                    title: anime.displayTitle,
+                    genres: anime.genreList ?? []
+                )
+            }
         }
     }
 
@@ -290,6 +311,106 @@ struct SimilarSection: View {
             .kuroSwipeExclusionZone()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - "NEXT" suggestion when user completed this series (heuristic pick)
+struct NextPickSection: View {
+    let mediaId: Int
+    let mediaType: String
+    let similar: [Anime]
+    @Environment(SupabaseService.self) private var supabaseService
+    @State private var showDetail = false
+
+    private var userEntry: UserList? {
+        supabaseService.userLists.first {
+            $0.mediaId == mediaId && $0.mediaType.lowercased() == mediaType.lowercased()
+        }
+    }
+
+    private var isCompleted: Bool {
+        userEntry?.status == .completed
+    }
+
+    /// Best pick: prefer PLANNING items, then highest-scored item not already in the user's collection.
+    private var pick: Anime? {
+        guard isCompleted else { return nil }
+        let collectionIds = supabaseService.userMediaIds(mediaType: "anime")
+        let planningIds = supabaseService.userMediaIds(mediaType: "anime", status: .planning)
+
+        // First try: PLANNING items from the similar list
+        if let planned = similar.first(where: { planningIds.contains($0.id) }) {
+            return planned
+        }
+
+        // Fallback: highest-scored item not in collection
+        return similar
+            .filter { !collectionIds.contains($0.id) }
+            .max(by: { ($0.averageScore ?? 0) < ($1.averageScore ?? 0) })
+    }
+
+    var body: some View {
+        if let anime = pick {
+            VStack(alignment: .leading, spacing: KuroSpacing.md) {
+                Text("NEXT")
+                    .font(.kuroCaption(weight: .medium))
+                    .tracking(1.6)
+                    .foregroundColor(.kuroBlack80)
+
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    showDetail = true
+                } label: {
+                    HStack(spacing: 12) {
+                        KuroCachedAsyncImage(url: URL(string: anime.displayImage), maxPixelSize: 200) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().aspectRatio(contentMode: .fill)
+                            case .failure, .empty:
+                                Rectangle().fill(Color.kuroBlack08)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                        .frame(width: 48, height: 68)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(anime.displayTitle)
+                                .font(.kuroBody(weight: .regular))
+                                .foregroundColor(.kuroBlack)
+                                .lineLimit(2)
+
+                            HStack(spacing: 4) {
+                                Text(anime.displayYear)
+                                if let fmt = anime.format {
+                                    Text("·")
+                                    Text(fmt.uppercased())
+                                }
+                            }
+                            .font(.kuroCaption())
+                            .foregroundColor(.kuroBlack60)
+                        }
+
+                        Spacer(minLength: 0)
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.kuroBlack30)
+                    }
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+                    )
+                }
+                .buttonStyle(.plain)
+                .sheet(isPresented: $showDetail) {
+                    MediaDetailSheet(kind: .anime, id: anime.id)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 
@@ -485,21 +606,27 @@ struct StatCard: View {
 struct DescriptionSection: View {
     let description: String
     @Binding var showFull: Bool
-    
+    var condensedSynopsis: String? = nil
+
+    /// When collapsed, prefer the FM-condensed hook over raw truncation.
+    private var collapsedText: String {
+        condensedSynopsis ?? description
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: KuroSpacing.md) {
             Text("SYNOPSIS")
                 .font(.kuroMicro(weight: .medium))
                 .tracking(1.5)
                 .foregroundColor(.kuroBlack80)
-            
-            Text(description)
+
+            Text(showFull ? description : collapsedText)
                 .font(.kuroBody(weight: .light))
                 .tracking(0.5)
                 .foregroundColor(.kuroBlack60)
                 .lineSpacing(6)
-                .lineLimit(showFull ? nil : 4)
-            
+                .lineLimit(showFull ? nil : (condensedSynopsis != nil ? nil : 4))
+
             if description.count > 200 {
                 Button(action: {
                     withAnimation(KuroAnimation.spring) {

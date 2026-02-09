@@ -13,6 +13,7 @@ struct KuroCachedAsyncImage<Content: View>: View {
     private let maxPixelSize: Int?
     private let content: (AsyncImagePhase) -> Content
 
+    @Environment(\.displayScale) private var displayScale
     @State private var phase: AsyncImagePhase = .empty
 
     init(
@@ -58,7 +59,7 @@ struct KuroCachedAsyncImage<Content: View>: View {
                 // Estimate a reasonable decode size; most covers are portrait.
                 let maxPx: Int
 #if canImport(UIKit)
-                let scaleInt = max(1, Int(UIScreen.main.scale))
+                let scaleInt = max(1, Int(displayScale))
                 // `maxPixelSize` is interpreted in points; convert to pixels for downsampling.
                 maxPx = (maxPixelSize ?? 900) * scaleInt
 #else

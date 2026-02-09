@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-02-09
+**Last updated:** 2026-02-09 (production-readiness session)
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -26,7 +26,9 @@ Kuro is a curated anime + manga app. It lets users browse premium picks, keep li
 - No adult content by default
 - Private clubs for watching together with friends
 - Concierge uses smart rules first, LLM only when needed
+- On-device AI for smart search, description condensing, and mode routing
 - Images are mirrored to a CDN for speed
+- Works offline (shows a banner when you lose internet)
 
 ---
 
@@ -36,7 +38,7 @@ Kuro is a curated anime + manga app. It lets users browse premium picks, keep li
 - **Discover (main page)**: Curated sections like Essentials, Classics, Trending, etc.
 - **Collection**: Your personal list of anime/manga.
 - **Browse**: Explore the catalog with filters.
-- **Search**: Find specific titles.
+- **Search**: Find specific titles. Now supports natural language queries like "show me action anime from 2020" using on-device AI.
 - **Clubs**: Private groups (2–20 members) for watching together. Create a club, invite friends with a code, share curated watchlists (rails), see weekly highlights, and vote in polls on what to watch next. Club owners control privacy settings — they decide what members can see about each other's progress. Club activity also shows up on anime/manga detail pages.
 
 Profile is a small menu in the top-right corner.
@@ -55,6 +57,44 @@ Profile is a small menu in the top-right corner.
 - Glass‑like UI surfaces
 - Serif titles, light typography
 - Focus on premium / classic content
+
+---
+
+## 3.2) On-Device AI (Apple Foundation Models)
+
+Kuro now uses Apple's built-in AI that runs directly on your device (no internet needed for these features). This means faster responses and better privacy since your data never leaves your phone for these tasks.
+
+The on-device AI handles four things:
+
+1. **Mode routing**: When you ask for a recommendation, the AI figures out what kind of vibe you want (action, cozy, horror, etc.) and picks the right recommendation mode.
+2. **Disambiguation**: When multiple anime or manga share similar names (like "Hunter x Hunter 1999" vs "Hunter x Hunter 2011"), the AI picks the right one based on context.
+3. **Synopsis condensing**: Long plot descriptions get automatically shortened into 2-sentence hooks that are spoiler-free and easy to scan.
+4. **Smart search**: You can search your collection using everyday language instead of picking filters manually.
+
+---
+
+## 3.3) New features added in this session
+
+### Smart Descriptions
+Long plot summaries from AniList are often several paragraphs. The app now automatically condenses them into short, spoiler-free 2-sentence hooks using on-device AI. This makes browsing feel faster and cleaner.
+
+### Smart Search
+Instead of tapping through genre filters and dropdowns, you can now type things like "show me action anime from 2020" or "short comedy manga" and the app understands what you mean. This uses the on-device AI to interpret your query.
+
+### What to Watch/Read Next
+When you open an anime or manga detail page, there is now a personalized "Next Up" section. It looks at your progress and suggests what episode or chapter to continue with, so you spend less time figuring out where you left off.
+
+---
+
+## 3.4) Offline detection
+
+The app now notices when you lose your internet connection and shows a small "OFFLINE" banner at the top of the screen. When your connection comes back, the banner disappears automatically. This way you always know whether the app can reach the server.
+
+---
+
+## 3.5) App lifecycle handling
+
+The app now properly handles being sent to the background (when you switch to another app) and coming back to the foreground. Previously, data could become stale or connections could break if you left the app for a while. Now it refreshes gracefully when you return.
 
 ---
 
@@ -290,6 +330,7 @@ If you need the full table/column-level definition, use:
 ```mermaid
 flowchart LR
   A[User iOS App] --> B[Supabase APIs]
+  A --> H[On-Device AI]
   B --> C[(Database)]
   B --> D[Edge Functions]
   D --> E[AniList Imports]
@@ -327,10 +368,13 @@ flowchart TD
 
 ## 12) Operator checklist (plain English)
 
-- If images look slow: run image mirroring.
+- If images look slow: run image mirroring. Note that only ~2.7% of images are currently mirrored — this is a known backlog.
 - If Concierge seems broken: check its usage limits and logs.
 - If recommendations look bad: verify the recommendation tables and see if imports are stale.
 - If imports stop: check the import cursor and re-run import scripts.
+- If bulk imports fail with "unauthorized": make sure the correct secret key is being sent in the request header.
+- If on-device AI features are not working: they require an Apple device with Foundation Models support (recent hardware). Older devices will fall back to non-AI behavior.
+- **Dashboard actions still needed**: Postgres upgrade, OTP expiry reduction, and leaked password protection must be done manually in the Supabase dashboard (see section 17).
 
 ---
 
@@ -343,6 +387,9 @@ flowchart TD
 - **Club:** A private group of friends who share watchlists and vote on what to watch next.
 - **Rail:** A horizontal scrollable row of anime/manga picks (used on Discover, in Clubs, and in Concierge recommendations).
 - **Quality gate:** An automated check that runs before code is saved, catching mistakes early.
+- **On-device AI:** AI that runs directly on your iPhone using Apple's built-in models, so it works without internet and your data stays private.
+- **Prompt injection:** A type of attack where someone types specially crafted text to trick an AI into doing something unintended. Kuro sanitizes user input to prevent this.
+- **Synopsis condensing:** Automatically shortening a long plot description into a brief, spoiler-free hook.
 
 ---
 
@@ -357,8 +404,42 @@ These run automatically so that problems are caught before they reach users.
 
 ---
 
-## 15) Change Log (append-only)
+## 15) Security hardening (production-readiness session)
 
+A thorough security review was done to make the app safer before it ships:
+
+- **Import endpoints locked down**: The bulk import functions (used to load anime/manga data into the database) now require a secret key. Previously anyone who knew the URL could trigger an import.
+- **Image uploads restricted**: The storage bucket that holds cover images now only accepts image files (jpeg, png, webp, avif, gif) up to 5MB. This prevents someone from uploading scripts or huge files.
+- **Storage permissions tightened**: Proper read/write rules are in place so only the right people can upload or delete images.
+- **AI prompt protection**: When user text is sent to AI services (like the Concierge LLM), it is now sanitized first. This prevents "prompt injection" attacks where someone types specially crafted text to trick the AI.
+- **Database hardening**: Foreign keys, indexes, and row-level security policies were reviewed and tightened up.
+- **Debug logging removed**: Verbose debug output that could reveal internal details has been stripped from production builds.
+- **All edge functions redeployed**: Every backend function was redeployed with the latest security and performance fixes.
+
+---
+
+## 16) Performance improvements (production-readiness session)
+
+- **Image mirroring no longer stalls**: The pipeline that copies cover images to our CDN used to get stuck waiting for database locks. A fix reduced the "skip" rate from 58% down to roughly 0%.
+- **Automatic retries on flaky connections**: Network calls from the app now automatically retry 2-3 times when they hit temporary connection problems (timeouts, brief outages).
+- **Gentler mirror batches**: The image mirroring job now processes 200 images at a time with 15 minutes between batches, which is more stable and less likely to overwhelm the server.
+
+---
+
+## 17) Known remaining items
+
+These items were identified during the production-readiness review but require manual action in the Supabase dashboard (they cannot be done through code):
+
+- **Postgres upgrade**: The database version should be upgraded to the latest available version via the Supabase dashboard.
+- **OTP expiry reduction**: One-time password (email login codes) should have their expiry time reduced in the dashboard auth settings.
+- **Leaked password protection**: Enable the "leaked password protection" setting in the dashboard so users cannot sign up with passwords known to be compromised.
+- **Image mirroring backlog**: Only about 2.7% of catalog images have been mirrored to our CDN so far. This is a long-running data task that will take time to fully catch up.
+
+---
+
+## 18) Change Log (append-only)
+
+- 2026-02-09: **Production-readiness session**: Added on-device AI (Apple Foundation Models) for mode routing, disambiguation, synopsis condensing, and smart search. Three new user-facing features: Smart Descriptions (2-sentence hooks), Smart Search (natural language collection queries), and What to Watch/Read Next (personalized "Next Up" on detail pages). Offline detection with banner. App lifecycle handling (background/foreground). Security hardening: bulk import auth, storage restrictions (images only, 5MB), prompt injection protection, DB hardening, debug logging removed. Performance: image mirroring lock fix (58% skip → ~0%), automatic network retries, gentler mirror batches. All edge functions redeployed. Added sections 3.2–3.5, 15–17.
 - 2026-02-09: **Plain-English doc refresh**: Updated sections 2–4.2 to cover Clubs (private groups with shared watchlists, polls, privacy controls), import reconciliation (Add/Update/Skip detection with undo), Concierge inline redesign (no more full-screen takeovers), German language support, 23 recommendation modes (6 new), and quality gate automation. Added new section 14 for quality gates.
 - 2026-02-09: **Clubs feature launched**: Private groups (2-20 members) with curated rails, polls, and privacy levels. New page in the app (6th swipe page). Create/join clubs via invite codes. Import reconciliation detects existing collection entries and proposes Add/Update/Skip actions instead of blind imports. Quality gate scripts added for CI. Club telemetry with 90-day retention. Haptics and empty states polished across all new views.
 - 2026-02-09: **Concierge images wired**: `search_titles()` RPC now returns `cover_image_medium` (new migration). Import preview cards and recommendation cards now show actual cover art via `KuroCachedAsyncImage` instead of gradient placeholders. Gradient remains as fallback for missing images.

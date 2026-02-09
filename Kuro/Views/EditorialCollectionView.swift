@@ -9,6 +9,9 @@ struct EditorialCollectionView: View {
     @State private var selectedFilter: CollectionFilter = .all
     @State private var didInitialLoad = false
     @State private var bannerMessage: String? = nil
+    @State private var showSearch = false
+    @State private var searchText = ""
+    @State private var searchResults: [Media]?
 
     enum CollectionFilter: String, CaseIterable {
         case all = "ALL"
@@ -32,26 +35,81 @@ struct EditorialCollectionView: View {
 
     private var items: [Media] { supabaseService.collectionFeedItems }
 
+    private var displayItems: [Media] { searchResults ?? items }
+
     private var hasContent: Bool {
-        !items.isEmpty
+        !displayItems.isEmpty
     }
 
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
-                // Editorial Filter Bar
-                EditorialFilterBar(
-                    filters: CollectionFilter.allCases,
-                    selectedFilter: $selectedFilter
-                )
+                // Editorial Filter Bar + Search Toggle
+                HStack(spacing: 0) {
+                    EditorialFilterBar(
+                        filters: CollectionFilter.allCases,
+                        selectedFilter: $selectedFilter
+                    )
+
+                    Button {
+                        withAnimation(KuroAnimation.fast) {
+                            showSearch.toggle()
+                            if !showSearch {
+                                searchText = ""
+                                searchResults = nil
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundColor(showSearch ? .black : .black.opacity(0.40))
+                    }
+                    .padding(.trailing, EditorialLayout.marginEditorial)
+                }
                 .padding(.vertical, 20)
+
+                // Search field
+                if showSearch {
+                    HStack(spacing: 8) {
+                        TextField("Search your collection...", text: $searchText)
+                            .font(.kuroBody())
+                            .textFieldStyle(.plain)
+                            .onSubmit { Task { await performSearch() } }
+
+                        if !searchText.isEmpty {
+                            Button {
+                                searchText = ""
+                                searchResults = nil
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.black.opacity(0.30))
+                            }
+                        }
+                    }
+                    .padding(.horizontal, EditorialLayout.marginEditorial)
+                    .padding(.bottom, 12)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
 
                 // Collection Grid
                 ScrollView(.vertical, showsIndicators: false) {
                     if supabaseService.isCollectionLoading {
                         EditorialCollectionLoading()
                     } else if !hasContent {
-                        if let msg = supabaseService.collectionErrorMessage, !msg.isEmpty {
+                        if searchResults != nil {
+                            // Empty search results state
+                            VStack(spacing: 8) {
+                                Text("NO RESULTS")
+                                    .font(.kuroCaption())
+                                    .tracking(1.5)
+                                    .foregroundColor(.black.opacity(0.5))
+                                Text("Try a different search term")
+                                    .font(.kuroMicro(weight: .light))
+                                    .foregroundColor(.black.opacity(0.4))
+                            }
+                            .padding(.top, 80)
+                        } else if let msg = supabaseService.collectionErrorMessage, !msg.isEmpty {
                             VStack(spacing: 8) {
                                 Text("COULDN'T LOAD COLLECTION")
                                     .font(.kuroCaption())
@@ -65,16 +123,18 @@ struct EditorialCollectionView: View {
                             }
                             .padding(.top, 80)
                         } else {
-                        EditorialCollectionEmpty()
+                            EditorialCollectionEmpty()
                         }
                     } else {
-                        EditorialCollectionGrid(items: items, geometry: geometry, title: nil)
-                        KuroLoadMoreSentinel(
-                            itemCount: items.count,
-                            hasMore: supabaseService.hasMoreCollectionFeed,
-                            isLoading: supabaseService.isLoadingMoreCollectionFeed
-                        ) {
-                            _ = await supabaseService.fetchNextCollectionFeedPage(limit: 90)
+                        EditorialCollectionGrid(items: displayItems, geometry: geometry, title: nil)
+                        if searchResults == nil {
+                            KuroLoadMoreSentinel(
+                                itemCount: items.count,
+                                hasMore: supabaseService.hasMoreCollectionFeed,
+                                isLoading: supabaseService.isLoadingMoreCollectionFeed
+                            ) {
+                                _ = await supabaseService.fetchNextCollectionFeedPage(limit: 90)
+                            }
                         }
                     }
                 }
@@ -120,9 +180,55 @@ struct EditorialCollectionView: View {
             }
         }
         .onChange(of: selectedFilter) { _, _ in
+            searchText = ""
+            searchResults = nil
             Task {
                 await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
             }
+        }
+    }
+
+    @MainActor
+    private func performSearch() async {
+        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            searchResults = nil
+            return
+        }
+
+        // Try FM intent parsing first (no-op on unsupported devices)
+        if let intent = await supabaseService.fmService.parseSearchIntent(query: searchText) {
+            var filtered = items
+            if let genre = intent.genre, !genre.isEmpty {
+                filtered = filtered.filter { media in
+                    media.genres?.contains(where: { $0.localizedCaseInsensitiveContains(genre) }) == true
+                }
+            }
+            if let status = intent.status, !status.isEmpty {
+                filtered = filtered.filter { $0.statusRaw?.uppercased() == status.uppercased() }
+            }
+            if let yearFrom = intent.yearFrom {
+                filtered = filtered.filter { media in
+                    guard let y = Int(media.year) else { return true }
+                    return y >= yearFrom
+                }
+            }
+            if let yearTo = intent.yearTo {
+                filtered = filtered.filter { media in
+                    guard let y = Int(media.year) else { return true }
+                    return y <= yearTo
+                }
+            }
+            if !intent.keywords.isEmpty {
+                filtered = filtered.filter { media in
+                    intent.keywords.contains(where: { keyword in
+                        media.title.localizedCaseInsensitiveContains(keyword)
+                    })
+                }
+            }
+            searchResults = filtered
+        } else {
+            // Fallback: simple substring match
+            searchResults = items.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
         }
     }
 

@@ -10,6 +10,16 @@ const DEFAULT_MAX_PLACEHOLDER_CHAPTERS = 0;
 const DEFAULT_MAX_PLACEHOLDER_VOLUMES = 0;
 
 serve(async (req) => {
+  // Secret header auth: pg_cron/pg_net can't send JWTs, so verify a shared secret instead.
+  const IMPORT_SECRET = Deno.env.get("IMPORT_SECRET");
+  if (!IMPORT_SECRET) {
+    return new Response(JSON.stringify({ error: "Server misconfigured" }), { status: 500, headers: { "Content-Type": "application/json" } });
+  }
+  const authHeader = req.headers.get("x-import-secret");
+  if (authHeader !== IMPORT_SECRET) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
+  }
+
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseKey);

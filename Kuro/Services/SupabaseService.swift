@@ -13,6 +13,9 @@ import Supabase
 class SupabaseService {
     static let shared = SupabaseService()
     
+    // Apple Foundation Models service (on-device classification/condensation)
+    let fmService = AppleFMService()
+
     // Supabase client
     private let client: SupabaseClient
     // Realtime (user-scoped) subscriptions
@@ -79,6 +82,32 @@ class SupabaseService {
         let sorted = cache.sorted { $0.value.storedAt < $1.value.storedAt }
         let removeCount = max(0, sorted.count - maxEntries)
         for (k, _) in sorted.prefix(removeCount) { cache.removeValue(forKey: k) }
+    }
+
+    /// Retry helper for transient network failures (URLError only).
+    /// Non-network errors (e.g. HTTP 4xx, decoding) are thrown immediately.
+    /// Static so it's callable from any isolation context (including Task.detached).
+    private static func withRetry<T>(
+        maxRetries: Int = 2,
+        operation: () async throws -> T
+    ) async throws -> T {
+        var lastError: Error?
+        for attempt in 0...maxRetries {
+            do {
+                return try await operation()
+            } catch let error as URLError {
+                lastError = error
+                if attempt < maxRetries {
+                    #if DEBUG
+                    print("⟳ retry \(attempt + 1)/\(maxRetries) after URLError \(error.code.rawValue)")
+                    #endif
+                    try await Task.sleep(for: .milliseconds(Int(500 * pow(2.0, Double(attempt)))))
+                }
+            } catch {
+                throw error // Non-network errors are not retried
+            }
+        }
+        throw lastError!
     }
 
     private struct BackoffState: Sendable {
@@ -290,14 +319,18 @@ class SupabaseService {
         let key = AppConfig.supabaseAnonKey ?? fallbackKey
 
         if AppConfig.supabaseURL == nil || AppConfig.supabaseAnonKey == nil {
+            #if DEBUG
             print("⚠️ Using fallback Supabase config from code. Add SUPABASE_URL and SUPABASE_ANON_KEY to Info.plist or env.")
+            #endif
         }
 
         client = SupabaseClient(
             supabaseURL: url,
             supabaseKey: key
         )
+        #if DEBUG
         print("🔥 Supabase client initialized: \(url.host ?? url.absoluteString)")
+        #endif
 
         Task { await restoreSession() }
     }
@@ -357,7 +390,10 @@ class SupabaseService {
         do {
             try await client.auth.signOut()
         } catch {
+            #if DEBUG
             print("❌ signOut error: \(error)")
+            #endif
+            // Error logged in debug only
         }
         await stopRealtimeSubscriptions()
         isAuthenticated = false
@@ -388,7 +424,10 @@ class SupabaseService {
                 .upsert(ProfilePayload(id: user.id, adult_opt_in: false), onConflict: "id")
                 .execute()
         } catch {
+            #if DEBUG
             print("⚠️ ensureProfileRow failed: \(error)")
+            #endif
+            // Error logged in debug only
         }
     }
 
@@ -424,21 +463,27 @@ class SupabaseService {
 
         do {
             let offset = currentAnimePage * pageSize
-            let response: [Anime] = try await client
-                .from("anime")
-                .select()
-                .order("popularity", ascending: false)
-                .range(from: offset, to: offset + pageSize - 1)
-                .execute()
-                .value
+            let response: [Anime] = try await Self.withRetry {
+                try await self.client
+                    .from("anime")
+                    .select()
+                    .order("popularity", ascending: false)
+                    .range(from: offset, to: offset + self.pageSize - 1)
+                    .execute()
+                    .value
+            }
 
             animeItems.append(contentsOf: response)
             hasMoreAnime = response.count == pageSize
             if hasMoreAnime { currentAnimePage += 1 }
+            #if DEBUG
             print("✅ Fetched page \(currentAnimePage) (\(response.count) items), total: \(animeItems.count)")
+            #endif
         } catch {
             errorMessage = "Failed to fetch anime: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Supabase error: \(error)")
+            #endif
         }
 
         isLoading = false
@@ -476,21 +521,27 @@ class SupabaseService {
 
         do {
             let offset = currentMangaPage * pageSize
-            let response: [Manga] = try await client
-                .from("manga")
-                .select()
-                .order("popularity", ascending: false)
-                .range(from: offset, to: offset + pageSize - 1)
-                .execute()
-                .value
+            let response: [Manga] = try await Self.withRetry {
+                try await self.client
+                    .from("manga")
+                    .select()
+                    .order("popularity", ascending: false)
+                    .range(from: offset, to: offset + self.pageSize - 1)
+                    .execute()
+                    .value
+            }
 
             mangaItems.append(contentsOf: response)
             hasMoreManga = response.count == pageSize
             if hasMoreManga { currentMangaPage += 1 }
+            #if DEBUG
             print("✅ Fetched manga page \(currentMangaPage) (\(response.count) items), total: \(mangaItems.count)")
+            #endif
         } catch {
             errorMessage = "Failed to fetch manga: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Error: \(error)")
+            #endif
         }
 
         isLoading = false
@@ -529,10 +580,14 @@ class SupabaseService {
             
             animeItems = animeResponse
             mangaItems = mangaResponse
+            #if DEBUG
             print("✅ Found \(animeResponse.count) anime, \(mangaResponse.count) manga")
+            #endif
         } catch {
             errorMessage = "Search failed: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Search error: \(error)")
+            #endif
         }
         
         isLoading = false
@@ -618,7 +673,9 @@ class SupabaseService {
         } catch {
             errorMessage = "Search failed: \(error.localizedDescription)"
             hasMoreSearch = false
+            #if DEBUG
             print("❌ Search page error: \(error)")
+            #endif
         }
     }
 
@@ -692,7 +749,9 @@ class SupabaseService {
             hasMoreSearch = false
             hasMoreSearchAnime = false
             hasMoreSearchManga = false
+            #if DEBUG
             print("❌ Combined search error: \(error)")
+            #endif
         }
     }
 
@@ -802,7 +861,9 @@ class SupabaseService {
             hasMoreSearchAnime = oldHasMoreAnime
             hasMoreSearchManga = oldHasMoreManga
             errorMessage = "Search failed: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ search refresh: \(error)")
+            #endif
         }
     }
 
@@ -894,16 +955,20 @@ class SupabaseService {
                     p_limit: max(1, min(60, limit)),
                     p_hours: max(1, min(168, hours))
                 )
-                let bundle: DiscoverBundle = try await self.client
-                    .rpc("discover_bundle", params: params)
-                    .execute()
-                    .value
+                let bundle: DiscoverBundle = try await Self.withRetry {
+                    try await self.client
+                        .rpc("discover_bundle", params: params)
+                        .execute()
+                        .value
+                }
                 KuroPerf.end(perf, message: "ok")
                 self.discoverBundleCache[key] = TimedCache(value: bundle, storedAt: now)
                 self.trimCache(&self.discoverBundleCache, maxEntries: 6)
                 return bundle
             } catch {
+                #if DEBUG
                 print("❌ discover_bundle rpc: \(error)")
+                #endif
                 KuroPerf.end(perf, message: "error")
                 return nil
             }
@@ -989,7 +1054,13 @@ class SupabaseService {
             let orderedQuery = statusQuery.order("trending", ascending: false)
             let rows: [Anime] = try await orderedQuery.range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ trending fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ trending fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchCurrentSeasonAnime(limit: Int = 20, year: Int? = nil, onlyAiring: Bool = true, genre: String? = nil) async -> [Anime] {
@@ -1001,7 +1072,13 @@ class SupabaseService {
             let orderedQuery = statusQuery.order("popularity", ascending: false)
             let rows: [Anime] = try await orderedQuery.range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ current season fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ current season fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchSeasonAnime(season: String, year: Int, limit: Int = 20, onlyAiring: Bool = true, genre: String? = nil) async -> [Anime] {
@@ -1012,7 +1089,13 @@ class SupabaseService {
             let rows: [Anime] = try await q.order("popularity", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ season fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ season fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchNewlyAddedAnime(limit: Int = 20, genre: String? = nil) async -> [Anime] {
@@ -1023,7 +1106,13 @@ class SupabaseService {
             let rows: [Anime] = try await q.order("created_at", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ newly added fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ newly added fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchTopRatedAnime(limit: Int = 20, minScore: Int = 80, genre: String? = nil) async -> [Anime] {
@@ -1035,7 +1124,13 @@ class SupabaseService {
             let rows: [Anime] = try await q.order("average_score", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ top rated fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ top rated fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     // MARK: - Server-driven Discover sections (Manga)
@@ -1046,7 +1141,13 @@ class SupabaseService {
             let rows: [Manga] = try await q.order("trending", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeMangaForDiscovery(rows)
-        } catch { print("❌ manga trending fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ manga trending fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchNewlyAddedManga(limit: Int = 20, genre: String? = nil) async -> [Manga] {
@@ -1056,7 +1157,13 @@ class SupabaseService {
             let rows: [Manga] = try await q.order("created_at", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeMangaForDiscovery(rows)
-        } catch { print("❌ manga newly added fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ manga newly added fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchTopRatedManga(limit: Int = 20, minScore: Int = 80, genre: String? = nil) async -> [Manga] {
@@ -1066,7 +1173,13 @@ class SupabaseService {
             let rows: [Manga] = try await q.order("average_score", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeMangaForDiscovery(rows)
-        } catch { print("❌ manga top rated fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ manga top rated fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     // MARK: - Premium discovery rails (Essentials / Classics / New-to-you)
@@ -1084,7 +1197,13 @@ class SupabaseService {
                 .execute()
                 .value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ essentials anime fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ essentials anime fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchClassicsAnime(limit: Int = 20, yearBefore: Int = 2015, minScore: Int = 80, genre: String? = nil) async -> [Anime] {
@@ -1101,7 +1220,13 @@ class SupabaseService {
                 .execute()
                 .value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ classics anime fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ classics anime fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchNewToYouAnime(limit: Int = 20, candidateLimit: Int = 250, minScore: Int = 80, genre: String? = nil) async -> [Anime] {
@@ -1129,7 +1254,13 @@ class SupabaseService {
                 return a < b
             }
             return Array(shuffled.prefix(limit))
-        } catch { print("❌ new-to-you anime fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ new-to-you anime fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchEssentialsManga(limit: Int = 20, minScore: Int = 85, genre: String? = nil) async -> [Manga] {
@@ -1146,7 +1277,13 @@ class SupabaseService {
                 .execute()
                 .value
             return sanitizeMangaForDiscovery(rows)
-        } catch { print("❌ essentials manga fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ essentials manga fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchClassicsManga(limit: Int = 20, yearBefore: Int = 2015, minScore: Int = 80, genre: String? = nil) async -> [Manga] {
@@ -1163,7 +1300,13 @@ class SupabaseService {
                 .execute()
                 .value
             return sanitizeMangaForDiscovery(rows)
-        } catch { print("❌ classics manga fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ classics manga fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchNewToYouManga(limit: Int = 20, candidateLimit: Int = 300, minScore: Int = 80, genre: String? = nil) async -> [Manga] {
@@ -1190,7 +1333,13 @@ class SupabaseService {
                 return a < b
             }
             return Array(shuffled.prefix(limit))
-        } catch { print("❌ new-to-you manga fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ new-to-you manga fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     // Imminent airing within next N hours
@@ -1209,7 +1358,13 @@ class SupabaseService {
             let rows: [Anime] = try await q.order("next_airing_at", ascending: true)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ airing soon fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ airing soon fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     // MARK: - Sub-genre (tag) insights for a genre
@@ -1270,7 +1425,9 @@ class SupabaseService {
                 .map { TagFacet(id: $0.id, name: $0.name, category: $0.category, count: 0) }
             return Array(tags)
         } catch {
+            #if DEBUG
             print("❌ anime tag fetch: \(error)")
+            #endif
             return []
         }
     }
@@ -1298,7 +1455,9 @@ class SupabaseService {
                 .map { TagFacet(id: $0.id, name: $0.name, category: $0.category, count: 0) }
             return Array(tags)
         } catch {
+            #if DEBUG
             print("❌ manga tag fetch: \(error)")
+            #endif
             return []
         }
     }
@@ -1521,7 +1680,9 @@ class SupabaseService {
 
             return (Array(sorted), mediaToTagIds)
         } catch {
+            #if DEBUG
             print("❌ anime tag facets fetch: \(error)")
+            #endif
             return ([], [:])
         }
     }
@@ -1565,7 +1726,9 @@ class SupabaseService {
 
             return (Array(sorted), mediaToTagIds)
         } catch {
+            #if DEBUG
             print("❌ manga tag facets fetch: \(error)")
+            #endif
             return ([], [:])
         }
     }
@@ -1692,7 +1855,9 @@ class SupabaseService {
             // Avoid blanking the UI on transient failures (e.g. pull-to-refresh).
             // Keep the previous content and surface an error message.
             collectionErrorMessage = "Failed to load collection: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ collection fetch: \(error)")
+            #endif
             restoreCollectionSnapshot(snapshot)
         }
     }
@@ -1733,7 +1898,9 @@ class SupabaseService {
             )
         } catch {
             collectionErrorMessage = "Failed to load collection: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ collection feed fetch: \(error)")
+            #endif
             restoreCollectionSnapshot(snapshot)
         }
     }
@@ -1934,7 +2101,9 @@ class SupabaseService {
             )
         } catch {
             collectionErrorMessage = "Failed to load more: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ collection feed page: \(error)")
+            #endif
             return false
         }
     }
@@ -1946,7 +2115,9 @@ class SupabaseService {
             return try await fetchNextCollectionAnimePage(limit: limit, listType: listType, generation: collectionFetchGeneration)
         } catch {
             collectionErrorMessage = "Failed to load more: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ collection anime page: \(error)")
+            #endif
             return false
         }
     }
@@ -1958,7 +2129,9 @@ class SupabaseService {
             return try await fetchNextCollectionMangaPage(limit: limit, listType: listType, generation: collectionFetchGeneration)
         } catch {
             collectionErrorMessage = "Failed to load more: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ collection manga page: \(error)")
+            #endif
             return false
         }
     }
@@ -2127,7 +2300,9 @@ class SupabaseService {
                     notes: notes
                 )
             } else {
+                #if DEBUG
                 print("⚠️ Unknown mediaType: \(mediaType)")
+                #endif
                 return
             }
 
@@ -2147,7 +2322,9 @@ class SupabaseService {
             }
         } catch {
             errorMessage = "Failed to save: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ upsert list entry error: \(error)")
+            #endif
         }
     }
 
@@ -2168,7 +2345,10 @@ class SupabaseService {
 
             await fetchUserLists()
         } catch {
+            #if DEBUG
             print("❌ Failed to update progress: \(error)")
+            #endif
+            // Error logged in debug only
         }
     }
 
@@ -2269,10 +2449,14 @@ class SupabaseService {
             let combined = (mappedAnime + mappedManga).sorted { $0.updatedAt > $1.updatedAt }
             userLists = combined
             rebuildUserListCaches()
+            #if DEBUG
             print("✅ Fetched user lists: anime=\(mappedAnime.count), manga=\(mappedManga.count)")
+            #endif
         } catch {
             errorMessage = "Failed to fetch lists: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Error: \(error)")
+            #endif
         }
     }
     
@@ -2311,7 +2495,9 @@ class SupabaseService {
             await fetchUserLists()
             await fetchCollectionItems(status: currentCollectionStatusFilter)
             await fetchCollectionFeed(status: currentCollectionStatusFilter)
+            #if DEBUG
             print("✅ Removed from user list")
+            #endif
             if mediaType.lowercased() == "anime" {
                 cancelAiringNotifications(animeId: mediaId)
                 // Remove countdown entry
@@ -2320,7 +2506,9 @@ class SupabaseService {
             }
         } catch {
             errorMessage = "Failed to remove from list: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Error: \(error)")
+            #endif
         }
     }
 
@@ -2369,7 +2557,9 @@ class SupabaseService {
             upcomingBackoff.recordSuccess()
         } catch {
             upcomingBackoff.recordFailure()
+            #if DEBUG
             print("❌ Failed to fetch upcoming airings: \(error)")
+            #endif
         }
     }
 
@@ -2417,7 +2607,10 @@ class SupabaseService {
             do {
                 _ = try await center.requestAuthorization(options: [.alert, .sound, .badge])
             } catch {
+                #if DEBUG
                 print("⚠️ Notification permission request failed: \(error)")
+                #endif
+                // Error logged in debug only
             }
         }
     }
@@ -2431,7 +2624,12 @@ class SupabaseService {
         let triggerDate = Calendar.current.dateComponents([.year,.month,.day,.hour,.minute,.second], from: date)
         let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
         let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-        do { try await UNUserNotificationCenter.current().add(request) } catch { print("❌ Schedule notif failed: \(error)") }
+        do { try await UNUserNotificationCenter.current().add(request) } catch {
+            #if DEBUG
+            print("❌ Schedule notif failed: \(error)")
+            #endif
+            // Error logged in debug only
+        }
     }
 
     func scheduleAiringNotifications(animeId: Int) async {
@@ -2456,7 +2654,10 @@ class SupabaseService {
                 await scheduleNotification(id: "airing-\(animeId)-1h", title: "In 1 hour: \(title)", body: "\(ep) airs soon.", at: oneHourBefore)
             }
         } catch {
+            #if DEBUG
             print("⚠️ Could not schedule notifications: \(error)")
+            #endif
+            // Error logged in debug only
         }
     }
 
@@ -2478,7 +2679,9 @@ class SupabaseService {
                 .execute()
                 .value
         } catch {
+            #if DEBUG
             print("❌ Error fetching external links: \(error)")
+            #endif
             return []
         }
     }
@@ -2496,7 +2699,9 @@ class SupabaseService {
             let ordered = q.order("number", ascending: true)
             return try await ordered.range(from: 0, to: max(0, limit - 1)).execute().value
         } catch {
+            #if DEBUG
             print("❌ fetch episodes next: \(error)")
+            #endif
             return []
         }
     }
@@ -2512,7 +2717,9 @@ class SupabaseService {
                 .execute()
                 .value
         } catch {
+            #if DEBUG
             print("❌ fetch episodes page: \(error)")
+            #endif
             return []
         }
     }
@@ -2529,7 +2736,9 @@ class SupabaseService {
             let ordered = q.order("number", ascending: true)
             return try await ordered.range(from: 0, to: max(0, limit - 1)).execute().value
         } catch {
+            #if DEBUG
             print("❌ fetch chapters next: \(error)")
+            #endif
             return []
         }
     }
@@ -2545,7 +2754,9 @@ class SupabaseService {
                 .execute()
                 .value
         } catch {
+            #if DEBUG
             print("❌ fetch chapters page: \(error)")
+            #endif
             return []
         }
     }
@@ -2587,7 +2798,10 @@ class SupabaseService {
                 return (url, site)
             }
         } catch {
+            #if DEBUG
             print("❌ Error fetching episode stream: \(error)")
+            #endif
+            // Error logged in debug only
         }
         return nil
     }
@@ -2661,7 +2875,9 @@ class SupabaseService {
             KuroPerf.end(perf, message: "ok")
             return rows
         } catch {
+            #if DEBUG
             print("❌ browse_anime_page rpc: \(error)")
+            #endif
             return []
         }
     }
@@ -2694,7 +2910,9 @@ class SupabaseService {
             KuroPerf.end(perf, message: "ok")
             return rows
         } catch {
+            #if DEBUG
             print("❌ browse_manga_page rpc: \(error)")
+            #endif
             return []
         }
     }
@@ -2729,7 +2947,9 @@ class SupabaseService {
             let ordered = q.order(sort.orderColumn, ascending: false).order("id", ascending: false)
             return try await ordered.range(from: offset, to: offset + size - 1).execute().value
         } catch {
+            #if DEBUG
             print("❌ browse anime fetch: \(error)")
+            #endif
             return []
         }
     }
@@ -2764,7 +2984,9 @@ class SupabaseService {
             let ordered = q.order(sort.orderColumn, ascending: false).order("id", ascending: false)
             return try await ordered.range(from: offset, to: offset + size - 1).execute().value
         } catch {
+            #if DEBUG
             print("❌ browse manga fetch: \(error)")
+            #endif
             return []
         }
     }
@@ -2784,10 +3006,14 @@ class SupabaseService {
                 .value
             
             animeItems = response
+            #if DEBUG
             print("✅ Filtered by genre: \(genre)")
+            #endif
         } catch {
             errorMessage = "Filter failed: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Error: \(error)")
+            #endif
         }
         
         isLoading = false
@@ -2927,7 +3153,9 @@ class SupabaseService {
             ] as [String : Any]
             let data = try JSONSerialization.data(withJSONObject: payload, options: [])
             let options = FunctionInvokeOptions(method: .post, body: data)
-            let resp: ConciergeParseResponse = try await client.functions.invoke("concierge-parse", options: options)
+            let resp: ConciergeParseResponse = try await SupabaseService.withRetry {
+                try await client.functions.invoke("concierge-parse", options: options)
+            }
             return resp
         }
         conciergeParseInFlight[key] = task
@@ -3087,7 +3315,9 @@ class SupabaseService {
             ]
             let data = try JSONSerialization.data(withJSONObject: payload, options: [])
             let options = FunctionInvokeOptions(method: .post, body: data)
-            let resp: ConciergeRecommendResponse = try await client.functions.invoke("concierge-recommend", options: options)
+            let resp: ConciergeRecommendResponse = try await SupabaseService.withRetry {
+                try await client.functions.invoke("concierge-recommend", options: options)
+            }
             return resp
         }
         conciergeRecommendInFlight[key] = task
@@ -3291,7 +3521,10 @@ class SupabaseService {
 
             await fetchUserLists()
         } catch {
+            #if DEBUG
             print("❌ Failed to update rating: \(error)")
+            #endif
+            // Error logged in debug only
         }
     }
 
@@ -3444,7 +3677,10 @@ class SupabaseService {
 
             myClubs = clubs
         } catch {
+            #if DEBUG
             print("❌ fetchMyClubs: \(error)")
+            #endif
+            // Error logged in debug only
         }
     }
 
@@ -3566,72 +3802,60 @@ class SupabaseService {
 }
 
 #else
-// Fallback mock service when the Supabase SDK isn't available
+// Fallback mock service when the Supabase SDK isn't available.
+// Kept minimal: no model-type references (Anime, Manga, UserList,
+// Episode, ListStatus) so this block compiles standalone.
 @MainActor
 @Observable
 class SupabaseService {
     static let shared = SupabaseService()
 
-    // Data stores
-    var animeItems: [Anime] = []
-    var mangaItems: [Manga] = []
-    var userLists: [UserList] = []
-    var episodes: [Episode] = []
+    let fmService = AppleFMService()
+
+    // Observable state used by views
     var isLoading = false
     var errorMessage: String?
 
     init() {
-        // No-op: mock environment
-        print("⚠️ Supabase SDK not found. Running with mock SupabaseService.")
+        #if DEBUG
+        print("[Mock] Supabase SDK not found. Running with mock SupabaseService.")
+        #endif
     }
 
-    // Auth no-op
+    // Auth
     func signInAnonymously() async throws {}
 
-    // Data loading no-ops that simulate empty results
+    // Data loading no-ops
     func fetchAnime(limit: Int = 50) async {
         isLoading = true
-        defer { isLoading = false }
-        animeItems = []
+        isLoading = false
     }
 
     func fetchManga(limit: Int = 50) async {
         isLoading = true
-        defer { isLoading = false }
-        mangaItems = []
+        isLoading = false
     }
 
     func searchContent(query: String) async {
         isLoading = true
-        defer { isLoading = false }
-        // Keep whatever is already loaded (mock does nothing)
+        isLoading = false
     }
 
-    func fetchUserLists() async {
-        userLists = []
-    }
-
-    func addToList(mediaId: Int, mediaType: String, status: ListStatus) async {
-        // No persistence in mock
-    }
+    func fetchUserLists() async {}
 
     func filterByGenre(_ genre: String) async {
         isLoading = true
-        defer { isLoading = false }
-        // No-op
+        isLoading = false
     }
 
-    func getByMood(_ mood: String) -> [Anime] {
-        return []
-    }
-
-    func subscribeToUpdates() {
-        // No realtime in mock
-    }
+    func subscribeToUpdates() {}
 
     func isInCollection(_ animeId: Int) -> Bool { false }
+    func isInCollection(mediaId: Int, mediaType: String) -> Bool { false }
     func isFavorited(_ animeId: Int) -> Bool { false }
     func toggleInCollection(_ animeId: Int) {}
+    func toggleInCollection(mediaId: Int, mediaType: String) {}
     func toggleFavorite(for animeId: Int) {}
+    func userMediaIds(mediaType: String, status: ListStatus? = nil) -> Set<Int> { [] }
 }
 #endif

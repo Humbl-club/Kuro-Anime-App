@@ -45,6 +45,22 @@ function clampInt(v: unknown, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+/** Strip common LLM prompt-injection patterns from user-supplied text before interpolation. */
+function sanitizeForLLM(text: string): string {
+  return text
+    // Strip common injection patterns
+    .replace(/\b(ignore|disregard|forget)\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?|context)/gi, '[filtered]')
+    .replace(/\b(you\s+are\s+now|new\s+instructions?|system\s*:)/gi, '[filtered]')
+    .replace(/\b(act\s+as|pretend\s+(to\s+be|you\s+are)|role\s*play)/gi, '[filtered]')
+    // Strip markdown/HTML injection attempts
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/<[^>]+>/g, '')
+    // Limit length
+    .slice(0, 2000)
+    // Trim whitespace
+    .trim();
+}
+
 function extractJsonObject(text: string): any | null {
   const s = String(text || "");
   const start = s.indexOf("{");
@@ -82,7 +98,7 @@ Rules:
 Items:
 ${opts.items
   .map((it, idx) =>
-    `#${idx} raw="${it.raw}" parsed=${JSON.stringify(it.parsed ?? {})}\noptions:\n${it.options
+    `#${idx} raw="${sanitizeForLLM(it.raw)}" parsed=${JSON.stringify(it.parsed ?? {})}\noptions:\n${it.options
       .map((o, j) => `  [${j}] ${o.id} ${o.title}${o.year ? ` [${o.year}]` : ""}${o.format ? ` ${o.format}` : ""}${o.variant ? ` (${o.variant})` : ""}${typeof o.score === "number" ? ` score=${o.score.toFixed(3)}` : ""}`)
       .join("\n")}`,
   )

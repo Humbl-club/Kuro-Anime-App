@@ -13,7 +13,8 @@ struct MangaDetailView: View {
     @State private var toastDismissTask: Task<Void, Never>? = nil
     @State private var topTags: [TagFacet] = []
     @State private var similar: [Manga] = []
-    
+    @State private var condensedSynopsis: String?
+
     var body: some View {
         GeometryReader { geometry in
             let safeTop = geometry.safeAreaInsets.top
@@ -43,7 +44,8 @@ struct MangaDetailView: View {
                         // Description
                         DescriptionSection(
                             description: manga.displayDescription,
-                            showFull: $showFullDescription
+                            showFull: $showFullDescription,
+                            condensedSynopsis: condensedSynopsis
                         )
                         
                         // Genres
@@ -63,6 +65,14 @@ struct MangaDetailView: View {
                         // Volumes Section (if available)
                         if let volumeCount = manga.volumeCount {
                             VolumesSection(manga: manga, volumeCount: volumeCount)
+                        }
+
+                        // "NEXT" pick when user has completed this series
+                        if !similar.isEmpty {
+                            MangaNextPickSection(
+                                mediaId: manga.id,
+                                similar: similar
+                            )
                         }
 
                         if !similar.isEmpty {
@@ -130,6 +140,16 @@ struct MangaDetailView: View {
             async let sim = supabaseService.fetchSimilarManga(seed: manga, limit: 14)
             topTags = await tags
             similar = await sim
+
+            // Condense long synopses on-device via Apple FM (no-op on unsupported devices)
+            if let desc = manga.description, !desc.isEmpty, desc.count > 200 {
+                condensedSynopsis = await supabaseService.fmService.condenseSynopsis(
+                    mediaId: manga.id,
+                    description: desc,
+                    title: manga.displayTitle,
+                    genres: manga.genreList ?? []
+                )
+            }
         }
     }
 
@@ -246,6 +266,102 @@ struct MangaSimilarSection: View {
             .kuroSwipeExclusionZone()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - "NEXT" suggestion when user completed this manga (heuristic pick)
+struct MangaNextPickSection: View {
+    let mediaId: Int
+    let similar: [Manga]
+    @Environment(SupabaseService.self) private var supabaseService
+    @State private var showDetail = false
+
+    private var userEntry: UserList? {
+        supabaseService.userLists.first {
+            $0.mediaId == mediaId && $0.mediaType.lowercased() == "manga"
+        }
+    }
+
+    private var isCompleted: Bool {
+        userEntry?.status == .completed
+    }
+
+    private var pick: Manga? {
+        guard isCompleted else { return nil }
+        let collectionIds = supabaseService.userMediaIds(mediaType: "manga")
+        let planningIds = supabaseService.userMediaIds(mediaType: "manga", status: .planning)
+
+        if let planned = similar.first(where: { planningIds.contains($0.id) }) {
+            return planned
+        }
+
+        return similar
+            .filter { !collectionIds.contains($0.id) }
+            .max(by: { ($0.averageScore ?? 0) < ($1.averageScore ?? 0) })
+    }
+
+    var body: some View {
+        if let manga = pick {
+            VStack(alignment: .leading, spacing: KuroSpacing.md) {
+                Text("NEXT")
+                    .font(.kuroCaption(weight: .medium))
+                    .tracking(1.6)
+                    .foregroundColor(.kuroBlack80)
+
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    showDetail = true
+                } label: {
+                    HStack(spacing: 12) {
+                        KuroCachedAsyncImage(url: URL(string: manga.displayImage), maxPixelSize: 200) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image.resizable().aspectRatio(contentMode: .fill)
+                            case .failure, .empty:
+                                Rectangle().fill(Color.kuroBlack08)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                        .frame(width: 48, height: 68)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(manga.displayTitle)
+                                .font(.kuroBody(weight: .regular))
+                                .foregroundColor(.kuroBlack)
+                                .lineLimit(2)
+
+                            HStack(spacing: 4) {
+                                Text(manga.year)
+                                if let fmt = manga.format {
+                                    Text("·")
+                                    Text(fmt.uppercased())
+                                }
+                            }
+                            .font(.kuroCaption())
+                            .foregroundColor(.kuroBlack60)
+                        }
+
+                        Spacer(minLength: 0)
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.kuroBlack30)
+                    }
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+                    )
+                }
+                .buttonStyle(.plain)
+                .sheet(isPresented: $showDetail) {
+                    MediaDetailSheet(kind: .manga, id: manga.id)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 

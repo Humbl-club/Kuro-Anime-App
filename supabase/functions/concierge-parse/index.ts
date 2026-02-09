@@ -718,6 +718,9 @@ serve(async (req) => {
 
   const body = await req.json().catch(() => ({}));
   const text: string = String(body?.text ?? "");
+  if (typeof text !== "string" || text.length > 5000) {
+    return json({ error: "Text too long (max 5000 chars)" }, { status: 400 });
+  }
   const scope: "anime" | "manga" | "both" = body?.scope ?? "both";
   const limitPerItem = Math.max(3, Math.min(15, Number(body?.limitPerItem ?? 10)));
 

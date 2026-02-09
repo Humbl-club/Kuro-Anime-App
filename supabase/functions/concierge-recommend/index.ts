@@ -49,6 +49,22 @@ function safeNumber(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Strip common LLM prompt-injection patterns from user-supplied text before interpolation. */
+function sanitizeForLLM(text: string): string {
+  return text
+    // Strip common injection patterns
+    .replace(/\b(ignore|disregard|forget)\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?|context)/gi, '[filtered]')
+    .replace(/\b(you\s+are\s+now|new\s+instructions?|system\s*:)/gi, '[filtered]')
+    .replace(/\b(act\s+as|pretend\s+(to\s+be|you\s+are)|role\s*play)/gi, '[filtered]')
+    // Strip markdown/HTML injection attempts
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/<[^>]+>/g, '')
+    // Limit length
+    .slice(0, 2000)
+    // Trim whitespace
+    .trim();
+}
+
 function normalizeText(s: string): string {
   return s
     .toLowerCase()
@@ -791,12 +807,13 @@ async function groqNarrate(opts: {
       ? `Gib nur JSON zurück: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`
       : `Return JSON only: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`;
 
+  const safeUserText = sanitizeForLLM(opts.userText);
   const user =
     opts.lang === "de"
-      ? `User prompt: ${opts.userText}\n\nItems:\n${opts.items
+      ? `User prompt: ${safeUserText}\n\nItems:\n${opts.items
           .map((it) => `- ${it.id}: ${it.title} (${it.year ?? "?"}) ${it.format ?? ""} [${it.signals.join(", ")}]`)
           .join("\n")}\n\nSchreibe pro Item genau einen kurzen, spoilerfreien Satz. Gib nur JSON zurück: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`
-      : `User prompt: ${opts.userText}\n\nItems:\n${opts.items
+      : `User prompt: ${safeUserText}\n\nItems:\n${opts.items
           .map((it) => `- ${it.id}: ${it.title} (${it.year ?? "?"}) ${it.format ?? ""} [${it.signals.join(", ")}]`)
           .join("\n")}\n\nWrite one short, spoiler-free sentence per item. Return JSON only: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`;
 
@@ -854,73 +871,6 @@ async function groqNarrate(opts: {
     throw new Error(`Groq narration JSON parse failed. content_snippet=${content.slice(0, 400)}`);
   }
   return { blurbs: {}, usageTotal: usage };
-}
-
-async function groqRouteMode(opts: {
-  apiKey: string;
-  model: string;
-  userText: string;
-  modes: Array<{ id: string; title: string; synonyms: string[] }>;
-  maxTokens: number;
-  debug?: boolean;
-}): Promise<{ primaryModeId: string | null; usageTotal: number | null }> {
-  const url = "https://api.groq.com/openai/v1/chat/completions";
-  const system = `Return JSON only: {"primary_mode_id":"..."} (no prose).`;
-  const compact = opts.modes.map((m) => ({
-    id: m.id,
-    title: m.title,
-    // Keep synonyms short; they help the model map user slang to mode ids.
-    synonyms: (m.synonyms ?? []).slice(0, 8),
-  }));
-  const user = `User prompt: ${opts.userText}\n\nAllowed modes:\n${JSON.stringify(compact)}\n\nPick exactly one primary_mode_id from the allowed ids. Return JSON only.`;
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${opts.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: opts.model,
-      temperature: 0,
-      max_tokens: Math.max(20, Math.min(120, opts.maxTokens)),
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
-  });
-
-  const jsonRes = await res.json().catch(() => null);
-  if (!res.ok) {
-    throw new Error(`Groq router error: ${res.status} ${JSON.stringify(jsonRes)?.slice(0, 300)}`);
-  }
-
-  const usageTotal = Number(
-    jsonRes?.usage?.total_tokens ??
-      ((Number(jsonRes?.usage?.prompt_tokens ?? 0) || 0) + (Number(jsonRes?.usage?.completion_tokens ?? 0) || 0)),
-  );
-  const usage = Number.isFinite(usageTotal) && usageTotal > 0 ? usageTotal : null;
-
-  const content = jsonRes?.choices?.[0]?.message?.content;
-  if (typeof content !== "string" || !content.trim()) {
-    if (opts.debug) throw new Error(`Groq router missing content. body_snippet=${JSON.stringify(jsonRes)?.slice(0, 600)}`);
-    return { primaryModeId: null, usageTotal: usage };
-  }
-
-  try {
-    const start = content.indexOf("{");
-    const end = content.lastIndexOf("}");
-    const candidate = start >= 0 && end > start ? content.slice(start, end + 1) : content;
-    const parsed = JSON.parse(candidate);
-    const id = parsed?.primary_mode_id;
-    if (typeof id === "string" && id.trim()) return { primaryModeId: id.trim(), usageTotal: usage };
-  } catch {
-    // ignore
-  }
-
-  if (opts.debug) throw new Error(`Groq router JSON parse failed. content_snippet=${String(content).slice(0, 400)}`);
-  return { primaryModeId: null, usageTotal: usage };
 }
 
 function clampBlurb(s: string, maxWords: number, maxChars: number) {
@@ -1219,10 +1169,6 @@ serve(async (req) => {
     const premiumMode = modeById.get("premium_picks") ?? Array.from(modeById.values()).find((m) => m.id.includes("premium")) ?? null;
 
     const routerCfg = conciergeCfg?.router_llm ?? {};
-    const routerEnabledCfg = Boolean(routerCfg?.enabled ?? false);
-    const minConfidence = Number(routerCfg?.min_confidence ?? 0.45);
-    const minTopScore = Number(routerCfg?.min_top_score ?? 2);
-    const routerMaxTokens = Number(routerCfg?.max_tokens ?? 80);
     const cacheTtlDays = Number(routerCfg?.cache_ttl_days ?? 30);
 
     const userId = userData.user.id;
@@ -1417,97 +1363,16 @@ serve(async (req) => {
       const topId = top?.mode?.id ?? (premiumMode?.id ?? "premium_picks");
       const topScore = Number(top?.score ?? 0);
       const delta = Number(top?.score ?? 0) - Number(runner?.score ?? 0);
-      const confidence = sigmoid(delta - 1);
-      const lowConfidence = confidence < minConfidence || topScore <= minTopScore;
+      const primaryConfidence = sigmoid(delta - 1);
+      const primaryReason = top?.reason ?? "scored";
 
-      let primaryId = topId;
-      let usedLLM = false;
-      let primaryReason = top?.reason ?? "scored";
-      let primaryConfidence = confidence;
-
-      // Low-confidence LLM router (one-shot, budgeted, cached).
-      if (lowConfidence && routerEnabledCfg) {
-        try {
-          const [{ data: llmEnabled }, { data: routerEnabledFlag }] = await Promise.all([
-            client.rpc("is_flag_enabled", { p_key: "llm_enabled" }),
-            client.rpc("is_flag_enabled", { p_key: "llm_router_enabled" }),
-          ]);
-          if (llmEnabled !== false && routerEnabledFlag === true) {
-            const groqKey = Deno.env.get("GROQ_API_KEY");
-            const groqModel = Deno.env.get("GROQ_MODEL_ROUTER") ?? (Deno.env.get("GROQ_MODEL") ?? "openai/gpt-oss-20b");
-            if (groqKey) {
-              const allow = candidates.map((m) => ({ id: m.id, title: m.title, synonyms: m.synonyms ?? [] }));
-
-              // Budget reserve: router is tiny.
-              const reserveTokens = Math.min(600, Math.max(120, Math.ceil((text.length + JSON.stringify(allow).length) / 4) + routerMaxTokens));
-              const { data: budget } = await client.rpc("llm_budget_reserve", {
-                p_reserved_tokens: reserveTokens,
-                p_max_daily_tokens: null,
-                p_max_daily_calls: null,
-                p_model: groqModel,
-              });
-              if (budget && budget.allowed !== false) {
-                // Global budget.
-                const globalBudget = conciergeCfg?.global_llm_budget ?? null;
-                const globalDailyTokens = Number(globalBudget?.daily_tokens ?? 250000);
-                const globalDailyCalls = Number(globalBudget?.daily_calls ?? 600);
-                const { data: gBudget } = await client.rpc("llm_global_budget_reserve", {
-                  p_reserved_tokens: reserveTokens,
-                  p_max_daily_tokens: Number.isFinite(globalDailyTokens) ? globalDailyTokens : 250000,
-                  p_max_daily_calls: Number.isFinite(globalDailyCalls) ? globalDailyCalls : 600,
-                });
-                if (gBudget && gBudget.allowed !== false) {
-                  let usageTotal: number | null = null;
-                  let ok = false;
-                  try {
-                    const routed = await groqRouteMode({
-                      apiKey: groqKey,
-                      model: groqModel,
-                      userText: text,
-                      modes: allow,
-                      maxTokens: routerMaxTokens,
-                    });
-                    usageTotal = routed.usageTotal ?? null;
-                    const chosen = String(routed.primaryModeId ?? "").trim();
-                    if (chosen && modeById.has(chosen) && chosen !== classicsId) {
-                      primaryId = chosen;
-                      usedLLM = true;
-                      primaryReason = "llm router";
-                      primaryConfidence = 0.65;
-                    }
-                    ok = true;
-                  } finally {
-                    // Always finalize reservations (prevents budget leakage on exceptions/timeouts).
-                    const actual = ok ? (usageTotal ?? reserveTokens) : 0;
-                    try {
-                      await client.rpc("llm_budget_finalize", { p_reserved_tokens: reserveTokens, p_actual_tokens: actual, p_model: groqModel });
-                      await client.rpc("llm_global_budget_finalize", { p_reserved_tokens: reserveTokens, p_actual_tokens: actual });
-                    } catch {
-                      // best-effort
-                    }
-                  }
-                } else {
-                  try {
-                    await client.rpc("llm_budget_finalize", { p_reserved_tokens: reserveTokens, p_actual_tokens: 0, p_model: groqModel });
-                  } catch {
-                    // best-effort
-                  }
-                }
-              }
-            }
-          }
-        } catch {
-          // Fail closed: keep deterministic result.
-        }
-      }
-
-      const secondaryId = resolveSecondary(primaryId);
+      const secondaryId = resolveSecondary(topId);
       const dec: RouterDecision = {
-        primaryId,
+        primaryId: topId,
         secondaryId,
         primaryConfidence,
         primaryReason,
-        usedLLM,
+        usedLLM: false,
         topScore,
       };
       await saveCache(dec);

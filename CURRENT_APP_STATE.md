@@ -40,6 +40,8 @@ This file is a **contract**. It must be updated **after every single change** to
 - Local caching and UI-only state.
 - Uses Supabase as system of record.
 - Concierge: deterministic-first parsing + LLM fallback.
+- Apple Foundation Models: on-device LLM for mode classification, disambiguation, synopsis condensation, and NL collection search (iOS 26+ only; graceful fallback via `StubFMProvider`).
+- Network monitoring: `NetworkMonitor` tracks connectivity, shows offline banner.
 
 **Backend:** Supabase (Postgres + Edge Functions + Storage + RPC + RLS)
 - Postgres stores anime/manga catalog, user lists, recommendations, concierge sessions, clubs, and ops metrics.
@@ -58,6 +60,10 @@ This file is a **contract**. It must be updated **after every single change** to
   - `SUPABASE_ANON_KEY`
   from **Info.plist** or process env.
 - If missing, `SupabaseService` uses **hardcoded fallback** URL + anon key (see `SupabaseService.init()`).
+- **xcconfig files** (for future env-based builds):
+  - `Config/Shared.xcconfig` — shared settings
+  - `Config/Debug.xcconfig` — debug overrides
+  - `Config/Release.xcconfig` — release overrides
 
 ### Supabase Edge Functions env vars
 - `SUPABASE_URL`
@@ -65,6 +71,7 @@ This file is a **contract**. It must be updated **after every single change** to
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `GROQ_API_KEY` (LLM)
 - `GROQ_MODEL`, `GROQ_MODEL_RESOLVE` (LLM models)
+- `IMPORT_SECRET` — shared secret for bulk-import auth (pg_cron/pg_net can't send JWTs; verified via `x-import-secret` header)
 
 ### LLM flags
 - `public.system_flags` controls `llm_enabled` (on/off)
@@ -92,16 +99,18 @@ This section is auto-generated. Rebuild it after any repo change:
 node scripts/generate_app_state_inventory.js
 ```
 
-### iOS (Swift) files (count: 48)
+### iOS (Swift) files (count: 50)
 - `Kuro/ContentView.swift`
 - `Kuro/Design/KuroDesignSystem.swift`
 - `Kuro/KuroApp.swift`
 - `Kuro/Models/DiscoverBundle.swift`
 - `Kuro/Models/SupabaseModels.swift`
+- `Kuro/Services/AppleFMService.swift` *(new: Apple Foundation Models — on-device classification, disambiguation, synopsis condensation, collection search intent)*
 - `Kuro/Services/AppConfig.swift`
 - `Kuro/Services/ImagePipeline.swift`
 - `Kuro/Services/KuroDiskDetailCache.swift`
 - `Kuro/Services/KuroPerf.swift`
+- `Kuro/Services/NetworkMonitor.swift` *(new: NWPathMonitor-based connectivity tracking, @Environment injection, offline banner)*
 - `Kuro/Services/SupabaseRPCParams.swift`
 - `Kuro/Services/SupabaseService.swift`
 - `Kuro/Views/AuthView.swift`
@@ -140,7 +149,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/SettingsView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 68)
+### Supabase migrations (count: 80)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql` *(baseline schema SQL; already applied in production migration history; used for fresh project bootstrap)*
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -213,6 +222,12 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260209201000_clubs_rls_policies.sql` *(25 RLS policies + 3 SECURITY DEFINER helper functions for clubs)*
 - `supabase/migrations/20260209202000_clubs_rpcs.sql` *(6 RPCs + 3 helper functions for clubs)*
 - `supabase/migrations/20260209220000_club_analytics.sql` *(club_analytics table, log_club_event RPC, extended housekeeping)*
+- `supabase/migrations/20260209222528_fix_p0_p1_database_issues.sql` *(production-readiness: FK NOT NULL, RLS initplan optimization, anonymous write policies fixed, missing indexes, duplicate indexes removed)*
+- `supabase/migrations/20260209222542_move_pg_trgm_to_extensions_schema.sql` *(move pg_trgm extension to extensions schema)*
+- `supabase/migrations/20260209222659_fix_search_path_include_extensions.sql` *(add extensions schema to search_path for RPCs using pg_trgm)*
+- `supabase/migrations/20260209222728_fix_remaining_functions_search_path.sql` *(fix search_path on remaining functions)*
+- `supabase/migrations/20260209224945_fix_mirror_cron_contention.sql` *(per-batch lock keys, 120s TTL, 200 batch size, 15-min spacing for mirror cron jobs)*
+- `supabase/migrations/20260209225348_add_import_secret_to_cron_jobs.sql` *(add x-import-secret header to 4 pg_cron bulk import jobs)*
 
 ### Supabase Edge Functions (index.ts) (count: 8)
 - `supabase/functions/bulk-import-anime/index.ts`
@@ -262,9 +277,13 @@ node scripts/generate_app_state_inventory.js
 
 ### iOS app structure (`/Kuro`)
 - `Kuro/ContentView.swift` — app entry point + navigation/swipe pager + top header
-- `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching
+- `Kuro/KuroApp.swift` — `@main` entry, `scenePhase` lifecycle handling, `NetworkMonitor` + `SupabaseService` environment injection
+- `Kuro/Services/AppleFMService.swift` — Apple Foundation Models integration (on-device LLM: mode classification, disambiguation, synopsis condensation, collection search intent)
+- `Kuro/Services/NetworkMonitor.swift` — `NWPathMonitor` connectivity tracking, `@Environment` injection, offline banner
+- `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching, `fmService` (AppleFMService), `withRetry` helper
 - `Kuro/Views/` — SwiftUI UI components
 - `Kuro/Models/` — data models (Anime, Manga, UserList, etc.)
+- `Config/` — xcconfig files (Shared, Debug, Release) for env-based builds
 
 ### Feature-to-file map (frontend)
 - **Concierge UI**: `Kuro/Views/ConciergeView.swift` (inline chat, import, recommend UI, toasts)
@@ -278,6 +297,10 @@ node scripts/generate_app_state_inventory.js
 - **Toasts**: `Kuro/Views/KuroToast.swift`
 - **Image caching**: `Kuro/Views/KuroCachedAsyncImage.swift`, `Kuro/Services/ImagePipeline.swift`
 - **Profile**: `Kuro/Views/ProfileView.swift` (includes Clubs tab)
+- **Apple Foundation Models**: `Kuro/Services/AppleFMService.swift` (on-device: mode classification, disambiguation, synopsis condensation, NL collection search intent)
+- **Network monitoring**: `Kuro/Services/NetworkMonitor.swift` (connectivity state, offline banner in `KuroApp.swift`)
+- **Synopsis condenser**: `AnimeDetailView.swift`, `MangaDetailView.swift` call `fmService.condenseSynopsis()` for descriptions > 200 chars
+- **Next Up picks**: `NextUpSection` (in `AnimeDetailView.swift`), `MangaNextUpSection` (in `MangaDetailView.swift`) — personalized next episode/chapter recommendations
 
 ### Supabase
 - `supabase/migrations/` — schema, indexes, views, RPCs, cron jobs
@@ -316,6 +339,8 @@ node scripts/generate_app_state_inventory.js
   4. **Browse**
   5. **Search**
   6. **Clubs**
+- **Offline banner**: Monochrome "OFFLINE" text banner (9pt, tracked) appears at top of `RootView` when `networkMonitor.isConnected == false`. Injected as `@Environment` from `KuroApp`.
+- **App lifecycle**: `scenePhase` tracked in `KuroApp.swift` for background/foreground transitions.
 
 ### Header (top bar)
 - Left: **KURO** wordmark only (no concierge icon next to it).
@@ -382,6 +407,9 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 - **Concierge**: calls Edge Functions for parse/recommend/apply/undo; caches parse + recommend.
 - **Realtime**: subscribes to user-scoped channel to refresh list/collection data on changes.
 - **Local caches**: `discoverBundleCache`, `conciergeParseCache`, `conciergeRecommendCache` (in-memory, TTL-based).
+- **Apple FM integration**: `fmService` property (`AppleFMService` instance) provides on-device classification, disambiguation, synopsis condensation, and NL collection search intent parsing.
+- **Retry logic**: `withRetry` static helper (exponential backoff, max 2 retries, URLError-only) wrapping 5 key call sites: `fetchMoreAnime`, `fetchMoreManga`, `fetchDiscoverBundle`, `conciergeParse`, `conciergeRecommend`.
+- **Debug logging**: all 64+ `print()` statements wrapped in `#if DEBUG`.
 
 <!-- BEGIN AUTO-IOS-MAP -->
 
@@ -417,6 +445,35 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 
 <!-- END AUTO-IOS-MAP -->
+
+## 3.3) Apple Foundation Models (on-device LLM)
+
+**File:** `Kuro/Services/AppleFMService.swift`
+
+`AppleFMService` is a `@MainActor @Observable` class implementing the `FMProvider` protocol. It provides 4 on-device LLM capabilities via Apple Foundation Models (iOS 26+):
+
+1. **Mode classification** (`classifyMode`): Classifies a user's vibe request into one of the available concierge modes. Prompt lists all mode IDs + synonyms; output validated against allowed set. Timeout: 5s.
+2. **Disambiguation** (`disambiguate`): Picks the best candidate from an ambiguous title search. Considers year mentions, format, and context clues. Timeout: 8s.
+3. **Synopsis condensation** (`condenseSynopsis`): Generates a spoiler-free 2-sentence hook from a long description. Called by `AnimeDetailView` and `MangaDetailView` for descriptions > 200 chars. Cached per `mediaId` in `[Int: String]` dictionary. Timeout: 10s.
+4. **NL collection search** (`parseSearchIntent`): Extracts genre, status, year range, and keywords from natural language collection queries. Timeout: 5s.
+
+**Architecture details:**
+- 4 `@Generable` structs with `@Guide` annotations: `FMDisambiguationOutput`, `FMModeOutput`, `FMSynopsisOutput`, `FMSearchIntentOutput` (all reasoning-before-selection pattern)
+- `withFMTimeout` helper: uses `ThrowingTaskGroup` to race the FM call against a sleep timer; cancels loser
+- `StubFMProvider`: no-op implementation for devices/OS versions without Foundation Models support
+- Compile guards: `#if canImport(FoundationModels)` + `#available(iOS 26, *)`
+- Integrated into `SupabaseService.fmService` (property on both production and mock service)
+
+## 3.4) Network monitoring
+
+**File:** `Kuro/Services/NetworkMonitor.swift`
+
+`NetworkMonitor` is a `@MainActor @Observable` class using `NWPathMonitor` from the Network framework.
+
+- **Published state**: `isConnected` (Bool), `connectionType` (`.wifi`, `.cellular`, `.wired`, `.unknown`)
+- **Injection**: created in `KuroApp.swift`, injected as `@Environment` throughout the app
+- **Offline banner**: `RootView` in `KuroApp.swift` shows a monochrome "OFFLINE" text banner (9pt, tracked 1.2, black 45% opacity) when `isConnected == false`
+- **Lifecycle**: starts monitoring on init, cancels on deinit
 
 ---
 
@@ -541,6 +598,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - Concierge endpoints always derive user id from JWT (never accept raw user_id from client).
 - **Clubs RLS**: 25 policies across 7 tables. All access gated by membership via `is_club_member()` / `is_club_admin_or_owner()` / `is_club_owner()` (SECURITY DEFINER helpers to avoid infinite recursion on club_members self-query). club_members INSERT is managed via SECURITY DEFINER RPCs only (no direct policy). Rail lock enforced in `club_rail_items` INSERT policy (`cr.is_locked = false`).
 - **Club analytics RLS**: authenticated insert own (`user_id = auth.uid()`), service_role select only.
+- **Storage RLS** (P0-7): `media` bucket policies — read public (anon + authenticated), write/delete authenticated only, service_role full access. MIME types restricted to `image/jpeg`, `image/png`, `image/webp`, `image/avif`, `image/gif` (P0-6). File size limit: 5MB (P1-15).
 - **Security fixes**: `generate_invite_code()`, `sharing_level_rank()`, and all club helper functions use `SET search_path = public` to prevent search_path injection.
 
 ---
@@ -816,6 +874,24 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
 - Policies (2): `club_analytics_insert_own`, `club_analytics_select_service`
 - Indexes (2): `idx_club_analytics_created_at`, `idx_club_analytics_club_id`
 
+### supabase/migrations/20260209222528_fix_p0_p1_database_issues.sql
+- FK NOT NULL constraints added, RLS initplan optimization, anonymous write policies fixed, missing indexes added, duplicate indexes removed *(production-readiness P1-1 through P1-6)*
+
+### supabase/migrations/20260209222542_move_pg_trgm_to_extensions_schema.sql
+- Moves `pg_trgm` extension to extensions schema *(P1-10)*
+
+### supabase/migrations/20260209222659_fix_search_path_include_extensions.sql
+- Adds extensions schema to `search_path` for RPCs that use `pg_trgm` operators
+
+### supabase/migrations/20260209222728_fix_remaining_functions_search_path.sql
+- Fixes `search_path` on remaining functions that reference extensions
+
+### supabase/migrations/20260209224945_fix_mirror_cron_contention.sql
+- Alters 5 mirror cron jobs: 15-min spacing, batch size 200, `lockTtlSeconds:120` in payload *(P1-16)*
+
+### supabase/migrations/20260209225348_add_import_secret_to_cron_jobs.sql
+- Adds `x-import-secret` header to 4 pg_cron bulk import jobs *(P0-4)*
+
 
 <!-- END AUTO-MIGRATION-MAP -->
 
@@ -826,6 +902,7 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
 ### Deterministic-first
 - `concierge-parse` Edge Function
   - Parses user text (list or vibe)
+  - **Input limit**: max 5000 chars (P1-11); returns 400 if exceeded
   - Calls `search_titles` RPC to get candidates (now returns `cover_image_medium`)
   - Logs parse feedback when low-confidence
   - Supports: abbreviations (30+, e.g., AoT/JJK/HxH), seasons (`S2`, `Season 2`), episode markers (`ep 12`, `S2E5`), roman numerals, "completed/caught up" flags, year mentions (e.g., "HxH 2011")
@@ -852,9 +929,12 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
   - Negative genre suppression: `mapStrongGenreToModeId()` respects excluded genres
   - Auth + rate-limit parallelized via `Promise.all`
   - Primary + secondary rail building parallelized; `fetchMediaContext` (3 DB queries) parallelized; config+tag+boost loading parallelized
+  - **groqRouteMode removed** (production-readiness): LLM router stripped; all mode routing is deterministic via `scoreMode()`
+  - **Prompt injection sanitization** (P1-13): `sanitizeForLLM()` strips injection patterns (ignore/disregard instructions, system: prefixes, role-play commands, markdown/HTML code blocks) from user text before LLM interpolation in `groqNarrate` and `groqResolve`
 
 ### Apply + Undo
 - `concierge-apply` writes user list items
+  - **Input limit**: max 100 items per request (P1-12); returns 400 if exceeded
   - Supports `action` field: `add` (new entry), `update` (modify existing), `skip` (no-op)
   - TOCTOU protection via `expectedExisting` field
   - Stores `previous_values` for updates (enables undo restoration)
@@ -892,7 +972,7 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
 ### Edge Function contracts (concierge)
 **concierge-parse** (deterministic parser)
 Request JSON:
-- `text` (string)
+- `text` (string, **max 5000 chars** — P1-11)
 - `scope` (`anime` | `manga` | `both`, default `both`)
 - `limitPerItem` (int, default 10)
 - Warmup: `?warmup=true` query param returns 204 immediately
@@ -924,7 +1004,7 @@ Response JSON:
 
 **concierge-apply** (write to list)
 Request JSON:
-- `items[]` each with `mediaType`, `mediaId`, `status`, optional progress fields, `action` (`add`/`update`/`skip`), `expectedExisting` (TOCTOU guard)
+- `items[]` each with `mediaType`, `mediaId`, `status`, optional progress fields, `action` (`add`/`update`/`skip`), `expectedExisting` (TOCTOU guard) — **max 100 items** (P1-12)
 
 Response JSON:
 - `sessionId`
@@ -946,13 +1026,15 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ### bulk-import-anime
 - Source: `supabase/functions/bulk-import-anime/index.ts`
-- Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `IMPORT_SECRET`
+- **Auth** (P0-4): verifies `x-import-secret` header against `IMPORT_SECRET` env var (pg_cron/pg_net can't send JWTs)
 - RPCs: `acquire_import_lock`, `release_import_lock`
 - Tables touched: `anime`, `anime_characters`, `anime_staff`, `anime_studios`, `anime_tags`, `characters`, `episodes`, `external_links`, `import_runs`, `import_state`, `staff`, `studios`, `tags`
 
 ### bulk-import-manga
 - Source: `supabase/functions/bulk-import-manga/index.ts`
-- Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `IMPORT_SECRET`
+- **Auth** (P0-4): verifies `x-import-secret` header against `IMPORT_SECRET` env var (pg_cron/pg_net can't send JWTs)
 - RPCs: `acquire_import_lock`, `release_import_lock`
 - Tables touched: `authors`, `chapters`, `characters`, `external_links`, `import_runs`, `import_state`, `manga`, `manga_authors`, `manga_characters`, `manga_staff`, `manga_tags`, `staff`, `tags`, `volumes`
 
@@ -989,8 +1071,9 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 ### mirror-images
 - Source: `supabase/functions/mirror-images/index.ts`
 - Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
-- RPCs: `acquire_import_lock`
+- RPCs: `acquire_import_lock`, `release_import_lock`
 - Tables touched: `anime`, `characters`, `manga`, `mirror_runs`, `staff`
+- **Lock fix** (P1-14/P1-16): lock release in `finally` block (was missing on error paths). Per-batch lock keys derived from `mediaTypes:offset` (e.g. `mirror-images:ANIME,MANGA:0`). Lock TTL reduced from 1800s to 120s. Batch size 200 (was 500). Cron jobs spaced 15 min apart (was 10 min).
 
 
 <!-- END AUTO-EDGE-MAP -->
@@ -1029,9 +1112,17 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
   - Function: `public.concierge_housekeeping()`
   - Cleans: rate limit buckets, LLM usage, old import sessions, concierge runs, feedback, mode cache, **club_analytics** (90-day retention)
 
+**Mirror cron jobs** (P1-16: fixed contention — was 58% skip rate):
+- 5 `pg_cron` mirror jobs, spaced 15 min apart (02:00, 02:15, 02:30, 02:45, 03:00)
+- Batch size: 200 (was 500), per-batch lock keys, 120s TTL (was 1800s)
+
+**Bulk import cron jobs** (P0-4: auth added):
+- 4 `pg_cron` bulk import jobs send `x-import-secret` header for auth
+- `IMPORT_SECRET` set as Supabase secret; pg_cron jobs updated via migration `20260209225348_add_import_secret_to_cron_jobs.sql`
+
 **Other periodic operations**
-- Mirror images: manual or external scheduler calling `mirror-images` function
-- Bulk AniList imports: run via scripts or edge functions manually
+- Mirror images can also be run manually via `mirror-images` edge function
+- Bulk AniList imports can also be run via scripts or edge functions manually
 
 ---
 
@@ -1083,6 +1174,14 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
   - collection feeds
   - upcoming airing windows
 
+### Retry logic (P1-18)
+- `SupabaseService.withRetry` — static helper with exponential backoff (max 2 retries, URLError-only; non-network errors thrown immediately)
+- Wrapped call sites: `fetchMoreAnime`, `fetchMoreManga`, `fetchDiscoverBundle`, `conciergeParse`, `conciergeRecommend`
+
+### Apple FM synopsis cache
+- `AppleFMService.synopsisCache` — `[Int: String]` dictionary keyed on `mediaId` (or `description.hashValue` fallback)
+- Populated lazily on first detail view visit; survives navigation but not app restart
+
 ### Server performance
 - Keyset pagination RPCs for collection + search
 - Indexes added in migrations (see `20260203223000_scale_perf_bundle_and_indexes.sql`)
@@ -1113,6 +1212,10 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - A small **chat icon** appears next to the section title **only on Concierge page**.
 - Profile is a **top-right menu** (not a dedicated page).
 - **Clubs** is the 6th page in the swipe pager. Profile sheet also has a "Clubs" shortcut.
+- **Detail views** (AnimeDetailView, MangaDetailView):
+  - **Synopsis condenser**: descriptions > 200 chars are condensed to 2-sentence hooks via `fmService.condenseSynopsis()` on supported devices; falls back to full description on non-FM devices.
+  - **Next Up picks**: `NextUpSection` (anime) and `MangaNextUpSection` (manga) show personalized next episode/chapter recommendations based on user progress.
+- **Offline banner**: monochrome "OFFLINE" text at top of `RootView` when `networkMonitor.isConnected == false`.
 
 ---
 
@@ -1147,6 +1250,35 @@ Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in 
 
 ## 14) Change Log (append-only)
 
+- 2026-02-09: **Production Readiness + Apple FM + Network Monitor** —
+  - **Apple Foundation Models service** (new): `Kuro/Services/AppleFMService.swift` — `@MainActor @Observable` class implementing `FMProvider` protocol. 4 capabilities: mode classification (5s timeout), disambiguation (8s timeout), synopsis condensation (10s timeout), NL collection search intent parsing (5s timeout). 4 `@Generable` structs with `@Guide` annotations (`FMDisambiguationOutput`, `FMModeOutput`, `FMSynopsisOutput`, `FMSearchIntentOutput`). `StubFMProvider` for non-FM devices. `withFMTimeout` helper using `ThrowingTaskGroup`. Synopsis cache `[Int: String]`. Guards: `#if canImport(FoundationModels)` + `#available(iOS 26, *)`. Integrated into `SupabaseService.fmService`.
+  - **Synopsis condenser**: `AnimeDetailView` + `MangaDetailView` call `fmService.condenseSynopsis()` for descriptions > 200 chars. Shows spoiler-free 2-sentence hook on supported devices.
+  - **NL collection search**: `parseSearchIntent()` extracts genre/status/year/keywords from natural language queries for collection filtering.
+  - **Next Up picks**: `NextUpSection` (anime) and `MangaNextUpSection` (manga) structs in detail views showing personalized next episode/chapter recommendations.
+  - **NetworkMonitor** (new): `Kuro/Services/NetworkMonitor.swift` — `@MainActor @Observable` class using `NWPathMonitor`. Tracks `isConnected` + `connectionType` (wifi/cellular/wired/unknown). Injected as `@Environment` throughout app. Monochrome "OFFLINE" banner in `RootView`.
+  - **App lifecycle**: `scenePhase` handling added to `KuroApp.swift` (P0-3).
+  - **P0 production blockers fixed**:
+    - P0-2: Network handling (NetworkMonitor)
+    - P0-3: App lifecycle (scenePhase in KuroApp.swift)
+    - P0-4: Bulk import auth (`IMPORT_SECRET` env var + `x-import-secret` header in bulk-import-anime/manga)
+    - P0-6: Storage MIME types restricted to jpeg/png/webp/avif/gif
+    - P0-7: Storage RLS policies (read public, write/delete authenticated, service_role full)
+  - **P1 production blockers fixed**:
+    - P1-1 through P1-6: DB FK NOT NULL constraints, RLS initplan optimization, anonymous write policies fixed, missing indexes added, duplicate indexes removed (migration: `fix_p0_p1_database_issues`)
+    - P1-10: pg_trgm moved to extensions schema (migration: `move_pg_trgm_to_extensions_schema`)
+    - P1-11: concierge-parse 5000 char text limit
+    - P1-12: concierge-apply 100 item array cap
+    - P1-13: LLM prompt injection sanitization (`sanitizeForLLM()` in concierge-recommend: strips injection patterns, markdown/HTML, role-play commands)
+    - P1-14: mirror-images lock release in finally block (was missing on error paths)
+    - P1-15: Storage 5MB file size limit
+    - P1-16: Mirror cron contention fixed — per-batch lock keys (`mirror-images:ANIME,MANGA:0`), 120s TTL (was 1800s), 200 batch size (was 500), 15-min spacing (was 10)
+    - P1-17: All 64 `print()` statements wrapped in `#if DEBUG`
+    - P1-18: Retry logic (`SupabaseService.withRetry` — exponential backoff, URLError-only, 5 key call sites: fetchMoreAnime, fetchMoreManga, fetchDiscoverBundle, conciergeParse, conciergeRecommend)
+    - P1-19: `UIScreen.main` deprecation fixed (removed all references)
+  - **Edge function changes**: concierge-recommend: removed `groqRouteMode` + LLM router (all routing deterministic); `sanitizeForLLM()` added. concierge-parse: 5000 char limit. concierge-apply: 100 item cap. bulk-import-anime/manga: `IMPORT_SECRET` header auth. mirror-images: lock release fix + per-batch keys + 120s TTL.
+  - **DB migrations applied**: `fix_p0_p1_database_issues`, `move_pg_trgm_to_extensions_schema`, `fix_search_path_include_extensions`, `fix_remaining_functions_search_path`, `fix_mirror_cron_contention`, `add_import_secret_to_cron_jobs`.
+  - **Infrastructure**: xcconfig files created (`Config/Shared.xcconfig`, `Config/Debug.xcconfig`, `Config/Release.xcconfig`). `AppConfig.swift` reads from Info.plist/env with hardcoded anon key fallback. `IMPORT_SECRET` set as Supabase secret. 4 pg_cron bulk import jobs updated with `x-import-secret` header.
+  - **Mock SupabaseService**: cleaned up, removed dead type references, added `fmService` property.
 - 2026-02-09: **Clubs + Import Reconciliation + Quality Gates + Phase 5 Polish** —
   - **Clubs feature (new)**: Private groups (2-20 members) with curated rails, polls, and privacy-by-design sharing levels. 7 new tables (`clubs`, `club_members`, `club_rails`, `club_rail_items`, `club_polls`, `club_poll_options`, `club_votes`) with full RLS (25 policies + 4 helper functions). 6 RPCs (`create_club`, `join_club`, `leave_club`, `fetch_club_bundle`, `add_club_rail_item`, `cast_club_vote`) + 3 helper functions (`is_club_member`, `is_club_admin_or_owner`, `sharing_level_rank`) + `generate_invite_code`. iOS: `ClubsView` (6th page in swipe pager) + `ClubDetailView` (3-tab: Rails/This Week/Polls) + `ClubActivitySection` on media detail views + Create/Join sheets + Settings sheet. Migrations: `20260209200000_clubs_foundation.sql`, `20260209201000_clubs_rls_policies.sql`, `20260209202000_clubs_rpcs.sql`.
   - **Import reconciliation**: Detects existing entries during concierge parse and proposes Add/Update/Skip actions. `concierge-parse` returns `existing_entry` per item after candidate resolution. `concierge-apply` respects `action` field (add/update/skip) with TOCTOU protection via `expectedExisting`. Undo for updates restores `previous_values` snapshot. `concierge-undo` handles add (delete), update (restore previous_values), skip (no-op). iOS `ConciergeConfirmBubble` shows grouped sections (WILL ADD / WILL UPDATE / WILL SKIP). Migration: `20260209135229_import_reconciliation.sql` (adds `import_action` + `previous_values` columns to `import_session_items`). Files: `ConciergeView.swift`, `concierge-parse/index.ts`, `concierge-apply/index.ts`, `concierge-undo/index.ts`.
@@ -1201,6 +1333,9 @@ Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in 
 - **User ID type mismatch**: Club tables use `user_id UUID REFERENCES auth.users(id)`, but legacy tables (`anime_user_lists`, `manga_user_lists`) use `user_id TEXT`. All joins between club_members and user-list tables must cast: `cm.user_id::text = aul.user_id`. A future migration may unify them.
 - Materialized view definitions in the foundation migration are inferred from usage (discover_bundle RPC + Swift client). If the remote MV definitions differ (e.g., different LIMIT, extra WHERE clauses), update the foundation to match.
 - v8 modes (23 total) are deployed; if you add new modes later, deploy with `supabase db push --linked` + `supabase functions deploy concierge-recommend --linked`.
+- **Hardcoded Supabase secret key** in `Kuro/Services/SupabaseService.swift:27` — allowed through GitHub push protection temporarily. Must rotate the key and move to env/Info.plist/xcconfig before shipping.
+- **Apple FM availability**: `AppleFMService` gracefully degrades on non-FM devices via `StubFMProvider`. The `condenseSynopsis` cache is in-memory only (lost on app restart); consider persisting to disk if cache hit rates are low.
+- **xcconfig files** (`Config/`) are created but not yet wired into Xcode build configurations. Wiring them is a prerequisite for removing hardcoded keys.
 
 ---
 

@@ -146,7 +146,9 @@ struct KuroMainView: View {
 	                .onEnded { value in
 	                    let start = value.startLocation
 	                    #if os(iOS)
-	                    let rootWidth = UIScreen.main.bounds.width
+	                    let rootWidth: CGFloat = (UIApplication.shared.connectedScenes
+	                        .compactMap { $0 as? UIWindowScene }
+	                        .first?.screen.bounds.width) ?? 393
 	                    #else
 	                    let rootWidth: CGFloat = 1024
 	                    #endif

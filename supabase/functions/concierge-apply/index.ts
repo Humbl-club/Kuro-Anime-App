@@ -145,6 +145,9 @@ serve(async (req) => {
       );
     }
     const items: any[] = Array.isArray(body?.items) ? body.items : [];
+    if (!Array.isArray(body?.items) || items.length > 100) {
+      return json({ error: "Too many items (max 100)" }, { status: 400 });
+    }
     if (items.length === 0) return json({ success: true, applied: 0, sessionId: null, errors: [] });
 
     // Create an import session so we can support undo.
