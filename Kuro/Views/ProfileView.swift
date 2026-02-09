@@ -2,31 +2,66 @@ import SwiftUI
 
 // Dedicated profile/settings page (moved out of the header to keep the top bar clean).
 struct ProfileView: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(SupabaseService.self) private var supabaseService
+    @State private var isSyncing: Bool = false
+    @State private var showClubs: Bool = false
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 22) {
-                header
-                    .padding(.top, 18)
+        ZStack {
+            ProfileBackdrop()
+                .ignoresSafeArea()
 
-                stats
-                    .padding(.horizontal, 20)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: KuroDesignSpacing.lg) {
+                    header
+                        .padding(.top, KuroDesignSpacing.md)
 
-                Divider()
-                    .overlay(Color.black.opacity(0.08))
-                    .padding(.horizontal, 20)
+                    stats
+                        .padding(.horizontal, 20)
 
-                actions
-                    .padding(.horizontal, 20)
+                    Divider()
+                        .overlay(Color.black.opacity(0.08))
+                        .padding(.horizontal, 20)
 
-                Spacer(minLength: 24)
+                    actions
+                        .padding(.horizontal, 20)
+
+                    footer
+                        .padding(.top, 6)
+
+                    Spacer(minLength: 24)
+                }
+                .padding(.bottom, 48)
             }
-            .padding(.bottom, 48)
         }
-        .background(Color.white)
         .scrollContentBackground(.hidden)
         .transaction { $0.animation = nil }
+        .overlay(alignment: .topTrailing) {
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                dismiss()
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .light))
+                    .foregroundColor(.kuroBlack80)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        Circle()
+                            .fill(Color.kuroSecondaryBackground.opacity(0.92))
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+                            )
+                    )
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 10)
+            .padding(.trailing, 14)
+        }
+        .sheet(isPresented: $showClubs) {
+            ClubsView()
+        }
     }
 
     private var header: some View {
@@ -52,19 +87,25 @@ struct ProfileView: View {
                         Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
                     )
 
-                Text("M")
-                    .font(.system(size: 34, weight: .light))
-                    .foregroundColor(.black.opacity(0.86))
+                Text(supabaseService.currentUserInitial)
+                    .font(.kuroFeature(weight: .light))
+                    .foregroundColor(.kuroBlack80)
             }
 
-            Text("KURO USER")
-                .font(.system(size: 15, weight: .semibold))
-                .tracking(1.2)
-                .foregroundColor(.black.opacity(0.88))
+            Text((supabaseService.currentUserEmail == nil ? "GUEST" : "KURO USER").uppercased())
+                .font(.kuroCaption(weight: .medium))
+                .tracking(2.0)
+                .foregroundColor(.kuroBlack80)
 
-            Text("Discover, track, enjoy.")
-                .font(.system(size: 12, weight: .regular))
-                .foregroundColor(.black.opacity(0.52))
+            if let email = supabaseService.currentUserEmail, !email.isEmpty {
+                Text(email)
+                    .font(.kuroBody(weight: .light))
+                    .foregroundColor(.kuroBlack60)
+            } else {
+                Text("Discover, track, enjoy.")
+                    .font(.kuroBody(weight: .light))
+                    .foregroundColor(.kuroBlack60)
+            }
         }
         .frame(maxWidth: .infinity)
     }
@@ -75,29 +116,30 @@ struct ProfileView: View {
         let doneCount = supabaseService.userLists.filter { $0.status == .completed }.count
 
         return HStack(spacing: 14) {
-            StatBox(
-                value: "\(animeCount)",
-                label: "ANIME"
-            )
-            StatBox(
-                value: "\(mangaCount)",
-                label: "MANGA"
-            )
-            StatBox(
-                value: "\(doneCount)",
-                label: "DONE"
-            )
+            ProfileStatTile(value: "\(animeCount)", label: "ANIME")
+            ProfileStatTile(value: "\(mangaCount)", label: "MANGA")
+            ProfileStatTile(value: "\(doneCount)", label: "DONE")
         }
     }
 
     private var actions: some View {
         VStack(spacing: 12) {
             ProfileActionRow(
+                icon: "person.2",
+                title: "Clubs",
+                subtitle: "Watch together with friends"
+            ) {
+                showClubs = true
+            }
+
+            ProfileActionRow(
                 icon: "arrow.triangle.2.circlepath",
                 title: "Sync Data",
                 subtitle: "Refresh your lists & rails"
             ) {
                 Task {
+                    isSyncing = true
+                    defer { isSyncing = false }
                     await supabaseService.fetchUserLists()
                     await supabaseService.fetchCollectionItems()
                     await supabaseService.fetchUpcomingForUser(days: 7)
@@ -126,7 +168,80 @@ struct ProfileView: View {
             ) {
                 Task { await supabaseService.signOut() }
             }
+
+            if isSyncing {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .scaleEffect(0.9)
+                        .tint(.kuroBlack60)
+                    Text("Syncing…")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.kuroBlack60)
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 6)
+                .padding(.horizontal, 8)
+            }
         }
+    }
+
+    private var footer: some View {
+        let version = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "?"
+        let build = (Bundle.main.infoDictionary?["CFBundleVersion"] as? String) ?? "?"
+
+        return Text("KURO  •  v\(version) (\(build))")
+            .font(.kuroMicro(weight: .light))
+            .tracking(1.6)
+            .foregroundColor(.kuroBlack30)
+    }
+}
+
+private struct ProfileBackdrop: View {
+    var body: some View {
+        ZStack {
+            Color.kuroBackground
+
+            // Subtle "editorial" atmosphere so glass surfaces read as intentional, not flat.
+            Circle()
+                .fill(Color.black.opacity(0.035))
+                .frame(width: 420, height: 420)
+                .blur(radius: 70)
+                .offset(x: -180, y: -260)
+
+            Circle()
+                .fill(Color.black.opacity(0.025))
+                .frame(width: 520, height: 520)
+                .blur(radius: 90)
+                .offset(x: 220, y: -180)
+        }
+    }
+}
+
+private struct ProfileStatTile: View {
+    let value: String
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Text(value)
+                .font(.kuroHeadline(weight: .light))
+                .foregroundColor(.kuroBlack80)
+
+            Text(label)
+                .font(.kuroMicro(weight: .medium))
+                .tracking(2.2)
+                .foregroundColor(.kuroBlack30)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.kuroSecondaryBackground.opacity(0.9))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
+                )
+        )
     }
 }
 
@@ -145,16 +260,16 @@ private struct ProfileActionRow: View {
             HStack(spacing: 14) {
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: .regular))
-                    .foregroundColor(isDestructive ? .red.opacity(0.85) : .black.opacity(0.65))
+                    .foregroundColor(isDestructive ? .red.opacity(0.85) : .kuroBlack60)
                     .frame(width: 28)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(isDestructive ? .red.opacity(0.92) : .black.opacity(0.9))
+                        .font(.kuroBody(weight: .regular))
+                        .foregroundColor(isDestructive ? .red.opacity(0.92) : .kuroBlack80)
                     Text(subtitle)
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(.black.opacity(0.52))
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.kuroBlack60)
                 }
 
                 Spacer()

@@ -16,6 +16,7 @@ struct MangaDetailView: View {
     
     var body: some View {
         GeometryReader { geometry in
+            let safeTop = geometry.safeAreaInsets.top
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     GeometryReader { proxy in
@@ -67,6 +68,8 @@ struct MangaDetailView: View {
                         if !similar.isEmpty {
                             MangaSimilarSection(title: "MORE LIKE THIS", items: similar)
                         }
+
+                        ClubActivitySection(mediaId: manga.id, mediaType: "MANGA")
                     }
                     .padding(.horizontal, ResponsiveLayout.padding())
                     .padding(.top, KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width))
@@ -83,7 +86,7 @@ struct MangaDetailView: View {
             .overlay(alignment: .topLeading) {
                 // Custom Back Button
                 BackButton(dismiss: dismiss)
-                    .padding(.top, KuroScreen.safeAreaTop + KuroSpacing.sm)
+                    .padding(.top, safeTop + KuroSpacing.md)
                     .padding(.leading, ResponsiveLayout.padding())
             }
             .safeAreaInset(edge: .bottom) {
@@ -112,6 +115,10 @@ struct MangaDetailView: View {
                 }
             }
         }
+        // Same full-bleed fix as AnimeDetailView (prevents the sheet's top safe-area cap from
+        // showing through above the hero image).
+        .background(Color.kuroBackground.ignoresSafeArea())
+        .ignoresSafeArea(edges: .top)
         #if os(iOS)
         .toolbar(.hidden, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)

@@ -34,8 +34,20 @@ const { createClient } = require("@supabase/supabase-js");
 
 const JSON_MODE = process.argv.includes("--json");
 
-function extractSupabaseConfigFromSwift() {
+function getSupabaseConfig() {
+  // Prefer explicit env vars (no coupling to app source)
+  const envUrl = process.env.SUPABASE_URL;
+  const envKey = process.env.SUPABASE_ANON_KEY;
+  if (envUrl && envKey) {
+    return { url: envUrl, anonKey: envKey };
+  }
+
+  // Fallback: extract from Swift source (legacy, for local dev convenience)
   const swiftPath = path.join(__dirname, "..", "Kuro", "Services", "SupabaseService.swift");
+  if (!fs.existsSync(swiftPath)) {
+    throw new Error("Set SUPABASE_URL and SUPABASE_ANON_KEY env vars, or run from the repo root.");
+  }
+  console.warn("WARNING: Extracting Supabase config from Swift source. Set SUPABASE_URL + SUPABASE_ANON_KEY env vars instead.");
   const text = fs.readFileSync(swiftPath, "utf8");
   const urlMatch = text.match(/fallbackURL\s*=\s*URL\(string:\s*"([^"]+)"\)/);
   const keyMatch = text.match(/fallbackKey\s*=\s*"([^"]+)"/);
@@ -43,7 +55,7 @@ function extractSupabaseConfigFromSwift() {
   const keyFallback = text.match(new RegExp("eyJhbGci[0-9A-Za-z._-]+"));
   const url = urlMatch?.[1] ?? (urlFallback ? urlFallback[0] : null);
   const anonKey = keyMatch?.[1] ?? (keyFallback ? keyFallback[0] : null);
-  if (!url || !anonKey) throw new Error("Could not extract `fallbackURL` / `fallbackKey` from SupabaseService.swift");
+  if (!url || !anonKey) throw new Error("Could not extract config. Set SUPABASE_URL + SUPABASE_ANON_KEY env vars.");
   return { url, anonKey };
 }
 
@@ -167,7 +179,7 @@ function log(msg) {
 }
 
 async function main() {
-  const { url, anonKey } = extractSupabaseConfigFromSwift();
+  const { url, anonKey } = getSupabaseConfig();
   const supabase = createClient(url, anonKey, { auth: { persistSession: false } });
 
   const { data: rails, error: railErr } = await supabase

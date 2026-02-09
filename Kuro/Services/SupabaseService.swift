@@ -2839,6 +2839,7 @@ class SupabaseService {
         let score: Double
         let year: Int?
         let format: String?
+        let cover_image_medium: String?
     }
 
     struct ConciergeParseItemParsed: Decodable, Sendable {
@@ -2855,12 +2856,24 @@ class SupabaseService {
         let yearMention: Int?
     }
 
+    struct ConciergeExistingEntry: Decodable, Sendable {
+        let media_type: String
+        let media_id: Int
+        let status: String
+        let progress_episodes: Int?
+        let progress_chapters: Int?
+        let progress_volumes: Int?
+        let rating: Int?
+        let updated_at: String
+    }
+
     struct ConciergeParseItem: Decodable, Sendable, Identifiable {
         let raw: String
         let normalized: String
         let parsed: ConciergeParseItemParsed
         let candidates: [ConciergeCandidate]
         let candidateError: String?
+        let existing_entry: ConciergeExistingEntry?
 
         var id: String { raw + "|" + normalized }
     }
@@ -2869,6 +2882,24 @@ class SupabaseService {
         let success: Bool
         let userId: String?
         let items: [ConciergeParseItem]
+    }
+
+    /// Fire-and-forget edge function warmup — warms the Deno isolate without auth/rate-limit.
+    func conciergeWarmup() async {
+        do {
+            let client = self.client
+            _ = try await Task.detached(priority: .background) {
+                let data = try JSONSerialization.data(withJSONObject: ["text": ""], options: [])
+                let options = FunctionInvokeOptions(
+                    method: .post,
+                    query: [URLQueryItem(name: "warmup", value: "true")],
+                    body: data
+                )
+                let _: [String: Bool] = try await client.functions.invoke("concierge-parse", options: options)
+            }.value
+        } catch {
+            // Best-effort warmup — silently ignore failures
+        }
     }
 
     func conciergeParse(text: String, scope: ConciergeScope = .both, limitPerItem: Int = 10) async throws -> ConciergeParseResponse {
@@ -2918,6 +2949,16 @@ class SupabaseService {
             let mediaType: String
             let mediaId: Int
             let status: String
+            let action: String?
+        }
+        struct Skipped: Decodable, Sendable {
+            let mediaType: String
+            let mediaId: Int
+        }
+        struct Conflict: Decodable, Sendable {
+            let mediaType: String?
+            let mediaId: Int?
+            let error: String
         }
         struct ApplyError: Decodable, Sendable {
             let mediaType: String?
@@ -2925,6 +2966,8 @@ class SupabaseService {
             let error: String
         }
         let applied: [Applied]?
+        let skipped: [Skipped]?
+        let conflicts: [Conflict]?
         let errors: [ApplyError]?
     }
 
@@ -2977,76 +3020,6 @@ class SupabaseService {
         }
     }
 
-    struct ConciergeResolveResponse: Decodable, Sendable {
-        let success: Bool
-        struct Choice: Decodable, Sendable {
-            let i: Int
-            let pick: Int
-            let confidence: Double
-            let reason: String?
-            struct Chosen: Decodable, Sendable {
-                let id: String
-                let title: String
-                let year: Int?
-                let format: String?
-            }
-            let chosen: Chosen?
-        }
-        let choices: [Choice]?
-        let error: String?
-    }
-
-    func conciergeResolve(items: [ConciergeParseItem], maxCandidates: Int = 6) async throws -> ConciergeResolveResponse {
-        let payloadItems: [[String: Any]] = items.prefix(20).map { item in
-            let parsed: [String: Any] = [
-                "mediaTypeHint": item.parsed.mediaTypeHint as Any,
-                "status": item.parsed.status as Any,
-                "progressEpisodes": item.parsed.progressEpisodes as Any,
-                "progressChapters": item.parsed.progressChapters as Any,
-                "progressVolumes": item.parsed.progressVolumes as Any,
-                "seasonNumber": item.parsed.seasonNumber as Any,
-                "episodeInSeason": item.parsed.episodeInSeason as Any,
-                "caughtUp": item.parsed.caughtUp as Any,
-                "lastEpisode": item.parsed.lastEpisode as Any,
-                "completed": item.parsed.completed as Any,
-                "yearMention": item.parsed.yearMention as Any,
-            ]
-            let cands: [[String: Any]] = item.candidates.prefix(max(2, min(10, maxCandidates))).map { c in
-                var d: [String: Any] = [
-                    "media_type": c.media_type,
-                    "media_id": c.media_id,
-                    "variant_type": c.variant_type,
-                    "title_raw": c.title_raw,
-                    "score": c.score,
-                ]
-                if let y = c.year { d["year"] = y }
-                if let f = c.format { d["format"] = f }
-                return d
-            }
-            return [
-                "raw": item.raw,
-                "normalized": item.normalized,
-                "parsed": parsed,
-                "candidates": cands,
-            ]
-        }
-
-        let payload: [String: Any] = [
-            "items": payloadItems,
-            "maxCandidates": max(2, min(10, maxCandidates)),
-        ]
-        do {
-            let client = self.client
-            let task = Task<ConciergeResolveResponse, Error>.detached(priority: .userInitiated) {
-                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-                let options = FunctionInvokeOptions(method: .post, body: data)
-                return try await client.functions.invoke("concierge-resolve", options: options)
-            }
-            return try await task.value
-        } catch {
-            throw translateConciergeFunctionError(error)
-        }
-    }
 
     struct ConciergeRecommendResponse: Decodable, Sendable {
         let success: Bool
@@ -3320,6 +3293,275 @@ class SupabaseService {
         } catch {
             print("❌ Failed to update rating: \(error)")
         }
+    }
+
+    // MARK: - Clubs
+
+    struct ClubInfo: Decodable, Sendable {
+        let id: String
+        let name: String
+        let description: String?
+        let sharing_level: String
+        let max_members: Int
+        let is_archived: Bool
+        let invite_code: String?
+        let created_at: String
+    }
+
+    struct ClubMember: Decodable, Sendable {
+        let user_id: String
+        let role: String
+        let sharing_level: String
+        let joined_at: String
+    }
+
+    struct ClubRailItem: Decodable, Sendable, Identifiable {
+        let id: String
+        let media_type: String
+        let media_id: Int
+        let sort_order: Int
+        let note: String?
+        let added_by: String
+        let title_display: String
+        let cover_image_medium: String?
+        let average_score: Int?
+        let year: Int?
+        let format: String?
+        let my_status: String?
+        let my_progress: Int?
+        let my_rating: Int?
+        let member_status_counts: [String: Int]?
+        let member_statuses: [MemberItemStatus]?
+
+        struct MemberItemStatus: Decodable, Sendable {
+            let user_id: String
+            let status: String?
+            let progress: Int?
+        }
+    }
+
+    struct ClubRail: Decodable, Sendable, Identifiable {
+        let id: String
+        let title: String
+        let description: String?
+        let is_locked: Bool
+        let sort_order: Int
+        let created_by: String
+        let items: [ClubRailItem]
+    }
+
+    struct ClubPollOption: Decodable, Sendable, Identifiable {
+        let id: String
+        let label: String
+        let media_type: String?
+        let media_id: Int?
+        let sort_order: Int
+        let vote_count: Int
+    }
+
+    struct ClubPoll: Decodable, Sendable, Identifiable {
+        let id: String
+        let question: String
+        let is_closed: Bool
+        let closes_at: String?
+        let created_by: String
+        let created_at: String
+        let options: [ClubPollOption]
+        let my_vote_option_id: String?
+    }
+
+    struct ClubBundle: Decodable, Sendable {
+        let club: ClubInfo
+        let members: [ClubMember]
+        let my_role: String
+        let my_sharing_level: String
+        let rails: [ClubRail]
+        let polls: [ClubPoll]
+        let member_count: Int
+    }
+
+    struct CreateClubResponse: Decodable, Sendable {
+        let club_id: String
+        let invite_code: String
+        let name: String
+    }
+
+    struct JoinClubResponse: Decodable, Sendable {
+        let club_id: String
+        let club_name: String
+        let role: String
+    }
+
+    struct SimpleSuccessResponse: Decodable, Sendable {
+        let success: Bool
+    }
+
+    struct AddRailItemResponse: Decodable, Sendable {
+        let item_id: String
+        let sort_order: Int
+    }
+
+    // Lightweight row for "My Clubs" list (fetched via direct table query)
+    struct ClubListRow: Decodable, Sendable, Identifiable {
+        let id: String
+        let name: String
+        let sharing_level: String
+        let is_archived: Bool
+        let created_at: String
+    }
+
+    // Club bundle cache (5 min TTL per spec)
+    private var clubBundleCache: [String: TimedCache<ClubBundle>] = [:]
+    private var clubBundleInFlight: [String: Task<ClubBundle, Error>] = [:]
+    var myClubs: [ClubListRow] = []
+
+    func fetchMyClubs() async {
+        guard let userId = await currentUserIdString() else { return }
+        do {
+            struct MembershipRow: Decodable { let club_id: String }
+            let memberships: [MembershipRow] = try await client
+                .from("club_members")
+                .select("club_id")
+                .eq("user_id", value: userId)
+                .execute()
+                .value
+
+            let clubIds = memberships.map(\.club_id)
+            guard !clubIds.isEmpty else {
+                myClubs = []
+                return
+            }
+
+            // Fetch the club rows for these IDs
+            let clubs: [ClubListRow] = try await client
+                .from("clubs")
+                .select("id, name, sharing_level, is_archived, created_at")
+                .in("id", values: clubIds)
+                .eq("is_archived", value: false)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+
+            myClubs = clubs
+        } catch {
+            print("❌ fetchMyClubs: \(error)")
+        }
+    }
+
+    func createClub(name: String, description: String? = nil, sharingLevel: String = "status") async throws -> CreateClubResponse {
+        let params = RPCCreateClubParams(p_name: name, p_description: description, p_sharing_level: sharingLevel)
+        let resp: CreateClubResponse = try await client
+            .rpc("create_club", params: params)
+            .execute()
+            .value
+        await fetchMyClubs()
+        return resp
+    }
+
+    func joinClub(inviteCode: String) async throws -> JoinClubResponse {
+        let params = RPCJoinClubParams(p_invite_code: inviteCode)
+        let resp: JoinClubResponse = try await client
+            .rpc("join_club", params: params)
+            .execute()
+            .value
+        await fetchMyClubs()
+        return resp
+    }
+
+    func leaveClub(clubId: String) async throws {
+        let params = RPCClubIdParams(p_club_id: clubId)
+        let _: SimpleSuccessResponse = try await client
+            .rpc("leave_club", params: params)
+            .execute()
+            .value
+        clubBundleCache.removeValue(forKey: clubId)
+        await fetchMyClubs()
+    }
+
+    func fetchClubBundle(clubId: String, forceRefresh: Bool = false) async throws -> ClubBundle {
+        let now = Date()
+        if !forceRefresh, let cached = clubBundleCache[clubId], now.timeIntervalSince(cached.storedAt) < 300 {
+            return cached.value
+        }
+        if let task = clubBundleInFlight[clubId] {
+            return try await task.value
+        }
+
+        let client = self.client
+        let cid = clubId
+        let task = Task<ClubBundle, Error>.detached(priority: .userInitiated) {
+            let params = RPCClubIdParams(p_club_id: cid)
+            let bundle: ClubBundle = try await client
+                .rpc("fetch_club_bundle", params: params)
+                .execute()
+                .value
+            return bundle
+        }
+        clubBundleInFlight[clubId] = task
+        defer { clubBundleInFlight[clubId] = nil }
+        let bundle = try await task.value
+        clubBundleCache[clubId] = TimedCache(value: bundle, storedAt: now)
+        return bundle
+    }
+
+    func addRailItem(railId: String, mediaType: String, mediaId: Int, note: String? = nil) async throws -> AddRailItemResponse {
+        let params = RPCAddRailItemParams(p_rail_id: railId, p_media_type: mediaType, p_media_id: mediaId, p_note: note)
+        return try await client
+            .rpc("add_club_rail_item", params: params)
+            .execute()
+            .value
+    }
+
+    func castVote(pollId: String, optionId: String) async throws {
+        let params = RPCCastVoteParams(p_poll_id: pollId, p_option_id: optionId)
+        let _: SimpleSuccessResponse = try await client
+            .rpc("cast_club_vote", params: params)
+            .execute()
+            .value
+    }
+
+    func clubMemberCount(clubId: String) -> Int {
+        clubBundleCache[clubId]?.value.member_count ?? 0
+    }
+
+    struct ClubMediaActivityMatch: Sendable {
+        let rail: ClubRail
+        let item: ClubRailItem
+    }
+
+    struct ClubMediaActivity: Sendable {
+        let club: ClubInfo
+        let memberCount: Int
+        let sharingLevel: String
+        let members: [ClubMember]
+        let matchingItems: [ClubMediaActivityMatch]
+    }
+
+    /// Scans cached club bundles to find clubs that have this media item in a rail.
+    func clubActivityForMedia(mediaId: Int, mediaType: String) -> [ClubMediaActivity] {
+        let mt = mediaType.uppercased()
+        var results: [ClubMediaActivity] = []
+        for (_, cached) in clubBundleCache {
+            let bundle = cached.value
+            var matches: [ClubMediaActivityMatch] = []
+            for rail in bundle.rails {
+                for item in rail.items {
+                    if item.media_id == mediaId && item.media_type.uppercased() == mt {
+                        matches.append(ClubMediaActivityMatch(rail: rail, item: item))
+                    }
+                }
+            }
+            if !matches.isEmpty {
+                results.append(ClubMediaActivity(
+                    club: bundle.club,
+                    memberCount: bundle.member_count,
+                    sharingLevel: bundle.club.sharing_level,
+                    members: bundle.members,
+                    matchingItems: matches
+                ))
+            }
+        }
+        return results
     }
 }
 

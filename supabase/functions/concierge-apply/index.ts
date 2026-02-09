@@ -118,26 +118,32 @@ serve(async (req) => {
       global: { headers: authHeader ? { Authorization: authHeader } : {} },
     });
 
-    const { data: userData, error: userErr } = await client.auth.getUser();
+    const ip = clientIp(req);
+
+    // Parallelize auth, rate-limit check, and body parsing — they are independent.
+    const [authResult, rlResult, body] = await Promise.all([
+      client.auth.getUser(),
+      client.rpc("check_concierge_rate_limit", {
+        p_kind: "apply",
+        p_ip: ip,
+        p_window_seconds: null,
+        p_max_user: null,
+        p_max_ip: null,
+      }),
+      req.json().catch(() => ({})),
+    ]);
+
+    const { data: userData, error: userErr } = authResult;
     if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
     const userId = userData.user.id;
 
-    const ip = clientIp(req);
-    const { data: rl } = await client.rpc("check_concierge_rate_limit", {
-      p_kind: "apply",
-      p_ip: ip,
-      p_window_seconds: null,
-      p_max_user: null,
-      p_max_ip: null,
-    });
+    const rl = rlResult.data;
     if (rl && rl.allowed === false) {
       return json(
         { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
         { status: 429, headers: { "Retry-After": String(rl.retry_after_s ?? 30) } },
       );
     }
-
-    const body = await req.json().catch(() => ({}));
     const items: any[] = Array.isArray(body?.items) ? body.items : [];
     if (items.length === 0) return json({ success: true, applied: 0, sessionId: null, errors: [] });
 
@@ -153,20 +159,42 @@ serve(async (req) => {
     const sessionId: string = sessionRow.id;
 
     const applied: any[] = [];
+    const skipped: any[] = [];
+    const conflicts: any[] = [];
     const errors: any[] = [];
 
-    for (const it of items) {
+    // Process all items in parallel — each targets a different media_id so they're independent.
+    const results = await Promise.all(items.map(async (it) => {
       const mediaType: MediaType | null = it?.mediaType === "ANIME" || it?.mediaType === "MANGA" ? it.mediaType : null;
       const mediaId: number | null = clampInt(it?.mediaId, 1, 2_000_000_000);
       let status: ListStatus | null =
         typeof it?.status === "string" ? (it.status.toUpperCase() as ListStatus) : null;
 
       if (!mediaType || !mediaId || !status) {
-        errors.push({ item: it, error: "Invalid mediaType/mediaId/status" });
-        continue;
+        return { ok: false as const, kind: "error" as const, item: it, error: "Invalid mediaType/mediaId/status" };
       }
 
+      // Reconciliation action: 'add' (default for backwards compat), 'update', or 'skip'
+      const importAction: "add" | "update" | "skip" =
+        it?.action === "update" ? "update" : it?.action === "skip" ? "skip" : "add";
+
       try {
+        // --- Handle skip action ---
+        if (importAction === "skip") {
+          await client.from("import_session_items").insert({
+            session_id: sessionId,
+            raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType}:${mediaId}`,
+            parsed: it?.parsed ?? {},
+            candidates: Array.isArray(it?.candidates) ? it.candidates.slice(0, 12) : [],
+            chosen: { mediaType, mediaId },
+            action: null,
+            confidence: typeof it?.confidence === "number" ? it.confidence : 0,
+            state: "skipped",
+            import_action: "skip",
+          });
+          return { ok: true as const, kind: "skip" as const, mediaType, mediaId, status };
+        }
+
         if (mediaType === "ANIME") {
           const explicitComplete = it?.lastEpisode === true || it?.completed === true;
           const caughtUp = it?.caughtUp === true;
@@ -192,6 +220,7 @@ serve(async (req) => {
             }
           }
 
+          // Re-check current state (TOCTOU protection for updates)
           const before = await client
             .from("anime_user_lists")
             .select("list_type,progress,rating,notes")
@@ -199,6 +228,34 @@ serve(async (req) => {
             .eq("anime_id", mediaId)
             .maybeSingle();
           if (before.error) throw before.error;
+
+          // TOCTOU check for updates: verify current state matches what client expected
+          if (importAction === "update" && it?.expectedExisting) {
+            const exp = it.expectedExisting;
+            const cur = before.data;
+            if (!cur) {
+              // Entry was deleted between parse and apply — conflict
+              return { ok: false as const, kind: "conflict" as const, mediaType, mediaId, error: "Entry no longer exists (deleted since parse)" };
+            }
+            if (
+              (exp.status && cur.list_type !== exp.status) ||
+              (exp.progress_episodes != null && cur.progress !== exp.progress_episodes)
+            ) {
+              await client.from("import_session_items").insert({
+                session_id: sessionId,
+                raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType}:${mediaId}`,
+                parsed: it?.parsed ?? {},
+                candidates: Array.isArray(it?.candidates) ? it.candidates.slice(0, 12) : [],
+                chosen: { mediaType, mediaId },
+                action: { table: "anime_user_lists", key: { user_id: userId, anime_id: mediaId }, before: cur, after: null },
+                confidence: typeof it?.confidence === "number" ? it.confidence : 0,
+                state: "error",
+                import_action: "update",
+                error: "TOCTOU conflict: current state changed since parse",
+              });
+              return { ok: false as const, kind: "conflict" as const, mediaType, mediaId, error: "State changed since parse — review and retry" };
+            }
+          }
 
           const seasonNumber = clampInt(it?.seasonNumber, 1, 100);
           const episodeInSeason = clampInt(it?.episodeInSeason, 0, 100_000);
@@ -232,6 +289,9 @@ serve(async (req) => {
             // best-effort
           }
 
+          // Store previous_values for undo support on updates
+          const previousValues = importAction === "update" && before.data ? before.data : null;
+
           await client.from("import_session_items").insert({
             session_id: sessionId,
             raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType}:${mediaId}`,
@@ -253,6 +313,8 @@ serve(async (req) => {
             },
             confidence: typeof it?.confidence === "number" ? it.confidence : 0,
             state: "applied",
+            import_action: importAction,
+            previous_values: previousValues,
           });
         } else {
           const explicitComplete = it?.completed === true;
@@ -270,6 +332,7 @@ serve(async (req) => {
             if (totalKnown != null) progress = totalKnown;
           }
 
+          // Re-check current state (TOCTOU protection for updates)
           const before = await client
             .from("manga_user_lists")
             .select("list_type,progress,rating,notes")
@@ -277,6 +340,34 @@ serve(async (req) => {
             .eq("manga_id", mediaId)
             .maybeSingle();
           if (before.error) throw before.error;
+
+          // TOCTOU check for updates: verify current state matches what client expected
+          if (importAction === "update" && it?.expectedExisting) {
+            const exp = it.expectedExisting;
+            const cur = before.data;
+            if (!cur) {
+              return { ok: false as const, kind: "conflict" as const, mediaType, mediaId, error: "Entry no longer exists (deleted since parse)" };
+            }
+            if (
+              (exp.status && cur.list_type !== exp.status) ||
+              (exp.progress_chapters != null && cur.progress !== exp.progress_chapters)
+            ) {
+              await client.from("import_session_items").insert({
+                session_id: sessionId,
+                raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType}:${mediaId}`,
+                parsed: it?.parsed ?? {},
+                candidates: Array.isArray(it?.candidates) ? it.candidates.slice(0, 12) : [],
+                chosen: { mediaType, mediaId },
+                action: { table: "manga_user_lists", key: { user_id: userId, manga_id: mediaId }, before: cur, after: null },
+                confidence: typeof it?.confidence === "number" ? it.confidence : 0,
+                state: "error",
+                import_action: "update",
+                error: "TOCTOU conflict: current state changed since parse",
+              });
+              return { ok: false as const, kind: "conflict" as const, mediaType, mediaId, error: "State changed since parse — review and retry" };
+            }
+          }
+
           const payload = {
             user_id: userId,
             manga_id: mediaId,
@@ -303,6 +394,8 @@ serve(async (req) => {
             // best-effort
           }
 
+          const previousValues = importAction === "update" && before.data ? before.data : null;
+
           await client.from("import_session_items").insert({
             session_id: sessionId,
             raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType}:${mediaId}`,
@@ -321,12 +414,13 @@ serve(async (req) => {
             },
             confidence: typeof it?.confidence === "number" ? it.confidence : 0,
             state: "applied",
+            import_action: importAction,
+            previous_values: previousValues,
           });
         }
 
-        applied.push({ mediaType, mediaId, status });
+        return { ok: true as const, kind: importAction as "add" | "update", mediaType, mediaId, status };
       } catch (e) {
-        errors.push({ mediaType, mediaId, error: (e as Error).message ?? String(e) });
         await client.from("import_session_items").insert({
           session_id: sessionId,
           raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType ?? "UNKNOWN"}:${mediaId ?? "?"}`,
@@ -336,13 +430,30 @@ serve(async (req) => {
           action: null,
           confidence: typeof it?.confidence === "number" ? it.confidence : 0,
           state: "error",
+          import_action: importAction,
           error: ((e as Error).message ?? String(e)).slice(0, 500),
         });
+        return { ok: false as const, kind: "error" as const, mediaType, mediaId, error: (e as Error).message ?? String(e) };
+      }
+    }));
+
+    // Collect results preserving original order.
+    for (const r of results) {
+      if (r.ok && r.kind === "skip") {
+        skipped.push({ mediaType: r.mediaType, mediaId: r.mediaId });
+      } else if (r.ok) {
+        applied.push({ mediaType: r.mediaType, mediaId: r.mediaId, status: r.status, action: r.kind });
+      } else if (r.kind === "conflict") {
+        conflicts.push({ mediaType: r.mediaType, mediaId: r.mediaId, error: r.error });
+      } else if ("item" in r) {
+        errors.push({ item: r.item, error: r.error });
+      } else {
+        errors.push({ mediaType: r.mediaType, mediaId: r.mediaId, error: r.error });
       }
     }
 
     await client.from("import_sessions").update({
-      status: errors.length ? "failed" : "applied",
+      status: errors.length || conflicts.length ? "failed" : "applied",
     }).eq("id", sessionId);
 
     try {
@@ -356,7 +467,7 @@ serve(async (req) => {
       // Best-effort metrics only.
     }
 
-    return json({ success: errors.length === 0, sessionId, applied, errors });
+    return json({ success: errors.length === 0 && conflicts.length === 0, sessionId, applied, skipped, conflicts, errors });
   } catch (e) {
     const err = e as Error;
     return json(

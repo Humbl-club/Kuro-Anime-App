@@ -697,6 +697,12 @@ function clientIp(req: Request): string | null {
 serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, { status: 405 });
 
+  // Warmup: short-circuit before auth/rate-limit to warm the Deno isolate
+  const url = new URL(req.url);
+  if (url.searchParams.get("warmup") === "true") {
+    return json({ ok: true });
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY");
   const supabaseService = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -710,23 +716,6 @@ serve(async (req) => {
     global: { headers: authHeader ? { Authorization: authHeader } : {} },
   });
 
-  // Rate limit parsing even for unauthenticated users (falls back to per-IP).
-  const ip = clientIp(req);
-  const { data: rl } = await client.rpc("check_concierge_rate_limit", {
-    p_kind: "parse",
-    p_ip: ip,
-    // Nulls => load tunables from public.concierge_config.
-    p_window_seconds: null,
-    p_max_user: null,
-    p_max_ip: null,
-  });
-  if (rl && rl.allowed === false) {
-    return json(
-      { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
-      { status: 429, headers: { "Retry-After": String(rl.retry_after_s ?? 30) } },
-    );
-  }
-
   const body = await req.json().catch(() => ({}));
   const text: string = String(body?.text ?? "");
   const scope: "anime" | "manga" | "both" = body?.scope ?? "both";
@@ -737,9 +726,28 @@ serve(async (req) => {
     return json({ success: true, items: [] });
   }
 
-  // Verify user (required for launch). If missing, we still return candidates but mark unauthenticated.
-  const { data: userData } = await client.auth.getUser();
-  const userId = userData?.user?.id ?? null;
+  // Run rate-limit check and auth verification in parallel (they are independent).
+  const ip = clientIp(req);
+  const [rlResult, userResult] = await Promise.all([
+    client.rpc("check_concierge_rate_limit", {
+      p_kind: "parse",
+      p_ip: ip,
+      p_window_seconds: null,
+      p_max_user: null,
+      p_max_ip: null,
+    }),
+    client.auth.getUser(),
+  ]);
+
+  const rl = rlResult.data;
+  if (rl && rl.allowed === false) {
+    return json(
+      { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
+      { status: 429, headers: { "Retry-After": String(rl.retry_after_s ?? 30) } },
+    );
+  }
+
+  const userId = userResult.data?.user?.id ?? null;
 
   // Optional: configure feedback logging threshold (single DB roundtrip per request).
   let feedbackEnabled = Boolean(userId);
@@ -777,145 +785,250 @@ serve(async (req) => {
     };
   });
 
-  const outItems: any[] = [];
+  // Process all parsed items in parallel — each item searches for a different title
+  // so they are fully independent of each other.
+  const outItems = await Promise.all(parsed.map(async (item) => {
+    try {
+      const mediaType =
+        scope === "anime" ? "ANIME" : scope === "manga" ? "MANGA" : item.mediaTypeHint ?? null;
 
-  for (const item of parsed) {
-    const mediaType =
-      scope === "anime" ? "ANIME" : scope === "manga" ? "MANGA" : item.mediaTypeHint ?? null;
-
-    let aliasTarget: { media_type: string; media_id: number; title_raw?: string | null } | null = null;
-    if (userId && item.normalized) {
-      const aliasNorm = normalizeAliasKey(item.raw);
-      if (aliasNorm) {
-        const mediaTypeFilter = mediaType ?? null;
-        const q = client
-          .from("title_aliases")
-          .select("media_type,media_id,title_raw,hits")
-          .eq("user_id", userId)
-          .eq("alias_norm", aliasNorm);
-        const res = mediaTypeFilter ? await q.eq("media_type", mediaTypeFilter).maybeSingle() : await q.order("hits", { ascending: false }).limit(1).maybeSingle();
-        if (!res.error && res.data?.media_id && res.data?.media_type) {
-          aliasTarget = res.data;
+      let aliasTarget: { media_type: string; media_id: number; title_raw?: string | null } | null = null;
+      if (userId && item.normalized) {
+        const aliasNorm = normalizeAliasKey(item.raw);
+        if (aliasNorm) {
+          const mediaTypeFilter = mediaType ?? null;
+          const q = client
+            .from("title_aliases")
+            .select("media_type,media_id,title_raw,hits")
+            .eq("user_id", userId)
+            .eq("alias_norm", aliasNorm);
+          const res = mediaTypeFilter ? await q.eq("media_type", mediaTypeFilter).maybeSingle() : await q.order("hits", { ascending: false }).limit(1).maybeSingle();
+          if (!res.error && res.data?.media_id && res.data?.media_type) {
+            aliasTarget = res.data;
+          }
         }
       }
-    }
 
-    const queries: { q: string; seasonBoost: boolean }[] = [{ q: item.normalized, seasonBoost: false }];
-    const expanded = expandCommonAbbreviations(item.normalized);
-    if (expanded && expanded !== item.normalized) {
-      // Treat the expanded form as an alternate query; it tends to help new users on acronyms (AoT/JJK/etc).
-      queries.push({ q: expanded, seasonBoost: false });
-    }
-    if (item.seasonNumber && item.normalized && (mediaType === "ANIME" || item.mediaTypeHint === "ANIME")) {
-      for (const q of buildSeasonQueries(item.normalized, item.seasonNumber)) {
-        queries.push({ q, seasonBoost: true });
+      const queries: { q: string; seasonBoost: boolean }[] = [{ q: item.normalized, seasonBoost: false }];
+      const expanded = expandCommonAbbreviations(item.normalized);
+      if (expanded && expanded !== item.normalized) {
+        // Treat the expanded form as an alternate query; it tends to help new users on acronyms (AoT/JJK/etc).
+        queries.push({ q: expanded, seasonBoost: false });
       }
-    }
-
-    const merged = new Map<string, any>();
-    let candidateError: string | null = null;
-
-    for (const q of queries) {
-      const { data: candidates, error } = await client.rpc("search_titles", {
-        p_query: q.q,
-        p_media_type: mediaType,
-        p_limit: Math.max(5, Math.min(limitPerItem, 12)),
-      });
-      if (error) {
-        candidateError = candidateError ?? error.message ?? "search error";
-        continue;
-      }
-      for (const c of (candidates ?? [])) {
-        const key = `${c.media_type}:${c.media_id}`;
-        const baseScore = typeof c.score === "number" ? c.score : 0;
-        const seasonBoost = q.seasonBoost && item.seasonNumber ? seasonMatchBoost(String(c.title_raw ?? ""), item.seasonNumber) : 0;
-        const overlapBoost = tokenOverlapBoost(item.normalized, String(c.title_raw ?? ""));
-        const penalty = variantPenalty(item.raw, { title_raw: c.title_raw, variant_type: c.variant_type });
-        const aliasBoost =
-          aliasTarget && aliasTarget.media_type === c.media_type && Number(aliasTarget.media_id) === Number(c.media_id) ? 0.80 : 0;
-        const yearBoost = item.yearMention && typeof c.year === "number" && c.year === item.yearMention ? 0.25 : 0;
-        // Allow a tiny score > 1 so "Season 2" variants can beat the base title when both match at 1.0.
-        const adjusted = Math.max(0, Math.min(1.25, baseScore + seasonBoost + overlapBoost + aliasBoost + yearBoost - penalty));
-        const existing = merged.get(key);
-        if (!existing || (existing.score ?? 0) < adjusted) {
-          merged.set(key, { ...c, score: adjusted });
+      if (item.seasonNumber && item.normalized && (mediaType === "ANIME" || item.mediaTypeHint === "ANIME")) {
+        for (const q of buildSeasonQueries(item.normalized, item.seasonNumber)) {
+          queries.push({ q, seasonBoost: true });
         }
       }
-    }
 
-    const mergedCandidates = Array.from(merged.values())
-      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-      .slice(0, limitPerItem);
+      const merged = new Map<string, any>();
+      let candidateError: string | null = null;
 
-    // Second pass: if confidence is low, try denoised keyword queries.
-    const bestScore = typeof mergedCandidates[0]?.score === "number" ? mergedCandidates[0].score : 0;
-    if (bestScore < 0.55 && item.normalized.length >= 8) {
-      for (const q of buildDenoisedQueries(item.normalized)) {
-        const { data: extra, error } = await client.rpc("search_titles", {
-          p_query: q,
-          p_media_type: mediaType,
-          p_limit: Math.max(5, Math.min(limitPerItem, 12)),
-        });
-        if (error) continue;
-        for (const c of (extra ?? [])) {
+      // Run all initial search queries for this item in parallel.
+      const searchLimit = Math.max(5, Math.min(limitPerItem, 12));
+      const searchResults = await Promise.all(
+        queries.map((q) =>
+          client.rpc("search_titles", {
+            p_query: q.q,
+            p_media_type: mediaType,
+            p_limit: searchLimit,
+          }).then((res) => ({ ...res, seasonBoost: q.seasonBoost }))
+        )
+      );
+
+      for (const result of searchResults) {
+        if (result.error) {
+          candidateError = candidateError ?? result.error.message ?? "search error";
+          continue;
+        }
+        for (const c of (result.data ?? [])) {
           const key = `${c.media_type}:${c.media_id}`;
           const baseScore = typeof c.score === "number" ? c.score : 0;
+          const seasonBoost = result.seasonBoost && item.seasonNumber ? seasonMatchBoost(String(c.title_raw ?? ""), item.seasonNumber) : 0;
+          const overlapBoost = tokenOverlapBoost(item.normalized, String(c.title_raw ?? ""));
           const penalty = variantPenalty(item.raw, { title_raw: c.title_raw, variant_type: c.variant_type });
-          const adjusted = Math.max(0, Math.min(1.25, baseScore + tokenOverlapBoost(item.normalized, String(c.title_raw ?? "")) - penalty));
+          const aliasBoost =
+            aliasTarget && aliasTarget.media_type === c.media_type && Number(aliasTarget.media_id) === Number(c.media_id) ? 0.80 : 0;
+          const yearBoost = item.yearMention && typeof c.year === "number" && c.year === item.yearMention ? 0.25 : 0;
+          // Allow a tiny score > 1 so "Season 2" variants can beat the base title when both match at 1.0.
+          const adjusted = Math.max(0, Math.min(1.25, baseScore + seasonBoost + overlapBoost + aliasBoost + yearBoost - penalty));
           const existing = merged.get(key);
           if (!existing || (existing.score ?? 0) < adjusted) {
             merged.set(key, { ...c, score: adjusted });
           }
         }
       }
-    }
 
-    const finalCandidates = Array.from(merged.values())
-      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-      .slice(0, limitPerItem);
+      const mergedCandidates = Array.from(merged.values())
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+        .slice(0, limitPerItem);
 
-    if (feedbackEnabled) {
-      try {
-        const top = finalCandidates[0] ?? null;
-        const bestScore = typeof top?.score === "number" ? top.score : null;
-        // Only log low-confidence/no-match items to avoid added latency.
-        if (bestScore == null || bestScore < feedbackLowScore || finalCandidates.length === 0) {
-          await client.rpc("log_concierge_parse_feedback", {
-            p_raw: item.raw,
-            p_normalized: item.normalized,
-            p_alias_norm: normalizeAliasKey(item.raw),
-            p_best_score: bestScore,
-            p_candidates_count: finalCandidates.length,
-            p_top_media_type: top?.media_type ?? null,
-            p_top_media_id: top?.media_id ?? null,
-          });
+      // Second pass: if confidence is low, try denoised keyword queries in parallel.
+      const bestScore = typeof mergedCandidates[0]?.score === "number" ? mergedCandidates[0].score : 0;
+      if (bestScore < 0.55 && item.normalized.length >= 8) {
+        const denoisedQueries = buildDenoisedQueries(item.normalized);
+        const denoisedResults = await Promise.all(
+          denoisedQueries.map((q) =>
+            client.rpc("search_titles", {
+              p_query: q,
+              p_media_type: mediaType,
+              p_limit: searchLimit,
+            })
+          )
+        );
+
+        for (const { data: extra, error } of denoisedResults) {
+          if (error) continue;
+          for (const c of (extra ?? [])) {
+            const key = `${c.media_type}:${c.media_id}`;
+            const baseScore = typeof c.score === "number" ? c.score : 0;
+            const penalty = variantPenalty(item.raw, { title_raw: c.title_raw, variant_type: c.variant_type });
+            const adjusted = Math.max(0, Math.min(1.25, baseScore + tokenOverlapBoost(item.normalized, String(c.title_raw ?? "")) - penalty));
+            const existing = merged.get(key);
+            if (!existing || (existing.score ?? 0) < adjusted) {
+              merged.set(key, { ...c, score: adjusted });
+            }
+          }
         }
-      } catch {
-        // best-effort
       }
-    }
 
-    outItems.push({
-      raw: item.raw,
-      normalized: item.normalized,
-      parsed: {
-        mediaTypeHint: item.mediaTypeHint ?? null,
-        status: item.status ?? null,
-        progressEpisodes: item.progressEpisodes ?? null,
-        progressChapters: item.progressChapters ?? null,
-        progressVolumes: item.progressVolumes ?? null,
-        seasonNumber: item.seasonNumber ?? null,
-        episodeInSeason: item.episodeInSeason ?? null,
-        caughtUp: item.caughtUp ?? null,
-        lastEpisode: item.lastEpisode ?? null,
-        completed: item.completed ?? null,
-        yearMention: item.yearMention ?? null,
-      },
-      candidates: finalCandidates,
-      candidateError,
-      aliasNorm: userId ? normalizeAliasKey(item.raw) : null,
-    });
-  }
+      const finalCandidates = Array.from(merged.values())
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+        .slice(0, limitPerItem);
+
+      if (feedbackEnabled) {
+        try {
+          const top = finalCandidates[0] ?? null;
+          const bestScore = typeof top?.score === "number" ? top.score : null;
+          // Only log low-confidence/no-match items to avoid added latency.
+          if (bestScore == null || bestScore < feedbackLowScore || finalCandidates.length === 0) {
+            await client.rpc("log_concierge_parse_feedback", {
+              p_raw: item.raw,
+              p_normalized: item.normalized,
+              p_alias_norm: normalizeAliasKey(item.raw),
+              p_best_score: bestScore,
+              p_candidates_count: finalCandidates.length,
+              p_top_media_type: top?.media_type ?? null,
+              p_top_media_id: top?.media_id ?? null,
+            });
+          }
+        } catch {
+          // best-effort
+        }
+      }
+
+      // --- Import reconciliation: look up existing user list entry ---
+      let existingEntry: {
+        media_type: string;
+        media_id: number;
+        status: string;
+        progress_episodes: number | null;
+        progress_chapters: number | null;
+        progress_volumes: number | null;
+        rating: number | null;
+        updated_at: string;
+      } | null = null;
+
+      const topCandidate = finalCandidates[0] ?? null;
+      const topScore = typeof topCandidate?.score === "number" ? topCandidate.score : 0;
+
+      if (userId && topCandidate && topScore >= 0.60) {
+        try {
+          const cMediaType: string = topCandidate.media_type;
+          const cMediaId: number = Number(topCandidate.media_id);
+          // user_id in anime_user_lists/manga_user_lists is TEXT, auth.uid() is UUID — cast to text
+          const userIdText = String(userId);
+
+          if (cMediaType === "ANIME") {
+            const { data: row } = await client
+              .from("anime_user_lists")
+              .select("list_type,progress,rating,updated_at")
+              .eq("user_id", userIdText)
+              .eq("anime_id", cMediaId)
+              .maybeSingle();
+            if (row) {
+              existingEntry = {
+                media_type: "ANIME",
+                media_id: cMediaId,
+                status: row.list_type ?? "PLANNING",
+                progress_episodes: row.progress ?? null,
+                progress_chapters: null,
+                progress_volumes: null,
+                rating: row.rating ?? null,
+                updated_at: row.updated_at ?? new Date().toISOString(),
+              };
+            }
+          } else if (cMediaType === "MANGA") {
+            const { data: row } = await client
+              .from("manga_user_lists")
+              .select("list_type,progress,rating,updated_at")
+              .eq("user_id", userIdText)
+              .eq("manga_id", cMediaId)
+              .maybeSingle();
+            if (row) {
+              existingEntry = {
+                media_type: "MANGA",
+                media_id: cMediaId,
+                status: row.list_type ?? "PLANNING",
+                progress_episodes: null,
+                progress_chapters: row.progress ?? null,
+                progress_volumes: null,
+                rating: row.rating ?? null,
+                updated_at: row.updated_at ?? new Date().toISOString(),
+              };
+            }
+          }
+        } catch {
+          // best-effort: if lookup fails, treat as no existing entry
+        }
+      }
+
+      return {
+        raw: item.raw,
+        normalized: item.normalized,
+        parsed: {
+          mediaTypeHint: item.mediaTypeHint ?? null,
+          status: item.status ?? null,
+          progressEpisodes: item.progressEpisodes ?? null,
+          progressChapters: item.progressChapters ?? null,
+          progressVolumes: item.progressVolumes ?? null,
+          seasonNumber: item.seasonNumber ?? null,
+          episodeInSeason: item.episodeInSeason ?? null,
+          caughtUp: item.caughtUp ?? null,
+          lastEpisode: item.lastEpisode ?? null,
+          completed: item.completed ?? null,
+          yearMention: item.yearMention ?? null,
+        },
+        candidates: finalCandidates,
+        candidateError,
+        aliasNorm: userId ? normalizeAliasKey(item.raw) : null,
+        existing_entry: existingEntry,
+      };
+    } catch (err) {
+      // Per-item error handling: don't let one item's failure abort others.
+      return {
+        raw: item.raw,
+        normalized: item.normalized,
+        parsed: {
+          mediaTypeHint: item.mediaTypeHint ?? null,
+          status: item.status ?? null,
+          progressEpisodes: item.progressEpisodes ?? null,
+          progressChapters: item.progressChapters ?? null,
+          progressVolumes: item.progressVolumes ?? null,
+          seasonNumber: item.seasonNumber ?? null,
+          episodeInSeason: item.episodeInSeason ?? null,
+          caughtUp: item.caughtUp ?? null,
+          lastEpisode: item.lastEpisode ?? null,
+          completed: item.completed ?? null,
+          yearMention: item.yearMention ?? null,
+        },
+        candidates: [],
+        candidateError: err instanceof Error ? err.message : "unknown error",
+        aliasNorm: userId ? normalizeAliasKey(item.raw) : null,
+        existing_entry: null,
+      };
+    }
+  }));
 
   // Lightweight run logging (best-effort; table is RLS-deny by default for users).
   if (userId) {

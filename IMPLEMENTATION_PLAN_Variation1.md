@@ -2,9 +2,11 @@
 
 This file documents the idea of routing free-text "vibe" prompts into curated recommendation rails (modes), with the LLM used only as an optional presentation layer.
 
-## Current status (as of 2026-02-08)
+## Current status (as of 2026-02-09)
 
 The core plan is fully implemented, expanded, and quality-hardened.
+
+**Concierge redesign completed (2026-02-09)**: State machine removed, inline chat architecture, visual token alignment with KuroDesignSystem, German NLP hardening (vibe allowlist, intent keywords, umlaut normalization), 6 new vibe modes (23 total), 12 new curated rails (50 total), auth+rate-limit parallelized, edge function warmup, auto-apply for high-confidence imports.
 
 Implemented:
 - Config-driven "modes" (curated rails) stored in DB config JSON.
@@ -12,8 +14,8 @@ Implemented:
 - Backend returns grouped rails (`sets`) plus backward-compatible flattened items.
 - iOS renders rails from backend `sets`.
 - Classics rail expanded (do not remove existing classic boosts; return more classics by heuristic + config filters).
-- **17 modes** (v6, deployed): Premium Picks, Start Here, Premium Action, Premium Comedy (grown-up), Cozy/Comfort, Dark/Serious, Hidden Gems, Classics (expanded), Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai, **Sports**, **Sci-Fi**, **Horror & Supernatural**.
-- **38 curated rails** (27 original + 11 new: sports, sci-fi, horror/supernatural anime+manga, seinen anime+manga, shoujo anime+manga, josei manga).
+- **23 modes** (v8, deployed): Premium Picks, Start Here, Premium Action, Premium Comedy (grown-up), Cozy/Comfort, Dark/Serious, Hidden Gems, Classics (expanded), Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai, **Sports**, **Sci-Fi**, **Horror & Supernatural**, **Mecha**, **Mystery & Detective**, **Music & Performance**, **Historical & Period**, **School & Coming of Age**, **Shoujo & Josei**.
+- **50 curated rails** (27 original + 23 new: sports, sci-fi, horror/supernatural, mecha, mystery/detective, music/performance, historical, school/coming-of-age, shoujo/josei anime+manga, plus existing seinen anime+manga, josei manga).
 - Intent detectors in `scoreMode()` for movie, short, isekai/non-isekai, romcom/serious-romance, sports, sci-fi, horror disambiguation.
 - Enriched synonyms with German translations across all modes.
 - **Negative genre filtering**: "action but no romance", "fantasy without harem" — parsed and applied to both curated/algorithmic rails AND mode selection (excluded genres suppress conflicting mode matches in `mapStrongGenreToModeId` and penalize conflicting modes in `scoreMode`).
@@ -47,6 +49,8 @@ It makes Concierge feel premium without paying LLM costs for every request:
   - v1: `/Applications/Kuro/supabase/migrations/20260205190000_concierge_modes_config.sql` (6 modes)
   - v2: `/Applications/Kuro/supabase/migrations/20260205233000_concierge_modes_v2_config.sql` (8 modes + rail_id + router_llm knobs)
   - v3: `/Applications/Kuro/supabase/migrations/20260206100000_concierge_modes_v3_expanded.sql` (14 modes + enriched synonyms)
+  - v7: `/Applications/Kuro/supabase/migrations/20260209100000_concierge_modes_v7_german_synonyms.sql` (German synonyms for all modes)
+  - v8: `/Applications/Kuro/supabase/migrations/20260209110000_concierge_modes_v8_expanded.sql` (23 modes: +mecha, mystery_detective, music_performance, historical, school_coming_of_age, shoujo_josei)
 - Modes are stored at:
   - `public.concierge_config.config.modes`
 
@@ -106,8 +110,14 @@ Keep the current design as the default:
   - `Sports` (v6: `sports`) — Haikyuu, Blue Lock, Slam Dunk, Hajime no Ippo
   - `Sci-Fi` (v6: `scifi`) — Cowboy Bebop, Ghost in the Shell, Steins;Gate, Psycho-Pass
   - `Horror & Supernatural` (v6: `horror_supernatural`) — Shiki, Higurashi, Parasyte, Junji Ito
+  - `Mecha` (v8: `mecha`) — Mecha (giant robots, Gundam, Evangelion)
+  - `Mystery & Detective` (v8: `mystery_detective`) — Mystery & Detective (Monster, Death Note, Hyouka)
+  - `Music & Performance` (v8: `music_performance`) — Music & Performance (K-On, Your Lie in April, Bocchi)
+  - `Historical & Period` (v8: `historical`) — Historical & Period (Vinland Saga, Kingdom, Golden Kamuy)
+  - `School & Coming of Age` (v8: `school_coming_of_age`) — School & Coming of Age (Toradora, Oregairu, Kaguya-sama)
+  - `Shoujo & Josei` (v8: `shoujo_josei`) — Shoujo & Josei (Fruits Basket, Nana, Skip and Loafer)
 - Demographic rails added (not full modes): seinen, shoujo, josei
-- Current count: **17 modes** (within the recommended 20-50 ceiling). Room for more.
+- Current count: **23 modes** (within the recommended 20-50 ceiling). Room for more.
 
 2. Add a feedback loop (active learning)
 - Add UI actions like:
@@ -154,7 +164,7 @@ If you ever want to switch to 1-mode:
 
 ## Deployment notes
 
-To get the latest 17-mode router live, you must deploy:
+To get the latest 23-mode router live, you must deploy:
 - DB migrations (in order): **63 total migrations** — see `supabase/migrations/` for full list
   - Key mode migrations:
     - `20260205190000_concierge_modes_config.sql` (v1: 6 modes)
@@ -165,6 +175,8 @@ To get the latest 17-mode router live, you must deploy:
     - `20260208022239_add_horror_supernatural_mode.sql` (horror/supernatural rails)
     - `20260208022342_add_demographic_rails.sql` (seinen, shoujo, josei)
     - `20260208022356_update_concierge_config_new_modes.sql` (v6: 17 modes in config)
+    - `20260209100000_concierge_modes_v7_german_synonyms.sql` (v7: German synonyms)
+    - `20260209110000_concierge_modes_v8_expanded.sql` (v8: 23 modes)
   - Key quality migrations:
     - `20260208022035_phase0_remove_sequels.sql`
     - `20260208022136_phase0_remove_misclassified.sql`
@@ -188,3 +200,34 @@ The iOS UI is already compatible (renders `sets` when present).
 - **Rail generator**: `scripts/generate_rail_migration.js` — deterministic SQL from `scripts/rail_config.json`. Validates: no duplicates, max 100 items/rail, valid media types. Same config always produces same SQL.
 - **Mode analytics**: `concierge_mode_analytics` table logs mode selections, synonyms matched, confidence scores, and whether the request was LLM-routed.
 - **Overlap target**: No rail pair should exceed 15% overlap (was 94%, now ~36% worst-case).
+
+## Concierge images (2026-02-09)
+
+- **Migration**: `20260209000000_search_titles_add_cover_image.sql` adds `cover_image_medium` to `search_titles()` return type.
+- **Swift model**: `ConciergeCandidate` gains `cover_image_medium: String?`.
+- **Import preview (ConfirmRow)**: Now renders `KuroCachedAsyncImage` with gradient fallback instead of static gradient.
+- **Recommendation carousel (PresentCard)**: Same — actual cover art from `item.imageURL` instead of gradient.
+- **`ConciergeConfirmItem`**: Gains `imageURL: String?` wired from `topCandidate?.cover_image_medium`.
+
+## Performance optimizations (2026-02-09)
+
+All three concierge edge functions parallelized for snappiness:
+
+- **concierge-parse**: Per-item processing now runs via `Promise.all` (was serial `for` loop). Within each item, search queries + denoised queries also parallelized. Auth + rate-limit checks parallelized. Expected 3-5x latency improvement for multi-item pastes.
+- **concierge-apply**: Per-item upserts now run via `Promise.all` (was serial). Auth + rate-limit + body parsing parallelized. Expected 3-5x improvement for multi-item imports.
+- **concierge-recommend**: Primary + secondary rail building now runs via `Promise.all` (was sequential). Inside `fetchMediaContext`, 3 independent DB queries parallelized. Curated rail anime/manga fetches parallelized. Seed similarity fetches parallelized. Config + tag mapping + editorial boosts fetch parallelized. LLM feature flag checks parallelized. Expected 2-3x improvement overall.
+- **iOS (ConciergeView)**: Post-apply fetches (`fetchUserLists`, `fetchCollectionItems`, `fetchCollectionFeed`) now run with `async let` instead of sequential `await`.
+
+## Clubs + Import Reconciliation + Quality Gates (2026-02-09)
+
+Full feature launch:
+
+- **Clubs**: 7 tables, 8 RPCs, full RLS, iOS views (ClubsView, ClubDetailView, Create/Join/Settings sheets). Migrations: `20260209200000_clubs_foundation.sql`, `20260209201000_clubs_rls_policies.sql`, `20260209202000_clubs_rpcs.sql`.
+- **Import reconciliation**: Concierge parse detects existing entries, apply respects add/update/skip with TOCTOU protection. iOS confirm bubble shows diff groups. Migration: `20260209210000_import_reconciliation.sql`.
+- **Quality gates**: 4 CI scripts (lint_migrations, audit_rls, scan_secrets, check_edge_functions).
+- **Telemetry**: `club_analytics` table + `log_club_event` RPC + housekeeping integration. Migration: `20260209220000_club_analytics.sql`.
+- **Phase 5 polish**: Haptics tuned (medium for create/join/confirm, light for vote/nav), empty states improved, owner transfer UX context-aware, build verified on iPhone 17 Pro simulator.
+
+## Bug fix: Progress data forwarding (2026-02-09)
+
+**P0 fix**: `confirmImport()` in ConciergeView.swift now forwards all parsed progress fields (`progressEpisodes`, `progressChapters`, `progressVolumes`, `seasonNumber`, `episodeInSeason`, `caughtUp`, `lastEpisode`, `completed`) to the `concierge-apply` edge function. Previously these were all dropped, causing every import to land with progress=0 regardless of user input.

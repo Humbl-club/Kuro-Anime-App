@@ -13,11 +13,12 @@ struct AnimeDetailView: View {
     @State private var toastDismissTask: Task<Void, Never>? = nil
     @State private var topTags: [TagFacet] = []
     @State private var similar: [Anime] = []
-    
+
     var body: some View {
         GeometryReader { geometry in
+            let safeTop = geometry.safeAreaInsets.top
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)) {
+                VStack(spacing: 0) {
                     GeometryReader { proxy in
                         Color.clear
                             .preference(
@@ -66,6 +67,8 @@ struct AnimeDetailView: View {
                         if !similar.isEmpty {
                             SimilarSection(title: "MORE LIKE THIS", items: similar)
                         }
+
+                        ClubActivitySection(mediaId: anime.id, mediaType: "ANIME")
                     }
                     .padding(.horizontal, ResponsiveLayout.padding())
                     .padding(.top, KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width))
@@ -82,7 +85,7 @@ struct AnimeDetailView: View {
             .overlay(alignment: .topLeading) {
                 // Custom Back Button
                 BackButton(dismiss: dismiss)
-                    .padding(.top, KuroScreen.safeAreaTop + KuroSpacing.sm)
+                    .padding(.top, safeTop + KuroSpacing.md)
                     .padding(.leading, ResponsiveLayout.padding())
             }
             .safeAreaInset(edge: .bottom) {
@@ -111,6 +114,11 @@ struct AnimeDetailView: View {
                 }
             }
         }
+        // In a SwiftUI sheet, the root view is often constrained to the sheet's safe area, which can
+        // leave a visible "white cap" above the hero image. Make the entire detail view truly
+        // full-bleed within the sheet container.
+        .background(Color.kuroBackground.ignoresSafeArea())
+        .ignoresSafeArea(edges: .top)
         #if os(iOS)
         .toolbar(.hidden, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)

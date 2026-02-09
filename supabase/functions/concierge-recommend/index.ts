@@ -272,8 +272,37 @@ function defaultModes(): ConciergeMode[] {
   ];
 }
 
+const GERMAN_VIBE_FORMS: Record<string, string> = {
+  "düsteres": "düster", "düstere": "düster", "düsterem": "düster", "düsterer": "düster", "düsteren": "düster",
+  "lustiges": "lustig", "lustige": "lustig", "lustigem": "lustig", "lustiger": "lustig", "lustigen": "lustig",
+  "gemütliches": "gemütlich", "gemütliche": "gemütlich", "gemütlichem": "gemütlich",
+  "ernstes": "ernst", "ernste": "ernst", "ernstem": "ernst", "ernster": "ernst",
+  "gruseliges": "gruselig", "gruselige": "gruselig", "gruseligem": "gruselig",
+  "romantisches": "romantisch", "romantische": "romantisch", "romantischem": "romantisch",
+  "historisches": "historisch", "historische": "historisch", "historischem": "historisch",
+  "witziges": "witzig", "witzige": "witzig", "witzigem": "witzig",
+  "entspannendes": "entspannend", "entspannende": "entspannend",
+  "unheimliches": "unheimlich", "unheimliche": "unheimlich",
+  "legendäres": "legendär", "legendäre": "legendär",
+  "übernatürliches": "übernatürlich", "übernatürliche": "übernatürlich",
+};
+
+function normalizeUmlauts(s: string): string {
+  return s.replace(/ü/g, "ue").replace(/ö/g, "oe").replace(/ä/g, "ae").replace(/ß/g, "ss")
+          .replace(/Ü/g, "Ue").replace(/Ö/g, "Oe").replace(/Ä/g, "Ae");
+}
+
+function normalizeGermanVibeWords(text: string): string {
+  let result = text.toLowerCase();
+  for (const [inflected, base] of Object.entries(GERMAN_VIBE_FORMS)) {
+    result = result.replace(new RegExp(`\\b${inflected}\\b`, "g"), base);
+  }
+  return result;
+}
+
 function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], excludedGenres: string[] = []): { score: number; reason: string } {
   const t = normalizeText(text);
+  const tNorm = normalizeUmlauts(normalizeGermanVibeWords(text));
   let score = 0;
   let reason = "";
 
@@ -281,7 +310,7 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
   for (const syn of synonyms) {
     const s = normalizeText(syn);
     if (!s) continue;
-    if (t.includes(s)) {
+    if (t.includes(s) || normalizeUmlauts(normalizeGermanVibeWords(t)).includes(normalizeUmlauts(normalizeGermanVibeWords(s)))) {
       score += Math.max(2, Math.min(5, Math.ceil(s.split(" ").length / 2) + 2));
       if (!reason) reason = `matches "${syn}"`;
     }
@@ -303,40 +332,40 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
   }
 
   // Classic intent boosts the classics mode and slightly downweights gimmick modes.
-  const wantsClassic = /\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s)\b/i.test(text);
+  const wantsClassic = /\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s|klassiker|klassisch|legendaer|meisterwerk|muss man gesehen haben)\b/i.test(tNorm);
   if (wantsClassic && mode.id.includes("classic")) {
     score += 3;
     if (!reason) reason = "classic intent";
   }
-  const wantsHidden = /\b(hidden gem|underrated|less known|new to me|surprise)\b/i.test(text);
+  const wantsHidden = /\b(hidden gem|underrated|less known|new to me|surprise|geheimtipp|unterschaetzt|unbekannt|wenig bekannt)\b/i.test(tNorm);
   if (wantsHidden && mode.id.includes("hidden")) {
     score += 3;
     if (!reason) reason = "hidden gems intent";
   }
 
   // Cheap maturity heuristic.
-  const mature = /\b(not childish|grown[- ]?up|mature|serious|dark)\b/i.test(text);
+  const mature = /\b(not childish|grown[- ]?up|mature|serious|dark)\b/i.test(tNorm);
   if (mature && (mode.id.includes("grown") || mode.id.includes("dark"))) {
     score += 2;
     if (!reason) reason = "mature tone";
   }
 
   // Movie intent.
-  const wantsMovie = /\b(movie|film|movie night|filmabend|kinofilm)\b/i.test(text);
+  const wantsMovie = /\b(movie|film|movie night|filmabend|kinofilm)\b/i.test(tNorm);
   if (wantsMovie && mode.id === "movie_night") {
     score += 3;
     if (!reason) reason = "movie intent";
   }
 
   // Short/binge intent.
-  const wantsShort = /\b(short|one season|quick watch|binge|one cour|12 ep|13 ep|kurz)\b/i.test(text);
+  const wantsShort = /\b(short|one season|quick watch|binge|one cour|12 ep|13 ep|kurz|eine staffel|schnell|durchschauen|kurze serie)\b/i.test(tNorm);
   if (wantsShort && mode.id === "short_one_season") {
     score += 3;
     if (!reason) reason = "short series intent";
   }
 
   // Isekai intent (boost isekai, penalize fantasy_non_isekai).
-  const wantsIsekai = /\b(isekai|reincarnated|another world|reborn|truck[- ]?kun)\b/i.test(text);
+  const wantsIsekai = /\b(isekai|reincarnated|another world|reborn|truck[- ]?kun)\b/i.test(tNorm);
   if (wantsIsekai && mode.id === "isekai") {
     score += 3;
     if (!reason) reason = "isekai intent";
@@ -346,7 +375,7 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
   }
 
   // "No isekai" intent (boost fantasy_non_isekai, penalize isekai).
-  const noIsekai = /\b(no isekai|not isekai|ohne isekai|fantasy no isekai|non[- ]?isekai)\b/i.test(text);
+  const noIsekai = /\b(no isekai|not isekai|ohne isekai|fantasy no isekai|non[- ]?isekai)\b/i.test(tNorm);
   if (noIsekai && mode.id === "fantasy_non_isekai") {
     score += 4;
     if (!reason) reason = "non-isekai intent";
@@ -356,7 +385,7 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
   }
 
   // Romance sub-type disambiguation.
-  const wantsRomcom = /\b(romcom|rom com|romantic comedy|funny romance|cute romance|fluffy)\b/i.test(text);
+  const wantsRomcom = /\b(romcom|rom com|romantic comedy|funny romance|cute romance|fluffy)\b/i.test(tNorm);
   if (wantsRomcom && mode.id === "romcom") {
     score += 3;
     if (!reason) reason = "romcom intent";
@@ -364,7 +393,7 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
   if (wantsRomcom && mode.id === "romance_serious") {
     score -= 2;
   }
-  const wantsSeriousRomance = /\b(serious romance|romance drama|heartbreak|bittersweet|deep romance)\b/i.test(text);
+  const wantsSeriousRomance = /\b(serious romance|romance drama|heartbreak|bittersweet|deep romance)\b/i.test(tNorm);
   if (wantsSeriousRomance && mode.id === "romance_serious") {
     score += 3;
     if (!reason) reason = "serious romance intent";
@@ -374,27 +403,76 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
   }
 
   // Sports intent.
-  const wantsSports = /\b(sports?|soccer|basketball|volleyball|boxing|tennis|baseball|haikyuu|blue lock|kuroko)\b/i.test(text);
+  const wantsSports = /\b(sports?|soccer|basketball|volleyball|boxing|tennis|baseball|haikyuu|blue lock|kuroko|fussball)\b/i.test(tNorm);
   if (wantsSports && mode.id === "sports") {
     score += 3;
     if (!reason) reason = "sports intent";
   }
 
   // Sci-fi intent.
-  const wantsScifi = /\b(sci[- ]?fi|scifi|science fiction|cyberpunk|space|futuristic|dystopian|space opera|mecha)\b/i.test(text);
+  const wantsScifi = /\b(sci[- ]?fi|scifi|science fiction|cyberpunk|space|futuristic|dystopian|space opera|mecha|weltraum|zukunft|roboter)\b/i.test(tNorm);
   if (wantsScifi && mode.id === "scifi") {
     score += 3;
     if (!reason) reason = "sci-fi intent";
   }
 
   // Horror/supernatural intent (disambiguate from dark_serious).
-  const wantsHorror = /\b(horror|scary|creepy|ghost|demon|occult|vampire|zombie|curse|haunted|junji ito)\b/i.test(text);
+  const wantsHorror = /\b(horror|scary|creepy|ghost|demon|occult|vampire|zombie|curse|haunted|junji ito|gruselig|geist|daemon|unheimlich|schaurig)\b/i.test(tNorm);
   if (wantsHorror && mode.id === "horror_supernatural") {
     score += 3;
     if (!reason) reason = "horror intent";
   }
   if (wantsHorror && mode.id === "dark_serious") {
     score -= 2; // prefer horror_supernatural over dark_serious for explicit horror queries
+  }
+
+  // Cozy/comfort intent.
+  const wantsCozy = /\b(cozy|chill|healing|wholesome|comfort|gemuetlich|entspannend|wohlfuehl|beruhigend)\b/i.test(tNorm);
+  if (wantsCozy && mode.id === "cozy_comfort") {
+    score += 3;
+    if (!reason) reason = "cozy intent";
+  }
+
+  // Mecha intent.
+  const wantsMecha = /\b(mecha|giant robot|gundam|eva(ngelion)?|code geass|roboter|riesenroboter)\b/i.test(tNorm);
+  if (wantsMecha && mode.id === "mecha") {
+    score += 3;
+    if (!reason) reason = "mecha intent";
+  }
+
+  // Mystery/detective intent.
+  const wantsMystery = /\b(mystery|detective|whodunit|krimi|detektiv|who done it|case solved|raetsel)\b/i.test(tNorm);
+  if (wantsMystery && mode.id === "mystery_detective") {
+    score += 3;
+    if (!reason) reason = "mystery intent";
+  }
+
+  // Music/performance intent.
+  const wantsMusic = /\b(music anime|band|idol|concert|musik|instrument|k[- ]?on)\b/i.test(tNorm);
+  if (wantsMusic && mode.id === "music_performance") {
+    score += 3;
+    if (!reason) reason = "music intent";
+  }
+
+  // Historical intent.
+  const wantsHistorical = /\b(historical|samurai|period|war drama|medieval|historisch|mittelalter|vinland)\b/i.test(tNorm);
+  if (wantsHistorical && mode.id === "historical") {
+    score += 3;
+    if (!reason) reason = "historical intent";
+  }
+
+  // School/coming-of-age intent.
+  const wantsSchool = /\b(school|campus|high school|coming.of.age|youth|schule|jugend|gymnasium)\b/i.test(tNorm);
+  if (wantsSchool && mode.id === "school_coming_of_age") {
+    score += 3;
+    if (!reason) reason = "school intent";
+  }
+
+  // Shoujo/Josei intent.
+  const wantsShoujoJosei = /\b(shoujo|josei|for women|girls manga|fuer frauen|maedchen|woman protagonist)\b/i.test(tNorm);
+  if (wantsShoujoJosei && mode.id === "shoujo_josei") {
+    score += 3;
+    if (!reason) reason = "shoujo/josei intent";
   }
 
   return { score, reason: reason || "default" };
@@ -418,13 +496,13 @@ function isHiddenGemsIntent(text: string) {
 }
 
 function mapStrongGenreToModeId(text: string, excludedGenres: string[] = []): string | null {
-  const t = text.toLowerCase();
+  const t = normalizeUmlauts(normalizeGermanVibeWords(text.toLowerCase()));
   const excl = new Set(excludedGenres.map((g) => g.toLowerCase()));
   // High-signal intent should win over generic genre words.
   // Structural intents (movie, short, no-isekai) are never blocked by genre exclusions.
-  if (/\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s)\b/.test(t)) return "classics_expanded";
+  if (/\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s|klassiker|klassisch|legendaer|meisterwerk)\b/.test(t)) return "classics_expanded";
   if (/\b(movie|movies|film|movie night|feature film|standalone movie)\b/.test(t)) return "movie_night";
-  if (/\b(short|one season|quick watch|binge|one cour|12 ep|13 ep)\b/.test(t)) return "short_one_season";
+  if (/\b(short|one season|quick watch|binge|one cour|12 ep|13 ep|eine staffel|kurze serie)\b/.test(t)) return "short_one_season";
   if (/\b(no isekai|not isekai|ohne isekai|non[- ]?isekai)\b/.test(t)) return "fantasy_non_isekai";
   // Special romance sub-genres (no dedicated mode, but we prefer serious romance over romcom).
   if (!excl.has("romance") && /\b(shounen ai|shonen ai)\b/.test(t)) return "romance_serious";
@@ -434,13 +512,21 @@ function mapStrongGenreToModeId(text: string, excludedGenres: string[] = []): st
   if (!excl.has("romance") && /\b(romcom|rom com|romantic comedy)\b/.test(t)) return "romcom";
   if (!excl.has("romance") && /\b(serious romance|romance drama|bittersweet|heartbreak|deep romance)\b/.test(t)) return "romance_serious";
   if (!excl.has("romance") && /\b(romance|love story|romantic)\b/.test(t)) return "romcom";
+  // School/coming-of-age and shoujo/josei (after romance to avoid false positives).
+  if (/\b(school anime|high school|coming of age|schule|jugend)\b/.test(t)) return "school_coming_of_age";
+  if (/\b(shoujo|josei|for women|fuer frauen|maedchen)\b/.test(t)) return "shoujo_josei";
+  // Specific genre modes (before generic action/comedy/fantasy).
+  if (/\b(mecha|giant robot|gundam|evangelion)\b/.test(t)) return "mecha";
+  if (/\b(mystery|detective|whodunit|krimi|detektiv)\b/.test(t)) return "mystery_detective";
+  if (/\b(music anime|band anime|idol anime|musik anime)\b/.test(t)) return "music_performance";
+  if (/\b(historical|samurai|period drama|medieval|historisch|mittelalter)\b/.test(t)) return "historical";
   if (!excl.has("action") && /\b(action)\b/.test(t)) return "premium_action";
   if (!excl.has("comedy") && /\b(comedy|funny|laugh)\b/.test(t)) return "premium_comedy_grownup";
-  if (!excl.has("slice of life") && /\b(slice of life|cozy|comfort|chill|relax)\b/.test(t)) return "cozy_comfort";
-  if (!excl.has("horror") && !excl.has("supernatural") && /\b(horror|scary|creepy|supernatural|ghost|demon|occult|vampire|zombie)\b/.test(t)) return "horror_supernatural";
+  if (!excl.has("slice of life") && /\b(slice of life|cozy|comfort|chill|relax|gemuetlich|entspannend|wohlfuehl)\b/.test(t)) return "cozy_comfort";
+  if (!excl.has("horror") && !excl.has("supernatural") && /\b(horror|scary|creepy|supernatural|ghost|demon|occult|vampire|zombie|gruselig|unheimlich|schaurig)\b/.test(t)) return "horror_supernatural";
   if (!excl.has("thriller") && !excl.has("psychological") && !excl.has("mystery") && /\b(thriller|psychological|mind[- ]?game|mystery|dark|serious)\b/.test(t)) return "dark_serious";
-  if (!excl.has("sci-fi") && /\b(sci[- ]?fi|scifi|science fiction|cyberpunk|space opera|dystopian|futuristic)\b/.test(t)) return "scifi";
-  if (!excl.has("sports") && /\b(sports?|soccer|basketball|volleyball|boxing|tennis|baseball)\b/.test(t)) return "sports";
+  if (!excl.has("sci-fi") && /\b(sci[- ]?fi|scifi|science fiction|cyberpunk|space opera|dystopian|futuristic|weltraum|zukunft)\b/.test(t)) return "scifi";
+  if (!excl.has("sports") && /\b(sports?|soccer|basketball|volleyball|boxing|tennis|baseball|fussball)\b/.test(t)) return "sports";
   if (!excl.has("fantasy") && /\b(fantasy|magic)\b/.test(t)) return "fantasy_non_isekai";
   return null;
 }
@@ -876,24 +962,30 @@ serve(async (req) => {
       global: { headers: authHeader ? { Authorization: authHeader } : {} },
     });
 
-    const { data: userData, error: userErr } = await client.auth.getUser();
-    if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
-
-    // Server-side rate limiting (per-user + per-IP).
+    // Auth + rate-limit in parallel (both use the same client).
     const ip = clientIp(req);
-    const { data: rl } = await client.rpc("check_concierge_rate_limit", {
-      p_kind: "recommend",
-      p_ip: ip,
-      p_window_seconds: null,
-      p_max_user: null,
-      p_max_ip: null,
-    });
+    const [rlResult, userResult] = await Promise.all([
+      client.rpc("check_concierge_rate_limit", {
+        p_kind: "recommend",
+        p_ip: ip,
+        p_window_seconds: null,
+        p_max_user: null,
+        p_max_ip: null,
+      }),
+      client.auth.getUser(),
+    ]);
+
+    const rl = rlResult.data;
     if (rl && rl.allowed === false) {
       return json(
         { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
         { status: 429, headers: { "Retry-After": String(rl.retry_after_s ?? 30) } },
       );
     }
+
+    const userData = userResult.data;
+    const userErr = userResult.error;
+    if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
     const text: string = String(body?.text ?? "");
@@ -908,26 +1000,26 @@ serve(async (req) => {
     const userExcludedGenres = inferExcludedGenres(text);
     const quality = inferQualityFloor(text);
 
-    // Concierge config (tunable without redeploy): used for modes + global LLM budgets.
-    const { data: conciergeCfg } = await client.rpc("get_concierge_config");
-    const configuredModes = parseModesFromConfig(conciergeCfg);
-    const modes = configuredModes.length ? configuredModes : defaultModes();
-
-    // Focus tags are only used for explicit "gimmicks" (isekai, reincarnation, etc.)
-    // because `recommend_ids_premium` *requires* focus tags to match when provided.
-    const focusTagIds = await mapTagAnilistIdsToInternal(client, gimmickTagIds);
+    // Parallel fetch: config, tag mapping, and editorial boosts are independent.
     const allowGimmicks =
       gimmickTagIds.length > 0 || /\b(slime)\b/.test(text.toLowerCase());
     const lang = inferLanguage(text);
-
     const mediaType = inferMediaType(text, scope);
     let seedQuery = inferSeedQuery(text);
     let seedOverride: SeedOverride | null = null;
 
-    // Load editorial tag boosts once; used to add deterministic "premium" signals.
-    const { data: tagBoosts } = await client
-      .from("editorial_tag_boosts")
-      .select("tag_id,boost,reason");
+    const [
+      { data: conciergeCfg },
+      focusTagIds,
+      { data: tagBoosts },
+    ] = await Promise.all([
+      client.rpc("get_concierge_config"),
+      mapTagAnilistIdsToInternal(client, gimmickTagIds),
+      client.from("editorial_tag_boosts").select("tag_id,boost,reason"),
+    ]);
+
+    const configuredModes = parseModesFromConfig(conciergeCfg);
+    const modes = configuredModes.length ? configuredModes : defaultModes();
     const tagBoostByTag = new Map<number, any>((tagBoosts ?? []).map((t: any) => [t.tag_id, t]));
     const boostTagIds = Array.from(tagBoostByTag.keys());
 
@@ -983,36 +1075,37 @@ serve(async (req) => {
       if (ids.length === 0) return { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
 
       const table = mt === "ANIME" ? "anime" : "manga";
-      const { data: mediaRows, error: mediaErr } = await client
-        .from(table)
-        .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres")
-        .in("id", ids);
-      if (mediaErr) throw mediaErr;
-      const byId = new Map<number, any>((mediaRows ?? []).map((r: any) => [r.id, r]));
+      const linkTable = mt === "ANIME" ? "anime_tags" : "manga_tags";
+      const idCol = mt === "ANIME" ? "anime_id" : "manga_id";
 
-      const { data: boosts } = await client
-        .from("editorial_boosts")
-        .select("media_id,label,weight")
-        .eq("media_type", mt)
-        .in("media_id", ids);
-      const boostById = new Map<number, any>((boosts ?? []).map((b: any) => [b.media_id, b]));
+      // All three queries depend only on `ids` — run in parallel.
+      const [mediaRes, boostsRes, tagLinksRes] = await Promise.all([
+        client
+          .from(table)
+          .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres")
+          .in("id", ids),
+        client
+          .from("editorial_boosts")
+          .select("media_id,label,weight")
+          .eq("media_type", mt)
+          .in("media_id", ids),
+        boostTagIds.length > 0
+          ? client
+              .from(linkTable)
+              .select(`${idCol},tag_id`)
+              .in(idCol, ids)
+              .in("tag_id", boostTagIds)
+          : Promise.resolve({ data: [] as any[], error: null }),
+      ]);
 
-      // Get which boosted tags apply to each media id (signals only; not used for ranking).
-      let tagLinks: any[] = [];
-      if (boostTagIds.length > 0) {
-        const linkTable = mt === "ANIME" ? "anime_tags" : "manga_tags";
-        const idCol = mt === "ANIME" ? "anime_id" : "manga_id";
-        const resLinks = await client
-          .from(linkTable)
-          .select(`${idCol},tag_id`)
-          .in(idCol, ids)
-          .in("tag_id", boostTagIds);
-        if (!resLinks.error) tagLinks = resLinks.data ?? [];
-      }
+      if (mediaRes.error) throw mediaRes.error;
+      const byId = new Map<number, any>((mediaRes.data ?? []).map((r: any) => [r.id, r]));
+      const boostById = new Map<number, any>((boostsRes.data ?? []).map((b: any) => [b.media_id, b]));
+      const tagLinks = !tagLinksRes.error ? (tagLinksRes.data ?? []) : [];
 
       const boostedReasonsById = new Map<number, string[]>();
       for (const row of tagLinks) {
-        const mediaId = Number(row[mt === "ANIME" ? "anime_id" : "manga_id"]);
+        const mediaId = Number(row[idCol]);
         const tagId = Number(row.tag_id);
         const tb = tagBoostByTag.get(tagId);
         const reason = String(tb?.reason ?? "").trim();
@@ -1335,8 +1428,10 @@ serve(async (req) => {
       // Low-confidence LLM router (one-shot, budgeted, cached).
       if (lowConfidence && routerEnabledCfg) {
         try {
-          const { data: llmEnabled } = await client.rpc("is_flag_enabled", { p_key: "llm_enabled" });
-          const { data: routerEnabledFlag } = await client.rpc("is_flag_enabled", { p_key: "llm_router_enabled" });
+          const [{ data: llmEnabled }, { data: routerEnabledFlag }] = await Promise.all([
+            client.rpc("is_flag_enabled", { p_key: "llm_enabled" }),
+            client.rpc("is_flag_enabled", { p_key: "llm_router_enabled" }),
+          ]);
           if (llmEnabled !== false && routerEnabledFlag === true) {
             const groqKey = Deno.env.get("GROQ_API_KEY");
             const groqModel = Deno.env.get("GROQ_MODEL_ROUTER") ?? (Deno.env.get("GROQ_MODEL") ?? "openai/gpt-oss-20b");
@@ -1475,12 +1570,14 @@ serve(async (req) => {
       const perType = perTypeLimit(fetchLimit);
       const animeRid = railIdFor(mode, "ANIME");
       const mangaRid = railIdFor(mode, "MANGA");
-      const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") && animeRid
-        ? (await client.rpc("curated_rail_cards", { p_rail_id: animeRid, p_limit: perType, p_exclude_seen: true })).data
-        : [];
-      const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") && mangaRid
-        ? (await client.rpc("curated_rail_cards", { p_rail_id: mangaRid, p_limit: perType, p_exclude_seen: true })).data
-        : [];
+      const [animeRows, mangaRows] = await Promise.all([
+        (mediaType === "ANIME" || mediaType === "BOTH") && animeRid
+          ? client.rpc("curated_rail_cards", { p_rail_id: animeRid, p_limit: perType, p_exclude_seen: true }).then((r) => r.data)
+          : [],
+        (mediaType === "MANGA" || mediaType === "BOTH") && mangaRid
+          ? client.rpc("curated_rail_cards", { p_rail_id: mangaRid, p_limit: perType, p_exclude_seen: true }).then((r) => r.data)
+          : [],
+      ]);
       const a = filterExcludedGenres(Array.isArray(animeRows) ? animeRows.map(mapCuratedRowToItem) : []);
       const m = filterExcludedGenres(Array.isArray(mangaRows) ? mangaRows.map(mapCuratedRowToItem) : []);
       const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
@@ -1525,14 +1622,19 @@ serve(async (req) => {
         }));
       };
 
-      const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getSim("ANIME") : [];
-      const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getSim("MANGA") : [];
-      const simCtxAnime = (mediaType === "ANIME" || mediaType === "BOTH")
-        ? await fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
-        : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
-      const simCtxManga = (mediaType === "MANGA" || mediaType === "BOTH")
-        ? await fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
-        : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+      const [animeRows, mangaRows] = await Promise.all([
+        (mediaType === "ANIME" || mediaType === "BOTH") ? getSim("ANIME") : [],
+        (mediaType === "MANGA" || mediaType === "BOTH") ? getSim("MANGA") : [],
+      ]);
+      const emptyCtx: MediaContext = { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+      const [simCtxAnime, simCtxManga] = await Promise.all([
+        (mediaType === "ANIME" || mediaType === "BOTH")
+          ? fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
+          : emptyCtx,
+        (mediaType === "MANGA" || mediaType === "BOTH")
+          ? fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
+          : emptyCtx,
+      ]);
 
       const a = (mediaType === "ANIME" || mediaType === "BOTH")
         ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, quality: q })
@@ -1554,14 +1656,19 @@ serve(async (req) => {
       const pCats = uniq([...categories, ...(mode?.required_genres ?? [])]);
       const cats = pCats.length ? pCats : (categories.length ? categories : null);
 
-      const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getPremiumCandidates("ANIME", cats) : [];
-      const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getPremiumCandidates("MANGA", cats) : [];
-      const ctxAnime = (mediaType === "ANIME" || mediaType === "BOTH")
-        ? await fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
-        : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
-      const ctxManga = (mediaType === "MANGA" || mediaType === "BOTH")
-        ? await fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
-        : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+      const [animeRows, mangaRows] = await Promise.all([
+        (mediaType === "ANIME" || mediaType === "BOTH") ? getPremiumCandidates("ANIME", cats) : [],
+        (mediaType === "MANGA" || mediaType === "BOTH") ? getPremiumCandidates("MANGA", cats) : [],
+      ]);
+      const emptyCtx: MediaContext = { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+      const [ctxAnime, ctxManga] = await Promise.all([
+        (mediaType === "ANIME" || mediaType === "BOTH")
+          ? fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
+          : emptyCtx,
+        (mediaType === "MANGA" || mediaType === "BOTH")
+          ? fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
+          : emptyCtx,
+      ]);
 
       const a = (mediaType === "ANIME" || mediaType === "BOTH")
         ? buildItemsFromRows("ANIME", animeRows, ctxAnime, {
@@ -1622,8 +1729,10 @@ serve(async (req) => {
     // Exactly 2 rails: primary + classics anchor (unless primary is classics, then secondary becomes premium picks).
     const primaryTotal = limit;
     const classicsTotal = Math.min(20, Math.max(limit, 14));
-    const primaryBuilt = await buildRailItems(decision.primaryId, primaryTotal);
-    const secondaryBuilt = await buildRailItems(decision.secondaryId, classicsTotal);
+    const [primaryBuilt, secondaryBuilt] = await Promise.all([
+      buildRailItems(decision.primaryId, primaryTotal),
+      buildRailItems(decision.secondaryId, classicsTotal),
+    ]);
 
     const sets: any[] = [
       {

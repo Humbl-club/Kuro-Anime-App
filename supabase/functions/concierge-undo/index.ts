@@ -70,6 +70,22 @@ serve(async (req) => {
     const sessionId = typeof body?.sessionId === "string" ? body.sessionId : null;
     if (!sessionId) return json({ error: "Missing sessionId" }, { status: 400 });
 
+  // H4: Only allow undo of the most recent session for this user
+  const latestSession = await client
+    .from("import_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "applied")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestSession.error) return json({ error: latestSession.error.message }, { status: 500 });
+  if (!latestSession.data) return json({ error: "No applied session to undo" }, { status: 404 });
+  if (latestSession.data.id !== sessionId) {
+    return json({ error: "Can only undo the most recent import session" }, { status: 409 });
+  }
+
   const session = await client
     .from("import_sessions")
     .select("id,user_id,status")
@@ -82,11 +98,12 @@ serve(async (req) => {
 
   const itemsRes = await client
     .from("import_session_items")
-    .select("id,chosen,action,state")
+    .select("id,chosen,action,state,import_action,previous_values")
     .eq("session_id", sessionId);
   if (itemsRes.error) return json({ error: itemsRes.error.message }, { status: 500 });
 
   const reverted: any[] = [];
+  const warnings: any[] = [];
   const errors: any[] = [];
 
   for (const row of itemsRes.data ?? []) {
@@ -96,56 +113,136 @@ serve(async (req) => {
       const mediaId: number | null = clampInt(chosen?.mediaId, 1, 2_000_000_000);
       if (!mediaType || !mediaId) continue;
 
-      const action = row?.action ?? {};
-      const before = action?.before ?? null;
+      const itemAction = row?.import_action ?? "add";
+      const actionData = row?.action ?? {};
+      const afterData = actionData?.after ?? null;
+      const previousValues = row?.previous_values ?? null;
+
+      // Skip items that were skipped during import — nothing to undo
+      if (itemAction === "skip") continue;
 
       if (mediaType === "ANIME") {
-        if (!before) {
-          const del = await client
-            .from("anime_user_lists")
-            .delete()
-            .eq("user_id", userId)
-            .eq("anime_id", mediaId);
-          if (del.error) throw del.error;
-        } else {
+        // Verify current state matches what we set (detect manual edits / overlapping imports)
+        const current = await client
+          .from("anime_user_lists")
+          .select("list_type,progress,rating,notes")
+          .eq("user_id", userId)
+          .eq("anime_id", mediaId)
+          .maybeSingle();
+
+        if (current.error) throw current.error;
+
+        // If the entry no longer exists or was modified since our import, warn instead of blindly reverting
+        if (afterData && current.data) {
+          const cur = current.data;
+          if (cur.list_type !== afterData.list_type || cur.progress !== afterData.progress) {
+            warnings.push({ mediaType, mediaId, reason: "Entry was modified since import — skipping undo to avoid data loss" });
+            continue;
+          }
+        }
+
+        if (itemAction === "update" && previousValues) {
+          // Restore previous values for updates
           const payload = {
             user_id: userId,
             anime_id: mediaId,
-            list_type: (before?.list_type as ListStatus) ?? "PLANNING",
-            progress: before?.progress ?? null,
-            rating: before?.rating ?? null,
-            notes: before?.notes ?? null,
+            list_type: (previousValues.list_type as ListStatus) ?? "PLANNING",
+            progress: previousValues.progress ?? null,
+            rating: previousValues.rating ?? null,
+            notes: previousValues.notes ?? null,
           };
           const up = await client
             .from("anime_user_lists")
             .upsert(payload as any, { onConflict: "user_id,anime_id" });
           if (up.error) throw up.error;
+          reverted.push({ mediaType, mediaId, undoType: "restored" });
+        } else {
+          // For adds (or legacy items without import_action): delete the entry
+          const before = actionData?.before ?? null;
+          if (!before) {
+            const del = await client
+              .from("anime_user_lists")
+              .delete()
+              .eq("user_id", userId)
+              .eq("anime_id", mediaId);
+            if (del.error) throw del.error;
+            reverted.push({ mediaType, mediaId, undoType: "deleted" });
+          } else {
+            const payload = {
+              user_id: userId,
+              anime_id: mediaId,
+              list_type: (before.list_type as ListStatus) ?? "PLANNING",
+              progress: before.progress ?? null,
+              rating: before.rating ?? null,
+              notes: before.notes ?? null,
+            };
+            const up = await client
+              .from("anime_user_lists")
+              .upsert(payload as any, { onConflict: "user_id,anime_id" });
+            if (up.error) throw up.error;
+            reverted.push({ mediaType, mediaId, undoType: "restored" });
+          }
         }
       } else {
-        if (!before) {
-          const del = await client
-            .from("manga_user_lists")
-            .delete()
-            .eq("user_id", userId)
-            .eq("manga_id", mediaId);
-          if (del.error) throw del.error;
-        } else {
+        // MANGA
+        const current = await client
+          .from("manga_user_lists")
+          .select("list_type,progress,rating,notes")
+          .eq("user_id", userId)
+          .eq("manga_id", mediaId)
+          .maybeSingle();
+
+        if (current.error) throw current.error;
+
+        if (afterData && current.data) {
+          const cur = current.data;
+          if (cur.list_type !== afterData.list_type || cur.progress !== afterData.progress) {
+            warnings.push({ mediaType, mediaId, reason: "Entry was modified since import — skipping undo to avoid data loss" });
+            continue;
+          }
+        }
+
+        if (itemAction === "update" && previousValues) {
           const payload = {
             user_id: userId,
             manga_id: mediaId,
-            list_type: (before?.list_type as ListStatus) ?? "PLANNING",
-            progress: before?.progress ?? null,
-            rating: before?.rating ?? null,
-            notes: before?.notes ?? null,
+            list_type: (previousValues.list_type as ListStatus) ?? "PLANNING",
+            progress: previousValues.progress ?? null,
+            rating: previousValues.rating ?? null,
+            notes: previousValues.notes ?? null,
           };
           const up = await client
             .from("manga_user_lists")
             .upsert(payload as any, { onConflict: "user_id,manga_id" });
           if (up.error) throw up.error;
+          reverted.push({ mediaType, mediaId, undoType: "restored" });
+        } else {
+          const before = actionData?.before ?? null;
+          if (!before) {
+            const del = await client
+              .from("manga_user_lists")
+              .delete()
+              .eq("user_id", userId)
+              .eq("manga_id", mediaId);
+            if (del.error) throw del.error;
+            reverted.push({ mediaType, mediaId, undoType: "deleted" });
+          } else {
+            const payload = {
+              user_id: userId,
+              manga_id: mediaId,
+              list_type: (before.list_type as ListStatus) ?? "PLANNING",
+              progress: before.progress ?? null,
+              rating: before.rating ?? null,
+              notes: before.notes ?? null,
+            };
+            const up = await client
+              .from("manga_user_lists")
+              .upsert(payload as any, { onConflict: "user_id,manga_id" });
+            if (up.error) throw up.error;
+            reverted.push({ mediaType, mediaId, undoType: "restored" });
+          }
         }
       }
-
-      reverted.push({ mediaType, mediaId });
     } catch (e) {
       errors.push({ id: row?.id, error: (e as Error).message ?? String(e) });
     }
@@ -164,7 +261,7 @@ serve(async (req) => {
     // Best-effort metrics only.
   }
 
-    return json({ success: errors.length === 0, sessionId, reverted, errors });
+    return json({ success: errors.length === 0, sessionId, reverted, warnings, errors });
   } catch (e) {
     const err = e as Error;
     return json(

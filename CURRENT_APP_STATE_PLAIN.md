@@ -36,6 +36,7 @@ Kuro is a curated anime + manga app. It lets users browse premium picks, keep li
 - **Collection**: Your personal list of anime/manga.
 - **Browse**: Explore the catalog with filters.
 - **Search**: Find specific titles.
+- **Clubs**: Private groups for watching together. Create or join clubs, share curated rails, vote in polls.
 
 Profile is a small menu in the top-right corner.
 
@@ -74,6 +75,10 @@ There are built-in usage limits so it can’t be abused.
   - Paste from clipboard
   - Try an example import
   - Give me a vibe
+- Everything stays inline in chat — no full-screen takeovers
+- Import results appear as inline confirm bubbles
+- Recommendation results appear as editorial-style horizontal rails
+- Success shows as a toast with undo
 
 **Adult content:** filtered out by default.
 
@@ -83,8 +88,9 @@ There are built-in usage limits so it can’t be abused.
 
 1. You paste a list.
 2. The system tries to match titles.
-3. If something is unclear, it asks or uses the LLM to resolve.
-4. It applies the results to your list and saves a session so you can undo.
+3. If something is unclear, it shows an inline picker in the chat.
+4. After applying, a toast with undo appears (not a full-screen done view).
+5. For high-confidence imports (score >= 0.85), items are auto-applied immediately with an undo toast.
 
 ```mermaid
 flowchart TD
@@ -102,15 +108,16 @@ flowchart TD
 
 - The system prefers **classics** and **premium picks**.
 - It avoids adult content by default.
-- If you say “like X”, it finds similar titles first.
+- If you say "like X", it finds similar titles first.
 - The LLM only adds wording or resolves ambiguity.
 - Your prompt is routed into **up to 2 curated rails ("modes")**:
   - Rail A: a best-fit "vibe mode" (e.g. Premium Action / Cozy / Movie Night / Romcom)
   - Rail B: **Classics (expanded)** (keeps your existing classics picks, but returns more)
-- Production currently has **17 modes** (v6): Premium Picks, Start Here, Premium Action, Premium Comedy, Cozy/Comfort, Dark/Serious, Hidden Gems, Classics, Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai, **Sports**, **Sci-Fi**, **Horror & Supernatural**.
-- **38 curated rails** total (27 original + 11 new: sports, sci-fi, horror/supernatural anime+manga, seinen, shoujo, josei).
+- Production currently has **23 modes** (v8): Premium Picks, Start Here, Premium Action, Premium Comedy, Cozy/Comfort, Dark/Serious, Hidden Gems, Classics, Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai, **Sports**, **Sci-Fi**, **Horror & Supernatural**, **Mecha**, **Mystery/Detective**, **Music/Performance**, **Historical**, **School/Coming-of-Age**, **Shoujo/Josei**.
+- **50 curated rails** total (27 original + 23 new: sports, sci-fi, horror/supernatural, mecha, mystery, music, historical, school, shoujo/josei anime+manga, seinen, shoujo, josei).
 - Negative genre filtering supported: "action but no romance", "fantasy without harem". Excluded genres now also suppress conflicting modes in routing (not just item filtering).
 - 30 abbreviations in the parser (up from 10): OP, DB/DBZ/DBS, SAO, NGE/Eva, LOTGH, etc.
+- **Full German language support**: vibe adjective inflection handling, German intent keywords, German synonyms on all modes.
 - The modes are configurable in the database (`public.concierge_config.config.modes`) so we can tune them without redeploying the app.
 
 ```mermaid
@@ -322,6 +329,10 @@ flowchart TD
 
 ## 14) Change Log (append-only)
 
+- 2026-02-09: **Clubs feature launched**: Private groups (2-20 members) with curated rails, polls, and privacy levels. New page in the app (6th swipe page). Create/join clubs via invite codes. Import reconciliation detects existing collection entries and proposes Add/Update/Skip actions instead of blind imports. Quality gate scripts added for CI. Club telemetry with 90-day retention. Haptics and empty states polished across all new views.
+- 2026-02-09: **Concierge images wired**: `search_titles()` RPC now returns `cover_image_medium` (new migration). Import preview cards and recommendation cards now show actual cover art via `KuroCachedAsyncImage` instead of gradient placeholders. Gradient remains as fallback for missing images.
+- 2026-02-09: **P0 fix — progress data forwarding**: `confirmImport()` now sends parsed progress fields (episodes, chapters, volumes, season, caughtUp, etc.) to the apply endpoint. Previously all imports landed with progress=0.
+- 2026-02-09: **Performance parallelization**: All 3 concierge edge functions (parse, apply, recommend) now process items and DB queries in parallel via `Promise.all` instead of sequential loops. Expected 2-5x latency improvement. iOS post-apply fetches also parallelized with `async let`.
 - 2026-02-08: **Adaptation disambiguation**: Parser extracts year mentions from input ("HxH 2011" → year=2011), boosts matching candidates, strips years from search queries. Resolver shows year/format tags to Groq LLM. iOS blocks auto-apply when top candidates are different adaptations of the same series (e.g. HxH 1999 vs 2011), unless the user's year mention resolves it.
 - 2026-02-08: **Negative genre mode suppression**: "action but no romance" now correctly routes to Premium Action (not Romcom). Excluded genres suppress conflicting modes in both `mapStrongGenreToModeId` and `scoreMode`. Router eval script hardened with exponential backoff for 429/5xx.
 - 2026-02-08: **Major curated content overhaul**: cleaned up all existing rails (removed sequels, misclassified items, cross-rail duplicates; slimmed from 120-210 items to 30-80 per rail; fixed classics definition). Added 3 new vibe modes (Sports, Sci-Fi, Horror & Supernatural) + demographic rails (Seinen, Shoujo, Josei). Parser now has 30 abbreviations and supports negative filtering ("no romance"). Total: 17 modes, 38 rails, 63 migrations. Enhanced audit script with overlap/franchise/year/size checks.

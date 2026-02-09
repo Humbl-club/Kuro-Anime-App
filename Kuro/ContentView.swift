@@ -91,7 +91,7 @@ struct KuroMainView: View {
     // Removed: let sections = ["DISCOVER", "COLLECTION", "SEARCH"]
 
     enum Section: Int, CaseIterable {
-        case concierge, discover, collection, browse, search
+        case concierge, discover, collection, browse, search, clubs
 
         var title: String {
             switch self {
@@ -105,6 +105,8 @@ struct KuroMainView: View {
                 return "BROWSE"
             case .search:
                 return "SEARCH"
+            case .clubs:
+                return "CLUBS"
             }
         }
     }
@@ -114,7 +116,7 @@ struct KuroMainView: View {
 	@State private var mountedSections: Set<Section> = [.discover]
 	@State private var swipeExclusions: [CGRect] = []
 	// Concierge is a first-class page to the LEFT of Discover.
-	private let swipeOrder: [Section] = [.concierge, .discover, .collection, .browse, .search]
+	private let swipeOrder: [Section] = [.concierge, .discover, .collection, .browse, .search, .clubs]
 	private let swipeThreshold: CGFloat = 40
 	private let swipeEdgeMargin: CGFloat = 24
     
@@ -231,6 +233,10 @@ private struct KuroSectionPager: View {
                 BrowseView()
             case .search:
                 EditorialSearchView()
+            case .clubs:
+                NavigationStack {
+                    ClubsView()
+                }
             }
         } else {
             // Placeholder keeps layout stable without triggering `.task` in heavy pages.
@@ -245,7 +251,7 @@ struct KuroHeaderNew: View {
     @Binding var showProfileSheet: Bool
     @Environment(SupabaseService.self) private var supabaseService
     
-    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .collection, .browse, .search]
+    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .collection, .browse, .search, .clubs]
 
     private static let windowTextPaddingX: CGFloat = 14
     private static let windowTextPaddingY: CGFloat = 7
