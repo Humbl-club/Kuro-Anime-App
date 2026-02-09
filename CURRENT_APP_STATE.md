@@ -42,8 +42,8 @@ This file is a **contract**. It must be updated **after every single change** to
 - Concierge: deterministic-first parsing + LLM fallback.
 
 **Backend:** Supabase (Postgres + Edge Functions + Storage + RPC + RLS)
-- Postgres stores anime/manga catalog, user lists, recommendations, concierge sessions, and ops metrics.
-- Edge Functions handle bulk imports, concierge operations, and image mirroring.
+- Postgres stores anime/manga catalog, user lists, recommendations, concierge sessions, clubs, and ops metrics.
+- Edge Functions handle bulk imports, concierge operations (parse/resolve/recommend/apply/undo), and image mirroring.
 - Storage provides CDN for mirrored images (public bucket).
 
 **Primary data source:** AniList (imported via scripts + edge functions).
@@ -92,7 +92,7 @@ This section is auto-generated. Rebuild it after any repo change:
 node scripts/generate_app_state_inventory.js
 ```
 
-### iOS (Swift) files (count: 45)
+### iOS (Swift) files (count: 48)
 - `Kuro/ContentView.swift`
 - `Kuro/Design/KuroDesignSystem.swift`
 - `Kuro/KuroApp.swift`
@@ -108,10 +108,13 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/BrowseView.swift`
 - `Kuro/Views/BrowseViewRefined.swift`
 - `Kuro/Views/Cards.swift`
+- `Kuro/Views/ClubDetailView.swift`
+- `Kuro/Views/ClubsView.swift`
 - `Kuro/Views/Collection/CollectionManagementView.swift`
 - `Kuro/Views/ConciergeView.swift`
 - `Kuro/Views/CountdownTimer.swift`
 - `Kuro/Views/DetailPages/AnimeDetailView.swift`
+- `Kuro/Views/DetailPages/ClubActivitySection.swift`
 - `Kuro/Views/DetailPages/MangaDetailView.swift`
 - `Kuro/Views/DetailPages/MediaDetailSheet.swift`
 - `Kuro/Views/DiscoverView.swift`
@@ -137,7 +140,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/SettingsView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 63)
+### Supabase migrations (count: 68)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql` *(baseline schema SQL; already applied in production migration history; used for fresh project bootstrap)*
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -205,6 +208,11 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260209100000_concierge_modes_v7_german_synonyms.sql` *(v7: add German synonyms across all 17 modes + umlaut normalization)*
 - `supabase/migrations/20260209110000_concierge_modes_v8_expanded.sql` *(v8: add 6 new modes — mecha, mystery_detective, music_performance, historical, school_coming_of_age, shoujo_josei — total 23 modes)*
 - `supabase/migrations/20260209120000_new_vibe_rails.sql` *(seed 12 new curated rails for v8 modes — total 50 rails)*
+- `supabase/migrations/20260209135229_import_reconciliation.sql` *(add import_action + previous_values columns to import_session_items for reconciliation)*
+- `supabase/migrations/20260209200000_clubs_foundation.sql` *(7 club tables, generate_invite_code helper, indexes, triggers, RLS enabled)*
+- `supabase/migrations/20260209201000_clubs_rls_policies.sql` *(25 RLS policies + 3 SECURITY DEFINER helper functions for clubs)*
+- `supabase/migrations/20260209202000_clubs_rpcs.sql` *(6 RPCs + 3 helper functions for clubs)*
+- `supabase/migrations/20260209220000_club_analytics.sql` *(club_analytics table, log_club_event RPC, extended housekeeping)*
 
 ### Supabase Edge Functions (index.ts) (count: 8)
 - `supabase/functions/bulk-import-anime/index.ts`
@@ -215,6 +223,18 @@ node scripts/generate_app_state_inventory.js
 - `supabase/functions/concierge-resolve/index.ts`
 - `supabase/functions/concierge-undo/index.ts`
 - `supabase/functions/mirror-images/index.ts`
+
+### Quality gate scripts (count: 7)
+- `scripts/quality-gates/check_secrets.sh`
+- `scripts/quality-gates/check_migrations.sh`
+- `scripts/quality-gates/test_router_offline.sh`
+- `scripts/quality-gates/router_test_cases.js`
+- `scripts/quality-gates/audit_rails.sh`
+- `scripts/quality-gates/build_ios.sh`
+- `scripts/quality-gates/run_all.sh`
+
+### Git hooks
+- `.githooks/pre-commit`
 
 ### Repo scripts (count: 19)
 - `scripts/apply_remote_sql.js`
@@ -247,16 +267,17 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Models/` — data models (Anime, Manga, UserList, etc.)
 
 ### Feature-to-file map (frontend)
-- **Concierge UI**: `Kuro/Views/ConciergeView.swift` (chat, import, recommend UI, toasts)
+- **Concierge UI**: `Kuro/Views/ConciergeView.swift` (inline chat, import, recommend UI, toasts)
 - **Discover**: `Kuro/Views/EditorialDiscoverView.swift` (sections, rails, filters)
 - **Collection**: `Kuro/Views/EditorialCollectionView.swift` + list helpers in `SupabaseService`
 - **Browse**: `Kuro/Views/BrowseViewRefined.swift`
 - **Search**: `Kuro/Views/EditorialSearchView.swift`
+- **Clubs**: `Kuro/Views/ClubsView.swift` (club list, create/join), `Kuro/Views/ClubDetailView.swift` (3-tab: Rails/This Week/Polls), `Kuro/Views/DetailPages/ClubActivitySection.swift` (media detail club context)
 - **Cards / badges**: `Kuro/Views/KuroRefinedCard.swift`, `Kuro/Views/KuroCardText.swift`
 - **Glass UI**: `Kuro/Views/KuroGlass.swift`
 - **Toasts**: `Kuro/Views/KuroToast.swift`
 - **Image caching**: `Kuro/Views/KuroCachedAsyncImage.swift`, `Kuro/Services/ImagePipeline.swift`
-- **Profile**: `Kuro/Views/ProfileView.swift`
+- **Profile**: `Kuro/Views/ProfileView.swift` (includes Clubs tab)
 
 ### Supabase
 - `supabase/migrations/` — schema, indexes, views, RPCs, cron jobs
@@ -279,6 +300,7 @@ node scripts/generate_app_state_inventory.js
 - `scripts/concierge_eval_parse.js`, `scripts/concierge_corpus_generate.js`, `scripts/load_test_concierge.js` — concierge QA/ops
 - `scripts/check_cron_health.js`, `scripts/collect_db_metrics.js` — ops
 - `scripts/db_state.sql` — DB snapshot queries (row counts, coverage, etc.)
+- `scripts/quality-gates/` — CI quality gate scripts (secrets, migrations, router tests, rails audit, iOS build); see section 13.1
 
 ---
 
@@ -293,6 +315,7 @@ node scripts/generate_app_state_inventory.js
   3. **Collection**
   4. **Browse**
   5. **Search**
+  6. **Clubs**
 
 ### Header (top bar)
 - Left: **KURO** wordmark only (no concierge icon next to it).
@@ -304,6 +327,11 @@ node scripts/generate_app_state_inventory.js
 
 ### Concierge
 - Full left page (no floating launcher in header).
+- **Inline chat architecture** (no full-screen takeovers, no state machine):
+  - Typing indicator for loading states
+  - Inline confirm bubble for import preview (grouped: WILL ADD / WILL UPDATE / WILL SKIP)
+  - Inline editorial rails for recommendations
+  - Toast + undo for completion
 - Empty state:
   - Concierge glass intro card
   - Quick-start glass pills:
@@ -311,13 +339,15 @@ node scripts/generate_app_state_inventory.js
     - Try example import
     - Give me a vibe
 - Main features:
-  - Deterministic parsing of pasted list
+  - Deterministic parsing of pasted list with import reconciliation (Add/Update/Skip actions)
+  - Auto-apply for high-confidence imports (all items score >= 0.85, no ambiguous adaptations)
   - Candidate disambiguation
   - LLM fallback for ambiguous lines
-  - Apply/undo sessions
-  - Recommendations with LLM narration (optional)
-- The floating assistant widget exists in code but is **disabled** when Concierge is used as a full page (`ConciergeView(assistantEnabled: false)` in the pager).
-- The floating assistant widget exists in `ConciergeView` but is **disabled** when used as a full page (`ConciergeView(assistantEnabled: false)` in the pager).
+  - Apply/undo sessions (undo restores previous_values for updates)
+  - Recommendations with LLM narration (optional), 23 vibe modes
+  - Edge function warmup on view appear (`concierge-parse?warmup=true`)
+- All UI components use `KuroDesignSystem` tokens (fonts, spacing, radii, animations).
+- German NLP: `GERMAN_VIBE_FORMS` allowlist (15 adjective stems x 5 inflections), German intent keywords in `scoreMode()`, umlaut normalization (u->ue, o->oe, a->ae, ss->ss).
 
 ### Discover
 - Editorial layout with sections (Essentials, Classics, New to You, Trending, etc.)
@@ -329,6 +359,14 @@ node scripts/generate_app_state_inventory.js
 
 ### Browse + Search
 - RPC-backed paging
+
+### Clubs
+- 6th page in the swipe pager.
+- `ClubsView`: joined club list, empty state with create/join prompts, pull-to-refresh.
+- `ClubDetailView`: 3-tab layout (Rails / This Week / Polls), settings sheet for owner/admin.
+- `ClubActivitySection`: embedded on `AnimeDetailView` and `MangaDetailView` — shows which clubs have this title in a rail, aggregate member status counts, and (if sharing level allows) per-member details.
+- Clubs tab also accessible from `ProfileView`.
+- Monochrome status pills (no colored dots).
 
 ---
 
@@ -353,12 +391,18 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 - Swift files scanned: **45** (all `Kuro/**/*.swift`)
 
-### RPCs used by iOS (count: 9)
+### RPCs used by iOS (count: 15)
 - `browse_anime_page`
 - `browse_manga_page`
 - `collection_anime_page`
 - `collection_feed_page`
 - `collection_manga_page`
+- `create_club`
+- `join_club`
+- `leave_club`
+- `fetch_club_bundle`
+- `add_club_rail_item`
+- `cast_club_vote`
 - `discover_bundle`
 - `recommend_ids_similar_to_seeds`
 - `search_anime_page`
@@ -470,12 +514,23 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - `system_flags` (e.g., `llm_enabled`)
 - `mirror_runs` (logs mirror-image jobs)
 
+### Clubs
+- `clubs` (id uuid, name, description, created_by, invite_code, invite_expires_at, invite_max_uses, invite_use_count, sharing_level, max_members, is_archived)
+- `club_members` (id uuid, club_id, user_id uuid, role [owner/admin/member], sharing_level, joined_at)
+- `club_rails` (id uuid, club_id, title, description, created_by, is_locked, sort_order)
+- `club_rail_items` (id uuid, rail_id, media_type [ANIME/MANGA], media_id int, added_by uuid, sort_order, note)
+- `club_polls` (id uuid, club_id, question, created_by, closes_at, is_closed)
+- `club_poll_options` (id uuid, poll_id, label, media_type, media_id, sort_order)
+- `club_votes` (id uuid, poll_id, option_id, user_id uuid; UNIQUE(poll_id, user_id))
+- `club_analytics` (id uuid, event_type, club_id, user_id, metadata jsonb, created_at; events: club_created/joined/left/rail_opened/vote_cast/import_applied/import_undone)
+
 ### Ops / metrics
 - `concierge_metrics_hourly`
 - `llm_usage_daily_totals`
 - `rate_limit_recent_top`
 - `import_state` (cursor table for scheduled AniList imports)
 - `import_runs` (optional; bulk-import functions write run history if present)
+- `club_analytics` (club telemetry events; 90-day retention via housekeeping cron)
 
 **Schema definitions are in** `supabase/migrations/`.
 
@@ -484,6 +539,9 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - `profiles` row is ensured on sign-in (`SupabaseService.ensureProfileRow()`).
 - RLS is enabled; user tables are scoped to `auth.uid()` in migrations.
 - Concierge endpoints always derive user id from JWT (never accept raw user_id from client).
+- **Clubs RLS**: 25 policies across 7 tables. All access gated by membership via `is_club_member()` / `is_club_admin_or_owner()` / `is_club_owner()` (SECURITY DEFINER helpers to avoid infinite recursion on club_members self-query). club_members INSERT is managed via SECURITY DEFINER RPCs only (no direct policy). Rail lock enforced in `club_rail_items` INSERT policy (`cr.is_locked = false`).
+- **Club analytics RLS**: authenticated insert own (`user_id = auth.uid()`), service_role select only.
+- **Security fixes**: `generate_invite_code()`, `sharing_level_rank()`, and all club helper functions use `SET search_path = public` to prevent search_path injection.
 
 ---
 
@@ -503,6 +561,69 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ---
 
+## 6.2) Clubs system (detailed)
+
+### Overview
+Clubs are private groups (2-20 members) for sharing anime/manga watch activity. Privacy-by-design: three sharing levels control what members see.
+
+### Tables (7)
+| Table | Primary key | Key constraints |
+|-------|------------|----------------|
+| `clubs` | uuid | `name` <= 80 chars, `invite_code` UNIQUE, `sharing_level` IN (private/status/progress), `max_members` default 20 |
+| `club_members` | uuid | UNIQUE(club_id, user_id), `role` IN (owner/admin/member), user_id is UUID (not TEXT like legacy tables) |
+| `club_rails` | uuid | `title` <= 120 chars, `is_locked` boolean, `sort_order` int |
+| `club_rail_items` | uuid | UNIQUE(rail_id, media_type, media_id), `media_type` IN (ANIME/MANGA), `note` <= 280 chars |
+| `club_polls` | uuid | `question` <= 200 chars, `is_closed` boolean + `closes_at` (no `is_active`) |
+| `club_poll_options` | uuid | `label` <= 120 chars, optional media_type/media_id link. Append-only (no updated_at) |
+| `club_votes` | uuid | UNIQUE(poll_id, user_id). Append-only. Single-choice: delete+reinsert to change vote |
+
+### Privacy model
+- **Sharing levels** (club-wide default + per-member override):
+  - `private` (rank 0): aggregates only, no per-member data
+  - `status` (rank 1): names + list statuses, no progress numbers
+  - `progress` (rank 2): full detail including episode/chapter progress
+- **Minimum 3 members** for aggregate breakdown (H1 rule): with <3 members, only own data is visible
+- Per-member `sharing_level` can only be more restrictive than the club default (enforced by `sharing_level_rank()`)
+- Effective level = `min(member_override ?? club_default, club_default)`
+
+### RLS design (25 policies + 4 helper functions)
+- 3 SECURITY DEFINER helpers (`is_club_member`, `is_club_admin_or_owner`, `is_club_owner`) avoid infinite recursion on club_members self-query
+- `club_members` has NO INSERT policy for `authenticated` role -- membership managed exclusively via SECURITY DEFINER RPCs (`create_club`, `join_club`)
+- `club_rail_items` INSERT policy enforces rail lock: `AND cr.is_locked = false`
+- `club_poll_options` and `club_votes` have no UPDATE policy (append-only; delete+reinsert pattern)
+- All helper functions use `SET search_path = public`
+
+### RPCs (6)
+1. `create_club` -- SECURITY DEFINER; creates club + owner row; invite code with collision retry (max 5)
+2. `join_club` -- SECURITY DEFINER; rate-limited (10/min via rate_limit_hit); validates code/expiry/cap/membership/member count
+3. `leave_club` -- SECURITY DEFINER; ownership transfer: oldest admin first, then oldest member; deletes club if last member
+4. `fetch_club_bundle` -- SECURITY INVOKER (relies on RLS); returns club + members + rails (with LEFT JOIN media enrichment + per-member `member_statuses` jsonb array) + polls (anonymous vote counts only, never voter IDs)
+5. `add_club_rail_item` -- SECURITY DEFINER; validates membership + lock + media existence + note length; auto-increments sort_order
+6. `cast_club_vote` -- SECURITY DEFINER; validates membership + open poll + option belongs to poll; delete+reinsert for re-vote
+
+### fetch_club_bundle implementation notes
+- Uses LEFT JOINs to anime/manga tables (one join per media type, not N scalar subqueries per item)
+- Caller's own list status via LEFT JOIN to anime_user_lists/manga_user_lists
+- `member_statuses`: per-member status jsonb array (only when sharing >= 'status' and >= 3 members)
+- `member_status_counts`: aggregate {WATCHING: 3, COMPLETED: 2} counts per item (respects sharing levels)
+- user_id::text cast for joins to legacy user-list tables
+
+### Analytics
+- `club_analytics` table: event_type, club_id, user_id, metadata jsonb
+- Events: club_created, club_joined, club_left, rail_opened, vote_cast, import_applied, import_undone
+- `log_club_event` RPC (SECURITY DEFINER, always uses auth.uid())
+- 90-day retention via extended `concierge_housekeeping()` cron
+- RLS: authenticated insert own, service_role select only
+
+### iOS views
+- `ClubsView.swift`: 6th page in swipe pager. Lists joined clubs, empty state with create/join prompts.
+- `ClubDetailView.swift`: 3-tab segmented picker (RAILS / THIS WEEK / POLLS). Settings sheet for owner/admin.
+- `ClubActivitySection.swift`: Embedded on `AnimeDetailView` and `MangaDetailView`. Shows club context: which clubs have this title, aggregate member statuses.
+- `ProfileView.swift`: "Clubs" row opens ClubsView sheet.
+- Monochrome status pills (no colored dots).
+
+---
+
 ## 7) RPCs (current usage)
 
 Client + edge functions rely on these RPCs:
@@ -513,7 +634,7 @@ Client + edge functions rely on these RPCs:
 - `collection_anime_page`, `collection_manga_page`
 - `recommend_ids_similar_to_seeds`
 - `recommend_ids_premium`
-- `search_titles`
+- `search_titles` (now returns `cover_image_medium` via coalesce on anime/manga)
 - `check_concierge_rate_limit`
 - `get_concierge_config`
 - `log_concierge_run`
@@ -522,6 +643,18 @@ Client + edge functions rely on these RPCs:
 - `llm_global_budget_reserve`, `llm_global_budget_finalize`
 - `is_flag_enabled`
 - `acquire_import_lock`, `release_import_lock`
+- **Club RPCs** (SECURITY DEFINER except fetch_club_bundle which is INVOKER):
+  - `create_club(p_name, p_description, p_sharing_level)` — creates club + owner membership, generates invite code with collision retry
+  - `join_club(p_invite_code)` — validates code/expiry/cap, rate-limited (10/min), inserts member
+  - `leave_club(p_club_id)` — removes member, transfers ownership (oldest admin first, then oldest member) or deletes club if last member
+  - `fetch_club_bundle(p_club_id)` — SECURITY INVOKER, returns club info + members + rails (with media joins via LEFT JOIN, per-member watch statuses as `member_statuses` jsonb array) + polls (anonymous vote counts). Privacy: <3 members returns only own data; `private` sharing returns aggregates only; `status` returns names+statuses; `progress` returns full detail
+  - `add_club_rail_item(p_rail_id, p_media_type, p_media_id, p_note)` — validates membership + lock + media existence
+  - `cast_club_vote(p_poll_id, p_option_id)` — validates membership + open poll, delete+reinsert for re-vote
+- **Club helper functions**:
+  - `is_club_member(uuid)`, `is_club_admin_or_owner(uuid)`, `is_club_owner(uuid)` — SECURITY DEFINER, STABLE
+  - `sharing_level_rank(text)` — IMMUTABLE, returns 0/1/2 for private/status/progress
+  - `generate_invite_code(int)` — 8-char alphanumeric (62^8 combinations)
+  - `log_club_event(p_event_type, p_club_id, p_metadata)` — SECURITY DEFINER, inserts analytics row
 
 <!-- BEGIN AUTO-MIGRATION-MAP -->
 
@@ -648,6 +781,41 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
 
 ### supabase/migrations/20260205190000_concierge_modes_config.sql
 
+### supabase/migrations/20260209000000_search_titles_add_cover_image.sql
+- Functions (1): `public.search_titles` *(adds cover_image_medium to return set via LEFT JOIN on anime/manga)*
+
+### supabase/migrations/20260209100000_concierge_modes_v7_german_synonyms.sql
+- *(config update: adds German synonyms across all 17 modes + umlaut normalization)*
+
+### supabase/migrations/20260209110000_concierge_modes_v8_expanded.sql
+- *(config update: adds 6 new modes — mecha, mystery_detective, music_performance, historical, school_coming_of_age, shoujo_josei — total 23 modes)*
+
+### supabase/migrations/20260209120000_new_vibe_rails.sql
+- *(seeds 12 new curated rails for v8 modes — total 50 rails)*
+
+### supabase/migrations/20260209135229_import_reconciliation.sql
+- Columns (2): `public.import_session_items.import_action` (text, default 'add', CHECK add/update/skip), `public.import_session_items.previous_values` (jsonb)
+
+### supabase/migrations/20260209200000_clubs_foundation.sql
+- Tables (7): `public.clubs`, `public.club_members`, `public.club_rails`, `public.club_rail_items`, `public.club_polls`, `public.club_poll_options`, `public.club_votes`
+- Functions (1): `public.generate_invite_code`
+- Indexes (10): `idx_clubs_invite_code`, `idx_clubs_created_by`, `idx_club_members_user`, `idx_club_members_club`, `idx_club_rails_club_sort`, `idx_club_rail_items_rail_sort`, `idx_club_polls_club_created`, `idx_club_poll_options_poll`, `idx_club_votes_option`, `idx_club_votes_poll`, `idx_club_votes_user`
+- Triggers (5): `clubs_set_updated_at`, `club_members_set_updated_at`, `club_rails_set_updated_at`, `club_rail_items_set_updated_at`, `club_polls_set_updated_at`
+- RLS enabled on all 7 tables
+
+### supabase/migrations/20260209201000_clubs_rls_policies.sql
+- Functions (3): `public.is_club_member`, `public.is_club_admin_or_owner`, `public.is_club_owner` *(all SECURITY DEFINER, SET search_path = public)*
+- Policies (25): 4 on clubs, 4 on club_members, 4 on club_rails, 3 on club_rail_items, 4 on club_polls, 3 on club_poll_options, 3 on club_votes
+
+### supabase/migrations/20260209202000_clubs_rpcs.sql
+- Functions (9): `public.is_club_member`, `public.is_club_admin_or_owner`, `public.sharing_level_rank`, `public.create_club`, `public.join_club`, `public.leave_club`, `public.fetch_club_bundle`, `public.add_club_rail_item`, `public.cast_club_vote`
+
+### supabase/migrations/20260209220000_club_analytics.sql
+- Tables (1): `public.club_analytics`
+- Functions (2): `public.log_club_event` (SECURITY DEFINER), `public.concierge_housekeeping` *(extended to prune club_analytics > 90 days)*
+- Policies (2): `club_analytics_insert_own`, `club_analytics_select_service`
+- Indexes (2): `idx_club_analytics_created_at`, `idx_club_analytics_club_id`
+
 
 <!-- END AUTO-MIGRATION-MAP -->
 
@@ -658,25 +826,45 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
 ### Deterministic-first
 - `concierge-parse` Edge Function
   - Parses user text (list or vibe)
-  - Calls `search_titles` RPC to get candidates
+  - Calls `search_titles` RPC to get candidates (now returns `cover_image_medium`)
   - Logs parse feedback when low-confidence
-  - Supports: abbreviations (AoT/JJK/etc), seasons (`S2`, `Season 2`), episode markers (`ep 12`, `S2E5`), roman numerals, and “completed/caught up” flags
+  - Supports: abbreviations (30+, e.g., AoT/JJK/HxH), seasons (`S2`, `Season 2`), episode markers (`ep 12`, `S2E5`), roman numerals, "completed/caught up" flags, year mentions (e.g., "HxH 2011")
+  - Warmup endpoint: `concierge-parse?warmup=true` returns 204 immediately (used by iOS on view appear)
+  - Import reconciliation: returns `existing_entry` per item after candidate resolution; proposes Add/Update/Skip actions
+  - Items processed in parallel via `Promise.all`
 
 ### Disambiguation
 - `concierge-resolve` Edge Function
   - LLM fallback (Groq OpenAI-compatible)
   - Uses budgets + rate limits
+  - Includes year/format tags in Groq prompts (`[2011] TV`)
+  - iOS `conciergeResolve()` client code removed (dead code cleanup)
 
 ### Recommendations
 - `concierge-recommend` Edge Function
   - Uses deterministic recommendation pipeline first (RPCs)
   - Optional LLM narration (Groq)
-  - Supports “seeded” requests (e.g., “like Vagabond”) via `recommend_ids_similar_to_seeds`
+  - Supports "seeded" requests (e.g., "like Vagabond") via `recommend_ids_similar_to_seeds`
   - Uses editorial scoring + tag/category inference when no seed is provided
+  - **23 vibe modes** (was 17): original 17 + mecha, mystery_detective, music_performance, historical, school_coming_of_age, shoujo_josei
+  - 50 curated rails total (12 new for the 6 new modes)
+  - German NLP: `GERMAN_VIBE_FORMS` allowlist (15 adjective stems x 5 inflections), `normalizeGermanVibeWords()`, German intent keywords in all `scoreMode()` patterns, umlaut normalization
+  - Negative genre suppression: `mapStrongGenreToModeId()` respects excluded genres
+  - Auth + rate-limit parallelized via `Promise.all`
+  - Primary + secondary rail building parallelized; `fetchMediaContext` (3 DB queries) parallelized; config+tag+boost loading parallelized
 
 ### Apply + Undo
 - `concierge-apply` writes user list items
+  - Supports `action` field: `add` (new entry), `update` (modify existing), `skip` (no-op)
+  - TOCTOU protection via `expectedExisting` field
+  - Stores `previous_values` for updates (enables undo restoration)
+  - Items processed in parallel via `Promise.all`; auth/rate-limit/body-parse parallelized
 - `concierge-undo` rolls back last session
+  - For `add` actions: deletes the entry
+  - For `update` actions: restores `previous_values` snapshot
+  - For `skip` actions: no-op
+  - Detects manual edits since import (warns instead of reverting if list_type/progress changed)
+  - Only allows undo of the most recent applied session
 
 ### Budgets + rate limits
 - Configured in `public.concierge_config`
@@ -707,9 +895,12 @@ Request JSON:
 - `text` (string)
 - `scope` (`anime` | `manga` | `both`, default `both`)
 - `limitPerItem` (int, default 10)
+- Warmup: `?warmup=true` query param returns 204 immediately
 
 Response JSON:
-- `items[]` (parsed lines with candidate lists)
+- `items[]` (parsed lines with candidate lists; each candidate includes `cover_image_medium`)
+- `items[].existing_entry` (if user has this title in their list: `{list_type, progress, rating}`)
+- `items[].import_action` (`add` | `update` | `skip`)
 - `userId` (null if unauthenticated)
 
 **concierge-resolve** (LLM disambiguation)
@@ -733,15 +924,19 @@ Response JSON:
 
 **concierge-apply** (write to list)
 Request JSON:
-- `items[]` each with `mediaType`, `mediaId`, `status`, and optional progress fields
+- `items[]` each with `mediaType`, `mediaId`, `status`, optional progress fields, `action` (`add`/`update`/`skip`), `expectedExisting` (TOCTOU guard)
 
 Response JSON:
 - `sessionId`
 - `applied` count + errors
+- Each item stored with `import_action` and `previous_values` (for undo)
 
 **concierge-undo** (rollback)
 Request JSON:
-- `sessionId` (optional; defaults to last applied)
+- `sessionId` (required; must be the most recent applied session)
+
+Response JSON:
+- `success`, `sessionId`, `reverted[]` (with `undoType`: "deleted" or "restored"), `warnings[]`, `errors[]`
 
 <!-- BEGIN AUTO-EDGE-MAP -->
 
@@ -789,6 +984,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - RPCs: `check_concierge_rate_limit`, `log_concierge_run`
 - Tables touched: `anime_user_lists`, `import_session_items`, `import_sessions`, `manga_user_lists`
+- Reads `import_action` + `previous_values` columns for reconciliation-aware undo (add=delete, update=restore, skip=no-op)
 
 ### mirror-images
 - Source: `supabase/functions/mirror-images/index.ts`
@@ -811,23 +1007,27 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ## 8.1) Recommendation engine (editorial)
 
-- `editorial_boosts` and `editorial_penalty_tags` tables bias “premium/classic” picks.
+- `editorial_boosts` and `editorial_penalty_tags` tables bias "premium/classic" picks.
 - RPC `recommend_ids_premium` combines:
   - tag match score
   - quality signals (favourites/popularity/score)
-  - classic bias (older high‑value titles)
+  - classic bias (older high-value titles)
   - editorial boosts and penalties
-- Results exclude already‑listed user titles via `user_lists` view.
+- Results exclude already-listed user titles via `user_lists` view.
+- **23 vibe modes** (v8): action, comedy, cozy_slice_of_life, dark_serious, hidden_gems, short_one_season, movie_night, romance_serious, romcom, fantasy_non_isekai, isekai, premium_picks, sports_anime, scifi, horror_supernatural, seinen, shoujo, josei, mecha, mystery_detective, music_performance, historical, school_coming_of_age, shoujo_josei.
+- **50 curated rails** total (2 per mode: anime + manga). Pinned via `rail_id` in `concierge_config` modes JSON.
+- Mode routing: `scoreMode()` intent boosts + `mapStrongGenreToModeId()` hard-routes. Genre-less modes (school, shoujo_josei) route via synonym matching + `rail_id` pinning. Negative genre suppression respects exclusions.
+- German synonyms on all 23 modes from day one.
 
 ---
 
 ## 9) Scheduled jobs / cron
 
-**Current pg_cron job** (from `supabase/migrations/20260204233010_concierge_ops_observability_and_retention.sql`):
+**Current pg_cron job** (from `supabase/migrations/20260204233010_concierge_ops_observability_and_retention.sql`, extended by `20260209220000_club_analytics.sql`):
 - `concierge_housekeeping_daily`
   - Schedule: `0 4 * * *`
   - Function: `public.concierge_housekeeping()`
-  - Cleans: rate limit buckets, LLM usage, old import sessions, concierge runs, feedback
+  - Cleans: rate limit buckets, LLM usage, old import sessions, concierge runs, feedback, mode cache, **club_analytics** (90-day retention)
 
 **Other periodic operations**
 - Mirror images: manual or external scheduler calling `mirror-images` function
@@ -901,12 +1101,18 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ---
 
-## 12) Current UI state (Concierge + Header)
+## 12) Current UI state (Concierge + Header + Clubs)
 
-- Concierge is a **full page** (left swipe). The **floating assistant** widget exists in code but is disabled on the page.
+- Concierge is a **full page** (left swipe). Uses **inline chat architecture** — no state machine, no full-screen takeovers.
+  - `ConciergeDisplayState` enum deleted. Everything renders inline in the chat scroll: typing indicator for loading, inline confirm bubble for imports, editorial rails for recommendations, toast+undo for completion.
+  - All UI components use `KuroDesignSystem` tokens (`Font.kuroBody()`, `.kuroCaption()`, `KuroRadius.sm/md/lg`, `KuroAnimation.editorial/fast`, `KuroDesignSpacing.*`).
+  - `ConciergeRecCard`: `KuroCachedAsyncImage` + `KuroScoreBadge` overlay, `contextMenu` for save/hide, press state `scaleEffect(0.98)`, KURO watermark on failure. Cards: 140x200pt.
+  - `ConciergeConfirmBubble`: inline import preview with "IMPORT PREVIEW" header, match rows with radio-dot candidate picker, grouped sections (WILL ADD / WILL UPDATE / WILL SKIP), "CONFIRM N ITEMS" button.
+  - Auto-apply: high-confidence imports (all items score >= 0.85, no ambiguous adaptations) auto-apply with undo toast.
 - Header left is **only KURO text**.
 - A small **chat icon** appears next to the section title **only on Concierge page**.
 - Profile is a **top-right menu** (not a dedicated page).
+- **Clubs** is the 6th page in the swipe pager. Profile sheet also has a "Clubs" shortcut.
 
 ---
 
@@ -918,12 +1124,33 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ---
 
+## 13.1) Quality gates
+
+Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in `.githooks/pre-commit`.
+
+### Gate scripts (5 gates + runner + test data)
+1. **`check_secrets.sh`** — Scans Swift/TypeScript/JavaScript for hardcoded secrets (service_role JWTs, sbp_/sk-/gsk_ keys). No false-positive on publishable anon key (by design: only flags service_role patterns). Whitelists test fixtures and env var references.
+2. **`check_migrations.sh`** — Checks for untracked/modified SQL files in `supabase/migrations/`, generates/verifies SHA-256 checksums (`.checksums` file). Read-only by default; pass `--update` to write checksums. Warning-only (no hard fail on modified migrations).
+3. **`test_router_offline.sh`** — Runs `router_test_cases.js` which tests `scoreMode()` / `mapStrongGenreToModeId()` logic offline (no network). Hard fail on test failure.
+4. **`audit_rails.sh`** — Wraps `scripts/audit_curated_rails_quality.js` (prefers env vars for Supabase credentials). Hard fail on: adult content, overlap > 40%, rail size > 100 or < 5, score below floor, franchise duplicates. Warning on: overlap > 15%, rail size near limits. Runs in both JSON and human-readable mode.
+5. **`build_ios.sh`** — Runs `xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build`. Hard fail on build error.
+6. **`run_all.sh`** — Orchestrator: runs all 5 gates, prints summary table, exits 1 if any blocking gate fails. Supports `SKIP_IOS_BUILD=1` and `SKIP_RAILS_AUDIT=1` env vars for faster runs.
+
+### Pre-commit hook
+- File: `.githooks/pre-commit` (install: `git config core.hooksPath .githooks`)
+- Fast checks on staged files only:
+  1. Secrets scan: checks `git diff --cached` for JWT/sbp_/sk-/gsk_ patterns in .swift/.ts/.js files. Blocks commit if found.
+  2. Migration hygiene: warns on non-standard migration name prefix for staged SQL files.
+- Compatible with bash 3.2 (macOS default).
+
+---
+
 ## 14) Change Log (append-only)
 
 - 2026-02-09: **Clubs + Import Reconciliation + Quality Gates + Phase 5 Polish** —
-  - **Clubs feature (new)**: Private groups (2-20 members) with curated rails, polls, and privacy-by-design sharing levels. 7 new tables (`clubs`, `club_members`, `club_rails`, `club_rail_items`, `club_polls`, `club_poll_options`, `club_votes`) with full RLS (membership gates access). 8 RPCs (`create_club`, `join_club`, `fetch_club_bundle`, `leave_club`, `update_club_settings`, `add_club_rail_item`, `cast_club_vote`, `update_member_sharing_level`). Helper functions `is_club_member()` and `is_club_admin_or_owner()`. iOS: `ClubsView` (6th page in swipe pager) + `ClubDetailView` (3-tab: Rails/This Week/Polls) + Create/Join sheets + Settings sheet. Migrations: `20260209200000_clubs_foundation.sql`, `20260209201000_clubs_rls_policies.sql`, `20260209202000_clubs_rpcs.sql`.
-  - **Import reconciliation**: Detects existing entries during concierge parse and proposes Add/Update/Skip actions. `concierge-parse` returns `existing_entry` per item after candidate resolution. `concierge-apply` respects `action` field (add/update/skip) with TOCTOU protection via `expectedExisting`. Undo for updates restores previous values. iOS `ConciergeConfirmBubble` shows grouped sections (WILL ADD / WILL UPDATE / WILL SKIP) with per-item diff display and toggle. Auto-apply disabled when any existing_entry present. Migration: `20260209210000_import_reconciliation.sql`. Files: `ConciergeView.swift`, `ConciergeLegacyUI.swift`, `concierge-parse/index.ts`, `concierge-apply/index.ts`.
-  - **Quality gates (new)**: 4 CI scripts: `scripts/lint_migrations.sh` (SQL parse-check), `scripts/audit_rls.sh` (RLS + policy audit), `scripts/scan_secrets.sh` (secret detection), `scripts/check_edge_functions.sh` (Deno type-check). Pre-commit hook for secret scanning.
+  - **Clubs feature (new)**: Private groups (2-20 members) with curated rails, polls, and privacy-by-design sharing levels. 7 new tables (`clubs`, `club_members`, `club_rails`, `club_rail_items`, `club_polls`, `club_poll_options`, `club_votes`) with full RLS (25 policies + 4 helper functions). 6 RPCs (`create_club`, `join_club`, `leave_club`, `fetch_club_bundle`, `add_club_rail_item`, `cast_club_vote`) + 3 helper functions (`is_club_member`, `is_club_admin_or_owner`, `sharing_level_rank`) + `generate_invite_code`. iOS: `ClubsView` (6th page in swipe pager) + `ClubDetailView` (3-tab: Rails/This Week/Polls) + `ClubActivitySection` on media detail views + Create/Join sheets + Settings sheet. Migrations: `20260209200000_clubs_foundation.sql`, `20260209201000_clubs_rls_policies.sql`, `20260209202000_clubs_rpcs.sql`.
+  - **Import reconciliation**: Detects existing entries during concierge parse and proposes Add/Update/Skip actions. `concierge-parse` returns `existing_entry` per item after candidate resolution. `concierge-apply` respects `action` field (add/update/skip) with TOCTOU protection via `expectedExisting`. Undo for updates restores `previous_values` snapshot. `concierge-undo` handles add (delete), update (restore previous_values), skip (no-op). iOS `ConciergeConfirmBubble` shows grouped sections (WILL ADD / WILL UPDATE / WILL SKIP). Migration: `20260209135229_import_reconciliation.sql` (adds `import_action` + `previous_values` columns to `import_session_items`). Files: `ConciergeView.swift`, `concierge-parse/index.ts`, `concierge-apply/index.ts`, `concierge-undo/index.ts`.
+  - **Quality gates (new)**: 5 gate scripts in `scripts/quality-gates/`: `check_secrets.sh` (secret detection, no false-positive on anon key), `check_migrations.sh` (migration hygiene, read-only by default), `test_router_offline.sh` + `router_test_cases.js` (offline mode router tests), `audit_rails.sh` (curated rails quality audit via `audit_curated_rails_quality.js`, prefers env vars), `build_ios.sh` (xcodebuild check). `run_all.sh` orchestrator. `.githooks/pre-commit` hook for staged-file secrets + migration name checks.
   - **Club telemetry**: `public.club_analytics` table (RLS: authenticated insert own, service_role select). `log_club_event` RPC (SECURITY DEFINER). 90-day retention via extended `concierge_housekeeping()` cron. Migration: `20260209220000_club_analytics.sql`.
   - **Haptics polished**: Club create/join use `.medium` impact (was `.success` notification). Import confirm uses `.medium` (was `.light`). Vote cast `.light`. Empty states improved: rails tab shows add prompt for admins, This Week text updated.
   - **Owner transfer UX**: Leave club confirmation dialog now context-aware: owners see "Ownership will transfer to [member]..." or "This club will be deleted" based on member/admin roster. Regular members see "Leave [club name]?".
@@ -971,9 +1198,9 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 ## 15) Open Questions / Unknowns
 
-- Exact current state of all RLS policies is in migrations; confirm if additional tables were added after 2026-02-06.
+- **User ID type mismatch**: Club tables use `user_id UUID REFERENCES auth.users(id)`, but legacy tables (`anime_user_lists`, `manga_user_lists`) use `user_id TEXT`. All joins between club_members and user-list tables must cast: `cm.user_id::text = aul.user_id`. A future migration may unify them.
 - Materialized view definitions in the foundation migration are inferred from usage (discover_bundle RPC + Swift client). If the remote MV definitions differ (e.g., different LIMIT, extra WHERE clauses), update the foundation to match.
-- v3 modes are deployed; if you add new modes later, deploy with `supabase db push --linked` + `supabase functions deploy concierge-recommend --linked`.
+- v8 modes (23 total) are deployed; if you add new modes later, deploy with `supabase db push --linked` + `supabase functions deploy concierge-recommend --linked`.
 
 ---
 

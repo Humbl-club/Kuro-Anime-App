@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-02-06
+**Last updated:** 2026-02-09
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -19,11 +19,12 @@ If you need the *literal code* in one place for another model to read, see:
 
 ## 2) What Kuro is (in one paragraph)
 
-Kuro is a curated anime + manga app. It lets users browse premium picks, keep lists, and use a “Concierge” chat to import their watch list or get recommendations. The app is fast, clean, and focuses on high‑quality discovery.
+Kuro is a curated anime + manga app. It lets users browse premium picks, keep lists, create private clubs with friends, and use a "Concierge" chat to import their watch list or get recommendations. The app is fast, clean, and focuses on high‑quality discovery.
 
 **At a glance**
 - Clean editorial design
 - No adult content by default
+- Private clubs for watching together with friends
 - Concierge uses smart rules first, LLM only when needed
 - Images are mirrored to a CDN for speed
 
@@ -36,7 +37,7 @@ Kuro is a curated anime + manga app. It lets users browse premium picks, keep li
 - **Collection**: Your personal list of anime/manga.
 - **Browse**: Explore the catalog with filters.
 - **Search**: Find specific titles.
-- **Clubs**: Private groups for watching together. Create or join clubs, share curated rails, vote in polls.
+- **Clubs**: Private groups (2–20 members) for watching together. Create a club, invite friends with a code, share curated watchlists (rails), see weekly highlights, and vote in polls on what to watch next. Club owners control privacy settings — they decide what members can see about each other's progress. Club activity also shows up on anime/manga detail pages.
 
 Profile is a small menu in the top-right corner.
 
@@ -75,10 +76,11 @@ There are built-in usage limits so it can’t be abused.
   - Paste from clipboard
   - Try an example import
   - Give me a vibe
-- Everything stays inline in chat — no full-screen takeovers
-- Import results appear as inline confirm bubbles
-- Recommendation results appear as editorial-style horizontal rails
-- Success shows as a toast with undo
+- The Concierge no longer takes over the full screen. Everything stays inline in the chat conversation, which makes it feel faster and more natural:
+  - Import results appear as inline confirm bubbles (with cover art)
+  - Recommendation results appear as scrollable editorial-style horizontal rails
+  - Confirmations are inline buttons (not separate screens)
+  - Success shows as a brief toast with undo
 
 **Adult content:** filtered out by default.
 
@@ -88,17 +90,22 @@ There are built-in usage limits so it can’t be abused.
 
 1. You paste a list.
 2. The system tries to match titles.
-3. If something is unclear, it shows an inline picker in the chat.
-4. After applying, a toast with undo appears (not a full-screen done view).
-5. For high-confidence imports (score >= 0.85), items are auto-applied immediately with an undo toast.
+3. Each matched item is classified as one of three actions:
+   - **Add** — brand new to your collection.
+   - **Update** — already in your collection but with newer progress (e.g. more episodes watched).
+   - **Skip** — already in your collection with the same or better progress (duplicate).
+4. If something is unclear, it shows an inline picker in the chat.
+5. After applying, a toast with undo appears (not a full-screen done view). You can undo the entire import to roll back changes.
+6. For high-confidence imports (score >= 0.85), items are auto-applied immediately with an undo toast.
 
 ```mermaid
 flowchart TD
   A[Paste list] --> B[Parser]
   B --> C{Clear match?}
-  C -->|Yes| D[Apply to list]
+  C -->|Yes| R[Reconcile: Add / Update / Skip]
   C -->|No| E[LLM resolve]
-  E --> D
+  E --> R
+  R --> D[Apply to list]
   D --> F[Undo possible]
 ```
 
@@ -200,8 +207,9 @@ Supabase also runs the Concierge server logic and provides secure APIs.
 - Your **anime/manga list** entries (status, progress, rating)
 - Concierge **import sessions** (so you can undo)
 - Concierge **logs** (for improving the parser and debugging)
+- **Club memberships** and your activity within clubs
 
-No one else can read your private list data because of row‑level security.
+No one else can read your private list data because of row‑level security. Club data is shared only with club members, and the club owner controls exactly what is visible.
 
 ---
 
@@ -247,6 +255,12 @@ flowchart TB
     U3[import_sessions + items]
   end
 
+  subgraph Clubs["Clubs (shared, privacy-controlled)"]
+    CL1[clubs + memberships]
+    CL2[club rails / polls]
+    CL3[club activity + telemetry]
+  end
+
   subgraph Concierge["Concierge ops"]
     C1[concierge_runs]
     C2[rate limits]
@@ -259,6 +273,8 @@ flowchart TB
 
   Users --> Catalog
   Users --> Concierge
+  Users --> Clubs
+  Clubs --> Catalog
   Concierge --> Catalog
   Editorial --> Catalog
 ```
@@ -324,11 +340,26 @@ flowchart TD
 - **Edge Function:** A small backend function that runs on Supabase.
 - **RLS:** Row Level Security; ensures users can only see their own data.
 - **CDN:** Fast image delivery system.
+- **Club:** A private group of friends who share watchlists and vote on what to watch next.
+- **Rail:** A horizontal scrollable row of anime/manga picks (used on Discover, in Clubs, and in Concierge recommendations).
+- **Quality gate:** An automated check that runs before code is saved, catching mistakes early.
 
 ---
 
-## 14) Change Log (append-only)
+## 14) Quality gates (automated checks)
 
+Before code changes are committed, automated checks run to catch common problems early:
+- **Secret scanning**: Makes sure no passwords, API keys, or tokens are accidentally included in the code.
+- **Migration validation**: Checks that database migration files are well-formed and won't break the database.
+- **Code quality**: Catches common code issues (unused variables, formatting problems, etc.).
+
+These run automatically so that problems are caught before they reach users.
+
+---
+
+## 15) Change Log (append-only)
+
+- 2026-02-09: **Plain-English doc refresh**: Updated sections 2–4.2 to cover Clubs (private groups with shared watchlists, polls, privacy controls), import reconciliation (Add/Update/Skip detection with undo), Concierge inline redesign (no more full-screen takeovers), German language support, 23 recommendation modes (6 new), and quality gate automation. Added new section 14 for quality gates.
 - 2026-02-09: **Clubs feature launched**: Private groups (2-20 members) with curated rails, polls, and privacy levels. New page in the app (6th swipe page). Create/join clubs via invite codes. Import reconciliation detects existing collection entries and proposes Add/Update/Skip actions instead of blind imports. Quality gate scripts added for CI. Club telemetry with 90-day retention. Haptics and empty states polished across all new views.
 - 2026-02-09: **Concierge images wired**: `search_titles()` RPC now returns `cover_image_medium` (new migration). Import preview cards and recommendation cards now show actual cover art via `KuroCachedAsyncImage` instead of gradient placeholders. Gradient remains as fallback for missing images.
 - 2026-02-09: **P0 fix — progress data forwarding**: `confirmImport()` now sends parsed progress fields (episodes, chapters, volumes, season, caughtUp, etc.) to the apply endpoint. Previously all imports landed with progress=0.

@@ -4,9 +4,15 @@ This file documents the idea of routing free-text "vibe" prompts into curated re
 
 ## Current status (as of 2026-02-09)
 
-The core plan is fully implemented, expanded, and quality-hardened.
+The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed.
 
 **Concierge redesign completed (2026-02-09)**: State machine removed, inline chat architecture, visual token alignment with KuroDesignSystem, German NLP hardening (vibe allowlist, intent keywords, umlaut normalization), 6 new vibe modes (23 total), 12 new curated rails (50 total), auth+rate-limit parallelized, edge function warmup, auto-apply for high-confidence imports.
+
+**Clubs feature completed (2026-02-09)**: Full social feature with 7 tables, 22 RLS policies, 6+ RPCs, analytics, iOS views (ClubsView, ClubDetailView, ClubActivitySection, ProfileView clubs tab), import reconciliation with Add/Update/Skip and previous_values tracking, concierge-undo edge function, monochrome palette polish, member detail, security fixes.
+
+**Security hardening completed (2026-02-09)**: Rail lock bypass fixed in RLS, function search paths pinned (`generate_invite_code`, `sharing_level_rank`), secrets gate no false-positive on anon key.
+
+**Performance optimizations completed (2026-02-09)**: `fetch_club_bundle` LEFT JOIN refactor, auth+rate-limit parallelized in all three concierge edge functions, iOS post-apply fetches parallelized with `async let`.
 
 Implemented:
 - Config-driven "modes" (curated rails) stored in DB config JSON.
@@ -201,7 +207,59 @@ The iOS UI is already compatible (renders `sets` when present).
 - **Mode analytics**: `concierge_mode_analytics` table logs mode selections, synonyms matched, confidence scores, and whether the request was LLM-routed.
 - **Overlap target**: No rail pair should exceed 15% overlap (was 94%, now ~36% worst-case).
 
-## Concierge images (2026-02-09)
+## Concierge redesign (2026-02-09) -- COMPLETED
+
+Full redesign across 8 phases:
+
+### Phase 1: State machine killed, inline chat -- COMPLETED
+- Removed complex state machine architecture from ConciergeView
+- Replaced with inline chat-style interaction model
+- Dead code removed: ConciergeOverlay.swift, KuroChanMascot.swift, getByMood(), SearchViewNew (~500 lines total)
+
+### Phase 2: Visual token alignment -- COMPLETED
+- KuroDesignSystem token alignment across all concierge UI
+- Consistent spacing, typography, and color usage
+
+### Phase 3: Editorial rec cards -- COMPLETED
+- Recommendation cards redesigned with editorial styling
+- Cover art integration via `cover_image_medium` in `search_titles()` return type
+
+### Phase 4: Inline confirm -- COMPLETED
+- Import confirmation now inline (no modal overlay)
+- Confirm bubble shows diff groups (new vs update vs skip)
+
+### Phase 5: Performance (warmup, parallel auth, auto-apply) -- COMPLETED
+- Edge function warmup for cold-start mitigation
+- Auth + rate-limit checks parallelized across all 3 edge functions
+- Auto-apply for high-confidence single-item imports (with adaptation disambiguation guard)
+
+### Phase 6: Dead code cleanup -- COMPLETED
+- ConciergeOverlay.swift removed
+- KuroChanMascot.swift removed
+- `getByMood()` removed
+- `#if false` SearchViewNew block removed (~500 lines total)
+
+### Phase 7: German NLP -- COMPLETED
+- Inflection allowlist for German vibe words
+- Intent keywords expanded with German translations
+- Synonym lists enriched with German equivalents across all 23 modes
+- Umlaut normalization in parser
+- Migration: `20260209100000_concierge_modes_v7_german_synonyms.sql`
+
+### Phase 8: Curation expansion -- COMPLETED
+- 6 new modes added (17 -> 23 total):
+  - Mecha, Mystery & Detective, Music & Performance, Historical & Period, School & Coming of Age, Shoujo & Josei
+- 12 new curated rails (38 -> 50 total)
+- Migration: `20260209110000_concierge_modes_v8_expanded.sql`
+
+## Security hardening (2026-02-09) -- COMPLETED
+
+- **Rail lock bypass fixed**: RLS policies updated to prevent bypass of rail lock mechanism
+  - Migrations: `20260206150000_security_hardening_rls_and_views.sql`, `20260206164200_security_hardening_rls_and_views.sql`
+- **Function search paths pinned**: `generate_invite_code` and `sharing_level_rank` RPCs use explicit `SET search_path = public` to prevent search path injection
+- **Secrets gate no false-positive**: Quality gate `check_secrets.sh` updated to not flag the Supabase anon key (which is public/publishable) as a leaked secret
+
+## Concierge images (2026-02-09) -- COMPLETED
 
 - **Migration**: `20260209000000_search_titles_add_cover_image.sql` adds `cover_image_medium` to `search_titles()` return type.
 - **Swift model**: `ConciergeCandidate` gains `cover_image_medium: String?`.
@@ -209,25 +267,67 @@ The iOS UI is already compatible (renders `sets` when present).
 - **Recommendation carousel (PresentCard)**: Same — actual cover art from `item.imageURL` instead of gradient.
 - **`ConciergeConfirmItem`**: Gains `imageURL: String?` wired from `topCandidate?.cover_image_medium`.
 
-## Performance optimizations (2026-02-09)
+## Performance optimizations (2026-02-09) -- COMPLETED
 
 All three concierge edge functions parallelized for snappiness:
 
 - **concierge-parse**: Per-item processing now runs via `Promise.all` (was serial `for` loop). Within each item, search queries + denoised queries also parallelized. Auth + rate-limit checks parallelized. Expected 3-5x latency improvement for multi-item pastes.
 - **concierge-apply**: Per-item upserts now run via `Promise.all` (was serial). Auth + rate-limit + body parsing parallelized. Expected 3-5x improvement for multi-item imports.
 - **concierge-recommend**: Primary + secondary rail building now runs via `Promise.all` (was sequential). Inside `fetchMediaContext`, 3 independent DB queries parallelized. Curated rail anime/manga fetches parallelized. Seed similarity fetches parallelized. Config + tag mapping + editorial boosts fetch parallelized. LLM feature flag checks parallelized. Expected 2-3x improvement overall.
+- **fetch_club_bundle RPC**: Refactored from N+1 subselects to LEFT JOIN pattern for club data fetching.
 - **iOS (ConciergeView)**: Post-apply fetches (`fetchUserLists`, `fetchCollectionItems`, `fetchCollectionFeed`) now run with `async let` instead of sequential `await`.
 
-## Clubs + Import Reconciliation + Quality Gates (2026-02-09)
+## Clubs feature (2026-02-09) -- COMPLETED
 
-Full feature launch:
+Full feature launch across 5 phases:
 
-- **Clubs**: 7 tables, 8 RPCs, full RLS, iOS views (ClubsView, ClubDetailView, Create/Join/Settings sheets). Migrations: `20260209200000_clubs_foundation.sql`, `20260209201000_clubs_rls_policies.sql`, `20260209202000_clubs_rpcs.sql`.
-- **Import reconciliation**: Concierge parse detects existing entries, apply respects add/update/skip with TOCTOU protection. iOS confirm bubble shows diff groups. Migration: `20260209210000_import_reconciliation.sql`.
-- **Quality gates**: 4 CI scripts (lint_migrations, audit_rls, scan_secrets, check_edge_functions).
-- **Telemetry**: `club_analytics` table + `log_club_event` RPC + housekeeping integration. Migration: `20260209220000_club_analytics.sql`.
-- **Phase 5 polish**: Haptics tuned (medium for create/join/confirm, light for vote/nav), empty states improved, owner transfer UX context-aware, build verified on iPhone 17 Pro simulator.
+### Phase 0: Product spec -- COMPLETED
+- Product spec written: `/Applications/Kuro/docs/clubs-spec.md`
 
-## Bug fix: Progress data forwarding (2026-02-09)
+### Phase 1: Backend -- COMPLETED
+- **7 tables**: clubs, club_members, club_activity, club_polls, club_poll_votes, club_watchlist, club_discussions
+- **22 RLS policies**: Full row-level security across all club tables
+- **6+ RPCs**: Including `fetch_club_bundle` (LEFT JOIN refactor for performance), `generate_invite_code`, `log_club_event`, etc.
+- **Analytics table**: `club_analytics` for tracking club events
+- Migrations:
+  - `20260209200000_clubs_foundation.sql` (tables + indexes)
+  - `20260209201000_clubs_rls_policies.sql` (22 RLS policies)
+  - `20260209202000_clubs_rpcs.sql` (RPCs with pinned search paths)
+  - `20260209220000_club_analytics.sql` (analytics + housekeeping)
+
+### Phase 2: iOS UI -- COMPLETED
+- `/Applications/Kuro/Kuro/Views/ClubsView.swift` — Club listing, create/join sheets
+- `/Applications/Kuro/Kuro/Views/ClubDetailView.swift` — Club detail, settings, member management
+- `/Applications/Kuro/Kuro/Views/DetailPages/ClubActivitySection.swift` — Activity feed section
+- `/Applications/Kuro/Kuro/Views/ProfileView.swift` — Clubs tab added to user profile
+
+### Phase 3: Import reconciliation -- COMPLETED
+- Concierge parse detects existing entries in user's library
+- Apply respects Add/Update/Skip actions with TOCTOU protection
+- `previous_values` tracking for undo support
+- iOS confirm bubble shows diff groups (new vs update vs skip)
+- **concierge-undo** edge function: `/Applications/Kuro/supabase/functions/concierge-undo/index.ts`
+- Migration: `20260209135229_import_reconciliation.sql`
+
+### Phase 4: Quality gates -- COMPLETED
+- **6 scripts** in `/Applications/Kuro/scripts/quality-gates/`:
+  - `check_secrets.sh` — Scans for leaked secrets (no false-positive on anon key)
+  - `check_migrations.sh` — Lints migration files
+  - `test_router_offline.sh` — Offline router test cases
+  - `audit_rails.sh` — Curated rail quality audit
+  - `build_ios.sh` — iOS build verification
+  - `run_all.sh` — Orchestrator: runs all gates, prints summary, exits 1 on hard-fail
+- Pre-commit hook wired to quality gates
+
+### Phase 5: Polish -- COMPLETED
+- Monochrome palette applied across club UI
+- Member detail views refined
+- Security fixes: function search paths pinned (`generate_invite_code`, `sharing_level_rank`)
+- Haptics tuned (medium for create/join/confirm, light for vote/nav)
+- Empty states improved
+- Owner transfer UX context-aware
+- Build verified on iPhone 17 Pro simulator
+
+## Bug fix: Progress data forwarding (2026-02-09) -- COMPLETED
 
 **P0 fix**: `confirmImport()` in ConciergeView.swift now forwards all parsed progress fields (`progressEpisodes`, `progressChapters`, `progressVolumes`, `seasonNumber`, `episodeInSeason`, `caughtUp`, `lastEpisode`, `completed`) to the `concierge-apply` edge function. Previously these were all dropped, causing every import to land with progress=0 regardless of user input.
