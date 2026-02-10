@@ -545,8 +545,6 @@ struct SuccessToast: View {
     }
 }
 
-#endif
-
 // MARK: - ConfettiEffect
 
 struct ConfettiEffect: View {
@@ -830,3 +828,5 @@ private struct ToastPreview: View {
         }
     }
 }
+
+#endif
