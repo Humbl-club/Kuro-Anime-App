@@ -121,6 +121,10 @@ struct SettingsView: View {
                 }
                 .padding(.bottom, 40)
             }
+            // Ensure the last rows can scroll fully above the home indicator / tab chrome.
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 24)
+            }
             .background(Color.white)
             .navigationTitle("SETTINGS")
             .navigationBarTitleDisplayMode(.inline)

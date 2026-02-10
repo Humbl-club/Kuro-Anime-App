@@ -306,19 +306,13 @@ struct ConciergeTypingIndicator: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                .fill(.ultraThinMaterial)
+                // Avoid full-screen materials in a frequently-updating view.
+                .fill(Color.kuroSecondaryBackground.opacity(0.96))
                 .overlay(
                     RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.72), Color.white.opacity(0.18), Color.black.opacity(0.05)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.8
-                        )
+                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
                 )
-                .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 10)
+                .shadow(color: Color.black.opacity(0.06), radius: 14, x: 0, y: 8)
         )
         .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
         .task {
@@ -435,19 +429,12 @@ struct ConciergeBubble: View {
         content()
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(Color.kuroSecondaryBackground.opacity(0.96))
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.72), Color.white.opacity(0.18), Color.black.opacity(0.05)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.8
-                            )
+                            .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
                     )
-                    .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 10)
+                    .shadow(color: Color.black.opacity(0.06), radius: 14, x: 0, y: 8)
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
@@ -600,19 +587,12 @@ struct ConciergeConfirmBubble: View {
         content()
             .background(
                 RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(Color.kuroSecondaryBackground.opacity(0.96))
                     .overlay(
                         RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.72), Color.white.opacity(0.18), Color.black.opacity(0.05)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.8
-                            )
+                            .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
                     )
-                    .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 10)
+                    .shadow(color: Color.black.opacity(0.06), radius: 14, x: 0, y: 8)
             )
             .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
     }

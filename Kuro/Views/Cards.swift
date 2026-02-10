@@ -538,7 +538,8 @@ struct SharedHorizontalAnimeCard: View {
         .opacity(isPressed ? 0.9 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
         // Intentional tap: if the user is swiping, do not open the detail sheet accidentally.
-        .gesture(
+        // Use simultaneousGesture so horizontal ScrollView drags still win.
+        .simultaneousGesture(
             DragGesture(minimumDistance: 0, coordinateSpace: .local)
                 .onChanged { value in
                     if abs(value.translation.width) > 10 || abs(value.translation.height) > 10 {

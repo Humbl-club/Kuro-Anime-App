@@ -38,6 +38,10 @@ struct ProfileView: View {
                 }
                 .padding(.bottom, 48)
             }
+            // Ensure the last rows can scroll fully above the home indicator / tab chrome.
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 24)
+            }
         }
         .scrollContentBackground(.hidden)
         .transaction { $0.animation = nil }

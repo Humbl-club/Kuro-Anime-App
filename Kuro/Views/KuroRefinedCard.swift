@@ -298,7 +298,8 @@ struct KuroCompactCard: View {
         }
         .contentShape(Rectangle())
         // Intentional tap: ignore tap when the user is swiping the horizontal carousel.
-        .gesture(
+        // Use simultaneousGesture so the parent ScrollView keeps smooth horizontal scrolling.
+        .simultaneousGesture(
             DragGesture(minimumDistance: 0, coordinateSpace: .local)
                 .onChanged { value in
                     if abs(value.translation.width) > 10 || abs(value.translation.height) > 10 {
