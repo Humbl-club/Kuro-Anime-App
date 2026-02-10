@@ -43,6 +43,7 @@ struct ConciergeView: View {
     @State private var selectedByItemId: [String: SupabaseService.ConciergeCandidate] = [:]
     @State private var itemActions: [String: ImportItemAction] = [:]
     @State private var excludedItemIds: Set<String> = []
+    @State private var autoReasonByItemId: [String: String] = [:]
     @State private var lastApplySessionId: String? = nil
     @State private var selectedAnime: Anime? = nil
     @State private var selectedManga: Manga? = nil
@@ -54,6 +55,13 @@ struct ConciergeView: View {
 
     private var hasActionBar: Bool {
         (activeItems?.isEmpty == false) || lastApplySessionId != nil
+    }
+
+    private var mascotState: ConciergeMascotState {
+        if isWorking { return .thinking }
+        if errorText != nil { return .concerned }
+        if input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return .idle }
+        return .listening
     }
 
     init(assistantEnabled: Bool = true) {
@@ -133,6 +141,7 @@ struct ConciergeView: View {
                                 onConfirmItems: { response in
                                     Task { await confirmImport(response: response) }
                                 },
+                                autoReasonByItemId: autoReasonByItemId,
                                 itemActions: itemActions,
                                 excludedItemIds: $excludedItemIds
                             )
@@ -215,12 +224,14 @@ struct ConciergeView: View {
         .overlay(alignment: .bottomLeading) {
             if assistantEnabled {
                 GeometryReader { geo in
-                    KuroConciergeAssistant(
+                    KuroConciergeMascot(
                         expanded: $assistantExpanded,
                         offset: $assistantOffset,
                         dragStart: $assistantDragStart,
                         baseBottomPadding: hasActionBar ? 168 : 104,
                         containerSize: geo.size
+                        ,
+                        state: mascotState
                     ) {
                         focusRequest = true
                     }
@@ -320,6 +331,7 @@ struct ConciergeView: View {
             var hasAnyExistingEntry = false
             var ambiguousItemsNeedingHelp: [SupabaseService.ConciergeParseItem] = []
             for item in response.items {
+                autoReasonByItemId[item.id] = nil
                 if let top = item.candidates.first, top.score >= 0.60 {
                     if hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention) {
                         ambiguousItemsNeedingHelp.append(item)
@@ -414,6 +426,7 @@ struct ConciergeView: View {
             // Apply only if the user still hasn't chosen something else.
             if selectedByItemId[item.id] == nil && !excludedItemIds.contains(item.id) {
                 selectedByItemId[item.id] = topCandidates[idx]
+                autoReasonByItemId[item.id] = picked.reasoning
             }
         }
     }

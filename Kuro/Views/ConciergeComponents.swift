@@ -3,16 +3,26 @@ import SwiftUI
 // Shared Concierge UI components used by `ConciergeView`:
 // message model, assistant orb/panel, and chat bubble subviews.
 
-struct KuroConciergeAssistant: View {
+enum ConciergeMascotState: Equatable {
+    case idle
+    case listening
+    case thinking
+    case celebrating
+    case concerned
+}
+
+struct KuroConciergeMascot: View {
     @Binding var expanded: Bool
     @Binding var offset: CGSize
     @Binding var dragStart: CGSize
     let baseBottomPadding: CGFloat
     let containerSize: CGSize
+    let state: ConciergeMascotState
     let onTapMascot: () -> Void
 
     @Namespace private var mascotNS
     @State private var pulse: Bool = false
+    @State private var ringPhase: Bool = false
 
     private let panelWidth: CGFloat = 316
     private let panelHeight: CGFloat = 148
@@ -31,17 +41,17 @@ struct KuroConciergeAssistant: View {
                                 Text("CONCIERGE")
                                     .font(.kuroCaption(weight: .medium))
                                     .tracking(2.4)
-                                    .foregroundColor(.black.opacity(0.78))
-                                Text("Imports + recommendations")
+                                    .foregroundStyle(.primary.opacity(0.82))
+                                Text(statusLine)
                                     .font(.kuroCaption())
-                                    .foregroundColor(.black.opacity(0.55))
+                                    .foregroundStyle(.secondary.opacity(0.85))
                             }
                             Spacer(minLength: 0)
 
                             Button(action: { withAnimation(KuroAnimation.fast) { expanded = false } }) {
                                 Image(systemName: "chevron.down")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.black.opacity(0.55))
+                                    .foregroundStyle(.secondary.opacity(0.9))
                                     .frame(width: 34, height: 34)
                                     .background(
                                         Circle().fill(Color.white.opacity(0.35))
@@ -52,7 +62,7 @@ struct KuroConciergeAssistant: View {
 
                         Text("Paste a list to import, or ask for a vibe.\nClean results by default — no adult content.")
                             .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.62))
+                            .foregroundStyle(.secondary.opacity(0.9))
 
                         Button(action: {
                             KuroAccessibility.impactHaptic(.light)
@@ -62,11 +72,11 @@ struct KuroConciergeAssistant: View {
                                 Text("START CHAT")
                                     .font(.kuroCaption(weight: .medium))
                                     .tracking(1.8)
-                                    .foregroundColor(.black.opacity(0.82))
+                                    .foregroundStyle(.primary.opacity(0.82))
                                 Spacer(minLength: 0)
                                 Image(systemName: "arrow.right")
                                     .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.black.opacity(0.42))
+                                    .foregroundStyle(.secondary.opacity(0.9))
                             }
                             .padding(.horizontal, 14)
                             .padding(.vertical, 11)
@@ -123,14 +133,35 @@ struct KuroConciergeAssistant: View {
                             .frame(width: 56, height: 56)
 
                         Circle()
-                            .strokeBorder(Color.white.opacity(pulse ? 0.65 : 0.25), lineWidth: 1.1)
+                            .strokeBorder(Color.white.opacity(pulse ? 0.65 : 0.22), lineWidth: 1.1)
                             .frame(width: 56, height: 56)
                             .scaleEffect(pulse ? 1.08 : 0.96)
                             .opacity(pulse ? 1.0 : 0.0)
                             .allowsHitTesting(false)
 
-                        KuroConciergeMark(size: 24)
-                            .matchedGeometryEffect(id: "kurochan", in: mascotNS)
+                        ZStack {
+                            // State ring (subtle, monochrome).
+                            if state == .thinking {
+                                Circle()
+                                    .trim(from: 0.0, to: 0.72)
+                                    .stroke(Color.primary.opacity(0.35), style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+                                    .rotationEffect(.degrees(ringPhase ? 360 : 0))
+                                    .animation(.linear(duration: 1.2).repeatForever(autoreverses: false), value: ringPhase)
+                                    .frame(width: 42, height: 42)
+                                    .allowsHitTesting(false)
+                            }
+
+                            KuroConciergeMark(size: 24)
+                                .matchedGeometryEffect(id: "kurochan", in: mascotNS)
+
+                            if state == .concerned {
+                                Image(systemName: "exclamationmark")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(.primary.opacity(0.55))
+                                    .offset(x: 14, y: -14)
+                                    .allowsHitTesting(false)
+                            }
+                        }
                     }
                 }
                 .buttonStyle(.plain)
@@ -164,6 +195,18 @@ struct KuroConciergeAssistant: View {
             withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
                 pulse = true
             }
+
+            ringPhase = true
+        }
+    }
+
+    private var statusLine: String {
+        switch state {
+        case .idle: return "Imports + recommendations"
+        case .listening: return "Listening"
+        case .thinking: return "Thinking"
+        case .celebrating: return "Saved"
+        case .concerned: return "Needs clarification"
         }
     }
 
@@ -421,20 +464,22 @@ struct ConciergeBubble: View {
     let onClarifyExampleImport: () -> Void
     let onClarifyExampleVibe: () -> Void
     var onConfirmItems: ((SupabaseService.ConciergeParseResponse) -> Void)? = nil
+    var autoReasonByItemId: [String: String] = [:]
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
     // RecommendationRail manages hide state internally.
+    @Environment(\.colorScheme) private var colorScheme
 
     private func glassBubble<Content: View>(cornerRadius: CGFloat, @ViewBuilder content: () -> Content) -> some View {
         content()
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.kuroSecondaryBackground.opacity(0.96))
+                    .fill(Color.kuroSecondaryBackground.opacity(colorScheme == .dark ? 0.92 : 0.96))
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
+                            .stroke(Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.06), lineWidth: 0.8)
                     )
-                    .shadow(color: Color.black.opacity(0.06), radius: 14, x: 0, y: 8)
+                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.06), radius: 14, x: 0, y: 8)
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
@@ -447,7 +492,7 @@ struct ConciergeBubble: View {
                         glassBubble(cornerRadius: KuroRadius.md) {
                             Text(message.text)
                                 .font(.kuroBody())
-                                .foregroundColor(.black.opacity(0.82))
+                                .foregroundStyle(.primary.opacity(0.82))
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 12)
                         }
@@ -470,6 +515,7 @@ struct ConciergeBubble: View {
                             selected: selected,
                             onSelect: onSelect,
                             onConfirm: { onConfirmItems?(parseResponse) },
+                            autoReasonByItemId: autoReasonByItemId,
                             itemActions: itemActions,
                             excludedItemIds: $excludedItemIds
                         )
@@ -509,7 +555,7 @@ struct ConciergeBubble: View {
                                 let items = (set.items ?? [])
                                 if !items.isEmpty {
                                     RecommendationRail(
-                                        title: set.title ?? "Recommendations",
+                                        title: set.title.isEmpty ? "Recommendations" : set.title,
                                         items: items,
                                         onOpen: { onOpenRecommendation($0) },
                                         onSave: { onQuickSave($0) },
@@ -541,7 +587,11 @@ struct ConciergeBubble: View {
                     .padding(.vertical, 12)
                     .background(
                         RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                            .fill(Color.black)
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.10) : Color.black)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                                    .stroke(Color.white.opacity(colorScheme == .dark ? 0.18 : 0.0), lineWidth: 0.6)
+                            )
                     )
                     .frame(maxWidth: 360, alignment: .trailing)
             }
@@ -556,6 +606,7 @@ struct ConciergeConfirmBubble: View {
     let selected: (SupabaseService.ConciergeParseItem) -> SupabaseService.ConciergeCandidate?
     let onSelect: (SupabaseService.ConciergeParseItem, SupabaseService.ConciergeCandidate) -> Void
     let onConfirm: () -> Void
+    var autoReasonByItemId: [String: String] = [:]
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
 
@@ -597,7 +648,7 @@ struct ConciergeConfirmBubble: View {
             guard let c = selected(item) else { return nil }
             if excludedItemIds.contains(item.id) { return nil }
             if actionFor(item) == .skip { return nil }
-            return c.score >= 0.85 ? item.id : nil
+            return (c.score >= 0.85 || autoReasonByItemId[item.id] != nil) ? item.id : nil
         })
     }
 
@@ -622,17 +673,17 @@ struct ConciergeConfirmBubble: View {
                     Text("IMPORT PREVIEW")
                         .font(.kuroMicro(weight: .medium))
                         .tracking(1.8)
-                        .foregroundColor(.black.opacity(0.30))
+                        .foregroundStyle(.secondary.opacity(0.85))
                     Spacer(minLength: 0)
                     Text("\(items.count)")
                         .font(.kuroMicro(weight: .medium))
-                        .foregroundColor(.black.opacity(0.25))
+                        .foregroundStyle(.secondary.opacity(0.75))
                         .monospacedDigit()
                 }
                 .padding(.bottom, 14)
 
                 Rectangle()
-                    .fill(Color.black.opacity(0.06))
+                    .fill(Color.primary.opacity(0.08))
                     .frame(height: 0.5)
                     .padding(.bottom, 12)
 
@@ -640,6 +691,7 @@ struct ConciergeConfirmBubble: View {
                     items: items,
                     selectedByItemId: selectedByItemId,
                     autoSelectedIds: autoSelectedIds,
+                    autoReasonByItemId: autoReasonByItemId,
                     itemActions: itemActions,
                     excludedItemIds: excludedItemIds,
                     onSelect: { item, candidate in onSelect(item, candidate) },

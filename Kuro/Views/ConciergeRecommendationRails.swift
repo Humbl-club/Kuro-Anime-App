@@ -10,6 +10,29 @@ typealias ConciergeRecItem = SupabaseService.ConciergeRecommendResponse.Item
 
 // Preview mocks live under DEBUG at the bottom of the file.
 
+// MARK: - Selection Haptics (Snap-to-Card)
+
+@MainActor
+private final class ConciergeRailHaptics {
+    static let shared = ConciergeRailHaptics()
+
+    private let generator = UISelectionFeedbackGenerator()
+    private var lastTickAt: CFTimeInterval = 0
+
+    private init() {
+        generator.prepare()
+    }
+
+    func tickIfNeeded() {
+        let now = CFAbsoluteTimeGetCurrent()
+        // Throttle so fast scroll decel doesn't spam haptics.
+        if now - lastTickAt < 0.10 { return }
+        lastTickAt = now
+        generator.selectionChanged()
+        generator.prepare()
+    }
+}
+
 // MARK: - View Model for Rail State
 @MainActor
 @Observable
@@ -60,6 +83,8 @@ struct RecommendationRail: View {
     let onOpen: (ConciergeRecItem) -> Void
     let onSave: (ConciergeRecItem) -> Void
     let onHide: ((ConciergeRecItem) -> Void)?
+
+    @Environment(\.colorScheme) private var colorScheme
     
     @State private var viewModel = RecommendationRailViewModel()
     @State private var scrollPosition: String?
@@ -112,6 +137,9 @@ struct RecommendationRail: View {
             .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
             .onChange(of: scrollPosition) { oldValue, newValue in
                 centeredItemId = newValue
+                if newValue != nil, newValue != oldValue {
+                    ConciergeRailHaptics.shared.tickIfNeeded()
+                }
             }
             .frame(height: cardHeight + 8) // Extra space for shadow
         }
@@ -136,10 +164,10 @@ struct RecommendationRail: View {
                 .font(.kuroMicro(weight: .medium))
                 .tracking(2.0)
                 .textCase(.uppercase)
-                .foregroundColor(.black.opacity(0.40))
+                .foregroundStyle(.secondary.opacity(0.85))
             
             Rectangle()
-                .fill(Color.black.opacity(0.08))
+                .fill(Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.08))
                 .frame(height: 0.5)
         }
     }
@@ -251,7 +279,7 @@ struct RecommendationCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(sanitizedTitle)
                     .font(.system(size: 12, weight: .light, design: .serif))
-                    .foregroundColor(.black.opacity(0.82))
+                    .foregroundStyle(.primary.opacity(0.82))
                     .lineLimit(2)
                     .minimumScaleFactor(0.92)
                     .allowsTightening(true)
@@ -261,7 +289,7 @@ struct RecommendationCard: View {
                 if !metaLine.isEmpty {
                     Text(metaLine)
                         .font(.kuroMicro())
-                        .foregroundColor(.black.opacity(0.32))
+                        .foregroundStyle(.secondary.opacity(0.75))
                         .lineLimit(1)
                 }
             }
@@ -299,11 +327,11 @@ struct RecommendationCard: View {
     
     private var placeholderView: some View {
         RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(Color.black.opacity(0.06))
+            .fill(Color.primary.opacity(0.05))
             .overlay(
                 ProgressView()
                     .scaleEffect(0.6)
-                    .tint(.black.opacity(0.3))
+                    .tint(.secondary.opacity(0.75))
             )
     }
     

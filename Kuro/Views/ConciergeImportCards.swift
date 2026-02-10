@@ -46,7 +46,7 @@ struct MatchRing: View {
     
     private var ringColor: Color {
         // Monochrome mapping: higher confidence = darker ring.
-        Color.black.opacity(max(0.18, min(0.72, 0.18 + (percentage * 0.54))))
+        Color.primary.opacity(max(0.18, min(0.72, 0.18 + (percentage * 0.54))))
     }
     
     private var lineWidth: CGFloat { isSelected ? 3 : 2 }
@@ -227,7 +227,7 @@ struct ImportPosterView: View {
             .clipped()
             .overlay(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+                    .stroke(Color.primary.opacity(0.10), lineWidth: 0.5)
             )
         }
         .frame(width: 70, height: 100)
@@ -241,6 +241,7 @@ struct ImportConfirmCard: View {
     let item: ProtoConciergeParseItem
     let selectedCandidate: ProtoConciergeCandidate?
     let isAutoSelected: Bool
+    let autoReason: String?
     let section: ImportSection
     let scrollOffset: CGFloat
     let action: ImportItemAction
@@ -326,7 +327,7 @@ struct ImportConfirmCard: View {
                         // Title
                         Text(cardTitle)
                             .font(.kuroTitle(weight: .medium))
-                            .foregroundColor(.black.opacity(0.82))
+                            .foregroundStyle(.primary.opacity(0.82))
                             .lineLimit(2)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         
@@ -353,24 +354,24 @@ struct ImportConfirmCard: View {
                     HStack(spacing: 4) {
                         if let year = selectedCandidate?.year {
                             Text(String(year))
-                                .foregroundColor(.black.opacity(0.5))
+                                .foregroundStyle(.secondary.opacity(0.90))
                         }
                         
                         if selectedCandidate?.year != nil && formatText != nil {
                             Text("·")
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundStyle(.secondary.opacity(0.55))
                         }
                         
                         if let format = formatText {
                             Text(format)
-                                .foregroundColor(.black.opacity(0.5))
+                                .foregroundStyle(.secondary.opacity(0.90))
                         }
                         
                         if let episodes = episodeText {
                             Text("·")
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundStyle(.secondary.opacity(0.55))
                             Text(episodes)
-                                .foregroundColor(.black.opacity(0.5))
+                                .foregroundStyle(.secondary.opacity(0.90))
                         }
                     }
                     .font(.kuroCaption())
@@ -387,9 +388,9 @@ struct ImportConfirmCard: View {
                         
                         if studioText != nil {
                             Text("·")
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundStyle(.secondary.opacity(0.55))
                             Text(studioText!)
-                                .foregroundColor(.black.opacity(0.5))
+                                .foregroundStyle(.secondary.opacity(0.90))
                         }
                     }
                     .font(.kuroCaption())
@@ -398,7 +399,7 @@ struct ImportConfirmCard: View {
                     if let caption = section.caption {
                         Text(caption)
                             .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.28))
+                            .foregroundStyle(.secondary.opacity(0.65))
                             .padding(.top, 2)
                     }
                 }
@@ -406,7 +407,7 @@ struct ImportConfirmCard: View {
             
             // Reasoning tooltip (auto-selected only)
             if isAutoSelected && showReasoningTooltip {
-                ReasoningTooltip(reason: "Selected based on your text")
+                ReasoningTooltip(reason: autoReason?.isEmpty == false ? autoReason! : "Selected based on your text")
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .padding(.top, 8)
             }
@@ -450,7 +451,7 @@ struct ImportConfirmCard: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .strokeBorder(Color.black.opacity(0.04), lineWidth: 0.5)
+                        .strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5)
                 )
         )
     }
@@ -476,7 +477,7 @@ struct ImportConfirmCard: View {
     }
     
     private var matchColor: Color {
-        Color.black.opacity(max(0.25, min(0.65, 0.25 + (matchPercentage * 0.40))))
+        Color.primary.opacity(max(0.25, min(0.72, 0.25 + (matchPercentage * 0.47))))
     }
     
     private var canExpand: Bool {
@@ -521,15 +522,15 @@ struct ImportConfirmCard: View {
             Text(from)
                 .font(.kuroCaption())
                 .strikethrough()
-                .foregroundColor(.black.opacity(0.25))
+                .foregroundStyle(.secondary.opacity(0.75))
 
             Rectangle()
-                .fill(Color.black.opacity(0.15))
+                .fill(Color.primary.opacity(0.18))
                 .frame(width: 10, height: 0.5)
 
             Text(to)
                 .font(.kuroCaption(weight: .medium))
-                .foregroundColor(.black.opacity(0.65))
+                .foregroundStyle(.primary.opacity(0.70))
         }
     }
 }
@@ -543,20 +544,20 @@ private struct ReasoningTooltip: View {
         HStack(spacing: 6) {
             Image(systemName: "sparkles")
                 .font(.system(size: 10))
-                .foregroundColor(.black.opacity(0.40))
+                .foregroundStyle(.secondary.opacity(0.85))
             
             Text(reason)
                 .font(.kuroCaption())
-                .foregroundColor(.black.opacity(0.55))
+                .foregroundStyle(.secondary.opacity(0.90))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                .fill(Color.black.opacity(0.04))
+                .fill(Color.primary.opacity(0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+                        .stroke(Color.primary.opacity(0.10), lineWidth: 0.5)
                 )
         )
     }
@@ -673,6 +674,7 @@ struct ImportCardContainer: View {
     let items: [ProtoConciergeParseItem]
     let selectedByItemId: [String: ProtoConciergeCandidate]
     let autoSelectedIds: Set<String>
+    let autoReasonByItemId: [String: String]
     let itemActions: [String: ImportItemAction]
     let excludedItemIds: Set<String>
     let onSelect: (ProtoConciergeParseItem, ProtoConciergeCandidate) -> Void
@@ -703,6 +705,7 @@ struct ImportCardContainer: View {
                         item: item,
                         selectedCandidate: selectedByItemId[item.id],
                         isAutoSelected: autoSelectedIds.contains(item.id),
+                        autoReason: autoReasonByItemId[item.id],
                         section: .willAdd,
                         scrollOffset: scrollOffset,
                         action: .add,
@@ -727,6 +730,7 @@ struct ImportCardContainer: View {
                         item: item,
                         selectedCandidate: selectedByItemId[item.id],
                         isAutoSelected: autoSelectedIds.contains(item.id),
+                        autoReason: autoReasonByItemId[item.id],
                         section: .willUpdate,
                         scrollOffset: scrollOffset,
                         action: .update,
@@ -751,6 +755,7 @@ struct ImportCardContainer: View {
                         item: item,
                         selectedCandidate: selectedByItemId[item.id],
                         isAutoSelected: false,
+                        autoReason: nil,
                         section: .willSkip,
                         scrollOffset: scrollOffset,
                         action: .skip,
@@ -854,6 +859,7 @@ extension ProtoConciergeExistingEntry {
                 item: .mock(),
                 selectedCandidate: .mock(score: 0.98),
                 isAutoSelected: true,
+                autoReason: "Matched by year and your text",
                 section: .willAdd,
                 scrollOffset: 0,
                 action: .add,
@@ -874,6 +880,7 @@ extension ProtoConciergeExistingEntry {
                 ),
                 selectedCandidate: .mock(title: "Hunter x Hunter (2011)", score: 0.95, year: 2011),
                 isAutoSelected: false,
+                autoReason: nil,
                 section: .willAdd,
                 scrollOffset: 0,
                 action: .add,
@@ -890,6 +897,7 @@ extension ProtoConciergeExistingEntry {
                 ),
                 selectedCandidate: .mock(title: "Jujutsu Kaisen", score: 0.85, year: 2020),
                 isAutoSelected: false,
+                autoReason: nil,
                 section: .willUpdate,
                 scrollOffset: 0,
                 action: .update,
@@ -902,6 +910,7 @@ extension ProtoConciergeExistingEntry {
                 item: .mock(existingEntry: .mock()),
                 selectedCandidate: .mock(score: 1.0),
                 isAutoSelected: false,
+                autoReason: nil,
                 section: .willSkip,
                 scrollOffset: 0,
                 action: .skip,
@@ -971,6 +980,7 @@ extension ProtoConciergeExistingEntry {
                     items: items,
                     selectedByItemId: selectedByItemId,
                     autoSelectedIds: autoSelectedIds,
+                    autoReasonByItemId: [:],
                     itemActions: [
                         "mock1": .add,
                         "mock2": .add,

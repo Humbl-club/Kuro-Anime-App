@@ -5,6 +5,56 @@
 import SwiftUI
 import UIKit
 
+// MARK: - Concierge Smart Suggestions (Lightweight)
+
+private struct ConciergeSuggestion: Identifiable, Hashable {
+    enum Kind: Hashable {
+        case template(String)
+        case append(String)
+    }
+
+    let id = UUID()
+    let systemImage: String
+    let title: String
+    let kind: Kind
+}
+
+private struct ConciergeSuggestionBar: View {
+    let suggestions: [ConciergeSuggestion]
+    let onTap: (ConciergeSuggestion) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(suggestions) { s in
+                    Button(action: { onTap(s) }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: s.systemImage)
+                                .font(.system(size: 11, weight: .semibold))
+                            Text(s.title)
+                                .font(.kuroCaption(weight: .medium))
+                                .tracking(0.6)
+                        }
+                        .foregroundStyle(.primary.opacity(0.75))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.primary.opacity(0.05))
+                                .overlay(
+                                    Capsule(style: .continuous)
+                                        .stroke(Color.primary.opacity(0.10), lineWidth: 0.6)
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 2)
+        }
+    }
+}
+
 // MARK: - PrototypeConciergeIntent Enum
 
 /// Represents the detected user intent based on input content
@@ -292,6 +342,8 @@ struct ConciergeInputField: View {
     @State private var showDetectedChip = false
     @State private var detectedCount = 0
     @State private var lastTextLength = 0
+    @State private var suggestions: [ConciergeSuggestion] = []
+    @State private var suggestionTask: Task<Void, Never>? = nil
     
     // MARK: - Constants
     
@@ -335,76 +387,84 @@ struct ConciergeInputField: View {
     // MARK: - Body
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Detected list chip (floating above input)
-            if showDetectedChip {
-                VStack(spacing: 0) {
-                    DetectedListChip(count: detectedCount) {
-                        withAnimation(.spring(response: 0.3)) {
-                            showDetectedChip = false
-                        }
-                    }
-                    
-                    Spacer()
-                }
-                .padding(.bottom, 60)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+        VStack(alignment: .leading, spacing: 10) {
+            if !suggestions.isEmpty {
+                ConciergeSuggestionBar(suggestions: suggestions, onTap: applySuggestion)
+                    .transition(.opacity)
             }
-            
-            // Main input container
-            HStack(alignment: .bottom, spacing: 12) {
-                // Input area with placeholder
-                ZStack(alignment: .topLeading) {
-                    // Placeholder text with pulsing animation
-                    if isEmpty {
-                        placeholderView
-                    }
-                    
-                    // Text input
-                    TextEditor(text: $text)
-                        .font(.kuroBody())
-                        .foregroundStyle(Color.black.opacity(inputOpacity))
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
-                        .frame(minHeight: Constants.lineHeight, maxHeight: Constants.maxHeight)
-                        .focused($isInputFocused)
-                        .onChange(of: text) { oldValue, newValue in
-                            handleTextChange(from: oldValue, to: newValue)
+
+            ZStack(alignment: .bottom) {
+                // Detected list chip (floating above input)
+                if showDetectedChip {
+                    VStack(spacing: 0) {
+                        DetectedListChip(count: detectedCount) {
+                            withAnimation(.spring(response: 0.3)) {
+                                showDetectedChip = false
+                            }
                         }
+
+                        Spacer()
+                    }
+                    .padding(.bottom, 60)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                
-                // Intent indicator (if detected)
-                if currentIntent != .unknown {
-                    IntentIndicator(intent: currentIntent)
-                        .transition(.scale.combined(with: .opacity))
+
+                // Main input container
+                HStack(alignment: .bottom, spacing: 12) {
+                    // Input area with placeholder
+                    ZStack(alignment: .topLeading) {
+                        // Placeholder text with pulsing animation
+                        if isEmpty {
+                            placeholderView
+                        }
+
+                        // Text input
+                        TextEditor(text: $text)
+                            .font(.kuroBody())
+                            .foregroundStyle(Color.primary.opacity(inputOpacity))
+                            .scrollContentBackground(.hidden)
+                            .background(Color.clear)
+                            .frame(minHeight: Constants.lineHeight, maxHeight: Constants.maxHeight)
+                            .focused($isInputFocused)
+                            .onChange(of: text) { oldValue, newValue in
+                                handleTextChange(from: oldValue, to: newValue)
+                            }
+                    }
+
+                    // Intent indicator (if detected)
+                    if currentIntent != .unknown {
+                        IntentIndicator(intent: currentIntent)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+
+                    // Send button
+                    sendButton
                 }
-                
-                // Send button
-                sendButton
+                .padding(.horizontal, Constants.horizontalPadding)
+                .padding(.vertical, Constants.verticalPadding)
+                .background(
+                    // Glass morphism background
+                    RoundedRectangle(cornerRadius: Constants.cornerRadius)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Constants.cornerRadius)
+                                .stroke(
+                                    Color.primary.opacity(0.10),
+                                    lineWidth: 0.6
+                                )
+                        )
+                )
+                .shadow(
+                    color: Color.black.opacity(0.06),
+                    radius: 12,
+                    x: 0,
+                    y: 4
+                )
             }
-            .padding(.horizontal, Constants.horizontalPadding)
-            .padding(.vertical, Constants.verticalPadding)
-            .background(
-                // Glass morphism background
-                RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                            .stroke(
-                                Color.black.opacity(0.06),
-                                lineWidth: 0.6
-                            )
-                    )
-            )
-            .shadow(
-                color: .black.opacity(0.06),
-                radius: 12,
-                x: 0,
-                y: 4
-            )
         }
         .onAppear {
             startPlaceholderPulse()
+            updateSuggestionsDebounced(text)
         }
         .onChange(of: focusRequest?.wrappedValue ?? false) { _, wantsFocus in
             guard wantsFocus else { return }
@@ -419,7 +479,7 @@ struct ConciergeInputField: View {
     private var placeholderView: some View {
         Text("Paste titles, or describe a mood...")
             .font(.kuroBody())
-            .foregroundStyle(Color.black.opacity(placeholderOpacity))
+            .foregroundStyle(Color.primary.opacity(placeholderOpacity))
             .padding(.top, 2)
             .onAppear {
                 startPlaceholderPulse()
@@ -461,8 +521,73 @@ struct ConciergeInputField: View {
         
         // Handle list detection chip
         handleListDetection(intent: newIntent)
-        
+
         lastTextLength = newValue.count
+
+        updateSuggestionsDebounced(newValue)
+    }
+
+    private func updateSuggestionsDebounced(_ text: String) {
+        suggestionTask?.cancel()
+        suggestionTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            if Task.isCancelled { return }
+            suggestions = buildSuggestions(text: text, intent: currentIntent)
+        }
+    }
+
+    private func buildSuggestions(text: String, intent: PrototypeConciergeIntent) -> [ConciergeSuggestion] {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = trimmed.lowercased()
+
+        if trimmed.isEmpty {
+            return [
+                .init(systemImage: "sparkles", title: "Premium", kind: .template("Recommend something premium, clean, not childish.")),
+                .init(systemImage: "theatermasks", title: "Comedy", kind: .append("comedy")),
+                .init(systemImage: "moon.stars", title: "Cozy", kind: .append("cozy")),
+                .init(systemImage: "eye", title: "Dark", kind: .append("dark, serious")),
+                .init(systemImage: "film", title: "Movie", kind: .append("movie")),
+                .init(systemImage: "minus.circle", title: "No romance", kind: .append("no romance"))
+            ]
+        }
+
+        switch intent {
+        case .importList:
+            return [
+                .init(systemImage: "checkmark.seal", title: "Confirm", kind: .template(trimmed)),
+                .init(systemImage: "gobackward", title: "Re-parse", kind: .template(trimmed))
+            ]
+        case .recommendation, .unknown:
+            var out: [ConciergeSuggestion] = []
+            if !lower.contains("no romance") { out.append(.init(systemImage: "minus.circle", title: "No romance", kind: .append("no romance"))) }
+            if !lower.contains("no isekai") { out.append(.init(systemImage: "minus.circle", title: "No isekai", kind: .append("no isekai"))) }
+            if !lower.contains("short") && !lower.contains("one season") { out.append(.init(systemImage: "bolt", title: "Short", kind: .append("short one season"))) }
+            if !lower.contains("classic") { out.append(.init(systemImage: "crown", title: "Classics", kind: .append("classics"))) }
+            if out.isEmpty { out.append(.init(systemImage: "sparkles", title: "Premium", kind: .append("premium"))) }
+            return Array(out.prefix(6))
+        }
+    }
+
+    private func applySuggestion(_ suggestion: ConciergeSuggestion) {
+        KuroAccessibility.impactHaptic(.light)
+
+        switch suggestion.kind {
+        case .template(let t):
+            text = t
+        case .append(let fragment):
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                text = fragment
+            } else if trimmed.hasSuffix(",") || trimmed.hasSuffix(" ") {
+                text = trimmed + fragment
+            } else {
+                text = trimmed + ", " + fragment
+            }
+        }
+
+        // Keep focus on input after chip tap.
+        focusRequest?.wrappedValue = true
+        updateSuggestionsDebounced(text)
     }
     
     private func handleListDetection(intent: PrototypeConciergeIntent) {
