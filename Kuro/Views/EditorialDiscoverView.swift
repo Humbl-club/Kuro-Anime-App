@@ -1229,6 +1229,10 @@ struct FullSectionView<Item: MediaDisplayable>: View {
                     .padding(.horizontal, KuroCardMetrics.horizontalPadding)
                     .padding(.bottom, 24)
                 }
+                // Ensure the last rows can scroll fully above the home indicator / tab chrome.
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 24)
+                }
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -1296,6 +1300,10 @@ struct FullMangaSectionView<Item: MediaDisplayable>: View {
                     }
                     .padding(.horizontal, KuroCardMetrics.horizontalPadding)
                     .padding(.bottom, 24)
+                }
+                // Ensure the last rows can scroll fully above the home indicator / tab chrome.
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 24)
                 }
             }
             .navigationTitle(title)

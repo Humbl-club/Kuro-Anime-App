@@ -17,7 +17,10 @@ struct AnimeDetailView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let safeTop = geometry.safeAreaInsets.top
+            // In sheets, SwiftUI sometimes reserves a top "cap" area that isn't reflected as a
+            // typical safe-area inset on some OS/device combinations. Enforce a minimum so the
+            // hero always reaches the sheet's top edge.
+            let safeTop = max(geometry.safeAreaInsets.top, 24)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     GeometryReader { proxy in

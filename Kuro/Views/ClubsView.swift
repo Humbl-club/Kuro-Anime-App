@@ -14,53 +14,55 @@ struct ClubsView: View {
     @State private var toastDismissTask: Task<Void, Never>? = nil
 
     var body: some View {
-        ZStack {
-            Color.kuroBackground.ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                Color.kuroBackground.ignoresSafeArea()
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: KuroDesignSpacing.lg) {
-                    if supabaseService.myClubs.isEmpty {
-                        emptyState
-                            .padding(.top, KuroDesignSpacing.xxl)
-                    } else {
-                        clubList
-                            .padding(.top, KuroDesignSpacing.md)
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: KuroDesignSpacing.lg) {
+                        if supabaseService.myClubs.isEmpty {
+                            emptyState
+                                .padding(.top, KuroDesignSpacing.xxl)
+                        } else {
+                            clubList
+                                .padding(.top, KuroDesignSpacing.md)
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, KuroDesignSpacing.xxl)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, KuroDesignSpacing.xxl)
+                .refreshable {
+                    await supabaseService.fetchMyClubs()
+                }
+
+                if let toast {
+                    VStack {
+                        Spacer()
+                        KuroToast(toast: toast)
+                            .padding(.horizontal, KuroDesignSpacing.md)
+                            .padding(.bottom, 92)
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(100)
+                }
             }
-            .refreshable {
+            .task {
+                guard !didInitialLoad else { return }
+                didInitialLoad = true
                 await supabaseService.fetchMyClubs()
             }
-
-            if let toast {
-                VStack {
-                    Spacer()
-                    KuroToast(toast: toast)
-                        .padding(.horizontal, KuroDesignSpacing.md)
-                        .padding(.bottom, 92)
+            .sheet(isPresented: $showCreateSheet) {
+                CreateClubSheet { response in
+                    showToast(.success, title: "Club created", subtitle: response.name)
                 }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-                .zIndex(100)
+                .environment(supabaseService)
             }
-        }
-        .task {
-            guard !didInitialLoad else { return }
-            didInitialLoad = true
-            await supabaseService.fetchMyClubs()
-        }
-        .sheet(isPresented: $showCreateSheet) {
-            CreateClubSheet { response in
-                showToast(.success, title: "Club created", subtitle: response.name)
+            .sheet(isPresented: $showJoinSheet) {
+                JoinClubSheet { response in
+                    showToast(.success, title: "Joined club", subtitle: response.club_name)
+                }
+                .environment(supabaseService)
             }
-            .environment(supabaseService)
-        }
-        .sheet(isPresented: $showJoinSheet) {
-            JoinClubSheet { response in
-                showToast(.success, title: "Joined club", subtitle: response.club_name)
-            }
-            .environment(supabaseService)
         }
     }
 

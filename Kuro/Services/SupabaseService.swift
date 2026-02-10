@@ -30,6 +30,8 @@ class SupabaseService {
     var authErrorMessage: String? = nil
     // Lightweight identity for UI (header menus, etc.)
     var currentUserEmail: String? = nil
+    // Used for local-only UI labeling (e.g. Clubs member list "You").
+    var currentUserId: String? = nil
 
     var currentUserInitial: String {
         let c = currentUserEmail?.trimmingCharacters(in: .whitespacesAndNewlines).first
@@ -344,10 +346,12 @@ class SupabaseService {
             isAuthenticated = true
             authErrorMessage = nil
             currentUserEmail = session.user.email
+            currentUserId = session.user.id.uuidString
             await ensureProfileRow()
             await bootstrapAfterAuth()
         } catch {
             isAuthenticated = false
+            currentUserId = nil
         }
     }
 
@@ -358,11 +362,13 @@ class SupabaseService {
             let session = try await client.auth.session
             isAuthenticated = true
             currentUserEmail = session.user.email
+            currentUserId = session.user.id.uuidString
             await ensureProfileRow()
             await bootstrapAfterAuth()
         } catch {
             authErrorMessage = error.localizedDescription
             isAuthenticated = false
+            currentUserId = nil
             throw error
         }
     }
@@ -375,10 +381,12 @@ class SupabaseService {
             if let session = (try? await client.auth.session) {
                 isAuthenticated = true
                 currentUserEmail = session.user.email
+                currentUserId = session.user.id.uuidString
                 await ensureProfileRow()
                 await bootstrapAfterAuth()
             } else {
                 isAuthenticated = false
+                currentUserId = nil
             }
         } catch {
             authErrorMessage = error.localizedDescription
@@ -398,6 +406,7 @@ class SupabaseService {
         await stopRealtimeSubscriptions()
         isAuthenticated = false
         currentUserEmail = nil
+        currentUserId = nil
         authErrorMessage = nil
         stopCountdownUpdates()
         resetUserState()

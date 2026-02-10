@@ -18,6 +18,7 @@ struct ClubActivitySection: View {
 
     var body: some View {
         let hasClubs = !supabaseService.myClubs.isEmpty
+        let currentUserId = supabaseService.currentUserId
 
         if hasClubs || !activities.isEmpty {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
@@ -61,7 +62,7 @@ struct ClubActivitySection: View {
                         .foregroundColor(.black.opacity(0.50))
                 } else {
                     ForEach(activities, id: \.club.id) { activity in
-                        ClubActivityCard(activity: activity)
+                        ClubActivityCard(activity: activity, currentUserId: currentUserId)
                     }
                 }
             }
@@ -84,6 +85,7 @@ struct ClubActivitySection: View {
 
 private struct ClubActivityCard: View {
     let activity: SupabaseService.ClubMediaActivity
+    let currentUserId: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
@@ -96,7 +98,8 @@ private struct ClubActivityCard: View {
                     item: match.item,
                     memberCount: activity.memberCount,
                     sharingLevel: activity.sharingLevel,
-                    members: activity.members
+                    members: activity.members,
+                    currentUserId: currentUserId
                 )
             }
         }
@@ -287,6 +290,7 @@ private struct ClubActivityItemRow: View {
     let memberCount: Int
     let sharingLevel: String
     let members: [SupabaseService.ClubMember]
+    let currentUserId: String?
 
     @State private var showMembers = false
 
@@ -337,6 +341,8 @@ private struct ClubActivityItemRow: View {
                 DisclosureGroup(isExpanded: $showMembers) {
                     ClubMemberStatusList(
                         statuses: statuses,
+                        members: members,
+                        currentUserId: currentUserId,
                         sharingLevel: sharingLevel,
                         mediaType: item.media_type
                     )
@@ -384,28 +390,85 @@ private struct ClubStatusPill: View {
 
 private struct ClubMemberStatusList: View {
     let statuses: [SupabaseService.ClubRailItem.MemberItemStatus]
+    let members: [SupabaseService.ClubMember]
+    let currentUserId: String?
     let sharingLevel: String
     let mediaType: String
 
+    private var memberIndexById: [String: Int] {
+        // Stable ordering for consistent labels: join order, then user_id fallback.
+        let ordered = members.sorted { $0.joined_at < $1.joined_at }.map(\.user_id)
+        var out: [String: Int] = [:]
+        for (idx, id) in ordered.enumerated() { out[id] = idx + 1 }
+        return out
+    }
+
+    private var roleById: [String: String] {
+        var out: [String: String] = [:]
+        for m in members { out[m.user_id] = m.role }
+        return out
+    }
+
+    private func memberLabel(_ userId: String) -> String {
+        if let currentUserId, userId == currentUserId { return "You" }
+        if let idx = memberIndexById[userId] { return "Member \(idx)" }
+        return "Member"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            ForEach(statuses, id: \.user_id) { ms in
+            let sorted = statuses.sorted { a, b in
+                if let currentUserId {
+                    let aIsMe = a.user_id == currentUserId
+                    let bIsMe = b.user_id == currentUserId
+                    if aIsMe != bIsMe { return aIsMe }
+                }
+                return (memberIndexById[a.user_id] ?? 9999) < (memberIndexById[b.user_id] ?? 9999)
+            }
+            ForEach(sorted, id: \.user_id) { ms in
                 HStack(spacing: 10) {
                     Circle()
                         .fill(Color.black.opacity(0.06))
                         .frame(width: 24, height: 24)
                         .overlay(
-                            Text(String(ms.user_id.prefix(2)).uppercased())
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundColor(.black.opacity(0.45))
+                            Group {
+                                if let idx = memberIndexById[ms.user_id] {
+                                    Text(String(idx))
+                                        .font(.system(size: 9, weight: .semibold))
+                                        .foregroundColor(.black.opacity(0.40))
+                                        .monospacedDigit()
+                                } else {
+                                    Circle()
+                                        .fill(Color.black.opacity(0.10))
+                                        .frame(width: 6, height: 6)
+                                }
+                            }
                         )
 
-                    if let status = ms.status {
-                        ClubStatusPill(status: status)
-                    } else {
-                        Text("Not tracking")
-                            .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.35))
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(memberLabel(ms.user_id))
+                                .font(.kuroCaption(weight: .medium))
+                                .foregroundColor(.black.opacity(0.55))
+
+                            if let role = roleById[ms.user_id]?.uppercased(), role != "MEMBER" {
+                                Text(role)
+                                    .font(.kuroMicro(weight: .medium))
+                                    .tracking(1.2)
+                                    .foregroundColor(.black.opacity(0.40))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Capsule().fill(Color.black.opacity(0.05)))
+                            }
+                        }
+
+                        if let status = ms.status {
+                            ClubStatusPill(status: status)
+                        } else {
+                            Text("Not started")
+                                .font(.kuroCaption())
+                                .foregroundColor(.black.opacity(0.35))
+                        }
                     }
 
                     Spacer()
