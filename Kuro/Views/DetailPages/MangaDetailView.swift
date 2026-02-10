@@ -30,7 +30,11 @@ struct MangaDetailView: View {
                     .frame(height: 0)
 
                     // Hero Section with Parallax Effect
+                    // In a sheet presentation, SwiftUI can reserve top insets (rounded corners / drag affordance)
+                    // which can leave a visible cap above the hero image. Pull the hero up by the sheet-safe inset
+                    // so the banner truly reaches the top edge.
                     MangaHeroSection(manga: manga, geometry: geometry, scrollOffset: $scrollOffset)
+                        .offset(y: -safeTop)
                     
                     // Content Section
                     VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)) {

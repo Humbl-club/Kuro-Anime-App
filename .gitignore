@@ -34,3 +34,6 @@ mockups/
 
 # Local MCP config (developer machine specific)
 .mcp.json
+
+# Local test artifacts (do not commit)
+supabase/functions/concierge-recommend/test-fixtures.db

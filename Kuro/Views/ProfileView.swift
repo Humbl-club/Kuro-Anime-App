@@ -18,14 +18,18 @@ struct ProfileView: View {
                         .padding(.top, KuroDesignSpacing.md)
 
                     stats
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, KuroDesignSpacing.padding)
 
-                    Divider()
-                        .overlay(Color.black.opacity(0.08))
-                        .padding(.horizontal, 20)
+                    clubsPreview
+                        .padding(.horizontal, KuroDesignSpacing.padding)
+
+                    Rectangle()
+                        .fill(Color.black.opacity(0.08))
+                        .frame(height: 0.5)
+                        .padding(.horizontal, KuroDesignSpacing.padding)
 
                     actions
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, KuroDesignSpacing.padding)
 
                     footer
                         .padding(.top, 6)
@@ -37,6 +41,10 @@ struct ProfileView: View {
         }
         .scrollContentBackground(.hidden)
         .transaction { $0.animation = nil }
+        .task(id: supabaseService.currentUserEmail) {
+            // Keep the profile "club context" warm so Clubs opens instantly.
+            await supabaseService.fetchMyClubs()
+        }
         .overlay(alignment: .topTrailing) {
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
@@ -122,12 +130,58 @@ struct ProfileView: View {
         }
     }
 
+    private var clubsPreview: some View {
+        let clubs = supabaseService.myClubs
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("CLUBS")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(2.0)
+                    .foregroundColor(.kuroBlack60)
+
+                Spacer(minLength: 0)
+
+                Text("\(clubs.count)")
+                    .font(.kuroMicro(weight: .medium))
+                    .foregroundColor(.kuroBlack30)
+                    .monospacedDigit()
+            }
+
+            if clubs.isEmpty {
+                Text("Private clubs with shared rails. No feeds.")
+                    .font(.kuroCaption(weight: .light))
+                    .foregroundColor(.kuroBlack60)
+            } else {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(clubs.prefix(3)) { c in
+                        Text(c.name)
+                            .font(.kuroBody(weight: .light))
+                            .foregroundColor(.kuroBlack80)
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
+                .fill(Color.kuroSecondaryBackground.opacity(0.90))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
+                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
+                )
+        )
+    }
+
     private var actions: some View {
         VStack(spacing: 12) {
             ProfileActionRow(
                 icon: "person.2",
                 title: "Clubs",
-                subtitle: "Watch together with friends"
+                subtitle: "Shared rails, no feeds",
+                trailing: "\(supabaseService.myClubs.count)"
             ) {
                 showClubs = true
             }
@@ -249,6 +303,7 @@ private struct ProfileActionRow: View {
     let icon: String
     let title: String
     let subtitle: String
+    var trailing: String? = nil
     var isDestructive: Bool = false
     let action: () -> Void
 
@@ -273,6 +328,13 @@ private struct ProfileActionRow: View {
                 }
 
                 Spacer()
+
+                if let trailing, !trailing.isEmpty {
+                    Text(trailing)
+                        .font(.kuroMicro(weight: .medium))
+                        .foregroundColor(.kuroBlack30)
+                        .monospacedDigit()
+                }
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .regular))

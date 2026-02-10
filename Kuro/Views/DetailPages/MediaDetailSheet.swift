@@ -5,12 +5,20 @@ struct MediaDetailSheet: View {
     let id: Int
 
     var body: some View {
-        switch kind {
-        case .anime:
-            AnimeDetailLoaderView(animeId: id)
-        case .manga:
-            MangaDetailLoaderView(mangaId: id)
+        ZStack {
+            // Keep the sheet background consistent during loading/error states.
+            Color.kuroBackground.ignoresSafeArea()
+
+            switch kind {
+            case .anime:
+                AnimeDetailLoaderView(animeId: id)
+            case .manga:
+                MangaDetailLoaderView(mangaId: id)
+            }
         }
+        #if os(iOS)
+        .presentationDragIndicator(.hidden)
+        #endif
     }
 }
 
@@ -107,4 +115,3 @@ struct MangaDetailLoaderView: View {
         }
     }
 }
-
