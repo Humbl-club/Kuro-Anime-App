@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Concierge UI components used by `ConciergeView` for the chat surface
-// and the floating assistant orb/panel.
+// Shared Concierge UI components used by `ConciergeView`:
+// message model, assistant orb/panel, and chat bubble subviews.
 
 struct KuroConciergeAssistant: View {
     @Binding var expanded: Bool
