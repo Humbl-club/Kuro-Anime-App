@@ -214,6 +214,7 @@ struct KuroCompactCard: View {
     
     @State private var showDetail = false
     @State private var isPressed = false
+    @State private var didDrag = false
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     
     private var height: CGFloat {
@@ -243,67 +244,80 @@ struct KuroCompactCard: View {
     }
     
     var body: some View {
-        Button(action: {
-            guard !suppressCardTaps else { return }
-            KuroAccessibility.impactHaptic(.light)
-            showDetail = true
-        }) {
-            VStack(alignment: .leading, spacing: 0) {
-                ZStack(alignment: .top) {
-                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 300) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: width, height: height)
-                                .clipped()
-                        case .failure, .empty:
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Color.black.opacity(0.06))
-                                .frame(width: width, height: height)
-                        @unknown default:
-                            EmptyView()
-                        }
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .top) {
+                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 300) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: width, height: height)
+                            .clipped()
+                    case .failure, .empty:
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: width, height: height)
+                    @unknown default:
+                        EmptyView()
                     }
-                    .frame(width: width, height: height)
-                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                    
-                    HStack(alignment: .top) {
-                        Spacer()
-                        if let rating = media.rating, rating > 0 {
-                            KuroScoreBadge(score: rating)
-                        }
-                    }
-                    .padding(6)
                 }
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(KuroCardText.sanitizeTitleForCard(media.title))
-                        .font(.system(size: 12, weight: .light, design: .serif))
-                        .textCase(.uppercase)
-                        .tracking(media.title.count >= 24 ? 0.25 : 0.55)
-                        .foregroundColor(.black.opacity(0.9))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.90)
-                        .allowsTightening(true)
-                        .truncationMode(.tail)
-                        .frame(height: 32, alignment: .top)
+                .frame(width: width, height: height)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-                    if let metaLine {
-                        Text(metaLine)
-                            .font(.system(size: 9, weight: .light))
-                            .foregroundColor(.black.opacity(0.5))
-                            .lineLimit(1)
+                HStack(alignment: .top) {
+                    Spacer()
+                    if let rating = media.rating, rating > 0 {
+                        KuroScoreBadge(score: rating)
                     }
                 }
-                .frame(width: width, alignment: .topLeading)
-                .padding(.top, 10)
+                .padding(6)
             }
-            .scaleEffect(isPressed ? 0.97 : 1.0)
-            .opacity(isPressed ? 0.95 : 1.0)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(KuroCardText.sanitizeTitleForCard(media.title))
+                    .font(.system(size: 12, weight: .light, design: .serif))
+                    .textCase(.uppercase)
+                    .tracking(media.title.count >= 24 ? 0.25 : 0.55)
+                    .foregroundColor(.black.opacity(0.9))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.90)
+                    .allowsTightening(true)
+                    .truncationMode(.tail)
+                    .frame(height: 32, alignment: .top)
+
+                if let metaLine {
+                    Text(metaLine)
+                        .font(.system(size: 9, weight: .light))
+                        .foregroundColor(.black.opacity(0.5))
+                        .lineLimit(1)
+                }
+            }
+            .frame(width: width, alignment: .topLeading)
+            .padding(.top, 10)
         }
-        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        // Intentional tap: ignore tap when the user is swiping the horizontal carousel.
+        .gesture(
+            DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                .onChanged { value in
+                    if abs(value.translation.width) > 10 || abs(value.translation.height) > 10 {
+                        didDrag = true
+                    }
+                }
+                .onEnded { value in
+                    defer { didDrag = false }
+                    guard !suppressCardTaps else { return }
+                    guard !didDrag else { return }
+                    if abs(value.translation.width) < 10 && abs(value.translation.height) < 10 {
+                        KuroAccessibility.impactHaptic(.light)
+                        showDetail = true
+                    }
+                }
+        )
+        .scaleEffect(isPressed ? 0.97 : 1.0)
+        .opacity(isPressed ? 0.95 : 1.0)
+        .accessibilityAddTraits(.isButton)
         .pressable($isPressed)
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)

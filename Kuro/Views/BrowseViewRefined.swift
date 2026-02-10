@@ -229,19 +229,8 @@ struct BrowseResultsView: View {
     private var gridItems: [any MediaDisplayable] { Array(items.dropFirst()) }
     
     private var gridMetrics: (columns: [GridItem], cardWidth: CGFloat, cardHeight: CGFloat) {
-        let spacing: CGFloat = 12
-        let padding: CGFloat = 20
-        let availableWidth = geometry.size.width - (2 * padding) - spacing
-        let cardWidth = floor(availableWidth / 2)
-        let imageHeight = cardWidth / 0.7
-        let cardHeight = imageHeight + 8 + 52
-        
-        let columns = [
-            GridItem(.fixed(cardWidth), spacing: spacing),
-            GridItem(.fixed(cardWidth), spacing: spacing)
-        ]
-        
-        return (columns, cardWidth, cardHeight)
+        let metrics = KuroCardMetrics.grid(for: geometry.size.width, columns: 2)
+        return (metrics.columns, metrics.cardWidth, metrics.cardHeight)
     }
     
     var body: some View {

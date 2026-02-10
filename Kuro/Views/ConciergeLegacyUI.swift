@@ -189,6 +189,7 @@ struct ConciergeMessage: Identifiable {
     let id = UUID()
     let role: Role
     let text: String
+    let showClarifyActions: Bool
     let items: [SupabaseService.ConciergeParseItem]?
     let recommendations: [SupabaseService.ConciergeRecommendResponse.Item]?
     let recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]?
@@ -198,6 +199,7 @@ struct ConciergeMessage: Identifiable {
     init(
         role: Role,
         text: String,
+        showClarifyActions: Bool = false,
         items: [SupabaseService.ConciergeParseItem]? = nil,
         recommendations: [SupabaseService.ConciergeRecommendResponse.Item]? = nil,
         recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]? = nil,
@@ -206,6 +208,7 @@ struct ConciergeMessage: Identifiable {
     ) {
         self.role = role
         self.text = text
+        self.showClarifyActions = showClarifyActions
         self.items = items
         self.recommendations = recommendations
         self.recommendationSets = recommendationSets
@@ -420,6 +423,9 @@ struct ConciergeBubble: View {
     let onSelect: (SupabaseService.ConciergeParseItem, SupabaseService.ConciergeCandidate) -> Void
     let onOpenRecommendation: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
     let onQuickSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
+    let onClarifyPaste: () -> Void
+    let onClarifyExampleImport: () -> Void
+    let onClarifyExampleVibe: () -> Void
     var onConfirmItems: ((SupabaseService.ConciergeParseResponse) -> Void)? = nil
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
@@ -459,6 +465,15 @@ struct ConciergeBubble: View {
                                 .padding(.vertical, 12)
                         }
                         .frame(maxWidth: 360, alignment: .leading)
+                    }
+
+                    if message.showClarifyActions {
+                        ConciergeStarterActions(
+                            onPaste: onClarifyPaste,
+                            onExampleImport: onClarifyExampleImport,
+                            onExampleVibe: onClarifyExampleVibe
+                        )
+                        .frame(maxWidth: 420, alignment: .leading)
                     }
 
                     // Inline confirm bubble for import items

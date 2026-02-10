@@ -75,14 +75,14 @@ struct ClubDetailView: View {
                     .font(.kuroNavigation(weight: .regular))
                     .tracking(1.5)
             }
-            if let bundle, ["owner", "admin"].contains(bundle.my_role) {
+            if bundle != nil {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         KuroAccessibility.impactHaptic(.light)
                         showSettings = true
                     } label: {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 15, weight: .regular))
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 16, weight: .regular))
                             .foregroundColor(.kuroBlack60)
                     }
                 }

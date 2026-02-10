@@ -394,7 +394,7 @@ struct KuroCardMetrics {
     static let interItemSpacing: CGFloat = 16
     static let rowSpacing: CGFloat = 16
     static let imageAspectRatio: CGFloat = 0.7 // Portrait
-    static let textBlockHeight: CGFloat = 72
+    static let textBlockHeight: CGFloat = 60
     static let imageToTextSpacing: CGFloat = 8
 
     // Computes a 2-column grid with fixed, pixel-aligned card sizes
@@ -509,4 +509,3 @@ struct EditorialLayout {
             )
     }
 }
-

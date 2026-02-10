@@ -379,6 +379,8 @@ struct SharedHorizontalAnimeCard: View {
     
     @State private var isPressed = false
     @State private var showActions = false
+    @State private var didLongPress = false
+    @State private var didDrag = false
     @State private var isFavorited = false
     @State private var isInList = false
     @Environment(SupabaseService.self) private var supabaseService
@@ -535,13 +537,32 @@ struct SharedHorizontalAnimeCard: View {
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .opacity(isPressed ? 0.9 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
-        .onTapGesture { tap() }
+        // Intentional tap: if the user is swiping, do not open the detail sheet accidentally.
+        .gesture(
+            DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                .onChanged { value in
+                    if abs(value.translation.width) > 10 || abs(value.translation.height) > 10 {
+                        didDrag = true
+                    }
+                }
+                .onEnded { value in
+                    defer { didDrag = false }
+                    guard !didLongPress else { return }
+                    guard !didDrag else { return }
+                    // Treat as a tap only if there was essentially no movement.
+                    if abs(value.translation.width) < 10 && abs(value.translation.height) < 10 {
+                        KuroAccessibility.impactHaptic(.light)
+                        tap()
+                    }
+                }
+        )
         .onLongPressGesture(minimumDuration: 0.5, maximumDistance: .infinity, pressing: { pressing in
             if pressing {
                 isPressed = true
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showActions = true
                 }
+                didLongPress = true
                 let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
                 impactFeedback.impactOccurred()
             } else {
@@ -550,6 +571,10 @@ struct SharedHorizontalAnimeCard: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         showActions = false
                     }
+                }
+                // Release long-press suppression after the interaction settles.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    didLongPress = false
                 }
             }
         }, perform: {})

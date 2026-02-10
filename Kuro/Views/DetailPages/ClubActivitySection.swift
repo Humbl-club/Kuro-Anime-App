@@ -10,26 +10,72 @@ struct ClubActivitySection: View {
     let mediaType: String
 
     @Environment(SupabaseService.self) private var supabaseService
+    @State private var showAddSheet = false
 
     private var activities: [SupabaseService.ClubMediaActivity] {
         supabaseService.clubActivityForMedia(mediaId: mediaId, mediaType: mediaType)
     }
 
     var body: some View {
-        if !activities.isEmpty {
+        let hasClubs = !supabaseService.myClubs.isEmpty
+
+        if hasClubs || !activities.isEmpty {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
                 EditorialLayout.divider()
 
-                Text("CLUB ACTIVITY")
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(1.6)
-                    .foregroundColor(.kuroBlack80)
+                HStack(spacing: 10) {
+                    Text("CLUBS")
+                        .font(.kuroCaption(weight: .medium))
+                        .tracking(1.6)
+                        .foregroundColor(.kuroBlack80)
 
-                ForEach(activities, id: \.club.id) { activity in
-                    ClubActivityCard(activity: activity)
+                    Spacer(minLength: 0)
+
+                    if hasClubs {
+                        Button {
+                            KuroAccessibility.impactHaptic(.light)
+                            showAddSheet = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("ADD")
+                                    .font(.kuroMicro(weight: .medium))
+                                    .tracking(1.4)
+                            }
+                            .foregroundColor(.black.opacity(0.78))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .stroke(Color.black.opacity(0.12), lineWidth: 0.8)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if activities.isEmpty {
+                    Text("Add this to a club rail to watch together. No feeds, just shared rails.")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.black.opacity(0.50))
+                } else {
+                    ForEach(activities, id: \.club.id) { activity in
+                        ClubActivityCard(activity: activity)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .task {
+                // If the user just opened detail pages, the clubs list might not be warm yet.
+                if supabaseService.myClubs.isEmpty {
+                    await supabaseService.fetchMyClubs()
+                }
+            }
+            .sheet(isPresented: $showAddSheet) {
+                AddToClubRailSheet(mediaId: mediaId, mediaType: mediaType)
+                    .environment(supabaseService)
+            }
         }
     }
 }
@@ -53,6 +99,183 @@ private struct ClubActivityCard: View {
                     members: activity.members
                 )
             }
+        }
+    }
+}
+
+// MARK: - Add to Club Rail Sheet
+
+private struct AddToClubRailSheet: View {
+    let mediaId: Int
+    let mediaType: String
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(SupabaseService.self) private var supabaseService
+
+    @State private var selectedClubId: String? = nil
+    @State private var bundle: SupabaseService.ClubBundle? = nil
+    @State private var isLoading = false
+    @State private var errorText: String? = nil
+    @State private var isSubmitting = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
+                    Text("ADD TO CLUB")
+                        .font(.kuroCaption(weight: .medium))
+                        .tracking(2.4)
+                        .foregroundColor(.black.opacity(0.60))
+                        .padding(.top, KuroDesignSpacing.md)
+
+                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                        Text("Choose a club")
+                            .font(.kuroCaption(weight: .medium))
+                            .foregroundColor(.black.opacity(0.55))
+
+                        ForEach(supabaseService.myClubs.filter { !$0.is_archived }) { club in
+                            Button {
+                                KuroAccessibility.impactHaptic(.light)
+                                selectClub(club.id)
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Text(club.name)
+                                        .font(.kuroBody(weight: .light))
+                                        .foregroundColor(.black.opacity(0.85))
+                                        .lineLimit(1)
+
+                                    Spacer(minLength: 0)
+
+                                    if selectedClubId == club.id {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(.black.opacity(0.55))
+                                    } else {
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 12, weight: .regular))
+                                            .foregroundColor(.black.opacity(0.25))
+                                    }
+                                }
+                                .padding(.vertical, 10)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+
+                    EditorialLayout.divider()
+
+                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                        Text("Choose a rail")
+                            .font(.kuroCaption(weight: .medium))
+                            .foregroundColor(.black.opacity(0.55))
+
+                        if isLoading {
+                            HStack(spacing: 10) {
+                                ProgressView().scaleEffect(0.9).tint(.black.opacity(0.45))
+                                Text("Loading rails...")
+                                    .font(.kuroCaption(weight: .light))
+                                    .foregroundColor(.black.opacity(0.45))
+                            }
+                            .padding(.vertical, 6)
+                        } else if let errorText {
+                            Text(errorText)
+                                .font(.kuroCaption())
+                                .foregroundColor(.red.opacity(0.85))
+                        } else if let bundle {
+                            if bundle.rails.isEmpty {
+                                Text("No rails yet. Ask an admin to create one.")
+                                    .font(.kuroCaption(weight: .light))
+                                    .foregroundColor(.black.opacity(0.45))
+                            } else {
+                                ForEach(bundle.rails) { rail in
+                                    let canAdd = !(rail.is_locked && !["owner", "admin"].contains(bundle.my_role))
+
+                                    Button {
+                                        guard canAdd, !isSubmitting else { return }
+                                        KuroAccessibility.impactHaptic(.light)
+                                        Task { await addToRail(railId: rail.id, clubId: bundle.club.id) }
+                                    } label: {
+                                        HStack(spacing: 10) {
+                                            Text(rail.title)
+                                                .font(.kuroBody(weight: .light))
+                                                .foregroundColor(.black.opacity(canAdd ? 0.85 : 0.30))
+                                                .lineLimit(1)
+
+                                            Spacer(minLength: 0)
+
+                                            if rail.is_locked {
+                                                Image(systemName: "lock.fill")
+                                                    .font(.system(size: 11, weight: .regular))
+                                                    .foregroundColor(.black.opacity(0.25))
+                                            }
+
+                                            Image(systemName: "plus")
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundColor(.black.opacity(canAdd ? 0.55 : 0.20))
+                                        }
+                                        .padding(.vertical, 10)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(!canAdd || isSubmitting)
+                                }
+                            }
+                        } else {
+                            Text("Pick a club to see its rails.")
+                                .font(.kuroCaption(weight: .light))
+                                .foregroundColor(.black.opacity(0.45))
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, KuroDesignSpacing.xxl)
+            }
+            .background(Color.kuroBackground)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .font(.kuroBody(weight: .light))
+                }
+            }
+        }
+        .task {
+            if supabaseService.myClubs.isEmpty {
+                await supabaseService.fetchMyClubs()
+            }
+        }
+    }
+
+    private func selectClub(_ clubId: String) {
+        selectedClubId = clubId
+        bundle = nil
+        errorText = nil
+        isLoading = true
+
+        Task {
+            defer { isLoading = false }
+            do {
+                bundle = try await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: true)
+            } catch {
+                errorText = "Could not load rails."
+            }
+        }
+    }
+
+    private func addToRail(railId: String, clubId: String) async {
+        isSubmitting = true
+        defer { isSubmitting = false }
+        do {
+            _ = try await supabaseService.addRailItem(
+                railId: railId,
+                mediaType: mediaType.uppercased(),
+                mediaId: mediaId
+            )
+            // Refresh the club bundle so the club view and activity cache update quickly.
+            _ = try? await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: true)
+            KuroAccessibility.successHaptic()
+            dismiss()
+        } catch {
+            KuroAccessibility.errorHaptic()
+            errorText = "Could not add to rail."
         }
     }
 }

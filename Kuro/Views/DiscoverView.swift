@@ -446,14 +446,18 @@ struct VerticalGridSection: View {
             }
             .padding(.horizontal, 20)
 
-            LazyVGrid(
+                LazyVGrid(
                 columns: metrics.columns,
                 alignment: .center,
                 spacing: spacing
             ) {
                 ForEach(items, id: \.id) { anime in
-                    CollectionCardReal(media: anime)
-                        .frame(width: cardWidth, height: cardHeight, alignment: .top)
+                    KuroPortraitCard(
+                        media: anime,
+                        cardWidth: cardWidth,
+                        cardHeight: cardHeight
+                    )
+                    .frame(width: cardWidth, height: cardHeight, alignment: .top)
                 }
             }
             .padding(.horizontal, KuroCardMetrics.horizontalPadding)

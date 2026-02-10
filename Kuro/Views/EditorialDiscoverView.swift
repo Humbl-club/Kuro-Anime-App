@@ -1190,48 +1190,45 @@ struct FullSectionView<Item: MediaDisplayable>: View {
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                // Search bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.black.opacity(0.3))
-                    TextField("Search \(title.lowercased())...", text: $searchText)
-                        .font(.system(size: 14))
-                }
-                .padding(12)
-                .background(Color.black.opacity(0.05))
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
-                
-                // Results count
-                Text("\(filtered.count) RESULTS")
-                    .font(.system(size: 10, weight: .medium))
-                    .tracking(1.5)
-                    .foregroundColor(.black.opacity(0.5))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                
-                // Grid
-                GeometryReader { geometry in
-                    let cardWidth = floor((geometry.size.width - 52) / 2)
-                    let imageHeight = floor(cardWidth / 0.7)
-                    let totalCardHeight = imageHeight + 64
-                    
+            GeometryReader { geo in
+                let metrics = KuroCardMetrics.grid(for: geo.size.width, columns: 2)
+
+                ScrollView(.vertical, showsIndicators: false) {
+                    // Search bar
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.black.opacity(0.3))
+                        TextField("Search \(title.lowercased())...", text: $searchText)
+                            .font(.system(size: 14))
+                    }
+                    .padding(12)
+                    .background(Color.black.opacity(0.05))
+                    .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+                    .padding(.top, 12)
+
+                    // Results count
+                    Text("\(filtered.count) RESULTS")
+                        .font(.system(size: 10, weight: .medium))
+                        .tracking(1.5)
+                        .foregroundColor(.black.opacity(0.5))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+                        .padding(.top, 16)
+
+                    // Grid (no fixed height; allow ScrollView to size content correctly)
                     LazyVGrid(
-                        columns: [
-                            GridItem(.fixed(cardWidth), spacing: 12),
-                            GridItem(.fixed(cardWidth), spacing: 12)
-                        ],
-                        spacing: 16
+                        columns: metrics.columns,
+                        alignment: .center,
+                        spacing: KuroCardMetrics.rowSpacing
                     ) {
                         ForEach(filtered, id: \.id) { anime in
-                            GridAnimeCard(media: anime, cardWidth: cardWidth, cardHeight: totalCardHeight)
+                            GridAnimeCard(media: anime, cardWidth: metrics.cardWidth, cardHeight: metrics.cardHeight)
+                                .frame(width: metrics.cardWidth, height: metrics.cardHeight, alignment: .top)
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+                    .padding(.bottom, 24)
                 }
-                .frame(height: CGFloat(filtered.count / 2) * 300)
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -1264,45 +1261,42 @@ struct FullMangaSectionView<Item: MediaDisplayable>: View {
 
     var body: some View {
         NavigationView {
-            ScrollView {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.black.opacity(0.3))
-                    TextField("Search \(title.lowercased())...", text: $searchText)
-                        .font(.system(size: 14))
-                }
-                .padding(12)
-                .background(Color.black.opacity(0.05))
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
+            GeometryReader { geo in
+                let metrics = KuroCardMetrics.grid(for: geo.size.width, columns: 2)
 
-                Text("\(filtered.count) RESULTS")
-                    .font(.system(size: 10, weight: .medium))
-                    .tracking(1.5)
-                    .foregroundColor(.black.opacity(0.5))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                ScrollView(.vertical, showsIndicators: false) {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.black.opacity(0.3))
+                        TextField("Search \(title.lowercased())...", text: $searchText)
+                            .font(.system(size: 14))
+                    }
+                    .padding(12)
+                    .background(Color.black.opacity(0.05))
+                    .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+                    .padding(.top, 12)
 
-                GeometryReader { geometry in
-                    let cardWidth = floor((geometry.size.width - 52) / 2)
-                    let imageHeight = floor(cardWidth / 0.7)
-                    let totalCardHeight = imageHeight + 64
+                    Text("\(filtered.count) RESULTS")
+                        .font(.system(size: 10, weight: .medium))
+                        .tracking(1.5)
+                        .foregroundColor(.black.opacity(0.5))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+                        .padding(.top, 16)
 
                     LazyVGrid(
-                        columns: [
-                            GridItem(.fixed(cardWidth), spacing: 12),
-                            GridItem(.fixed(cardWidth), spacing: 12)
-                        ],
-                        spacing: 16
+                        columns: metrics.columns,
+                        alignment: .center,
+                        spacing: KuroCardMetrics.rowSpacing
                     ) {
                         ForEach(filtered, id: \.id) { manga in
-                            GridAnimeCard(media: manga, cardWidth: cardWidth, cardHeight: totalCardHeight)
+                            GridAnimeCard(media: manga, cardWidth: metrics.cardWidth, cardHeight: metrics.cardHeight)
+                                .frame(width: metrics.cardWidth, height: metrics.cardHeight, alignment: .top)
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+                    .padding(.bottom, 24)
                 }
-                .frame(height: CGFloat(filtered.count / 2) * 300)
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)

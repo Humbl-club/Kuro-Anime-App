@@ -127,6 +127,9 @@ struct ConciergeView: View {
                                 onQuickSave: { rec in
                                     Task { await quickSaveRecommendation(rec) }
                                 },
+                                onClarifyPaste: { pasteFromClipboard() },
+                                onClarifyExampleImport: { seedExampleImport() },
+                                onClarifyExampleVibe: { seedExampleVibe() },
                                 onConfirmItems: { response in
                                     Task { await confirmImport(response: response) }
                                 },
@@ -248,14 +251,30 @@ struct ConciergeView: View {
         guard !text.isEmpty else { return }
         errorText = nil
         input = ""
-        isWorking = true
-        lastApplySessionId = nil
 
         // Add user message immediately (optimistic)
         let userMsg = ConciergeMessage(role: .user, text: text, items: nil)
         withAnimation(KuroAnimation.editorial) {
             messages.append(userMsg)
         }
+
+        // Low-signal prompts ("ADD", random letters, etc.) should not guess.
+        // Ask a clarifying question with examples instead of hitting the network.
+        if shouldAskClarifyingQuestion(text) {
+            let assistantMsg = ConciergeMessage(
+                role: .assistant,
+                text: "I’m not sure what you mean yet. Are you importing titles, or looking for recommendations?",
+                showClarifyActions: true,
+                items: nil
+            )
+            withAnimation(KuroAnimation.editorial) {
+                messages.append(assistantMsg)
+            }
+            return
+        }
+
+        isWorking = true
+        lastApplySessionId = nil
 
         do {
             if looksLikeImport(text) {
@@ -270,6 +289,49 @@ struct ConciergeView: View {
         isWorking = false
     }
 
+    private func shouldAskClarifyingQuestion(_ text: String) -> Bool {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.isEmpty { return true }
+
+        // If it already looks like an import (multi-line, progress/status cues), don't block.
+        if looksLikeImport(t) { return false }
+
+        // Single-token short inputs are most likely noise unless they are known abbreviations.
+        let tokens = t.split(whereSeparator: { $0.isWhitespace || $0 == "," || $0 == ";" })
+        if tokens.count == 1 {
+            let s = String(tokens[0])
+            let upper = s.uppercased()
+
+            // Known short anime abbreviations we should treat as a seed instead of asking.
+            // Keep this set small and high-signal; the server still handles the rich parsing.
+            let knownAbbrev: Set<String> = [
+                "AOT", "HXH", "NGE", "EVA", "DB", "DBZ", "DBS", "SAO",
+                "TPN", "BNHA", "OP"
+            ]
+            if knownAbbrev.contains(upper) { return false }
+
+            // Obvious low-signal (very short or command-like).
+            if s.count <= 3 { return true }
+            if upper == "ADD" || upper == "IMPORT" { return true }
+
+            // Random letters (no vowels) tends to be noise: "AGBTT".
+            if s.count <= 6,
+               s.range(of: #"^[A-Za-z]{3,6}$"#, options: .regularExpression) != nil
+            {
+                let lower = s.lowercased()
+                let hasVowel = lower.contains(where: { "aeiouy".contains($0) })
+                if !hasVowel { return true }
+            }
+        }
+
+        // If it's extremely short and has no structure, ask.
+        if t.count < 5, t.range(of: #"[0-9\(\)]"#, options: .regularExpression) == nil {
+            return true
+        }
+
+        return false
+    }
+
     // MARK: Import Flow (Inline)
     private func handleImportFlow(text: String) async {
         do {
@@ -277,9 +339,11 @@ struct ConciergeView: View {
 
             // Pre-select top candidates (skip when adaptations are ambiguous)
             var hasAnyExistingEntry = false
+            var ambiguousItemsNeedingHelp: [SupabaseService.ConciergeParseItem] = []
             for item in response.items {
                 if let top = item.candidates.first, top.score >= 0.60 {
                     if hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention) {
+                        ambiguousItemsNeedingHelp.append(item)
                         continue
                     }
                     selectedByItemId[item.id] = top
@@ -315,8 +379,63 @@ struct ConciergeView: View {
                 }
             }
 
+            // On-device Apple FM can help pick the correct adaptation when candidates share a base title
+            // (e.g. "Hunter x Hunter" 1999 vs 2011). This runs after the confirm bubble is visible
+            // so the UI stays snappy, and it never overrides a user-made selection.
+            if !ambiguousItemsNeedingHelp.isEmpty {
+                Task {
+                    await autoDisambiguateAmbiguousAdaptations(items: ambiguousItemsNeedingHelp, userText: text)
+                }
+            }
         } catch {
             handleError(error)
+        }
+    }
+
+    private func autoDisambiguateAmbiguousAdaptations(
+        items: [SupabaseService.ConciergeParseItem],
+        userText: String
+    ) async {
+        // Apple Foundation Models are optional: only attempt when available (iOS 26 + downloaded model).
+        guard supabaseService.fmService.isAvailable else { return }
+
+        for item in items {
+            if Task.isCancelled { return }
+
+            // Respect manual selections and "excluded" toggles.
+            if excludedItemIds.contains(item.id) { continue }
+            if selectedByItemId[item.id] != nil { continue }
+
+            // Keep the candidate set small to reduce latency.
+            let topCandidates = Array(item.candidates.prefix(4))
+            guard topCandidates.count >= 2 else { continue }
+
+            let fmCandidates: [DisambiguationCandidate] = topCandidates.enumerated().map { i, c in
+                DisambiguationCandidate(
+                    index: i,
+                    title: c.title_raw,
+                    year: c.year,
+                    format: c.format,
+                    score: c.score,
+                    variantType: c.media_type
+                )
+            }
+
+            guard let picked = await supabaseService.fmService.disambiguate(
+                candidates: fmCandidates,
+                userText: userText,
+                rawTitle: item.raw
+            ) else {
+                continue
+            }
+
+            let idx = picked.selectedIndex
+            guard topCandidates.indices.contains(idx) else { continue }
+
+            // Apply only if the user still hasn't chosen something else.
+            if selectedByItemId[item.id] == nil && !excludedItemIds.contains(item.id) {
+                selectedByItemId[item.id] = topCandidates[idx]
+            }
         }
     }
 
