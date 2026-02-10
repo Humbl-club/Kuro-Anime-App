@@ -56,6 +56,10 @@ struct ConciergeView: View {
         (activeItems?.isEmpty == false) || lastApplySessionId != nil
     }
 
+    private var sendEnabled: Bool {
+        !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isWorking
+    }
+
     init(assistantEnabled: Bool = true) {
         self.assistantEnabled = assistantEnabled
     }
@@ -192,13 +196,15 @@ struct ConciergeView: View {
                 )
             }
 
-            Divider()
-                .opacity(0.12)
+            // Input bar — editorial, minimal, floating glass
+            Rectangle()
+                .fill(Color.black.opacity(0.06))
+                .frame(height: 0.5)
 
-            HStack(spacing: 10) {
-                TextField("Paste titles, or ask for a vibe…", text: $input, axis: .vertical)
+            HStack(alignment: .bottom, spacing: 12) {
+                TextField("Paste titles, or describe a mood\u{2026}", text: $input, axis: .vertical)
                     .font(.kuroBody())
-                    .foregroundColor(.black.opacity(0.86))
+                    .foregroundColor(.black.opacity(0.82))
                     .textInputAutocapitalization(.never)
                     .disableAutocorrection(true)
                     .lineLimit(1...4)
@@ -208,21 +214,24 @@ struct ConciergeView: View {
                     .onSubmit { Task { await send() } }
 
                 Button(action: { Task { await send() } }) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWorking ? .black.opacity(0.2) : .black)
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(sendEnabled ? .white : .black.opacity(0.18))
+                        .frame(width: 30, height: 30)
+                        .background(
+                            Circle()
+                                .fill(sendEnabled ? Color.black.opacity(0.85) : Color.black.opacity(0.04))
+                        )
                 }
-                .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWorking)
+                .buttonStyle(.plain)
+                .disabled(!sendEnabled)
+                .animation(KuroAnimation.fast, value: sendEnabled)
             }
-            .padding(.horizontal, KuroDesignSpacing.md)
-            .padding(.vertical, 10)
-            .background(
-                KuroGlassCard(cornerRadius: KuroRadius.lg) { Color.clear }
-            )
+            .padding(.horizontal, 18)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial)
             .kuroSwipeExclusionZone()
-            .padding(.horizontal, KuroDesignSpacing.md)
-            .padding(.bottom, 14)
-            .padding(.top, KuroDesignSpacing.sm)
+            .padding(.bottom, 6)
         }
         .overlay(alignment: .bottomLeading) {
             if assistantEnabled {
