@@ -1,4 +1,3 @@
-#if DEBUG
 // MARK: - CONCIERGE IMPORT CONFIRMATION CARDS
 // Production-ready import confirmation UI with rich media cards,
 // match confidence indicators, and candidate selection.
@@ -15,9 +14,9 @@ typealias ProtoConciergeParseItem = SupabaseService.ConciergeParseItem
 // MARK: - Import Section Type
 
 enum ImportSection: String, CaseIterable {
-    case willAdd = "WILL ADD"
-    case willUpdate = "WILL UPDATE"
-    case willSkip = "WILL SKIP"
+    case willAdd = "NEW"
+    case willUpdate = "UPDATE"
+    case willSkip = "UNCHANGED"
     
     var opacity: Double {
         switch self {
@@ -46,12 +45,8 @@ struct MatchRing: View {
     @State private var sparkleTrigger: Bool = false
     
     private var ringColor: Color {
-        let pct = percentage * 100
-        switch pct {
-        case 98...100: return .green
-        case 75..<98: return .orange
-        default: return .yellow
-        }
+        // Monochrome mapping: higher confidence = darker ring.
+        Color.black.opacity(max(0.18, min(0.72, 0.18 + (percentage * 0.54))))
     }
     
     private var lineWidth: CGFloat { isSelected ? 3 : 2 }
@@ -137,11 +132,11 @@ private struct AutoBadge: View {
             .padding(.vertical, 1)
             .background(
                 Capsule()
-                    .fill(Color.blue)
+                    .fill(Color.black.opacity(0.75))
             )
             .overlay(
                 Capsule()
-                    .stroke(Color.white, lineWidth: 0.5)
+                    .stroke(Color.white.opacity(0.65), lineWidth: 0.5)
             )
     }
 }
@@ -157,16 +152,16 @@ private struct MatchRingSparkleEffect: View {
         ZStack {
             Image(systemName: "sparkle")
                 .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.yellow)
+                .foregroundColor(.white.opacity(0.65))
             
             Image(systemName: "sparkle")
                 .font(.system(size: 8, weight: .bold))
-                .foregroundColor(.orange)
+                .foregroundColor(.white.opacity(0.45))
                 .offset(x: -6, y: 4)
             
             Image(systemName: "sparkle")
                 .font(.system(size: 6, weight: .bold))
-                .foregroundColor(.yellow.opacity(0.8))
+                .foregroundColor(.white.opacity(0.35))
                 .offset(x: 4, y: 6)
         }
         .scaleEffect(scale)
@@ -248,6 +243,8 @@ struct ImportConfirmCard: View {
     let isAutoSelected: Bool
     let section: ImportSection
     let scrollOffset: CGFloat
+    let action: ImportItemAction
+    let isExcluded: Bool
     let onSelect: (ProtoConciergeCandidate) -> Void
     let onToggleExclude: (() -> Void)?
     
@@ -265,13 +262,9 @@ struct ImportConfirmCard: View {
         selectedCandidate?.score ?? 0
     }
     
-    private var isExcluded: Bool {
-        selectedCandidate == nil
-    }
-    
     var body: some View {
         cardContent
-            .opacity(section.opacity)
+            .opacity(isExcluded ? 0.55 : section.opacity)
             .offset(x: dragOffset.width)
             .rotationEffect(.degrees(Double(dragOffset.width) * 0.03))
             .gesture(
@@ -308,12 +301,12 @@ struct ImportConfirmCard: View {
                     // Exclude background (red)
                     if dragOffset.width < -30 {
                         RoundedRectangle(cornerRadius: KuroRadius.md)
-                            .fill(Color.red.opacity(min(0.3, abs(dragOffset.width) / 200.0)))
+                            .fill(Color.black.opacity(min(0.08, abs(dragOffset.width) / 450.0)))
                     }
                     // Pin background (blue)
                     if dragOffset.width > 30 {
                         RoundedRectangle(cornerRadius: KuroRadius.md)
-                            .fill(Color.blue.opacity(min(0.3, dragOffset.width / 200.0)))
+                            .fill(Color.black.opacity(min(0.06, dragOffset.width / 550.0)))
                     }
                 }
             )
@@ -333,9 +326,9 @@ struct ImportConfirmCard: View {
                         // Title
                         Text(cardTitle)
                             .font(.kuroTitle(weight: .medium))
-                            .foregroundColor(.black.opacity(0.9))
+                            .foregroundColor(.black.opacity(0.82))
                             .lineLimit(2)
-                            .textCase(.uppercase)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         
                         Spacer(minLength: 4)
                         
@@ -343,7 +336,7 @@ struct ImportConfirmCard: View {
                         if let candidate = selectedCandidate {
                             MatchRing(
                                 percentage: candidate.score,
-                                isSelected: true,
+                                isSelected: !isExcluded && action != .skip,
                                 isAutoSelected: isAutoSelected
                             )
                             .onTapGesture {
@@ -382,6 +375,11 @@ struct ImportConfirmCard: View {
                     }
                     .font(.kuroCaption())
                     
+                    if action == .update, let existing = item.existing_entry {
+                        diffSection(existing: existing, parsed: item.parsed)
+                            .padding(.top, 2)
+                    }
+
                     // Match% · Studio
                     HStack(spacing: 4) {
                         Text("\(Int(matchPercentage * 100))% match")
@@ -400,7 +398,7 @@ struct ImportConfirmCard: View {
                     if let caption = section.caption {
                         Text(caption)
                             .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.4))
+                            .foregroundColor(.black.opacity(0.28))
                             .padding(.top, 2)
                     }
                 }
@@ -452,14 +450,7 @@ struct ImportConfirmCard: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.72), Color.white.opacity(0.18), Color.black.opacity(0.05)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.8
-                        )
+                        .strokeBorder(Color.black.opacity(0.04), lineWidth: 0.5)
                 )
         )
     }
@@ -485,12 +476,7 @@ struct ImportConfirmCard: View {
     }
     
     private var matchColor: Color {
-        let pct = matchPercentage * 100
-        switch pct {
-        case 98...100: return .green
-        case 75..<98: return .orange
-        default: return .yellow
-        }
+        Color.black.opacity(max(0.25, min(0.65, 0.25 + (matchPercentage * 0.40))))
     }
     
     private var canExpand: Bool {
@@ -512,6 +498,40 @@ struct ImportConfirmCard: View {
         generator.impactOccurred()
         #endif
     }
+
+    private func diffSection(existing: ProtoConciergeExistingEntry, parsed: ProtoConciergeParseItemParsed) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if let status = parsed.status, status.uppercased() != existing.status.uppercased() {
+                diffLine(from: existing.status.uppercased(), to: status.uppercased())
+            }
+            if let ep = parsed.progressEpisodes, ep != (existing.progress_episodes ?? 0) {
+                diffLine(from: "Ep \(existing.progress_episodes ?? 0)", to: "Ep \(ep)")
+            }
+            if let ch = parsed.progressChapters, ch != (existing.progress_chapters ?? 0) {
+                diffLine(from: "Ch \(existing.progress_chapters ?? 0)", to: "Ch \(ch)")
+            }
+            if let vol = parsed.progressVolumes, vol != (existing.progress_volumes ?? 0) {
+                diffLine(from: "Vol \(existing.progress_volumes ?? 0)", to: "Vol \(vol)")
+            }
+        }
+    }
+
+    private func diffLine(from: String, to: String) -> some View {
+        HStack(spacing: 6) {
+            Text(from)
+                .font(.kuroCaption())
+                .strikethrough()
+                .foregroundColor(.black.opacity(0.25))
+
+            Rectangle()
+                .fill(Color.black.opacity(0.15))
+                .frame(width: 10, height: 0.5)
+
+            Text(to)
+                .font(.kuroCaption(weight: .medium))
+                .foregroundColor(.black.opacity(0.65))
+        }
+    }
 }
 
 // MARK: - Reasoning Tooltip
@@ -523,20 +543,20 @@ private struct ReasoningTooltip: View {
         HStack(spacing: 6) {
             Image(systemName: "sparkles")
                 .font(.system(size: 10))
-                .foregroundColor(.blue)
+                .foregroundColor(.black.opacity(0.40))
             
             Text(reason)
                 .font(.kuroCaption())
-                .foregroundColor(.black.opacity(0.7))
+                .foregroundColor(.black.opacity(0.55))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                .fill(Color.blue.opacity(0.08))
+                .fill(Color.black.opacity(0.04))
                 .overlay(
                     RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                        .stroke(Color.blue.opacity(0.2), lineWidth: 0.5)
+                        .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
                 )
         )
     }
@@ -615,12 +635,7 @@ private struct CandidateRow: View {
     }
     
     private var matchColor: Color {
-        let pct = candidate.score * 100
-        switch pct {
-        case 98...100: return .green
-        case 75..<98: return .orange
-        default: return .yellow
-        }
+        Color.black.opacity(max(0.25, min(0.65, 0.25 + (candidate.score * 0.40))))
     }
 }
 
@@ -690,6 +705,8 @@ struct ImportCardContainer: View {
                         isAutoSelected: autoSelectedIds.contains(item.id),
                         section: .willAdd,
                         scrollOffset: scrollOffset,
+                        action: .add,
+                        isExcluded: excludedItemIds.contains(item.id),
                         onSelect: { candidate in
                             onSelect(item, candidate)
                         },
@@ -712,6 +729,8 @@ struct ImportCardContainer: View {
                         isAutoSelected: autoSelectedIds.contains(item.id),
                         section: .willUpdate,
                         scrollOffset: scrollOffset,
+                        action: .update,
+                        isExcluded: excludedItemIds.contains(item.id),
                         onSelect: { candidate in
                             onSelect(item, candidate)
                         },
@@ -734,6 +753,8 @@ struct ImportCardContainer: View {
                         isAutoSelected: false,
                         section: .willSkip,
                         scrollOffset: scrollOffset,
+                        action: .skip,
+                        isExcluded: false,
                         onSelect: { candidate in
                             onSelect(item, candidate)
                         },
@@ -754,6 +775,7 @@ struct ImportCardContainer: View {
 }
 
 // MARK: - Preview Helpers
+#if DEBUG
 extension ProtoConciergeCandidate {
     static func mock(
         title: String = "Attack on Titan",
@@ -834,6 +856,8 @@ extension ProtoConciergeExistingEntry {
                 isAutoSelected: true,
                 section: .willAdd,
                 scrollOffset: 0,
+                action: .add,
+                isExcluded: false,
                 onSelect: { _ in },
                 onToggleExclude: {}
             )
@@ -852,6 +876,8 @@ extension ProtoConciergeExistingEntry {
                 isAutoSelected: false,
                 section: .willAdd,
                 scrollOffset: 0,
+                action: .add,
+                isExcluded: false,
                 onSelect: { _ in },
                 onToggleExclude: {}
             )
@@ -866,6 +892,8 @@ extension ProtoConciergeExistingEntry {
                 isAutoSelected: false,
                 section: .willUpdate,
                 scrollOffset: 0,
+                action: .update,
+                isExcluded: false,
                 onSelect: { _ in },
                 onToggleExclude: {}
             )
@@ -876,6 +904,8 @@ extension ProtoConciergeExistingEntry {
                 isAutoSelected: false,
                 section: .willSkip,
                 scrollOffset: 0,
+                action: .skip,
+                isExcluded: false,
                 onSelect: { _ in },
                 onToggleExclude: nil
             )

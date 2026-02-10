@@ -423,7 +423,7 @@ struct ConciergeBubble: View {
     var onConfirmItems: ((SupabaseService.ConciergeParseResponse) -> Void)? = nil
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
-    @State private var hiddenRecommendationIds: Set<String> = []
+    // RecommendationRail manages hide state internally.
 
     private func glassBubble<Content: View>(cornerRadius: CGFloat, @ViewBuilder content: () -> Content) -> some View {
         content()
@@ -504,28 +504,28 @@ struct ConciergeBubble: View {
                     }
 
                     if let sets = message.recommendationSets, !sets.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 18) {
                             ForEach(sets, id: \.id) { set in
-                                let items = (set.items ?? []).filter { !hiddenRecommendationIds.contains("\($0.mediaId)_\($0.mediaType)") }
+                                let items = (set.items ?? [])
                                 if !items.isEmpty {
-                                    ConciergeRail(
+                                    RecommendationRail(
                                         title: set.title ?? "Recommendations",
                                         items: items,
-                                        hiddenRecommendationIds: $hiddenRecommendationIds,
-                                        onOpen: onOpenRecommendation,
-                                        onQuickSave: onQuickSave
+                                        onOpen: { onOpenRecommendation($0) },
+                                        onSave: { onQuickSave($0) },
+                                        onHide: nil
                                     )
                                 }
                             }
                         }
                         .frame(maxWidth: 520, alignment: .leading)
                     } else if let recs = message.recommendations, !recs.isEmpty {
-                        ConciergeRail(
+                        RecommendationRail(
                             title: "Recommendations",
-                            items: recs.filter { !hiddenRecommendationIds.contains("\($0.mediaId)_\($0.mediaType)") },
-                            hiddenRecommendationIds: $hiddenRecommendationIds,
-                            onOpen: onOpenRecommendation,
-                            onQuickSave: onQuickSave
+                            items: recs,
+                            onOpen: { onOpenRecommendation($0) },
+                            onSave: { onQuickSave($0) },
+                            onHide: nil
                         )
                         .frame(maxWidth: 520, alignment: .leading)
                     }
@@ -583,6 +583,24 @@ struct ConciergeConfirmBubble: View {
         }
     }
 
+    private var selectedByItemId: [String: SupabaseService.ConciergeCandidate] {
+        Dictionary(
+            uniqueKeysWithValues: items.compactMap { item in
+                guard let c = selected(item) else { return nil }
+                return (item.id, c)
+            }
+        )
+    }
+
+    private var autoSelectedIds: Set<String> {
+        Set(items.compactMap { item in
+            guard let c = selected(item) else { return nil }
+            if excludedItemIds.contains(item.id) { return nil }
+            if actionFor(item) == .skip { return nil }
+            return c.score >= 0.85 ? item.id : nil
+        })
+    }
+
     private func glassBubble<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
             .background(
@@ -599,92 +617,62 @@ struct ConciergeConfirmBubble: View {
 
     var body: some View {
         glassBubble {
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                // Header
-                HStack {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 6) {
                     Text("IMPORT PREVIEW")
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(1.6)
-                        .foregroundColor(.black.opacity(0.55))
-                    Spacer()
-                    Text("\(items.count) item\(items.count == 1 ? "" : "s")")
-                        .font(.kuroCaption())
-                        .foregroundColor(.black.opacity(0.45))
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(1.8)
+                        .foregroundColor(.black.opacity(0.30))
+                    Spacer(minLength: 0)
+                    Text("\(items.count)")
+                        .font(.kuroMicro(weight: .medium))
+                        .foregroundColor(.black.opacity(0.25))
+                        .monospacedDigit()
                 }
+                .padding(.bottom, 14)
 
                 Rectangle()
                     .fill(Color.black.opacity(0.06))
                     .frame(height: 0.5)
+                    .padding(.bottom, 12)
 
-                // WILL ADD section
-                if !addItems.isEmpty {
-                    reconcileSection(title: "WILL ADD", count: addItems.count) {
-                        ForEach(addItems) { item in
-                            ConciergeReconcileRow(
-                                item: item,
-                                action: .add,
-                                chosen: selected(item),
-                                onSelect: { cand in onSelect(item, cand) },
-                                isExcluded: excludedItemIds.contains(item.id),
-                                onToggleExclude: { toggleExclude(item.id) }
-                            )
-                        }
-                    }
-                }
+                ImportCardContainer(
+                    items: items,
+                    selectedByItemId: selectedByItemId,
+                    autoSelectedIds: autoSelectedIds,
+                    itemActions: itemActions,
+                    excludedItemIds: excludedItemIds,
+                    onSelect: { item, candidate in onSelect(item, candidate) },
+                    onToggleExclude: { toggleExclude($0) }
+                )
 
-                // WILL UPDATE section
-                if !updateItems.isEmpty {
-                    reconcileSection(title: "WILL UPDATE", count: updateItems.count) {
-                        ForEach(updateItems) { item in
-                            ConciergeReconcileRow(
-                                item: item,
-                                action: .update,
-                                chosen: selected(item),
-                                onSelect: { cand in onSelect(item, cand) },
-                                isExcluded: excludedItemIds.contains(item.id),
-                                onToggleExclude: { toggleExclude(item.id) }
-                            )
-                        }
-                    }
-                }
-
-                // WILL SKIP section
-                if !skipItems.isEmpty {
-                    reconcileSection(title: "WILL SKIP", count: skipItems.count) {
-                        ForEach(skipItems) { item in
-                            ConciergeReconcileRow(
-                                item: item,
-                                action: .skip,
-                                chosen: selected(item),
-                                onSelect: { _ in },
-                                isExcluded: false,
-                                onToggleExclude: nil
-                            )
-                        }
-                    }
-                    .opacity(0.4)
-                }
-
-                // Confirm button
                 Button(action: {
                     KuroAccessibility.impactHaptic(.medium)
                     onConfirm()
                 }) {
-                    Text("CONFIRM \(confirmableCount) ITEM\(confirmableCount == 1 ? "" : "S")")
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(1.6)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                                .fill(confirmableCount > 0 ? Color.black : Color.black.opacity(0.2))
-                        )
+                    HStack(spacing: 8) {
+                        Text("CONFIRM")
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(2.0)
+
+                        Text("\(confirmableCount)")
+                            .font(.kuroMicro(weight: .semibold))
+                            .monospacedDigit()
+                    }
+                    .foregroundColor(confirmableCount > 0 ? .white : .white.opacity(0.40))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(confirmableCount > 0 ? Color.black.opacity(0.88) : Color.black.opacity(0.10))
+                    )
                 }
                 .buttonStyle(.plain)
                 .disabled(confirmableCount == 0)
+                .padding(.top, 16)
             }
-            .padding(14)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 16)
         }
     }
 
@@ -697,28 +685,7 @@ struct ConciergeConfirmBubble: View {
         }
     }
 
-    @ViewBuilder
-    private func reconcileSection<Content: View>(title: String, count: Int, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            HStack(spacing: KuroDesignSpacing.sm) {
-                Text(title)
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(1.6)
-                    .foregroundColor(.black.opacity(0.50))
-                Text("\(count)")
-                    .font(.kuroCaption(weight: .medium))
-                    .foregroundColor(.black.opacity(0.40))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.black.opacity(0.06))
-                    )
-                Spacer()
-            }
-            content()
-        }
-    }
+    // Uses ImportCardContainer (prototype UI) for all rows.
 }
 
 // MARK: - Reconcile Row (Add / Update / Skip)

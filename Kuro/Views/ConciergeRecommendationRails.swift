@@ -1,4 +1,3 @@
-#if DEBUG
 // MARK: - CONCIERGE RECOMMENDATION RAILS
 // Cinematic horizontal scrolling recommendation cards for the Concierge
 // iOS 26+ optimized with snap-to-card, scale-on-center, and rich interactions
@@ -9,37 +8,7 @@ import Observation
 // MARK: - Recommendation Item Type
 typealias ConciergeRecItem = SupabaseService.ConciergeRecommendResponse.Item
 
-extension ConciergeRecItem {
-    static func mock(
-        mediaType: String = "anime",
-        mediaId: Int = Int.random(in: 1...10000),
-        title: String,
-        coverImageMedium: String? = nil,
-        averageScore: Int? = nil,
-        year: Int? = nil,
-        format: String? = nil,
-        status: String? = nil,
-        signals: [String]? = nil,
-        blurb: String? = nil,
-        siteUrl: String? = nil,
-        matchCount: Int? = nil
-    ) -> ConciergeRecItem {
-        ConciergeRecItem(
-            mediaType: mediaType,
-            mediaId: mediaId,
-            matchCount: matchCount,
-            title: title,
-            coverImageMedium: coverImageMedium,
-            averageScore: averageScore,
-            year: year,
-            format: format,
-            status: status,
-            siteUrl: siteUrl,
-            signals: signals,
-            blurb: blurb
-        )
-    }
-}
+// Preview mocks live under DEBUG at the bottom of the file.
 
 // MARK: - View Model for Rail State
 @MainActor
@@ -164,10 +133,10 @@ struct RecommendationRail: View {
     private var sectionHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 11, weight: .semibold, design: .default))
-                .tracking(1.5)
+                .font(.kuroMicro(weight: .medium))
+                .tracking(2.0)
                 .textCase(.uppercase)
-                .foregroundColor(.black.opacity(0.6))
+                .foregroundColor(.black.opacity(0.40))
             
             Rectangle()
                 .fill(Color.black.opacity(0.08))
@@ -281,20 +250,18 @@ struct RecommendationCard: View {
             // Text Content
             VStack(alignment: .leading, spacing: 4) {
                 Text(sanitizedTitle)
-                    .font(.system(size: 13, weight: .light, design: .serif))
-                    .textCase(.uppercase)
-                    .tracking(item.title.count >= 26 ? 0.3 : 0.6)
-                    .foregroundColor(.black.opacity(0.9))
+                    .font(.system(size: 12, weight: .light, design: .serif))
+                    .foregroundColor(.black.opacity(0.82))
                     .lineLimit(2)
                     .minimumScaleFactor(0.92)
                     .allowsTightening(true)
                     .truncationMode(.tail)
-                    .frame(height: 38, alignment: .top)
+                    .frame(height: 38, alignment: .topLeading)
                 
                 if !metaLine.isEmpty {
                     Text(metaLine)
-                        .font(.system(size: 10, weight: .light))
-                        .foregroundColor(.black.opacity(0.5))
+                        .font(.kuroMicro())
+                        .foregroundColor(.black.opacity(0.32))
                         .lineLimit(1)
                 }
             }
@@ -488,7 +455,7 @@ struct WhyThisSheet: View {
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.title)
-                    .font(.system(size: 17, weight: .semibold, design: .serif))
+                    .font(.system(size: 17, weight: .light, design: .serif))
                     .lineLimit(2)
                 
                 if let year = item.year {
@@ -515,17 +482,17 @@ struct WhyThisSheet: View {
     private var reasoningSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Recommended because:")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.kuroBody(weight: .medium))
                 .foregroundColor(.primary)
             
             if let blurb = item.blurb, !blurb.isEmpty {
                 Text(blurb)
-                    .font(.system(size: 15, weight: .regular))
+                    .font(.kuroBody())
                     .foregroundColor(.secondary)
                     .lineSpacing(4)
             } else {
                 Text("This title matches your taste profile based on your viewing history and preferences.")
-                    .font(.system(size: 15))
+                    .font(.kuroBody())
                     .foregroundColor(.secondary)
             }
         }
@@ -534,17 +501,18 @@ struct WhyThisSheet: View {
     private func signalsSection(signals: [String]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("What you might like:")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.kuroBody(weight: .medium))
             
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(signals.prefix(4), id: \.self) { signal in
                     HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.green)
+                        Circle()
+                            .fill(Color.black.opacity(0.25))
+                            .frame(width: 6, height: 6)
+                            .padding(.top, 5)
                         
                         Text(signal)
-                            .font(.system(size: 14))
+                            .font(.kuroBody())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -595,6 +563,40 @@ struct HiddenToast: View {
 }
 
 // MARK: - Preview Provider
+#if DEBUG
+
+extension ConciergeRecItem {
+    static func mock(
+        mediaType: String = "anime",
+        mediaId: Int = Int.random(in: 1...10000),
+        title: String,
+        coverImageMedium: String? = nil,
+        averageScore: Int? = nil,
+        year: Int? = nil,
+        format: String? = nil,
+        status: String? = nil,
+        signals: [String]? = nil,
+        blurb: String? = nil,
+        siteUrl: String? = nil,
+        matchCount: Int? = nil
+    ) -> ConciergeRecItem {
+        ConciergeRecItem(
+            mediaType: mediaType,
+            mediaId: mediaId,
+            matchCount: matchCount,
+            title: title,
+            coverImageMedium: coverImageMedium,
+            averageScore: averageScore,
+            year: year,
+            format: format,
+            status: status,
+            siteUrl: siteUrl,
+            signals: signals,
+            blurb: blurb
+        )
+    }
+}
+
 #Preview("Recommendation Rail") {
     let mockItems: [ConciergeRecItem] = [
         .mock(

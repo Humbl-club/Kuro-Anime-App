@@ -1,9 +1,6 @@
-#if DEBUG
 // MARK: - ConciergeInputField.swift
-// NOTE: Experimental Concierge prototype UI (debug-only).
-//
-// A magical chat input field with dynamic typography, intent detection,
-// haptic feedback, and smart paste capabilities for the Concierge feature.
+// Concierge input field with intent detection and paste cues.
+// Designed to be lightweight: no per-keystroke haptics, minimal animations.
 
 import SwiftUI
 import UIKit
@@ -49,12 +46,6 @@ final class ConciergeHapticsManager {
         lightImpact.prepare()
         mediumImpact.prepare()
         notificationFeedback.prepare()
-    }
-    
-    /// Light haptic feedback for character input
-    func characterInput() {
-        lightImpact.impactOccurred(intensity: 0.4)
-        lightImpact.prepare()
     }
     
     /// Medium haptic feedback for send action
@@ -241,12 +232,12 @@ struct IntentIndicator: View {
                     .font(.system(size: 11, weight: .bold))
             }
         }
-        .foregroundStyle(.blue)
+        .foregroundStyle(.black.opacity(0.50))
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(
             Capsule()
-                .fill(Color.blue.opacity(0.15))
+                .fill(Color.black.opacity(0.06))
         )
         .scaleEffect(scale)
     }
@@ -256,12 +247,12 @@ struct IntentIndicator: View {
             Image(systemName: "sparkles")
                 .font(.system(size: 12, weight: .medium))
         }
-        .foregroundStyle(.purple)
+        .foregroundStyle(.black.opacity(0.50))
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(
             Capsule()
-                .fill(Color.purple.opacity(0.15))
+                .fill(Color.black.opacity(0.06))
         )
         .scaleEffect(scale)
     }
@@ -287,7 +278,9 @@ struct ConciergeInputField: View {
     // MARK: - Bindings
     
     @Binding var text: String
-    var onSend: () -> Void
+    var isSending: Bool = false
+    var focusRequest: Binding<Bool>? = nil
+    var onSend: (_ text: String) -> Void
     var detectedIntent: Binding<PrototypeConciergeIntent>?
     
     // MARK: - State
@@ -325,13 +318,7 @@ struct ConciergeInputField: View {
     }
     
     private var canSend: Bool {
-        !isEmpty
-    }
-    
-    /// Dynamic typography based on content length
-    private var inputFont: Font {
-        let weight: Font.Weight = characterCount >= 3 ? .regular : .light
-        return .system(size: 15, weight: weight, design: .default)
+        !isEmpty && !isSending
     }
     
     /// Dynamic opacity based on content length
@@ -375,8 +362,8 @@ struct ConciergeInputField: View {
                     
                     // Text input
                     TextEditor(text: $text)
-                        .font(inputFont)
-                        .foregroundStyle(.primary.opacity(inputOpacity))
+                        .font(.kuroBody())
+                        .foregroundStyle(Color.black.opacity(inputOpacity))
                         .scrollContentBackground(.hidden)
                         .background(Color.clear)
                         .frame(minHeight: Constants.lineHeight, maxHeight: Constants.maxHeight)
@@ -402,18 +389,10 @@ struct ConciergeInputField: View {
                 RoundedRectangle(cornerRadius: Constants.cornerRadius)
                     .fill(.ultraThinMaterial)
                     .overlay(
-                        // Gradient border
                         RoundedRectangle(cornerRadius: Constants.cornerRadius)
                             .stroke(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.6),
-                                        Color.white.opacity(0.1)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.5
+                                Color.black.opacity(0.06),
+                                lineWidth: 0.6
                             )
                     )
             )
@@ -427,14 +406,20 @@ struct ConciergeInputField: View {
         .onAppear {
             startPlaceholderPulse()
         }
+        .onChange(of: focusRequest?.wrappedValue ?? false) { _, wantsFocus in
+            guard wantsFocus else { return }
+            isInputFocused = true
+            // Best-effort reset so repeated taps re-focus.
+            focusRequest?.wrappedValue = false
+        }
     }
     
     // MARK: - Subviews
     
     private var placeholderView: some View {
-        Text("Ask Concierge anything...")
-            .font(.system(size: 15, weight: .light))
-            .foregroundStyle(.primary.opacity(placeholderOpacity))
+        Text("Paste titles, or describe a mood...")
+            .font(.kuroBody())
+            .foregroundStyle(Color.black.opacity(placeholderOpacity))
             .padding(.top, 2)
             .onAppear {
                 startPlaceholderPulse()
@@ -443,10 +428,14 @@ struct ConciergeInputField: View {
     
     private var sendButton: some View {
         Button(action: handleSend) {
-            Image(systemName: "arrow.up.circle.fill")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(canSend ? Color.primary : Color.primary.opacity(0.2))
-                .contentShape(Circle())
+            Image(systemName: "arrow.up")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(canSend ? .white : Color.black.opacity(0.18))
+                .frame(width: 30, height: 30)
+                .background(
+                    Circle()
+                        .fill(canSend ? Color.black.opacity(0.88) : Color.black.opacity(0.04))
+                )
         }
         .disabled(!canSend)
         .buttonStyle(ConciergeSendButtonStyle())
@@ -456,11 +445,6 @@ struct ConciergeInputField: View {
     // MARK: - Actions
     
     private func handleTextChange(from oldValue: String, to newValue: String) {
-        // Haptic feedback on character input
-        if newValue.count > oldValue.count {
-            ConciergeHapticsManager.shared.characterInput()
-        }
-        
         // Update placeholder visibility
         withAnimation(.easeInOut(duration: 0.2)) {
             isPlaceholderVisible = newValue.isEmpty
@@ -472,9 +456,7 @@ struct ConciergeInputField: View {
         if let binding = detectedIntent {
             binding.wrappedValue = newIntent
         } else {
-            withAnimation(.spring(response: 0.3)) {
-                internalIntent = newIntent
-            }
+            internalIntent = newIntent
         }
         
         // Handle list detection chip
@@ -503,13 +485,14 @@ struct ConciergeInputField: View {
     }
     
     private func handleSend() {
-        guard canSend else { return }
+        let payload = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard canSend, !payload.isEmpty else { return }
         
         // Medium haptic on send
         ConciergeHapticsManager.shared.send()
         
         // Call the send action
-        onSend()
+        onSend(payload)
         
         // Reset state
         withAnimation(.spring(response: 0.3)) {
@@ -543,18 +526,11 @@ struct ConciergeSendButtonStyle: ButtonStyle {
     }
 }
 
+#if DEBUG
 // MARK: - Preview
 
 #Preview("Empty State") {
     ConciergeInputFieldPreviewContainer()
-}
-
-#Preview("Typing Short") {
-    ConciergeInputFieldPreviewContainer(initialText: "Hi")
-}
-
-#Preview("Typing Long") {
-    ConciergeInputFieldPreviewContainer(initialText: "Looking for anime like Attack on Titan")
 }
 
 #Preview("Import Intent") {
@@ -563,110 +539,38 @@ struct ConciergeSendButtonStyle: ButtonStyle {
     )
 }
 
-#Preview("Recommendation Intent") {
-    ConciergeInputFieldPreviewContainer(
-        initialText: "Can you recommend something with a good vibe?"
-    )
-}
-
-// MARK: - Preview Container
-
 private struct ConciergeInputFieldPreviewContainer: View {
     @State private var text: String
     @State private var detectedIntent: PrototypeConciergeIntent = .unknown
-    
+
     init(initialText: String = "") {
         _text = State(initialValue: initialText)
     }
-    
+
     var body: some View {
-        ZStack {
-            // Background gradient for glass effect visibility
-            LinearGradient(
-                colors: [
-                    Color.purple.opacity(0.3),
-                    Color.blue.opacity(0.3),
-                    Color.cyan.opacity(0.3)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            VStack {
-                Spacer()
-                
-                // Show current intent for debugging
-                if detectedIntent != .unknown {
-                    Text("Detected: \(intentDescription)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.bottom, 8)
-                        .transition(.opacity)
-                }
-                
-                ConciergeInputField(
-                    text: $text,
-                    onSend: {
-                        print("📤 Send: \(text)")
-                    },
-                    detectedIntent: $detectedIntent
-                )
-                .padding(.horizontal, 20)
-                .padding(.bottom, 30)
+        VStack(spacing: 10) {
+            if detectedIntent != .unknown {
+                Text("Detected: \(intentDescription)")
+                    .font(.kuroCaption())
+                    .foregroundStyle(.secondary)
             }
+
+            ConciergeInputField(
+                text: $text,
+                onSend: { _ in },
+                detectedIntent: $detectedIntent
+            )
         }
+        .padding()
+        .background(Color.kuroBackground)
     }
-    
+
     private var intentDescription: String {
         switch detectedIntent {
-        case .unknown:
-            return "Unknown"
-        case .importList(let count):
-            return "Import (\(count) items)"
-        case .recommendation:
-            return "Recommendation"
+        case .unknown: return "Unknown"
+        case .importList(let count): return "Import (\(count) items)"
+        case .recommendation: return "Recommendation"
         }
     }
 }
-
-// MARK: - Usage Example
-
-/*
- Example usage in a parent view:
- 
- struct ConciergeChatView: View {
-     @State private var inputText = ""
-     @State private var currentIntent: PrototypeConciergeIntent = .unknown
-     
-     var body: some View {
-         VStack {
-             // Chat messages...
-             
-             ConciergeInputField(
-                 text: $inputText,
-                 onSend: {
-                     sendMessage(inputText, intent: currentIntent)
-                 },
-                 detectedIntent: $currentIntent
-             )
-             .padding(.horizontal)
-             .padding(.bottom)
-         }
-     }
-     
-     private func sendMessage(_ text: String, intent: PrototypeConciergeIntent) {
-         // Handle message based on detected intent
-         switch intent {
-         case .importList(let count):
-             print("Importing \(count) titles...")
-         case .recommendation:
-             print("Getting recommendations...")
-         case .unknown:
-             print("Processing general query...")
-         }
-     }
- }
- */
-
 #endif

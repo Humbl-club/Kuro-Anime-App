@@ -36,7 +36,7 @@ struct ConciergeView: View {
 
     // MARK: Input & Core State
     @State private var input: String = ""
-    @FocusState private var inputFocused: Bool
+    @State private var focusRequest: Bool = false
     @State private var messages: [ConciergeMessage] = []
     @State private var isWorking = false
     @State private var errorText: String? = nil
@@ -195,32 +195,17 @@ struct ConciergeView: View {
                 )
             }
 
-            Divider()
-                .opacity(0.12)
+            Rectangle()
+                .fill(Color.black.opacity(0.06))
+                .frame(height: 0.5)
 
-            HStack(spacing: 10) {
-                TextField("Paste titles, or ask for a vibe…", text: $input, axis: .vertical)
-                    .font(.kuroBody())
-                    .foregroundColor(.black.opacity(0.86))
-                    .textInputAutocapitalization(.never)
-                    .disableAutocorrection(true)
-                    .lineLimit(1...4)
-                    .padding(.vertical, 10)
-                    .focused($inputFocused)
-                    .submitLabel(.send)
-                    .onSubmit { Task { await send() } }
-
-                Button(action: { Task { await send() } }) {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWorking ? .black.opacity(0.2) : .black)
+            ConciergeInputField(
+                text: $input,
+                isSending: isWorking,
+                focusRequest: $focusRequest,
+                onSend: { text in
+                    Task { await send(text: text) }
                 }
-                .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWorking)
-            }
-            .padding(.horizontal, KuroDesignSpacing.md)
-            .padding(.vertical, 10)
-            .background(
-                KuroGlassCard(cornerRadius: KuroRadius.lg) { Color.clear }
             )
             .kuroSwipeExclusionZone()
             .padding(.horizontal, KuroDesignSpacing.md)
@@ -237,7 +222,7 @@ struct ConciergeView: View {
                         baseBottomPadding: hasActionBar ? 168 : 104,
                         containerSize: geo.size
                     ) {
-                        inputFocused = true
+                        focusRequest = true
                     }
                 }
                 .ignoresSafeArea()
@@ -246,11 +231,9 @@ struct ConciergeView: View {
     }
 
     // MARK: Send (Main Entry Point)
-    private func send() async {
-        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+    private func send(text: String) async {
         guard !text.isEmpty else { return }
         errorText = nil
-        input = ""
 
         // Add user message immediately (optimistic)
         let userMsg = ConciergeMessage(role: .user, text: text, items: nil)
@@ -276,14 +259,10 @@ struct ConciergeView: View {
         isWorking = true
         lastApplySessionId = nil
 
-        do {
-            if looksLikeImport(text) {
-                await handleImportFlow(text: text)
-            } else {
-                await handleRecommendationFlow(text: text)
-            }
-        } catch {
-            handleError(error)
+        if looksLikeImport(text) {
+            await handleImportFlow(text: text)
+        } else {
+            await handleRecommendationFlow(text: text)
         }
 
         isWorking = false
@@ -498,7 +477,7 @@ struct ConciergeView: View {
                 title: "\(count) item\(count == 1 ? "" : "s") added to collection",
                 subtitle: nil,
                 actionTitle: "UNDO",
-                onAction: { [weak supabaseService] in
+                onAction: {
                     guard let sid else { return }
                     Task {
                         await undoApply(sessionId: sid)
@@ -834,7 +813,7 @@ struct ConciergeView: View {
             return
         }
         input = t
-        inputFocused = true
+        focusRequest = true
         KuroAccessibility.impactHaptic(.light)
         #endif
     }
@@ -845,13 +824,13 @@ struct ConciergeView: View {
         Jujutsu Kaisen up to ep 12
         Hunter x Hunter (2011)
         """
-        inputFocused = true
+        focusRequest = true
         KuroAccessibility.impactHaptic(.light)
     }
 
     private func seedExampleVibe() {
         input = "Something funny, premium, not childish."
-        inputFocused = true
+        focusRequest = true
         KuroAccessibility.impactHaptic(.light)
     }
 
