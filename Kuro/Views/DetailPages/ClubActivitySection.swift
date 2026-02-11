@@ -37,13 +37,13 @@ struct ClubActivitySection: View {
                             KuroAccessibility.impactHaptic(.light)
                             showAddSheet = true
                         } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 11, weight: .semibold))
-                                Text("ADD")
-                                    .font(.kuroMicro(weight: .medium))
-                                    .tracking(1.4)
-                            }
+                                HStack(spacing: 6) {
+                                    Image(systemName: "plus")
+                                        .font(.kuroMicro(weight: .semibold))
+                                    Text("ADD")
+                                        .font(.kuroMicro(weight: .medium))
+                                        .tracking(1.4)
+                                }
                             .foregroundColor(.black.opacity(0.78))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
@@ -151,11 +151,11 @@ private struct AddToClubRailSheet: View {
 
                                     if selectedClubId == club.id {
                                         Image(systemName: "checkmark")
-                                            .font(.system(size: 12, weight: .semibold))
+                                            .font(.kuroCaption(weight: .semibold))
                                             .foregroundColor(.black.opacity(0.55))
                                     } else {
                                         Image(systemName: "chevron.right")
-                                            .font(.system(size: 12, weight: .regular))
+                                            .font(.kuroCaption(weight: .regular))
                                             .foregroundColor(.black.opacity(0.25))
                                     }
                                 }
@@ -208,12 +208,12 @@ private struct AddToClubRailSheet: View {
 
                                             if rail.is_locked {
                                                 Image(systemName: "lock.fill")
-                                                    .font(.system(size: 11, weight: .regular))
+                                                    .font(.kuroMicro(weight: .regular))
                                                     .foregroundColor(.black.opacity(0.25))
                                             }
 
                                             Image(systemName: "plus")
-                                                .font(.system(size: 12, weight: .semibold))
+                                                .font(.kuroCaption(weight: .semibold))
                                                 .foregroundColor(.black.opacity(canAdd ? 0.55 : 0.20))
                                         }
                                         .padding(.vertical, 10)
@@ -296,7 +296,6 @@ private struct ClubActivityItemRow: View {
 
     private var aggregateText: String {
         guard let counts = item.member_status_counts else { return "" }
-        // Privacy: if server returned _tracking_count, use generic aggregate
         if let tracking = counts["_tracking_count"], tracking > 0 {
             return "\(tracking) tracking"
         }
@@ -314,6 +313,15 @@ private struct ClubActivityItemRow: View {
         sharingLevel != "private" && memberCount >= 3
     }
 
+    /// Format progress with fraction when total is available.
+    private func progressText(current: Int, total: Int?) -> String {
+        let prefix = item.media_type.uppercased() == "ANIME" ? "Ep" : "Ch"
+        if let total, total > 0 {
+            return "\(prefix) \(current)/\(total)"
+        }
+        return "\(prefix) \(current)"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
             if !aggregateText.isEmpty {
@@ -329,8 +337,7 @@ private struct ClubActivityItemRow: View {
                         .foregroundColor(.black.opacity(0.55))
                     ClubStatusPill(status: myStatus)
                     if let progress = item.my_progress, progress > 0 {
-                        let prefix = item.media_type.uppercased() == "ANIME" ? "Ep" : "Ch"
-                        Text("\(prefix) \(progress)")
+                        Text(progressText(current: progress, total: item.totalCount))
                             .font(.kuroCaption())
                             .foregroundColor(.black.opacity(0.45))
                     }
@@ -344,10 +351,11 @@ private struct ClubActivityItemRow: View {
                         members: members,
                         currentUserId: currentUserId,
                         sharingLevel: sharingLevel,
-                        mediaType: item.media_type
+                        mediaType: item.media_type,
+                        totalCount: item.totalCount
                     )
                 } label: {
-                    Text("Show members")
+                    Text(showMembers ? "Hide members" : "\(statuses.count) members")
                         .font(.kuroCaption(weight: .medium))
                         .foregroundColor(.black.opacity(0.55))
                 }
@@ -394,94 +402,176 @@ private struct ClubMemberStatusList: View {
     let currentUserId: String?
     let sharingLevel: String
     let mediaType: String
+    let totalCount: Int?
 
-    private var memberIndexById: [String: Int] {
-        // Stable ordering for consistent labels: join order, then user_id fallback.
+    private static let isoFormatterWithFractionalSeconds: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let isoFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    private let memberIndexById: [String: Int]
+    private let roleById: [String: String]
+
+    init(
+        statuses: [SupabaseService.ClubRailItem.MemberItemStatus],
+        members: [SupabaseService.ClubMember],
+        currentUserId: String?,
+        sharingLevel: String,
+        mediaType: String,
+        totalCount: Int?
+    ) {
+        self.statuses = statuses
+        self.members = members
+        self.currentUserId = currentUserId
+        self.sharingLevel = sharingLevel
+        self.mediaType = mediaType
+        self.totalCount = totalCount
+
         let ordered = members.sorted { $0.joined_at < $1.joined_at }.map(\.user_id)
-        var out: [String: Int] = [:]
-        for (idx, id) in ordered.enumerated() { out[id] = idx + 1 }
-        return out
-    }
+        var idxMap: [String: Int] = [:]
+        for (idx, id) in ordered.enumerated() { idxMap[id] = idx + 1 }
+        self.memberIndexById = idxMap
 
-    private var roleById: [String: String] {
-        var out: [String: String] = [:]
-        for m in members { out[m.user_id] = m.role }
-        return out
+        var roleMap: [String: String] = [:]
+        for m in members { roleMap[m.user_id] = m.role }
+        self.roleById = roleMap
     }
 
     private func memberLabel(_ userId: String) -> String {
         if let currentUserId, userId == currentUserId { return "You" }
         if let idx = memberIndexById[userId] { return "Member \(idx)" }
-        // Fallback: should be rare (e.g. server returned a status for a user not present in members list).
-        // Keep it anonymous but stable-ish for debugging.
         return "Member \(String(userId.suffix(4)))"
     }
 
+    /// Whether the member updated their list entry within the last 7 days.
+    private func isActive(_ ms: SupabaseService.ClubRailItem.MemberItemStatus) -> Bool {
+        guard let raw = ms.updated_at else { return false }
+        guard let date =
+            Self.isoFormatterWithFractionalSeconds.date(from: raw) ??
+            Self.isoFormatter.date(from: raw)
+        else {
+            return false
+        }
+        return date.timeIntervalSinceNow > -7 * 24 * 3600
+    }
+
+    /// Progress fraction (0...1) for the progress bar. Returns nil if no progress data.
+    private func progressFraction(_ ms: SupabaseService.ClubRailItem.MemberItemStatus) -> Double? {
+        guard sharingLevel == "progress",
+              let progress = ms.progress, progress > 0,
+              let total = totalCount, total > 0 else { return nil }
+        return min(1.0, Double(progress) / Double(total))
+    }
+
+    /// Format progress text with fraction.
+    private func progressText(_ progress: Int) -> String {
+        let prefix = mediaType.uppercased() == "ANIME" ? "Ep" : "Ch"
+        if let total = totalCount, total > 0 {
+            return "\(prefix) \(progress)/\(total)"
+        }
+        return "\(prefix) \(progress)"
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             let sorted = statuses.sorted { a, b in
                 if let currentUserId {
                     let aIsMe = a.user_id == currentUserId
                     let bIsMe = b.user_id == currentUserId
                     if aIsMe != bIsMe { return aIsMe }
                 }
+                // Active members first, then by join order
+                let aActive = isActive(a)
+                let bActive = isActive(b)
+                if aActive != bActive { return aActive }
                 return (memberIndexById[a.user_id] ?? 9999) < (memberIndexById[b.user_id] ?? 9999)
             }
             ForEach(sorted, id: \.user_id) { ms in
-                HStack(spacing: 10) {
-                    Circle()
-                        .fill(Color.black.opacity(0.06))
-                        .frame(width: 24, height: 24)
-                        .overlay(
-                            Group {
-                                if let idx = memberIndexById[ms.user_id] {
-                                    Text(String(idx))
-                                        .font(.system(size: 9, weight: .semibold))
-                                        .foregroundColor(.black.opacity(0.40))
-                                        .monospacedDigit()
-                                } else {
+                let active = isActive(ms)
+                let isMe = currentUserId != nil && ms.user_id == currentUserId
+                let rowOpacity: Double = (active || isMe) ? 1.0 : 0.5
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 8) {
+                        // Editorial avatar: initial letter in a rounded rect
+                        let label = memberLabel(ms.user_id)
+                        let initial = String(label.prefix(1)).uppercased()
+
+                        Text(initial)
+                            .font(.kuroMicro(weight: .semibold))
+                            .foregroundColor(.black.opacity(0.50))
+                            .frame(width: 22, height: 22)
+                            .background(
+                                RoundedRectangle(cornerRadius: KuroRadius.xs)
+                                    .fill(Color.black.opacity(0.06))
+                            )
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            HStack(spacing: 6) {
+                                Text(label)
+                                    .font(.kuroCaption(weight: .medium))
+                                    .foregroundColor(.black.opacity(0.70))
+
+                                if let role = roleById[ms.user_id]?.uppercased(), role != "MEMBER" {
+                                    Text(role)
+                                        .font(.kuroMicro(weight: .medium))
+                                        .tracking(1.0)
+                                        .foregroundColor(.black.opacity(0.35))
+                                }
+
+                                if active && !isMe {
                                     Circle()
-                                        .fill(Color.black.opacity(0.10))
-                                        .frame(width: 6, height: 6)
+                                        .fill(Color.black.opacity(0.30))
+                                        .frame(width: 4, height: 4)
                                 }
                             }
-                        )
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text(memberLabel(ms.user_id))
-                                .font(.kuroCaption(weight: .medium))
-                                .foregroundColor(.black.opacity(0.55))
+                            HStack(spacing: 6) {
+                                if let status = ms.status {
+                                    ClubStatusPill(status: status)
+                                } else {
+                                    Text("Not started")
+                                        .font(.kuroCaption())
+                                        .foregroundColor(.black.opacity(0.30))
+                                }
 
-                            if let role = roleById[ms.user_id]?.uppercased(), role != "MEMBER" {
-                                Text(role)
-                                    .font(.kuroMicro(weight: .medium))
-                                    .tracking(1.2)
-                                    .foregroundColor(.black.opacity(0.40))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Capsule().fill(Color.black.opacity(0.05)))
+                                if sharingLevel == "progress",
+                                   let progress = ms.progress, progress > 0 {
+                                    Text(progressText(progress))
+                                        .font(.kuroCaption())
+                                        .foregroundColor(.black.opacity(0.40))
+                                        .monospacedDigit()
+                                }
                             }
                         }
 
-                        if let status = ms.status {
-                            ClubStatusPill(status: status)
-                        } else {
-                            Text("Not started")
-                                .font(.kuroCaption())
-                                .foregroundColor(.black.opacity(0.35))
-                        }
+                        Spacer(minLength: 0)
                     }
 
-                    Spacer()
-
-                    if sharingLevel == "progress", let progress = ms.progress, progress > 0 {
-                        let prefix = mediaType.uppercased() == "ANIME" ? "Ep" : "Ch"
-                        Text("\(prefix) \(progress)")
-                            .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.45))
+                    // Progress bar for active watchers with known total
+                    if let fraction = progressFraction(ms), fraction > 0 {
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(Color.black.opacity(0.06))
+                                    .frame(height: 2)
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(Color.black.opacity(0.25))
+                                    .frame(width: geo.size.width * fraction, height: 2)
+                            }
+                        }
+                        .frame(height: 2)
+                        .padding(.leading, 30)
                     }
                 }
+                .opacity(rowOpacity)
                 .padding(.vertical, 2)
             }
         }

@@ -3569,16 +3569,24 @@ class SupabaseService {
         let average_score: Int?
         let year: Int?
         let format: String?
+        let episode_count: Int?
+        let chapter_count: Int?
         let my_status: String?
         let my_progress: Int?
         let my_rating: Int?
         let member_status_counts: [String: Int]?
         let member_statuses: [MemberItemStatus]?
 
+        /// Total count for the relevant media type (episodes for anime, chapters for manga).
+        var totalCount: Int? {
+            media_type.uppercased() == "ANIME" ? episode_count : chapter_count
+        }
+
         struct MemberItemStatus: Decodable, Sendable {
             let user_id: String
             let status: String?
             let progress: Int?
+            let updated_at: String?
         }
     }
 
