@@ -38,26 +38,20 @@ enum ImportSection: String, CaseIterable {
 struct MatchRing: View {
     let percentage: Double
     let isSelected: Bool
-    let isAutoSelected: Bool
-    
+
     @State private var animatedProgress: Double = 0
-    @State private var showCheckmark: Bool = false
-    @State private var sparkleTrigger: Bool = false
-    
+
     private var ringColor: Color {
-        // Monochrome mapping: higher confidence = darker ring.
         Color.primary.opacity(max(0.18, min(0.72, 0.18 + (percentage * 0.54))))
     }
-    
+
     private var lineWidth: CGFloat { isSelected ? 3 : 2 }
-    
+
     var body: some View {
         ZStack {
-            // Background ring
             Circle()
                 .stroke(ringColor.opacity(0.15), lineWidth: lineWidth)
-            
-            // Progress ring
+
             Circle()
                 .trim(from: 0, to: animatedProgress)
                 .stroke(
@@ -65,118 +59,21 @@ struct MatchRing: View {
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .shadow(color: ringColor.opacity(0.3), radius: isSelected ? 4 : 0)
-            
-            // Checkmark or percentage
-            if showCheckmark {
+
+            if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.kuroMicro(weight: .bold))
                     .foregroundColor(ringColor)
-                    .transition(.scale.combined(with: .opacity))
             } else {
                 Text("\(Int(percentage * 100))")
                     .font(.kuroMicro(weight: .bold))
                     .foregroundColor(ringColor)
             }
-            
-            // Sparkle effect for auto-selection
-            if isAutoSelected && sparkleTrigger {
-                MatchRingSparkleEffect()
-                    .offset(x: 14, y: -14)
-            }
-            
-            // "Auto" badge
-            if isAutoSelected {
-                AutoBadge()
-                    .offset(x: 10, y: 12)
-            }
         }
         .frame(width: 28, height: 28)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.6)) {
+            withAnimation(KuroAnimation.editorial) {
                 animatedProgress = percentage
-            }
-            withAnimation(.easeInOut(duration: 0.3).delay(0.5)) {
-                showCheckmark = isSelected
-            }
-        }
-        .onChange(of: isSelected) { _, newValue in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                showCheckmark = newValue
-            }
-        }
-        .onChange(of: isAutoSelected) { _, newValue in
-            if newValue {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-                    sparkleTrigger = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                    withAnimation {
-                        sparkleTrigger = false
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Auto Badge
-
-private struct AutoBadge: View {
-    var body: some View {
-        Text("AUTO")
-            .font(.system(size: 6, weight: .heavy))
-            .tracking(0.5)
-            .foregroundColor(.white)
-            .padding(.horizontal, 3)
-            .padding(.vertical, 1)
-            .background(
-                Capsule()
-                    .fill(Color.black.opacity(0.75))
-            )
-            .overlay(
-                Capsule()
-                    .stroke(Color.white.opacity(0.65), lineWidth: 0.5)
-            )
-    }
-}
-
-// MARK: - Sparkle Effect
-
-private struct MatchRingSparkleEffect: View {
-    @State private var scale: CGFloat = 0
-    @State private var rotation: Double = 0
-    @State private var opacity: Double = 0
-    
-    var body: some View {
-        ZStack {
-            Image(systemName: "sparkle")
-                .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.white.opacity(0.65))
-            
-            Image(systemName: "sparkle")
-                .font(.system(size: 8, weight: .bold))
-                .foregroundColor(.white.opacity(0.45))
-                .offset(x: -6, y: 4)
-            
-            Image(systemName: "sparkle")
-                .font(.system(size: 6, weight: .bold))
-                .foregroundColor(.white.opacity(0.35))
-                .offset(x: 4, y: 6)
-        }
-        .scaleEffect(scale)
-        .rotationEffect(.degrees(rotation))
-        .opacity(opacity)
-        .onAppear {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
-                scale = 1.2
-                rotation = 15
-                opacity = 1
-            }
-            withAnimation(.easeOut(duration: 0.8).delay(0.2)) {
-                scale = 0.8
-                opacity = 0
-                rotation = 45
             }
         }
     }
@@ -248,79 +145,46 @@ struct ImportConfirmCard: View {
     let isExcluded: Bool
     let onSelect: (ProtoConciergeCandidate) -> Void
     let onToggleExclude: (() -> Void)?
-    
+
     @State private var isExpanded: Bool = false
     @State private var showReasoningTooltip: Bool = false
-    @State private var dragOffset: CGSize = .zero
-    @State private var isDragging: Bool = false
-    
+
     private var posterURL: URL? {
         guard let path = selectedCandidate?.cover_image_medium else { return nil }
         return URL(string: path)
     }
-    
+
     private var matchPercentage: Double {
         selectedCandidate?.score ?? 0
     }
-    
+
     var body: some View {
         cardContent
             .opacity(isExcluded ? 0.55 : section.opacity)
-            .offset(x: dragOffset.width)
-            .rotationEffect(.degrees(Double(dragOffset.width) * 0.03))
-            .gesture(
-                DragGesture()
-                    .onChanged { value in
-                        guard onToggleExclude != nil else { return }
-                        isDragging = true
-                        withAnimation(.interactiveSpring()) {
-                            dragOffset = value.translation
-                        }
-                    }
-                    .onEnded { value in
-                        isDragging = false
-                        let threshold: CGFloat = 80
-                        
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            if value.translation.width < -threshold {
-                                // Swipe left - exclude
-                                dragOffset = .zero
-                                triggerHaptic(.light)
-                                onToggleExclude?()
-                            } else if value.translation.width > threshold {
-                                // Swipe right - pin to top (future feature)
-                                dragOffset = .zero
-                                triggerHaptic(.light)
-                            } else {
-                                dragOffset = .zero
-                            }
-                        }
-                    }
-            )
-            .background(
-                ZStack {
-                    // Exclude background (red)
-                    if dragOffset.width < -30 {
-                        RoundedRectangle(cornerRadius: KuroRadius.md)
-                            .fill(Color.black.opacity(min(0.08, abs(dragOffset.width) / 450.0)))
-                    }
-                    // Pin background (blue)
-                    if dragOffset.width > 30 {
-                        RoundedRectangle(cornerRadius: KuroRadius.md)
-                            .fill(Color.black.opacity(min(0.06, dragOffset.width / 550.0)))
-                    }
-                }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md))
     }
     
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Main row
             HStack(alignment: .top, spacing: 12) {
+                // Exclude toggle (add/update only)
+                if action != .skip, let toggle = onToggleExclude {
+                    Button(action: {
+                        KuroAccessibility.impactHaptic(.light)
+                        toggle()
+                    }) {
+                        Image(systemName: isExcluded ? "square" : "checkmark.square.fill")
+                            .font(.kuroTitle(weight: .regular))
+                            .foregroundColor(isExcluded ? .black.opacity(0.25) : .black.opacity(0.72))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 4)
+                    .accessibilityLabel(isExcluded ? "Include item" : "Exclude item")
+                }
+
                 // Poster
                 ImportPosterView(url: posterURL, scrollOffset: scrollOffset)
-                
+
                 // Content
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .top, spacing: 8) {
@@ -330,19 +194,18 @@ struct ImportConfirmCard: View {
                             .foregroundStyle(.primary.opacity(0.82))
                             .lineLimit(2)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                        
+
                         Spacer(minLength: 4)
-                        
+
                         // Match ring
                         if let candidate = selectedCandidate {
                             MatchRing(
                                 percentage: candidate.score,
-                                isSelected: !isExcluded && action != .skip,
-                                isAutoSelected: isAutoSelected
+                                isSelected: !isExcluded && action != .skip
                             )
                             .onTapGesture {
                                 if isAutoSelected {
-                                    withAnimation(.spring(response: 0.3)) {
+                                    withAnimation(KuroAnimation.fast) {
                                         showReasoningTooltip.toggle()
                                     }
                                 }
@@ -421,7 +284,7 @@ struct ImportConfirmCard: View {
                             .foregroundColor(.black.opacity(0.55))
                         
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.kuroMicro(weight: .medium))
                             .foregroundColor(.black.opacity(0.4))
                     }
                 }
@@ -433,7 +296,7 @@ struct ImportConfirmCard: View {
                         item: item,
                         selectedCandidate: selectedCandidate,
                         onSelect: { candidate in
-                            triggerHaptic(.light)
+                            KuroAccessibility.impactHaptic(.light)
                             onSelect(candidate)
                         }
                     )
@@ -448,12 +311,13 @@ struct ImportConfirmCard: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(Color.kuroSecondaryBackground.opacity(0.96))
                 .overlay(
                     RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .strokeBorder(Color.primary.opacity(0.10), lineWidth: 0.5)
+                        .strokeBorder(Color.black.opacity(0.06), lineWidth: 0.5)
                 )
         )
+        .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
     }
     
     // MARK: - Computed Properties
@@ -487,17 +351,10 @@ struct ImportConfirmCard: View {
     // MARK: - Actions
     
     private func toggleExpansion() {
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+        withAnimation(KuroAnimation.editorial) {
             isExpanded.toggle()
         }
-        triggerHaptic(.light)
-    }
-    
-    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        #if os(iOS)
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.impactOccurred()
-        #endif
+        KuroAccessibility.impactHaptic(.light)
     }
 
     private func diffSection(existing: ProtoConciergeExistingEntry, parsed: ProtoConciergeParseItemParsed) -> some View {
@@ -543,7 +400,7 @@ private struct ReasoningTooltip: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "sparkles")
-                .font(.system(size: 10))
+                .font(.kuroMicro())
                 .foregroundStyle(.secondary.opacity(0.85))
             
             Text(reason)
@@ -927,19 +784,19 @@ extension ProtoConciergeExistingEntry {
 #Preview("Match Ring Variants") {
     HStack(spacing: 20) {
         VStack(spacing: 8) {
-            MatchRing(percentage: 0.98, isSelected: true, isAutoSelected: true)
-            Text("98% Auto")
+            MatchRing(percentage: 0.98, isSelected: true)
+            Text("98%")
                 .font(.kuroCaption())
         }
-        
+
         VStack(spacing: 8) {
-            MatchRing(percentage: 0.85, isSelected: true, isAutoSelected: false)
+            MatchRing(percentage: 0.85, isSelected: true)
             Text("85%")
                 .font(.kuroCaption())
         }
-        
+
         VStack(spacing: 8) {
-            MatchRing(percentage: 0.72, isSelected: false, isAutoSelected: false)
+            MatchRing(percentage: 0.72, isSelected: false)
             Text("72%")
                 .font(.kuroCaption())
         }

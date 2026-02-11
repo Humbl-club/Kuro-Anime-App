@@ -30,7 +30,7 @@ private struct ConciergeSuggestionBar: View {
                     Button(action: { onTap(s) }) {
                         HStack(spacing: 6) {
                             Image(systemName: s.systemImage)
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.kuroCaption(weight: .semibold))
                             Text(s.title)
                                 .font(.kuroCaption(weight: .medium))
                                 .tracking(0.6)
@@ -203,23 +203,22 @@ struct DetectedListChip: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "doc.text")
-                .font(.system(size: 12, weight: .medium))
-            
+                .font(.kuroCaption(weight: .medium))
+
             Text("\(count) \(count == 1 ? "title" : "titles") detected")
-                .font(.system(size: 13, weight: .medium))
+                .font(.kuroCaption(weight: .medium))
         }
         .foregroundStyle(.primary)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(.ultraThinMaterial)
+                .fill(Color.kuroSecondaryBackground.opacity(0.96))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                        .stroke(Color.primary.opacity(0.10), lineWidth: 0.5)
                 )
         )
-        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 2)
         .offset(y: bounceOffset)
         .opacity(isVisible ? 1 : 0)
         .offset(y: isVisible ? -8 : 10)
@@ -275,11 +274,11 @@ struct IntentIndicator: View {
     private func importIndicator(count: Int) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "doc.on.clipboard")
-                .font(.system(size: 12, weight: .medium))
-            
+                .font(.kuroCaption(weight: .medium))
+
             if count > 0 {
                 Text("\(count)")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.kuroCaption(weight: .bold))
             }
         }
         .foregroundStyle(.black.opacity(0.50))
@@ -295,7 +294,7 @@ struct IntentIndicator: View {
     private var recommendationIndicator: some View {
         HStack(spacing: 4) {
             Image(systemName: "sparkles")
-                .font(.system(size: 12, weight: .medium))
+                .font(.kuroCaption(weight: .medium))
         }
         .foregroundStyle(.black.opacity(0.50))
         .padding(.horizontal, 8)
@@ -427,9 +426,8 @@ struct ConciergeInputField: View {
                 .padding(.horizontal, Constants.horizontalPadding)
                 .padding(.vertical, Constants.verticalPadding)
                 .background(
-                    // Glass morphism background
                     RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                        .fill(.ultraThinMaterial)
+                        .fill(Color.kuroSecondaryBackground.opacity(0.96))
                         .overlay(
                             RoundedRectangle(cornerRadius: Constants.cornerRadius)
                                 .stroke(
@@ -437,12 +435,6 @@ struct ConciergeInputField: View {
                                     lineWidth: 0.6
                                 )
                         )
-                )
-                .shadow(
-                    color: Color.black.opacity(0.06),
-                    radius: 12,
-                    x: 0,
-                    y: 4
                 )
                 .overlay(alignment: .topLeading) {
                     // Detected list chip (anchored to input, not floating mid-screen)
@@ -484,7 +476,7 @@ struct ConciergeInputField: View {
     private var sendButton: some View {
         Button(action: handleSend) {
             Image(systemName: "arrow.up")
-                .font(.system(size: 12, weight: .medium))
+                .font(.kuroCaption(weight: .medium))
                 .foregroundStyle(canSend ? .white : Color.black.opacity(0.18))
                 .frame(width: 30, height: 30)
                 .background(
@@ -504,18 +496,21 @@ struct ConciergeInputField: View {
         withAnimation(.easeInOut(duration: 0.2)) {
             isPlaceholderVisible = newValue.isEmpty
         }
-        
+
         // Detect intent
         let newIntent = ConciergeIntentDetector.detect(from: newValue)
-        
+
         if let binding = detectedIntent {
             binding.wrappedValue = newIntent
         } else {
             internalIntent = newIntent
         }
-        
+
+        // Detect paste: a large text jump (20+ chars) indicates clipboard paste vs typing.
+        let wasPaste = (newValue.count - lastTextLength) >= 20
+
         // Handle list detection chip
-        handleListDetection(intent: newIntent)
+        handleListDetection(intent: newIntent, wasPaste: wasPaste)
 
         lastTextLength = newValue.count
 
@@ -585,7 +580,7 @@ struct ConciergeInputField: View {
         updateSuggestionsDebounced(text)
     }
     
-    private func handleListDetection(intent: PrototypeConciergeIntent) {
+    private func handleListDetection(intent: PrototypeConciergeIntent, wasPaste: Bool) {
         switch intent {
         case .importList(let count):
             if count != detectedCount || !showDetectedChip {
@@ -593,7 +588,10 @@ struct ConciergeInputField: View {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                     showDetectedChip = true
                 }
-                ConciergeHapticsManager.shared.pasteSuccess()
+                // Only fire paste haptic on actual paste, not on typing commas/newlines.
+                if wasPaste {
+                    ConciergeHapticsManager.shared.pasteSuccess()
+                }
             }
         default:
             if showDetectedChip {
@@ -627,11 +625,8 @@ struct ConciergeInputField: View {
     // MARK: - Animation
     
     private func startPlaceholderPulse() {
-        guard isEmpty else { return }
-        
-        withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-            placeholderOpacity = 0.6
-        }
+        // Static opacity — no repeatForever animation on the input field.
+        placeholderOpacity = 0.45
     }
 }
 

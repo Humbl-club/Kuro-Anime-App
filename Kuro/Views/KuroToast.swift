@@ -28,8 +28,8 @@ struct KuroToast: View {
 
     private var iconColor: Color {
         switch toast.kind {
-        case .success: return .green
-        case .error: return .orange
+        case .success: return .black.opacity(0.75)
+        case .error: return .red
         case .info: return .black.opacity(0.75)
         }
     }
@@ -37,18 +37,18 @@ struct KuroToast: View {
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.kuroBody(weight: .semibold))
                 .foregroundColor(iconColor)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(toast.title)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.kuroCaption(weight: .semibold))
                     .tracking(0.2)
                     .foregroundColor(.black.opacity(0.9))
 
                 if let subtitle = toast.subtitle, !subtitle.isEmpty {
                     Text(subtitle)
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.kuroCaption())
                         .foregroundColor(.black.opacity(0.55))
                         .lineLimit(2)
                 }
@@ -59,7 +59,7 @@ struct KuroToast: View {
             if let actionTitle = toast.actionTitle, let onAction = toast.onAction {
                 Button(action: onAction) {
                     Text(actionTitle.uppercased())
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.kuroMicro(weight: .semibold))
                         .tracking(1.4)
                         .foregroundColor(.black.opacity(0.82))
                         .padding(.horizontal, 10)
@@ -76,7 +76,7 @@ struct KuroToast: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(Color.kuroSecondaryBackground.opacity(0.96))
                 .overlay(
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .strokeBorder(

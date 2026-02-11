@@ -52,6 +52,7 @@ struct ConciergeView: View {
     @State private var assistantExpanded: Bool = false
     @State private var assistantOffset: CGSize = .zero
     @State private var assistantDragStart: CGSize = .zero
+    @State private var containerSize: CGSize = CGSize(width: 393, height: 852)
 
     private var mascotState: ConciergeMascotState {
         if isWorking { return .thinking }
@@ -137,6 +138,9 @@ struct ConciergeView: View {
                                 onConfirmItems: { response in
                                     Task { await confirmImport(response: response) }
                                 },
+                                onReparse: {
+                                    reparse(message: msg)
+                                },
                                 autoReasonByItemId: autoReasonByItemId,
                                 itemActions: itemActions,
                                 excludedItemIds: $excludedItemIds
@@ -191,20 +195,23 @@ struct ConciergeView: View {
         }
         .overlay(alignment: .bottomLeading) {
             if assistantEnabled {
-                GeometryReader { geo in
-                    KuroConciergeMascot(
-                        expanded: $assistantExpanded,
-                        offset: $assistantOffset,
-                        dragStart: $assistantDragStart,
-                        baseBottomPadding: 104,
-                        containerSize: geo.size
-                        ,
-                        state: mascotState
-                    ) {
-                        focusRequest = true
-                    }
+                KuroConciergeMascot(
+                    expanded: $assistantExpanded,
+                    offset: $assistantOffset,
+                    dragStart: $assistantDragStart,
+                    baseBottomPadding: 104,
+                    containerSize: containerSize,
+                    state: mascotState
+                ) {
+                    focusRequest = true
                 }
-                .ignoresSafeArea()
+            }
+        }
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { containerSize = geo.size }
+                    .onChange(of: geo.size) { containerSize = geo.size }
             }
         }
     }
@@ -214,18 +221,27 @@ struct ConciergeView: View {
         guard !text.isEmpty else { return }
         errorText = nil
 
+        #if DEBUG
+        let sendStart = CFAbsoluteTimeGetCurrent()
+        #endif
+
         // Add user message immediately (optimistic)
         let userMsg = ConciergeMessage(role: .user, text: text, items: nil)
         withAnimation(KuroAnimation.editorial) {
             messages.append(userMsg)
         }
 
+        #if DEBUG
+        let optimisticEnd = CFAbsoluteTimeGetCurrent()
+        print("[Concierge Timing] send() called -> optimistic append: \(String(format: "%.1f", (optimisticEnd - sendStart) * 1000))ms")
+        #endif
+
         // Low-signal prompts ("ADD", random letters, etc.) should not guess.
         // Ask a clarifying question with examples instead of hitting the network.
         if shouldAskClarifyingQuestion(text) {
             let assistantMsg = ConciergeMessage(
                 role: .assistant,
-                text: "I’m not sure what you mean yet. Are you importing titles, or looking for recommendations?",
+                text: "What would you like to do?",
                 showClarifyActions: true,
                 items: nil
             )
@@ -245,6 +261,13 @@ struct ConciergeView: View {
         }
 
         isWorking = false
+    }
+
+    private func reparse(message: ConciergeMessage) {
+        // Only assistant messages that were generated from a specific user input can re-parse.
+        guard message.role == .assistant, let source = message.sourceUserText, !source.isEmpty else { return }
+        input = source
+        focusRequest = true
     }
 
     private func shouldAskClarifyingQuestion(_ text: String) -> Bool {
@@ -293,7 +316,16 @@ struct ConciergeView: View {
     // MARK: Import Flow (Inline)
     private func handleImportFlow(text: String) async {
         do {
+            #if DEBUG
+            let parseStart = CFAbsoluteTimeGetCurrent()
+            #endif
+
             let response = try await supabaseService.conciergeParse(text: text, scope: .both)
+
+            #if DEBUG
+            let parseEnd = CFAbsoluteTimeGetCurrent()
+            print("[Concierge Timing] parse response returned: \(String(format: "%.0f", (parseEnd - parseStart) * 1000))ms")
+            #endif
 
             // Prefetch top candidate covers so the confirm bubble feels instant.
             #if canImport(UIKit)
@@ -303,6 +335,10 @@ struct ConciergeView: View {
                     return url
                 }
             }
+            #if DEBUG
+            let prefetchStart = CFAbsoluteTimeGetCurrent()
+            print("[Concierge Timing] image prefetch started: \(String(format: "%.1f", (prefetchStart - parseEnd) * 1000))ms after parse")
+            #endif
             Task.detached(priority: .background) {
                 await ImagePipeline.shared.prefetch(urls: coverUrls, maxPixelSize: 640)
             }
@@ -343,12 +379,16 @@ struct ConciergeView: View {
                 let assistantMsg = ConciergeMessage(
                     role: .assistant,
                     text: "",
+                    sourceUserText: text,
                     items: response.items,
                     parseResponse: response
                 )
                 withAnimation(KuroAnimation.editorial) {
                     messages.append(assistantMsg)
                 }
+                #if DEBUG
+                print("[Concierge Timing] confirm bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
+                #endif
             }
 
             // On-device Apple FM can help pick the correct adaptation when candidates share a base title
@@ -497,10 +537,19 @@ struct ConciergeView: View {
     // MARK: Recommendation Flow (Inline Rails)
     private func handleRecommendationFlow(text: String) async {
         do {
+            #if DEBUG
+            let recStart = CFAbsoluteTimeGetCurrent()
+            #endif
+
             let rec = try await supabaseService.conciergeRecommend(text: text, scope: .both, limit: 8)
             let sets = (rec.sets ?? []).filter { ($0.items ?? []).isEmpty == false }
             let flattened = sets.flatMap { $0.items ?? [] }
             let displayItems = !flattened.isEmpty ? flattened : (rec.items ?? [])
+
+            #if DEBUG
+            let recEnd = CFAbsoluteTimeGetCurrent()
+            print("[Concierge Timing] recommend response returned: \(String(format: "%.0f", (recEnd - recStart) * 1000))ms")
+            #endif
 
             // Prefetch recommendation posters for a snappy first render.
             #if canImport(UIKit)
@@ -508,6 +557,9 @@ struct ConciergeView: View {
                 guard let s = item.coverImageMedium, let url = URL(string: s) else { return nil }
                 return url
             }
+            #if DEBUG
+            print("[Concierge Timing] rec image prefetch started: \(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - recEnd) * 1000))ms after response")
+            #endif
             Task.detached(priority: .background) {
                 await ImagePipeline.shared.prefetch(urls: recUrls, maxPixelSize: 720)
             }
@@ -525,6 +577,9 @@ struct ConciergeView: View {
                 withAnimation(KuroAnimation.editorial) {
                     messages.append(assistantMsg)
                 }
+                #if DEBUG
+                print("[Concierge Timing] rec bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - recStart) * 1000))ms total from rec start")
+                #endif
             } else {
                 // No results — show text message
                 let assistantMsg = ConciergeMessage(

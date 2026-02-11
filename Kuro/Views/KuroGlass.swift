@@ -15,7 +15,7 @@ struct KuroGlassCard<Content: View>: View {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(Color.kuroSecondaryBackground.opacity(0.96))
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                             .strokeBorder(
@@ -62,18 +62,18 @@ struct KuroGlassPill: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.kuroBody(weight: .semibold))
                     .foregroundColor(.black.opacity(0.82))
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.kuroCaption(weight: .semibold))
                         .foregroundColor(.black.opacity(0.9))
                         .lineLimit(1)
 
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle)
-                            .font(.system(size: 10, weight: .regular))
+                            .font(.kuroMicro(weight: .regular))
                             .foregroundColor(.black.opacity(0.55))
                             .lineLimit(1)
                     }
@@ -82,7 +82,7 @@ struct KuroGlassPill: View {
                 Spacer(minLength: 0)
 
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.kuroCaption(weight: .semibold))
                     .foregroundColor(.black.opacity(0.35))
             }
             .padding(.horizontal, 14)
@@ -99,12 +99,12 @@ struct KuroGlassPill: View {
         )
         .background(
             Capsule(style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fill(Color.kuroSecondaryBackground.opacity(0.96))
                 .overlay(
                     Capsule(style: .continuous)
-                        .strokeBorder(Color.white.opacity(0.55), lineWidth: 0.7)
+                        .strokeBorder(Color.black.opacity(0.06), lineWidth: 0.7)
                 )
-                .shadow(color: Color.black.opacity(0.10), radius: 14, x: 0, y: 8)
+                .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 6)
         )
     }
 }
