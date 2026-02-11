@@ -18,16 +18,20 @@ where rail_id = 'school_manga'
 -- Keep school_manga ordering stable after removals.
 with ranked as (
   select
-    id,
-    row_number() over (order by sort_order, id) as new_sort_order
+    rail_id,
+    media_type,
+    anilist_id,
+    row_number() over (order by rank, anilist_id) as new_rank
   from public.curated_rail_items
   where rail_id = 'school_manga'
     and media_type = 'MANGA'
 )
 update public.curated_rail_items cri
-set sort_order = ranked.new_sort_order
+set rank = ranked.new_rank
 from ranked
-where cri.id = ranked.id
-  and cri.sort_order is distinct from ranked.new_sort_order;
+where cri.rail_id = ranked.rail_id
+  and cri.media_type = ranked.media_type
+  and cri.anilist_id = ranked.anilist_id
+  and cri.rank is distinct from ranked.new_rank;
 
 commit;
