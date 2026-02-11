@@ -3552,6 +3552,7 @@ class SupabaseService {
 
     struct ClubMember: Decodable, Sendable {
         let user_id: String
+        let display_name: String?
         let role: String
         let sharing_level: String
         let joined_at: String
@@ -3584,6 +3585,7 @@ class SupabaseService {
 
         struct MemberItemStatus: Decodable, Sendable {
             let user_id: String
+            let display_name: String?
             let status: String?
             let progress: Int?
             let updated_at: String?

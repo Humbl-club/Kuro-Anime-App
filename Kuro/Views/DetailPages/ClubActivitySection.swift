@@ -344,10 +344,10 @@ private struct ClubActivityItemRow: View {
                 }
             }
 
-            if canShowMemberDetail, let statuses = item.member_statuses, !statuses.isEmpty {
+            if canShowMemberDetail, !members.isEmpty {
                 DisclosureGroup(isExpanded: $showMembers) {
                     ClubMemberStatusList(
-                        statuses: statuses,
+                        statuses: item.member_statuses ?? [],
                         members: members,
                         currentUserId: currentUserId,
                         sharingLevel: sharingLevel,
@@ -355,7 +355,7 @@ private struct ClubActivityItemRow: View {
                         totalCount: item.totalCount
                     )
                 } label: {
-                    Text(showMembers ? "Hide members" : "\(statuses.count) members")
+                    Text(showMembers ? "Hide members" : "\(members.count) members")
                         .font(.kuroCaption(weight: .medium))
                         .foregroundColor(.black.opacity(0.55))
                 }
@@ -418,6 +418,8 @@ private struct ClubMemberStatusList: View {
 
     private let memberIndexById: [String: Int]
     private let roleById: [String: String]
+    private let displayNameById: [String: String]
+    private let statusByUserId: [String: SupabaseService.ClubRailItem.MemberItemStatus]
 
     init(
         statuses: [SupabaseService.ClubRailItem.MemberItemStatus],
@@ -442,10 +444,26 @@ private struct ClubMemberStatusList: View {
         var roleMap: [String: String] = [:]
         for m in members { roleMap[m.user_id] = m.role }
         self.roleById = roleMap
+
+        var nameMap: [String: String] = [:]
+        for m in members {
+            let trimmed = m.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if !trimmed.isEmpty {
+                nameMap[m.user_id] = trimmed
+            }
+        }
+        self.displayNameById = nameMap
+
+        var statusMap: [String: SupabaseService.ClubRailItem.MemberItemStatus] = [:]
+        for s in statuses {
+            statusMap[s.user_id] = s
+        }
+        self.statusByUserId = statusMap
     }
 
     private func memberLabel(_ userId: String) -> String {
         if let currentUserId, userId == currentUserId { return "You" }
+        if let displayName = displayNameById[userId] { return displayName }
         if let idx = memberIndexById[userId] { return "Member \(idx)" }
         return "Member \(String(userId.suffix(4)))"
     }
@@ -481,7 +499,20 @@ private struct ClubMemberStatusList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            let sorted = statuses.sorted { a, b in
+            let merged = members.map { member -> SupabaseService.ClubRailItem.MemberItemStatus in
+                if let existing = statusByUserId[member.user_id] {
+                    return existing
+                }
+                return .init(
+                    user_id: member.user_id,
+                    display_name: member.display_name,
+                    status: nil,
+                    progress: nil,
+                    updated_at: nil
+                )
+            }
+
+            let sorted = merged.sorted { a, b in
                 if let currentUserId {
                     let aIsMe = a.user_id == currentUserId
                     let bIsMe = b.user_id == currentUserId
