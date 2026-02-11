@@ -82,5 +82,10 @@ private struct RootView: View {
             }
             .frame(maxHeight: .infinity)
         }
+        .onChange(of: networkMonitor.isConnected) { _, connected in
+            if connected {
+                ConciergeAnalytics.shared.flushIfNeeded()
+            }
+        }
     }
 }

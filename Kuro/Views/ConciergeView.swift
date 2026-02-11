@@ -53,12 +53,24 @@ struct ConciergeView: View {
     @State private var assistantOffset: CGSize = .zero
     @State private var assistantDragStart: CGSize = .zero
     @State private var containerSize: CGSize = CGSize(width: 393, height: 852)
+    @State private var lastRecommendQuery: String? = nil
+    @State private var lastRecommendWasRagAssist: Bool = false
+    @State private var lastRagSeedEntityId: String? = nil
+    @State private var ragFeedbackSentForQuery: Set<String> = []
 
     private var mascotState: ConciergeMascotState {
         if isWorking { return .thinking }
         if errorText != nil { return .concerned }
         if input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return .idle }
         return .listening
+    }
+
+    private var clarifyV2Enabled: Bool {
+        FeatureFlags.shared.isClarifyV2Enabled
+    }
+
+    private var fmAssistEnabled: Bool {
+        FeatureFlags.shared.isFmAssistEnabled && supabaseService.fmService.isAvailable
     }
 
     init(assistantEnabled: Bool = true) {
@@ -135,6 +147,9 @@ struct ConciergeView: View {
                                 onClarifyPaste: { pasteFromClipboard() },
                                 onClarifyExampleImport: { seedExampleImport() },
                                 onClarifyExampleVibe: { seedExampleVibe() },
+                                onClarifyAmbiguity: clarifyV2Enabled ? { kind, value, sourceText in
+                                    Task { await handleClarification(kind: kind, value: value, sourceText: sourceText) }
+                                } : nil,
                                 onConfirmItems: { response in
                                     Task { await confirmImport(response: response) }
                                 },
@@ -248,6 +263,10 @@ struct ConciergeView: View {
             withAnimation(KuroAnimation.editorial) {
                 messages.append(assistantMsg)
             }
+            supabaseService.analytics.track("clarify_shown", payload: [
+                "reason": "low_signal",
+                "input_length": Double(text.count),
+            ])
             return
         }
 
@@ -255,8 +274,16 @@ struct ConciergeView: View {
         lastApplySessionId = nil
 
         if looksLikeImport(text) {
+            supabaseService.analytics.track("intent_detected", payload: [
+                "intent": "import",
+                "input_length": Double(text.count),
+            ])
             await handleImportFlow(text: text)
         } else {
+            supabaseService.analytics.track("intent_detected", payload: [
+                "intent": "recommend",
+                "input_length": Double(text.count),
+            ])
             await handleRecommendationFlow(text: text)
         }
 
@@ -268,6 +295,93 @@ struct ConciergeView: View {
         guard message.role == .assistant, let source = message.sourceUserText, !source.isEmpty else { return }
         input = source
         focusRequest = true
+    }
+
+    // MARK: Clarification Re-Parse (Disambiguated)
+    private func handleClarification(kind: String, value: String, sourceText: String) async {
+        guard clarifyV2Enabled else { return }
+        errorText = nil
+        isWorking = true
+
+        // Dismiss keyboard
+        #if os(iOS)
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        #endif
+
+        // Intent-level clarify can switch flows directly.
+        if kind == "intent_unclear" {
+            if value.lowercased() == "recommend_seed" {
+                supabaseService.analytics.track("clarify_selected", payload: [
+                    "kind": kind,
+                    "value": value,
+                    "routed_to": "recommend",
+                ])
+                await handleRecommendationFlow(text: sourceText)
+                isWorking = false
+                return
+            }
+        }
+
+        let clarification = [kind: value]
+        supabaseService.analytics.track("clarify_selected", payload: [
+            "kind": kind,
+            "value": value,
+            "routed_to": "import_reparse",
+        ])
+
+        do {
+            let response = try await supabaseService.conciergeParse(
+                text: sourceText,
+                scope: .both,
+                clarification: clarification
+            )
+
+            // Pre-select top candidates
+            for item in response.items {
+                autoReasonByItemId[item.id] = nil
+                if let top = item.candidates.first, top.score >= 0.60 {
+                    if !hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention) {
+                        selectedByItemId[item.id] = top
+                    }
+                }
+                let action = computeItemAction(item: item)
+                itemActions[item.id] = action
+            }
+
+            // Check if there are still ambiguities in the re-parsed response
+            let remainingAmbiguity = response.items.compactMap(\.ambiguity).first
+
+            if remainingAmbiguity != nil, clarifyV2Enabled {
+                // Still ambiguous -- show another clarify card
+                let assistantMsg = ConciergeMessage(
+                    role: .assistant,
+                    text: "",
+                    sourceUserText: sourceText,
+                    items: response.items,
+                    parseResponse: response,
+                    ambiguity: remainingAmbiguity
+                )
+                withAnimation(KuroAnimation.editorial) {
+                    messages.append(assistantMsg)
+                }
+            } else {
+                // Resolved -- show the confirm bubble
+                let assistantMsg = ConciergeMessage(
+                    role: .assistant,
+                    text: "",
+                    sourceUserText: sourceText,
+                    items: response.items,
+                    parseResponse: response
+                )
+                withAnimation(KuroAnimation.editorial) {
+                    messages.append(assistantMsg)
+                }
+            }
+        } catch {
+            handleError(error)
+        }
+
+        isWorking = false
     }
 
     private func shouldAskClarifyingQuestion(_ text: String) -> Bool {
@@ -322,6 +436,11 @@ struct ConciergeView: View {
 
             let response = try await supabaseService.conciergeParse(text: text, scope: .both)
 
+            supabaseService.analytics.track("parse_completed", payload: [
+                "item_count": Double(response.items.count),
+                "has_ambiguity": response.items.contains { $0.ambiguity != nil },
+            ])
+
             #if DEBUG
             let parseEnd = CFAbsoluteTimeGetCurrent()
             print("[Concierge Timing] parse response returned: \(String(format: "%.0f", (parseEnd - parseStart) * 1000))ms")
@@ -365,30 +484,55 @@ struct ConciergeView: View {
                 }
             }
 
-            // Auto-apply safety: disabled when ANY item has an existing_entry
-            let allHighConfidence = !hasAnyExistingEntry && response.items.allSatisfy { item in
-                guard let top = item.candidates.first else { return false }
-                return top.score >= 0.85 && !hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention)
-            }
+            // Check for parser-level ambiguities that need user clarification
+            let parserAmbiguity = response.items.compactMap(\.ambiguity).first
 
-            if allHighConfidence && !response.items.isEmpty {
-                // Auto-apply: skip confirm UI entirely
-                await autoApplyImport(response: response)
-            } else {
-                // Show inline confirm bubble in chat
+            if let ambiguity = parserAmbiguity, clarifyV2Enabled {
+                // Dismiss keyboard when clarify card appears
+                #if os(iOS)
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                #endif
+
                 let assistantMsg = ConciergeMessage(
                     role: .assistant,
-                    text: "",
+                    text: ambiguity.suggested_question ?? "",
                     sourceUserText: text,
                     items: response.items,
-                    parseResponse: response
+                    parseResponse: response,
+                    ambiguity: ambiguity
                 )
                 withAnimation(KuroAnimation.editorial) {
                     messages.append(assistantMsg)
                 }
                 #if DEBUG
-                print("[Concierge Timing] confirm bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
+                print("[Concierge Timing] clarify card rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
                 #endif
+            } else {
+                // Auto-apply safety: disabled when ANY item has an existing_entry
+                let allHighConfidence = !hasAnyExistingEntry && response.items.allSatisfy { item in
+                    guard let top = item.candidates.first else { return false }
+                    return top.score >= 0.85 && !hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention)
+                }
+
+                if allHighConfidence && !response.items.isEmpty {
+                    // Auto-apply: skip confirm UI entirely
+                    await autoApplyImport(response: response)
+                } else {
+                    // Show inline confirm bubble in chat
+                    let assistantMsg = ConciergeMessage(
+                        role: .assistant,
+                        text: "",
+                        sourceUserText: text,
+                        items: response.items,
+                        parseResponse: response
+                    )
+                    withAnimation(KuroAnimation.editorial) {
+                        messages.append(assistantMsg)
+                    }
+                    #if DEBUG
+                    print("[Concierge Timing] confirm bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
+                    #endif
+                }
             }
 
             // On-device Apple FM can help pick the correct adaptation when candidates share a base title
@@ -408,8 +552,8 @@ struct ConciergeView: View {
         items: [SupabaseService.ConciergeParseItem],
         userText: String
     ) async {
-        // Apple Foundation Models are optional: only attempt when available (iOS 26 + downloaded model).
-        guard supabaseService.fmService.isAvailable else { return }
+        // FM assist is optional and flag-gated.
+        guard fmAssistEnabled else { return }
 
         for item in items {
             if Task.isCancelled { return }
@@ -542,6 +686,9 @@ struct ConciergeView: View {
             #endif
 
             let rec = try await supabaseService.conciergeRecommend(text: text, scope: .both, limit: 8)
+            lastRecommendQuery = text
+            lastRecommendWasRagAssist = rec.assist?.ragUsed == true
+            lastRagSeedEntityId = rec.assist?.seedEntityId
             let sets = (rec.sets ?? []).filter { ($0.items ?? []).isEmpty == false }
             let flattened = sets.flatMap { $0.items ?? [] }
             let displayItems = !flattened.isEmpty ? flattened : (rec.items ?? [])
@@ -581,6 +728,8 @@ struct ConciergeView: View {
                 print("[Concierge Timing] rec bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - recStart) * 1000))ms total from rec start")
                 #endif
             } else {
+                lastRecommendWasRagAssist = false
+                lastRagSeedEntityId = nil
                 // No results — show text message
                 let assistantMsg = ConciergeMessage(
                     role: .assistant,
@@ -713,6 +862,7 @@ struct ConciergeView: View {
                     return
                 }
                 selectedAnime = anime
+                recordRagFeedbackIfNeeded(accepted: true)
             } else {
                 let manga = try await supabaseService.fetchMangaById(item.mediaId)
                 guard let manga else {
@@ -720,6 +870,7 @@ struct ConciergeView: View {
                     return
                 }
                 selectedManga = manga
+                recordRagFeedbackIfNeeded(accepted: true)
             }
         } catch {
             errorText = "Couldn't open: \(error.localizedDescription)"
@@ -736,6 +887,7 @@ struct ConciergeView: View {
             rating: nil,
             notes: nil
         )
+        recordRagFeedbackIfNeeded(accepted: true)
         showToast(.init(kind: .success, title: "Added to Planning", subtitle: item.title, actionTitle: nil, onAction: nil))
     }
 
@@ -820,6 +972,27 @@ struct ConciergeView: View {
         }
 
         return true
+    }
+
+    private func recordRagFeedbackIfNeeded(accepted: Bool, rejectedReason: String? = nil) {
+        guard lastRecommendWasRagAssist, let query = lastRecommendQuery else { return }
+        let key = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !key.isEmpty else { return }
+        guard !ragFeedbackSentForQuery.contains(key) else { return }
+        ragFeedbackSentForQuery.insert(key)
+
+        let locale = Locale.current.identifier
+        let entityId = lastRagSeedEntityId
+
+        Task(priority: .utility) {
+            await supabaseService.conciergeRetrieveFeedback(
+                query: query,
+                locale: locale,
+                selectedEntityId: entityId,
+                accepted: accepted,
+                rejectedReason: rejectedReason
+            )
+        }
     }
 
 

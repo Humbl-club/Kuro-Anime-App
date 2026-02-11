@@ -238,6 +238,8 @@ struct ConciergeMessage: Identifiable {
     let recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]?
     let recommendationCategories: [String]?
     let parseResponse: SupabaseService.ConciergeParseResponse?
+    /// Ambiguity from the parser requiring user clarification before re-parse.
+    let ambiguity: SupabaseService.ConciergeAmbiguity?
 
     init(
         role: Role,
@@ -248,7 +250,8 @@ struct ConciergeMessage: Identifiable {
         recommendations: [SupabaseService.ConciergeRecommendResponse.Item]? = nil,
         recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]? = nil,
         recommendationCategories: [String]? = nil,
-        parseResponse: SupabaseService.ConciergeParseResponse? = nil
+        parseResponse: SupabaseService.ConciergeParseResponse? = nil,
+        ambiguity: SupabaseService.ConciergeAmbiguity? = nil
     ) {
         self.role = role
         self.text = text
@@ -259,6 +262,7 @@ struct ConciergeMessage: Identifiable {
         self.recommendationSets = recommendationSets
         self.recommendationCategories = recommendationCategories
         self.parseResponse = parseResponse
+        self.ambiguity = ambiguity
     }
 }
 
@@ -453,7 +457,13 @@ struct ConciergeStarterActions: View {
     }
 }
 
-// MARK: - Clarify Card (Two-Path Intent Picker)
+// MARK: - Locale Helper
+
+private var isGerman: Bool {
+    Locale.current.language.languageCode?.identifier == "de"
+}
+
+// MARK: - Clarify Card (Two-Path Intent Picker, Locale-Aware)
 
 struct ConciergeClarifyCard: View {
     let onPaste: () -> Void
@@ -470,22 +480,22 @@ struct ConciergeClarifyCard: View {
                     Image(systemName: "square.and.arrow.down")
                         .font(.kuroCaption(weight: .semibold))
                         .foregroundColor(.black.opacity(0.45))
-                    Text("IMPORT")
+                    Text(isGerman ? "IMPORTIEREN" : "IMPORT")
                         .font(.kuroCaption(weight: .medium))
                         .tracking(1.8)
                         .foregroundColor(.black.opacity(0.55))
                 }
 
                 KuroGlassPill(
-                    title: "Paste from clipboard",
-                    subtitle: "Titles, progress, ratings",
+                    title: isGerman ? "Aus Zwischenablage einfugen" : "Paste from clipboard",
+                    subtitle: isGerman ? "Titel, Fortschritt, Bewertungen" : "Titles, progress, ratings",
                     systemImage: "doc.on.clipboard",
                     action: onPaste
                 )
 
                 KuroGlassPill(
-                    title: "Try an example",
-                    subtitle: "Attack on Titan (completed), JJK ep 12...",
+                    title: isGerman ? "Beispiel ausprobieren" : "Try an example",
+                    subtitle: isGerman ? "Attack on Titan (fertig), JJK Folge 12..." : "Attack on Titan (completed), JJK ep 12...",
                     systemImage: "text.append",
                     action: onExampleImport
                 )
@@ -498,7 +508,7 @@ struct ConciergeClarifyCard: View {
                 Rectangle()
                     .fill(Color.black.opacity(0.06))
                     .frame(height: 0.5)
-                Text("OR")
+                Text(isGerman ? "ODER" : "OR")
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.4)
                     .foregroundColor(.black.opacity(0.30))
@@ -516,15 +526,15 @@ struct ConciergeClarifyCard: View {
                     Image(systemName: "sparkles")
                         .font(.kuroCaption(weight: .semibold))
                         .foregroundColor(.black.opacity(0.45))
-                    Text("RECOMMEND")
+                    Text(isGerman ? "EMPFEHLEN" : "RECOMMEND")
                         .font(.kuroCaption(weight: .medium))
                         .tracking(1.8)
                         .foregroundColor(.black.opacity(0.55))
                 }
 
                 KuroGlassPill(
-                    title: "Describe a mood",
-                    subtitle: "Funny, cozy, dark, premium...",
+                    title: isGerman ? "Stimmung beschreiben" : "Describe a mood",
+                    subtitle: isGerman ? "Lustig, gemutlich, dunkel, hochwertig..." : "Funny, cozy, dark, premium...",
                     systemImage: "text.bubble",
                     action: onExampleVibe
                 )
@@ -538,7 +548,242 @@ struct ConciergeClarifyCard: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Choose: import titles or get recommendations")
+        .accessibilityLabel(isGerman ? "Wahlen: Titel importieren oder Empfehlungen erhalten" : "Choose: import titles or get recommendations")
+    }
+}
+
+// MARK: - Status Clarify Card (Finished vs Still Watching)
+
+struct ConciergeStatusClarifyCard: View {
+    let titleContext: String?
+    let onChoose: (_ status: String) -> Void
+
+    @State private var appeared: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+            // Header
+            Text(isGerman ? "Fertig geschaut?" : "Did you finish it?")
+                .font(.kuroBody(weight: .regular))
+                .foregroundColor(.black.opacity(0.82))
+                .offset(y: appeared ? 0 : 4)
+                .opacity(appeared ? 1 : 0)
+
+            // Title context
+            if let title = titleContext, !title.isEmpty {
+                Text(isGerman ? "Fur: \(title)" : "For: \(title)")
+                    .font(.kuroCaption())
+                    .foregroundColor(.black.opacity(0.55))
+                    .lineLimit(2)
+                    .offset(y: appeared ? 0 : 6)
+                    .opacity(appeared ? 1 : 0)
+            }
+
+            // One-tap pills
+            HStack(spacing: KuroDesignSpacing.sm) {
+                ClarifyChoicePill(
+                    label: isGerman ? "Fertig" : "Finished",
+                    systemImage: "checkmark.circle"
+                ) {
+                    KuroAccessibility.impactHaptic(.light)
+                    onChoose("COMPLETED")
+                }
+
+                ClarifyChoicePill(
+                    label: isGerman ? "Noch dabei" : "Still watching",
+                    systemImage: "play.circle"
+                ) {
+                    KuroAccessibility.impactHaptic(.light)
+                    onChoose("CURRENT")
+                }
+            }
+            .offset(y: appeared ? 0 : 8)
+            .opacity(appeared ? 1 : 0)
+        }
+        .onAppear {
+            withAnimation(KuroAnimation.editorial) {
+                appeared = true
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(isGerman ? "Klarung: Fertig geschaut?" : "Clarification: Did you finish it?")
+    }
+}
+
+// MARK: - Unit Clarify Card (Episode / Season / Chapter / Volume)
+
+struct ConciergeUnitClarifyCard: View {
+    let numberContext: String?
+    let onChoose: (_ unit: String) -> Void
+
+    @State private var appeared: Bool = false
+
+    private var headerText: String {
+        let num = numberContext ?? "?"
+        return isGerman
+            ? "Was bedeutet '\(num)'?"
+            : "What does '\(num)' refer to?"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+            // Header
+            Text(headerText)
+                .font(.kuroBody(weight: .regular))
+                .foregroundColor(.black.opacity(0.82))
+                .offset(y: appeared ? 0 : 4)
+                .opacity(appeared ? 1 : 0)
+
+            // Four one-tap pills in a 2x2 grid
+            VStack(spacing: KuroDesignSpacing.sm) {
+                HStack(spacing: KuroDesignSpacing.sm) {
+                    ClarifyChoicePill(
+                        label: isGerman ? "Folge" : "Episode",
+                        systemImage: "play.rectangle"
+                    ) {
+                        KuroAccessibility.impactHaptic(.light)
+                        onChoose("episode")
+                    }
+
+                    ClarifyChoicePill(
+                        label: isGerman ? "Staffel" : "Season",
+                        systemImage: "rectangle.stack"
+                    ) {
+                        KuroAccessibility.impactHaptic(.light)
+                        onChoose("season")
+                    }
+                }
+                .offset(y: appeared ? 0 : 6)
+                .opacity(appeared ? 1 : 0)
+
+                HStack(spacing: KuroDesignSpacing.sm) {
+                    ClarifyChoicePill(
+                        label: isGerman ? "Kapitel" : "Chapter",
+                        systemImage: "book"
+                    ) {
+                        KuroAccessibility.impactHaptic(.light)
+                        onChoose("chapter")
+                    }
+
+                    ClarifyChoicePill(
+                        label: isGerman ? "Band" : "Volume",
+                        systemImage: "books.vertical"
+                    ) {
+                        KuroAccessibility.impactHaptic(.light)
+                        onChoose("volume")
+                    }
+                }
+                .offset(y: appeared ? 0 : 10)
+                .opacity(appeared ? 1 : 0)
+            }
+        }
+        .onAppear {
+            withAnimation(KuroAnimation.editorial) {
+                appeared = true
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(isGerman ? "Klarung: Einheit wahlen" : "Clarification: Choose a unit")
+    }
+}
+
+// MARK: - Intent Clarify Card (Import vs Recommend)
+
+struct ConciergeIntentClarifyCard: View {
+    let titleContext: String?
+    let onChoose: (_ intent: String) -> Void
+
+    @State private var appeared: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+            Text(isGerman ? "Was möchtest du tun?" : "What do you want to do?")
+                .font(.kuroBody(weight: .regular))
+                .foregroundColor(.black.opacity(0.82))
+                .offset(y: appeared ? 0 : 4)
+                .opacity(appeared ? 1 : 0)
+
+            if let title = titleContext, !title.isEmpty {
+                Text(isGerman ? "Für: \(title)" : "For: \(title)")
+                    .font(.kuroCaption())
+                    .foregroundColor(.black.opacity(0.55))
+                    .lineLimit(2)
+                    .offset(y: appeared ? 0 : 6)
+                    .opacity(appeared ? 1 : 0)
+            }
+
+            HStack(spacing: KuroDesignSpacing.sm) {
+                ClarifyChoicePill(
+                    label: isGerman ? "Zur Liste" : "Add to list",
+                    systemImage: "square.and.arrow.down"
+                ) {
+                    KuroAccessibility.impactHaptic(.light)
+                    onChoose("import")
+                }
+
+                ClarifyChoicePill(
+                    label: isGerman ? "Als Vorlage" : "Use as seed",
+                    systemImage: "sparkles"
+                ) {
+                    KuroAccessibility.impactHaptic(.light)
+                    onChoose("recommend_seed")
+                }
+            }
+            .offset(y: appeared ? 0 : 8)
+            .opacity(appeared ? 1 : 0)
+        }
+        .onAppear {
+            withAnimation(KuroAnimation.editorial) {
+                appeared = true
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(isGerman ? "Klarung: Import oder Empfehlung" : "Clarification: import or recommendation")
+    }
+}
+
+// MARK: - Clarify Choice Pill (Shared one-tap button)
+
+private struct ClarifyChoicePill: View {
+    let label: String
+    let systemImage: String
+    let action: () -> Void
+
+    @State private var isPressed: Bool = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.kuroCaption(weight: .semibold))
+                    .foregroundColor(.black.opacity(0.55))
+
+                Text(label)
+                    .font(.kuroCaption(weight: .medium))
+                    .foregroundColor(.black.opacity(0.82))
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .scaleEffect(isPressed ? 0.97 : 1.0)
+        .animation(.interactiveSpring(response: 0.22, dampingFraction: 0.85), value: isPressed)
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.01)
+                .onChanged { _ in isPressed = true }
+                .onEnded { _ in isPressed = false }
+        )
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color.black.opacity(0.04))
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.7)
+                )
+        )
     }
 }
 
@@ -553,6 +798,7 @@ struct ConciergeBubble: View {
     let onClarifyPaste: () -> Void
     let onClarifyExampleImport: () -> Void
     let onClarifyExampleVibe: () -> Void
+    var onClarifyAmbiguity: ((_ kind: String, _ value: String, _ sourceText: String) -> Void)? = nil
     var onConfirmItems: ((SupabaseService.ConciergeParseResponse) -> Void)? = nil
     var onReparse: (() -> Void)? = nil
     var autoReasonByItemId: [String: String] = [:]
@@ -596,6 +842,12 @@ struct ConciergeBubble: View {
                             onExampleVibe: onClarifyExampleVibe
                         )
                         .frame(maxWidth: 420, alignment: .leading)
+                    }
+
+                    // Ambiguity clarification cards
+                    if let ambiguity = message.ambiguity, let sourceText = message.sourceUserText {
+                        ambiguityCard(ambiguity: ambiguity, sourceText: sourceText)
+                            .frame(maxWidth: 420, alignment: .leading)
                     }
 
                     // Inline confirm bubble for import items
@@ -686,6 +938,47 @@ struct ConciergeBubble: View {
                     )
                     .frame(maxWidth: 360, alignment: .trailing)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func ambiguityCard(ambiguity: SupabaseService.ConciergeAmbiguity, sourceText: String) -> some View {
+        switch ambiguity.kind {
+        case "status_unclear":
+            glassBubble(cornerRadius: KuroRadius.md) {
+                ConciergeStatusClarifyCard(
+                    titleContext: ambiguity.title_context
+                ) { status in
+                    onClarifyAmbiguity?(ambiguity.kind, status, sourceText)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+            }
+
+        case "unit_unclear":
+            glassBubble(cornerRadius: KuroRadius.md) {
+                ConciergeUnitClarifyCard(
+                    numberContext: ambiguity.number_context
+                ) { unit in
+                    onClarifyAmbiguity?(ambiguity.kind, unit, sourceText)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+            }
+
+        case "intent_unclear":
+            glassBubble(cornerRadius: KuroRadius.md) {
+                ConciergeIntentClarifyCard(
+                    titleContext: ambiguity.title_context
+                ) { intent in
+                    onClarifyAmbiguity?(ambiguity.kind, intent, sourceText)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+            }
+
+        default:
+            EmptyView()
         }
     }
 }

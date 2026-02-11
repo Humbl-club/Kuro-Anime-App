@@ -1,0 +1,522 @@
+[
+  {
+    "id": "parser_de_001",
+    "input": "Attack on Titan fertig 10/10",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "rating": 10 },
+    "expected_confidence_min": 0.8,
+    "expected_ambiguity": null,
+    "description": "Clear import with fertig and rating"
+  },
+  {
+    "id": "parser_de_002",
+    "input": "Naruto schaue gerade Folge 50",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING", "progressEpisodes": 50 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Watching with Folge progress"
+  },
+  {
+    "id": "parser_de_003",
+    "input": "JJK 9 von 10",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "rating": 9 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "X von Y rating"
+  },
+  {
+    "id": "parser_de_004",
+    "input": "ich habe Death Note geschaut",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "ich habe geschaut defaults to WATCHING"
+  },
+  {
+    "id": "parser_de_005",
+    "input": "ich habe One Piece komplett gesehen",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "completed": true },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Explicit komplett gesehen -> COMPLETED"
+  },
+  {
+    "id": "parser_de_006",
+    "input": "ich schaue Demon Slayer Staffel 2 Folge 5",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING", "seasonNumber": 2, "episodeInSeason": 5 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Watching with Staffel and Folge"
+  },
+  {
+    "id": "parser_de_007",
+    "input": "abgebrochen Sword Art Online",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "DROPPED" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Abgebrochen -> DROPPED"
+  },
+  {
+    "id": "parser_de_008",
+    "input": "geplant Vinland Saga",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PLANNING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Geplant -> PLANNING"
+  },
+  {
+    "id": "parser_de_009",
+    "input": "pausiert My Hero Academia",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PAUSED" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Pausiert -> PAUSED"
+  },
+  {
+    "id": "parser_de_010",
+    "input": "ich lese One Punch Man Kapitel 150",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "READING", "progressChapters": 150, "mediaTypeHint": "MANGA" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Reading manga with Kapitel progress"
+  },
+  {
+    "id": "parser_de_011",
+    "input": "Bleach abgeschlossen eine 8",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "rating": 8 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Abgeschlossen with eine X rating"
+  },
+  {
+    "id": "parser_de_012",
+    "input": "ich habe Steins;Gate bis zum Ende geschaut",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "completed": true },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "bis zum Ende explicit completion"
+  },
+  {
+    "id": "parser_de_013",
+    "input": "angefangen Berserk Band 3",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING", "progressVolumes": 3 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Angefangen with Band (volume)"
+  },
+  {
+    "id": "parser_de_014",
+    "input": "auf dem neuesten Stand mit Jujutsu Kaisen",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING", "caughtUp": true },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Caught up in German"
+  },
+  {
+    "id": "parser_de_015",
+    "input": "Hunter x Hunter (2011) fertig",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "yearMention": 2011 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Year mention with fertig"
+  },
+  {
+    "id": "parser_de_016",
+    "input": "Spy x Family bis Folge 8",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "progressEpisodes": 8 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "bis Folge preposition progress"
+  },
+  {
+    "id": "parser_de_017",
+    "input": "Chainsaw Man 8 Punkte",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "rating": 8 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Punkte rating"
+  },
+  {
+    "id": "parser_de_018",
+    "input": "Mob Psycho 100 alles gesehen",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "completed": true },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "alles gesehen explicit completion"
+  },
+  {
+    "id": "parser_de_019",
+    "input": "Folge 5 von 12 Bocchi the Rock",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "progressEpisodes": 5, "progressTotal": 12, "progressUnit": "episode" },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Folge X von Y progress"
+  },
+  {
+    "id": "parser_de_020",
+    "input": "Dragon Ball Z auf eis",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PAUSED" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "auf eis -> PAUSED"
+  },
+  {
+    "id": "parser_de_021",
+    "input": "will schauen Frieren",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PLANNING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "will schauen -> PLANNING"
+  },
+  {
+    "id": "parser_de_022",
+    "input": "ich habe Berserk Manga gelesen bis Kapitel 200",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "READING", "progressChapters": 200, "mediaTypeHint": "MANGA" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Reading manga with Kapitel progress"
+  },
+  {
+    "id": "parser_de_023",
+    "input": "Naruto 8 Sterne",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "rating": 8 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Sterne rating"
+  },
+  {
+    "id": "parser_de_024",
+    "input": "ich gucke Spy x Family",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "gucke -> WATCHING"
+  },
+  {
+    "id": "parser_de_025",
+    "input": "ich habe One Piece vollständig geschaut",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "completed": true },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "vollständig geschaut -> COMPLETED"
+  },
+  {
+    "id": "parser_de_026",
+    "input": "etwas düsteres und psychologisches",
+    "locale": "de",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Vibe-based recommendation (dark/psychological)"
+  },
+  {
+    "id": "parser_de_027",
+    "input": "ähnlich wie Steins;Gate",
+    "locale": "de",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Similar-to recommendation in German"
+  },
+  {
+    "id": "parser_de_028",
+    "input": "gemütlicher Slice of Life",
+    "locale": "de",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Cozy genre recommendation"
+  },
+  {
+    "id": "parser_de_029",
+    "input": "empfiehl mir etwas",
+    "locale": "de",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Generic recommendation request"
+  },
+  {
+    "id": "parser_de_030",
+    "input": "überrasch mich mit Action Anime",
+    "locale": "de",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Surprise me in German"
+  },
+  {
+    "id": "parser_de_031",
+    "input": "Geheimtipps die kaum jemand kennt",
+    "locale": "de",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Hidden gems in German"
+  },
+  {
+    "id": "parser_de_032",
+    "input": "was soll ich als nächstes schauen",
+    "locale": "de",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Open-ended recommendation"
+  },
+  {
+    "id": "parser_de_033",
+    "input": "neu bei anime wo fange ich an",
+    "locale": "de",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Gateway intent in German"
+  },
+  {
+    "id": "parser_de_034",
+    "input": "Klassiker die man gesehen haben muss",
+    "locale": "de",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Classics recommendation in German"
+  },
+  {
+    "id": "parser_de_035",
+    "input": "gute Anime Filme",
+    "locale": "de",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Movie recommendation in German"
+  },
+  {
+    "id": "parser_de_036",
+    "input": "Attack on Titan",
+    "locale": "de",
+    "expected_intent": "ambiguous",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": "intent_unclear",
+    "description": "Bare title in DE context"
+  },
+  {
+    "id": "parser_de_037",
+    "input": "geschaut",
+    "locale": "de",
+    "expected_intent": "ambiguous",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": "intent_unclear",
+    "description": "Status word without title"
+  },
+  {
+    "id": "parser_de_038",
+    "input": "bei 12",
+    "locale": "de",
+    "expected_intent": "ambiguous",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": "unit_unclear",
+    "description": "Number with preposition but no unit"
+  },
+  {
+    "id": "parser_de_039",
+    "input": "asdf",
+    "locale": "de",
+    "expected_intent": "gibberish",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": null,
+    "description": "Gibberish input"
+  },
+  {
+    "id": "parser_de_040",
+    "input": "12345",
+    "locale": "de",
+    "expected_intent": "gibberish",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": null,
+    "description": "Numbers only"
+  },
+  {
+    "id": "parser_de_041",
+    "input": "😀",
+    "locale": "de",
+    "expected_intent": "gibberish",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": null,
+    "description": "Single emoji"
+  },
+  {
+    "id": "parser_de_042",
+    "input": "   ",
+    "locale": "de",
+    "expected_intent": "gibberish",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": null,
+    "description": "Whitespace only"
+  },
+  {
+    "id": "parser_de_043",
+    "input": "",
+    "locale": "de",
+    "expected_intent": "gibberish",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": null,
+    "description": "Empty string"
+  },
+  {
+    "id": "parser_de_044",
+    "input": "ich hab Frieren angefangen",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Angefangen implies WATCHING"
+  },
+  {
+    "id": "parser_de_045",
+    "input": "gedroppt Naruto",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "DROPPED" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Gedroppt slang -> DROPPED"
+  },
+  {
+    "id": "parser_de_046",
+    "input": "ich habe Cowboy Bebop zur Hälfte geschaut",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "zur Hälfte -> partial WATCHING"
+  },
+  {
+    "id": "parser_de_047",
+    "input": "noch dabei mit Blue Lock",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "noch dabei -> still WATCHING"
+  },
+  {
+    "id": "parser_de_048",
+    "input": "möchte lesen Spy x Family Manga",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PLANNING", "mediaTypeHint": "MANGA" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "möchte lesen -> PLANNING manga"
+  },
+  {
+    "id": "parser_de_049",
+    "input": "beendet Cowboy Bebop",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "beendet -> COMPLETED"
+  },
+  {
+    "id": "parser_de_050",
+    "input": "ich habe AoT bis zur letzten Folge geschaut",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "completed": true },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "bis zur letzten Folge -> COMPLETED"
+  },
+  {
+    "id": "parser_de_051",
+    "input": "lese gerade Berserk bei Kapitel 300",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "READING", "progressChapters": 300, "mediaTypeHint": "MANGA" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "lese gerade with bei Kapitel"
+  },
+  {
+    "id": "parser_de_052",
+    "input": "ich habe Naruto teilweise geschaut",
+    "locale": "de",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "teilweise -> partial WATCHING"
+  }
+]

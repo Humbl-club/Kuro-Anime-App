@@ -689,7 +689,8 @@ extension ProtoConciergeParseItem {
             ),
             candidates: candidates,
             candidateError: nil,
-            existing_entry: existingEntry
+            existing_entry: existingEntry,
+            ambiguity: nil
         )
     }
 }

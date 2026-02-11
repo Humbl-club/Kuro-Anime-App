@@ -115,16 +115,35 @@ final class ConciergeHapticsManager {
 
 /// Analyzes text input to determine user intent using pattern matching
 struct ConciergeIntentDetector {
-    
+
     // MARK: - Detection Patterns
-    
-    /// Keywords that indicate recommendation requests
+
+    /// Keywords that indicate recommendation requests (EN + DE)
     private static let recommendationKeywords = [
+        // EN
         "recommend", "suggest", "like", "similar", "vibe", "mood",
         "feeling", "want", "looking for", "need", "any good",
-        "what should", "help me find"
+        "what should", "help me find",
+        // DE
+        "empfehlung", "empfehlen", "vorschlag", "vorschlagen",
+        "ähnlich", "aehnlich", "stimmung", "suche", "was soll",
+        "hilf mir", "zeig mir", "etwas wie", "so wie",
+        "kennst du", "hast du", "gibt es",
     ]
-    
+
+    /// Keywords that indicate import/status intent (single title with verb context)
+    private static let importKeywordsEN = [
+        "watched", "watching", "finished", "completed", "dropped",
+        "paused", "planning", "reading", "read", "started", "begun",
+        "on hold", "caught up",
+    ]
+
+    private static let importKeywordsDE = [
+        "geschaut", "gesehen", "gelesen", "fertig", "abgeschlossen",
+        "beendet", "abgebrochen", "pausiert", "geplant", "angefangen",
+        "schaue", "gucke", "lese", "noch dabei", "auf eis",
+    ]
+
     /// Patterns that indicate list separators
     private static let listSeparators = [
         "\n",                    // New lines
@@ -132,60 +151,82 @@ struct ConciergeIntentDetector {
         ";",                     // Semicolon
         "•", "·", "-", "–", "—"  // Bullet points and dashes
     ]
-    
+
     // MARK: - Detection Logic
-    
+
     /// Analyzes text and returns detected intent
     static func detect(from text: String) -> PrototypeConciergeIntent {
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         // Empty input = unknown intent
         guard !trimmedText.isEmpty else {
             return .unknown
         }
-        
+
+        // Normalize for consistent matching
+        let normalized = TextNormalization.normalizeText(trimmedText)
+
         // Check for list patterns first (prioritize import intent)
         if let listCount = detectListCount(in: trimmedText) {
             return .importList(count: listCount)
         }
-        
-        // Check for recommendation keywords
-        if detectRecommendationIntent(in: trimmedText) {
+
+        // Check for recommendation keywords (using normalized text)
+        if detectRecommendationIntent(in: normalized) {
             return .recommendation
         }
-        
+
+        // Check for import keywords on single-item inputs
+        if detectImportIntent(in: normalized) {
+            return .importList(count: 1)
+        }
+
         return .unknown
     }
-    
+
     /// Detects if text contains a list and counts items
     private static func detectListCount(in text: String) -> Int? {
         // Check for multiple lines
         let lines = text.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-        
+
         if lines.count >= 2 {
             return min(lines.count, 99) // Cap at 99 for UI display
         }
-        
+
         // Check for comma-separated items (at least 2)
         let commaItems = text.components(separatedBy: ",")
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-        
+
         if commaItems.count >= 2 {
             return min(commaItems.count, 99)
         }
-        
+
         return nil
     }
-    
-    /// Checks for recommendation-related keywords
+
+    /// Checks for recommendation-related keywords (EN + DE)
     private static func detectRecommendationIntent(in text: String) -> Bool {
         let lowercased = text.lowercased()
-        
+        let folded = TextNormalization.umlautFold(lowercased)
+
         return recommendationKeywords.contains { keyword in
-            lowercased.contains(keyword.lowercased())
+            let foldedKeyword = TextNormalization.umlautFold(keyword.lowercased())
+            return lowercased.contains(keyword.lowercased()) || folded.contains(foldedKeyword)
+        }
+    }
+
+    /// Checks for import/status keywords that indicate a single-title import
+    private static func detectImportIntent(in text: String) -> Bool {
+        let lowercased = text.lowercased()
+        let folded = TextNormalization.umlautFold(lowercased)
+
+        let allKeywords = importKeywordsEN + importKeywordsDE
+        return allKeywords.contains { keyword in
+            let foldedKeyword = TextNormalization.umlautFold(keyword.lowercased())
+            return lowercased.contains(keyword) || folded.contains(foldedKeyword)
         }
     }
 }

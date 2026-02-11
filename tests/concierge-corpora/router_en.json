@@ -1,0 +1,282 @@
+[
+  {
+    "id": "router_en_001",
+    "input": "dark thriller anime",
+    "locale": "en",
+    "expected_mode": "dark_serious",
+    "excluded_genres": [],
+    "description": "dark + thriller -> dark_serious"
+  },
+  {
+    "id": "router_en_002",
+    "input": "cozy comfort anime",
+    "locale": "en",
+    "expected_mode": "cozy_comfort",
+    "excluded_genres": [],
+    "description": "cozy + comfort -> cozy_comfort"
+  },
+  {
+    "id": "router_en_003",
+    "input": "best action anime with epic fights",
+    "locale": "en",
+    "expected_mode": "premium_action",
+    "excluded_genres": [],
+    "description": "action keyword"
+  },
+  {
+    "id": "router_en_004",
+    "input": "funny comedy anime",
+    "locale": "en",
+    "expected_mode": "premium_comedy_grownup",
+    "excluded_genres": [],
+    "description": "comedy/funny -> premium_comedy_grownup"
+  },
+  {
+    "id": "router_en_005",
+    "input": "hidden gems underrated anime",
+    "locale": "en",
+    "expected_mode": "hidden_gems",
+    "excluded_genres": [],
+    "description": "hidden gems intent"
+  },
+  {
+    "id": "router_en_006",
+    "input": "classic must watch essentials",
+    "locale": "en",
+    "expected_mode": "classics_expanded",
+    "excluded_genres": [],
+    "description": "classics intent"
+  },
+  {
+    "id": "router_en_007",
+    "input": "90s retro anime old school",
+    "locale": "en",
+    "expected_mode": "classics_expanded",
+    "excluded_genres": [],
+    "description": "90s + retro -> classics"
+  },
+  {
+    "id": "router_en_008",
+    "input": "short anime one season binge",
+    "locale": "en",
+    "expected_mode": "short_one_season",
+    "excluded_genres": [],
+    "description": "short + one season -> short_one_season"
+  },
+  {
+    "id": "router_en_009",
+    "input": "anime movie recommendations",
+    "locale": "en",
+    "expected_mode": "movie_night",
+    "excluded_genres": [],
+    "description": "movie intent"
+  },
+  {
+    "id": "router_en_010",
+    "input": "serious romance with heartbreak",
+    "locale": "en",
+    "expected_mode": "romance_serious",
+    "excluded_genres": [],
+    "description": "serious romance keywords"
+  },
+  {
+    "id": "router_en_011",
+    "input": "romcom anime recommendations",
+    "locale": "en",
+    "expected_mode": "romcom",
+    "excluded_genres": [],
+    "description": "romcom keyword"
+  },
+  {
+    "id": "router_en_012",
+    "input": "isekai anime transported to another world",
+    "locale": "en",
+    "expected_mode": "isekai",
+    "excluded_genres": [],
+    "description": "isekai keyword"
+  },
+  {
+    "id": "router_en_013",
+    "input": "fantasy no isekai",
+    "locale": "en",
+    "expected_mode": "fantasy_non_isekai",
+    "excluded_genres": [],
+    "description": "no isekai intent"
+  },
+  {
+    "id": "router_en_014",
+    "input": "first anime recommendations",
+    "locale": "en",
+    "expected_mode": "gateway_start_here",
+    "excluded_genres": [],
+    "description": "gateway intent"
+  },
+  {
+    "id": "router_en_015",
+    "input": "horror anime scary creepy",
+    "locale": "en",
+    "expected_mode": "horror_supernatural",
+    "excluded_genres": [],
+    "description": "horror keywords"
+  },
+  {
+    "id": "router_en_016",
+    "input": "sci-fi cyberpunk anime",
+    "locale": "en",
+    "expected_mode": "scifi",
+    "excluded_genres": [],
+    "description": "sci-fi keyword"
+  },
+  {
+    "id": "router_en_017",
+    "input": "sports anime basketball",
+    "locale": "en",
+    "expected_mode": "sports",
+    "excluded_genres": [],
+    "description": "sports keyword"
+  },
+  {
+    "id": "router_en_018",
+    "input": "mecha giant robot anime",
+    "locale": "en",
+    "expected_mode": "mecha",
+    "excluded_genres": [],
+    "description": "mecha keyword"
+  },
+  {
+    "id": "router_en_019",
+    "input": "mystery detective whodunit",
+    "locale": "en",
+    "expected_mode": "mystery_detective",
+    "excluded_genres": [],
+    "description": "mystery keyword"
+  },
+  {
+    "id": "router_en_020",
+    "input": "music anime band idol",
+    "locale": "en",
+    "expected_mode": "music_performance",
+    "excluded_genres": [],
+    "description": "music anime keyword"
+  },
+  {
+    "id": "router_en_021",
+    "input": "historical samurai period drama",
+    "locale": "en",
+    "expected_mode": "historical",
+    "excluded_genres": [],
+    "description": "historical keyword"
+  },
+  {
+    "id": "router_en_022",
+    "input": "school anime coming of age",
+    "locale": "en",
+    "expected_mode": "school_coming_of_age",
+    "excluded_genres": [],
+    "description": "school intent"
+  },
+  {
+    "id": "router_en_023",
+    "input": "shoujo josei anime for women",
+    "locale": "en",
+    "expected_mode": "shoujo_josei",
+    "excluded_genres": [],
+    "description": "shoujo/josei intent"
+  },
+  {
+    "id": "router_en_024",
+    "input": "similar to Attack on Titan",
+    "locale": "en",
+    "expected_mode": "similar_to_seed",
+    "excluded_genres": [],
+    "description": "similar to -> seed routing"
+  },
+  {
+    "id": "router_en_025",
+    "input": "AOT",
+    "locale": "en",
+    "expected_mode": "similar_to_seed",
+    "excluded_genres": [],
+    "description": "abbreviation -> seed"
+  },
+  {
+    "id": "router_en_026",
+    "input": "recommend something",
+    "locale": "en",
+    "expected_mode": "premium_picks",
+    "excluded_genres": [],
+    "description": "vague -> fallback to premium_picks"
+  },
+  {
+    "id": "router_en_027",
+    "input": "asdfghjkl",
+    "locale": "en",
+    "expected_mode": "premium_picks",
+    "excluded_genres": [],
+    "description": "gibberish -> fallback"
+  },
+  {
+    "id": "router_en_028",
+    "input": "",
+    "locale": "en",
+    "expected_mode": "premium_picks",
+    "excluded_genres": [],
+    "description": "empty -> fallback"
+  },
+  {
+    "id": "router_en_029",
+    "input": "action but no romance",
+    "locale": "en",
+    "expected_mode": "premium_action",
+    "excluded_genres": ["Romance"],
+    "description": "action with romance exclusion"
+  },
+  {
+    "id": "router_en_030",
+    "input": "comedy but no action",
+    "locale": "en",
+    "expected_mode": "premium_comedy_grownup",
+    "excluded_genres": ["Action"],
+    "description": "comedy with action exclusion"
+  },
+  {
+    "id": "router_en_031",
+    "input": "truck-kun anime reincarnated in another world",
+    "locale": "en",
+    "expected_mode": "isekai",
+    "excluded_genres": [],
+    "description": "truck-kun + reincarnated -> isekai"
+  },
+  {
+    "id": "router_en_032",
+    "input": "bittersweet love story",
+    "locale": "en",
+    "expected_mode": "romance_serious",
+    "excluded_genres": [],
+    "description": "bittersweet -> romance_serious"
+  },
+  {
+    "id": "router_en_033",
+    "input": "something like FMAB",
+    "locale": "en",
+    "expected_mode": "similar_to_seed",
+    "excluded_genres": [],
+    "description": "like abbreviation -> seed"
+  },
+  {
+    "id": "router_en_034",
+    "input": "getting into anime where do i start",
+    "locale": "en",
+    "expected_mode": "gateway_start_here",
+    "excluded_genres": [],
+    "description": "gateway phrase"
+  },
+  {
+    "id": "router_en_035",
+    "input": "no romance fantasy anime",
+    "locale": "en",
+    "expected_mode": "fantasy_non_isekai",
+    "excluded_genres": ["Romance"],
+    "description": "fantasy with romance exclusion"
+  }
+]

@@ -8,6 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 declare -a GATES=(
   "secrets:check_secrets.sh:1"
   "migrations:check_migrations.sh:1"
+  "concierge-corpora:test_concierge_corpora.sh:1"
   "router-tests:test_router_offline.sh:1"
   "rails-audit:audit_rails.sh:1"
   "ios-build:build_ios.sh:1"

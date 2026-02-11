@@ -1,0 +1,258 @@
+[
+  {
+    "id": "router_de_001",
+    "input": "düsteres dunkles Anime",
+    "locale": "de",
+    "expected_mode": "dark_serious",
+    "excluded_genres": [],
+    "description": "DE: dark keyword -> dark_serious"
+  },
+  {
+    "id": "router_de_002",
+    "input": "gemütliches Anime zum Entspannen",
+    "locale": "de",
+    "expected_mode": "cozy_comfort",
+    "excluded_genres": [],
+    "description": "DE: gemütlich + entspannen -> cozy_comfort"
+  },
+  {
+    "id": "router_de_003",
+    "input": "gruselig horror Anime",
+    "locale": "de",
+    "expected_mode": "horror_supernatural",
+    "excluded_genres": [],
+    "description": "DE: gruselig -> horror_supernatural"
+  },
+  {
+    "id": "router_de_004",
+    "input": "historisches Samurai Anime",
+    "locale": "de",
+    "expected_mode": "historical",
+    "excluded_genres": [],
+    "description": "DE: historisch + samurai -> historical"
+  },
+  {
+    "id": "router_de_005",
+    "input": "romantisches Anime empfehlung",
+    "locale": "de",
+    "expected_mode": "romcom",
+    "excluded_genres": [],
+    "description": "DE: romantisch base form -> romcom (romance keyword)"
+  },
+  {
+    "id": "router_de_006",
+    "input": "unheimlich Geister Anime",
+    "locale": "de",
+    "expected_mode": "horror_supernatural",
+    "excluded_genres": [],
+    "description": "DE: unheimlich -> horror_supernatural"
+  },
+  {
+    "id": "router_de_007",
+    "input": "anime anfangen erste Empfehlung",
+    "locale": "de",
+    "expected_mode": "gateway_start_here",
+    "excluded_genres": [],
+    "description": "DE: anime anfangen -> gateway"
+  },
+  {
+    "id": "router_de_008",
+    "input": "Klassiker Anime Meisterwerk",
+    "locale": "de",
+    "expected_mode": "classics_expanded",
+    "excluded_genres": [],
+    "description": "DE: klassiker + meisterwerk -> classics"
+  },
+  {
+    "id": "router_de_009",
+    "input": "entspannende Wohlfühl Anime",
+    "locale": "de",
+    "expected_mode": "cozy_comfort",
+    "excluded_genres": [],
+    "description": "DE: wohlfühl -> cozy_comfort"
+  },
+  {
+    "id": "router_de_010",
+    "input": "lustiges Comedy Anime",
+    "locale": "de",
+    "expected_mode": "premium_comedy_grownup",
+    "excluded_genres": [],
+    "description": "DE: comedy keyword -> premium_comedy_grownup"
+  },
+  {
+    "id": "router_de_011",
+    "input": "ohne Isekai Fantasy Anime",
+    "locale": "de",
+    "expected_mode": "fantasy_non_isekai",
+    "excluded_genres": [],
+    "description": "DE: ohne isekai -> fantasy_non_isekai"
+  },
+  {
+    "id": "router_de_012",
+    "input": "Fussball Anime",
+    "locale": "de",
+    "expected_mode": "sports",
+    "excluded_genres": [],
+    "description": "DE: fussball -> sports"
+  },
+  {
+    "id": "router_de_013",
+    "input": "Weltraum Zukunft Anime",
+    "locale": "de",
+    "expected_mode": "scifi",
+    "excluded_genres": [],
+    "description": "DE: weltraum + zukunft -> scifi"
+  },
+  {
+    "id": "router_de_014",
+    "input": "Krimi Detektiv Anime",
+    "locale": "de",
+    "expected_mode": "mystery_detective",
+    "excluded_genres": [],
+    "description": "DE: krimi -> mystery_detective"
+  },
+  {
+    "id": "router_de_015",
+    "input": "Mittelalter Anime",
+    "locale": "de",
+    "expected_mode": "historical",
+    "excluded_genres": [],
+    "description": "DE: mittelalter -> historical"
+  },
+  {
+    "id": "router_de_016",
+    "input": "Schule Jugend Anime",
+    "locale": "de",
+    "expected_mode": "school_coming_of_age",
+    "excluded_genres": [],
+    "description": "DE: schule + jugend -> school_coming_of_age"
+  },
+  {
+    "id": "router_de_017",
+    "input": "Josei Anime fuer Frauen",
+    "locale": "de",
+    "expected_mode": "shoujo_josei",
+    "excluded_genres": [],
+    "description": "DE: josei + fuer frauen -> shoujo_josei"
+  },
+  {
+    "id": "router_de_018",
+    "input": "Anime Film empfehlung",
+    "locale": "de",
+    "expected_mode": "movie_night",
+    "excluded_genres": [],
+    "description": "DE: film -> movie_night"
+  },
+  {
+    "id": "router_de_019",
+    "input": "kurze Serie eine Staffel",
+    "locale": "de",
+    "expected_mode": "short_one_season",
+    "excluded_genres": [],
+    "description": "DE: kurze serie + eine staffel -> short_one_season"
+  },
+  {
+    "id": "router_de_020",
+    "input": "Action Anime empfehlung",
+    "locale": "de",
+    "expected_mode": "premium_action",
+    "excluded_genres": [],
+    "description": "DE: action keyword (loan word)"
+  },
+  {
+    "id": "router_de_021",
+    "input": "empfiehl mir etwas",
+    "locale": "de",
+    "expected_mode": "premium_picks",
+    "excluded_genres": [],
+    "description": "DE: vague -> fallback"
+  },
+  {
+    "id": "router_de_022",
+    "input": "asdfghjkl",
+    "locale": "de",
+    "expected_mode": "premium_picks",
+    "excluded_genres": [],
+    "description": "DE: gibberish -> fallback"
+  },
+  {
+    "id": "router_de_023",
+    "input": "",
+    "locale": "de",
+    "expected_mode": "premium_picks",
+    "excluded_genres": [],
+    "description": "DE: empty -> fallback"
+  },
+  {
+    "id": "router_de_024",
+    "input": "Musik Anime Band",
+    "locale": "de",
+    "expected_mode": "music_performance",
+    "excluded_genres": [],
+    "description": "DE: musik anime -> music_performance"
+  },
+  {
+    "id": "router_de_025",
+    "input": "Mecha Riesenroboter Anime",
+    "locale": "de",
+    "expected_mode": "mecha",
+    "excluded_genres": [],
+    "description": "DE: mecha -> mecha"
+  },
+  {
+    "id": "router_de_026",
+    "input": "übernatürliches Geister Anime",
+    "locale": "de",
+    "expected_mode": "horror_supernatural",
+    "excluded_genres": [],
+    "description": "DE: supernatural keyword"
+  },
+  {
+    "id": "router_de_027",
+    "input": "Isekai Anime in eine andere Welt",
+    "locale": "de",
+    "expected_mode": "isekai",
+    "excluded_genres": [],
+    "description": "DE: isekai keyword"
+  },
+  {
+    "id": "router_de_028",
+    "input": "neu bei Anime wo fange ich an",
+    "locale": "de",
+    "expected_mode": "gateway_start_here",
+    "excluded_genres": [],
+    "description": "DE: neu bei anime -> gateway"
+  },
+  {
+    "id": "router_de_029",
+    "input": "schauriges Anime Empfehlung",
+    "locale": "de",
+    "expected_mode": "horror_supernatural",
+    "excluded_genres": [],
+    "description": "DE: schaurig -> horror_supernatural"
+  },
+  {
+    "id": "router_de_030",
+    "input": "Romance Anime ohne Action",
+    "locale": "de",
+    "expected_mode": "romcom",
+    "excluded_genres": ["Action"],
+    "description": "DE: romance with action exclusion"
+  },
+  {
+    "id": "router_de_031",
+    "input": "legendäres Anime 90er",
+    "locale": "de",
+    "expected_mode": "classics_expanded",
+    "excluded_genres": [],
+    "description": "DE: legendär + 90s -> classics"
+  },
+  {
+    "id": "router_de_032",
+    "input": "Shoujo Maedchen Anime",
+    "locale": "de",
+    "expected_mode": "shoujo_josei",
+    "excluded_genres": [],
+    "description": "DE: shoujo + maedchen -> shoujo_josei"
+  }
+]

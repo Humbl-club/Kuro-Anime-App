@@ -16,6 +16,9 @@ class SupabaseService {
     // Apple Foundation Models service (on-device classification/condensation)
     let fmService = AppleFMService()
 
+    // Concierge telemetry (fire-and-forget, privacy-safe)
+    let analytics = ConciergeAnalytics.shared
+
     // Supabase client
     private let client: SupabaseClient
     // Realtime (user-scoped) subscriptions
@@ -330,6 +333,7 @@ class SupabaseService {
             supabaseURL: url,
             supabaseKey: key
         )
+        analytics.configure(client: client)
         #if DEBUG
         print("🔥 Supabase client initialized: \(url.host ?? url.absoluteString)")
         #endif
@@ -347,11 +351,13 @@ class SupabaseService {
             authErrorMessage = nil
             currentUserEmail = session.user.email
             currentUserId = session.user.id.uuidString
+            analytics.setUserId(currentUserId)
             await ensureProfileRow()
             await bootstrapAfterAuth()
         } catch {
             isAuthenticated = false
             currentUserId = nil
+            analytics.setUserId(nil)
         }
     }
 
@@ -363,12 +369,14 @@ class SupabaseService {
             isAuthenticated = true
             currentUserEmail = session.user.email
             currentUserId = session.user.id.uuidString
+            analytics.setUserId(currentUserId)
             await ensureProfileRow()
             await bootstrapAfterAuth()
         } catch {
             authErrorMessage = error.localizedDescription
             isAuthenticated = false
             currentUserId = nil
+            analytics.setUserId(nil)
             throw error
         }
     }
@@ -382,11 +390,13 @@ class SupabaseService {
                 isAuthenticated = true
                 currentUserEmail = session.user.email
                 currentUserId = session.user.id.uuidString
+                analytics.setUserId(currentUserId)
                 await ensureProfileRow()
                 await bootstrapAfterAuth()
             } else {
                 isAuthenticated = false
                 currentUserId = nil
+                analytics.setUserId(nil)
             }
         } catch {
             authErrorMessage = error.localizedDescription
@@ -410,6 +420,8 @@ class SupabaseService {
         authErrorMessage = nil
         stopCountdownUpdates()
         resetUserState()
+        analytics.setUserId(nil)
+        FeatureFlags.shared.setUserId(nil)
     }
 
     private func resetUserState() {
@@ -448,6 +460,9 @@ class SupabaseService {
         await fetchUpcomingForUser(days: 7)
         startCountdownUpdates()
         subscribeToUpdates()
+
+        // Refresh server-controlled feature flags (non-blocking; stale cache used on failure).
+        await FeatureFlags.shared.refresh(client: client, userId: currentUserId)
     }
 
     private func currentUserIdString() async -> String? {
@@ -3102,6 +3117,14 @@ class SupabaseService {
         let updated_at: String
     }
 
+    struct ConciergeAmbiguity: Decodable, Sendable {
+        let kind: String             // "status_unclear", "unit_unclear", "intent_unclear"
+        let options: [String]?       // e.g. ["COMPLETED", "CURRENT"] or ["episode", "season", "chapter", "volume"]
+        let suggested_question: String?
+        let title_context: String?   // title the ambiguity relates to
+        let number_context: String?  // the ambiguous number (for unit_unclear)
+    }
+
     struct ConciergeParseItem: Decodable, Sendable, Identifiable {
         let raw: String
         let normalized: String
@@ -3109,6 +3132,7 @@ class SupabaseService {
         let candidates: [ConciergeCandidate]
         let candidateError: String?
         let existing_entry: ConciergeExistingEntry?
+        let ambiguity: ConciergeAmbiguity?
 
         var id: String { raw + "|" + normalized }
     }
@@ -3137,11 +3161,12 @@ class SupabaseService {
         }
     }
 
-    func conciergeParse(text: String, scope: ConciergeScope = .both, limitPerItem: Int = 10) async throws -> ConciergeParseResponse {
+    func conciergeParse(text: String, scope: ConciergeScope = .both, limitPerItem: Int = 10, clarification: [String: String]? = nil) async throws -> ConciergeParseResponse {
         let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let lim = max(3, min(15, limitPerItem))
         let user = await currentUserIdString() ?? "anon"
-        let key = "concierge_parse|\(user)|\(scope.rawValue)|\(lim)|\(normalized)"
+        let clarifyKey = clarification.map { $0.sorted(by: { $0.key < $1.key }).map { "\($0.key)=\($0.value)" }.joined(separator: "&") } ?? ""
+        let key = "concierge_parse|\(user)|\(scope.rawValue)|\(lim)|\(normalized)|\(clarifyKey)"
 
         let now = Date()
         // Very short TTL: just enough to make back-to-back retries feel instant.
@@ -3154,12 +3179,16 @@ class SupabaseService {
 
         // Run decoding off the main actor to avoid UI jank (keyboard/input stutter).
         let client = self.client
+        let clarify = clarification
         let task = Task<ConciergeParseResponse, Error>.detached(priority: .userInitiated) {
-            let payload = [
+            var payload: [String: Any] = [
                 "text": text,
                 "scope": scope.rawValue,
                 "limitPerItem": lim,
-            ] as [String : Any]
+            ]
+            if let clarify {
+                payload["clarification"] = clarify
+            }
             let data = try JSONSerialization.data(withJSONObject: payload, options: [])
             let options = FunctionInvokeOptions(method: .post, body: data)
             let resp: ConciergeParseResponse = try await SupabaseService.withRetry {
@@ -3291,9 +3320,19 @@ class SupabaseService {
             let reason: String?
             let items: [Item]?
         }
+        struct Assist: Decodable, Sendable {
+            let ragUsed: Bool?
+            let seedEntityId: String?
+
+            enum CodingKeys: String, CodingKey {
+                case ragUsed
+                case seedEntityId
+            }
+        }
         let modes: [Mode]?
         let sets: [Set]?
         let items: [Item]?
+        let assist: Assist?
         let message: String?
         let narrated: Bool?
         let error: String?
@@ -3338,6 +3377,40 @@ class SupabaseService {
             return resp
         } catch {
             throw translateConciergeFunctionError(error)
+        }
+    }
+
+    /// Best-effort feedback for server-side RAG retrieval.
+    /// Never throws to callers by design; failures are debug-logged only.
+    func conciergeRetrieveFeedback(
+        query: String,
+        locale: String,
+        selectedEntityId: String?,
+        accepted: Bool,
+        rejectedReason: String? = nil
+    ) async {
+        do {
+            var payload: [String: Any] = [
+                "query": query,
+                "locale": locale,
+                "accepted": accepted,
+            ]
+            if let selectedEntityId, !selectedEntityId.isEmpty {
+                payload["selected_entity_id"] = selectedEntityId
+            }
+            if let rejectedReason, !rejectedReason.isEmpty {
+                payload["rejected_reason"] = rejectedReason
+            }
+            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+            let options = FunctionInvokeOptions(method: .post, body: data)
+            let _: [String: Bool] = try await client.functions.invoke(
+                "concierge-retrieve-feedback",
+                options: options
+            )
+        } catch {
+            #if DEBUG
+            print("[SupabaseService] conciergeRetrieveFeedback failed: \(error.localizedDescription)")
+            #endif
         }
     }
     

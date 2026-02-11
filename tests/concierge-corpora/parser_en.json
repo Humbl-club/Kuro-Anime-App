@@ -1,0 +1,552 @@
+[
+  {
+    "id": "parser_en_001",
+    "input": "Attack on Titan completed 10/10",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "rating": 10 },
+    "expected_confidence_min": 0.8,
+    "expected_ambiguity": null,
+    "description": "Clear import with status and rating"
+  },
+  {
+    "id": "parser_en_002",
+    "input": "add Naruto watching ep 50",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING", "progressEpisodes": 50 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Import with status and episode progress"
+  },
+  {
+    "id": "parser_en_003",
+    "input": "I finished One Piece 9/10",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "rating": 9 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Finished verb implies completed"
+  },
+  {
+    "id": "parser_en_004",
+    "input": "I'm watching Demon Slayer season 2 episode 5",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING", "seasonNumber": 2, "episodeInSeason": 5 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Watching with season and episode"
+  },
+  {
+    "id": "parser_en_005",
+    "input": "dropped Sword Art Online",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "DROPPED" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Dropped status"
+  },
+  {
+    "id": "parser_en_006",
+    "input": "planning to watch Vinland Saga",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PLANNING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Planning status"
+  },
+  {
+    "id": "parser_en_007",
+    "input": "I paused My Hero Academia",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PAUSED" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Paused status"
+  },
+  {
+    "id": "parser_en_008",
+    "input": "JJK completed 8.5/10",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "rating": 8.5 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Abbreviation with completed and decimal rating"
+  },
+  {
+    "id": "parser_en_009",
+    "input": "I watched Steins;Gate to the end",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "completed": true },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Explicit completion with magic flag"
+  },
+  {
+    "id": "parser_en_010",
+    "input": "reading One Punch Man chapter 150",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "READING", "progressChapters": 150, "mediaTypeHint": "MANGA" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Reading manga with chapter progress"
+  },
+  {
+    "id": "parser_en_011",
+    "input": "I have watched Fullmetal Alchemist Brotherhood",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Past tense watched defaults to WATCHING"
+  },
+  {
+    "id": "parser_en_012",
+    "input": "I started reading Berserk volume 3",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "READING", "progressVolumes": 3, "mediaTypeHint": "MANGA" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Started reading manga with volume progress"
+  },
+  {
+    "id": "parser_en_013",
+    "input": "caught up with Jujutsu Kaisen",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING", "caughtUp": true },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Caught up magic flag"
+  },
+  {
+    "id": "parser_en_014",
+    "input": "Hunter x Hunter (2011) completed",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "yearMention": 2011 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Year mention with completed status"
+  },
+  {
+    "id": "parser_en_015",
+    "input": "I watched Death Note all of it 10/10",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "completed": true, "rating": 10 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Explicit all-of-it completion with rating"
+  },
+  {
+    "id": "parser_en_016",
+    "input": "Spy x Family S2E8",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "seasonNumber": 2, "episodeInSeason": 8 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "SxE shorthand progress"
+  },
+  {
+    "id": "parser_en_017",
+    "input": "Chainsaw Man ⭐⭐⭐⭐⭐⭐⭐⭐",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "rating": 8 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Star emoji rating"
+  },
+  {
+    "id": "parser_en_018",
+    "input": "I just finished Mob Psycho 100 every season fully",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "COMPLETED", "completed": true },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Explicit completion with every season"
+  },
+  {
+    "id": "parser_en_019",
+    "input": "5 of 12 episodes Bocchi the Rock",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "progressEpisodes": 5, "progressTotal": 12, "progressUnit": "episode" },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "X of Y episodes progress"
+  },
+  {
+    "id": "parser_en_020",
+    "input": "Dragon Ball Z on hold",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PAUSED" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "On hold maps to PAUSED"
+  },
+  {
+    "id": "parser_en_021",
+    "input": "plan to watch Frieren",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PLANNING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Plan to watch phrase"
+  },
+  {
+    "id": "parser_en_022",
+    "input": "I read Spy x Family manga 10 of 12 chapters",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "READING", "progressChapters": 10, "progressTotal": 12, "mediaTypeHint": "MANGA" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Reading manga with chapter progress"
+  },
+  {
+    "id": "parser_en_023",
+    "input": "AoT season II episode 5",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "seasonNumber": 2, "episodeInSeason": 5 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Roman numeral season"
+  },
+  {
+    "id": "parser_en_024",
+    "input": "Naruto 8 stars",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "rating": 8 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Stars word rating"
+  },
+  {
+    "id": "parser_en_025",
+    "input": "I watched Cowboy Bebop, Trigun, and Samurai Champloo",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Multi-title comma-separated import (first item)"
+  },
+  {
+    "id": "parser_en_026",
+    "input": "something dark and psychological",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Vibe-based recommendation request"
+  },
+  {
+    "id": "parser_en_027",
+    "input": "like Steins;Gate",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Similar-to recommendation"
+  },
+  {
+    "id": "parser_en_028",
+    "input": "cozy slice of life anime",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Cozy genre recommendation"
+  },
+  {
+    "id": "parser_en_029",
+    "input": "recommend something good",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Explicit recommend request"
+  },
+  {
+    "id": "parser_en_030",
+    "input": "surprise me with action anime",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Surprise me recommendation"
+  },
+  {
+    "id": "parser_en_031",
+    "input": "hidden gems I haven't seen",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Hidden gems recommendation"
+  },
+  {
+    "id": "parser_en_032",
+    "input": "what should I watch next",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Open-ended recommendation"
+  },
+  {
+    "id": "parser_en_033",
+    "input": "something similar to Death Note",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Similar-to with title"
+  },
+  {
+    "id": "parser_en_034",
+    "input": "good anime movies",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Movie format recommendation"
+  },
+  {
+    "id": "parser_en_035",
+    "input": "short anime under 13 episodes",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Short format with episode constraint"
+  },
+  {
+    "id": "parser_en_036",
+    "input": "classic must watch essentials",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Classics recommendation"
+  },
+  {
+    "id": "parser_en_037",
+    "input": "first anime recommendations",
+    "locale": "en",
+    "expected_intent": "recommend",
+    "expected_slots": {},
+    "expected_confidence_min": 0.5,
+    "expected_ambiguity": null,
+    "description": "Gateway intent"
+  },
+  {
+    "id": "parser_en_038",
+    "input": "Attack on Titan",
+    "locale": "en",
+    "expected_intent": "ambiguous",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": "intent_unclear",
+    "description": "Bare title - unclear if import or recommend"
+  },
+  {
+    "id": "parser_en_039",
+    "input": "watched it",
+    "locale": "en",
+    "expected_intent": "ambiguous",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": "intent_unclear",
+    "description": "Status verb but no title"
+  },
+  {
+    "id": "parser_en_040",
+    "input": "at 12",
+    "locale": "en",
+    "expected_intent": "ambiguous",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": "unit_unclear",
+    "description": "Number without unit context"
+  },
+  {
+    "id": "parser_en_041",
+    "input": "asdf",
+    "locale": "en",
+    "expected_intent": "gibberish",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": null,
+    "description": "Gibberish input"
+  },
+  {
+    "id": "parser_en_042",
+    "input": "12345",
+    "locale": "en",
+    "expected_intent": "gibberish",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": null,
+    "description": "Numbers only"
+  },
+  {
+    "id": "parser_en_043",
+    "input": "😀",
+    "locale": "en",
+    "expected_intent": "gibberish",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": null,
+    "description": "Single emoji"
+  },
+  {
+    "id": "parser_en_044",
+    "input": "   ",
+    "locale": "en",
+    "expected_intent": "gibberish",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": null,
+    "description": "Whitespace only"
+  },
+  {
+    "id": "parser_en_045",
+    "input": "",
+    "locale": "en",
+    "expected_intent": "gibberish",
+    "expected_slots": {},
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": null,
+    "description": "Empty string"
+  },
+  {
+    "id": "parser_en_046",
+    "input": "I finished season three episode five of AoT",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING", "seasonNumber": 3, "episodeInSeason": 5 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Word-number season and episode with partial progress"
+  },
+  {
+    "id": "parser_en_047",
+    "input": "I just started Frieren",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Just started implies WATCHING"
+  },
+  {
+    "id": "parser_en_048",
+    "input": "FMAB 3x12",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "seasonNumber": 3, "episodeInSeason": 12 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Abbreviation with NxM format"
+  },
+  {
+    "id": "parser_en_049",
+    "input": "Bleach 7 out of 10",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "rating": 7 },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "X out of Y rating"
+  },
+  {
+    "id": "parser_en_050",
+    "input": "I'm reading Chainsaw Man manga ch 45",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "READING", "progressChapters": 45, "mediaTypeHint": "MANGA" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Reading manga with ch shorthand"
+  },
+  {
+    "id": "parser_en_051",
+    "input": "One Piece anime",
+    "locale": "en",
+    "expected_intent": "ambiguous",
+    "expected_slots": { "mediaTypeHint": "ANIME" },
+    "expected_confidence_min": 0.0,
+    "expected_ambiguity": "intent_unclear",
+    "description": "Title with media type but no action"
+  },
+  {
+    "id": "parser_en_052",
+    "input": "I watched Naruto until episode 50",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING", "progressEpisodes": 50 },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Watched with partial progress"
+  },
+  {
+    "id": "parser_en_053",
+    "input": "Black Clover hiatus",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PAUSED" },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "Hiatus maps to PAUSED"
+  },
+  {
+    "id": "parser_en_054",
+    "input": "PTW Spy x Family",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "PLANNING" },
+    "expected_confidence_min": 0.6,
+    "expected_ambiguity": null,
+    "description": "PTW abbreviation for plan to watch"
+  },
+  {
+    "id": "parser_en_055",
+    "input": "I watched Death Note halfway",
+    "locale": "en",
+    "expected_intent": "import",
+    "expected_slots": { "status": "WATCHING" },
+    "expected_confidence_min": 0.7,
+    "expected_ambiguity": null,
+    "description": "Halfway implies partial progress"
+  }
+]

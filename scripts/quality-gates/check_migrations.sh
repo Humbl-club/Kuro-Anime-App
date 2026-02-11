@@ -20,6 +20,7 @@ fi
 
 EXIT_CODE=0
 WARNINGS=0
+ALLOW_UNTRACKED="${MIGRATIONS_ALLOW_UNTRACKED:-0}"
 
 # ── 1) Check for untracked SQL files ─────────────────────────────────────────
 echo "Checking for untracked migration files..."
@@ -27,10 +28,17 @@ cd "$ROOT_DIR"
 
 UNTRACKED=$(git ls-files --others --exclude-standard -- "supabase/migrations/*.sql" 2>/dev/null || true)
 if [[ -n "$UNTRACKED" ]]; then
-  echo "WARNING: Untracked SQL files in supabase/migrations/:"
-  echo "$UNTRACKED" | while read -r f; do echo "  - $f"; done
-  echo "  These files are not committed and may be lost."
-  WARNINGS=$((WARNINGS + 1))
+  if [[ "$ALLOW_UNTRACKED" == "1" ]]; then
+    echo "WARNING: Untracked SQL files in supabase/migrations/:"
+    echo "$UNTRACKED" | while read -r f; do echo "  - $f"; done
+    echo "  MIGRATIONS_ALLOW_UNTRACKED=1 set, continuing."
+    WARNINGS=$((WARNINGS + 1))
+  else
+    echo "FAIL: Untracked SQL files in supabase/migrations/:"
+    echo "$UNTRACKED" | while read -r f; do echo "  - $f"; done
+    echo "  Commit migration files (or set MIGRATIONS_ALLOW_UNTRACKED=1 for local dev)."
+    EXIT_CODE=1
+  fi
 fi
 
 # ── 2) Check for modified (staged or unstaged) migration files ────────────────
