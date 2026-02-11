@@ -30,9 +30,21 @@ if ! node -e "require('@supabase/supabase-js')" 2>/dev/null; then
   exit 1
 fi
 
-# Run the audit in JSON mode for structured parsing
-JSON_OUTPUT=$(node "$AUDIT_SCRIPT" --json 2>&1) || true
-EXIT_CODE=0
+# Run the audit in JSON mode for structured parsing.
+# Some environments emit warnings before JSON; strip any non-JSON prefix.
+RAW_OUTPUT=$(node "$AUDIT_SCRIPT" --json 2>&1) || true
+JSON_OUTPUT=$(echo "$RAW_OUTPUT" | node -e "
+  let buf = '';
+  process.stdin.on('data', d => buf += d);
+  process.stdin.on('end', () => {
+    const start = buf.indexOf('{');
+    if (start === -1) {
+      process.stdout.write('');
+      return;
+    }
+    process.stdout.write(buf.slice(start));
+  });
+")
 
 # Parse the JSON output
 VERDICT=$(echo "$JSON_OUTPUT" | node -e "
@@ -75,10 +87,10 @@ WARNINGS=$(echo "$JSON_OUTPUT" | node -e "
   });
 ")
 
-if [[ "$VERDICT" == "PARSE_ERROR" ]]; then
+if [[ -z "$JSON_OUTPUT" || "$VERDICT" == "PARSE_ERROR" ]]; then
   echo "FAIL: Could not parse audit output."
   echo "Raw output:"
-  echo "$JSON_OUTPUT"
+  echo "$RAW_OUTPUT"
   exit 1
 fi
 
