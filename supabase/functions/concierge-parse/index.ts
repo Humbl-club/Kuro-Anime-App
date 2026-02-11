@@ -235,16 +235,33 @@ function parseStatus(raw: string): { status?: ListStatus; completed?: boolean } 
   const hasPartialProgress =
     /\b(?:until|till|up to|upto|to|bis)\b/.test(s) &&
     /\b(?:season|staffel|episode|ep|folge|chapter|ch|kapitel|band|vol|volume|\d{1,2}\s*x\s*\d{1,4}|s\d{1,2}\s*e\d{1,4})\b/.test(s);
+  const hasSoftPartial =
+    /\b(halfway|half way|midway|partway|some of it|a bit|a few (?:eps|episodes|chapters))\b/.test(s) ||
+    /\b(halb|hälfte|haelfte|zur hälfte|zur haelfte|teilweise|ein bisschen)\b/.test(s);
 
   // English + slang
   if (/\b(caught up|up to date|up-to-date|latest|current)\b/.test(s)) return { status: "WATCHING" };
-  if (/\b(i\s+(?:just\s+)?watched|i\s+(?:just\s+)?finished|i\s+(?:just\s+)?completed|i\s+(?:just\s+)?saw|i\s+have\s+watched|i\s+have\s+seen)\b/.test(s)) {
-    if (hasPartialProgress && !explicitCompletion) return { status: "WATCHING" };
+  const iFinished =
+    /\b(i\s+(?:just\s+)?finished|i\s+(?:just\s+)?completed)\b/.test(s);
+  const iWatched =
+    /\b(i\s+(?:just\s+)?watched|i\s+(?:just\s+)?saw|i\s+have\s+watched|i\s+have\s+seen)\b/.test(s);
+  const iRead =
+    /\b(i\s+(?:just\s+)?read|i\s+have\s+read)\b/.test(s);
+
+  if (iFinished) {
+    if ((hasPartialProgress || hasSoftPartial) && !explicitCompletion) return { status: "WATCHING" };
     return { status: "COMPLETED", completed: true };
   }
-  if (/\b(i\s+(?:just\s+)?read|i\s+have\s+read)\b/.test(s)) {
-    if (hasPartialProgress && !explicitCompletion) return { status: "READING" };
-    return { status: "COMPLETED", completed: true };
+  if (iWatched) {
+    // "I watched X" is ambiguous; default to WATCHING unless explicitly completed.
+    if ((hasPartialProgress || hasSoftPartial) && !explicitCompletion) return { status: "WATCHING" };
+    if (explicitCompletion) return { status: "COMPLETED", completed: true };
+    return { status: "WATCHING" };
+  }
+  if (iRead) {
+    if ((hasPartialProgress || hasSoftPartial) && !explicitCompletion) return { status: "READING" };
+    if (explicitCompletion) return { status: "COMPLETED", completed: true };
+    return { status: "READING" };
   }
   if (/\b(i'?m\s+watching|i\s+am\s+watching)\b/.test(s)) return { status: "WATCHING" };
   if (/\b(i'?m\s+reading|i\s+am\s+reading)\b/.test(s)) return { status: "READING" };
@@ -258,11 +275,14 @@ function parseStatus(raw: string): { status?: ListStatus; completed?: boolean } 
   // German
   if (/\b(aktuell|auf dem neuesten stand|up to date|auf dem aktuellen stand)\b/.test(s)) return { status: "WATCHING" };
   if (/\b(ich\s+habe|ich\s+hab)\b/.test(s) && /\b(geschaut|gesehen|gelesen)\b/.test(s)) {
-    if (hasPartialProgress) {
+    if (hasPartialProgress || hasSoftPartial) {
       if (/\b(gelesen)\b/.test(s)) return { status: "READING" };
       return { status: "WATCHING" };
     }
-    return { status: "COMPLETED", completed: true };
+    if (explicitCompletion) return { status: "COMPLETED", completed: true };
+    // "Ich habe X geschaut" is ambiguous; default to WATCHING unless explicit completion.
+    if (/\b(gelesen)\b/.test(s)) return { status: "READING" };
+    return { status: "WATCHING" };
   }
   if (/\b(ich\s+(?:schaue|gucke|sehe)|gerade\s+am\s+schauen|am\s+schauen)\b/.test(s)) return { status: "WATCHING" };
   if (/\b(ich\s+lese|gerade\s+am\s+lesen|am\s+lesen)\b/.test(s)) return { status: "READING" };

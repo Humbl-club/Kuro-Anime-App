@@ -412,7 +412,9 @@ private struct ClubMemberStatusList: View {
     private func memberLabel(_ userId: String) -> String {
         if let currentUserId, userId == currentUserId { return "You" }
         if let idx = memberIndexById[userId] { return "Member \(idx)" }
-        return "Member"
+        // Fallback: should be rare (e.g. server returned a status for a user not present in members list).
+        // Keep it anonymous but stable-ish for debugging.
+        return "Member \(String(userId.suffix(4)))"
     }
 
     var body: some View {

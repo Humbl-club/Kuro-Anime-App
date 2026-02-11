@@ -393,24 +393,8 @@ struct ConciergeInputField: View {
                     .transition(.opacity)
             }
 
-            ZStack(alignment: .bottom) {
-                // Detected list chip (floating above input)
-                if showDetectedChip {
-                    VStack(spacing: 0) {
-                        DetectedListChip(count: detectedCount) {
-                            withAnimation(.spring(response: 0.3)) {
-                                showDetectedChip = false
-                            }
-                        }
-
-                        Spacer()
-                    }
-                    .padding(.bottom, 60)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-
-                // Main input container
-                HStack(alignment: .bottom, spacing: 12) {
+            // Main input container
+            HStack(alignment: .bottom, spacing: 12) {
                     // Input area with placeholder
                     ZStack(alignment: .topLeading) {
                         // Placeholder text with pulsing animation
@@ -460,7 +444,18 @@ struct ConciergeInputField: View {
                     x: 0,
                     y: 4
                 )
-            }
+                .overlay(alignment: .topLeading) {
+                    // Detected list chip (anchored to input, not floating mid-screen)
+                    if showDetectedChip {
+                        DetectedListChip(count: detectedCount) {
+                            withAnimation(.spring(response: 0.3)) {
+                                showDetectedChip = false
+                            }
+                        }
+                        .offset(x: 8, y: -44)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
         }
         .onAppear {
             startPlaceholderPulse()

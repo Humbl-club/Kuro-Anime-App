@@ -115,6 +115,7 @@ struct KuroMainView: View {
 	@State private var showProfileSheet = false
 	@State private var mountedSections: Set<Section> = [.discover]
 	@State private var swipeExclusions: [CGRect] = []
+    @State private var didApplyStartArgument = false
 	// Concierge is a first-class page to the LEFT of Discover.
 	private let swipeOrder: [Section] = [.concierge, .discover, .collection, .browse, .search, .clubs]
 	private let swipeThreshold: CGFloat = 40
@@ -122,7 +123,7 @@ struct KuroMainView: View {
     
     var body: some View {
 	        ZStack {
-	            Color.white.ignoresSafeArea()
+	            Color(.systemBackground).ignoresSafeArea()
 
 	            VStack(spacing: 0) {
                 // Fixed Header - Three-part layout
@@ -141,6 +142,17 @@ struct KuroMainView: View {
 	        .onPreferenceChange(KuroSwipeExclusionPreferenceKey.self) { v in
 	            swipeExclusions = v
 	        }
+            .onAppear {
+                // Debug support: launch directly into Concierge for screenshots or manual QA.
+                // Example: `xcrun simctl launch booted com.kuro.app --args --kuro-start=concierge`
+                guard !didApplyStartArgument else { return }
+                didApplyStartArgument = true
+                let args = ProcessInfo.processInfo.arguments
+                if args.contains("--kuro-start-concierge") || args.contains("--kuro-start=concierge") {
+                    selection = .concierge
+                    mountedSections.insert(.concierge)
+                }
+            }
 	        .simultaneousGesture(
 	            DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
 	                .onEnded { value in
@@ -226,7 +238,8 @@ private struct KuroSectionPager: View {
         if shouldMount {
             switch section {
             case .concierge:
-                ConciergeView(assistantEnabled: false)
+                // Concierge features (mascot, suggestions, haptics) are behind `assistantEnabled`.
+                ConciergeView(assistantEnabled: true)
             case .discover:
                 EditorialDiscoverView()
             case .collection:
@@ -242,7 +255,7 @@ private struct KuroSectionPager: View {
             }
         } else {
             // Placeholder keeps layout stable without triggering `.task` in heavy pages.
-            Color.white
+            Color(.systemBackground)
         }
     }
 }

@@ -53,10 +53,6 @@ struct ConciergeView: View {
     @State private var assistantOffset: CGSize = .zero
     @State private var assistantDragStart: CGSize = .zero
 
-    private var hasActionBar: Bool {
-        (activeItems?.isEmpty == false) || lastApplySessionId != nil
-    }
-
     private var mascotState: ConciergeMascotState {
         if isWorking { return .thinking }
         if errorText != nil { return .concerned }
@@ -81,7 +77,7 @@ struct ConciergeView: View {
                     Spacer()
                     KuroToast(toast: toast)
                         .padding(.horizontal, KuroDesignSpacing.md)
-                        .padding(.bottom, hasActionBar ? 152 : 92)
+                        .padding(.bottom, 92)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .zIndex(100)
@@ -176,34 +172,6 @@ struct ConciergeView: View {
                     .padding(.vertical, 10)
             }
 
-            if let activeItems, !activeItems.isEmpty {
-                ConciergeActionBar(
-                    selectedCount: activeSelectedCount,
-                    hasAnySelection: activeSelectedCount > 0,
-                    canUndo: lastApplySessionId != nil,
-                    onApply: { Task { await applyActiveItems() } },
-                    onUndo: { Task { await undoLastApply() } }
-                )
-                .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.vertical, 12)
-                .background(
-                    KuroGlassCard(cornerRadius: KuroRadius.lg) { Color.clear }
-                )
-            } else if lastApplySessionId != nil {
-                ConciergeActionBar(
-                    selectedCount: 0,
-                    hasAnySelection: false,
-                    canUndo: true,
-                    onApply: {},
-                    onUndo: { Task { await undoLastApply() } }
-                )
-                .padding(.horizontal, KuroDesignSpacing.padding)
-                .padding(.vertical, 12)
-                .background(
-                    KuroGlassCard(cornerRadius: KuroRadius.lg) { Color.clear }
-                )
-            }
-
             Rectangle()
                 .fill(Color.black.opacity(0.06))
                 .frame(height: 0.5)
@@ -228,7 +196,7 @@ struct ConciergeView: View {
                         expanded: $assistantExpanded,
                         offset: $assistantOffset,
                         dragStart: $assistantDragStart,
-                        baseBottomPadding: hasActionBar ? 168 : 104,
+                        baseBottomPadding: 104,
                         containerSize: geo.size
                         ,
                         state: mascotState
@@ -326,6 +294,19 @@ struct ConciergeView: View {
     private func handleImportFlow(text: String) async {
         do {
             let response = try await supabaseService.conciergeParse(text: text, scope: .both)
+
+            // Prefetch top candidate covers so the confirm bubble feels instant.
+            #if canImport(UIKit)
+            let coverUrls: [URL] = response.items.flatMap { item in
+                item.candidates.prefix(2).compactMap { c in
+                    guard let s = c.cover_image_medium, let url = URL(string: s) else { return nil }
+                    return url
+                }
+            }
+            Task.detached(priority: .background) {
+                await ImagePipeline.shared.prefetch(urls: coverUrls, maxPixelSize: 640)
+            }
+            #endif
 
             // Pre-select top candidates (skip when adaptations are ambiguous)
             var hasAnyExistingEntry = false
@@ -520,6 +501,17 @@ struct ConciergeView: View {
             let sets = (rec.sets ?? []).filter { ($0.items ?? []).isEmpty == false }
             let flattened = sets.flatMap { $0.items ?? [] }
             let displayItems = !flattened.isEmpty ? flattened : (rec.items ?? [])
+
+            // Prefetch recommendation posters for a snappy first render.
+            #if canImport(UIKit)
+            let recUrls: [URL] = displayItems.compactMap { item in
+                guard let s = item.coverImageMedium, let url = URL(string: s) else { return nil }
+                return url
+            }
+            Task.detached(priority: .background) {
+                await ImagePipeline.shared.prefetch(urls: recUrls, maxPixelSize: 720)
+            }
+            #endif
 
             if rec.success, !displayItems.isEmpty {
                 // Append inline recommendation message with editorial rails
@@ -722,11 +714,6 @@ struct ConciergeView: View {
         }
     }
 
-    private func undoLastApply() async {
-        guard let sessionId = lastApplySessionId else { return }
-        await undoApply(sessionId: sessionId)
-    }
-
     // MARK: Helpers
     private func handleError(_ error: Error) {
         if let guardrail = error as? SupabaseService.ConciergeGuardrailsError {
@@ -780,26 +767,6 @@ struct ConciergeView: View {
         return true
     }
 
-    // MARK: Active Items (For Action Bar)
-    private var activeItems: [SupabaseService.ConciergeParseItem]? {
-        messages.last(where: { $0.role == .assistant && ($0.items?.isEmpty == false) })?.items
-    }
-
-    private var activeSelectedCount: Int {
-        guard let items = activeItems else { return 0 }
-        return items.reduce(0) { acc, item in
-            let action = itemActions[item.id] ?? .add
-            if action == .skip { return acc }
-            if excludedItemIds.contains(item.id) { return acc }
-            return acc + (selectedByItemId[item.id] != nil ? 1 : 0)
-        }
-    }
-
-    private func applyActiveItems() async {
-        guard let lastMsg = messages.last(where: { $0.role == .assistant && $0.parseResponse != nil }),
-              let response = lastMsg.parseResponse else { return }
-        await confirmImport(response: response)
-    }
 
     @MainActor
     private func showToast(_ next: KuroToastState, autoDismissSeconds: Double = 2.5) {

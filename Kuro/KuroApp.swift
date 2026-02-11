@@ -26,6 +26,8 @@ struct KuroApp: App {
             RootView()
                 .environment(supabaseService)
                 .environment(networkMonitor)
+                // The current design system is light-first (black-on-white editorial).
+                // Until we have a full dark palette, keep system appearance stable.
                 .preferredColorScheme(.light)
                 .onChange(of: scenePhase) { _, newPhase in
                     switch newPhase {
@@ -53,23 +55,23 @@ private struct RootView: View {
                 Text("OFFLINE")
                     .font(.system(size: 9, weight: .medium))
                     .tracking(1.2)
-                    .foregroundColor(.black.opacity(0.45))
+                    .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
-                    .background(Color.black.opacity(0.04))
+                    .background(Color.primary.opacity(0.06))
             }
 
             Group {
                 if supabaseService.isAuthBootstrapping {
                     ZStack {
-                        Color.white.ignoresSafeArea()
+                        Color(.systemBackground).ignoresSafeArea()
                         VStack(spacing: 14) {
                             Text("KURO")
                                 .font(.system(size: 11, weight: .regular))
                                 .tracking(1.5)
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundColor(.secondary)
                             ProgressView()
-                                .tint(.black.opacity(0.6))
+                                .tint(.secondary)
                         }
                     }
                 } else if supabaseService.isAuthenticated {
