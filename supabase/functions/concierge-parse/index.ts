@@ -1,8 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { umlautFold } from "../_shared/normalization.ts";
 
 type MediaType = "ANIME" | "MANGA";
 type ListStatus = "WATCHING" | "READING" | "PLANNING" | "COMPLETED" | "DROPPED" | "PAUSED";
+
+type Ambiguity = {
+  kind: "status_unclear" | "unit_unclear" | "intent_unclear";
+  options: string[];
+  suggested_question: string;
+  suggested_question_de: string;
+  title_context?: string;
+  number_context?: string;
+} | null;
 
 type ParsedItem = {
   raw: string;
@@ -12,12 +22,16 @@ type ParsedItem = {
   progressEpisodes?: number;
   progressChapters?: number;
   progressVolumes?: number;
+  progressTotal?: number;
+  progressUnit?: string;
   seasonNumber?: number;
   episodeInSeason?: number;
   caughtUp?: boolean;
   lastEpisode?: boolean;
   completed?: boolean;
   yearMention?: number;
+  rating?: number;
+  ambiguity?: Ambiguity;
 };
 
 function romanToInt(input: string): number | null {
@@ -115,19 +129,27 @@ function normalizeAliasKey(raw: string): string {
   s = s.replace(/\b(i\s+have|i'?m|im|i\s+am|i)\b/giu, " ");
   s = s.replace(/\b(ich\s+habe|ich\s+hab|ich|bin)\b/giu, " ");
   s = s.replace(
-    /\b(watched|watching|finished|completed|dropped|paused|planning|read|reading|caught up|up to date|seen|saw)\b/giu,
+    /\b(watched|watching|finished|completed|dropped|paused|planning|read|reading|caught up|up to date|seen|saw|started|begun)\b/giu,
     " ",
   );
   s = s.replace(
-    /\b(geschaut|gesehen|gelesen|fertig|abgeschlossen|beendet|abgebrochen|pausiert|geplant|aktuell|komplett|vollständig|vollstaendig)\b/giu,
+    /\b(geschaut|gesehen|gelesen|fertig|abgeschlossen|beendet|abgebrochen|pausiert|geplant|aktuell|komplett|vollständig|vollstaendig|angefangen|noch dabei)\b/giu,
     " ",
   );
+  // strip rating patterns
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s*\/\s*\d{1,2}\b/giu, " ");
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s+(?:von|out of)\s+\d{1,2}\b/giu, " ");
+  s = s.replace(/\beine?\s+\d{1,2}\b/giu, " ");
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s+(?:punkte|points?|stars?|sterne?)\b/giu, " ");
+  s = s.replace(/⭐/g, " ");
   // strip progress markers
   s = s.replace(/\b(?:season|staffel|episode|ep|folge|chapter|ch|kapitel|volume|vol|band)\b/giu, " ");
   s = s.replace(/\b\d{1,2}\s*x\s*\d{1,4}\b/giu, " ");
   s = s.replace(/\bs\d{1,2}\s*e\d{1,4}\b/giu, " ");
   // keep only letters/numbers/spaces (unicode)
   s = s.replace(/[^\p{L}\p{N}\s]+/gu, " ");
+  // Fold umlauts for consistent alias matching
+  s = umlautFold(s);
   s = s.replace(/\s+/g, " ").trim();
   return s.slice(0, 160);
 }
@@ -247,6 +269,8 @@ function parseStatus(raw: string): { status?: ListStatus; completed?: boolean } 
     /\b(i\s+(?:just\s+)?watched|i\s+(?:just\s+)?saw|i\s+have\s+watched|i\s+have\s+seen)\b/.test(s);
   const iRead =
     /\b(i\s+(?:just\s+)?read|i\s+have\s+read)\b/.test(s);
+  const iStarted =
+    /\b(i\s+(?:just\s+)?started|i\s+(?:just\s+)?begun|i\s+have\s+started)\b/.test(s);
 
   if (iFinished) {
     if ((hasPartialProgress || hasSoftPartial) && !explicitCompletion) return { status: "WATCHING" };
@@ -263,9 +287,18 @@ function parseStatus(raw: string): { status?: ListStatus; completed?: boolean } 
     if (explicitCompletion) return { status: "COMPLETED", completed: true };
     return { status: "READING" };
   }
+  if (iStarted) {
+    // "I started X" → WATCHING unless manga context
+    if (/\b(read|reading|manga|manhwa|manhua|chapter|ch|volume|vol|band|kapitel)\b/.test(s)) return { status: "READING" };
+    return { status: "WATCHING" };
+  }
   if (/\b(i'?m\s+watching|i\s+am\s+watching)\b/.test(s)) return { status: "WATCHING" };
   if (/\b(i'?m\s+reading|i\s+am\s+reading)\b/.test(s)) return { status: "READING" };
   if (/\b(completed|finished|done)\b/.test(s)) return { status: "COMPLETED", completed: true };
+  if (/\b(started|begun)\b/.test(s)) {
+    if (/\b(read|reading|manga|manhwa|manhua|chapter|ch|volume|vol|band|kapitel)\b/.test(s)) return { status: "READING" };
+    return { status: "WATCHING" };
+  }
   if (/\b(dropped)\b/.test(s)) return { status: "DROPPED" };
   if (/\b(paused|on hold|on-hold|hiatus)\b/.test(s)) return { status: "PAUSED" };
   if (/\b(planning|plan to watch|plan to read|ptw|ptr)\b/.test(s)) return { status: "PLANNING" };
@@ -284,12 +317,20 @@ function parseStatus(raw: string): { status?: ListStatus; completed?: boolean } 
     if (/\b(gelesen)\b/.test(s)) return { status: "READING" };
     return { status: "WATCHING" };
   }
-  if (/\b(ich\s+(?:schaue|gucke|sehe)|gerade\s+am\s+schauen|am\s+schauen)\b/.test(s)) return { status: "WATCHING" };
-  if (/\b(ich\s+lese|gerade\s+am\s+lesen|am\s+lesen)\b/.test(s)) return { status: "READING" };
+  if (/\b(ich\s+(?:schaue|gucke|sehe)|gerade\s+am\s+schauen|am\s+schauen|schaue\s+gerade)\b/.test(s)) return { status: "WATCHING" };
+  if (/\b(ich\s+lese|gerade\s+am\s+lesen|am\s+lesen|lese\s+gerade)\b/.test(s)) return { status: "READING" };
+  if (/\b(noch\s+dabei)\b/.test(s)) {
+    if (/\b(lese|lesen|gelesen|manga|manhwa|manhua|kapitel|band)\b/.test(s)) return { status: "READING" };
+    return { status: "WATCHING" };
+  }
   if (/\b(fertig|abgeschlossen|beendet|zu ende|komplett)\b/.test(s)) return { status: "COMPLETED", completed: true };
   if (/\b(abgebrochen|gedroppt|droppe|droppen)\b/.test(s)) return { status: "DROPPED" };
   if (/\b(pausiert|pause|auf eis)\b/.test(s)) return { status: "PAUSED" };
-  if (/\b(plane|geplant|will schauen|will sehen|möchte schauen|möchte sehen)\b/.test(s)) return { status: "PLANNING" };
+  if (/\b(plane|geplant|will schauen|will sehen|möchte schauen|möchte sehen|will lesen|möchte lesen)\b/.test(s)) return { status: "PLANNING" };
+  if (/\b(angefangen)\b/.test(s)) {
+    if (/\b(lese|lesen|gelesen|manga|manhwa|manhua|kapitel|band)\b/.test(s)) return { status: "READING" };
+    return { status: "WATCHING" };
+  }
   if (/\b(lese|am lesen|gerade am lesen)\b/.test(s)) return { status: "READING" };
   if (/\b(schaue|gucke|sehe|am schauen|gerade am schauen)\b/.test(s)) return { status: "WATCHING" };
   return {};
@@ -312,11 +353,62 @@ function parseMagicFlags(raw: string): Pick<ParsedItem, "caughtUp" | "lastEpisod
   };
 }
 
+function parseRating(raw: string): number | undefined {
+  const s = raw.toLowerCase();
+
+  // Star emoji counting: ⭐⭐⭐ = 3
+  const starEmojis = (raw.match(/⭐/g) ?? []).length;
+  if (starEmojis >= 1 && starEmojis <= 10) return starEmojis;
+
+  // "X/10" or "X/Y" rating format (e.g. 9/10, 8.5/10)
+  const slashRating = s.match(/\b(\d{1,2}(?:\.\d)?)\s*\/\s*(\d{1,2})\b/);
+  if (slashRating) {
+    const num = parseFloat(slashRating[1]);
+    const denom = parseInt(slashRating[2], 10);
+    if (denom > 0 && num >= 0 && num <= denom) {
+      return Math.round((num / denom) * 10 * 10) / 10; // Normalize to 0-10 scale
+    }
+  }
+
+  // "X von 10" / "X out of 10"
+  const outOfRating = s.match(/\b(\d{1,2}(?:\.\d)?)\s+(?:von|out of)\s+(\d{1,2})\b/);
+  if (outOfRating) {
+    const num = parseFloat(outOfRating[1]);
+    const denom = parseInt(outOfRating[2], 10);
+    if (denom > 0 && num >= 0 && num <= denom) {
+      return Math.round((num / denom) * 10 * 10) / 10;
+    }
+  }
+
+  // "eine 8" / "eine 9" (DE casual rating)
+  const eineRating = s.match(/\beine?\s+(\d{1,2}(?:\.\d)?)\b/);
+  if (eineRating) {
+    const val = parseFloat(eineRating[1]);
+    if (val >= 0 && val <= 10) return val;
+  }
+
+  // "8 Punkte" / "8 points"
+  const punkteRating = s.match(/\b(\d{1,2}(?:\.\d)?)\s+(?:punkte|points?)\b/);
+  if (punkteRating) {
+    const val = parseFloat(punkteRating[1]);
+    if (val >= 0 && val <= 10) return val;
+  }
+
+  // "8 stars" / "8 Sterne"
+  const starsRating = s.match(/\b(\d{1,2}(?:\.\d)?)\s+(?:stars?|sterne?)\b/);
+  if (starsRating) {
+    const val = parseFloat(starsRating[1]);
+    if (val >= 0 && val <= 10) return val;
+  }
+
+  return undefined;
+}
+
 function parseProgress(
   raw: string,
 ): Pick<
   ParsedItem,
-  "progressEpisodes" | "progressChapters" | "progressVolumes" | "seasonNumber" | "episodeInSeason"
+  "progressEpisodes" | "progressChapters" | "progressVolumes" | "progressTotal" | "progressUnit" | "seasonNumber" | "episodeInSeason"
 > {
   let s = raw.toLowerCase();
   const out: any = {};
@@ -424,6 +516,55 @@ function parseProgress(
   const band = s.match(/\b(?:band)\s*(\d{1,4})\b/);
   if (band) out.progressVolumes = parseInt(band[1], 10);
 
+  // "bis Folge X" / "bei Episode X" / "bei Folge X" (DE preposition + unit)
+  const bisEp = s.match(/\b(?:bis|bei)\s+(?:folge|episode|ep)\s*(\d{1,4})\b/);
+  if (bisEp && !out.progressEpisodes) out.progressEpisodes = parseInt(bisEp[1], 10);
+  const bisKap = s.match(/\b(?:bis|bei)\s+(?:kapitel|chapter|ch)\s*(\d{1,5})\b/);
+  if (bisKap && !out.progressChapters) out.progressChapters = parseInt(bisKap[1], 10);
+  const bisBand = s.match(/\b(?:bis|bei)\s+(?:band|volume|vol)\s*(\d{1,4})\b/);
+  if (bisBand && !out.progressVolumes) out.progressVolumes = parseInt(bisBand[1], 10);
+
+  // "X of Y episodes/chapters/volumes" / "X von Y Folgen/Kapitel/Bände"
+  const xOfYEp = s.match(/\b(\d{1,4})\s+(?:of|von)\s+(\d{1,4})\s*(?:episodes?|folgen?|eps?)\b/);
+  if (xOfYEp) {
+    out.progressEpisodes = out.progressEpisodes ?? parseInt(xOfYEp[1], 10);
+    out.progressTotal = parseInt(xOfYEp[2], 10);
+    out.progressUnit = "episode";
+  }
+  const xOfYCh = s.match(/\b(\d{1,5})\s+(?:of|von)\s+(\d{1,5})\s*(?:chapters?|kapitel)\b/);
+  if (xOfYCh) {
+    out.progressChapters = out.progressChapters ?? parseInt(xOfYCh[1], 10);
+    out.progressTotal = parseInt(xOfYCh[2], 10);
+    out.progressUnit = "chapter";
+  }
+  const xOfYVol = s.match(/\b(\d{1,4})\s+(?:of|von)\s+(\d{1,4})\s*(?:volumes?|bände|baende|band)\b/);
+  if (xOfYVol) {
+    out.progressVolumes = out.progressVolumes ?? parseInt(xOfYVol[1], 10);
+    out.progressTotal = parseInt(xOfYVol[2], 10);
+    out.progressUnit = "volume";
+  }
+
+  // "Folge X von Y" / "Episode X of Y" (unit before numbers)
+  const folgeXvonY = s.match(/\b(?:folge|episode|ep)\s*(\d{1,4})\s+(?:von|of)\s+(\d{1,4})\b/);
+  if (folgeXvonY) {
+    out.progressEpisodes = out.progressEpisodes ?? parseInt(folgeXvonY[1], 10);
+    out.progressTotal = out.progressTotal ?? parseInt(folgeXvonY[2], 10);
+    out.progressUnit = out.progressUnit ?? "episode";
+  }
+  const kapXvonY = s.match(/\b(?:kapitel|chapter|ch)\s*(\d{1,5})\s+(?:von|of)\s+(\d{1,5})\b/);
+  if (kapXvonY) {
+    out.progressChapters = out.progressChapters ?? parseInt(kapXvonY[1], 10);
+    out.progressTotal = out.progressTotal ?? parseInt(kapXvonY[2], 10);
+    out.progressUnit = out.progressUnit ?? "chapter";
+  }
+
+  // Infer progressUnit from what was detected
+  if (!out.progressUnit) {
+    if (out.progressEpisodes != null) out.progressUnit = "episode";
+    else if (out.progressChapters != null) out.progressUnit = "chapter";
+    else if (out.progressVolumes != null) out.progressUnit = "volume";
+  }
+
   return out;
 }
 
@@ -517,6 +658,18 @@ function stripMeta(raw: string): string {
   );
   s = s.replace(/\b\d{1,2}\s*x\s*\d{1,4}\b/gi, " ");
   s = s.replace(/\bs\d{1,2}\s*e\d{1,4}\b/gi, " ");
+  // Strip rating patterns so they don't pollute title search.
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s*\/\s*\d{1,2}\b/gi, " ");
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s+(?:von|out of)\s+\d{1,2}\b/gi, " ");
+  s = s.replace(/\beine?\s+\d{1,2}(?:\.\d)?\b/gi, " ");
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s+(?:punkte|points?|stars?|sterne?)\b/gi, " ");
+  s = s.replace(/⭐/g, " ");
+  // Strip new status keywords from title.
+  s = s.replace(/\b(started|begun|angefangen|noch dabei)\b/gi, " ");
+  // Strip "bis/bei" progress phrases from title.
+  s = s.replace(/\b(?:bis|bei)\s+(?:folge|episode|ep|kapitel|chapter|ch|band|volume|vol)\s*\d{1,5}\b/gi, " ");
+  // Strip "X of/von Y" progress phrases.
+  s = s.replace(/\b\d{1,5}\s+(?:of|von)\s+\d{1,5}\s*(?:episodes?|folgen?|eps?|chapters?|kapitel|volumes?|bände|baende|band)\b/gi, " ");
   // Strip standalone year mentions so they don't pollute trigram search.
   // Parenthesized years are already removed above. Keep year-only queries (e.g. manga "1984").
   s = s.replace(/\s+/g, " ").trim();
@@ -528,6 +681,170 @@ function stripMeta(raw: string): string {
   }
   s = s.replace(/\s+/g, " ").trim();
   return s;
+}
+
+function detectAmbiguity(item: ParsedItem): Ambiguity {
+  const s = item.raw.toLowerCase();
+  const hasStatus = item.status != null;
+  const hasProgress = (item.progressEpisodes != null || item.progressChapters != null || item.progressVolumes != null);
+  const hasRating = item.rating != null;
+  const titleContext = item.normalized || item.raw;
+  const numberContext = firstNumber(item.raw);
+
+  // "watched" / "geschaut" / "gesehen" without explicit completion signal
+  // The parser defaults these to WATCHING, but the user may mean COMPLETED.
+  const ambiguousWatched =
+    (/\b(watched|saw|geschaut|gesehen)\b/.test(s) && !(/\b(i'?m\s+watching|i\s+am\s+watching|schaue\s+gerade|gerade\s+am\s+schauen|noch\s+dabei)\b/.test(s))) &&
+    item.status === "WATCHING" &&
+    !item.completed && !item.caughtUp && !item.lastEpisode &&
+    !hasProgress;
+
+  // "gelesen" / "read" without explicit completion signal
+  const ambiguousRead =
+    (/\b(read|gelesen)\b/.test(s) && !(/\b(i'?m\s+reading|i\s+am\s+reading|lese\s+gerade|gerade\s+am\s+lesen|noch\s+dabei)\b/.test(s))) &&
+    item.status === "READING" &&
+    !item.completed &&
+    !hasProgress;
+
+  if (ambiguousWatched || ambiguousRead) {
+    return {
+      kind: "status_unclear",
+      options: ["COMPLETED", ambiguousRead ? "READING" : "WATCHING"],
+      suggested_question: ambiguousRead ? "Finished or still reading?" : "Finished or still watching?",
+      suggested_question_de: ambiguousRead ? "Fertig gelesen oder noch dabei?" : "Fertig geschaut oder noch dabei?",
+      title_context: titleContext,
+    };
+  }
+
+  // Progress number without clear unit context
+  // A bare number attached to progress without a recognized unit keyword
+  if (hasProgress && !item.progressUnit && !item.seasonNumber) {
+    return {
+      kind: "unit_unclear",
+      options: ["episode", "season", "chapter", "volume"],
+      suggested_question: "Which unit? Episode, season, chapter, or volume?",
+      suggested_question_de: "Welche Einheit? Folge, Staffel, Kapitel oder Band?",
+      title_context: titleContext,
+      number_context: numberContext != null ? String(numberContext) : undefined,
+    };
+  }
+
+  // Status + bare number without unit (e.g. "watched 203", "ich habe 12 gesehen").
+  // Ask the user what the number refers to.
+  const hasUnitKeyword = /\b(ep|episode|folge|season|staffel|chapter|ch|kapitel|volume|vol|band)\b/i.test(s);
+  const numericHint =
+    numberContext != null &&
+    (item.yearMention == null || numberContext !== item.yearMention);
+  if (hasStatus && !hasProgress && !hasRating && numericHint && !hasUnitKeyword) {
+    return {
+      kind: "unit_unclear",
+      options: ["episode", "season", "chapter", "volume"],
+      suggested_question: "Does that number mean episode, season, chapter, or volume?",
+      suggested_question_de: "Meint diese Zahl Folge, Staffel, Kapitel oder Band?",
+      title_context: titleContext,
+      number_context: String(numberContext),
+    };
+  }
+
+  // Title-only without status, progress, or rating → unclear intent
+  if (!hasStatus && !hasProgress && !hasRating && item.normalized.length > 0) {
+    return {
+      kind: "intent_unclear",
+      options: ["import", "recommend_seed"],
+      suggested_question: "Add to your list, or use as a recommendation seed?",
+      suggested_question_de: "Zur Liste hinzufügen oder als Empfehlungsgrundlage nutzen?",
+      title_context: titleContext,
+    };
+  }
+
+  return null;
+}
+
+function parseClarificationMap(input: unknown): Record<string, string> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    if (typeof v !== "string") continue;
+    const key = String(k).trim();
+    const val = v.trim();
+    if (!key || !val) continue;
+    out[key] = val;
+  }
+  return out;
+}
+
+function firstNumber(raw: string): number | undefined {
+  const m = raw.match(/\b(\d{1,5})\b/);
+  if (!m) return undefined;
+  const n = parseInt(m[1], 10);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function applyClarification(item: ParsedItem, clarification: Record<string, string>): ParsedItem {
+  if (!item.ambiguity) return item;
+
+  const kind = item.ambiguity.kind;
+  const pick = clarification[kind]?.toLowerCase();
+  if (!pick) return item;
+
+  if (kind === "status_unclear") {
+    // Accept parser UI values plus common aliases.
+    if (pick === "completed" || pick === "fertig") {
+      item.status = "COMPLETED";
+      item.completed = true;
+      item.ambiguity = null;
+    } else if (pick === "watching" || pick === "current" || pick === "noch dabei") {
+      const lower = item.raw.toLowerCase();
+      const looksLikeReading =
+        item.mediaTypeHint === "MANGA" ||
+        /\b(read|reading|gelesen|lese|kapitel|chapter|band|volume|manga|manhwa|manhua)\b/.test(lower);
+      item.status = looksLikeReading ? "READING" : "WATCHING";
+      item.completed = false;
+      item.ambiguity = null;
+    } else if (pick === "reading" || pick === "lesend") {
+      item.status = "READING";
+      item.completed = false;
+      item.ambiguity = null;
+    }
+    return item;
+  }
+
+  if (kind === "unit_unclear") {
+    const unit = pick;
+    const n = firstNumber(item.raw);
+    if (!n) return item;
+
+    if (unit === "episode" || unit === "ep" || unit === "folge") {
+      item.progressEpisodes = n;
+      item.progressUnit = "episode";
+      item.ambiguity = null;
+    } else if (unit === "chapter" || unit === "ch" || unit === "kapitel") {
+      item.progressChapters = n;
+      item.progressUnit = "chapter";
+      item.ambiguity = null;
+    } else if (unit === "volume" || unit === "vol" || unit === "band") {
+      item.progressVolumes = n;
+      item.progressUnit = "volume";
+      item.ambiguity = null;
+    } else if (unit === "season" || unit === "staffel") {
+      item.seasonNumber = n;
+      item.progressUnit = "season";
+      item.ambiguity = null;
+    }
+    return item;
+  }
+
+  if (kind === "intent_unclear") {
+    // Parse endpoint can only return import-ready rows.
+    // If user clarifies import, pin a safe default status.
+    if (pick === "import") {
+      item.status = item.status ?? "PLANNING";
+      item.ambiguity = null;
+    }
+    return item;
+  }
+
+  return item;
 }
 
 function tokenOverlapBoost(query: string, title: string): number {
@@ -743,6 +1060,7 @@ serve(async (req) => {
   }
   const scope: "anime" | "manga" | "both" = body?.scope ?? "both";
   const limitPerItem = Math.max(3, Math.min(15, Number(body?.limitPerItem ?? 10)));
+  const clarification = parseClarificationMap(body?.clarification);
 
   const itemsRaw = splitItems(text);
   if (itemsRaw.length === 0) {
@@ -796,16 +1114,20 @@ serve(async (req) => {
     const hint = mediaTypeHint(cleaned);
     const flags = parseMagicFlags(cleaned);
     const yearMention = extractYearMention(cleaned);
-    return {
+    const rating = parseRating(cleaned);
+    const item: ParsedItem = {
       raw: cleaned,
       normalized: stripMeta(cleaned),
       mediaTypeHint: hint,
       status: status.status,
       completed: status.completed,
       yearMention,
+      rating,
       ...flags,
       ...progress,
     };
+    item.ambiguity = detectAmbiguity(item);
+    return applyClarification(item, clarification);
   });
 
   // Process all parsed items in parallel — each item searches for a different title
@@ -1015,13 +1337,17 @@ serve(async (req) => {
           progressEpisodes: item.progressEpisodes ?? null,
           progressChapters: item.progressChapters ?? null,
           progressVolumes: item.progressVolumes ?? null,
+          progressTotal: item.progressTotal ?? null,
+          progressUnit: item.progressUnit ?? null,
           seasonNumber: item.seasonNumber ?? null,
           episodeInSeason: item.episodeInSeason ?? null,
           caughtUp: item.caughtUp ?? null,
           lastEpisode: item.lastEpisode ?? null,
           completed: item.completed ?? null,
           yearMention: item.yearMention ?? null,
+          rating: item.rating ?? null,
         },
+        ambiguity: item.ambiguity ?? null,
         candidates: finalCandidates,
         candidateError,
         aliasNorm: userId ? normalizeAliasKey(item.raw) : null,
@@ -1038,13 +1364,17 @@ serve(async (req) => {
           progressEpisodes: item.progressEpisodes ?? null,
           progressChapters: item.progressChapters ?? null,
           progressVolumes: item.progressVolumes ?? null,
+          progressTotal: item.progressTotal ?? null,
+          progressUnit: item.progressUnit ?? null,
           seasonNumber: item.seasonNumber ?? null,
           episodeInSeason: item.episodeInSeason ?? null,
           caughtUp: item.caughtUp ?? null,
           lastEpisode: item.lastEpisode ?? null,
           completed: item.completed ?? null,
           yearMention: item.yearMention ?? null,
+          rating: item.rating ?? null,
         },
+        ambiguity: item.ambiguity ?? null,
         candidates: [],
         candidateError: err instanceof Error ? err.message : "unknown error",
         aliasNorm: userId ? normalizeAliasKey(item.raw) : null,

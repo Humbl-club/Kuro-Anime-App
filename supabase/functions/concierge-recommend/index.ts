@@ -22,6 +22,16 @@ type ConciergeMode = {
 
 type ModePick = { id: string; title: string; confidence: number; reason: string };
 
+type UserConstraints = {
+  excluded_genres: string[];
+  format: string | null;       // "MOVIE" | "SHORT_FORM" | "ONA" | "OVA" | null
+  max_episodes: number | null;
+  min_episodes: number | null;
+  year_min: number | null;
+  year_max: number | null;
+  why: string[];
+};
+
 type CandidateRow = { media_id: number; match_count?: number | null; score?: number | null };
 
 function json(res: unknown, init: ResponseInit = {}) {
@@ -47,6 +57,27 @@ function safeStringArray(v: unknown): string[] {
 function safeNumber(v: unknown): number | null {
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+function stableBucket(input: string): number {
+  // djb2-style deterministic hash, then map into [0, 99].
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash) + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 100;
+}
+
+function inferRequestMarket(req: Request): string {
+  const cfCountry = req.headers.get("cf-ipcountry")?.trim().toUpperCase();
+  if (cfCountry && /^[A-Z]{2}$/.test(cfCountry)) return cfCountry;
+
+  const acceptLanguage = req.headers.get("accept-language") ?? "";
+  const first = acceptLanguage.split(",")[0]?.trim() ?? "";
+  const region = first.match(/-[A-Za-z]{2}\b/)?.[0]?.slice(1).toUpperCase();
+  if (region && /^[A-Z]{2}$/.test(region)) return region;
+  return "US";
 }
 
 /** Strip common LLM prompt-injection patterns from user-supplied text before interpolation. */
@@ -316,7 +347,7 @@ function normalizeGermanVibeWords(text: string): string {
   return result;
 }
 
-function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], excludedGenres: string[] = []): { score: number; reason: string } {
+function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], excludedGenres: string[] = [], userConstraints?: UserConstraints): { score: number; reason: string } {
   const t = normalizeText(text);
   const tNorm = normalizeUmlauts(normalizeGermanVibeWords(text));
   let score = 0;
@@ -367,14 +398,14 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
   }
 
   // Movie intent.
-  const wantsMovie = /\b(movie|film|movie night|filmabend|kinofilm)\b/i.test(tNorm);
+  const wantsMovie = /\b(movie|film|filme|movie night|filmabend|kinofilm)\b/i.test(tNorm);
   if (wantsMovie && mode.id === "movie_night") {
     score += 3;
     if (!reason) reason = "movie intent";
   }
 
   // Short/binge intent.
-  const wantsShort = /\b(short|one season|quick watch|binge|one cour|12 ep|13 ep|kurz|eine staffel|schnell|durchschauen|kurze serie)\b/i.test(tNorm);
+  const wantsShort = /\b(short|one season|quick watch|binge|one cour|12 ep|13 ep|kurz|eine staffel|1 staffel|schnell|durchschauen|kurze serie|kurz und gut)\b/i.test(tNorm);
   if (wantsShort && mode.id === "short_one_season") {
     score += 3;
     if (!reason) reason = "short series intent";
@@ -391,7 +422,7 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
   }
 
   // "No isekai" intent (boost fantasy_non_isekai, penalize isekai).
-  const noIsekai = /\b(no isekai|not isekai|ohne isekai|fantasy no isekai|non[- ]?isekai)\b/i.test(tNorm);
+  const noIsekai = /\b(no isekai|not isekai|ohne isekai|nicht isekai|kein isekai|fantasy no isekai|non[- ]?isekai)\b/i.test(tNorm);
   if (noIsekai && mode.id === "fantasy_non_isekai") {
     score += 4;
     if (!reason) reason = "non-isekai intent";
@@ -401,7 +432,7 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
   }
 
   // Romance sub-type disambiguation.
-  const wantsRomcom = /\b(romcom|rom com|romantic comedy|funny romance|cute romance|fluffy)\b/i.test(tNorm);
+  const wantsRomcom = /\b(romcom|rom com|romantic comedy|funny romance|cute romance|fluffy|romantische komoedie|lustige romanze)\b/i.test(tNorm);
   if (wantsRomcom && mode.id === "romcom") {
     score += 3;
     if (!reason) reason = "romcom intent";
@@ -409,7 +440,7 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
   if (wantsRomcom && mode.id === "romance_serious") {
     score -= 2;
   }
-  const wantsSeriousRomance = /\b(serious romance|romance drama|heartbreak|bittersweet|deep romance)\b/i.test(tNorm);
+  const wantsSeriousRomance = /\b(serious romance|romance drama|heartbreak|bittersweet|deep romance|ernste romanze|liebesgeschichte|herzschmerz)\b/i.test(tNorm);
   if (wantsSeriousRomance && mode.id === "romance_serious") {
     score += 3;
     if (!reason) reason = "serious romance intent";
@@ -491,6 +522,46 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
     if (!reason) reason = "shoujo/josei intent";
   }
 
+  // ── Constraint-based mode penalties ──
+  if (userConstraints) {
+    // Movie constraint: penalize TV-focused modes, boost movie_night.
+    if (userConstraints.format === "MOVIE") {
+      if (mode.id === "movie_night") {
+        score += 4;
+        if (!reason) reason = "movie constraint";
+      } else if (mode.exclude_formats?.includes("MOVIE")) {
+        score -= 6; // mode explicitly excludes movies
+      }
+    }
+    // Short-form constraint: penalize long-series modes.
+    if (userConstraints.format === "SHORT_FORM" || userConstraints.format === "OVA" || userConstraints.format === "ONA") {
+      if (mode.id === "short_one_season") {
+        score += 3;
+        if (!reason) reason = "short-form constraint";
+      }
+    }
+    // Max-episodes constraint: boost short_one_season mode when user wants <=26 episodes.
+    if (userConstraints.max_episodes != null && userConstraints.max_episodes <= 26) {
+      if (mode.id === "short_one_season") {
+        score += 2;
+        if (!reason) reason = "episode limit constraint";
+      }
+    }
+    // Min-episodes constraint: penalize short modes when user wants long.
+    if (userConstraints.min_episodes != null && userConstraints.min_episodes >= 50) {
+      if (mode.id === "short_one_season" || mode.id === "movie_night") {
+        score -= 5;
+      }
+    }
+    // Year max constraint: boost classics mode if user wants older titles.
+    if (userConstraints.year_max != null && userConstraints.year_max <= 2012) {
+      if (mode.id.includes("classic")) {
+        score += 2;
+        if (!reason) reason = "year constraint (classic era)";
+      }
+    }
+  }
+
   return { score, reason: reason || "default" };
 }
 
@@ -500,15 +571,18 @@ function sigmoid(x: number) {
 }
 
 function isClassicIntent(text: string) {
-  return /\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s)\b/i.test(text);
+  const t = normalizeUmlauts(text.toLowerCase());
+  return /\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s|klassiker|klassisch|meisterwerk|muss man gesehen haben|legendaer|legendaere)\b/i.test(t);
 }
 
 function isGatewayIntent(text: string) {
-  return /\b(first anime|first manga|where do i start|getting into anime|getting into manga|neu bei anime|neu bei manga|anime anfangen|manga anfangen)\b/i.test(text);
+  const t = normalizeUmlauts(text.toLowerCase());
+  return /\b(first anime|first manga|where do i start|getting into anime|getting into manga|neu bei anime|neu bei manga|anime anfangen|manga anfangen|erstes anime|erstes manga|womit anfangen|wo fange ich an)\b/i.test(t);
 }
 
 function isHiddenGemsIntent(text: string) {
-  return /\b(hidden gem|hidden gems|underrated|less known|new to me)\b/i.test(text);
+  const t = normalizeUmlauts(text.toLowerCase());
+  return /\b(hidden gem|hidden gems|underrated|less known|new to me|geheimtipp|unterschaetzt|unbekannt|wenig bekannt|insider)\b/i.test(t);
 }
 
 function mapStrongGenreToModeId(text: string, excludedGenres: string[] = []): string | null {
@@ -517,9 +591,9 @@ function mapStrongGenreToModeId(text: string, excludedGenres: string[] = []): st
   // High-signal intent should win over generic genre words.
   // Structural intents (movie, short, no-isekai) are never blocked by genre exclusions.
   if (/\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s|klassiker|klassisch|legendaer|meisterwerk)\b/.test(t)) return "classics_expanded";
-  if (/\b(movie|movies|film|movie night|feature film|standalone movie)\b/.test(t)) return "movie_night";
-  if (/\b(short|one season|quick watch|binge|one cour|12 ep|13 ep|eine staffel|kurze serie)\b/.test(t)) return "short_one_season";
-  if (/\b(no isekai|not isekai|ohne isekai|non[- ]?isekai)\b/.test(t)) return "fantasy_non_isekai";
+  if (/\b(movie|movies|film|filme|movie night|feature film|standalone movie|filmabend|kinofilm)\b/.test(t)) return "movie_night";
+  if (/\b(short|one season|quick watch|binge|one cour|12 ep|13 ep|eine staffel|1 staffel|kurze serie|kurz und gut)\b/.test(t)) return "short_one_season";
+  if (/\b(no isekai|not isekai|ohne isekai|nicht isekai|non[- ]?isekai|kein isekai)\b/.test(t)) return "fantasy_non_isekai";
   // Special romance sub-genres (no dedicated mode, but we prefer serious romance over romcom).
   if (!excl.has("romance") && /\b(shounen ai|shonen ai)\b/.test(t)) return "romance_serious";
   // "Magical girl" / mahou shoujo shouldn't be treated as generic fantasy.
@@ -564,7 +638,7 @@ type RouterDecision = {
 function inferLanguage(text: string): "de" | "en" {
   const t = text.toLowerCase();
   // Minimal heuristic: just enough for DE narration.
-  if (/\b(ich|habe|hab|schaue|gucke|sehe|lese|staffel|folge|kapitel|band|bitte|empfehl)\b/.test(t)) return "de";
+  if (/\b(ich|habe|hab|schaue|gucke|sehe|lese|staffel|folge|kapitel|band|bitte|empfehl|vorschlagen|suchen|finden|zeig|such|importieren|eintragen|hinzuf(ü|ue)gen|aktualisieren)\b/.test(t)) return "de";
   if (/[äöüß]/i.test(t)) return "de";
   return "en";
 }
@@ -757,6 +831,132 @@ function inferExcludedGenres(text: string): string[] {
   return excluded;
 }
 
+/**
+ * Unified constraint extraction from user text (EN + DE).
+ * Produces structured constraints used by mode selection, rail filtering, and post-filtering.
+ * Each detected constraint appends an explainable reason to `why`.
+ */
+function extractConstraints(text: string): UserConstraints {
+  const t = text.toLowerCase();
+  const tNorm = normalizeUmlauts(t);
+  const why: string[] = [];
+
+  // ── Genre/tag exclusions (extends inferExcludedGenres) ──
+  const excluded_genres = inferExcludedGenres(text);
+  for (const g of excluded_genres) {
+    why.push(`Excluded genre: user excluded '${g}'`);
+  }
+  // Additional DE patterns: "nicht Isekai", "non-isekai"
+  if (/\b(?:nicht|non)\s*[- ]?\s*isekai\b/i.test(tNorm) && !excluded_genres.includes("Isekai")) {
+    excluded_genres.push("Isekai");
+    why.push("Excluded genre: user excluded 'Isekai' (nicht/non pattern)");
+  }
+
+  // ── Format constraints ──
+  let format: string | null = null;
+
+  // Movie intent (EN + DE)
+  if (/\b(movie|movies|film|filme|filmabend|kinofilm|feature film|standalone movie)\b/i.test(tNorm)) {
+    format = "MOVIE";
+    why.push("Format: user wants movies");
+  }
+  // One season / short series intent (EN + DE)
+  else if (/\b(one season|eine staffel|1 staffel|single season|one cour|ein cour)\b/i.test(tNorm)) {
+    format = "TV_SHORT_SERIES";  // sentinel: handled as max_episodes <= 13 below
+    why.push("Format: user wants single-season / short series");
+  }
+  // Short / OVA / ONA intent (EN + DE)
+  else if (/\b(short|kurz|ova|ona|special|kurzfilm)\b/i.test(tNorm) &&
+           !/\b(short series|kurze serie)\b/i.test(tNorm)) {
+    // Only match standalone "short" / "kurz", not "short series"
+    if (/\b(ova)\b/i.test(tNorm)) {
+      format = "OVA";
+      why.push("Format: user wants OVA");
+    } else if (/\b(ona)\b/i.test(tNorm)) {
+      format = "ONA";
+      why.push("Format: user wants ONA");
+    } else {
+      format = "SHORT_FORM"; // sentinel for ONA|OVA|SPECIAL
+      why.push("Format: user wants short-form content");
+    }
+  }
+
+  // ── Length constraints ──
+  let max_episodes: number | null = null;
+  let min_episodes: number | null = null;
+
+  // "under X episodes" / "unter X Folgen" / "weniger als X Folgen" / "less than X episodes"
+  const maxEpMatch = tNorm.match(/\b(?:under|unter|weniger als|less than|max|maximal|hoechstens|höchstens|bis zu)\s+(\d{1,4})\s*(?:episodes?|folgen?|eps?)\b/i);
+  if (maxEpMatch) {
+    max_episodes = parseInt(maxEpMatch[1], 10);
+    why.push(`Length: max ${max_episodes} episodes`);
+  }
+  // "over X episodes" / "über X Folgen" / "mehr als X Folgen" / "more than X episodes"
+  const minEpMatch = tNorm.match(/\b(?:over|ueber|über|mehr als|more than|min|mindestens|ab)\s+(\d{1,4})\s*(?:episodes?|folgen?|eps?)\b/i);
+  if (minEpMatch) {
+    min_episodes = parseInt(minEpMatch[1], 10);
+    why.push(`Length: min ${min_episodes} episodes`);
+  }
+  // "long" / "lang" implies 50+ episodes
+  if (!min_episodes && /\b(long anime|long series|langes anime|lange serie|lang|marathon)\b/i.test(tNorm)) {
+    min_episodes = 50;
+    why.push("Length: user wants long series (50+ episodes)");
+  }
+
+  // One-season sentinel: apply max_episodes if not already set
+  if (format === "TV_SHORT_SERIES" && !max_episodes) {
+    max_episodes = 13;
+    format = null; // don't lock to a specific format, just limit episodes
+  } else if (format === "TV_SHORT_SERIES") {
+    format = null; // max_episodes already captures intent
+  }
+
+  // ── Year constraints ──
+  let year_min: number | null = null;
+  let year_max: number | null = null;
+  const currentYear = new Date().getFullYear();
+
+  // "from YYYY" / "ab YYYY" / "seit YYYY" / "after YYYY" / "nach YYYY"
+  const yearMinMatch = tNorm.match(/\b(?:from|ab|seit|after|nach|starting|beginning)\s+((?:19|20)\d{2})\b/i);
+  if (yearMinMatch) {
+    year_min = parseInt(yearMinMatch[1], 10);
+    why.push(`Year: from ${year_min} onward`);
+  }
+  // "before YYYY" / "vor YYYY" / "until YYYY" / "bis YYYY" (year context only)
+  const yearMaxMatch = tNorm.match(/\b(?:before|vor|until|bis)\s+((?:19|20)\d{2})\b/i);
+  if (yearMaxMatch) {
+    year_max = parseInt(yearMaxMatch[1], 10);
+    why.push(`Year: before ${year_max}`);
+  }
+  // "classic" / "Klassiker" → year_max: 2005
+  if (!year_max && /\b(classic|klassiker|klassisch|retro|old school|oldschool|vintage)\b/i.test(tNorm)) {
+    year_max = 2005;
+    why.push("Year: classic era (pre-2005)");
+  }
+  // "new" / "neu" / "recent" / "aktuell" → year_min: current_year - 2
+  if (!year_min && /\b(new|neu|recent|aktuell|neue|neues|neueste|latest|this season|diese saison)\b/i.test(tNorm)) {
+    // Avoid false positives: "new to me" / "new to anime" is not a year filter
+    if (!/\b(new to me|new to anime|new to manga|neu bei)\b/i.test(tNorm)) {
+      year_min = currentYear - 2;
+      why.push(`Year: recent (${year_min}+)`);
+    }
+  }
+  // Decade mentions: "90s anime" / "80er" / "2000er"
+  const decadeMatch = tNorm.match(/\b((?:19|20)?\d0)s?\s*(?:anime|manga)?\b/i) ??
+                       tNorm.match(/\b((?:19|20)?\d0)er\b/i);
+  if (decadeMatch && !year_min && !year_max) {
+    let decade = parseInt(decadeMatch[1], 10);
+    if (decade < 100) decade += decade >= 50 ? 1900 : 2000; // "90s" → 1990, "00s" → 2000
+    if (decade >= 1960 && decade <= 2020) {
+      year_min = decade;
+      year_max = decade + 9;
+      why.push(`Year: ${decade}s decade`);
+    }
+  }
+
+  return { excluded_genres, format, max_episodes, min_episodes, year_min, year_max, why };
+}
+
 function inferQualityFloor(text: string): { minScore: number; minPopularity: number; excludeFormats: Set<string> } {
   const t = text.toLowerCase();
   const wantsPremium = /\b(premium|masterpiece|must[- ]?watch|classic|classics|top tier|best)\b/.test(t);
@@ -895,6 +1095,41 @@ function clientIp(req: Request): string | null {
   return null;
 }
 
+async function isFeatureFlagEnabledForUser(
+  client: any,
+  flagName: string,
+  userId: string,
+  market: string,
+): Promise<boolean> {
+  try {
+    const { data, error } = await client
+      .from("feature_flags")
+      .select("enabled,rollout_percentage,target_markets")
+      .eq("flag_name", flagName)
+      .maybeSingle();
+    if (error || !data) return false;
+
+    const enabled = Boolean((data as any).enabled);
+    if (!enabled) return false;
+
+    const targetMarkets = Array.isArray((data as any).target_markets)
+      ? (data as any).target_markets.map((x: any) => String(x).toUpperCase())
+      : [];
+    if (targetMarkets.length > 0 && !targetMarkets.includes("*") && !targetMarkets.includes(market.toUpperCase())) {
+      return false;
+    }
+
+    const rollout = Number((data as any).rollout_percentage ?? 0);
+    if (!Number.isFinite(rollout) || rollout <= 0) return false;
+    if (rollout >= 100) return true;
+
+    const bucket = stableBucket(`${userId}:${flagName}`);
+    return bucket < rollout;
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   try {
     if (req.method !== "POST") return json({ error: "Method not allowed" }, { status: 405 });
@@ -947,7 +1182,8 @@ serve(async (req) => {
     const categories = inferCategories(text);
     const gimmickTagIds = inferGimmickTagIds(text);
     const requiredGenres = inferRequiredGenres(text);
-    const userExcludedGenres = inferExcludedGenres(text);
+    const constraints = extractConstraints(text);
+    const userExcludedGenres = constraints.excluded_genres;
     const quality = inferQualityFloor(text);
 
     // Parallel fetch: config, tag mapping, and editorial boosts are independent.
@@ -1032,7 +1268,7 @@ serve(async (req) => {
       const [mediaRes, boostsRes, tagLinksRes] = await Promise.all([
         client
           .from(table)
-          .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres")
+          .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,episodes")
           .in("id", ids),
         client
           .from("editorial_boosts")
@@ -1075,6 +1311,7 @@ serve(async (req) => {
       classicYearMax?: number;
       quality: { minScore: number; minPopularity: number; maxPopularity: number | null; excludeFormats: Set<string> };
       prioritizeClassicBoost?: boolean;
+      constraints?: UserConstraints;
     }) => {
       const hasGenres = (m: any, required: string[]) => {
         if (!required.length) return true;
@@ -1091,20 +1328,43 @@ serve(async (req) => {
         return excluded.some((g) => gs.includes(g));
       };
 
+      const uc = opts.constraints;
+
       const passes = (m: any) => {
         if (!m) return false;
         if (m.is_adult === true) return false;
-        if (opts.quality.excludeFormats.has(String(m.format ?? "").toUpperCase())) return false;
+        const fmt = String(m.format ?? "").toUpperCase();
+
+        // Format constraint: if user wants MOVIE, only allow MOVIE format.
+        if (uc?.format === "MOVIE" && fmt !== "MOVIE") return false;
+        // Short-form: allow ONA, OVA, SPECIAL only.
+        if (uc?.format === "SHORT_FORM" && !["ONA", "OVA", "SPECIAL"].includes(fmt)) return false;
+        if (uc?.format === "OVA" && fmt !== "OVA") return false;
+        if (uc?.format === "ONA" && fmt !== "ONA") return false;
+
+        // Default format exclusions (unless overridden by constraint).
+        if (!uc?.format && opts.quality.excludeFormats.has(fmt)) return false;
         if (hasExcludedGenres(m, opts.excludeGenres)) return false;
 
         const year = Number(m.start_date_year ?? 0);
         if (opts.classicYearMax && year > 0 && year > opts.classicYearMax) return false;
+        // Year constraints from user.
+        if (uc?.year_min != null && year > 0 && year < uc.year_min) return false;
+        if (uc?.year_max != null && year > 0 && year > uc.year_max) return false;
 
         const score = Number(m.average_score ?? 0);
         const pop = Number(m.popularity ?? 0);
         if (opts.quality.minScore > 0 && score > 0 && score < opts.quality.minScore) return false;
         if (opts.quality.minPopularity > 0 && pop > 0 && pop < opts.quality.minPopularity) return false;
         if (opts.quality.maxPopularity != null && pop > 0 && pop > opts.quality.maxPopularity) return false;
+
+        // Episode count constraints (anime only; manga uses chapters).
+        if (mt === "ANIME") {
+          const eps = Number(m.episodes ?? 0);
+          if (uc?.max_episodes != null && eps > 0 && eps > uc.max_episodes) return false;
+          if (uc?.min_episodes != null && eps > 0 && eps < uc.min_episodes) return false;
+        }
+
         return true;
       };
 
@@ -1172,6 +1432,8 @@ serve(async (req) => {
     const cacheTtlDays = Number(routerCfg?.cache_ttl_days ?? 30);
 
     const userId = userData.user.id;
+    const market = inferRequestMarket(req);
+    const ragAssistEnabled = await isFeatureFlagEnabledForUser(client, "rag_assist_v1", userId, market);
     const promptNorm = normalizePromptForCache(text);
 
     const resolveSecondary = (primaryId: string) => {
@@ -1351,7 +1613,7 @@ serve(async (req) => {
       // Deterministic scoring (fallback).
       const candidates = Array.from(modeById.values()).filter((m) => m.id !== classicsId);
       const scored = candidates.map((m) => {
-        const s = scoreMode(text, m, requiredGenres, userExcludedGenres);
+        const s = scoreMode(text, m, requiredGenres, userExcludedGenres, constraints);
         let score = s.score;
         // Tie-breaker so vague prompts don't pick random modes.
         if (m.id === "premium_picks") score += 1;
@@ -1421,17 +1683,31 @@ serve(async (req) => {
       return mt === "ANIME" ? (mode.rail_id.anime ?? null) : (mode.rail_id.manga ?? null);
     };
 
-    const filterExcludedGenres = (items: any[]) => {
-      if (!userExcludedGenres.length) return items;
+    const filterByConstraints = (items: any[]) => {
       return items.filter((it) => {
-        const gs = Array.isArray(it.genres) ? it.genres.map((g: any) => String(g)) : [];
-        return !userExcludedGenres.some((eg) => gs.includes(eg));
+        // Genre exclusion.
+        if (userExcludedGenres.length) {
+          const gs = Array.isArray(it.genres) ? it.genres.map((g: any) => String(g)) : [];
+          if (userExcludedGenres.some((eg) => gs.includes(eg))) return false;
+        }
+        // Format constraint.
+        const fmt = String(it.format ?? "").toUpperCase();
+        if (constraints.format === "MOVIE" && fmt !== "MOVIE") return false;
+        if (constraints.format === "SHORT_FORM" && !["ONA", "OVA", "SPECIAL"].includes(fmt)) return false;
+        if (constraints.format === "OVA" && fmt !== "OVA") return false;
+        if (constraints.format === "ONA" && fmt !== "ONA") return false;
+        // Year constraints.
+        const year = Number(it.year ?? 0);
+        if (constraints.year_min != null && year > 0 && year < constraints.year_min) return false;
+        if (constraints.year_max != null && year > 0 && year > constraints.year_max) return false;
+        return true;
       });
     };
 
     const fetchCurated = async (mode: ConciergeMode, total: number) => {
-      // Fetch extra to compensate for post-filtering by user-excluded genres.
-      const fetchLimit = userExcludedGenres.length > 0 ? total + 20 : total;
+      // Fetch extra to compensate for post-filtering by user constraints.
+      const hasActiveConstraints = userExcludedGenres.length > 0 || constraints.format != null || constraints.year_min != null || constraints.year_max != null;
+      const fetchLimit = hasActiveConstraints ? total + 20 : total;
       const perType = perTypeLimit(fetchLimit);
       const animeRid = railIdFor(mode, "ANIME");
       const mangaRid = railIdFor(mode, "MANGA");
@@ -1443,10 +1719,67 @@ serve(async (req) => {
           ? client.rpc("curated_rail_cards", { p_rail_id: mangaRid, p_limit: perType, p_exclude_seen: true }).then((r) => r.data)
           : [],
       ]);
-      const a = filterExcludedGenres(Array.isArray(animeRows) ? animeRows.map(mapCuratedRowToItem) : []);
-      const m = filterExcludedGenres(Array.isArray(mangaRows) ? mangaRows.map(mapCuratedRowToItem) : []);
+      const a = filterByConstraints(Array.isArray(animeRows) ? animeRows.map(mapCuratedRowToItem) : []);
+      const m = filterByConstraints(Array.isArray(mangaRows) ? mangaRows.map(mapCuratedRowToItem) : []);
       const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
       return merged;
+    };
+
+    let ragAssistUsed = false;
+    let ragSeedEntityId: string | null = null;
+
+    const fetchSeedFromRag = async (): Promise<{ mt: MediaType; mediaId: number; title: string; entityId: string | null } | null> => {
+      if (!ragAssistEnabled || !seedQuery) return null;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const ragFormat =
+        constraints.format === "MOVIE" || constraints.format === "ONA" || constraints.format === "OVA"
+          ? constraints.format
+          : null;
+
+      try {
+        const ragUrl = `${supabaseUrl}/functions/v1/concierge-retrieve-assist`;
+        const res = await fetch(ragUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authHeader ? { Authorization: authHeader } : {}),
+          },
+          body: JSON.stringify({
+            query: seedQuery,
+            locale: lang,
+            media_type: mediaType === "BOTH" ? null : mediaType,
+            excluded_genres: userExcludedGenres,
+            format: ragFormat,
+            year_min: constraints.year_min,
+            year_max: constraints.year_max,
+          }),
+          signal: controller.signal,
+        });
+        if (!res.ok) return null;
+        const payload = await res.json().catch(() => null);
+        const candidates = Array.isArray(payload?.entity_candidates) ? payload.entity_candidates : [];
+        const top = candidates[0];
+        if (!top) return null;
+
+        const mt = String(top.media_type ?? "").toUpperCase();
+        const mediaId = Number(top.anilist_id ?? 0);
+        const score = Number(top.score ?? 0);
+        const title = String(top.title ?? "").trim();
+        const entityId = typeof top.entity_id === "string" ? top.entity_id : null;
+        if (!Number.isFinite(mediaId) || mediaId <= 0) return null;
+        if (score < 0.45) return null;
+        if (mt !== "ANIME" && mt !== "MANGA") return null;
+
+        ragAssistUsed = true;
+        ragSeedEntityId = entityId;
+        return { mt, mediaId, title: title || seedQuery, entityId };
+      } catch {
+        return null;
+      } finally {
+        clearTimeout(timeout);
+      }
     };
 
     const buildSimilarToSeedRail = async (total: number) => {
@@ -1468,14 +1801,23 @@ serve(async (req) => {
         : mediaType === "MANGA" ? await pickSeed("MANGA")
         : mediaType === "ANIME" ? await pickSeed("ANIME")
         : (await pickSeed("ANIME")) ?? (await pickSeed("MANGA"));
-      if (!seed || !Number.isFinite(seed.mediaId) || seed.mediaId <= 0) return { title: "Similar", items: [] as any[] };
+      const ragSeed = (!seed || !Number.isFinite(seed.mediaId) || seed.mediaId <= 0)
+        ? await fetchSeedFromRag()
+        : null;
+      if (ragSeed) {
+        seedOverride = { mt: ragSeed.mt, mediaId: ragSeed.mediaId, title: ragSeed.title };
+      }
+      const effectiveSeed = seedOverride ?? seed;
+      if (!effectiveSeed || !Number.isFinite(effectiveSeed.mediaId) || effectiveSeed.mediaId <= 0) {
+        return { title: "Similar", items: [] as any[] };
+      }
 
       const perType = perTypeLimit(total);
       const q = compileQuality(null);
       const getSim = async (mt: MediaType) => {
         const { data: sim, error: simErr } = await client.rpc("recommend_ids_similar_to_seeds", {
           p_media_type: mt,
-          p_seed_ids: [seed.mediaId],
+          p_seed_ids: [effectiveSeed.mediaId],
           p_limit: 50,
           p_allow_gimmicks: allowGimmicks,
         });
@@ -1502,15 +1844,15 @@ serve(async (req) => {
       ]);
 
       const a = (mediaType === "ANIME" || mediaType === "BOTH")
-        ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, quality: q })
+        ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, quality: q, constraints })
         : [];
       const m = (mediaType === "MANGA" || mediaType === "BOTH")
-        ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, quality: q })
+        ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, quality: q, constraints })
         : [];
 
       const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
-      const title = seed.title || seedQuery || "seed";
-      return { title: `Similar to “${title}”`, items: merged };
+      const title = effectiveSeed.title || seedQuery || "seed";
+      return { title: `Similar to "${title}"`, items: merged };
     };
 
     const buildAlgorithmicRail = async (mode: ConciergeMode | null, total: number) => {
@@ -1543,6 +1885,7 @@ serve(async (req) => {
           classicYearMax: mode?.classic_year_max,
           quality: q,
           prioritizeClassicBoost: (mode?.id ?? "").includes("classic"),
+          constraints,
         })
         : [];
       const m = (mediaType === "MANGA" || mediaType === "BOTH")
@@ -1553,6 +1896,7 @@ serve(async (req) => {
           classicYearMax: mode?.classic_year_max,
           quality: q,
           prioritizeClassicBoost: (mode?.id ?? "").includes("classic"),
+          constraints,
         })
         : [];
       return mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
@@ -1778,6 +2122,22 @@ serve(async (req) => {
       items: allItems,
       message,
       narrated: narrate,
+      // Constraint info for WhyThisSheet and debugging.
+      constraints: constraints.why.length > 0 ? {
+        excluded_genres: constraints.excluded_genres.length > 0 ? constraints.excluded_genres : undefined,
+        format: constraints.format ?? undefined,
+        max_episodes: constraints.max_episodes ?? undefined,
+        min_episodes: constraints.min_episodes ?? undefined,
+        year_min: constraints.year_min ?? undefined,
+        year_max: constraints.year_max ?? undefined,
+        why: constraints.why,
+      } : undefined,
+      assist: ragAssistEnabled
+        ? {
+          ragUsed: ragAssistUsed,
+          seedEntityId: ragSeedEntityId ?? undefined,
+        }
+        : undefined,
       ...(debugNarration ? { narrationError } : {}),
     });
   } catch (e) {
