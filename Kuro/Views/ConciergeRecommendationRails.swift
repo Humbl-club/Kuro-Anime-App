@@ -12,27 +12,6 @@ typealias ConciergeRecItem = SupabaseService.ConciergeRecommendResponse.Item
 
 // MARK: - Selection Haptics (Snap-to-Card)
 
-@MainActor
-private final class ConciergeRailHaptics {
-    static let shared = ConciergeRailHaptics()
-
-    private let generator = UISelectionFeedbackGenerator()
-    private var lastTickAt: CFTimeInterval = 0
-
-    private init() {
-        generator.prepare()
-    }
-
-    func tickIfNeeded() {
-        let now = CFAbsoluteTimeGetCurrent()
-        // Throttle so fast scroll decel doesn't spam haptics.
-        if now - lastTickAt < 0.10 { return }
-        lastTickAt = now
-        generator.selectionChanged()
-        generator.prepare()
-    }
-}
-
 // MARK: - View Model for Rail State
 @MainActor
 @Observable
@@ -42,28 +21,30 @@ final class RecommendationRailViewModel {
     var showWhyThisSheet = false
     var recentlyHiddenItem: (ConciergeRecItem)?
     var showHiddenToast = false
+    private var hideToastDismissTask: Task<Void, Never>?
     
     func hideItem(_ item: ConciergeRecItem) {
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+        hideToastDismissTask?.cancel()
+        withAnimation(KuroAnimation.editorial) {
             hiddenItemIds.insert(item.id)
             recentlyHiddenItem = item
             showHiddenToast = true
         }
         
         // Auto-dismiss toast after delay
-        Task { @MainActor in
+        hideToastDismissTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 3_000_000_000)
-            if !Task.isCancelled {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    showHiddenToast = false
-                }
+            guard !Task.isCancelled else { return }
+            withAnimation(KuroAnimation.fast) {
+                showHiddenToast = false
             }
         }
     }
     
     func undoHide() {
         guard let item = recentlyHiddenItem else { return }
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+        hideToastDismissTask?.cancel()
+        withAnimation(KuroAnimation.editorial) {
             hiddenItemIds.remove(item.id)
             recentlyHiddenItem = nil
             showHiddenToast = false
@@ -73,6 +54,11 @@ final class RecommendationRailViewModel {
     func showWhyThis(for item: ConciergeRecItem) {
         selectedItemForReasoning = item
         showWhyThisSheet = true
+    }
+
+    func cancelPendingTasks() {
+        hideToastDismissTask?.cancel()
+        hideToastDismissTask = nil
     }
 }
 
@@ -135,11 +121,8 @@ struct RecommendationRail: View {
             }
             .scrollPosition(id: $scrollPosition)
             .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-            .onChange(of: scrollPosition) { oldValue, newValue in
+            .onChange(of: scrollPosition) { _, newValue in
                 centeredItemId = newValue
-                if newValue != nil, newValue != oldValue {
-                    ConciergeRailHaptics.shared.tickIfNeeded()
-                }
             }
             .frame(height: cardHeight + 8) // Extra space for shadow
         }
@@ -154,6 +137,9 @@ struct RecommendationRail: View {
                     .padding(.bottom, 8)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+        }
+        .onDisappear {
+            viewModel.cancelPendingTasks()
         }
     }
     
@@ -185,19 +171,12 @@ struct RecommendationCard: View {
     let onWhyThis: () -> Void
     
     @State private var isPressed = false
-    @State private var isDragging = false
-    @State private var dragOffset: CGSize = .zero
     @State private var showDetail = false
     
     private let posterAspectRatio: CGFloat = 0.7 // 140:200
     
     private var posterHeight: CGFloat {
         cardWidth / posterAspectRatio
-    }
-    
-    private var displayScore: String? {
-        guard let score = item.averageScore, score > 0 else { return nil }
-        return String(format: "%.1f", Double(score) / 10.0)
     }
     
     private var metaLine: String {
@@ -232,14 +211,9 @@ struct RecommendationCard: View {
         cardContent
             .frame(width: cardWidth, height: cardHeight)
             .scaleEffect(isPressed ? 0.98 : (isCentered ? 1.02 : 1.0))
-            .offset(dragOffset)
-            .opacity(dragOffset.width > 100 ? 0 : 1)
-            .rotationEffect(.degrees(Double(dragOffset.width) / 20))
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isCentered)
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPressed)
-            .gesture(dragGesture)
             .onTapGesture {
-                guard !isDragging else { return }
                 KuroAccessibility.impactHaptic(.light)
                 onOpen()
             }
@@ -269,8 +243,8 @@ struct RecommendationCard: View {
                 posterImage
                 
                 // Score Badge
-                if let score = displayScore {
-                    ScoreBadge(score: score)
+                if let score = item.averageScore, score > 0 {
+                    KuroScoreBadge(score: Double(score) / 10.0)
                         .padding(8)
                 }
             }
@@ -278,7 +252,7 @@ struct RecommendationCard: View {
             // Text Content
             VStack(alignment: .leading, spacing: 4) {
                 Text(sanitizedTitle)
-                    .font(.system(size: 12, weight: .light, design: .serif))
+                    .font(.kuroCaption())
                     .foregroundStyle(.primary.opacity(0.82))
                     .lineLimit(2)
                     .minimumScaleFactor(0.92)
@@ -297,12 +271,6 @@ struct RecommendationCard: View {
             .padding(.top, 10)
         }
         .frame(width: cardWidth, height: cardHeight, alignment: .top)
-        .shadow(
-            color: isPressed ? Color.black.opacity(0.15) : Color.black.opacity(0.08),
-            radius: isPressed ? 12 : 8,
-            x: 0,
-            y: isPressed ? 8 : 4
-        )
     }
     
     private var posterImage: some View {
@@ -339,41 +307,6 @@ struct RecommendationCard: View {
         KuroCardText.sanitizeTitleForCard(item.title)
     }
     
-    // MARK: - Drag Gesture (Swipe to Hide)
-    private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 20, coordinateSpace: .local)
-            .onChanged { value in
-                isDragging = true
-                // Only allow horizontal drag for dismiss
-                if abs(value.translation.width) > abs(value.translation.height) {
-                    dragOffset = CGSize(width: value.translation.width, height: 0)
-                }
-            }
-            .onEnded { value in
-                let threshold: CGFloat = 100
-                if value.translation.width > threshold {
-                    // Swiped right - hide with animation
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        dragOffset = CGSize(width: cardWidth + 50, height: 0)
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        KuroAccessibility.impactHaptic(.medium)
-                        onHide()
-                        dragOffset = .zero
-                        isDragging = false
-                    }
-                } else {
-                    // Snap back
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        dragOffset = .zero
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        isDragging = false
-                    }
-                }
-            }
-    }
-    
     // MARK: - Context Menu
     @ViewBuilder
     private var contextMenuContent: some View {
@@ -399,31 +332,6 @@ struct RecommendationCard: View {
         } label: {
             Label("Why this?", systemImage: "sparkles")
         }
-    }
-}
-
-// MARK: - Score Badge
-struct ScoreBadge: View {
-    let score: String
-    
-    var body: some View {
-        HStack(spacing: 2) {
-            Image(systemName: "star.fill")
-                .font(.system(size: 7, weight: .bold))
-            Text(score)
-                .font(.system(size: 9, weight: .semibold))
-        }
-        .foregroundColor(.white)
-        .padding(.horizontal, 6)
-        .padding(.vertical, 3)
-        .background(
-            Capsule()
-                .fill(Color.black.opacity(0.8))
-        )
-        .overlay(
-            Capsule()
-                .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
-        )
     }
 }
 
@@ -483,22 +391,22 @@ struct WhyThisSheet: View {
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.title)
-                    .font(.system(size: 17, weight: .light, design: .serif))
+                    .font(.kuroTitle(weight: .light))
                     .lineLimit(2)
-                
+
                 if let year = item.year {
                     Text(String(year))
-                        .font(.system(size: 14))
+                        .font(.kuroBody())
                         .foregroundColor(.secondary)
                 }
-                
+
                 if let format = item.format {
                     Text(format.capitalized)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                        .font(.kuroCaption())
+                        .foregroundColor(.black.opacity(0.55))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(Color.secondary.opacity(0.1))
+                        .background(Color.black.opacity(0.06))
                         .clipShape(Capsule())
                 }
             }
@@ -557,19 +465,19 @@ struct HiddenToast: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "eye.slash.fill")
-                .font(.system(size: 14))
+                .font(.kuroBody())
                 .foregroundColor(.white.opacity(0.8))
-            
+
             Text("\(item.title) hidden")
-                .font(.system(size: 14, weight: .medium))
+                .font(.kuroBody(weight: .medium))
                 .foregroundColor(.white)
                 .lineLimit(1)
-            
+
             Spacer()
-            
+
             Button(action: onUndo) {
                 Text("UNDO")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.kuroCaption(weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
