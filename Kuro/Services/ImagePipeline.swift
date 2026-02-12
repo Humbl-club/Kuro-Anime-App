@@ -29,10 +29,8 @@ actor ImagePipeline {
         for url in urls {
             if memory.object(forKey: url as NSURL) != nil { continue }
             if inFlight[url] != nil { continue }
-            inFlight[url] = Task<UIImage?, Never> { [weak self] in
-                guard let self else { return nil }
-                return await self.load(url: url, maxPixelSize: maxPixelSize)
-            }
+            let task = makeLoadTask(url: url, maxPixelSize: maxPixelSize)
+            inFlight[url] = task
         }
     }
 
@@ -43,14 +41,22 @@ actor ImagePipeline {
         }
         if let task = inFlight[url] { return await task.value }
 
-        let task = Task<UIImage?, Never> { [weak self] in
-            guard let self else { return nil }
-            return await self.load(url: url, maxPixelSize: maxPixelSize)
-        }
+        let task = makeLoadTask(url: url, maxPixelSize: maxPixelSize)
         inFlight[url] = task
-        let img = await task.value
+        return await task.value
+    }
+
+    private func makeLoadTask(url: URL, maxPixelSize: Int?) -> Task<UIImage?, Never> {
+        Task<UIImage?, Never> { [weak self] in
+            guard let self else { return nil }
+            let image = await self.load(url: url, maxPixelSize: maxPixelSize)
+            await self.finishInFlight(url: url)
+            return image
+        }
+    }
+
+    private func finishInFlight(url: URL) {
         inFlight[url] = nil
-        return img
     }
 
     private func load(url: URL, maxPixelSize: Int?) async -> UIImage? {

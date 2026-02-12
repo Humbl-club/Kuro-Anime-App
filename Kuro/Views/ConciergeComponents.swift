@@ -26,6 +26,7 @@ struct KuroConciergeMascot: View {
 
     private let panelWidth: CGFloat = 316
     private let panelHeight: CGFloat = 148
+    private let orbSize: CGFloat = 56
 
     var body: some View {
         let clamped = clamp(offset: offset)
@@ -195,6 +196,13 @@ struct KuroConciergeMascot: View {
 
             ringPhase = true
         }
+        .onChange(of: expanded) { _, _ in
+            let next = clamp(offset: offset)
+            if next != offset {
+                offset = next
+                dragStart = next
+            }
+        }
     }
 
     private var statusLine: String {
@@ -208,11 +216,15 @@ struct KuroConciergeMascot: View {
     }
 
     private func clamp(offset: CGSize) -> CGSize {
-        let maxRight = max(0, containerSize.width - (panelWidth + 32))
+        let activeWidth = expanded ? panelWidth : orbSize
+        let maxRight = max(0, containerSize.width - (activeWidth + 32))
         let minX: CGFloat = 0
         let maxX: CGFloat = maxRight
 
-        let minY: CGFloat = -max(120, containerSize.height * 0.70)
+        // Keep the collapsed orb close to the input bar so it never drifts into header content.
+        let minY: CGFloat = expanded
+            ? -max(120, containerSize.height * 0.70)
+            : -max(28, containerSize.height * 0.18)
         let maxY: CGFloat = 0
 
         return CGSize(
@@ -801,6 +813,7 @@ struct ConciergeBubble: View {
     var onClarifyAmbiguity: ((_ kind: String, _ value: String, _ sourceText: String) -> Void)? = nil
     var onConfirmItems: ((SupabaseService.ConciergeParseResponse) -> Void)? = nil
     var onReparse: (() -> Void)? = nil
+    var isImportApplied: Bool = false
     var autoReasonByItemId: [String: String] = [:]
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
@@ -858,6 +871,7 @@ struct ConciergeBubble: View {
                             onSelect: onSelect,
                             onConfirm: { onConfirmItems?(parseResponse) },
                             onReparse: onReparse,
+                            isApplied: isImportApplied,
                             autoReasonByItemId: autoReasonByItemId,
                             itemActions: itemActions,
                             excludedItemIds: $excludedItemIds
@@ -991,6 +1005,7 @@ struct ConciergeConfirmBubble: View {
     let onSelect: (SupabaseService.ConciergeParseItem, SupabaseService.ConciergeCandidate) -> Void
     let onConfirm: () -> Void
     var onReparse: (() -> Void)? = nil
+    var isApplied: Bool = false
     var autoReasonByItemId: [String: String] = [:]
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
@@ -1083,57 +1098,69 @@ struct ConciergeConfirmBubble: View {
                     onToggleExclude: { toggleExclude($0) }
                 )
 
-                HStack(spacing: 10) {
-                    // Re-parse: show when many items have low confidence
-                    if showReparse, let reparse = onReparse {
+                if isApplied {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.kuroCaption(weight: .semibold))
+                        Text("APPLIED")
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.6)
+                    }
+                    .foregroundColor(.black.opacity(0.60))
+                    .padding(.top, 16)
+                } else {
+                    HStack(spacing: 10) {
+                        // Re-parse: show when many items have low confidence
+                        if showReparse, let reparse = onReparse {
+                            Button(action: {
+                                KuroAccessibility.impactHaptic(.light)
+                                reparse()
+                            }) {
+                                Text("RE-PARSE")
+                                    .font(.kuroCaption(weight: .medium))
+                                    .tracking(1.6)
+                                    .foregroundColor(.black.opacity(0.55))
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 13)
+                                    .background(
+                                        Capsule(style: .continuous)
+                                            .fill(Color.black.opacity(0.04))
+                                            .overlay(
+                                                Capsule(style: .continuous)
+                                                    .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+                                            )
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Re-parse import text")
+                        }
+
                         Button(action: {
-                            KuroAccessibility.impactHaptic(.light)
-                            reparse()
+                            KuroAccessibility.impactHaptic(.medium)
+                            onConfirm()
                         }) {
-                            Text("RE-PARSE")
-                                .font(.kuroCaption(weight: .medium))
-                                .tracking(1.6)
-                                .foregroundColor(.black.opacity(0.55))
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 13)
-                                .background(
-                                    Capsule(style: .continuous)
-                                        .fill(Color.black.opacity(0.04))
-                                        .overlay(
-                                            Capsule(style: .continuous)
-                                                .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
-                                        )
-                                )
+                            HStack(spacing: 8) {
+                                Text("CONFIRM")
+                                    .font(.kuroCaption(weight: .medium))
+                                    .tracking(2.0)
+
+                                Text("\(confirmableCount)")
+                                    .font(.kuroMicro(weight: .semibold))
+                                    .monospacedDigit()
+                            }
+                            .foregroundColor(confirmableCount > 0 ? .white : .white.opacity(0.40))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 13)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(confirmableCount > 0 ? Color.black.opacity(0.88) : Color.black.opacity(0.10))
+                            )
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Re-parse import text")
+                        .disabled(confirmableCount == 0)
                     }
-
-                    Button(action: {
-                        KuroAccessibility.impactHaptic(.medium)
-                        onConfirm()
-                    }) {
-                        HStack(spacing: 8) {
-                            Text("CONFIRM")
-                                .font(.kuroCaption(weight: .medium))
-                                .tracking(2.0)
-
-                            Text("\(confirmableCount)")
-                                .font(.kuroMicro(weight: .semibold))
-                                .monospacedDigit()
-                        }
-                        .foregroundColor(confirmableCount > 0 ? .white : .white.opacity(0.40))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 13)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(confirmableCount > 0 ? Color.black.opacity(0.88) : Color.black.opacity(0.10))
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(confirmableCount == 0)
+                    .padding(.top, 16)
                 }
-                .padding(.top, 16)
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 16)

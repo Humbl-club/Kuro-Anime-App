@@ -297,15 +297,28 @@ private struct ClubActivityItemRow: View {
     private var aggregateText: String {
         guard let counts = item.member_status_counts else { return "" }
         if let tracking = counts["_tracking_count"], tracking > 0 {
+            let notStarted = max(0, memberCount - tracking)
+            if notStarted > 0 {
+                return "\(tracking) tracking \u{00B7} \(notStarted) not started"
+            }
             return "\(tracking) tracking"
         }
         var parts: [String] = []
         let watching = (counts["CURRENT"] ?? 0) + (counts["WATCHING"] ?? 0) + (counts["READING"] ?? 0)
         let completed = counts["COMPLETED"] ?? 0
         let planning = (counts["PLANNING"] ?? 0) + (counts["PLANNED"] ?? 0)
+        let paused = (counts["PAUSED"] ?? 0) + (counts["ON_HOLD"] ?? 0)
+        let dropped = counts["DROPPED"] ?? 0
         if watching > 0 { parts.append("\(watching) watching") }
         if completed > 0 { parts.append("\(completed) completed") }
         if planning > 0 { parts.append("\(planning) planning") }
+        if paused > 0 { parts.append("\(paused) paused") }
+        if dropped > 0 { parts.append("\(dropped) dropped") }
+        let tracked = counts
+            .filter { $0.key != "_tracking_count" }
+            .reduce(0) { $0 + $1.value }
+        let notStarted = max(0, memberCount - tracked)
+        if notStarted > 0 { parts.append("\(notStarted) not started") }
         return parts.joined(separator: " \u{00B7} ")
     }
 

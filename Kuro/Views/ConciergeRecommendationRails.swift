@@ -171,7 +171,7 @@ struct RecommendationCard: View {
     let onWhyThis: () -> Void
     
     @State private var isPressed = false
-    @State private var showDetail = false
+    @State private var isDraggingCard = false
     
     private let posterAspectRatio: CGFloat = 0.7 // 140:200
     
@@ -214,9 +214,24 @@ struct RecommendationCard: View {
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isCentered)
             .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPressed)
             .onTapGesture {
+                guard !isDraggingCard else { return }
                 KuroAccessibility.impactHaptic(.light)
                 onOpen()
             }
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 8)
+                    .onChanged { _ in
+                        if !isDraggingCard {
+                            isDraggingCard = true
+                        }
+                    }
+                    .onEnded { _ in
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 120_000_000)
+                            isDraggingCard = false
+                        }
+                    }
+            )
             .onLongPressGesture(
                 minimumDuration: 0.5,
                 pressing: { pressing in

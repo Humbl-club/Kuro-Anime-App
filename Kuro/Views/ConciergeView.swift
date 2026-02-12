@@ -53,6 +53,8 @@ struct ConciergeView: View {
     @State private var assistantOffset: CGSize = .zero
     @State private var assistantDragStart: CGSize = .zero
     @State private var containerSize: CGSize = CGSize(width: 393, height: 852)
+    @State private var appliedImportMessageIds: Set<UUID> = []
+    @State private var lastAppliedImportMessageId: UUID? = nil
     @State private var lastRecommendQuery: String? = nil
     @State private var lastRecommendWasRagAssist: Bool = false
     @State private var lastRagSeedEntityId: String? = nil
@@ -151,11 +153,12 @@ struct ConciergeView: View {
                                     Task { await handleClarification(kind: kind, value: value, sourceText: sourceText) }
                                 } : nil,
                                 onConfirmItems: { response in
-                                    Task { await confirmImport(response: response) }
+                                    Task { await confirmImport(response: response, sourceMessageId: msg.id) }
                                 },
                                 onReparse: {
                                     reparse(message: msg)
                                 },
+                                isImportApplied: appliedImportMessageIds.contains(msg.id),
                                 autoReasonByItemId: autoReasonByItemId,
                                 itemActions: itemActions,
                                 excludedItemIds: $excludedItemIds
@@ -747,7 +750,7 @@ struct ConciergeView: View {
     }
 
     // MARK: Confirm Import (From Inline Bubble)
-    private func confirmImport(response: SupabaseService.ConciergeParseResponse) async {
+    private func confirmImport(response: SupabaseService.ConciergeParseResponse, sourceMessageId: UUID? = nil) async {
         isWorking = true
 
         do {
@@ -795,6 +798,11 @@ struct ConciergeView: View {
                     }
                 }
             ), autoDismissSeconds: 4.0)
+
+            if let sourceMessageId {
+                appliedImportMessageIds.insert(sourceMessageId)
+                lastAppliedImportMessageId = sourceMessageId
+            }
 
         } catch {
             handleError(error)
@@ -911,6 +919,10 @@ struct ConciergeView: View {
             lastApplySessionId = nil
 
             if res.success {
+                if let lastAppliedImportMessageId {
+                    appliedImportMessageIds.remove(lastAppliedImportMessageId)
+                    self.lastAppliedImportMessageId = nil
+                }
                 showToast(.init(kind: .success, title: "Import undone", subtitle: nil, actionTitle: nil, onAction: nil))
             } else {
                 showToast(.init(kind: .error, title: "Undo failed", subtitle: "Try again.", actionTitle: nil, onAction: nil))

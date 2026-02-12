@@ -376,7 +376,6 @@ struct ConciergeInputField: View {
     // MARK: - State
     
     @State private var internalIntent: PrototypeConciergeIntent = .unknown
-    @State private var isPlaceholderVisible = true
     @State private var placeholderOpacity: Double = 0.3
     @FocusState private var isInputFocused: Bool
     @State private var showDetectedChip = false
@@ -384,6 +383,7 @@ struct ConciergeInputField: View {
     @State private var lastTextLength = 0
     @State private var suggestions: [ConciergeSuggestion] = []
     @State private var suggestionTask: Task<Void, Never>? = nil
+    @State private var detectedChipTask: Task<Void, Never>? = nil
     
     // MARK: - Constants
     
@@ -412,6 +412,11 @@ struct ConciergeInputField: View {
     private var canSend: Bool {
         !isEmpty && !isSending
     }
+
+    private var isImportIntent: Bool {
+        if case .importList = currentIntent { return true }
+        return false
+    }
     
     /// Dynamic opacity based on content length
     private var inputOpacity: Double {
@@ -428,7 +433,7 @@ struct ConciergeInputField: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if !suggestions.isEmpty {
+            if !suggestions.isEmpty && !isSending && !isImportIntent {
                 ConciergeSuggestionBar(suggestions: suggestions, onTap: applySuggestion)
                     .transition(.opacity)
             }
@@ -494,6 +499,10 @@ struct ConciergeInputField: View {
             startPlaceholderPulse()
             updateSuggestionsDebounced(text)
         }
+        .onDisappear {
+            suggestionTask?.cancel()
+            detectedChipTask?.cancel()
+        }
         .onChange(of: focusRequest?.wrappedValue ?? false) { _, wantsFocus in
             guard wantsFocus else { return }
             isInputFocused = true
@@ -533,11 +542,6 @@ struct ConciergeInputField: View {
     // MARK: - Actions
     
     private func handleTextChange(from oldValue: String, to newValue: String) {
-        // Update placeholder visibility
-        withAnimation(.easeInOut(duration: 0.2)) {
-            isPlaceholderVisible = newValue.isEmpty
-        }
-
         // Detect intent
         let newIntent = ConciergeIntentDetector.detect(from: newValue)
 
@@ -584,10 +588,7 @@ struct ConciergeInputField: View {
 
         switch intent {
         case .importList:
-            return [
-                .init(systemImage: "checkmark.seal", title: "Confirm", kind: .template(trimmed)),
-                .init(systemImage: "gobackward", title: "Re-parse", kind: .template(trimmed))
-            ]
+            return []
         case .recommendation, .unknown:
             var out: [ConciergeSuggestion] = []
             if !lower.contains("no romance") { out.append(.init(systemImage: "minus.circle", title: "No romance", kind: .append("no romance"))) }
@@ -629,16 +630,29 @@ struct ConciergeInputField: View {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                     showDetectedChip = true
                 }
+                scheduleDetectedChipDismiss()
                 // Only fire paste haptic on actual paste, not on typing commas/newlines.
                 if wasPaste {
                     ConciergeHapticsManager.shared.pasteSuccess()
                 }
             }
         default:
+            detectedChipTask?.cancel()
             if showDetectedChip {
                 withAnimation(.easeOut(duration: 0.2)) {
                     showDetectedChip = false
                 }
+            }
+        }
+    }
+
+    private func scheduleDetectedChipDismiss() {
+        detectedChipTask?.cancel()
+        detectedChipTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_200_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.2)) {
+                showDetectedChip = false
             }
         }
     }
@@ -661,6 +675,9 @@ struct ConciergeInputField: View {
                 internalIntent = .unknown
             }
         }
+        suggestionTask?.cancel()
+        suggestions = []
+        detectedChipTask?.cancel()
     }
     
     // MARK: - Animation

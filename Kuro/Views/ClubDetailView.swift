@@ -747,6 +747,24 @@ private struct ClubSettingsSheet: View {
     @State private var showLeaveConfirm = false
     @State private var leaveConfirmMessage = ""
 
+    private static let isoWithFractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let iso: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    private static let relFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .short
+        return f
+    }()
+
     var body: some View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
@@ -825,16 +843,43 @@ private struct ClubSettingsSheet: View {
                             .tracking(1.6)
                             .foregroundColor(.kuroBlack30)
 
-                        ForEach(bundle.members, id: \.user_id) { member in
+                        ForEach(Array(bundle.members.enumerated()), id: \.element.user_id) { index, member in
+                            let label = memberDisplayName(member, index: index)
                             HStack(spacing: 10) {
                                 Circle()
                                     .fill(Color.black.opacity(0.06))
                                     .frame(width: 28, height: 28)
                                     .overlay(
-                                        Text(String(member.user_id.prefix(1)).uppercased())
+                                        Text(String(label.prefix(1)).uppercased())
                                             .font(.kuroMicro(weight: .medium))
                                             .foregroundColor(.kuroBlack60)
                                     )
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 6) {
+                                        Text(label)
+                                            .font(.kuroCaption(weight: .medium))
+                                            .foregroundColor(.kuroBlack80)
+
+                                        if member.user_id == supabaseService.currentUserId {
+                                            Text("YOU")
+                                                .font(.kuroMicro(weight: .medium))
+                                                .tracking(1.0)
+                                                .foregroundColor(.black.opacity(0.50))
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(
+                                                    Capsule().stroke(Color.black.opacity(0.10), lineWidth: 0.6)
+                                                )
+                                        }
+                                    }
+
+                                    Text(joinedLabel(member.joined_at))
+                                        .font(.kuroMicro())
+                                        .foregroundColor(.kuroBlack30)
+                                }
+
+                                Spacer()
 
                                 Text(member.role.uppercased())
                                     .font(.kuroMicro(weight: .medium))
@@ -848,12 +893,6 @@ private struct ClubSettingsSheet: View {
                                             lineWidth: 0.6
                                         )
                                     )
-
-                                Spacer()
-
-                                Text(member.sharing_level.uppercased())
-                                    .font(.kuroMicro(weight: .light))
-                                    .foregroundColor(.kuroBlack30)
                             }
                             .padding(.vertical, 4)
                         }
@@ -947,5 +986,18 @@ private struct ClubSettingsSheet: View {
             }
             isLeaving = false
         }
+    }
+
+    private func memberDisplayName(_ member: SupabaseService.ClubMember, index: Int) -> String {
+        let trimmed = member.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmed.isEmpty { return trimmed }
+        return "Member \(index + 1)"
+    }
+
+    private func joinedLabel(_ raw: String) -> String {
+        guard let date = Self.isoWithFractional.date(from: raw) ?? Self.iso.date(from: raw) else {
+            return "Joined recently"
+        }
+        return "Joined \(Self.relFormatter.localizedString(for: date, relativeTo: Date()))"
     }
 }
