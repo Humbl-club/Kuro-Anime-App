@@ -1263,12 +1263,16 @@ serve(async (req) => {
       const table = mt === "ANIME" ? "anime" : "manga";
       const linkTable = mt === "ANIME" ? "anime_tags" : "manga_tags";
       const idCol = mt === "ANIME" ? "anime_id" : "manga_id";
+      const mediaSelect =
+        mt === "ANIME"
+          ? "id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,episodes"
+          : "id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,chapters as episodes";
 
       // All three queries depend only on `ids` — run in parallel.
       const [mediaRes, boostsRes, tagLinksRes] = await Promise.all([
         client
           .from(table)
-          .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,episodes")
+          .select(mediaSelect)
           .in("id", ids),
         client
           .from("editorial_boosts")
