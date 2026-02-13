@@ -1266,7 +1266,7 @@ serve(async (req) => {
       const mediaSelect =
         mt === "ANIME"
           ? "id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,episodes"
-          : "id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,chapters as episodes";
+          : "id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,chapters";
 
       // All three queries depend only on `ids` — run in parallel.
       const [mediaRes, boostsRes, tagLinksRes] = await Promise.all([
@@ -1289,7 +1289,14 @@ serve(async (req) => {
       ]);
 
       if (mediaRes.error) throw mediaRes.error;
-      const byId = new Map<number, any>((mediaRes.data ?? []).map((r: any) => [r.id, r]));
+      const rows = Array.isArray(mediaRes.data) ? mediaRes.data : [];
+      const normalizedRows = rows.map((r: any) => {
+        if (mt === "MANGA" && r?.episodes == null && r?.chapters != null) {
+          r.episodes = r.chapters;
+        }
+        return r;
+      });
+      const byId = new Map<number, any>(normalizedRows.map((r: any) => [r.id, r]));
       const boostById = new Map<number, any>((boostsRes.data ?? []).map((b: any) => [b.media_id, b]));
       const tagLinks = !tagLinksRes.error ? (tagLinksRes.data ?? []) : [];
 
