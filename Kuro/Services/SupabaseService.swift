@@ -40,6 +40,31 @@ class SupabaseService {
         let c = currentUserEmail?.trimmingCharacters(in: .whitespacesAndNewlines).first
         return c.map { String($0).uppercased() } ?? "M"
     }
+
+    // MARK: - Shared interaction telemetry helpers
+
+    typealias InteractionStartedAt = CFAbsoluteTime
+
+    func beginInteractionTiming() -> InteractionStartedAt {
+        CFAbsoluteTimeGetCurrent()
+    }
+
+    func trackInteractionEvent(
+        _ event: String,
+        surface: String,
+        result: String,
+        startedAt: InteractionStartedAt? = nil,
+        extra: [String: Any] = [:]
+    ) {
+        var payload = extra
+        payload["surface"] = surface
+        payload["result"] = result
+        payload["market"] = Locale.current.region?.identifier.uppercased() ?? "US"
+        if let startedAt {
+            payload["latency_ms"] = Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1000.0)
+        }
+        analytics.track(event, payload: payload)
+    }
     
     // Observable properties (no @Published needed with @Observable)
     var animeItems: [Anime] = []
@@ -226,7 +251,11 @@ class SupabaseService {
         "Thriller"
     ]
 
-    private func sanitizeAnimeForDiscovery(_ items: [Anime], policy: DiscoveryPolicy = .init()) -> [Anime] {
+    private func sanitizeAnimeForDiscovery(_ items: [Anime]) -> [Anime] {
+        sanitizeAnimeForDiscovery(items, policy: DiscoveryPolicy(includeAdult: false, excludeEcchi: true))
+    }
+
+    private func sanitizeAnimeForDiscovery(_ items: [Anime], policy: DiscoveryPolicy) -> [Anime] {
         items.filter { anime in
             if !policy.includeAdult {
                 if anime.isAdult { return false }
@@ -239,7 +268,11 @@ class SupabaseService {
         }
     }
 
-    private func sanitizeMangaForDiscovery(_ items: [Manga], policy: DiscoveryPolicy = .init()) -> [Manga] {
+    private func sanitizeMangaForDiscovery(_ items: [Manga]) -> [Manga] {
+        sanitizeMangaForDiscovery(items, policy: DiscoveryPolicy(includeAdult: false, excludeEcchi: true))
+    }
+
+    private func sanitizeMangaForDiscovery(_ items: [Manga], policy: DiscoveryPolicy) -> [Manga] {
         items.filter { manga in
             if !policy.includeAdult {
                 if manga.isAdult { return false }
@@ -2608,15 +2641,16 @@ class SupabaseService {
         countdownByAnimeId = map
     }
 
-    private func startCountdownUpdates() {
-        countdownTimer?.invalidate()
-        // Avoid passing an actor-isolated closure to Timer (Swift 6 strict concurrency warning).
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.updateCountdowns()
-            }
-        }
-    }
+	    private func startCountdownUpdates() {
+	        countdownTimer?.invalidate()
+	        // Avoid passing an actor-isolated closure to Timer (Swift 6 strict concurrency warning).
+	        countdownTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+	            guard let strongSelf = self else { return }
+	            Task { @MainActor in
+	                strongSelf.updateCountdowns()
+	            }
+	        }
+	    }
 
     private func stopCountdownUpdates() {
         countdownTimer?.invalidate()
@@ -3177,10 +3211,11 @@ class SupabaseService {
             return try await task.value
         }
 
-        // Run decoding off the main actor to avoid UI jank (keyboard/input stutter).
+        // Keep the request in a Task so callers can share in-flight work.
+        // This runs on the main actor; the network call is async and should not block the UI thread.
         let client = self.client
         let clarify = clarification
-        let task = Task<ConciergeParseResponse, Error>.detached(priority: .userInitiated) {
+        let task = Task<ConciergeParseResponse, Error>(priority: .userInitiated) {
             var payload: [String: Any] = [
                 "text": text,
                 "scope": scope.rawValue,
@@ -3191,10 +3226,9 @@ class SupabaseService {
             }
             let data = try JSONSerialization.data(withJSONObject: payload, options: [])
             let options = FunctionInvokeOptions(method: .post, body: data)
-            let resp: ConciergeParseResponse = try await SupabaseService.withRetry {
+            return try await SupabaseService.withRetry {
                 try await client.functions.invoke("concierge-parse", options: options)
             }
-            return resp
         }
         conciergeParseInFlight[key] = task
         defer { conciergeParseInFlight[key] = nil }
@@ -3243,7 +3277,7 @@ class SupabaseService {
                 "items": items,
             ]
             let client = self.client
-            let task = Task<ConciergeApplyResponse, Error>.detached(priority: .userInitiated) {
+            let task = Task<ConciergeApplyResponse, Error>(priority: .userInitiated) {
                 let data = try JSONSerialization.data(withJSONObject: payload, options: [])
                 let options = FunctionInvokeOptions(method: .post, body: data)
                 return try await client.functions.invoke("concierge-apply", options: options)
@@ -3275,7 +3309,7 @@ class SupabaseService {
                 "sessionId": sessionId,
             ]
             let client = self.client
-            let task = Task<ConciergeUndoResponse, Error>.detached(priority: .userInitiated) {
+            let task = Task<ConciergeUndoResponse, Error>(priority: .userInitiated) {
                 let data = try JSONSerialization.data(withJSONObject: payload, options: [])
                 let options = FunctionInvokeOptions(method: .post, body: data)
                 return try await client.functions.invoke("concierge-undo", options: options)
@@ -3287,12 +3321,14 @@ class SupabaseService {
     }
 
 
-    struct ConciergeRecommendResponse: Decodable, Sendable {
-        let success: Bool
-        let categories: [String]?
-        struct Mode: Decodable, Sendable, Identifiable {
-            let id: String
-            let title: String
+	    struct ConciergeRecommendResponse: Decodable, Sendable {
+	        let success: Bool
+	        let locale: String?
+	        let curatorNote: String?
+	        let categories: [String]?
+	        struct Mode: Decodable, Sendable, Identifiable {
+	            let id: String
+	            let title: String
             let confidence: Double?
             let reason: String?
         }
@@ -3312,14 +3348,19 @@ class SupabaseService {
 
             var id: String { "\(mediaType)|\(mediaId)" }
         }
-        struct Set: Decodable, Sendable, Identifiable {
-            let id: String
-            let title: String
-            let modeId: String?
-            let confidence: Double?
-            let reason: String?
-            let items: [Item]?
-        }
+	        struct Set: Decodable, Sendable, Identifiable {
+	            let id: String
+	            let title: String
+	            let internalTitle: String?
+	            let displayTitle: String?
+	            let displaySubtitle: String?
+	            let curatorNote: String?
+	            let locale: String?
+	            let modeId: String?
+	            let confidence: Double?
+	            let reason: String?
+	            let items: [Item]?
+	        }
         struct Assist: Decodable, Sendable {
             let ragUsed: Bool?
             let seedEntityId: String?
@@ -3352,9 +3393,10 @@ class SupabaseService {
             return try await task.value
         }
 
-        // Run decoding off the main actor to keep the chat input responsive.
+        // Keep the request in a Task so callers can share in-flight work.
+        // This runs on the main actor; the network call is async and should not block the UI thread.
         let client = self.client
-        let task = Task<ConciergeRecommendResponse, Error>.detached(priority: .userInitiated) {
+        let task = Task<ConciergeRecommendResponse, Error>(priority: .userInitiated) {
             let payload: [String: Any] = [
                 "text": text,
                 "scope": scope.rawValue,
@@ -3462,7 +3504,13 @@ class SupabaseService {
             },
         ]
 
-        await channel.subscribe()
+        do {
+            _ = try await channel.subscribeWithError()
+        } catch {
+            #if DEBUG
+            print("⚠️ realtime subscribe failed: \(error)")
+            #endif
+        }
     }
 
     @MainActor
@@ -3738,7 +3786,20 @@ class SupabaseService {
     // Club bundle cache (5 min TTL per spec)
     private var clubBundleCache: [String: TimedCache<ClubBundle>] = [:]
     private var clubBundleInFlight: [String: Task<ClubBundle, Error>] = [:]
+    private let rememberedClubIdKey = "com.kuro.rememberedAddToClubId"
     var myClubs: [ClubListRow] = []
+
+    func rememberedAddToClubId() -> String? {
+        UserDefaults.standard.string(forKey: rememberedClubIdKey)
+    }
+
+    func setRememberedAddToClubId(_ clubId: String?) {
+        if let clubId, !clubId.isEmpty {
+            UserDefaults.standard.set(clubId, forKey: rememberedClubIdKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: rememberedClubIdKey)
+        }
+    }
 
     func fetchMyClubs() async {
         guard let userId = await currentUserIdString() else { return }
@@ -3817,7 +3878,7 @@ class SupabaseService {
 
         let client = self.client
         let cid = clubId
-        let task = Task<ClubBundle, Error>.detached(priority: .userInitiated) {
+        let task = Task<ClubBundle, Error>(priority: .userInitiated) {
             let params = RPCClubIdParams(p_club_id: cid)
             let bundle: ClubBundle = try await client
                 .rpc("fetch_club_bundle", params: params)
@@ -3830,6 +3891,10 @@ class SupabaseService {
         let bundle = try await task.value
         clubBundleCache[clubId] = TimedCache(value: bundle, storedAt: now)
         return bundle
+    }
+
+    func refreshClubBundle(clubId: String) async throws -> ClubBundle {
+        try await fetchClubBundle(clubId: clubId, forceRefresh: true)
     }
 
     func addRailItem(railId: String, mediaType: String, mediaId: Int, note: String? = nil) async throws -> AddRailItemResponse {

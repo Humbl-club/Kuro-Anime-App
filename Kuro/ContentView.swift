@@ -115,11 +115,26 @@ struct KuroMainView: View {
 	@State private var showProfileSheet = false
 	@State private var mountedSections: Set<Section> = [.discover]
 	@State private var swipeExclusions: [CGRect] = []
+    @State private var suppressCardTaps = false
+    @State private var tapSuppressionResetTask: Task<Void, Never>? = nil
+    @State private var didTrackSuppressionThisGesture = false
     @State private var didApplyStartArgument = false
 	// Concierge is a first-class page to the LEFT of Discover.
-	private let swipeOrder: [Section] = [.concierge, .discover, .collection, .browse, .search, .clubs]
-	private let swipeThreshold: CGFloat = 40
-	private let swipeEdgeMargin: CGFloat = 24
+    private let swipeOrder: [Section] = [.concierge, .discover, .collection, .browse, .search, .clubs]
+    private let swipeThreshold: CGFloat = 40
+    private let swipeEdgeMargin: CGFloat = 24
+
+    private func sectionFromLaunchArgument(_ raw: String) -> Section? {
+        switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "concierge": return .concierge
+        case "discover": return .discover
+        case "collection": return .collection
+        case "browse": return .browse
+        case "search": return .search
+        case "clubs": return .clubs
+        default: return nil
+        }
+    }
     
     var body: some View {
 	        ZStack {
@@ -133,7 +148,8 @@ struct KuroMainView: View {
 	                KuroSectionPager(
 	                    selection: $selection,
 	                    mountedSections: $mountedSections,
-	                    order: swipeOrder
+	                    order: swipeOrder,
+                        suppressCardTaps: suppressCardTaps
 	                )
 	                .background(Color.clear)
 	            }
@@ -148,14 +164,63 @@ struct KuroMainView: View {
                 guard !didApplyStartArgument else { return }
                 didApplyStartArgument = true
                 let args = ProcessInfo.processInfo.arguments
-                if args.contains("--kuro-start-concierge") || args.contains("--kuro-start=concierge") {
+                if let kv = args.first(where: { $0.hasPrefix("--kuro-start=") }),
+                   let value = kv.split(separator: "=", maxSplits: 1).last,
+                   let target = sectionFromLaunchArgument(String(value))
+                {
+                    selection = target
+                    mountedSections.insert(target)
+                } else if args.contains("--kuro-start-concierge") {
                     selection = .concierge
                     mountedSections.insert(.concierge)
                 }
             }
 	        .simultaneousGesture(
-	            DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
+            DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
+                    .onChanged { value in
+                        guard FeatureFlags.shared.isSwipeTapGuardEnabled else { return }
+                        let start = value.startLocation
+                        #if os(iOS)
+                        let rootWidth: CGFloat = (UIApplication.shared.connectedScenes
+                            .compactMap { $0 as? UIWindowScene }
+                            .first?.screen.bounds.width) ?? 393
+                        #else
+                        let rootWidth: CGFloat = 1024
+                        #endif
+                        let edgeAllowed = (start.x <= swipeEdgeMargin) || (start.x >= max(0, rootWidth - swipeEdgeMargin))
+                        let expanded = swipeExclusions.map { $0.insetBy(dx: -14, dy: -14) }
+                        if expanded.contains(where: { $0.contains(start) }) && !edgeAllowed { return }
+
+                        let dx = abs(value.translation.width)
+                        let dy = abs(value.translation.height)
+                        let predictedDx = abs(value.predictedEndTranslation.width)
+                        let velocityHint = abs(value.predictedEndTranslation.width - value.translation.width)
+                        guard dx > 12, dx > dy * 1.1 else { return }
+                        guard predictedDx > 18 || velocityHint > 20 || dx > 24 else { return }
+                        if !suppressCardTaps {
+                            suppressCardTaps = true
+                        }
+                        if !didTrackSuppressionThisGesture {
+                            didTrackSuppressionThisGesture = true
+                            supabaseService.trackInteractionEvent(
+                                "card_tap_suppressed_during_swipe",
+                                surface: "root_pager",
+                                result: "active"
+                            )
+                        }
+                    }
 	                .onEnded { value in
+                        let shouldManageSuppression = FeatureFlags.shared.isSwipeTapGuardEnabled
+                        defer { didTrackSuppressionThisGesture = false }
+                        if shouldManageSuppression && suppressCardTaps {
+                            tapSuppressionResetTask?.cancel()
+                            tapSuppressionResetTask = Task {
+                                try? await Task.sleep(nanoseconds: 120_000_000)
+                                guard !Task.isCancelled else { return }
+                                suppressCardTaps = false
+                            }
+                        }
+
 	                    let start = value.startLocation
 	                    #if os(iOS)
 	                    let rootWidth: CGFloat = (UIApplication.shared.connectedScenes
@@ -183,6 +248,18 @@ struct KuroMainView: View {
 	                    guard swipeOrder.indices.contains(nextIndex) else { return }
 	                    selection = swipeOrder[nextIndex]
 	                    KuroAccessibility.impactHaptic(.light)
+
+                        guard shouldManageSuppression else {
+                            suppressCardTaps = false
+                            return
+                        }
+                        tapSuppressionResetTask?.cancel()
+                        let delayNs: UInt64 = abs(predictedDx) > 220 ? 280_000_000 : 120_000_000
+                        tapSuppressionResetTask = Task {
+                            try? await Task.sleep(nanoseconds: delayNs)
+                            guard !Task.isCancelled else { return }
+                            suppressCardTaps = false
+                        }
 	                }
 	        )
 	            .onChange(of: selection) { _, newValue in
@@ -196,6 +273,9 @@ struct KuroMainView: View {
                 ProfileView()
                     .environment(supabaseService)
             }
+            .onDisappear {
+                tapSuppressionResetTask?.cancel()
+            }
     }
 }
 
@@ -206,6 +286,7 @@ private struct KuroSectionPager: View {
     @Binding var selection: Section
     @Binding var mountedSections: Set<Section>
     let order: [Section]
+    let suppressCardTaps: Bool
 
     private var selectionIndex: Int {
         order.firstIndex(of: selection) ?? 0
@@ -222,7 +303,7 @@ private struct KuroSectionPager: View {
                         .frame(width: width, height: height)
                 }
             }
-            .environment(\.kuroSuppressCardTaps, false)
+            .environment(\.kuroSuppressCardTaps, suppressCardTaps)
             .offset(x: (-CGFloat(selectionIndex) * width))
             .clipped()
             // Animate only when the selection changes (header-driven paging).

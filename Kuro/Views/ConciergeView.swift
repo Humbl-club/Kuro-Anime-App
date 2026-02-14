@@ -45,6 +45,7 @@ struct ConciergeView: View {
     @State private var excludedItemIds: Set<String> = []
     @State private var autoReasonByItemId: [String: String] = [:]
     @State private var lastApplySessionId: String? = nil
+    @State private var lastApplySessionResetTask: Task<Void, Never>? = nil
     @State private var selectedAnime: Anime? = nil
     @State private var selectedManga: Manga? = nil
     @State private var toast: KuroToastState? = nil
@@ -75,6 +76,32 @@ struct ConciergeView: View {
         FeatureFlags.shared.isFmAssistEnabled && supabaseService.fmService.isAvailable
     }
 
+    private var conciergePerfV2Enabled: Bool {
+        FeatureFlags.shared.isConciergePerfV2Enabled
+    }
+
+    private var conciergeEditorialV1Enabled: Bool {
+        FeatureFlags.shared.isConciergeEditorialV1Enabled
+    }
+
+    private var isGermanLocale: Bool {
+        let language = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
+        return language.hasPrefix("de")
+    }
+
+    private var editorialSubtitle: String {
+        isGermanLocale
+            ? "Füge deine Anime- und Manga-Liste ein — oder sag mir, wonach dir ist."
+            : "Paste your anime & manga list — or tell me what you're in the mood for."
+    }
+
+    private var editorialFooterText: String {
+        if isWorking {
+            return isGermanLocale ? "Einen Moment." : "One moment."
+        }
+        return isGermanLocale ? "Importiere eine Liste — oder lass mich zwei Rails kuratieren." : "Import a list — or let me curate two rails."
+    }
+
     init(assistantEnabled: Bool = true) {
         self.assistantEnabled = assistantEnabled
     }
@@ -84,7 +111,11 @@ struct ConciergeView: View {
         ZStack {
             Color.kuroBackground.ignoresSafeArea()
 
-            chatView
+            if conciergeEditorialV1Enabled {
+                editorialChatView
+            } else {
+                chatView
+            }
 
             // Toast overlay
             if let toast {
@@ -110,81 +141,95 @@ struct ConciergeView: View {
                 await supabaseService.conciergeWarmup()
             }
         }
+        .onDisappear {
+            lastApplySessionResetTask?.cancel()
+        }
+        .preferredColorScheme(conciergeEditorialV1Enabled ? .light : nil)
+    }
+
+    private var editorialChatView: some View {
+        ConciergeEditorialShell(
+            title: "Concierge",
+            subtitle: editorialSubtitle,
+            errorText: errorText,
+            showsIntentDeck: messages.isEmpty
+        ) {
+            ConciergeIntentDeck(
+                onPaste: { pasteFromClipboard() },
+                onStartCurate: {
+                    focusRequest = true
+                    KuroAccessibility.impactHaptic(.light)
+                },
+                onInsertExample: { example in
+                    input = example
+                    focusRequest = true
+                    KuroAccessibility.impactHaptic(.light)
+                }
+            )
+        } responseStage: {
+            ConciergeResponseStage {
+                messageTimeline(
+                    horizontalPadding: KuroDesignSpacing.md,
+                    topPadding: KuroDesignSpacing.sm,
+                    bottomPadding: KuroDesignSpacing.md,
+                    includeStarter: false
+                )
+            }
+        } composer: {
+            ConciergeComposerDock {
+                ConciergeInputField(
+                    text: $input,
+                    isSending: isWorking,
+                    focusRequest: $focusRequest,
+                    onSend: { text in
+                        Task { await send(text: text) }
+                    }
+                )
+                .kuroSwipeExclusionZone()
+                .padding(.horizontal, 6)
+            }
+        } footer: {
+            ConciergeActionFooter(
+                helperText: editorialFooterText,
+                showUndo: lastApplySessionId != nil,
+                onUndo: {
+                    guard let sessionId = lastApplySessionId else { return }
+                    Task { await undoApply(sessionId: sessionId) }
+                }
+            )
+        }
+        .overlay(alignment: .bottomLeading) {
+            if assistantEnabled {
+                KuroConciergeMascot(
+                    expanded: $assistantExpanded,
+                    offset: $assistantOffset,
+                    dragStart: $assistantDragStart,
+                    baseBottomPadding: 116,
+                    containerSize: containerSize,
+                    state: mascotState
+                ) {
+                    focusRequest = true
+                }
+            }
+        }
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { containerSize = geo.size }
+                    .onChange(of: geo.size) { containerSize = geo.size }
+            }
+        }
     }
 
     // MARK: Chat View (Always Visible)
     private var chatView: some View {
         VStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                        if messages.isEmpty {
-                            ConciergeIntroCard()
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 14)
-                                .padding(.bottom, KuroDesignSpacing.sm)
-
-                            ConciergeStarterActions(
-                                onPaste: { pasteFromClipboard() },
-                                onExampleImport: { seedExampleImport() },
-                                onExampleVibe: { seedExampleVibe() }
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-
-                        ForEach(messages) { msg in
-                            ConciergeBubble(
-                                message: msg,
-                                selected: { item in selectedByItemId[item.id] },
-                                onSelect: { item, candidate in
-                                    KuroAccessibility.impactHaptic(.light)
-                                    selectedByItemId[item.id] = candidate
-                                },
-                                onOpenRecommendation: { rec in
-                                    Task { await openRecommendation(rec) }
-                                },
-                                onQuickSave: { rec in
-                                    Task { await quickSaveRecommendation(rec) }
-                                },
-                                onClarifyPaste: { pasteFromClipboard() },
-                                onClarifyExampleImport: { seedExampleImport() },
-                                onClarifyExampleVibe: { seedExampleVibe() },
-                                onClarifyAmbiguity: clarifyV2Enabled ? { kind, value, sourceText in
-                                    Task { await handleClarification(kind: kind, value: value, sourceText: sourceText) }
-                                } : nil,
-                                onConfirmItems: { response in
-                                    Task { await confirmImport(response: response, sourceMessageId: msg.id) }
-                                },
-                                onReparse: {
-                                    reparse(message: msg)
-                                },
-                                isImportApplied: appliedImportMessageIds.contains(msg.id),
-                                autoReasonByItemId: autoReasonByItemId,
-                                itemActions: itemActions,
-                                excludedItemIds: $excludedItemIds
-                            )
-                            .id(msg.id)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-
-                        if isWorking {
-                            ConciergeTypingIndicator()
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-                    }
-                    .padding(.horizontal, KuroDesignSpacing.padding)
-                    .padding(.top, KuroDesignSpacing.md)
-                    .padding(.bottom, KuroDesignSpacing.md)
-                }
-                .scrollDismissesKeyboard(.interactively)
-                .onChange(of: messages.count) {
-                    if let last = messages.last {
-                        withAnimation(KuroAnimation.fast) {
-                            proxy.scrollTo(last.id, anchor: .bottom)
-                        }
-                    }
-                }
-            }
+            messageTimeline(
+                horizontalPadding: KuroDesignSpacing.padding,
+                topPadding: KuroDesignSpacing.md,
+                bottomPadding: KuroDesignSpacing.md,
+                includeStarter: true
+            )
 
             if let errorText {
                 Text(errorText)
@@ -234,10 +279,89 @@ struct ConciergeView: View {
         }
     }
 
+    private func messageTimeline(
+        horizontalPadding: CGFloat,
+        topPadding: CGFloat,
+        bottomPadding: CGFloat,
+        includeStarter: Bool
+    ) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+                    if includeStarter && messages.isEmpty {
+                        ConciergeIntroCard()
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 14)
+                            .padding(.bottom, KuroDesignSpacing.sm)
+
+                        ConciergeStarterActions(
+                            onPaste: { pasteFromClipboard() },
+                            onExampleImport: { seedExampleImport() },
+                            onExampleVibe: { seedExampleVibe() }
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+
+                    ForEach(messages) { msg in
+                        ConciergeBubble(
+                            message: msg,
+                            selected: { item in selectedByItemId[item.id] },
+                            onSelect: { item, candidate in
+                                KuroAccessibility.impactHaptic(.light)
+                                selectedByItemId[item.id] = candidate
+                            },
+                            onOpenRecommendation: { rec in
+                                Task { await openRecommendation(rec) }
+                            },
+                            onQuickSave: { rec in
+                                Task { await quickSaveRecommendation(rec) }
+                            },
+                            onClarifyPaste: { pasteFromClipboard() },
+                            onClarifyExampleImport: { seedExampleImport() },
+                            onClarifyExampleVibe: { seedExampleVibe() },
+                            onClarifyAmbiguity: clarifyV2Enabled ? { kind, value, sourceText in
+                                Task { await handleClarification(kind: kind, value: value, sourceText: sourceText) }
+                            } : nil,
+                            onConfirmItems: { response in
+                                Task { await confirmImport(response: response, sourceMessageId: msg.id) }
+                            },
+                            onReparse: {
+                                reparse(message: msg)
+                            },
+                            isImportApplied: appliedImportMessageIds.contains(msg.id),
+                            autoReasonByItemId: autoReasonByItemId,
+                            itemActions: itemActions,
+                            excludedItemIds: $excludedItemIds
+                        )
+                        .id(msg.id)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+
+                    if isWorking {
+                        ConciergeTypingIndicator()
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
+                .padding(.horizontal, horizontalPadding)
+                .padding(.top, topPadding)
+                .padding(.bottom, bottomPadding)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: messages.count) {
+                if let last = messages.last {
+                    withAnimation(KuroAnimation.fast) {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: Send (Main Entry Point)
     private func send(text: String) async {
         guard !text.isEmpty else { return }
         errorText = nil
+        let sendStartedAt = supabaseService.beginInteractionTiming()
 
         #if DEBUG
         let sendStart = CFAbsoluteTimeGetCurrent()
@@ -269,25 +393,32 @@ struct ConciergeView: View {
             supabaseService.analytics.track("clarify_shown", payload: [
                 "reason": "low_signal",
                 "input_length": Double(text.count),
+                "surface": "concierge_chat",
+                "result": "clarify",
             ])
+            supabaseService.trackInteractionEvent(
+                "concierge_first_response_ms",
+                surface: "concierge_chat",
+                result: "clarify",
+                startedAt: sendStartedAt
+            )
             return
         }
 
         isWorking = true
-        lastApplySessionId = nil
 
         if looksLikeImport(text) {
             supabaseService.analytics.track("intent_detected", payload: [
                 "intent": "import",
                 "input_length": Double(text.count),
             ])
-            await handleImportFlow(text: text)
+            await handleImportFlow(text: text, interactionStartedAt: sendStartedAt)
         } else {
             supabaseService.analytics.track("intent_detected", payload: [
                 "intent": "recommend",
                 "input_length": Double(text.count),
             ])
-            await handleRecommendationFlow(text: text)
+            await handleRecommendationFlow(text: text, interactionStartedAt: sendStartedAt)
         }
 
         isWorking = false
@@ -318,6 +449,8 @@ struct ConciergeView: View {
                     "kind": kind,
                     "value": value,
                     "routed_to": "recommend",
+                    "surface": "concierge_chat",
+                    "result": "recommend",
                 ])
                 await handleRecommendationFlow(text: sourceText)
                 isWorking = false
@@ -330,6 +463,8 @@ struct ConciergeView: View {
             "kind": kind,
             "value": value,
             "routed_to": "import_reparse",
+            "surface": "concierge_chat",
+            "result": "import_reparse",
         ])
 
         do {
@@ -431,8 +566,22 @@ struct ConciergeView: View {
     }
 
     // MARK: Import Flow (Inline)
-    private func handleImportFlow(text: String) async {
+    private func handleImportFlow(text: String, interactionStartedAt: SupabaseService.InteractionStartedAt? = nil) async {
+        let parseStartedAt = supabaseService.beginInteractionTiming()
         do {
+            var firstResponseTracked = false
+
+            func trackFirstResponseIfNeeded(_ result: String) {
+                guard let interactionStartedAt, !firstResponseTracked else { return }
+                firstResponseTracked = true
+                supabaseService.trackInteractionEvent(
+                    "concierge_first_response_ms",
+                    surface: "concierge_chat",
+                    result: result,
+                    startedAt: interactionStartedAt
+                )
+            }
+
             #if DEBUG
             let parseStart = CFAbsoluteTimeGetCurrent()
             #endif
@@ -443,6 +592,13 @@ struct ConciergeView: View {
                 "item_count": Double(response.items.count),
                 "has_ambiguity": response.items.contains { $0.ambiguity != nil },
             ])
+            supabaseService.trackInteractionEvent(
+                "concierge_parse_ms",
+                surface: "concierge_parse",
+                result: "ok",
+                startedAt: parseStartedAt,
+                extra: ["item_count": response.items.count]
+            )
 
             #if DEBUG
             let parseEnd = CFAbsoluteTimeGetCurrent()
@@ -451,18 +607,19 @@ struct ConciergeView: View {
 
             // Prefetch top candidate covers so the confirm bubble feels instant.
             #if canImport(UIKit)
-            let coverUrls: [URL] = response.items.flatMap { item in
-                item.candidates.prefix(2).compactMap { c in
+            let maxPrefetchItems = conciergePerfV2Enabled ? 12 : 8
+            let coverUrls: [URL] = Array(response.items.flatMap { item in
+                item.candidates.prefix(1).compactMap { c in
                     guard let s = c.cover_image_medium, let url = URL(string: s) else { return nil }
                     return url
                 }
-            }
+            }.prefix(maxPrefetchItems))
             #if DEBUG
             let prefetchStart = CFAbsoluteTimeGetCurrent()
             print("[Concierge Timing] image prefetch started: \(String(format: "%.1f", (prefetchStart - parseEnd) * 1000))ms after parse")
             #endif
             Task.detached(priority: .background) {
-                await ImagePipeline.shared.prefetch(urls: coverUrls, maxPixelSize: 640)
+                await ImagePipeline.shared.prefetch(urls: coverUrls, maxPixelSize: 520)
             }
             #endif
 
@@ -507,6 +664,7 @@ struct ConciergeView: View {
                 withAnimation(KuroAnimation.editorial) {
                     messages.append(assistantMsg)
                 }
+                trackFirstResponseIfNeeded("clarify")
                 #if DEBUG
                 print("[Concierge Timing] clarify card rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
                 #endif
@@ -519,7 +677,7 @@ struct ConciergeView: View {
 
                 if allHighConfidence && !response.items.isEmpty {
                     // Auto-apply: skip confirm UI entirely
-                    await autoApplyImport(response: response)
+                    await autoApplyImport(response: response, interactionStartedAt: interactionStartedAt)
                 } else {
                     // Show inline confirm bubble in chat
                     let assistantMsg = ConciergeMessage(
@@ -532,6 +690,7 @@ struct ConciergeView: View {
                     withAnimation(KuroAnimation.editorial) {
                         messages.append(assistantMsg)
                     }
+                    trackFirstResponseIfNeeded("confirm")
                     #if DEBUG
                     print("[Concierge Timing] confirm bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
                     #endif
@@ -547,6 +706,12 @@ struct ConciergeView: View {
                 }
             }
         } catch {
+            supabaseService.trackInteractionEvent(
+                "concierge_parse_ms",
+                surface: "concierge_parse",
+                result: "error",
+                startedAt: parseStartedAt
+            )
             handleError(error)
         }
     }
@@ -632,14 +797,17 @@ struct ConciergeView: View {
     }
 
     // MARK: Auto-Apply (High Confidence, Pure Adds Only)
-    private func autoApplyImport(response: SupabaseService.ConciergeParseResponse) async {
+    private func autoApplyImport(
+        response: SupabaseService.ConciergeParseResponse,
+        interactionStartedAt: SupabaseService.InteractionStartedAt? = nil
+    ) async {
         do {
             let chosen = buildApplyPayload(from: response)
             guard !chosen.isEmpty else { return }
 
             let res = try await supabaseService.conciergeApply(items: chosen)
             if let sessionId = res.sessionId {
-                lastApplySessionId = sessionId
+                setLastApplySession(sessionId)
             }
 
             // Refresh collection in background (don't block toast)
@@ -675,6 +843,14 @@ struct ConciergeView: View {
             withAnimation(KuroAnimation.editorial) {
                 messages.append(confirmMsg)
             }
+            if let interactionStartedAt {
+                supabaseService.trackInteractionEvent(
+                    "concierge_first_response_ms",
+                    surface: "concierge_chat",
+                    result: "auto_apply",
+                    startedAt: interactionStartedAt
+                )
+            }
 
         } catch {
             handleError(error)
@@ -682,19 +858,44 @@ struct ConciergeView: View {
     }
 
     // MARK: Recommendation Flow (Inline Rails)
-    private func handleRecommendationFlow(text: String) async {
+    private func handleRecommendationFlow(
+        text: String,
+        interactionStartedAt: SupabaseService.InteractionStartedAt? = nil
+    ) async {
+        let recommendStartedAt = supabaseService.beginInteractionTiming()
         do {
+            var firstResponseTracked = false
+
+            func trackFirstResponseIfNeeded(_ result: String) {
+                guard let interactionStartedAt, !firstResponseTracked else { return }
+                firstResponseTracked = true
+                supabaseService.trackInteractionEvent(
+                    "concierge_first_response_ms",
+                    surface: "concierge_chat",
+                    result: result,
+                    startedAt: interactionStartedAt
+                )
+            }
+
             #if DEBUG
             let recStart = CFAbsoluteTimeGetCurrent()
             #endif
 
             let rec = try await supabaseService.conciergeRecommend(text: text, scope: .both, limit: 8)
+            supabaseService.trackInteractionEvent(
+                "concierge_recommend_ms",
+                surface: "concierge_recommend",
+                result: "ok",
+                startedAt: recommendStartedAt,
+                extra: ["item_count": (rec.items ?? []).count]
+            )
             lastRecommendQuery = text
             lastRecommendWasRagAssist = rec.assist?.ragUsed == true
             lastRagSeedEntityId = rec.assist?.seedEntityId
             let sets = (rec.sets ?? []).filter { ($0.items ?? []).isEmpty == false }
             let flattened = sets.flatMap { $0.items ?? [] }
             let displayItems = !flattened.isEmpty ? flattened : (rec.items ?? [])
+            let note = (rec.curatorNote ?? sets.first?.curatorNote ?? rec.message ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
             #if DEBUG
             let recEnd = CFAbsoluteTimeGetCurrent()
@@ -703,15 +904,16 @@ struct ConciergeView: View {
 
             // Prefetch recommendation posters for a snappy first render.
             #if canImport(UIKit)
-            let recUrls: [URL] = displayItems.compactMap { item in
+            let maxPrefetchItems = conciergePerfV2Enabled ? 12 : 8
+            let recUrls: [URL] = Array(displayItems.compactMap { item in
                 guard let s = item.coverImageMedium, let url = URL(string: s) else { return nil }
                 return url
-            }
+            }.prefix(maxPrefetchItems))
             #if DEBUG
             print("[Concierge Timing] rec image prefetch started: \(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - recEnd) * 1000))ms after response")
             #endif
             Task.detached(priority: .background) {
-                await ImagePipeline.shared.prefetch(urls: recUrls, maxPixelSize: 720)
+                await ImagePipeline.shared.prefetch(urls: recUrls, maxPixelSize: 560)
             }
             #endif
 
@@ -719,7 +921,7 @@ struct ConciergeView: View {
                 // Append inline recommendation message with editorial rails
                 let assistantMsg = ConciergeMessage(
                     role: .assistant,
-                    text: rec.message ?? "",
+                    text: note,
                     items: nil,
                     recommendations: !sets.isEmpty ? nil : displayItems,
                     recommendationSets: !sets.isEmpty ? sets : nil
@@ -727,6 +929,7 @@ struct ConciergeView: View {
                 withAnimation(KuroAnimation.editorial) {
                     messages.append(assistantMsg)
                 }
+                trackFirstResponseIfNeeded("recommend")
                 #if DEBUG
                 print("[Concierge Timing] rec bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - recStart) * 1000))ms total from rec start")
                 #endif
@@ -734,17 +937,28 @@ struct ConciergeView: View {
                 lastRecommendWasRagAssist = false
                 lastRagSeedEntityId = nil
                 // No results — show text message
+                let locale = (rec.locale ?? "en").lowercased()
+                let fallback = locale.hasPrefix("de")
+                    ? "Sag mir eine Stimmung oder eine klare Kante (kurz, ohne Romance, ein Jahr) — ich kuratiere es neu fuer dich."
+                    : "Give me a mood or one constraint (short, no romance, a year) and I’ll curate it — new to you."
                 let assistantMsg = ConciergeMessage(
                     role: .assistant,
-                    text: rec.message ?? "Tell me a vibe (funny, sad, cozy, action) and I'll recommend something new-to-you.",
+                    text: rec.message ?? fallback,
                     items: nil
                 )
                 withAnimation(KuroAnimation.editorial) {
                     messages.append(assistantMsg)
                 }
+                trackFirstResponseIfNeeded("recommend_empty")
             }
 
         } catch {
+            supabaseService.trackInteractionEvent(
+                "concierge_recommend_ms",
+                surface: "concierge_recommend",
+                result: "error",
+                startedAt: recommendStartedAt
+            )
             handleError(error)
         }
     }
@@ -764,7 +978,7 @@ struct ConciergeView: View {
 
             let res = try await supabaseService.conciergeApply(items: chosen)
             if let sessionId = res.sessionId {
-                lastApplySessionId = sessionId
+                setLastApplySession(sessionId)
             }
 
             // Refresh collection in background
@@ -916,7 +1130,7 @@ struct ConciergeView: View {
                 _ = await (_lists, _items, _feed)
             }
 
-            lastApplySessionId = nil
+            setLastApplySession(nil)
 
             if res.success {
                 if let lastAppliedImportMessageId {
@@ -950,6 +1164,20 @@ struct ConciergeView: View {
         if mediaType == "anime", s == "READING" { return "WATCHING" }
         if s.isEmpty { return "PLANNING" }
         return s
+    }
+
+    private func setLastApplySession(_ sessionId: String?) {
+        lastApplySessionResetTask?.cancel()
+        lastApplySessionId = sessionId
+        guard let sessionId else { return }
+        // Avoid stale sticky undo controls if the user moves on.
+        lastApplySessionResetTask = Task {
+            try? await Task.sleep(nanoseconds: 120_000_000_000)
+            guard !Task.isCancelled else { return }
+            if lastApplySessionId == sessionId {
+                lastApplySessionId = nil
+            }
+        }
     }
 
     // MARK: Adaptation Ambiguity Guard
@@ -1029,7 +1257,13 @@ struct ConciergeView: View {
         guard let t = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
               !t.isEmpty
         else {
-            showToast(.init(kind: .info, title: "Clipboard is empty", subtitle: "Copy a list of titles, then tap Paste.", actionTitle: nil, onAction: nil))
+            showToast(.init(
+                kind: .info,
+                title: isGermanLocale ? "Zwischenablage ist leer" : "Clipboard is empty",
+                subtitle: isGermanLocale ? "Kopiere eine Liste von Titeln und tippe dann auf Einfügen." : "Copy a list of titles, then tap Paste.",
+                actionTitle: nil,
+                onAction: nil
+            ))
             return
         }
         input = t
@@ -1049,7 +1283,9 @@ struct ConciergeView: View {
     }
 
     private func seedExampleVibe() {
-        input = "Something funny, premium, not childish."
+        input = isGermanLocale
+            ? "Etwas lustig, trocken, figurengetrieben — nicht kindisch."
+            : "Something funny, dry, character-led — not childish."
         focusRequest = true
         KuroAccessibility.impactHaptic(.light)
     }

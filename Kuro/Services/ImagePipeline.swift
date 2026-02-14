@@ -19,6 +19,9 @@ actor ImagePipeline {
     private let memory = NSCache<NSURL, UIImage>()
     private var inFlight: [URL: Task<UIImage?, Never>] = [:]
     private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Kuro", category: "image")
+    private let maxPrefetchFanout = 12
+    private let maxDecodePixelSize = 1200
+    private let minDecodePixelSize = 180
 
     init() {
         // ~80MB in-memory images (roughly, cost is RGBA bytes).
@@ -26,22 +29,29 @@ actor ImagePipeline {
     }
 
     func prefetch(urls: [URL], maxPixelSize: Int? = nil) {
-        for url in urls {
+        let clampedPixelSize = clampPixelSize(maxPixelSize)
+        var queued = 0
+        var seen: Set<URL> = []
+        let uniqueUrls = urls.filter { seen.insert($0).inserted }
+        for url in uniqueUrls {
+            if queued >= maxPrefetchFanout { break }
             if memory.object(forKey: url as NSURL) != nil { continue }
             if inFlight[url] != nil { continue }
-            let task = makeLoadTask(url: url, maxPixelSize: maxPixelSize)
+            let task = makeLoadTask(url: url, maxPixelSize: clampedPixelSize)
             inFlight[url] = task
+            queued += 1
         }
     }
 
     func image(url: URL, maxPixelSize: Int? = nil) async -> UIImage? {
+        let clampedPixelSize = clampPixelSize(maxPixelSize)
         if let cached = memory.object(forKey: url as NSURL) {
             log.debug("mem hit \(url.absoluteString, privacy: .private(mask: .hash))")
             return cached
         }
         if let task = inFlight[url] { return await task.value }
 
-        let task = makeLoadTask(url: url, maxPixelSize: maxPixelSize)
+        let task = makeLoadTask(url: url, maxPixelSize: clampedPixelSize)
         inFlight[url] = task
         return await task.value
     }
@@ -64,6 +74,16 @@ actor ImagePipeline {
         var request = URLRequest(url: url)
         request.cachePolicy = .returnCacheDataElseLoad
         request.timeoutInterval = 20
+        let decodePixelSize = clampPixelSize(maxPixelSize)
+
+        // Fast path: decode from URLCache first to avoid network/decode jitter.
+        if let cached = URLCache.shared.cachedResponse(for: request),
+           let image = decodeImage(data: cached.data, maxPixelSize: decodePixelSize) {
+            let cost = imageCostBytes(image)
+            memory.setObject(image, forKey: url as NSURL, cost: cost)
+            KuroPerf.end(perf, message: "disk cache hit")
+            return image
+        }
 
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -72,12 +92,7 @@ actor ImagePipeline {
                 return nil
             }
 
-            let image: UIImage?
-            if let maxPixelSize {
-                image = downsample(data: data, maxPixelSize: maxPixelSize)
-            } else {
-                image = UIImage(data: data)
-            }
+            let image = decodeImage(data: data, maxPixelSize: decodePixelSize)
 
             guard let image else {
                 KuroPerf.end(perf, message: "decode failed")
@@ -96,6 +111,18 @@ actor ImagePipeline {
             KuroPerf.end(perf, message: "error")
             return nil
         }
+    }
+
+    private func clampPixelSize(_ requested: Int?) -> Int? {
+        guard let requested else { return nil }
+        return min(maxDecodePixelSize, max(minDecodePixelSize, requested))
+    }
+
+    private func decodeImage(data: Data, maxPixelSize: Int?) -> UIImage? {
+        if let maxPixelSize {
+            return downsample(data: data, maxPixelSize: maxPixelSize)
+        }
+        return UIImage(data: data)
     }
 
     private func imageCostBytes(_ image: UIImage) -> Int {

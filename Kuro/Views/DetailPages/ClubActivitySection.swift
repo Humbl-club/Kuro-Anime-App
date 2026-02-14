@@ -120,6 +120,12 @@ private struct AddToClubRailSheet: View {
     @State private var isLoading = false
     @State private var errorText: String? = nil
     @State private var isSubmitting = false
+    @State private var pendingRailId: String? = nil
+    @State private var loadBundleTask: Task<Void, Never>? = nil
+
+    private var clubsInteractionV2Enabled: Bool {
+        FeatureFlags.shared.isClubsInteractionV2Enabled
+    }
 
     var body: some View {
         NavigationStack {
@@ -212,9 +218,19 @@ private struct AddToClubRailSheet: View {
                                                     .foregroundColor(.black.opacity(0.25))
                                             }
 
-                                            Image(systemName: "plus")
-                                                .font(.kuroCaption(weight: .semibold))
-                                                .foregroundColor(.black.opacity(canAdd ? 0.55 : 0.20))
+                                            if clubsInteractionV2Enabled && pendingRailId == rail.id && isSubmitting {
+                                                ProgressView()
+                                                    .scaleEffect(0.8)
+                                                    .tint(.black.opacity(0.55))
+                                            } else if clubsInteractionV2Enabled && pendingRailId == rail.id {
+                                                Image(systemName: "checkmark")
+                                                    .font(.kuroCaption(weight: .semibold))
+                                                    .foregroundColor(.black.opacity(0.55))
+                                            } else {
+                                                Image(systemName: "plus")
+                                                    .font(.kuroCaption(weight: .semibold))
+                                                    .foregroundColor(.black.opacity(canAdd ? 0.55 : 0.20))
+                                            }
                                         }
                                         .padding(.vertical, 10)
                                     }
@@ -233,6 +249,9 @@ private struct AddToClubRailSheet: View {
                 .padding(.bottom, KuroDesignSpacing.xxl)
             }
             .background(Color.kuroBackground)
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 24)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -244,27 +263,63 @@ private struct AddToClubRailSheet: View {
             if supabaseService.myClubs.isEmpty {
                 await supabaseService.fetchMyClubs()
             }
+            if clubsInteractionV2Enabled {
+                let eligible = supabaseService.myClubs.filter { !$0.is_archived }
+                guard selectedClubId == nil, !eligible.isEmpty else { return }
+                if let remembered = supabaseService.rememberedAddToClubId(),
+                   eligible.contains(where: { $0.id == remembered }) {
+                    selectClub(remembered)
+                } else if let first = eligible.first?.id {
+                    selectClub(first)
+                }
+            }
+        }
+        .onDisappear {
+            loadBundleTask?.cancel()
         }
     }
 
     private func selectClub(_ clubId: String) {
         selectedClubId = clubId
+        if clubsInteractionV2Enabled {
+            supabaseService.setRememberedAddToClubId(clubId)
+        }
+        loadBundleTask?.cancel()
         bundle = nil
         errorText = nil
         isLoading = true
+        isSubmitting = false
+        pendingRailId = nil
 
-        Task {
-            defer { isLoading = false }
+        loadBundleTask = Task {
+            defer {
+                // Ignore stale/cancelled completions so a newer request owns loading state.
+                if !Task.isCancelled, selectedClubId == clubId {
+                    isLoading = false
+                }
+            }
             do {
-                bundle = try await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: true)
+                let fetched = try await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: true)
+                guard !Task.isCancelled, selectedClubId == clubId else { return }
+                bundle = fetched
             } catch {
+                guard !Task.isCancelled, selectedClubId == clubId else { return }
                 errorText = "Could not load rails."
             }
         }
     }
 
     private func addToRail(railId: String, clubId: String) async {
+        guard !isSubmitting else { return }
         isSubmitting = true
+        pendingRailId = clubsInteractionV2Enabled ? railId : nil
+        let startedAt = supabaseService.beginInteractionTiming()
+        supabaseService.trackInteractionEvent(
+            "clubs_add_to_rail_tap",
+            surface: "club_activity_add_sheet",
+            result: "attempt",
+            extra: ["club_id": clubId]
+        )
         defer { isSubmitting = false }
         do {
             _ = try await supabaseService.addRailItem(
@@ -273,12 +328,33 @@ private struct AddToClubRailSheet: View {
                 mediaId: mediaId
             )
             // Refresh the club bundle so the club view and activity cache update quickly.
-            _ = try? await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: true)
+            _ = try? await supabaseService.refreshClubBundle(clubId: clubId)
+            supabaseService.trackInteractionEvent(
+                "clubs_add_to_rail_success",
+                surface: "club_activity_add_sheet",
+                result: "ok",
+                startedAt: startedAt,
+                extra: ["club_id": clubId]
+            )
             KuroAccessibility.successHaptic()
             dismiss()
         } catch {
             KuroAccessibility.errorHaptic()
-            errorText = "Could not add to rail."
+            let msg = "\(error)"
+            if msg.contains("NOT_A_MEMBER") {
+                errorText = "You're no longer a member of this club."
+                bundle = nil
+            } else {
+                errorText = "Could not add to rail."
+            }
+            pendingRailId = nil
+            supabaseService.trackInteractionEvent(
+                "clubs_add_to_rail_error",
+                surface: "club_activity_add_sheet",
+                result: "error",
+                startedAt: startedAt,
+                extra: ["club_id": clubId]
+            )
         }
     }
 }
@@ -583,7 +659,7 @@ private struct ClubMemberStatusList: View {
                                 } else {
                                     Text("Not started")
                                         .font(.kuroCaption())
-                                        .foregroundColor(.black.opacity(0.30))
+                                        .foregroundColor(.black.opacity(0.24))
                                 }
 
                                 if sharingLevel == "progress",

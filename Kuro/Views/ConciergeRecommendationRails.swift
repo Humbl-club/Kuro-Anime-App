@@ -65,6 +65,7 @@ final class RecommendationRailViewModel {
 // MARK: - Recommendation Rail
 struct RecommendationRail: View {
     let title: String
+    let subtitle: String?
     let items: [ConciergeRecItem]
     let onOpen: (ConciergeRecItem) -> Void
     let onSave: (ConciergeRecItem) -> Void
@@ -77,10 +78,10 @@ struct RecommendationRail: View {
     @State private var centeredItemId: String?
     
     // Card metrics
-    private let cardWidth: CGFloat = 140
-    private let cardHeight: CGFloat = 268 // 200 poster + 68 text
+    private let cardWidth: CGFloat = 152
+    private let cardHeight: CGFloat = 294 // 212 poster + 82 text
     private let cardSpacing: CGFloat = 12
-    private let edgePadding: CGFloat = 20
+    private let edgePadding: CGFloat = 12
     
     // Computed property for visible items
     private var visibleItems: [ConciergeRecItem] {
@@ -105,14 +106,17 @@ struct RecommendationRail: View {
                             cardHeight: cardHeight,
                             onOpen: { onOpen(item) },
                             onSave: { onSave(item) },
-                            onHide: { viewModel.hideItem(item) },
+                            onHide: {
+                                viewModel.hideItem(item)
+                                onHide?(item)
+                            },
                             onWhyThis: { viewModel.showWhyThis(for: item) }
                         )
                         .id(item.id)
-                        .scrollTransition(.animated(.spring(response: 0.3, dampingFraction: 0.8))) { content, phase in
+                        .scrollTransition(.animated(.easeInOut(duration: 0.18))) { content, phase in
                             content
-                                .scaleEffect(phase.isIdentity ? 1.0 : 0.95)
-                                .opacity(phase.isIdentity ? 1.0 : 0.7)
+                                .scaleEffect(phase.isIdentity ? 1.0 : 0.985)
+                                .opacity(phase.isIdentity ? 1.0 : 0.92)
                         }
                     }
                 }
@@ -124,7 +128,7 @@ struct RecommendationRail: View {
             .onChange(of: scrollPosition) { _, newValue in
                 centeredItemId = newValue
             }
-            .frame(height: cardHeight + 8) // Extra space for shadow
+            .frame(height: cardHeight + 10) // Extra space for shadow
         }
         .sheet(isPresented: $viewModel.showWhyThisSheet) {
             if let item = viewModel.selectedItemForReasoning {
@@ -146,14 +150,31 @@ struct RecommendationRail: View {
     // MARK: - Section Header
     private var sectionHeader: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.kuroMicro(weight: .medium))
-                .tracking(2.0)
-                .textCase(.uppercase)
-                .foregroundStyle(.secondary.opacity(0.85))
-            
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.kuroTitle(weight: .light))
+                        .foregroundStyle(.black.opacity(0.84))
+                        .lineLimit(1)
+
+                    if let subtitle, !subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(subtitle)
+                            .font(.kuroCaption(weight: .light))
+                            .foregroundStyle(.black.opacity(0.46))
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                Text("\(visibleItems.count)")
+                    .font(.kuroMicro(weight: .medium))
+                    .foregroundStyle(.black.opacity(0.22))
+                    .monospacedDigit()
+            }
+
             Rectangle()
-                .fill(Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.08))
+                .fill(Color.black.opacity(0.06))
                 .frame(height: 0.5)
         }
     }
@@ -169,11 +190,12 @@ struct RecommendationCard: View {
     let onSave: () -> Void
     let onHide: () -> Void
     let onWhyThis: () -> Void
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     
     @State private var isPressed = false
     @State private var isDraggingCard = false
     
-    private let posterAspectRatio: CGFloat = 0.7 // 140:200
+    private let posterAspectRatio: CGFloat = 0.7
     
     private var posterHeight: CGFloat {
         cardWidth / posterAspectRatio
@@ -210,10 +232,15 @@ struct RecommendationCard: View {
     var body: some View {
         cardContent
             .frame(width: cardWidth, height: cardHeight)
-            .scaleEffect(isPressed ? 0.98 : (isCentered ? 1.02 : 1.0))
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isCentered)
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPressed)
+            .scaleEffect(isPressed ? 0.98 : (isCentered ? 1.01 : 1.0))
+            .animation(KuroAnimation.fast, value: isCentered)
+            .animation(KuroAnimation.fast, value: isPressed)
+            .overlay(
+                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                    .stroke(isCentered ? Color.black.opacity(0.10) : Color.black.opacity(0.05), lineWidth: 0.7)
+            )
             .onTapGesture {
+                guard !suppressCardTaps else { return }
                 guard !isDraggingCard else { return }
                 KuroAccessibility.impactHaptic(.light)
                 onOpen()
@@ -260,32 +287,35 @@ struct RecommendationCard: View {
                 // Score Badge
                 if let score = item.averageScore, score > 0 {
                     KuroScoreBadge(score: Double(score) / 10.0)
-                        .padding(8)
+                    .padding(8)
                 }
             }
             
             // Text Content
             VStack(alignment: .leading, spacing: 4) {
                 Text(sanitizedTitle)
-                    .font(.kuroCaption())
-                    .foregroundStyle(.primary.opacity(0.82))
+                    .font(.system(size: 12, weight: .light, design: .serif))
+                    .foregroundStyle(.black.opacity(0.82))
                     .lineLimit(2)
                     .minimumScaleFactor(0.92)
                     .allowsTightening(true)
                     .truncationMode(.tail)
-                    .frame(height: 38, alignment: .topLeading)
+                    .frame(height: 32, alignment: .topLeading)
                 
                 if !metaLine.isEmpty {
                     Text(metaLine)
                         .font(.kuroMicro())
-                        .foregroundStyle(.secondary.opacity(0.75))
+                        .foregroundStyle(.black.opacity(0.32))
                         .lineLimit(1)
                 }
             }
             .frame(width: cardWidth, alignment: .topLeading)
             .padding(.top, 10)
+            .padding(.horizontal, 2)
+            .padding(.bottom, 0)
         }
         .frame(width: cardWidth, height: cardHeight, alignment: .top)
+        .contentShape(Rectangle())
     }
     
     private var posterImage: some View {
@@ -305,16 +335,33 @@ struct RecommendationCard: View {
             }
         }
         .frame(width: cardWidth, height: posterHeight)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(alignment: .bottom) {
+            LinearGradient(
+                colors: [.clear, Color.black.opacity(0.16)],
+                startPoint: .center,
+                endPoint: .bottom
+            )
+            .frame(height: 50)
+            .allowsHitTesting(false)
+        }
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: KuroRadius.md,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: KuroRadius.md
+            )
+        )
     }
     
     private var placeholderView: some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(Color.primary.opacity(0.05))
+        Rectangle()
+            .fill(Color.black.opacity(0.06))
             .overlay(
-                ProgressView()
-                    .scaleEffect(0.6)
-                    .tint(.secondary.opacity(0.75))
+                Text("KURO")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(3.0)
+                    .foregroundColor(.black.opacity(0.10))
             )
     }
     
@@ -606,6 +653,7 @@ extension ConciergeRecItem {
         VStack(spacing: 32) {
             RecommendationRail(
                 title: "If you like action",
+                subtitle: "Clean choreography, real momentum",
                 items: mockItems,
                 onOpen: { item in
                     print("Open: \(item.title)")
@@ -620,6 +668,7 @@ extension ConciergeRecItem {
             
             RecommendationRail(
                 title: "Critically acclaimed",
+                subtitle: "Anchors worth knowing",
                 items: Array(mockItems.reversed()),
                 onOpen: { item in
                     print("Open: \(item.title)")

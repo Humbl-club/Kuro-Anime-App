@@ -10,6 +10,7 @@ struct ClubsView: View {
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
     @State private var didInitialLoad = false
+    @State private var isInitialLoading = false
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
 
@@ -20,7 +21,10 @@ struct ClubsView: View {
 
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: KuroDesignSpacing.lg) {
-                        if supabaseService.myClubs.isEmpty {
+                        if isInitialLoading {
+                            loadingState
+                                .padding(.top, KuroDesignSpacing.xl)
+                        } else if supabaseService.myClubs.isEmpty {
                             emptyState
                                 .padding(.top, KuroDesignSpacing.xxl)
                         } else {
@@ -33,6 +37,10 @@ struct ClubsView: View {
                 }
                 .refreshable {
                     await supabaseService.fetchMyClubs()
+                }
+                // Keep final rows clear of home-indicator chrome.
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 24)
                 }
 
                 if let toast {
@@ -49,7 +57,9 @@ struct ClubsView: View {
             .task {
                 guard !didInitialLoad else { return }
                 didInitialLoad = true
+                isInitialLoading = true
                 await supabaseService.fetchMyClubs()
+                isInitialLoading = false
             }
             .sheet(isPresented: $showCreateSheet) {
                 CreateClubSheet { response in
@@ -67,6 +77,39 @@ struct ClubsView: View {
     }
 
     // MARK: - Empty State
+
+    private var loadingState: some View {
+        VStack(spacing: KuroDesignSpacing.md) {
+            ForEach(0..<3, id: \.self) { _ in
+                KuroGlassCard(cornerRadius: KuroRadius.lg) {
+                    HStack(spacing: KuroDesignSpacing.md) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                .fill(Color.black.opacity(0.10))
+                                .frame(width: 140, height: 12)
+                            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                .fill(Color.black.opacity(0.06))
+                                .frame(width: 82, height: 8)
+                        }
+                        Spacer(minLength: 0)
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: 8, height: 12)
+                    }
+                    .padding(.horizontal, KuroDesignSpacing.md)
+                    .padding(.vertical, KuroDesignSpacing.md)
+                }
+            }
+            HStack(spacing: 8) {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .tint(.black.opacity(0.45))
+                Text("Loading clubs...")
+                    .font(.kuroCaption(weight: .light))
+                    .foregroundColor(.black.opacity(0.50))
+            }
+        }
+    }
 
     private var emptyState: some View {
         KuroGlassCard(cornerRadius: 22) {
@@ -338,6 +381,9 @@ private struct CreateClubSheet: View {
                 .padding(.bottom, KuroDesignSpacing.xxl)
             }
             .background(Color.kuroBackground)
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 24)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -460,6 +506,9 @@ private struct JoinClubSheet: View {
             }
             .padding(.horizontal, 20)
             .background(Color.kuroBackground)
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 24)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

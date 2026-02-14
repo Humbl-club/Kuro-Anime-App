@@ -27,6 +27,10 @@ final class FeatureFlags {
     var isRagAssistEnabled: Bool { evaluate("rag_assist_v1") }
     var isFmAssistEnabled: Bool { evaluate("fm_assist_v1") }
     var isClarifyV2Enabled: Bool { evaluate("clarify_v2") }
+    var isClubsInteractionV2Enabled: Bool { evaluate("clubs_interaction_v2") }
+    var isConciergePerfV2Enabled: Bool { evaluate("concierge_perf_v2") }
+    var isConciergeEditorialV1Enabled: Bool { evaluate("concierge_editorial_v1") }
+    var isSwipeTapGuardEnabled: Bool { evaluate("swipe_tap_guard_v1") }
 
     // MARK: - Init
 
@@ -74,6 +78,9 @@ final class FeatureFlags {
     /// Deterministic evaluation: flag must be enabled AND user must fall within rollout %.
     /// Uses a stable hash of userId so the same user always gets the same bucket.
     func evaluate(_ flagName: String) -> Bool {
+        if let localOverride = Self.localOverride(for: flagName) {
+            return localOverride
+        }
         guard let flag = flags[flagName], flag.enabled else { return false }
 
         // Optional market gate: if target_markets is set, the current region must match.
@@ -108,6 +115,19 @@ final class FeatureFlags {
 
     nonisolated private static func currentRegionCode() -> String {
         Locale.current.region?.identifier.uppercased() ?? "US"
+    }
+
+    /// Debug-only launch arg override.
+    /// Examples:
+    /// - --ff-on=concierge_editorial_v1
+    /// - --ff-off=concierge_editorial_v1
+    nonisolated private static func localOverride(for flagName: String) -> Bool? {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("--ff-on=\(flagName)") { return true }
+        if args.contains("--ff-off=\(flagName)") { return false }
+        #endif
+        return nil
     }
 
     // MARK: - Local cache (UserDefaults)

@@ -23,6 +23,13 @@ struct ClubDetailView: View {
     @State private var showSettings = false
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
+    @State private var voteInFlightPollIds: Set<String> = []
+    @State private var optimisticVoteByPollId: [String: String] = [:]
+    @State private var optimisticVoteCountsByPollId: [String: [String: Int]] = [:]
+
+    private var clubsInteractionV2Enabled: Bool {
+        FeatureFlags.shared.isClubsInteractionV2Enabled
+    }
 
     var body: some View {
         ZStack {
@@ -124,6 +131,20 @@ struct ClubDetailView: View {
 
             EditorialLayout.divider()
 
+            if isLoading {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .scaleEffect(0.75)
+                        .tint(.black.opacity(0.45))
+                    Text("Refreshing...")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.black.opacity(0.45))
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 6)
+            }
+
             // Tab content
             ScrollView(.vertical, showsIndicators: false) {
                 switch selectedTab {
@@ -134,6 +155,9 @@ struct ClubDetailView: View {
                 case .polls:
                     pollsTab(bundle)
                 }
+            }
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 24)
             }
         }
     }
@@ -274,11 +298,18 @@ struct ClubDetailView: View {
                         ClubPollCard(
                             poll: poll,
                             myRole: bundle.my_role,
+                            isSubmittingVote: clubsInteractionV2Enabled && voteInFlightPollIds.contains(poll.id),
+                            optimisticMyVoteOptionId: clubsInteractionV2Enabled ? optimisticVoteByPollId[poll.id] : nil,
+                            optimisticVoteCounts: clubsInteractionV2Enabled ? optimisticVoteCountsByPollId[poll.id] : nil,
                             onVote: { optionId in
                                 Task {
-                                    try? await supabaseService.castVote(pollId: poll.id, optionId: optionId)
-                                    KuroAccessibility.impactHaptic(.light)
-                                    await loadBundle(force: true)
+                                    if clubsInteractionV2Enabled {
+                                        await voteOnPoll(poll: poll, optionId: optionId)
+                                    } else {
+                                        try? await supabaseService.castVote(pollId: poll.id, optionId: optionId)
+                                        KuroAccessibility.impactHaptic(.light)
+                                        await loadBundle(force: true)
+                                    }
                                 }
                             }
                         )
@@ -293,7 +324,14 @@ struct ClubDetailView: View {
                         .padding(.top, KuroDesignSpacing.sm)
 
                     ForEach(closedPolls) { poll in
-                        ClubPollCard(poll: poll, myRole: bundle.my_role, onVote: { _ in })
+                        ClubPollCard(
+                            poll: poll,
+                            myRole: bundle.my_role,
+                            isSubmittingVote: false,
+                            optimisticMyVoteOptionId: nil,
+                            optimisticVoteCounts: nil,
+                            onVote: { _ in }
+                        )
                     }
                 }
             }
@@ -310,15 +348,81 @@ struct ClubDetailView: View {
         errorText = nil
         do {
             bundle = try await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: force)
+            optimisticVoteByPollId.removeAll()
+            optimisticVoteCountsByPollId.removeAll()
         } catch {
             let msg = "\(error)"
             if msg.contains("NOT_A_MEMBER") {
                 errorText = "You're no longer a member of this club."
+                bundle = nil
             } else {
                 errorText = "Could not load club data."
             }
         }
         isLoading = false
+    }
+
+    private func voteOnPoll(poll: SupabaseService.ClubPoll, optionId: String) async {
+        guard !poll.is_closed else { return }
+        guard poll.my_vote_option_id != optionId else { return }
+        guard !voteInFlightPollIds.contains(poll.id) else { return }
+
+        voteInFlightPollIds.insert(poll.id)
+        let startedAt = supabaseService.beginInteractionTiming()
+        supabaseService.trackInteractionEvent(
+            "clubs_vote_tap",
+            surface: "club_detail_polls",
+            result: "attempt",
+            extra: ["club_id": clubId]
+        )
+
+        // Optimistic vote state for instant visual response.
+        var counts: [String: Int] = [:]
+        for option in poll.options {
+            counts[option.id] = option.vote_count
+        }
+        if let previous = poll.my_vote_option_id {
+            counts[previous] = max(0, (counts[previous] ?? 0) - 1)
+        }
+        counts[optionId] = (counts[optionId] ?? 0) + 1
+        optimisticVoteByPollId[poll.id] = optionId
+        optimisticVoteCountsByPollId[poll.id] = counts
+        KuroAccessibility.impactHaptic(.light)
+
+        defer { voteInFlightPollIds.remove(poll.id) }
+
+        do {
+            try await supabaseService.castVote(pollId: poll.id, optionId: optionId)
+            bundle = try await supabaseService.refreshClubBundle(clubId: clubId)
+            optimisticVoteByPollId.removeAll()
+            optimisticVoteCountsByPollId.removeAll()
+            supabaseService.trackInteractionEvent(
+                "clubs_vote_success",
+                surface: "club_detail_polls",
+                result: "ok",
+                startedAt: startedAt,
+                extra: ["club_id": clubId]
+            )
+            KuroAccessibility.successHaptic()
+        } catch {
+            optimisticVoteByPollId[poll.id] = nil
+            optimisticVoteCountsByPollId[poll.id] = nil
+            let msg = "\(error)"
+            if msg.contains("NOT_A_MEMBER") {
+                errorText = "You're no longer a member of this club."
+                bundle = nil
+            } else {
+                showToast(.error, title: "Vote failed", subtitle: "Please try again.")
+            }
+            supabaseService.trackInteractionEvent(
+                "clubs_vote_error",
+                surface: "club_detail_polls",
+                result: "error",
+                startedAt: startedAt,
+                extra: ["club_id": clubId]
+            )
+            KuroAccessibility.errorHaptic()
+        }
     }
 
     private func showToast(_ kind: KuroToastState.Kind, title: String, subtitle: String?) {
@@ -611,14 +715,20 @@ private struct ThisWeekRow: View {
 private struct ClubPollCard: View {
     let poll: SupabaseService.ClubPoll
     let myRole: String
+    let isSubmittingVote: Bool
+    let optimisticMyVoteOptionId: String?
+    let optimisticVoteCounts: [String: Int]?
     let onVote: (String) -> Void
 
     private var totalVotes: Int {
-        poll.options.reduce(0) { $0 + $1.vote_count }
+        if let optimisticVoteCounts {
+            return optimisticVoteCounts.values.reduce(0, +)
+        }
+        return poll.options.reduce(0) { $0 + $1.vote_count }
     }
 
     private var hasVoted: Bool {
-        poll.my_vote_option_id != nil
+        (optimisticMyVoteOptionId ?? poll.my_vote_option_id) != nil
     }
 
     var body: some View {
@@ -647,14 +757,19 @@ private struct ClubPollCard: View {
                 }
 
                 ForEach(poll.options) { option in
+                    let renderedCount = optimisticVoteCounts?[option.id] ?? option.vote_count
                     ClubPollOptionRow(
                         option: option,
+                        displayVoteCount: renderedCount,
                         totalVotes: totalVotes,
-                        isMyVote: poll.my_vote_option_id == option.id,
+                        isMyVote: (optimisticMyVoteOptionId ?? poll.my_vote_option_id) == option.id,
                         hasVoted: hasVoted,
                         isClosed: poll.is_closed,
+                        isSubmittingVote: isSubmittingVote,
                         onTap: {
-                            guard !poll.is_closed, poll.my_vote_option_id != option.id else { return }
+                            guard !poll.is_closed else { return }
+                            guard (optimisticMyVoteOptionId ?? poll.my_vote_option_id) != option.id else { return }
+                            guard !isSubmittingVote else { return }
                             onVote(option.id)
                         }
                     )
@@ -675,15 +790,17 @@ private struct ClubPollCard: View {
 
 private struct ClubPollOptionRow: View {
     let option: SupabaseService.ClubPollOption
+    let displayVoteCount: Int
     let totalVotes: Int
     let isMyVote: Bool
     let hasVoted: Bool
     let isClosed: Bool
+    let isSubmittingVote: Bool
     let onTap: () -> Void
 
     private var fraction: Double {
         guard totalVotes > 0 else { return 0 }
-        return Double(option.vote_count) / Double(totalVotes)
+        return Double(displayVoteCount) / Double(totalVotes)
     }
 
     var body: some View {
@@ -706,7 +823,7 @@ private struct ClubPollOptionRow: View {
                 Spacer()
 
                 if hasVoted || isClosed {
-                    Text("\(option.vote_count)")
+                    Text("\(displayVoteCount)")
                         .font(.kuroMicro(weight: .medium))
                         .foregroundColor(.black.opacity(0.50))
                 }
@@ -729,7 +846,7 @@ private struct ClubPollOptionRow: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(isClosed)
+        .disabled(isClosed || isSubmittingVote)
     }
 }
 
@@ -935,6 +1052,9 @@ private struct ClubSettingsSheet: View {
                 .padding(.bottom, KuroDesignSpacing.xxl)
             }
             .background(Color.kuroBackground)
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 24)
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
