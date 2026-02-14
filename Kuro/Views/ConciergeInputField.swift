@@ -589,7 +589,13 @@ struct ConciergeInputField: View {
         guard let onAutoSend else { return }
 
         // Only auto-send when the detector is confident this is an import list.
-        guard case .importList(let count) = intent, count >= 2 else { return }
+        guard case .importList = intent else { return }
+        guard looksLikeImportListText(text) else { return }
+
+        // Approximate count for dedupe.
+        let count = linesOrSegmentsCount(text)
+
+        guard count >= 2 else { return }
 
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -602,12 +608,78 @@ struct ConciergeInputField: View {
         onAutoSend(trimmed)
     }
 
+    private func linesOrSegmentsCount(_ text: String) -> Int {
+        let lines = text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if lines.count >= 2 { return lines.count }
+
+        let commaItems = text
+            .components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        return commaItems.count
+    }
+
+    private func looksLikeImportListText(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+
+        let lines = trimmed
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if lines.count >= 2 {
+            let titleCount = lines.filter { segmentLooksTitleLike($0) }.count
+            return titleCount >= 2
+        }
+
+        let commaItems = trimmed
+            .components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if commaItems.count >= 2 {
+            let titleCount = commaItems.filter { segmentLooksTitleLike($0) }.count
+            return titleCount >= 2
+        }
+
+        return false
+    }
+
+    private func segmentLooksTitleLike(_ text: String) -> Bool {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard t.count >= 2 else { return false }
+
+        if t.range(of: #"\b(ep|episode|chapter|season|staffel|folge|vol|volume)\b"#, options: .regularExpression) != nil {
+            return true
+        }
+
+        if t.contains("(") && t.contains(")") {
+            return true
+        }
+
+        let words = t.split(whereSeparator: { $0 == " " || $0 == "\t" })
+        if words.count >= 2 { return true }
+
+        if t.range(of: #"[A-Z]"#, options: .regularExpression) != nil { return true }
+
+        return t.range(of: #"\d"#, options: .regularExpression) != nil
+    }
+
     private func pasteFromClipboard() {
         let pasted = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !pasted.isEmpty else { return }
         ConciergeHapticsManager.shared.pasteSuccess()
         text = pasted
         focusRequest?.wrappedValue = true
+
+        let intent = ConciergeIntentDetector.detect(from: pasted)
+        maybeAutoSend(intent: intent, wasPaste: true, text: pasted)
     }
 
     private func updateSuggestionsDebounced(_ text: String) {

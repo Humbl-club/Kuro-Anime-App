@@ -22,7 +22,30 @@ Implemented:
 - Backend returns grouped rails (`sets`) plus backward-compatible flattened items.
 - iOS renders rails from backend `sets`.
 - Classics rail expanded (do not remove existing classic boosts; return more classics by heuristic + config filters).
-- **23 modes** (v8, deployed): Premium Picks, Start Here, Premium Action, Premium Comedy (grown-up), Cozy/Comfort, Dark/Serious, Hidden Gems, Classics (expanded), Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai, **Sports**, **Sci-Fi**, **Horror & Supernatural**, **Mecha**, **Mystery & Detective**, **Music & Performance**, **Historical & Period**, **School & Coming of Age**, **Shoujo & Josei**.
+- **23 modes** (v8, deployed): internal IDs map to butler-facing copy in `ConciergeCuratedCopy`:
+  - `premium_picks` → **The Cut**
+  - `gateway_start_here` → **Start Here**
+  - `premium_action` → **Action With Craft**
+  - `premium_comedy_grownup` → **Comedy With Bite**
+  - `cozy_comfort` → **Soft Evenings**
+  - `dark_serious` → **Dark, Not Empty**
+  - `hidden_gems` → **Underseen**
+  - `classics_expanded` → **The Canon**
+  - `short_one_season` → **Short, Complete**
+  - `movie_night` → **One Perfect Film**
+  - `romance_serious` → **Romance That Lands**
+  - `romcom` → **Light, Sharp Romance**
+  - `fantasy_non_isekai` → **Fantasy With Texture**
+  - `isekai` → **Other Worlds, Cleanly**
+  - `sports` → **Competition, Pure**
+  - `scifi` → **Ideas With Heat**
+  - `horror_supernatural` → **Unease, Done Right**
+  - `mecha` → **Steel and Stakes**
+  - `mystery_detective` → **Cases With Discipline**
+  - `music_performance` → **Sound and Feeling**
+  - `historical` → **Period Weight**
+  - `school_coming_of_age` → **Coming-of-Age, Quietly**
+  - `shoujo_josei` → **Emotion, With Clarity**
 - **50 curated rails** (27 original + 23 new: sports, sci-fi, horror/supernatural, mecha, mystery/detective, music/performance, historical, school/coming-of-age, shoujo/josei anime+manga, plus existing seinen anime+manga, josei manga).
 - Intent detectors in `scoreMode()` for movie, short, isekai/non-isekai, romcom/serious-romance, sports, sci-fi, horror disambiguation.
 - Enriched synonyms with German translations across all modes.
@@ -82,7 +105,7 @@ Key behaviors:
 - If prompt includes a seed ("like Vagabond"), replaces the primary rail with `Similar to "X"` (deterministic similarity RPC), while keeping Classics as the other rail.
 - Returns:
   - `modes`: selected rails with `confidence` + `reason`
-  - `sets`: array of rails, each with `title` + `items`
+  - `sets`: array of rails, each with `title` + `items` (`set.title` is backend/internal; UI replaces with curated copy)
   - `items`: flattened (backwards compatibility and for narration)
 
 Perf note:
@@ -95,7 +118,7 @@ Perf note:
   - `/Applications/Kuro/Kuro/Views/ConciergeView.swift`
 
 Behavior:
-- If backend returns `sets`, Concierge renders each set as a titled horizontal rail.
+- If backend returns `sets`, Concierge renders each set as a titled horizontal rail (internal title -> curated/locale title at render time).
 - If `sets` is missing (older backend), it falls back to the previous single list rendering.
 
 ## Reanalysis: should we do more, and what's the "better way"
