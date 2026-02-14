@@ -356,6 +356,9 @@ struct ConciergeInputField: View {
     var isSending: Bool = false
     var focusRequest: Binding<Bool>? = nil
     var onSend: (_ text: String) -> Void
+    /// Optional: when we detect a paste that clearly looks like an import list, auto-trigger send.
+    /// This keeps the flow "magic" without an extra button press.
+    var onAutoSend: ((_ text: String) -> Void)? = nil
     var detectedIntent: Binding<PrototypeConciergeIntent>?
     
     // MARK: - State
@@ -369,6 +372,7 @@ struct ConciergeInputField: View {
     @State private var suggestionTask: Task<Void, Never>? = nil
     @State private var detectedChipTask: Task<Void, Never>? = nil
     @State private var measuredTextHeight: CGFloat = 20
+    @State private var lastAutoSentTextFingerprint: Int? = nil
     
     // MARK: - Constants
     
@@ -572,10 +576,30 @@ struct ConciergeInputField: View {
 
         // Handle list detection chip
         handleListDetection(intent: newIntent, wasPaste: wasPaste)
+        maybeAutoSend(intent: newIntent, wasPaste: wasPaste, text: newValue)
 
         lastTextLength = newValue.count
 
         updateSuggestionsDebounced(newValue)
+    }
+
+    private func maybeAutoSend(intent: PrototypeConciergeIntent, wasPaste: Bool, text: String) {
+        guard wasPaste else { return }
+        guard !isSending else { return }
+        guard let onAutoSend else { return }
+
+        // Only auto-send when the detector is confident this is an import list.
+        guard case .importList(let count) = intent, count >= 2 else { return }
+
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // Prevent double-firing for the same pasted payload.
+        let fp = trimmed.hashValue ^ count
+        if lastAutoSentTextFingerprint == fp { return }
+        lastAutoSentTextFingerprint = fp
+
+        onAutoSend(trimmed)
     }
 
     private func pasteFromClipboard() {

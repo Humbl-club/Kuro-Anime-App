@@ -193,6 +193,10 @@ struct ConciergeView: View {
                     onSend: { text in
                         Task { await send(text: text) }
                     }
+                    ,onAutoSend: { text in
+                        // Auto-send only when the input field detects a real paste import list.
+                        Task { await send(text: text) }
+                    }
                 )
                 .kuroSwipeExclusionZone()
                 .padding(.horizontal, 6)
@@ -369,6 +373,7 @@ struct ConciergeView: View {
     // MARK: Send (Main Entry Point)
     private func send(text: String) async {
         guard !text.isEmpty else { return }
+        guard !isWorking else { return }
         errorText = nil
         let sendStartedAt = supabaseService.beginInteractionTiming()
 
