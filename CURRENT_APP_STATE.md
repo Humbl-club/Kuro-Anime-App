@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-02-09
+**Last updated:** 2026-02-14
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -354,22 +354,23 @@ node scripts/generate_app_state_inventory.js
 - Full left page (no floating launcher in header).
 - **Inline chat architecture** (no full-screen takeovers, no state machine):
   - Typing indicator for loading states
-  - Inline confirm bubble for import preview (grouped: WILL ADD / WILL UPDATE / WILL SKIP)
+- Inline confirm bubble for import preview (grouped: NEW / UPDATE / UNCHANGED)
   - Inline editorial rails for recommendations
   - Toast + undo for completion
 - Empty state:
   - Concierge glass intro card
-  - Quick-start glass pills:
-    - Paste from clipboard
-    - Try example import
-    - Give me a vibe
+  - Curated entry actions:
+    - Import list
+    - See curated example prompts
+    - Ask for a mood-based recommendation
 - Main features:
   - Deterministic parsing of pasted list with import reconciliation (Add/Update/Skip actions)
   - Auto-apply for high-confidence imports (all items score >= 0.85, no ambiguous adaptations)
   - Candidate disambiguation
   - LLM fallback for ambiguous lines
   - Apply/undo sessions (undo restores previous_values for updates)
-  - Recommendations with LLM narration (optional), 23 vibe modes
+  - Recommendations with LLM narration (optional), 23 vibe mode IDs
+  - Editorial mode-to-copy mapping in `ConciergeComponents.swift` (`ConciergeCuratedCopy`) that surfaces polished section names (e.g., “The Cut”, “Dark, Not Empty”, etc.) in EN/DE while keeping backend IDs stable
   - Edge function warmup on view appear (`concierge-parse?warmup=true`)
 - All UI components use `KuroDesignSystem` tokens (fonts, spacing, radii, animations).
 - German NLP: `GERMAN_VIBE_FORMS` allowlist (15 adjective stems x 5 inflections), German intent keywords in `scoreMode()`, umlaut normalization (u->ue, o->oe, a->ae, ss->ss).
@@ -390,6 +391,7 @@ node scripts/generate_app_state_inventory.js
 - `ClubsView`: joined club list, empty state with create/join prompts, pull-to-refresh.
 - `ClubDetailView`: 3-tab layout (Rails / This Week / Polls), settings sheet for owner/admin.
 - `ClubActivitySection`: embedded on `AnimeDetailView` and `MangaDetailView` — shows which clubs have this title in a rail, aggregate member status counts, and (if sharing level allows) per-member details.
+- `ClubActivitySection`: now renders explicit member watch/read progress language (tracking, completed, planning, paused, dropped, not-started) and does not use placeholder status labels when per-member detail is unavailable.
 - Clubs tab also accessible from `ProfileView`.
 - Monochrome status pills (no colored dots).
 
@@ -1205,8 +1207,8 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - Concierge is a **full page** (left swipe). Uses **inline chat architecture** — no state machine, no full-screen takeovers.
   - `ConciergeDisplayState` enum deleted. Everything renders inline in the chat scroll: typing indicator for loading, inline confirm bubble for imports, editorial rails for recommendations, toast+undo for completion.
   - All UI components use `KuroDesignSystem` tokens (`Font.kuroBody()`, `.kuroCaption()`, `KuroRadius.sm/md/lg`, `KuroAnimation.editorial/fast`, `KuroDesignSpacing.*`).
-  - `ConciergeRecCard`: `KuroCachedAsyncImage` + `KuroScoreBadge` overlay, `contextMenu` for save/hide, press state `scaleEffect(0.98)`, KURO watermark on failure. Cards: 140x200pt.
-  - `ConciergeConfirmBubble`: inline import preview with "IMPORT PREVIEW" header, match rows with radio-dot candidate picker, grouped sections (WILL ADD / WILL UPDATE / WILL SKIP), "CONFIRM N ITEMS" button.
+  - `ConciergeRecCard`: `KuroCachedAsyncImage` + `KuroScoreBadge` overlay, `contextMenu` for save/hide, press state `scaleEffect(0.98)`, KURO watermark on failure. Cards: 130x195pt.
+  - `ConciergeConfirmBubble`: inline import review with curated section labels (`NEW`, `UPDATE`, `UNCHANGED`) and concise action summary.
   - Auto-apply: high-confidence imports (all items score >= 0.85, no ambiguous adaptations) auto-apply with undo toast.
 - Header left is **only KURO text**.
 - A small **chat icon** appears next to the section title **only on Concierge page**.
@@ -1250,6 +1252,14 @@ Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in 
 
 ## 14) Change Log (append-only)
 
+- 2026-02-14: **Concierge + Clubs activity copy polish** —
+  - `Kuro/Views/DetailPages/ClubActivitySection.swift`: fixed member status rendering so per-member rows now use real watch/read progress and explicit “not started” state; removed placeholder “Member” text path and generic sharing-level misuse.
+  - `Kuro/Services/SupabaseService.swift`: added concierge/club interaction telemetry points (`clubs_add_to_rail_*`) and helper state for remember-last-club UX in add-to-rail sheet.
+  - `Kuro/Views/ConciergeComponents.swift`: introduced curated copy layer for concierge presentation:
+    - internal mode IDs map to editorial titles/subtitles in EN/DE (`ConciergeCuratedCopy`);
+    - concise curator notes are always rendered above recommendation sets when available;
+    - entry/clarify copy avoids raw mode naming in the UI.
+  - Commit references: `e874b34`, `d73da13`.
 - 2026-02-09: **Production Readiness + Apple FM + Network Monitor** —
   - **Apple Foundation Models service** (new): `Kuro/Services/AppleFMService.swift` — `@MainActor @Observable` class implementing `FMProvider` protocol. 4 capabilities: mode classification (5s timeout), disambiguation (8s timeout), synopsis condensation (10s timeout), NL collection search intent parsing (5s timeout). 4 `@Generable` structs with `@Guide` annotations (`FMDisambiguationOutput`, `FMModeOutput`, `FMSynopsisOutput`, `FMSearchIntentOutput`). `StubFMProvider` for non-FM devices. `withFMTimeout` helper using `ThrowingTaskGroup`. Synopsis cache `[Int: String]`. Guards: `#if canImport(FoundationModels)` + `#available(iOS 26, *)`. Integrated into `SupabaseService.fmService`.
   - **Synopsis condenser**: `AnimeDetailView` + `MangaDetailView` call `fmService.condenseSynopsis()` for descriptions > 200 chars. Shows spoiler-free 2-sentence hook on supported devices.
@@ -1281,7 +1291,7 @@ Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in 
   - **Mock SupabaseService**: cleaned up, removed dead type references, added `fmService` property.
 - 2026-02-09: **Clubs + Import Reconciliation + Quality Gates + Phase 5 Polish** —
   - **Clubs feature (new)**: Private groups (2-20 members) with curated rails, polls, and privacy-by-design sharing levels. 7 new tables (`clubs`, `club_members`, `club_rails`, `club_rail_items`, `club_polls`, `club_poll_options`, `club_votes`) with full RLS (25 policies + 4 helper functions). 6 RPCs (`create_club`, `join_club`, `leave_club`, `fetch_club_bundle`, `add_club_rail_item`, `cast_club_vote`) + 3 helper functions (`is_club_member`, `is_club_admin_or_owner`, `sharing_level_rank`) + `generate_invite_code`. iOS: `ClubsView` (6th page in swipe pager) + `ClubDetailView` (3-tab: Rails/This Week/Polls) + `ClubActivitySection` on media detail views + Create/Join sheets + Settings sheet. Migrations: `20260209200000_clubs_foundation.sql`, `20260209201000_clubs_rls_policies.sql`, `20260209202000_clubs_rpcs.sql`.
-  - **Import reconciliation**: Detects existing entries during concierge parse and proposes Add/Update/Skip actions. `concierge-parse` returns `existing_entry` per item after candidate resolution. `concierge-apply` respects `action` field (add/update/skip) with TOCTOU protection via `expectedExisting`. Undo for updates restores `previous_values` snapshot. `concierge-undo` handles add (delete), update (restore previous_values), skip (no-op). iOS `ConciergeConfirmBubble` shows grouped sections (WILL ADD / WILL UPDATE / WILL SKIP). Migration: `20260209135229_import_reconciliation.sql` (adds `import_action` + `previous_values` columns to `import_session_items`). Files: `ConciergeView.swift`, `concierge-parse/index.ts`, `concierge-apply/index.ts`, `concierge-undo/index.ts`.
+- **Import reconciliation**: Detects existing entries during concierge parse and proposes Add/Update/Skip actions. `concierge-parse` returns `existing_entry` per item after candidate resolution. `concierge-apply` respects `action` field (add/update/skip) with TOCTOU protection via `expectedExisting`. Undo for updates restores `previous_values` snapshot. `concierge-undo` handles add (delete), update (restore previous_values), skip (no-op). iOS `ConciergeConfirmBubble` shows grouped sections (`NEW`, `UPDATE`, `UNCHANGED`). Migration: `20260209135229_import_reconciliation.sql` (adds `import_action` + `previous_values` columns to `import_session_items`). Files: `ConciergeView.swift`, `concierge-parse/index.ts`, `concierge-apply/index.ts`, `concierge-undo/index.ts`.
   - **Quality gates (new)**: 5 gate scripts in `scripts/quality-gates/`: `check_secrets.sh` (secret detection, no false-positive on anon key), `check_migrations.sh` (migration hygiene, read-only by default), `test_router_offline.sh` + `router_test_cases.js` (offline mode router tests), `audit_rails.sh` (curated rails quality audit via `audit_curated_rails_quality.js`, prefers env vars), `build_ios.sh` (xcodebuild check). `run_all.sh` orchestrator. `.githooks/pre-commit` hook for staged-file secrets + migration name checks.
   - **Club telemetry**: `public.club_analytics` table (RLS: authenticated insert own, service_role select). `log_club_event` RPC (SECURITY DEFINER). 90-day retention via extended `concierge_housekeeping()` cron. Migration: `20260209220000_club_analytics.sql`.
   - **Haptics polished**: Club create/join use `.medium` impact (was `.success` notification). Import confirm uses `.medium` (was `.light`). Vote cast `.light`. Empty states improved: rails tab shows add prompt for admins, This Week text updated.
@@ -1289,9 +1299,9 @@ Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in 
   - **Build verified**: `xcodebuild -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build` passes with zero errors.
 - 2026-02-09: **Concierge redesign — inline chat architecture, visual token alignment, German NLP, curation expansion** —
   - **State machine removed**: Deleted `ConciergeDisplayState` enum and all 5 full-screen subviews (`ConciergeThinkingView`, `ConciergeConfirmingView`, `ConciergePresentingView`, `ConciergeDoneView`, `PresentCard`/`ConfirmRow`). ConciergeView.swift rewritten from 1313→707 lines. Everything now renders inline in chat: typing indicator for loading, inline confirm bubble for imports, editorial rails for recommendations, toast+undo for completion.
-  - **Visual token alignment**: All concierge UI components now use `KuroDesignSystem` tokens (`Font.kuroBody()`, `.kuroCaption()`, `KuroRadius.sm/md/lg`, `KuroAnimation.editorial/fast`, `KuroDesignSpacing.*`). Removed all hardcoded font sizes, corner radii, and spring animations. User bubble double-background eliminated (removed glassBubble wrapping solid black). Typing indicator slowed from 220ms→500ms.
-  - **Editorial recommendation cards**: `ConciergeRecCard` redesigned with `KuroCachedAsyncImage`, `KuroScoreBadge` overlay, `contextMenu` for save/hide (replaces visible buttons), press state `scaleEffect(0.98)`, KURO watermark on failure. Cards: 140x200pt. Rails use editorial uppercase headers with dividers.
-  - **Inline confirm bubble**: New `ConciergeConfirmBubble` component renders import preview inline in chat with "IMPORT PREVIEW" header, match rows with radio-dot candidate picker, and "CONFIRM N ITEMS" button. No full-screen takeover.
+- **Visual token alignment**: All concierge UI components now use `KuroDesignSystem` tokens (`Font.kuroBody()`, `.kuroCaption()`, `KuroRadius.sm/md/lg`, `KuroAnimation.editorial/fast`, `KuroDesignSpacing.*`). Removed all hardcoded font sizes, corner radii, and spring animations. User bubble double-background eliminated (removed glassBubble wrapping solid black). Typing indicator kept lightweight and intentionally calm.
+- **Editorial recommendation cards**: `ConciergeRecCard` redesigned with `KuroCachedAsyncImage`, `KuroScoreBadge` overlay, `contextMenu` for save/hide (replaces visible buttons), press state `scaleEffect(0.98)`, KURO watermark on failure. Cards: 130x195pt. Rail headers now use curator-facing titles/subtitles in EN/DE and softer typography.
+- **Inline confirm bubble**: `ConciergeConfirmBubble` renders import review inline in chat with concise section labels (`NEW`, `UPDATE`, `UNCHANGED`) and a compact confirm action. No full-screen takeover.
   - **Auto-apply**: High-confidence imports (all items score >= 0.85, no ambiguous adaptations) auto-apply immediately with undo toast. Mixed confidence shows inline confirm bubble.
   - **Performance**: Edge function warmup on concierge view appear (`conciergeWarmup()` fires `concierge-parse?warmup=true`). Auth+rate-limit parallelized in `concierge-recommend` via `Promise.all`. Dead code removed: `conciergeResolve()` + `ConciergeResolveResponse` (~70 lines).
   - **German NLP hardening**: Added `GERMAN_VIBE_FORMS` allowlist (15 adjective stems × 5 inflections) + `normalizeGermanVibeWords()` in concierge-recommend. German intent keywords added to all `scoreMode()` patterns (wantsClassic/Hidden/Short/Movie/Mature/Sports/SciFi/Horror/Cozy + 6 new modes). Umlaut normalization (ü→ue, ö→oe, ä→ae, ß→ss) applied to both user text and synonyms. iOS `looksLikeImport()` updated with German vibe exclusion markers.

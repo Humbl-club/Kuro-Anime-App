@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-02-09 (production-readiness session)
+**Last updated:** 2026-02-14
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -25,8 +25,8 @@ Kuro is a curated anime + manga app. It lets users browse premium picks, keep li
 - Clean editorial design
 - No adult content by default
 - Private clubs for watching together with friends
-- Concierge uses smart rules first, LLM only when needed
-- On-device AI for smart search, description condensing, and mode routing
+- Concierge uses deterministic routing first, with optional AI for ambiguity and narration
+- On-device AI for smart search, description condensing, and disambiguation support
 - Images are mirrored to a CDN for speed
 - Works offline (shows a banner when you lose internet)
 
@@ -34,7 +34,7 @@ Kuro is a curated anime + manga app. It lets users browse premium picks, keep li
 
 ## 3) How the app is organized (screens)
 
-- **Concierge (left swipe)**: A chat-like page for importing lists and asking for recommendations.
+- **Concierge (left swipe)**: An inline concierge page for importing from your library/clipboard and asking for recommendations.
 - **Discover (main page)**: Curated sections like Essentials, Classics, Trending, etc.
 - **Collection**: Your personal list of anime/manga.
 - **Browse**: Explore the catalog with filters.
@@ -64,10 +64,10 @@ Profile is a small menu in the top-right corner.
 
 Kuro now uses Apple's built-in AI that runs directly on your device (no internet needed for these features). This means faster responses and better privacy since your data never leaves your phone for these tasks.
 
-The on-device AI handles four things:
+The concierge stack handles four things:
 
-1. **Mode routing**: When you ask for a recommendation, the AI figures out what kind of vibe you want (action, cozy, horror, etc.) and picks the right recommendation mode.
-2. **Disambiguation**: When multiple anime or manga share similar names (like "Hunter x Hunter 1999" vs "Hunter x Hunter 2011"), the AI picks the right one based on context.
+1. **Deterministic routing + heuristics first** for fast and stable recommendations.
+2. **Disambiguation support** when multiple titles collide (for example, “Hunter x Hunter 1999” vs “Hunter x Hunter 2011”).
 3. **Synopsis condensing**: Long plot descriptions get automatically shortened into 2-sentence hooks that are spoiler-free and easy to scan.
 4. **Smart search**: You can search your collection using everyday language instead of picking filters manually.
 
@@ -112,15 +112,17 @@ There are built-in usage limits so it can’t be abused.
 
 **On the Concierge page (today):**
 - A short intro card explains what it does.
-- Three quick start buttons:
-  - Paste from clipboard
+- Four quick actions:
+  - From your library
+  - From clipboard
   - Try an example import
-  - Give me a vibe
+  - Describe a vibe
 - The Concierge no longer takes over the full screen. Everything stays inline in the chat conversation, which makes it feel faster and more natural:
   - Import results appear as inline confirm bubbles (with cover art)
   - Recommendation results appear as scrollable editorial-style horizontal rails
   - Confirmations are inline buttons (not separate screens)
   - Success shows as a brief toast with undo
+  - Internal mode names are hidden; users see curated titles and subtitles.
 
 **Adult content:** filtered out by default.
 
@@ -128,15 +130,15 @@ There are built-in usage limits so it can’t be abused.
 
 ## 4.1) How an import works (simple steps)
 
-1. You paste a list.
-2. The system tries to match titles.
+1. You import from your library or paste a list.
+2. The concierge parser tries to match titles.
 3. Each matched item is classified as one of three actions:
    - **Add** — brand new to your collection.
    - **Update** — already in your collection but with newer progress (e.g. more episodes watched).
    - **Skip** — already in your collection with the same or better progress (duplicate).
-4. If something is unclear, it shows an inline picker in the chat.
-5. After applying, a toast with undo appears (not a full-screen done view). You can undo the entire import to roll back changes.
-6. For high-confidence imports (score >= 0.85), items are auto-applied immediately with an undo toast.
+4. If something is unclear, it shows an inline clarify flow (status/title/intent) in the same message.
+5. After confirmation, your list updates in place. A toast confirms success and supports Undo.
+6. High-confidence imports (score >= 0.85) can auto-apply immediately with an undo toast.
 
 ```mermaid
 flowchart TD
@@ -157,14 +159,16 @@ flowchart TD
 - It avoids adult content by default.
 - If you say "like X", it finds similar titles first.
 - The LLM only adds wording or resolves ambiguity.
-- Your prompt is routed into **up to 2 curated rails ("modes")**:
-  - Rail A: a best-fit "vibe mode" (e.g. Premium Action / Cozy / Movie Night / Romcom)
-  - Rail B: **Classics (expanded)** (keeps your existing classics picks, but returns more)
-- Production currently has **23 modes** (v8): Premium Picks, Start Here, Premium Action, Premium Comedy, Cozy/Comfort, Dark/Serious, Hidden Gems, Classics, Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai, **Sports**, **Sci-Fi**, **Horror & Supernatural**, **Mecha**, **Mystery/Detective**, **Music/Performance**, **Historical**, **School/Coming-of-Age**, **Shoujo/Josei**.
-- **50 curated rails** total (27 original + 23 new: sports, sci-fi, horror/supernatural, mecha, mystery, music, historical, school, shoujo/josei anime+manga, seinen, shoujo, josei).
+- Your prompt is routed into **up to 2 curated rails**:
+  - Rail A: the best-fit vibe set for your request
+  - Rail B: an expanded classics set (when available)
+- The server selects from **23 configured modes** (v8), including:
+  - Mecha, Mystery/Detective, Music & Performance, Historical, School/Coming-of-Age, Shoujo/Josei, plus core modes.
+- The concierge now shows curated copy (for example, "The Cut", "Soft Evenings", "Dark, Not Empty") and suppresses raw internal taxonomy names.
+- Roughly **50 curated rails** across anime/manga are active after dedupe/quality pruning.
 - Negative genre filtering supported: "action but no romance", "fantasy without harem". Excluded genres now also suppress conflicting modes in routing (not just item filtering).
-- 30 abbreviations in the parser (up from 10): OP, DB/DBZ/DBS, SAO, NGE/Eva, LOTGH, etc.
-- **Full German language support**: vibe adjective inflection handling, German intent keywords, German synonyms on all modes.
+- 30+ abbreviations in the parser (up from 10): OP, DB/DBZ/DBS, SAO, NGE/Eva, LOTGH, etc.
+- **German-first support**: inflection handling, intent keywords, and curated EN/DE recommendation copy.
 - The modes are configurable in the database (`public.concierge_config.config.modes`) so we can tune them without redeploying the app.
 
 ```mermaid
@@ -439,6 +443,7 @@ These items were identified during the production-readiness review but require m
 
 ## 18) Change Log (append-only)
 
+- 2026-02-14: **Concierge and Clubs UX polish documented and completed**: Added "From your library" import action, curated concierge labels and 1–2 line curator notes, status clarifications in import flow, club member status/progress rendering on activity screens, and docs alignment for changed Concierge behavior.
 - 2026-02-09: **Production-readiness session**: Added on-device AI (Apple Foundation Models) for mode routing, disambiguation, synopsis condensing, and smart search. Three new user-facing features: Smart Descriptions (2-sentence hooks), Smart Search (natural language collection queries), and What to Watch/Read Next (personalized "Next Up" on detail pages). Offline detection with banner. App lifecycle handling (background/foreground). Security hardening: bulk import auth, storage restrictions (images only, 5MB), prompt injection protection, DB hardening, debug logging removed. Performance: image mirroring lock fix (58% skip → ~0%), automatic network retries, gentler mirror batches. All edge functions redeployed. Added sections 3.2–3.5, 15–17.
 - 2026-02-09: **Plain-English doc refresh**: Updated sections 2–4.2 to cover Clubs (private groups with shared watchlists, polls, privacy controls), import reconciliation (Add/Update/Skip detection with undo), Concierge inline redesign (no more full-screen takeovers), German language support, 23 recommendation modes (6 new), and quality gate automation. Added new section 14 for quality gates.
 - 2026-02-09: **Clubs feature launched**: Private groups (2-20 members) with curated rails, polls, and privacy levels. New page in the app (6th swipe page). Create/join clubs via invite codes. Import reconciliation detects existing collection entries and proposes Add/Update/Skip actions instead of blind imports. Quality gate scripts added for CI. Club telemetry with 90-day retention. Haptics and empty states polished across all new views.
