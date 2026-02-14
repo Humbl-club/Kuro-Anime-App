@@ -550,11 +550,22 @@ private struct ClubMemberStatusList: View {
         self.statusByUserId = statusMap
     }
 
-    private func memberLabel(_ userId: String) -> String {
+    private func memberLabel(_ userId: String) -> String? {
         if let currentUserId, userId == currentUserId { return "You" }
         if let displayName = displayNameById[userId] { return displayName }
-        if let idx = memberIndexById[userId] { return "Member \(idx)" }
-        return "Member \(String(userId.suffix(4)))"
+        if let role = roleById[userId], role.lowercased() != "member" {
+            return role.capitalized
+        }
+        return nil
+    }
+
+    private func memberInitial(_ label: String?, userId: String) -> String {
+        if let label, !label.isEmpty, let first = label.first {
+            return String(first).uppercased()
+        }
+        let compact = userId.replacingOccurrences(of: "-", with: "")
+        let suffix = compact.suffix(2).uppercased()
+        return suffix.isEmpty ? "?" : suffix
     }
 
     /// Whether the member updated their list entry within the last 7 days.
@@ -622,7 +633,7 @@ private struct ClubMemberStatusList: View {
                     HStack(spacing: 8) {
                         // Editorial avatar: initial letter in a rounded rect
                         let label = memberLabel(ms.user_id)
-                        let initial = String(label.prefix(1)).uppercased()
+                        let initial = memberInitial(label, userId: ms.user_id)
 
                         Text(initial)
                             .font(.kuroMicro(weight: .semibold))
@@ -635,9 +646,11 @@ private struct ClubMemberStatusList: View {
 
                         VStack(alignment: .leading, spacing: 1) {
                             HStack(spacing: 6) {
-                                Text(label)
-                                    .font(.kuroCaption(weight: .medium))
-                                    .foregroundColor(.black.opacity(0.70))
+                                if let label {
+                                    Text(label)
+                                        .font(.kuroCaption(weight: .medium))
+                                        .foregroundColor(.black.opacity(0.70))
+                                }
 
                                 if let role = roleById[ms.user_id]?.uppercased(), role != "MEMBER" {
                                     Text(role)
