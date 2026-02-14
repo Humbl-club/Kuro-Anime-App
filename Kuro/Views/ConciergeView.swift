@@ -81,7 +81,16 @@ struct ConciergeView: View {
     }
 
     private var conciergeEditorialV1Enabled: Bool {
-        FeatureFlags.shared.isConciergeEditorialV1Enabled
+        #if DEBUG
+        // Default to the editorial shell in Debug so we don't end up "testing" the legacy UI by accident.
+        // You can still force-disable with `--ff-off=concierge_editorial_v1`.
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("--ff-off=concierge_editorial_v1") { return false }
+        if args.contains("--ff-on=concierge_editorial_v1") { return true }
+        return true
+        #else
+        return FeatureFlags.shared.isConciergeEditorialV1Enabled
+        #endif
     }
 
     private var isGermanLocale: Bool {

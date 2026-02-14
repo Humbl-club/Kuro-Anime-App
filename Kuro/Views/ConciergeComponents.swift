@@ -351,6 +351,59 @@ private enum ConciergeCuratedCopy {
         if language.hasPrefix("de") { return de[modeId] }
         return en[modeId]
     }
+
+    static func titleAndSubtitle(for modeId: String?, fallbackTitle: String?) -> (String, String?)? {
+        if let direct = titleAndSubtitle(for: modeId) { return direct }
+
+        let raw = (fallbackTitle ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return nil }
+        let l = raw.lowercased()
+
+        // Heuristic mapping so older server payloads don't surface internal "Premium / Cozy" labels.
+        if l.contains("premium comedy") || l.contains("grown") {
+            return titleAndSubtitle(for: "premium_comedy_grownup")
+        }
+        if l.contains("cozy") || l.contains("comfort") {
+            return titleAndSubtitle(for: "cozy_comfort")
+        }
+        if l.contains("premium picks") || l.contains("picks") {
+            return titleAndSubtitle(for: "premium_picks")
+        }
+        if l.contains("hidden") && l.contains("gem") {
+            return titleAndSubtitle(for: "hidden_gems")
+        }
+        if l.contains("classic") || l.contains("canon") {
+            return titleAndSubtitle(for: "classics_expanded")
+        }
+        if l.contains("dark") || l.contains("serious") {
+            return titleAndSubtitle(for: "dark_serious")
+        }
+        if l.contains("action") {
+            return titleAndSubtitle(for: "premium_action")
+        }
+        if l.contains("movie") {
+            return titleAndSubtitle(for: "movie_night")
+        }
+        if l.contains("one season") || l.contains("short") {
+            return titleAndSubtitle(for: "short_one_season")
+        }
+
+        // As a final fallback, soften the raw label so it doesn't read like a mode/debug tag.
+        let softened = raw
+            .replacingOccurrences(of: "premium", with: "", options: [.caseInsensitive])
+            .replacingOccurrences(of: "cozy", with: "", options: [.caseInsensitive])
+            .replacingOccurrences(of: "comfort", with: "", options: [.caseInsensitive])
+            .replacingOccurrences(of: "grown-up", with: "", options: [.caseInsensitive])
+            .replacingOccurrences(of: "grownup", with: "", options: [.caseInsensitive])
+            .replacingOccurrences(of: "/", with: " · ")
+            .replacingOccurrences(of: "(", with: "")
+            .replacingOccurrences(of: ")", with: "")
+            .replacingOccurrences(of: "  ", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if softened.isEmpty { return nil }
+        return (softened, nil)
+    }
 }
 
 // MARK: - Action Bar
@@ -995,7 +1048,7 @@ struct ConciergeBubble: View {
 	                            ForEach(sets, id: \.id) { set in
 	                                let items = (set.items ?? [])
 	                                if !items.isEmpty {
-	                                    let curated = ConciergeCuratedCopy.titleAndSubtitle(for: set.modeId)
+	                                    let curated = ConciergeCuratedCopy.titleAndSubtitle(for: set.modeId, fallbackTitle: set.title)
 	                                    let title = (set.displayTitle ?? curated?.0 ?? set.title).trimmingCharacters(in: .whitespacesAndNewlines)
 	                                    RecommendationRail(
 	                                        title: title.isEmpty ? "Selections" : title,
