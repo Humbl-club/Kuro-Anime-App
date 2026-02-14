@@ -7,6 +7,7 @@ struct ConciergeIntentDeck: View {
     let onPaste: () -> Void
     let onStartCurate: () -> Void
     let onInsertExample: (_ text: String) -> Void
+    let onImportAniList: () -> Void
 
     @State private var showExamples = false
 
@@ -66,6 +67,35 @@ struct ConciergeIntentDeck: View {
                 )
                 .presentationDetents([.medium])
             }
+
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                onImportAniList()
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "person.text.rectangle")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.black.opacity(0.28))
+                    Text(isGermanLocale ? "Aus AniList importieren" : "Import from AniList")
+                        .font(.kuroCaption(weight: .medium))
+                        .foregroundStyle(.black.opacity(0.62))
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.black.opacity(0.22))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
+                        .fill(Color.white.opacity(0.92))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
+                                .stroke(Color.black.opacity(0.08), lineWidth: 0.7)
+                        )
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -245,4 +275,3 @@ private struct ConciergeExamplesSheet: View {
         .buttonStyle(.plain)
     }
 }
-

@@ -3320,6 +3320,47 @@ class SupabaseService {
         }
     }
 
+    // MARK: - Concierge: Import from AniList (public lists)
+
+    struct ConciergeAniListImportResponse: Decodable, Sendable {
+        let success: Bool
+        let source: String?
+        let username: String?
+        let itemCount: Int?
+        let truncated: Bool?
+        let text: String?
+        let error: String?
+    }
+
+    func conciergeImportAniList(
+        username: String,
+        types: [String] = ["ANIME", "MANGA"],
+        statuses: [String] = ["CURRENT", "COMPLETED", "PLANNING"],
+        maxItems: Int = 200
+    ) async throws -> ConciergeAniListImportResponse {
+        let u = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !u.isEmpty else { throw NSError(domain: "Concierge", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing AniList username"]) }
+        let cap = max(25, min(400, maxItems))
+
+        do {
+            let payload: [String: Any] = [
+                "username": u,
+                "types": types,
+                "statuses": statuses,
+                "maxItems": cap,
+            ]
+            let client = self.client
+            let task = Task<ConciergeAniListImportResponse, Error>(priority: .userInitiated) {
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                let options = FunctionInvokeOptions(method: .post, body: data)
+                return try await client.functions.invoke("concierge-import-anilist", options: options)
+            }
+            return try await task.value
+        } catch {
+            throw translateConciergeFunctionError(error)
+        }
+    }
+
 
 	    struct ConciergeRecommendResponse: Decodable, Sendable {
 	        let success: Bool
