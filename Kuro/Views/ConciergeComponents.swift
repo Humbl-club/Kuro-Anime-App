@@ -547,6 +547,19 @@ struct ConciergeIntroCard: View {
     }
 }
 
+private struct ConciergeCuratorNote: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 13, weight: .regular, design: .serif))
+            .italic()
+            .foregroundStyle(.black.opacity(0.64))
+            .lineSpacing(2.5)
+            .padding(.horizontal, 1)
+    }
+}
+
 // MARK: - Starter Actions
 
 struct ConciergeStarterActions: View {
@@ -561,7 +574,7 @@ struct ConciergeStarterActions: View {
         VStack(alignment: .leading, spacing: 10) {
             KuroGlassPill(
                 title: isGerman ? "Aus deiner Bibliothek" : "From your library",
-                subtitle: isGerman ? "Direkter Kuro-Import" : "Direct Kuro import",
+                subtitle: isGerman ? "Sofort in den Importfluss" : "Send your list in one tap",
                 systemImage: "doc.text.image",
                 action: onImportLibrary
             )
@@ -570,20 +583,11 @@ struct ConciergeStarterActions: View {
 
             KuroGlassPill(
                 title: isGerman ? "Aus der Zwischenablage" : "From clipboard",
-                subtitle: isGerman ? "Manuelle Eingabe" : "Manual list",
+                subtitle: isGerman ? "Für manuelle Listen" : "For pasted lists",
                 systemImage: "doc.on.clipboard",
                 action: onPaste
             )
             .offset(y: appeared ? 0 : 6)
-            .opacity(appeared ? 1 : 0)
-
-            KuroGlassPill(
-                title: isGerman ? "Kurzes Beispiel" : "Sample format",
-                subtitle: isGerman ? "Import-Vorlage in einem Schritt" : "One-shot format example",
-                systemImage: "text.append",
-                action: onExampleImport
-            )
-            .offset(y: appeared ? 0 : 10)
             .opacity(appeared ? 1 : 0)
 
             KuroGlassPill(
@@ -592,6 +596,24 @@ struct ConciergeStarterActions: View {
                 systemImage: "sparkles",
                 action: onExampleVibe
             )
+            .offset(y: appeared ? 0 : 10)
+            .opacity(appeared ? 1 : 0)
+
+            Button {
+                onExampleImport()
+            } label: {
+                HStack(spacing: 8) {
+                    Text(isGerman ? "Beispiele zeigen" : "Show examples")
+                        .font(.kuroCaption(weight: .medium))
+                        .foregroundStyle(.black.opacity(0.62))
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.black.opacity(0.32))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
             .offset(y: appeared ? 0 : 14)
             .opacity(appeared ? 1 : 0)
         }
@@ -644,14 +666,14 @@ struct ConciergeClarifyCard: View {
 
                 KuroGlassPill(
                     title: isGerman ? "Aus Zwischenablage einfügen" : "From clipboard",
-                    subtitle: isGerman ? "Titel, Fortschritt, Bewertungen" : "Titles, progress, ratings",
+                    subtitle: isGerman ? "Titel und Fortschritt einfügen" : "Drop titles or progress",
                     systemImage: "doc.on.clipboard",
                     action: onPaste
                 )
 
                 KuroGlassPill(
-                    title: isGerman ? "Beispiel ausprobieren" : "Try an example",
-                    subtitle: isGerman ? "Attack on Titan (fertig), JJK Folge 12..." : "Attack on Titan (completed), JJK ep 12...",
+                    title: isGerman ? "Kurzer Vorschlag" : "Concise prompt",
+                    subtitle: isGerman ? "Ich habe die Stimmung im Blick." : "I can tune this in seconds.",
                     systemImage: "text.append",
                     action: onExampleImport
                 )
@@ -690,7 +712,7 @@ struct ConciergeClarifyCard: View {
 
                 KuroGlassPill(
                     title: isGerman ? "Stimmung beschreiben" : "Describe a mood",
-                    subtitle: isGerman ? "Lustig, sanft, düster, kurz..." : "Funny, soft, dark, short...",
+                    subtitle: isGerman ? "Lustig, ruhig, düster..." : "Funny, quiet, dark...",
                     systemImage: "text.bubble",
                     action: onExampleVibe
                 )
@@ -983,16 +1005,11 @@ struct ConciergeBubble: View {
 	            if message.role == .assistant {
 	                VStack(alignment: .leading, spacing: 10) {
 	                    let isRecommendationMessage = (message.recommendationSets?.isEmpty == false) || (message.recommendations?.isEmpty == false)
-	                    if !message.text.isEmpty {
-	                        if isRecommendationMessage {
-	                            Text(message.text)
-	                                .font(.system(size: 13, weight: .light, design: .serif))
-	                                .italic()
-	                                .foregroundStyle(.black.opacity(0.64))
-	                                .lineSpacing(3)
-	                                .padding(.horizontal, 2)
-	                                .frame(maxWidth: 520, alignment: .leading)
-	                        } else {
+                    if !message.text.isEmpty {
+                        if isRecommendationMessage {
+                            ConciergeCuratorNote(text: message.text)
+                                .frame(maxWidth: 520, alignment: .leading)
+                        } else {
 	                            glassBubble(cornerRadius: KuroRadius.md) {
 	                                Text(message.text)
 	                                    .font(.kuroBody())
@@ -1064,8 +1081,9 @@ struct ConciergeBubble: View {
                     }
 
 	                    if let sets = message.recommendationSets, !sets.isEmpty {
+                        let visibleSets = sets.prefix(2)
 	                        VStack(alignment: .leading, spacing: 18) {
-	                            ForEach(sets, id: \.id) { set in
+	                            ForEach(Array(visibleSets), id: \.id) { set in
 	                                let items = (set.items ?? [])
 	                                if !items.isEmpty {
 	                                    let curated = ConciergeCuratedCopy.titleAndSubtitle(for: set.modeId, fallbackTitle: set.title)
