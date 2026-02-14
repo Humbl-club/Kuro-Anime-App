@@ -110,15 +110,15 @@ struct ConciergeView: View {
 
     private var editorialSubtitle: String {
         isGermanLocale
-            ? "Füge deine Anime- und Manga-Liste ein — oder sag mir, wonach dir ist."
-            : "Paste your anime & manga list — or tell me what you're in the mood for."
+            ? "Lass die Kuro-Bibliothek sprechen — oder sag mir, wonach dir ist."
+            : "Use your Kuro list instantly — or tell me what you're in the mood for."
     }
 
     private var editorialFooterText: String {
         if isWorking {
             return isGermanLocale ? "Einen Moment." : "One moment."
         }
-        return isGermanLocale ? "Importiere eine Liste — oder lass mich zwei Rails kuratieren." : "Import a list — or let me curate two rails."
+        return isGermanLocale ? "Importiere direkt aus deiner Bibliothek — oder lass mich zwei Rails kuratieren." : "Import from your list — or let me curate two rails."
     }
 
     init(assistantEnabled: Bool = true) {
@@ -178,6 +178,9 @@ struct ConciergeView: View {
         ) {
             ConciergeIntentDeck(
                 onPaste: { pasteFromClipboard() },
+                onImportLibrary: {
+                    Task { await importFromLibrary() }
+                },
                 onStartCurate: {
                     focusRequest = true
                     KuroAccessibility.impactHaptic(.light)
@@ -567,6 +570,9 @@ struct ConciergeView: View {
 
                         ConciergeStarterActions(
                             onPaste: { pasteFromClipboard() },
+                            onImportLibrary: {
+                                Task { await importFromLibrary() }
+                            },
                             onExampleImport: { seedExampleImport() },
                             onExampleVibe: { seedExampleVibe() }
                         )
@@ -588,6 +594,9 @@ struct ConciergeView: View {
                                 Task { await quickSaveRecommendation(rec) }
                             },
                             onClarifyPaste: { pasteFromClipboard() },
+                            onClarifyImportLibrary: {
+                                Task { await importFromLibrary() }
+                            },
                             onClarifyExampleImport: { seedExampleImport() },
                             onClarifyExampleVibe: { seedExampleVibe() },
                             onClarifyAmbiguity: clarifyV2Enabled ? { kind, value, sourceText in
@@ -1522,6 +1531,37 @@ struct ConciergeView: View {
                 }
             }
         }
+    }
+
+    private func importFromLibrary() async {
+        guard !isWorking else { return }
+        errorText = nil
+
+        let result = await supabaseService.conciergeLibraryExportText(
+            includeStatus: Set(ListStatus.allCases),
+            includeMediaTypes: ["anime", "manga"],
+            maxItems: 400
+        )
+
+        guard let result else {
+            showToast(.init(
+                kind: .info,
+                title: isGermanLocale ? "Bibliothek leer" : "Library is empty",
+                subtitle: isGermanLocale ? "Bitte füge zuerst Titel zu deiner Bibliothek hinzu." : "Add titles to your library first.",
+                actionTitle: nil,
+                onAction: nil
+            ))
+            return
+        }
+
+        await sendExternalImport(
+            sourceLabel: isGermanLocale ? "Kuro-Liste" : "Kuro library",
+            displayText: isGermanLocale
+                ? "Kuro-Liste importieren (\(result.exportedItemCount) Titel)"
+                : "Importing from Kuro library (\(result.exportedItemCount) items)",
+            sourceText: result.text,
+            truncated: result.truncated
+        )
     }
 
     private func pasteFromClipboard() {

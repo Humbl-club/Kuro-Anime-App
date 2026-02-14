@@ -61,8 +61,8 @@ struct KuroConciergeMascot: View {
                     }
 
                     Text(isGerman
-                        ? "Füge deine Anime- und Manga-Liste ein — oder sag mir, wonach dir ist.\nStandardmäßig sauber gefiltert."
-                        : "Paste your anime & manga list — or tell me what you're in the mood for.\nCleanly filtered by default."
+                        ? "Nutze deine Kuro-Bibliothek oder schildere kurz die Stimmung.\nSauber gefiltert."
+                        : "Use your Kuro library directly, or describe the mood.\nCleanly filtered."
                     )
                         .font(.kuroCaption())
                         .foregroundStyle(.secondary.opacity(0.75))
@@ -530,8 +530,8 @@ struct ConciergeIntroCard: View {
                     .frame(height: 0.5)
 
                 Text(isGerman
-                    ? "Füge Titel ein — oder beschreibe kurz die Stimmung.\nStandardmäßig sauber gefiltert."
-                    : "Paste titles to import, or describe the mood.\nCleanly filtered by default."
+                    ? "Importe deine Liste — oder beschreibe kurz die Stimmung.\nSauber gefiltert."
+                    : "Import your library, or describe the mood.\nCleanly filtered."
                 )
                     .font(.kuroBody(weight: .light))
                     .foregroundColor(.black.opacity(0.62))
@@ -541,8 +541,8 @@ struct ConciergeIntroCard: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(isGerman
-            ? "Concierge. Titel einfügen oder Stimmung beschreiben."
-            : "Concierge. Paste titles to import, or describe a mood."
+            ? "Concierge. Bibliothek importieren oder Stimmung beschreiben."
+            : "Concierge. Import from your list or describe a mood."
         )
     }
 }
@@ -551,6 +551,7 @@ struct ConciergeIntroCard: View {
 
 struct ConciergeStarterActions: View {
     let onPaste: () -> Void
+    let onImportLibrary: () -> Void
     let onExampleImport: () -> Void
     let onExampleVibe: () -> Void
 
@@ -559,8 +560,17 @@ struct ConciergeStarterActions: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             KuroGlassPill(
-                title: "Paste from clipboard",
-                subtitle: "Fast import",
+                title: isGerman ? "Aus deiner Bibliothek" : "From your library",
+                subtitle: isGerman ? "Direkter Kuro-Import" : "Direct Kuro import",
+                systemImage: "doc.text.image",
+                action: onImportLibrary
+            )
+            .offset(y: appeared ? 0 : 3)
+            .opacity(appeared ? 1 : 0)
+
+            KuroGlassPill(
+                title: isGerman ? "Aus der Zwischenablage" : "From clipboard",
+                subtitle: isGerman ? "Manuelle Eingabe" : "Manual list",
                 systemImage: "doc.on.clipboard",
                 action: onPaste
             )
@@ -568,8 +578,8 @@ struct ConciergeStarterActions: View {
             .opacity(appeared ? 1 : 0)
 
             KuroGlassPill(
-                title: "Try an import example",
-                subtitle: "Shows the format",
+                title: isGerman ? "Kurzes Beispiel" : "Sample format",
+                subtitle: isGerman ? "Import-Vorlage in einem Schritt" : "One-shot format example",
                 systemImage: "text.append",
                 action: onExampleImport
             )
@@ -605,6 +615,7 @@ private var isGerman: Bool {
 
 struct ConciergeClarifyCard: View {
     let onPaste: () -> Void
+    let onImportLibrary: () -> Void
     let onExampleImport: () -> Void
     let onExampleVibe: () -> Void
 
@@ -625,7 +636,14 @@ struct ConciergeClarifyCard: View {
                 }
 
                 KuroGlassPill(
-                    title: isGerman ? "Aus Zwischenablage einfugen" : "Paste from clipboard",
+                    title: isGerman ? "Aus deiner Bibliothek" : "From your library",
+                    subtitle: isGerman ? "Nutze deine Kuro-Liste direkt" : "Use your Kuro list directly",
+                    systemImage: "doc.text.image",
+                    action: onImportLibrary
+                )
+
+                KuroGlassPill(
+                    title: isGerman ? "Aus Zwischenablage einfügen" : "From clipboard",
                     subtitle: isGerman ? "Titel, Fortschritt, Bewertungen" : "Titles, progress, ratings",
                     systemImage: "doc.on.clipboard",
                     action: onPaste
@@ -934,6 +952,7 @@ struct ConciergeBubble: View {
     let onOpenRecommendation: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
     let onQuickSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
     let onClarifyPaste: () -> Void
+    let onClarifyImportLibrary: () -> Void
     let onClarifyExampleImport: () -> Void
     let onClarifyExampleVibe: () -> Void
     var onClarifyAmbiguity: ((_ kind: String, _ value: String, _ sourceText: String) -> Void)? = nil
@@ -988,6 +1007,7 @@ struct ConciergeBubble: View {
                     if message.showClarifyActions {
                         ConciergeClarifyCard(
                             onPaste: onClarifyPaste,
+                            onImportLibrary: onClarifyImportLibrary,
                             onExampleImport: onClarifyExampleImport,
                             onExampleVibe: onClarifyExampleVibe
                         )

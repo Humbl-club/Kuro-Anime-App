@@ -3613,6 +3613,165 @@ class SupabaseService {
         userIdsByTypeAndStatus = byTypeStatus
     }
 
+    // MARK: - Concierge: Library export helper
+
+    struct ConciergeLibraryExportResult: Sendable {
+        let text: String
+        let exportedItemCount: Int
+        let truncated: Bool
+    }
+
+    /// Build plain-text concierge payload from the user's current library list.
+    /// Useful for one-tap import from within the app.
+    func conciergeLibraryExportText(
+        includeStatus: Set<ListStatus>? = nil,
+        includeMediaTypes: Set<String> = ["anime", "manga"],
+        maxItems: Int = 400
+    ) async -> ConciergeLibraryExportResult? {
+        if userLists.isEmpty {
+            await fetchUserLists()
+        }
+
+        guard !userLists.isEmpty else { return nil }
+
+        let allowedStatuses = includeStatus.map(Set.init) ?? Set(ListStatus.allCases)
+        let allowedTypes = Set(includeMediaTypes.map { $0.lowercased() })
+
+        let filtered = userLists.filter {
+            allowedTypes.contains($0.mediaType.lowercased()) && allowedStatuses.contains($0.status)
+        }
+
+        guard !filtered.isEmpty else { return nil }
+
+        let capped = Array(filtered.prefix(max(0, maxItems)))
+        guard !capped.isEmpty else { return nil }
+
+        // 1) Resolve titles for this snapshot.
+        let lookup = await resolveLibraryTitles(for: capped)
+
+        // 2) Keep list in server order (updatedAt desc from fetchUserLists).
+        let lines: [String] = capped.compactMap { entry in
+            guard let title = lookup[entry.mediaId] else { return nil }
+            let suffix = conciergeLibrarySuffix(for: entry)
+            return suffix.isEmpty ? title : "\(title) \(suffix)"
+        }
+
+        guard !lines.isEmpty else { return nil }
+        return ConciergeLibraryExportResult(
+            text: lines.joined(separator: "\n"),
+            exportedItemCount: lines.count,
+            truncated: filtered.count > capped.count
+        )
+    }
+
+    private func conciergeLibrarySuffix(for entry: UserList) -> String {
+        let isAnime = entry.mediaType.lowercased() == "anime"
+        let progress = max(0, entry.progress)
+        switch entry.status {
+        case .completed:
+            return "(completed)"
+        case .dropped:
+            return "(dropped)"
+        case .paused:
+            return "(paused)"
+        case .planning:
+            return "(planning)"
+        case .repeating:
+            return isAnime ? "(rewatching)" : "(re-reading)"
+        case .current:
+            if progress > 0 {
+                return isAnime ? "(watching ep \(progress))" : "(reading ch \(progress))"
+            }
+            return isAnime ? "(watching)" : "(reading)"
+        }
+    }
+
+    private func resolveLibraryTitles(for items: [UserList]) async -> [Int: String] {
+        let animeIds = Set(items.filter { $0.mediaType.lowercased() == "anime" }.map(\.mediaId))
+        let mangaIds = Set(items.filter { $0.mediaType.lowercased() == "manga" }.map(\.mediaId))
+
+        var titlesById: [Int: String] = [:]
+
+        for (table, ids) in [("anime", animeIds), ("manga", mangaIds)] as [(String, Set<Int>)] {
+            let idList = Array(ids).sorted()
+            guard !idList.isEmpty else { continue }
+
+            struct MediaTitleRow: Decodable {
+                let id: Int
+                let titleEnglish: String?
+                let titleRomaji: String?
+                let titleNative: String?
+
+                enum CodingKeys: String, CodingKey {
+                    case id
+                    case titleEnglish = "title_english"
+                    case titleRomaji = "title_romaji"
+                    case titleNative = "title_native"
+                }
+            }
+
+            for start in stride(from: 0, through: max(0, idList.count), by: 200) {
+                let end = min(start + 200, idList.count)
+                guard start < end else { continue }
+                let chunk = Array(idList[start..<end])
+
+                do {
+                    let rows: [MediaTitleRow] = try await client
+                        .from(table)
+                        .select("id,title_english,title_romaji,title_native")
+                        .in("id", values: chunk)
+                        .execute()
+                        .value
+
+                    for row in rows {
+                        let title = row.titleEnglish?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            ?? row.titleRomaji?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            ?? row.titleNative?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            ?? ""
+                        if !title.isEmpty {
+                            titlesById[row.id] = title
+                        }
+                    }
+                } catch {
+                    #if DEBUG
+                    print("[SupabaseService] Failed to resolve titles for \(table): \(error)")
+                    #endif
+                }
+
+            }
+        }
+
+        // Use local detail cache as a fallback if table lookups failed.
+        var localAnimeLookup: [Int: String] = [:]
+        for item in animeItems {
+            let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !title.isEmpty && title.lowercased() != "unknown" {
+                localAnimeLookup[item.id] = title
+            }
+        }
+
+        var localMangaLookup: [Int: String] = [:]
+        for item in mangaItems {
+            let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !title.isEmpty && title.lowercased() != "unknown" {
+                localMangaLookup[item.id] = title
+            }
+        }
+
+        for item in items {
+            if titlesById[item.mediaId] == nil {
+                let fallback = item.mediaType.lowercased() == "anime"
+                    ? localAnimeLookup[item.mediaId]
+                    : localMangaLookup[item.mediaId]
+                if let fallback, !fallback.isEmpty {
+                    titlesById[item.mediaId] = fallback
+                }
+            }
+        }
+
+        return titlesById
+    }
+
     func userMediaIds(mediaType: String, status: ListStatus? = nil) -> Set<Int> {
         let t = mediaType.lowercased()
         if let status {

@@ -537,7 +537,7 @@ struct ConciergeInputField: View {
     // MARK: - Subviews
     
     private var placeholderView: some View {
-        Text(isGermanLocale ? "Titel einfügen oder Stimmung beschreiben..." : "Paste titles, or describe a mood...")
+        Text(isGermanLocale ? "Liste direkt importieren oder Stimmung beschreiben..." : "Import a list, or describe a mood...")
             .font(.system(size: isInputFocused ? 15 : 13, weight: .light, design: .default))
             .foregroundStyle(Color.black.opacity(0.30))
             .padding(.top, 2)

@@ -5,6 +5,7 @@ import SwiftUI
 
 struct ConciergeIntentDeck: View {
     let onPaste: () -> Void
+    let onImportLibrary: () -> Void
     let onStartCurate: () -> Void
     let onInsertExample: (_ text: String) -> Void
     let onImportAniList: () -> Void
@@ -22,8 +23,16 @@ struct ConciergeIntentDeck: View {
                 tile(
                     systemImage: "doc.on.clipboard",
                     eyebrow: isGermanLocale ? "IMPORT" : "IMPORT",
-                    title: isGermanLocale ? "Bibliothek einfügen" : "Paste your library",
-                    subtitle: isGermanLocale ? "Anime & Manga in einem Rutsch" : "Anime & manga, in one go",
+                    title: isGermanLocale ? "Aus deiner Bibliothek" : "From your library",
+                    subtitle: isGermanLocale ? "Nutze Kuro-Listen direkt" : "Use your current Kuro list",
+                    action: onImportLibrary
+                )
+
+                tile(
+                    systemImage: "doc.on.doc",
+                    eyebrow: isGermanLocale ? "ÜBERNAHME" : "PASTE",
+                    title: isGermanLocale ? "Aus Zwischenablage einfügen" : "From clipboard",
+                    subtitle: isGermanLocale ? "Für eine manuelle Liste" : "For a manual list",
                     action: onPaste
                 )
 
@@ -31,7 +40,7 @@ struct ConciergeIntentDeck: View {
                     systemImage: "sparkles",
                     eyebrow: isGermanLocale ? "KURATIEREN" : "CURATE",
                     title: isGermanLocale ? "Kuratiere für mich" : "Curate for me",
-                    subtitle: isGermanLocale ? "Zwei Rails, treffsicher" : "Two rails, high-confidence",
+                    subtitle: isGermanLocale ? "Zwei Rails, sofort" : "Two rails, right away",
                     action: onStartCurate
                 )
             }
