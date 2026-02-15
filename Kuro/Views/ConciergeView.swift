@@ -147,16 +147,9 @@ struct ConciergeView: View {
     }
 
     private var conciergeEditorialV1Enabled: Bool {
-        #if DEBUG
-        // Default to the editorial shell in Debug so we don't end up "testing" the legacy UI by accident.
-        // You can still force-disable with `--ff-off=concierge_editorial_v1`.
-        let args = ProcessInfo.processInfo.arguments
-        if args.contains("--ff-off=concierge_editorial_v1") { return false }
-        if args.contains("--ff-on=concierge_editorial_v1") { return true }
-        return true
-        #else
-        return FeatureFlags.shared.isConciergeEditorialV1Enabled
-        #endif
+        // Concierge has fully migrated to the editorial shell.
+        // Keep this as a fixed on-switch to avoid regressions to legacy UI in prod.
+        true
     }
 
     private var isGermanLocale: Bool {
@@ -184,11 +177,7 @@ struct ConciergeView: View {
         ZStack {
             Color.kuroBackground.ignoresSafeArea()
 
-            if conciergeEditorialV1Enabled {
-                editorialChatView
-            } else {
-                chatView
-            }
+            editorialChatView
 
             // Toast overlay
             if let toast {
@@ -261,7 +250,7 @@ struct ConciergeView: View {
                 .zIndex(200)
             }
         }
-        .preferredColorScheme(conciergeEditorialV1Enabled ? .light : nil)
+        .preferredColorScheme(.light)
     }
 
     private var editorialChatView: some View {

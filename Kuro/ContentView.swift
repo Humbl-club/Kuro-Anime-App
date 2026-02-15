@@ -126,14 +126,8 @@ struct KuroMainView: View {
     private let swipeEdgeMargin: CGFloat = 24
 
     private var conciergeEditorialV1Enabled: Bool {
-        #if DEBUG
-        let args = ProcessInfo.processInfo.arguments
-        if args.contains("--ff-off=concierge_editorial_v1") { return false }
-        if args.contains("--ff-on=concierge_editorial_v1") { return true }
-        return true
-        #else
-        return FeatureFlags.shared.isConciergeEditorialV1Enabled
-        #endif
+        // Concierge has fully migrated to the editorial shell.
+        true
     }
 
     private var hidesHeaderForConcierge: Bool {
