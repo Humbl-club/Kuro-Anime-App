@@ -44,6 +44,26 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+fastlane/README.md
 
 # API keys — never commit
 *.p8
+
+# Local build/export artifacts
+/.codex-artifacts/
+/Kuro.ipa
+/Kuro.app.dSYM.zip
+
+# Local concierge prototype playground
+/concierge_prototypes/
+
+# Local icon/design exploration outputs
+/create_*.py
+/final_icon.py
+/refine_winners.py
+/icon_*.png
+/icon_*.html
+/kuro_*.png
+/kuro_*.html
+/sumi_*.png
+/sumi_*.html

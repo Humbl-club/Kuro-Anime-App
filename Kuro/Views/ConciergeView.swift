@@ -165,7 +165,7 @@ struct ConciergeView: View {
     }
 
     private var editorialSubtitle: String {
-        "Use your Kuro list instantly — or tell me what you're in the mood for."
+        "Import from Kuro instantly — or tell me what you're in the mood for."
     }
 
     private var editorialFooterText: String {
