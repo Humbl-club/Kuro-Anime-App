@@ -320,7 +320,7 @@ struct BrowseView: View {
                 updateAnimeCursor(from: last)
             }
 
-            let urls = page0.prefix(32).compactMap { URL(string: $0.imageURL ?? "") }
+            let urls = page0.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
         } else {
             mangaCursorInt = nil
@@ -343,7 +343,7 @@ struct BrowseView: View {
                 updateMangaCursor(from: last)
             }
 
-            let urls = page0.prefix(32).compactMap { URL(string: $0.imageURL ?? "") }
+            let urls = page0.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
         }
     }
@@ -364,7 +364,7 @@ struct BrowseView: View {
                 updateAnimeCursor(from: last)
             }
 
-            let urls = page.prefix(32).compactMap { URL(string: $0.imageURL ?? "") }
+            let urls = page.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
         } else {
             let page = await fetchMangaPage(cursorInt: mangaCursorInt, cursorDate: mangaCursorDate, cursorId: mangaCursorId)
@@ -375,7 +375,7 @@ struct BrowseView: View {
                 updateMangaCursor(from: last)
             }
 
-            let urls = page.prefix(32).compactMap { URL(string: $0.imageURL ?? "") }
+            let urls = page.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
         }
     }

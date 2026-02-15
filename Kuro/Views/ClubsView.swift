@@ -9,69 +9,79 @@ struct ClubsView: View {
 
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
+    @State private var selectedClubId: String? = nil
     @State private var didInitialLoad = false
     @State private var isInitialLoading = false
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.kuroBackground.ignoresSafeArea()
+        ZStack {
+            Color.kuroBackground.ignoresSafeArea()
 
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: KuroDesignSpacing.lg) {
-                        if isInitialLoading {
-                            loadingState
-                                .padding(.top, KuroDesignSpacing.xl)
-                        } else if supabaseService.myClubs.isEmpty {
-                            emptyState
-                                .padding(.top, KuroDesignSpacing.xxl)
-                        } else {
-                            clubList
-                                .padding(.top, KuroDesignSpacing.md)
-                        }
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: KuroDesignSpacing.lg) {
+                    if isInitialLoading {
+                        loadingState
+                            .padding(.top, KuroDesignSpacing.xl)
+                    } else if supabaseService.myClubs.isEmpty {
+                        emptyState
+                            .padding(.top, KuroDesignSpacing.xxl)
+                    } else {
+                        clubList
+                            .padding(.top, KuroDesignSpacing.md)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, KuroDesignSpacing.xxl)
                 }
-                .refreshable {
-                    await supabaseService.fetchMyClubs()
-                }
-                // Keep final rows clear of home-indicator chrome.
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 24)
-                }
-
-                if let toast {
-                    VStack {
-                        Spacer()
-                        KuroToast(toast: toast)
-                            .padding(.horizontal, KuroDesignSpacing.md)
-                            .padding(.bottom, 92)
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .zIndex(100)
-                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, KuroDesignSpacing.xxl)
             }
-            .task {
-                guard !didInitialLoad else { return }
-                didInitialLoad = true
-                isInitialLoading = true
+            .refreshable {
                 await supabaseService.fetchMyClubs()
-                isInitialLoading = false
             }
-            .sheet(isPresented: $showCreateSheet) {
-                CreateClubSheet { response in
-                    showToast(.success, title: "Club created", subtitle: response.name)
-                }
-                .environment(supabaseService)
+            // Keep final rows clear of home-indicator chrome.
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 24)
             }
-            .sheet(isPresented: $showJoinSheet) {
-                JoinClubSheet { response in
-                    showToast(.success, title: "Joined club", subtitle: response.club_name)
+
+            if let toast {
+                VStack {
+                    Spacer()
+                    KuroToast(toast: toast)
+                        .padding(.horizontal, KuroDesignSpacing.md)
+                        .padding(.bottom, 92)
                 }
-                .environment(supabaseService)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(100)
+            }
+        }
+        .task {
+            guard !didInitialLoad else { return }
+            didInitialLoad = true
+            isInitialLoading = true
+            await supabaseService.fetchMyClubs()
+            isInitialLoading = false
+        }
+        .sheet(isPresented: $showCreateSheet) {
+            CreateClubSheet { response in
+                showToast(.success, title: "Club created", subtitle: response.name)
+            }
+            .environment(supabaseService)
+        }
+        .sheet(isPresented: $showJoinSheet) {
+            JoinClubSheet { response in
+                showToast(.success, title: "Joined club", subtitle: response.club_name)
+            }
+            .environment(supabaseService)
+        }
+        .sheet(isPresented: Binding(
+            get: { selectedClubId != nil },
+            set: { if !$0 { selectedClubId = nil } }
+        )) {
+            if let clubId = selectedClubId {
+                NavigationStack {
+                    ClubDetailView(clubId: clubId)
+                        .environment(supabaseService)
+                }
             }
         }
     }
@@ -208,16 +218,15 @@ struct ClubsView: View {
             // Club cards
             LazyVStack(spacing: KuroDesignSpacing.md) {
                 ForEach(supabaseService.myClubs) { club in
-                    NavigationLink(value: club.id) {
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        selectedClubId = club.id
+                    } label: {
                         ClubCardRow(club: club)
                     }
                     .buttonStyle(.plain)
                 }
             }
-        }
-        .navigationDestination(for: String.self) { clubId in
-            ClubDetailView(clubId: clubId)
-                .environment(supabaseService)
         }
     }
 

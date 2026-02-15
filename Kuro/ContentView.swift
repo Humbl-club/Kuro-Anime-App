@@ -91,7 +91,7 @@ struct KuroMainView: View {
     // Removed: let sections = ["DISCOVER", "COLLECTION", "SEARCH"]
 
     enum Section: Int, CaseIterable {
-        case concierge, discover, collection
+        case concierge, discover, browse, collection, clubs
 
         var title: String {
             switch self {
@@ -99,8 +99,12 @@ struct KuroMainView: View {
                 return "CONCIERGE"
             case .discover:
                 return "DISCOVER"
+            case .browse:
+                return "BROWSE"
             case .collection:
                 return "COLLECTION"
+            case .clubs:
+                return "CLUBS"
             }
         }
     }
@@ -108,7 +112,6 @@ struct KuroMainView: View {
 	@State private var selection: Section = .discover
 	@State private var showProfileSheet = false
 	@State private var showSearchSheet = false
-	@State private var showBrowseSheet = false
 	@State private var mountedSections: Set<Section> = [.discover]
 	@State private var swipeExclusions: [CGRect] = []
     @State private var suppressCardTaps = false
@@ -117,8 +120,8 @@ struct KuroMainView: View {
     @State private var didApplyStartArgument = false
     @State private var showOnboarding = !OnboardingView.hasCompletedOnboarding
     @State private var edgeBounceOffset: CGFloat = 0
-	// Three core tabs: Concierge | Discover | Collection
-    private let swipeOrder: [Section] = [.concierge, .discover, .collection]
+	// Five-page discovery funnel: Concierge ← [Discover] → Browse → Collection → Clubs
+    private let swipeOrder: [Section] = [.concierge, .discover, .browse, .collection, .clubs]
     private let swipeThreshold: CGFloat = 40
     private let swipeEdgeMargin: CGFloat = 24
 
@@ -141,7 +144,9 @@ struct KuroMainView: View {
         switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
         case "concierge": return .concierge
         case "discover": return .discover
+        case "browse": return .browse
         case "collection": return .collection
+        case "clubs": return .clubs
         default: return nil
         }
     }
@@ -180,7 +185,7 @@ struct KuroMainView: View {
 
 	            VStack(spacing: 0) {
                 if !hidesHeaderForConcierge {
-                    KuroHeaderNew(selection: $selection, showProfileSheet: $showProfileSheet, showSearchSheet: $showSearchSheet, showBrowseSheet: $showBrowseSheet)
+                    KuroHeaderNew(selection: $selection, showProfileSheet: $showProfileSheet, showSearchSheet: $showSearchSheet)
                 }
 
                 // Header-driven pager: keeps sections mounted once visited.
@@ -196,7 +201,11 @@ struct KuroMainView: View {
 	        }
 	        .coordinateSpace(name: "kuro_root")
 	        .onPreferenceChange(KuroSwipeExclusionPreferenceKey.self) { v in
-	            swipeExclusions = v
+	            let viewport = CGRect(x: 0, y: 0, width: rootWidth, height: 2000)
+	            let visible = v.filter { $0.intersects(viewport) }
+	            if visible != swipeExclusions {
+	                swipeExclusions = visible
+	            }
 	        }
             .onAppear {
                 // Debug support: launch directly into Concierge for screenshots or manual QA.
@@ -307,22 +316,6 @@ struct KuroMainView: View {
                         }
                 }
             }
-            .sheet(isPresented: $showBrowseSheet) {
-                NavigationStack {
-                    BrowseView()
-                        .environment(supabaseService)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarLeading) {
-                                Button(action: { showBrowseSheet = false }) {
-                                    Image(systemName: "xmark")
-                                        .font(.kuroBody(weight: .light))
-                                        .foregroundColor(.kuroBlack60)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                }
-            }
             .onDisappear {
                 tapSuppressionResetTask?.cancel()
             }
@@ -363,13 +356,16 @@ private struct KuroSectionPager: View {
             .clipped()
             // Animate only when the selection changes (header-driven paging).
             // This avoids gesture conflicts with in-page horizontal carousels.
-            .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.92), value: selectionIndex)
+            .animation(.snappy(duration: 0.22, extraBounce: 0.02), value: selectionIndex)
         }
     }
 
     @ViewBuilder
     private func page(for section: Section) -> some View {
-        let shouldMount = mountedSections.contains(section) || section == selection
+        let sectionIdx = order.firstIndex(of: section) ?? 0
+        let distance = abs(selectionIndex - sectionIdx)
+        // Mount current page + immediate neighbors; unmount distant pages to save memory.
+        let shouldMount = distance <= 1 || mountedSections.contains(section)
 
         if shouldMount {
             switch section {
@@ -377,8 +373,12 @@ private struct KuroSectionPager: View {
                 ConciergeView(assistantEnabled: true)
             case .discover:
                 EditorialDiscoverView()
+            case .browse:
+                BrowseView()
             case .collection:
                 EditorialCollectionView()
+            case .clubs:
+                ClubsView()
             }
         } else {
             // Placeholder keeps layout stable without triggering `.task` in heavy pages.
@@ -392,10 +392,9 @@ struct KuroHeaderNew: View {
     @Binding var selection: KuroMainView.Section
     @Binding var showProfileSheet: Bool
     @Binding var showSearchSheet: Bool
-    @Binding var showBrowseSheet: Bool
     @Environment(SupabaseService.self) private var supabaseService
 
-    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .collection]
+    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .browse, .collection, .clubs]
 
     private static let windowTextPaddingX: CGFloat = 14
     private static let windowTextPaddingY: CGFloat = 7
@@ -549,9 +548,6 @@ struct KuroHeaderNew: View {
                     Menu {
                         Button("Profile") {
                             showProfileSheet = true
-                        }
-                        Button("Browse") {
-                            showBrowseSheet = true
                         }
                         Button("Sign Out", role: .destructive) {
                             Task { await supabaseService.signOut() }
