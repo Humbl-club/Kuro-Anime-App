@@ -34,6 +34,18 @@ type UserConstraints = {
 
 type CandidateRow = { media_id: number; match_count?: number | null; score?: number | null };
 
+// Penalties for known weak/sparse mode inventories.
+// Keeps routing deterministic while reducing accidental selection of weaker rails
+// unless user intent is explicit.
+const MODE_HEALTH_PENALTIES: Record<string, number> = {
+  historical: 2.8,
+  mecha: 2.6,
+  school_coming_of_age: 2.4,
+  shoujo_josei: 2.2,
+  mystery_detective: 1.4,
+  music_performance: 1.2,
+};
+
 function json(res: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(res), {
     ...init,
@@ -829,6 +841,18 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], 
         score += 2;
         if (!reason) reason = "year constraint (classic era)";
       }
+    }
+  }
+
+  // Quality guardrail: down-weight known weak/sparse mode inventories when
+  // the prompt signal is weak. Explicit intent still wins.
+  const healthPenalty = MODE_HEALTH_PENALTIES[mode.id] ?? 0;
+  if (healthPenalty > 0) {
+    if (score < 3) {
+      score -= healthPenalty;
+      if (!reason) reason = "quality safeguard";
+    } else if (score < 5) {
+      score -= Math.min(1.5, healthPenalty * 0.35);
     }
   }
 
