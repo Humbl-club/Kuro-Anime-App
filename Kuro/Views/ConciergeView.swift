@@ -4,58 +4,6 @@
 
 import SwiftUI
 
-// MARK: - Conversation Persistence (lightweight, text-only)
-
-private struct PersistedMessage: Codable {
-    let role: String  // "user" or "assistant"
-    let text: String
-    let timestamp: Date
-
-    init(from message: ConciergeMessage) {
-        self.role = message.role == .user ? "user" : "assistant"
-        self.text = message.text
-        self.timestamp = Date()
-    }
-
-    func toConciergeMessage() -> ConciergeMessage {
-        ConciergeMessage(
-            role: role == "user" ? .user : .assistant,
-            text: text,
-            items: nil
-        )
-    }
-}
-
-private enum ConciergeHistory {
-    private static let key = "kuro_concierge_history"
-    private static let maxMessages = 20
-
-    static func save(_ messages: [ConciergeMessage]) {
-        // Only persist text-only messages (drop interactive cards, recommendations, etc.)
-        let persistable = messages.suffix(maxMessages).compactMap { msg -> PersistedMessage? in
-            guard !msg.text.isEmpty else { return nil }
-            // Skip messages with interactive content that can't be restored
-            if msg.items != nil || msg.recommendations != nil || msg.recommendationSets != nil { return nil }
-            if msg.showClarifyActions || msg.ambiguity != nil { return nil }
-            return PersistedMessage(from: msg)
-        }
-        guard let data = try? JSONEncoder().encode(Array(persistable.suffix(maxMessages))) else { return }
-        UserDefaults.standard.set(data, forKey: key)
-    }
-
-    static func load() -> [ConciergeMessage] {
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let persisted = try? JSONDecoder().decode([PersistedMessage].self, from: data) else {
-            return []
-        }
-        return persisted.map { $0.toConciergeMessage() }
-    }
-
-    static func clear() {
-        UserDefaults.standard.removeObject(forKey: key)
-    }
-}
-
 // MARK: - Import Reconciliation Types
 
 enum ImportItemAction: String, Sendable {
@@ -122,11 +70,6 @@ struct ConciergeView: View {
     @State private var aniListIncludePaused: Bool = false
     @State private var aniListIncludeDropped: Bool = false
     @State private var aniListIsImporting: Bool = false
-    @State private var showTutorial: Bool = false
-    @State private var tutorialStep: Int = 0
-
-    private static let tutorialKey = "kuro_concierge_tutorial_completed"
-
     private var mascotState: ConciergeMascotState {
         if isWorking { return .thinking }
         if errorText != nil { return .concerned }
@@ -144,12 +87,6 @@ struct ConciergeView: View {
 
     private var conciergePerfV2Enabled: Bool {
         FeatureFlags.shared.isConciergePerfV2Enabled
-    }
-
-    private var conciergeEditorialV1Enabled: Bool {
-        // Concierge has fully migrated to the editorial shell.
-        // Keep this as a fixed on-switch to avoid regressions to legacy UI in prod.
-        true
     }
 
     private var isGermanLocale: Bool {
@@ -201,23 +138,6 @@ struct ConciergeView: View {
             aniListImportSheet
         }
         .task {
-            // Whisper mode is intentionally ephemeral to match the prototype.
-            if !conciergeEditorialV1Enabled {
-                if messages.isEmpty {
-                    let restored = ConciergeHistory.load()
-                    if !restored.isEmpty {
-                        messages = restored
-                    }
-                }
-            } else if !messages.isEmpty {
-                messages = []
-            }
-
-            // Whisper mode: keep the opening scene minimal (no tutorial overlay).
-            if !conciergeEditorialV1Enabled && !UserDefaults.standard.bool(forKey: Self.tutorialKey) {
-                showTutorial = true
-            }
-
             // Warm up the edge function isolate on view appear (fire-and-forget)
             Task.detached(priority: .background) {
                 await supabaseService.conciergeWarmup()
@@ -225,30 +145,6 @@ struct ConciergeView: View {
         }
         .onDisappear {
             lastApplySessionResetTask?.cancel()
-            if !conciergeEditorialV1Enabled {
-                ConciergeHistory.save(messages)
-            }
-        }
-        .onChange(of: messages.count) { _, _ in
-            if !conciergeEditorialV1Enabled {
-                ConciergeHistory.save(messages)
-            }
-        }
-        .overlay {
-            if showTutorial {
-                ConciergeTutorialOverlay(
-                    step: $tutorialStep,
-                    isGerman: isGermanLocale,
-                    onDismiss: {
-                        withAnimation(KuroAnimation.fast) {
-                            showTutorial = false
-                        }
-                        UserDefaults.standard.set(true, forKey: Self.tutorialKey)
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(200)
-            }
         }
         .preferredColorScheme(.light)
     }

@@ -114,6 +114,10 @@ struct RecommendationRail: View {
             .scrollTargetBehavior(.viewAligned)
             .kuroSwipeExclusionZone()
             .onAppear {
+                let prefetchUrls = visibleItems
+                    .prefix(10)
+                    .compactMap { URL(string: $0.coverImageMedium ?? "") }
+                Task { await ImagePipeline.shared.prefetch(urls: prefetchUrls, maxPixelSize: 520) }
                 withAnimation(.easeOut(duration: 0.5)) {
                     appeared = true
                 }
@@ -175,9 +179,7 @@ struct RecommendationCard: View {
     let onHide: () -> Void
     let onWhyThis: () -> Void
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
-    
-    @State private var isDraggingCard = false
-    
+
     private let posterHeight: CGFloat = 210
     
     private var metaLine: String {
@@ -202,24 +204,9 @@ struct RecommendationCard: View {
             .animation(.easeOut(duration: 0.5).delay(Double(index + 1) * 0.1), value: appeared)
             .onTapGesture {
                 guard !suppressCardTaps else { return }
-                guard !isDraggingCard else { return }
                 KuroAccessibility.impactHaptic(.light)
                 onOpen()
             }
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 4)
-                    .onChanged { _ in
-                        if !isDraggingCard {
-                            isDraggingCard = true
-                        }
-                    }
-                    .onEnded { _ in
-                        Task { @MainActor in
-                            try? await Task.sleep(nanoseconds: 120_000_000)
-                            isDraggingCard = false
-                        }
-                    }
-            )
             .contextMenu {
                 contextMenuContent
             }
@@ -278,7 +265,7 @@ struct RecommendationCard: View {
         .clipShape(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
         )
-        .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 4)
+        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 2)
     }
     
     private var placeholderView: some View {

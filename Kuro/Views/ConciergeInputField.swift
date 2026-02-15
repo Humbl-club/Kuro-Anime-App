@@ -373,6 +373,8 @@ struct ConciergeInputField: View {
     @State private var detectedChipTask: Task<Void, Never>? = nil
     @State private var measuredTextHeight: CGFloat = 20
     @State private var lastAutoSentTextFingerprint: Int? = nil
+    // Keep suggestion generation off until the bar is reintroduced in this prototype path.
+    private let showsSuggestionBar = false
     
     // MARK: - Constants
     
@@ -463,9 +465,6 @@ struct ConciergeInputField: View {
             sendButton
         }
         .padding(.vertical, 6)
-        .onAppear {
-            updateSuggestionsDebounced(text)
-        }
         .onDisappear {
             suggestionTask?.cancel()
             detectedChipTask?.cancel()
@@ -627,6 +626,7 @@ struct ConciergeInputField: View {
     }
 
     private func updateSuggestionsDebounced(_ text: String) {
+        guard showsSuggestionBar else { return }
         suggestionTask?.cancel()
         suggestionTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 250_000_000)

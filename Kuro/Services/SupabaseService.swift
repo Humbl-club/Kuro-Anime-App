@@ -4209,12 +4209,34 @@ class SupabaseService {
         try await fetchClubBundle(clubId: clubId, forceRefresh: true)
     }
 
+    private func evictClubBundleCache(containingRailId railId: String) {
+        guard !railId.isEmpty else { return }
+        for (clubId, cached) in clubBundleCache {
+            if cached.value.rails.contains(where: { $0.id == railId }) {
+                clubBundleCache.removeValue(forKey: clubId)
+                break
+            }
+        }
+    }
+
+    private func evictClubBundleCache(containingPollId pollId: String) {
+        guard !pollId.isEmpty else { return }
+        for (clubId, cached) in clubBundleCache {
+            if cached.value.polls.contains(where: { $0.id == pollId }) {
+                clubBundleCache.removeValue(forKey: clubId)
+                break
+            }
+        }
+    }
+
     func addRailItem(railId: String, mediaType: String, mediaId: Int, note: String? = nil) async throws -> AddRailItemResponse {
         let params = RPCAddRailItemParams(p_rail_id: railId, p_media_type: mediaType, p_media_id: mediaId, p_note: note)
-        return try await client
+        let response: AddRailItemResponse = try await client
             .rpc("add_club_rail_item", params: params)
             .execute()
             .value
+        evictClubBundleCache(containingRailId: railId)
+        return response
     }
 
     func castVote(pollId: String, optionId: String) async throws {
@@ -4223,6 +4245,7 @@ class SupabaseService {
             .rpc("cast_club_vote", params: params)
             .execute()
             .value
+        evictClubBundleCache(containingPollId: pollId)
     }
 
     func createClubRail(clubId: String, title: String, description: String? = nil) async throws -> CreateRailResponse {

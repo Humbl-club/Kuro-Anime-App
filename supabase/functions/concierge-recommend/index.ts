@@ -2485,11 +2485,40 @@ serve(async (req) => {
       .slice()
       .sort(chooseBetterSecondary);
 
-    const chosenSecondary = sortedSecondaryCandidates[0] ?? {
+    let chosenSecondary = sortedSecondaryCandidates[0] ?? {
       modeId: fallbackSecondaryId,
       built: fallbackSecondaryBuilt,
       eval: evaluateSecondary(fallbackSecondaryId, fallbackSecondaryBuilt),
     };
+
+    // Guardrail: if classics wins by default, prefer a close non-classics candidate
+    // unless the user explicitly asked for classics.
+    if (!explicitClassicIntent && chosenSecondary.modeId === classicsId) {
+      const bestNonClassic = sortedSecondaryCandidates.find((c) =>
+        c.modeId !== classicsId && c.eval.acceptable
+      );
+      if (bestNonClassic && bestNonClassic.eval.score >= (chosenSecondary.eval.score - 0.9)) {
+        chosenSecondary = bestNonClassic;
+      }
+    }
+
+    // Diversity stabilizer: rotate within the top close alternatives so the second rail
+    // does not collapse into the same mode for broad prompts.
+    if (!explicitClassicIntent) {
+      const nonClassicAcceptable = sortedSecondaryCandidates.filter((c) =>
+        c.modeId !== classicsId && c.eval.acceptable
+      );
+      if (nonClassicAcceptable.length >= 2) {
+        const topScore = nonClassicAcceptable[0].eval.score;
+        const closeBand = nonClassicAcceptable
+          .filter((c) => (topScore - c.eval.score) <= 0.8)
+          .slice(0, 3);
+        if (closeBand.length >= 2) {
+          const pickIndex = stableBucket(`${promptNorm}|${decision.primaryId}|secondary`) % closeBand.length;
+          chosenSecondary = closeBand[pickIndex];
+        }
+      }
+    }
 
     const chosenSecondaryId = chosenSecondary.modeId;
     const chosenSecondaryBuilt = chosenSecondary.built;

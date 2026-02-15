@@ -462,8 +462,7 @@ struct ClubDetailView: View {
         } catch {
             let msg = "\(error)"
             if msg.contains("NOT_A_MEMBER") {
-                errorText = "You're no longer a member of this club."
-                bundle = nil
+                handleMembershipLoss()
             } else {
                 errorText = "Could not load club data."
             }
@@ -518,8 +517,7 @@ struct ClubDetailView: View {
             optimisticVoteCountsByPollId[poll.id] = nil
             let msg = "\(error)"
             if msg.contains("NOT_A_MEMBER") {
-                errorText = "You're no longer a member of this club."
-                bundle = nil
+                handleMembershipLoss()
             } else {
                 showToast(.error, title: "Vote failed", subtitle: "Please try again.")
             }
@@ -543,6 +541,16 @@ struct ClubDetailView: View {
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             guard !Task.isCancelled else { return }
             withAnimation(KuroAnimation.fast) { toast = nil }
+        }
+    }
+
+    private func handleMembershipLoss() {
+        bundle = nil
+        errorText = "You're no longer a member of this club."
+        showToast(.error, title: "Access updated", subtitle: "You were removed from this club.")
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            dismiss()
         }
     }
 }
@@ -591,6 +599,7 @@ private struct ClubRailSection: View {
                     }
                     .padding(.horizontal, 20)
                 }
+                .kuroSwipeExclusionZone()
             }
         }
     }
@@ -605,6 +614,7 @@ private struct ClubRailItemCard: View {
     @State private var showDetail = false
     @State private var showAddToList = false
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     private let cardWidth: CGFloat = 110
     private var cardHeight: CGFloat { cardWidth / 0.7 }
@@ -643,6 +653,7 @@ private struct ClubRailItemCard: View {
 
     var body: some View {
         Button {
+            guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
         } label: {
@@ -1286,4 +1297,3 @@ private struct ClubSettingsSheet: View {
         return "Joined \(Self.relFormatter.localizedString(for: date, relativeTo: Date()))"
     }
 }
-
