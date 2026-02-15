@@ -4,6 +4,58 @@
 
 import SwiftUI
 
+// MARK: - Conversation Persistence (lightweight, text-only)
+
+private struct PersistedMessage: Codable {
+    let role: String  // "user" or "assistant"
+    let text: String
+    let timestamp: Date
+
+    init(from message: ConciergeMessage) {
+        self.role = message.role == .user ? "user" : "assistant"
+        self.text = message.text
+        self.timestamp = Date()
+    }
+
+    func toConciergeMessage() -> ConciergeMessage {
+        ConciergeMessage(
+            role: role == "user" ? .user : .assistant,
+            text: text,
+            items: nil
+        )
+    }
+}
+
+private enum ConciergeHistory {
+    private static let key = "kuro_concierge_history"
+    private static let maxMessages = 20
+
+    static func save(_ messages: [ConciergeMessage]) {
+        // Only persist text-only messages (drop interactive cards, recommendations, etc.)
+        let persistable = messages.suffix(maxMessages).compactMap { msg -> PersistedMessage? in
+            guard !msg.text.isEmpty else { return nil }
+            // Skip messages with interactive content that can't be restored
+            if msg.items != nil || msg.recommendations != nil || msg.recommendationSets != nil { return nil }
+            if msg.showClarifyActions || msg.ambiguity != nil { return nil }
+            return PersistedMessage(from: msg)
+        }
+        guard let data = try? JSONEncoder().encode(Array(persistable.suffix(maxMessages))) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
+
+    static func load() -> [ConciergeMessage] {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let persisted = try? JSONDecoder().decode([PersistedMessage].self, from: data) else {
+            return []
+        }
+        return persisted.map { $0.toConciergeMessage() }
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+}
+
 // MARK: - Import Reconciliation Types
 
 enum ImportItemAction: String, Sendable {
@@ -70,6 +122,10 @@ struct ConciergeView: View {
     @State private var aniListIncludePaused: Bool = false
     @State private var aniListIncludeDropped: Bool = false
     @State private var aniListIsImporting: Bool = false
+    @State private var showTutorial: Bool = false
+    @State private var tutorialStep: Int = 0
+
+    private static let tutorialKey = "kuro_concierge_tutorial_completed"
 
     private var mascotState: ConciergeMascotState {
         if isWorking { return .thinking }
@@ -109,9 +165,7 @@ struct ConciergeView: View {
     }
 
     private var editorialSubtitle: String {
-        isGermanLocale
-            ? "Lass die Kuro-Bibliothek sprechen — oder sag mir, wonach dir ist."
-            : "Use your Kuro list instantly — or tell me what you're in the mood for."
+        "Use your Kuro list instantly — or tell me what you're in the mood for."
     }
 
     private var editorialFooterText: String {
@@ -158,6 +212,23 @@ struct ConciergeView: View {
             aniListImportSheet
         }
         .task {
+            // Whisper mode is intentionally ephemeral to match the prototype.
+            if !conciergeEditorialV1Enabled {
+                if messages.isEmpty {
+                    let restored = ConciergeHistory.load()
+                    if !restored.isEmpty {
+                        messages = restored
+                    }
+                }
+            } else if !messages.isEmpty {
+                messages = []
+            }
+
+            // Whisper mode: keep the opening scene minimal (no tutorial overlay).
+            if !conciergeEditorialV1Enabled && !UserDefaults.standard.bool(forKey: Self.tutorialKey) {
+                showTutorial = true
+            }
+
             // Warm up the edge function isolate on view appear (fire-and-forget)
             Task.detached(priority: .background) {
                 await supabaseService.conciergeWarmup()
@@ -165,6 +236,30 @@ struct ConciergeView: View {
         }
         .onDisappear {
             lastApplySessionResetTask?.cancel()
+            if !conciergeEditorialV1Enabled {
+                ConciergeHistory.save(messages)
+            }
+        }
+        .onChange(of: messages.count) { _, _ in
+            if !conciergeEditorialV1Enabled {
+                ConciergeHistory.save(messages)
+            }
+        }
+        .overlay {
+            if showTutorial {
+                ConciergeTutorialOverlay(
+                    step: $tutorialStep,
+                    isGerman: isGermanLocale,
+                    onDismiss: {
+                        withAnimation(KuroAnimation.fast) {
+                            showTutorial = false
+                        }
+                        UserDefaults.standard.set(true, forKey: Self.tutorialKey)
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(200)
+            }
         }
         .preferredColorScheme(conciergeEditorialV1Enabled ? .light : nil)
     }
@@ -176,73 +271,33 @@ struct ConciergeView: View {
             errorText: errorText,
             showsIntentDeck: messages.isEmpty
         ) {
-            ConciergeIntentDeck(
-                onPaste: { pasteFromClipboard() },
-                onImportLibrary: {
-                    Task { await importFromLibrary() }
-                },
-                onStartCurate: {
-                    focusRequest = true
-                    KuroAccessibility.impactHaptic(.light)
-                },
-                onInsertExample: { example in
-                    input = example
-                    focusRequest = true
-                    KuroAccessibility.impactHaptic(.light)
-                },
-                onImportAniList: {
-                    showAniListImportSheet = true
-                }
-            )
+            EmptyView()
         } responseStage: {
             ConciergeResponseStage {
                 messageTimeline(
-                    horizontalPadding: KuroDesignSpacing.md,
-                    topPadding: KuroDesignSpacing.sm,
-                    bottomPadding: KuroDesignSpacing.md,
+                    horizontalPadding: 24,
+                    topPadding: 20,
+                    bottomPadding: 20,
+                    messageSpacing: 20,
                     includeStarter: false
                 )
             }
         } composer: {
-            ConciergeComposerDock {
-                ConciergeInputField(
-                    text: $input,
-                    isSending: isWorking,
-                    focusRequest: $focusRequest,
-                    onSend: { text in
-                        Task { await send(text: text) }
-                    }
-                    ,onAutoSend: { text in
-                        // Auto-send only when the input field detects a real paste import list.
-                        Task { await send(text: text) }
-                    }
-                )
-                .kuroSwipeExclusionZone()
-                .padding(.horizontal, 6)
-            }
-        } footer: {
-            ConciergeActionFooter(
-                helperText: editorialFooterText,
-                showUndo: lastApplySessionId != nil,
-                onUndo: {
-                    guard let sessionId = lastApplySessionId else { return }
-                    Task { await undoApply(sessionId: sessionId) }
+            ConciergeInputField(
+                text: $input,
+                isSending: isWorking,
+                focusRequest: $focusRequest,
+                onSend: { text in
+                    Task { await send(text: text) }
+                }
+                ,onAutoSend: { text in
+                    // Auto-send only when the input field detects a real paste import list.
+                    Task { await send(text: text) }
                 }
             )
-        }
-        .overlay(alignment: .bottomLeading) {
-            if assistantEnabled {
-                KuroConciergeMascot(
-                    expanded: $assistantExpanded,
-                    offset: $assistantOffset,
-                    dragStart: $assistantDragStart,
-                    baseBottomPadding: 116,
-                    containerSize: containerSize,
-                    state: mascotState
-                ) {
-                    focusRequest = true
-                }
-            }
+            .kuroSwipeExclusionZone()
+        } footer: {
+            EmptyView()
         }
         .background {
             GeometryReader { geo in
@@ -272,7 +327,7 @@ struct ConciergeView: View {
                         Text(isGermanLocale ? "Benutzername" : "Username")
                             .font(.kuroMicro(weight: .medium))
                             .tracking(1.8)
-                            .foregroundStyle(.black.opacity(0.38))
+                            .foregroundColor(.kuroTextTertiary)
 
                         TextField(isGermanLocale ? "z.B. maxmustermann" : "e.g. yourname", text: $aniListUsername)
                             .textInputAutocapitalization(.never)
@@ -294,7 +349,7 @@ struct ConciergeView: View {
                         Text(isGermanLocale ? "Typ" : "Type")
                             .font(.kuroMicro(weight: .medium))
                             .tracking(1.8)
-                            .foregroundStyle(.black.opacity(0.38))
+                            .foregroundColor(.kuroTextTertiary)
 
                         HStack(spacing: 10) {
                             togglePill(
@@ -312,7 +367,7 @@ struct ConciergeView: View {
                         Text(isGermanLocale ? "Status" : "Status")
                             .font(.kuroMicro(weight: .medium))
                             .tracking(1.8)
-                            .foregroundStyle(.black.opacity(0.38))
+                            .foregroundColor(.kuroTextTertiary)
 
                         HStack(spacing: 10) {
                             togglePill(
@@ -370,7 +425,7 @@ struct ConciergeView: View {
                         : "Note: private AniList lists will require OAuth later. This MVP uses public lists."
                     )
                     .font(.kuroMicro())
-                    .foregroundStyle(.black.opacity(0.35))
+                    .foregroundColor(.kuroTextTertiary)
                     .padding(.top, 4)
                 }
                 .padding(.horizontal, 18)
@@ -410,6 +465,9 @@ struct ConciergeView: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isOn.wrappedValue ? .isSelected : [])
+        .accessibilityHint("Toggles \(title) filter")
     }
 
     private func runAniListImport() async {
@@ -557,11 +615,12 @@ struct ConciergeView: View {
         horizontalPadding: CGFloat,
         topPadding: CGFloat,
         bottomPadding: CGFloat,
+        messageSpacing: CGFloat = KuroDesignSpacing.md,
         includeStarter: Bool
     ) -> some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+                LazyVStack(alignment: .leading, spacing: messageSpacing) {
                     if includeStarter && messages.isEmpty {
                         ConciergeIntroCard()
                             .frame(maxWidth: .infinity)
@@ -1662,6 +1721,133 @@ struct ConciergeView: View {
         if words.count >= 3 { return true }
 
         return false
+    }
+}
+
+// MARK: - Guided Tutorial Overlay
+
+private struct ConciergeTutorialOverlay: View {
+    @Binding var step: Int
+    let isGerman: Bool
+    let onDismiss: () -> Void
+
+    private let steps: [(iconEN: String, titleEN: String, bodyEN: String, iconDE: String, titleDE: String, bodyDE: String)] = [
+        (
+            iconEN: "text.bubble",
+            titleEN: "Describe a mood",
+            bodyEN: "Type something like \"dark, not gory, short\" and the Concierge curates two rails for you.",
+            iconDE: "text.bubble",
+            titleDE: "Beschreibe eine Stimmung",
+            bodyDE: "Schreibe z.B. \"dunkel, kein Gore, kurz\" und der Concierge kuratiert zwei Rails fur dich."
+        ),
+        (
+            iconEN: "doc.on.clipboard",
+            titleEN: "Or paste your list",
+            bodyEN: "Paste your anime list from any source. The Concierge matches, reconciles, and imports it.",
+            iconDE: "doc.on.clipboard",
+            titleDE: "Oder fuge deine Liste ein",
+            bodyDE: "Fuge deine Anime-Liste ein. Der Concierge gleicht ab, erkennt Konflikte und importiert."
+        ),
+        (
+            iconEN: "sparkles",
+            titleEN: "Curated for you",
+            bodyEN: "Recommendations come filtered against your library. No duplicates, no noise.",
+            iconDE: "sparkles",
+            titleDE: "Kuratiert fur dich",
+            bodyDE: "Empfehlungen werden gegen deine Bibliothek gefiltert. Keine Duplikate, kein Rauschen."
+        ),
+    ]
+
+    var body: some View {
+        ZStack {
+            // Dimmed backdrop
+            Color.black.opacity(0.32)
+                .ignoresSafeArea()
+                .onTapGesture { advance() }
+
+            VStack(spacing: 20) {
+                Spacer()
+
+                // Tutorial card
+                VStack(spacing: 18) {
+                    let s = steps[step]
+
+                    Circle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 56, height: 56)
+                        .overlay(
+                            Image(systemName: isGerman ? s.iconDE : s.iconEN)
+                                .font(.system(size: 22, weight: .light))
+                                .foregroundColor(.white.opacity(0.88))
+                        )
+
+                    Text(isGerman ? s.titleDE : s.titleEN)
+                        .font(.system(size: 22, weight: .ultraLight, design: .serif))
+                        .foregroundColor(.white.opacity(0.92))
+
+                    Text(isGerman ? s.bodyDE : s.bodyEN)
+                        .font(.kuroBody(weight: .light))
+                        .foregroundColor(.white.opacity(0.68))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(3)
+                        .padding(.horizontal, 24)
+
+                    // Step indicator
+                    HStack(spacing: 6) {
+                        ForEach(0..<steps.count, id: \.self) { i in
+                            Circle()
+                                .fill(Color.white.opacity(step == i ? 0.80 : 0.25))
+                                .frame(width: 5, height: 5)
+                        }
+                    }
+                    .padding(.top, 4)
+
+                    Button(action: { advance() }) {
+                        Text(step < steps.count - 1
+                             ? (isGerman ? "WEITER" : "NEXT")
+                             : (isGerman ? "VERSTANDEN" : "GOT IT"))
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.8)
+                            .foregroundColor(.black.opacity(0.88))
+                            .padding(.horizontal, 28)
+                            .padding(.vertical, 12)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(Color.white.opacity(0.92))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.vertical, 28)
+                .padding(.horizontal, 20)
+
+                Spacer()
+
+                // Skip
+                if step < steps.count - 1 {
+                    Button(action: { onDismiss() }) {
+                        Text(isGerman ? "Uberspringen" : "Skip")
+                            .font(.kuroCaption(weight: .medium))
+                            .foregroundColor(.white.opacity(0.42))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 48)
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(isGerman ? "Concierge-Anleitung" : "Concierge tutorial")
+    }
+
+    private func advance() {
+        KuroAccessibility.impactHaptic(.light)
+        if step < steps.count - 1 {
+            withAnimation(KuroAnimation.fast) {
+                step += 1
+            }
+        } else {
+            onDismiss()
+        }
     }
 }
 

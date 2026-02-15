@@ -10,6 +10,8 @@ struct BrowseView: View {
     @State private var selectedLengthFilter: LengthFilter? = nil
     @State private var selectedStatusFilter: StatusFilter? = nil
     @State private var selectedSort: SupabaseService.BrowseSort = .popular
+    @State private var selectedDecade: DecadeFilter? = nil
+    @State private var selectedFormat: FormatFilter? = nil
     @State private var showAnime = true
     @State private var showFiltersSheet: Bool = false
     @State private var animeResults: [AnimeCard] = []
@@ -76,11 +78,49 @@ struct BrowseView: View {
         }
     }
 
-    private var displayItems: [any MediaDisplayable] {
-        if showAnime {
-            return animeResults.map { $0 as any MediaDisplayable }
+    enum DecadeFilter: String, CaseIterable {
+        case d2020s = "2020s"
+        case d2010s = "2010s"
+        case d2000s = "2000s"
+        case d1990s = "1990s"
+        case classic = "< 1990"
+
+        var yearRange: (min: Int, max: Int?) {
+            switch self {
+            case .d2020s: return (2020, nil)
+            case .d2010s: return (2010, 2019)
+            case .d2000s: return (2000, 2009)
+            case .d1990s: return (1990, 1999)
+            case .classic: return (0, 1989)
+            }
         }
-        return mangaResults.map { $0 as any MediaDisplayable }
+    }
+
+    enum FormatFilter: String, CaseIterable {
+        case tv = "TV"
+        case movie = "MOVIE"
+        case ova = "OVA"
+        case ona = "ONA"
+        case special = "SPECIAL"
+    }
+
+    private var displayItems: [any MediaDisplayable] {
+        let raw: [any MediaDisplayable] = showAnime
+            ? animeResults.map { $0 as any MediaDisplayable }
+            : mangaResults.map { $0 as any MediaDisplayable }
+        return raw.filter { item in
+            if let decade = selectedDecade {
+                let yr = Int(item.year) ?? 0
+                let range = decade.yearRange
+                if yr < range.min { return false }
+                if let max = range.max, yr > max { return false }
+            }
+            if let fmt = selectedFormat {
+                guard let itemFmt = item.formatRaw else { return false }
+                if itemFmt.uppercased() != fmt.rawValue { return false }
+            }
+            return true
+        }
     }
 
     private var hasActiveFilters: Bool {
@@ -88,6 +128,8 @@ struct BrowseView: View {
         || selectedLengthFilter != nil
         || selectedGenre != nil
         || selectedSort != .popular
+        || selectedDecade != nil
+        || selectedFormat != nil
     }
 
     private var activeFiltersLabel: String {
@@ -96,6 +138,8 @@ struct BrowseView: View {
         if let l = selectedLengthFilter { parts.append(l.rawValue) }
         if let g = selectedGenre { parts.append(g.uppercased()) }
         if selectedSort != .popular { parts.append(selectedSort.rawValue) }
+        if let d = selectedDecade { parts.append(d.rawValue) }
+        if let f = selectedFormat { parts.append(f.rawValue) }
         return parts.joined(separator: " · ")
     }
 
@@ -108,6 +152,8 @@ struct BrowseView: View {
                     selectedStatusFilter: $selectedStatusFilter,
                     selectedLengthFilter: $selectedLengthFilter,
                     selectedGenre: $selectedGenre,
+                    selectedDecade: $selectedDecade,
+                    selectedFormat: $selectedFormat,
                     allGenres: allGenres,
                     hasActiveFilters: hasActiveFilters,
                     activeFiltersLabel: activeFiltersLabel
@@ -119,6 +165,8 @@ struct BrowseView: View {
                         selectedLengthFilter = nil
                         selectedGenre = nil
                         selectedSort = .popular
+                        selectedDecade = nil
+                        selectedFormat = nil
                     }
                 }
 
@@ -161,7 +209,7 @@ struct BrowseView: View {
                     reloadTask?.cancel()
                     await reload(mode: .pullToRefresh)
                 }
-                .background(Color.white)
+                .background(Color.kuroBackground)
                 .overlay(alignment: .top) {
                     if let bannerMessage {
                         KuroTransientBanner(message: bannerMessage)
@@ -171,7 +219,7 @@ struct BrowseView: View {
                 }
             }
         }
-        .background(Color.white)
+        .background(Color.kuroBackground)
         .sheet(isPresented: $showFiltersSheet) {
             BrowseFiltersSheet(
                 showAnime: showAnime,
@@ -179,6 +227,8 @@ struct BrowseView: View {
                 selectedStatusFilter: selectedStatusFilter,
                 selectedLengthFilter: selectedLengthFilter,
                 selectedGenre: selectedGenre,
+                selectedDecade: selectedDecade,
+                selectedFormat: selectedFormat,
                 allGenres: allGenres
             ) { next in
                 withAnimation(.easeInOut(duration: 0.2)) {
@@ -187,6 +237,8 @@ struct BrowseView: View {
                     selectedStatusFilter = next.status
                     selectedLengthFilter = next.length
                     selectedGenre = next.genre
+                    selectedDecade = next.decade
+                    selectedFormat = next.format
                 }
             }
         }
@@ -443,6 +495,8 @@ struct BrowseControlBar: View {
     @Binding var selectedStatusFilter: BrowseView.StatusFilter?
     @Binding var selectedLengthFilter: BrowseView.LengthFilter?
     @Binding var selectedGenre: String?
+    @Binding var selectedDecade: BrowseView.DecadeFilter?
+    @Binding var selectedFormat: BrowseView.FormatFilter?
 
     let allGenres: [String]
     let hasActiveFilters: Bool
@@ -531,6 +585,24 @@ struct BrowseControlBar: View {
                         FilterPill(label: (selectedGenre ?? "ALL GENRES").uppercased(), isActive: selectedGenre != nil, icon: "tag")
                     }
 
+                    Menu {
+                        Button("ANY YEAR") { selectedDecade = nil }
+                        ForEach(BrowseView.DecadeFilter.allCases, id: \.self) { d in
+                            Button(d.rawValue) { selectedDecade = d }
+                        }
+                    } label: {
+                        FilterPill(label: selectedDecade?.rawValue ?? "ANY YEAR", isActive: selectedDecade != nil, icon: "calendar")
+                    }
+
+                    Menu {
+                        Button("ANY FORMAT") { selectedFormat = nil }
+                        ForEach(BrowseView.FormatFilter.allCases, id: \.self) { f in
+                            Button(f.rawValue) { selectedFormat = f }
+                        }
+                    } label: {
+                        FilterPill(label: selectedFormat?.rawValue ?? "ANY FORMAT", isActive: selectedFormat != nil, icon: "film")
+                    }
+
                     if hasActiveFilters {
                         Button(action: {
                             KuroAccessibility.impactHaptic(.light)
@@ -579,6 +651,8 @@ struct BrowseControlBar: View {
         if selectedStatusFilter != nil { n += 1 }
         if selectedLengthFilter != nil { n += 1 }
         if selectedGenre != nil { n += 1 }
+        if selectedDecade != nil { n += 1 }
+        if selectedFormat != nil { n += 1 }
         return n
     }
 }
@@ -668,6 +742,11 @@ struct BrowseHeroCard: View {
     let geometry: GeometryProxy
     @State private var showDetail = false
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @Environment(SupabaseService.self) private var supabaseService
+
+    private var isInCollection: Bool {
+        supabaseService.isInCollection(mediaId: media.id, mediaType: media.kind.rawValue)
+    }
 
     var body: some View {
         let width = geometry.size.width - 40
@@ -704,10 +783,18 @@ struct BrowseHeroCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("PICK FOR YOU")
-                        .font(.system(size: 10, weight: .semibold))
-                        .tracking(1.8)
-                        .foregroundColor(.white.opacity(0.8))
+                    HStack {
+                        Text("PICK FOR YOU")
+                            .font(.system(size: 10, weight: .semibold))
+                            .tracking(1.8)
+                            .foregroundColor(.white.opacity(0.8))
+                        Spacer()
+                        if isInCollection {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.white.opacity(0.85))
+                        }
+                    }
 
                     Text(media.title)
                         .font(.system(size: 22, weight: .semibold, design: .serif))
@@ -756,6 +843,8 @@ struct BrowseFiltersSheet: View {
         var status: BrowseView.StatusFilter?
         var length: BrowseView.LengthFilter?
         var genre: String?
+        var decade: BrowseView.DecadeFilter?
+        var format: BrowseView.FormatFilter?
     }
 
     @Environment(\.dismiss) private var dismiss
@@ -770,10 +859,12 @@ struct BrowseFiltersSheet: View {
         selectedStatusFilter: BrowseView.StatusFilter?,
         selectedLengthFilter: BrowseView.LengthFilter?,
         selectedGenre: String?,
+        selectedDecade: BrowseView.DecadeFilter?,
+        selectedFormat: BrowseView.FormatFilter?,
         allGenres: [String],
         onApply: @escaping (Selection) -> Void
     ) {
-        self._draft = State(initialValue: Selection(showAnime: showAnime, sort: selectedSort, status: selectedStatusFilter, length: selectedLengthFilter, genre: selectedGenre))
+        self._draft = State(initialValue: Selection(showAnime: showAnime, sort: selectedSort, status: selectedStatusFilter, length: selectedLengthFilter, genre: selectedGenre, decade: selectedDecade, format: selectedFormat))
         self.allGenres = allGenres
         self.onApply = onApply
     }
@@ -838,12 +929,38 @@ struct BrowseFiltersSheet: View {
                     }
                     .padding(.horizontal, 20)
 
+                    SectionTitle(title: "YEAR")
+                    FlowLayout(spacing: 10) {
+                        OptionChip(title: "ANY", isSelected: draft.decade == nil) {
+                            draft.decade = nil
+                        }
+                        ForEach(BrowseView.DecadeFilter.allCases, id: \.self) { d in
+                            OptionChip(title: d.rawValue, isSelected: draft.decade == d) {
+                                draft.decade = d
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+
+                    SectionTitle(title: "FORMAT")
+                    FlowLayout(spacing: 10) {
+                        OptionChip(title: "ANY", isSelected: draft.format == nil) {
+                            draft.format = nil
+                        }
+                        ForEach(BrowseView.FormatFilter.allCases, id: \.self) { f in
+                            OptionChip(title: f.rawValue, isSelected: draft.format == f) {
+                                draft.format = f
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+
                     Spacer(minLength: 24)
                 }
                 .padding(.top, 14)
                 .padding(.bottom, 24)
             }
-            .background(Color.white)
+            .background(Color.kuroBackground)
             .navigationTitle("FILTERS")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

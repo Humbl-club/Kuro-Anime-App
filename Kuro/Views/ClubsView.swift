@@ -277,7 +277,7 @@ private struct ClubCardRow: View {
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.black.opacity(0.25))
+                    .foregroundColor(.kuroTextTertiary)
             }
             .padding(.horizontal, KuroDesignSpacing.md)
             .padding(.vertical, KuroDesignSpacing.md)

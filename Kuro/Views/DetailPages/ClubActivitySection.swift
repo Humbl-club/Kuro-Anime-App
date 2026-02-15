@@ -162,7 +162,7 @@ private struct AddToClubRailSheet: View {
                                     } else {
                                         Image(systemName: "chevron.right")
                                             .font(.kuroCaption(weight: .regular))
-                                            .foregroundColor(.black.opacity(0.25))
+                                            .foregroundColor(.kuroTextTertiary)
                                     }
                                 }
                                 .padding(.vertical, 10)
@@ -215,7 +215,7 @@ private struct AddToClubRailSheet: View {
                                             if rail.is_locked {
                                                 Image(systemName: "lock.fill")
                                                     .font(.kuroMicro(weight: .regular))
-                                                    .foregroundColor(.black.opacity(0.25))
+                                                    .foregroundColor(.kuroTextTertiary)
                                             }
 
                                             if clubsInteractionV2Enabled && pendingRailId == rail.id && isSubmitting {
@@ -656,7 +656,7 @@ private struct ClubMemberStatusList: View {
                                     Text(role)
                                         .font(.kuroMicro(weight: .medium))
                                         .tracking(1.0)
-                                        .foregroundColor(.black.opacity(0.35))
+                                        .foregroundColor(.kuroTextTertiary)
                                 }
 
                                 if active && !isMe {
@@ -672,7 +672,7 @@ private struct ClubMemberStatusList: View {
                                 } else {
                                     Text("Not started")
                                         .font(.kuroCaption())
-                                        .foregroundColor(.black.opacity(0.24))
+                                        .foregroundColor(.kuroTextTertiary)
                                 }
 
                                 if sharingLevel == "progress",

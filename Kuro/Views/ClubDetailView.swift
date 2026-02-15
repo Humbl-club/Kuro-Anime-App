@@ -21,6 +21,8 @@ struct ClubDetailView: View {
     @State private var isLoading = true
     @State private var errorText: String? = nil
     @State private var showSettings = false
+    @State private var showCreateRail = false
+    @State private var showCreatePoll = false
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
     @State private var voteInFlightPollIds: Set<String> = []
@@ -108,6 +110,20 @@ struct ClubDetailView: View {
                 }
                 .environment(supabaseService)
             }
+        }
+        .sheet(isPresented: $showCreateRail) {
+            CreateClubRailSheet(clubId: clubId) {
+                showToast(.success, title: "Rail created", subtitle: nil)
+                Task { await loadBundle(force: true) }
+            }
+            .environment(supabaseService)
+        }
+        .sheet(isPresented: $showCreatePoll) {
+            CreateClubPollSheet(clubId: clubId) {
+                showToast(.success, title: "Poll created", subtitle: nil)
+                Task { await loadBundle(force: true) }
+            }
+            .environment(supabaseService)
         }
     }
 
@@ -217,20 +233,66 @@ struct ClubDetailView: View {
                     Text("Create a rail to start curating together.")
                         .font(.kuroCaption(weight: .light))
                         .foregroundColor(.black.opacity(0.40))
+
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        showCreateRail = true
+                    } label: {
+                        Text("CREATE RAIL")
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.2)
+                            .foregroundColor(.black.opacity(0.70))
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule()
+                                    .stroke(Color.black.opacity(0.20), lineWidth: 0.8)
+                            )
+                    }
+                    .padding(.top, KuroDesignSpacing.sm)
                 }
             }
             .padding(.top, KuroDesignSpacing.xxl)
         } else {
-            LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
-                ForEach(bundle.rails) { rail in
-                    ClubRailSection(
-                        rail: rail,
-                        memberCount: bundle.member_count
-                    )
+            VStack(alignment: .leading, spacing: 0) {
+                if ["owner", "admin"].contains(bundle.my_role) {
+                    HStack {
+                        Spacer()
+                        Button {
+                            KuroAccessibility.impactHaptic(.light)
+                            showCreateRail = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 11, weight: .medium))
+                                Text("RAIL")
+                                    .font(.kuroMicro(weight: .medium))
+                                    .tracking(1.0)
+                            }
+                            .foregroundColor(.black.opacity(0.55))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(Color.black.opacity(0.06))
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, KuroDesignSpacing.sm)
                 }
+
+                LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
+                    ForEach(bundle.rails) { rail in
+                        ClubRailSection(
+                            rail: rail,
+                            memberCount: bundle.member_count
+                        )
+                    }
+                }
+                .padding(.top, KuroDesignSpacing.md)
+                .padding(.bottom, KuroDesignSpacing.xxl)
             }
-            .padding(.top, KuroDesignSpacing.md)
-            .padding(.bottom, KuroDesignSpacing.xxl)
         }
     }
 
@@ -289,9 +351,55 @@ struct ClubDetailView: View {
                 Text("No polls yet")
                     .font(.kuroBody(weight: .light))
                     .foregroundColor(.kuroBlack30)
+                if ["owner", "admin"].contains(bundle.my_role) {
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        showCreatePoll = true
+                    } label: {
+                        Text("CREATE POLL")
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.2)
+                            .foregroundColor(.black.opacity(0.70))
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule()
+                                    .stroke(Color.black.opacity(0.20), lineWidth: 0.8)
+                            )
+                    }
+                    .padding(.top, KuroDesignSpacing.sm)
+                }
             }
             .padding(.top, KuroDesignSpacing.xxl)
         } else {
+            VStack(alignment: .leading, spacing: 0) {
+                if ["owner", "admin"].contains(bundle.my_role) {
+                    HStack {
+                        Spacer()
+                        Button {
+                            KuroAccessibility.impactHaptic(.light)
+                            showCreatePoll = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 11, weight: .medium))
+                                Text("POLL")
+                                    .font(.kuroMicro(weight: .medium))
+                                    .tracking(1.0)
+                            }
+                            .foregroundColor(.black.opacity(0.55))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(Color.black.opacity(0.06))
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, KuroDesignSpacing.sm)
+                }
+
             LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
                 if !openPolls.isEmpty {
                     ForEach(openPolls) { poll in
@@ -338,6 +446,7 @@ struct ClubDetailView: View {
             .padding(.horizontal, 20)
             .padding(.top, KuroDesignSpacing.md)
             .padding(.bottom, KuroDesignSpacing.xxl)
+            }
         }
     }
 
@@ -456,7 +565,7 @@ private struct ClubRailSection: View {
                 if rail.is_locked {
                     Image(systemName: "lock.fill")
                         .font(.kuroMicro())
-                        .foregroundColor(.black.opacity(0.35))
+                        .foregroundColor(.kuroTextTertiary)
                 }
 
                 Spacer()
@@ -470,7 +579,7 @@ private struct ClubRailSection: View {
             if rail.items.isEmpty {
                 Text("No items yet")
                     .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.black.opacity(0.35))
+                    .foregroundColor(.kuroTextTertiary)
                     .padding(.horizontal, 20)
                     .padding(.vertical, KuroDesignSpacing.md)
             } else {
@@ -494,12 +603,22 @@ private struct ClubRailItemCard: View {
     let memberCount: Int
 
     @State private var showDetail = false
+    @State private var showAddToList = false
+    @Environment(SupabaseService.self) private var supabaseService
 
     private let cardWidth: CGFloat = 110
     private var cardHeight: CGFloat { cardWidth / 0.7 }
 
     private var mediaKind: MediaKind {
         item.media_type.uppercased() == "MANGA" ? .manga : .anime
+    }
+
+    private var mediaType: String {
+        mediaKind.rawValue
+    }
+
+    private var isInCollection: Bool {
+        supabaseService.isInCollection(mediaId: item.media_id, mediaType: mediaType)
     }
 
     private var aggregateText: String? {
@@ -614,6 +733,17 @@ private struct ClubRailItemCard: View {
             }
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                supabaseService.toggleInCollection(mediaId: item.media_id, mediaType: mediaType)
+            }) {
+                Label(
+                    isInCollection ? "Remove from List" : "Quick Add (Planned)",
+                    systemImage: isInCollection ? "minus.circle" : "plus.circle"
+                )
+            }
+        }
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: mediaKind, id: item.media_id)
         }
@@ -778,7 +908,7 @@ private struct ClubPollCard: View {
                 if totalVotes > 0 {
                     Text("\(totalVotes) vote\(totalVotes == 1 ? "" : "s")")
                         .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.black.opacity(0.35))
+                        .foregroundColor(.kuroTextTertiary)
                 }
             }
             .padding(KuroDesignSpacing.md)
@@ -919,6 +1049,10 @@ private struct ClubSettingsSheet: View {
                                         Capsule().stroke(Color.black.opacity(0.12), lineWidth: 0.6)
                                     )
                             }
+
+                            Text(sharingLevelDescription)
+                                .font(.kuroCaption(weight: .light))
+                                .foregroundColor(.kuroBlack30)
                         }
                     }
 
@@ -948,6 +1082,28 @@ private struct ClubSettingsSheet: View {
                                 }
                                 .buttonStyle(.plain)
                             }
+
+                            ShareLink(
+                                item: "Join my club \"\(bundle.club.name)\" on Kuro! Enter invite code: \(code)",
+                                subject: Text("Join \(bundle.club.name) on Kuro"),
+                                message: Text("Use this invite code to join: \(code)")
+                            ) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 13, weight: .regular))
+                                    Text("SHARE INVITE")
+                                        .font(.kuroCaption(weight: .medium))
+                                        .tracking(1.6)
+                                }
+                                .foregroundColor(.kuroBlack80)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
+                                        .stroke(Color.black.opacity(0.15), lineWidth: 0.8)
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
 
                         EditorialLayout.divider()
@@ -1073,6 +1229,15 @@ private struct ClubSettingsSheet: View {
         }
     }
 
+    private var sharingLevelDescription: String {
+        switch bundle.club.sharing_level {
+        case "private": return "Only aggregates. Members can't see each other's data."
+        case "status": return "Members can see watch/read status but not progress numbers."
+        case "progress": return "Members can see full progress, status, and ratings."
+        default: return ""
+        }
+    }
+
     private func computeLeaveMessage() -> String {
         guard bundle.my_role == "owner" else {
             return "Leave \(bundle.club.name)? You'll need a new invite code to rejoin."
@@ -1121,3 +1286,4 @@ private struct ClubSettingsSheet: View {
         return "Joined \(Self.relFormatter.localizedString(for: date, relativeTo: Date()))"
     }
 }
+

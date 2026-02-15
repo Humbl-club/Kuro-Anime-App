@@ -12,73 +12,97 @@ struct ConciergeEditorialShell<IntentDeck: View, ResponseStage: View, Composer: 
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-
-            if showsIntentDeck {
-                intentDeck()
-                    .padding(.horizontal, KuroDesignSpacing.md)
-                    .padding(.top, KuroDesignSpacing.sm)
-                    .padding(.bottom, KuroDesignSpacing.sm)
-            }
-
             responseStage()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
-            composer()
-                .padding(.horizontal, KuroDesignSpacing.md)
-                .padding(.top, KuroDesignSpacing.sm)
-                .padding(.bottom, 8)
-
-            footer()
-                .padding(.horizontal, KuroDesignSpacing.md)
-                .padding(.bottom, 10)
-        }
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("KURO")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(2.2)
-                .foregroundColor(.black.opacity(0.58))
-
-            Text(title)
-                .font(.system(size: 34, weight: .ultraLight, design: .serif))
-                .foregroundColor(.black.opacity(0.84))
-                .lineLimit(1)
-
-            Text(subtitle)
-                .font(.kuroBody(weight: .light))
-                .foregroundColor(.black.opacity(0.72))
-                .lineLimit(2)
+                .overlay {
+                    if showsIntentDeck {
+                        WhisperEmptyState(text: subtitle)
+                    }
+                }
 
             if let errorText, !errorText.isEmpty {
                 Text(errorText)
                     .font(.kuroCaption())
                     .foregroundColor(.red.opacity(0.85))
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+
+            composer()
+                .padding(.horizontal, 24)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+                .background(
+                    VStack(spacing: 0) {
+                        Rectangle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(height: 0.5)
+                        Color.white
+                    }
+                )
+
+            footer()
+                .frame(height: 0)
+                .opacity(0)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, KuroDesignSpacing.md)
-        .padding(.top, KuroDesignSpacing.md)
-        .padding(.bottom, KuroDesignSpacing.sm)
-        .background(
-            LinearGradient(
-                colors: [Color.white.opacity(0.98), Color.kuroBackground],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .overlay(alignment: .bottom) {
-            HStack(spacing: 10) {
-                Rectangle()
-                    .fill(Color.black.opacity(0.46))
-                    .frame(width: 1.5, height: 11)
-                Rectangle()
-                    .fill(Color.black.opacity(0.06))
-                    .frame(height: 0.5)
+    }
+}
+
+private struct WhisperEmptyState: View {
+    let text: String
+
+    var body: some View {
+        VStack(spacing: 18) {
+            WhisperMoonMark(size: 56)
+            Text(text)
+                .font(.system(size: 22, weight: .regular, design: .serif))
+                .italic()
+                .multilineTextAlignment(.center)
+                .foregroundColor(.black.opacity(0.55))
+                .tracking(0.3)
+                .lineSpacing(2)
+                .padding(.horizontal, 34)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .transition(.opacity.combined(with: .offset(y: 10)))
+        .animation(.easeInOut(duration: 0.5), value: text)
+    }
+}
+
+private struct WhisperMoonMark: View {
+    let size: CGFloat
+
+    var body: some View {
+        ZStack {
+            Path { path in
+                let rect = CGRect(x: 0, y: 0, width: size, height: size)
+                let c = CGPoint(x: rect.midX, y: rect.midY)
+                let outerRadius = rect.width * 0.36
+                let innerRadius = rect.width * 0.30
+
+                path.addArc(
+                    center: c,
+                    radius: outerRadius,
+                    startAngle: .degrees(105),
+                    endAngle: .degrees(255),
+                    clockwise: false
+                )
+                path.addArc(
+                    center: CGPoint(x: c.x + size * 0.11, y: c.y),
+                    radius: innerRadius,
+                    startAngle: .degrees(260),
+                    endAngle: .degrees(100),
+                    clockwise: true
+                )
+                path.closeSubpath()
             }
-            .padding(.horizontal, KuroDesignSpacing.md)
+            .fill(Color.black.opacity(0.55))
+
+            Circle()
+                .fill(Color.black.opacity(0.55))
+                .frame(width: size * 0.14, height: size * 0.14)
+                .offset(x: size * 0.18, y: -size * 0.14)
         }
     }
 }

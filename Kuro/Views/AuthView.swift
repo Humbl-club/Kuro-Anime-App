@@ -1,3 +1,5 @@
+import AuthenticationServices
+import CryptoKit
 import SwiftUI
 
 struct AuthView: View {
@@ -10,34 +12,35 @@ struct AuthView: View {
     @State private var password: String = ""
     @State private var isWorking = false
     @State private var errorText: String? = nil
+    @State private var currentNonce: String? = nil
 
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            Color.kuroBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 VStack(spacing: 10) {
                     Text("KURO")
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.kuroCaption(weight: .regular))
                         .tracking(1.5)
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
 
                     Text(mode == .signIn ? "SIGN IN" : "CREATE ACCOUNT")
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.kuroCaption(weight: .regular))
                         .tracking(1.5)
                         .foregroundColor(.black)
 
                     RoundedRectangle(cornerRadius: 999, style: .continuous)
-                        .fill(Color.black.opacity(0.08))
+                        .fill(Color.kuroBlack08)
                         .frame(width: 36, height: 4)
                         .padding(.top, 2)
                         .accessibilityHidden(true)
                 }
                 .padding(.top, 18)
                 .padding(.bottom, 18)
-                .padding(.horizontal, 20)
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .frame(maxWidth: .infinity)
-                .background(Color.white)
+                .background(Color.kuroBackground)
                 .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 6)
 
                 ScrollView(.vertical, showsIndicators: false) {
@@ -54,7 +57,7 @@ struct AuthView: View {
 
                         if let errorText, !errorText.isEmpty {
                             Text(errorText)
-                                .font(.system(size: 12, weight: .regular))
+                                .font(.kuroCaption(weight: .regular))
                                 .foregroundColor(.red.opacity(0.85))
                         }
 
@@ -67,7 +70,7 @@ struct AuthView: View {
                                         .tint(.white)
                                 }
                                 Text(mode == .signIn ? "SIGN IN" : "CREATE")
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.kuroCaption(weight: .semibold))
                                     .tracking(1.6)
                             }
                             .frame(maxWidth: .infinity)
@@ -88,29 +91,58 @@ struct AuthView: View {
                             errorText = nil
                         } label: {
                             Text(mode == .signIn ? "Create an account" : "Already have an account?")
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(.black.opacity(0.55))
+                                .font(.kuroCaption(weight: .regular))
+                                .foregroundColor(.kuroTextSecondary)
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.vertical, 14)
                         }
                         .buttonStyle(.plain)
                         .disabled(isWorking)
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("NOTE")
-                                .font(.system(size: 10, weight: .semibold))
-                                .tracking(1.4)
-                                .foregroundColor(.black.opacity(0.35))
-
-                            Text("Apple Sign-In will be added next. This build uses email/password to fully enable your personal lists and concierge.")
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(.black.opacity(0.55))
+                        if mode == .signIn {
+                            Button {
+                                Task { await forgotPassword() }
+                            } label: {
+                                Text("Forgot password?")
+                                    .font(.kuroCaption(weight: .regular))
+                                    .foregroundColor(.kuroTextSecondary)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isWorking)
                         }
-                        .padding(.top, 10)
+
+                        // Divider
+                        HStack(spacing: 12) {
+                            Rectangle()
+                                .fill(Color.kuroBlack08)
+                                .frame(height: 0.5)
+                            Text("OR")
+                                .font(.kuroMicro(weight: .regular))
+                                .tracking(1.4)
+                                .foregroundColor(.kuroTextTertiary)
+                            Rectangle()
+                                .fill(Color.kuroBlack08)
+                                .frame(height: 0.5)
+                        }
+                        .padding(.top, 6)
+
+                        SignInWithAppleButton(.signIn) { request in
+                            let nonce = Self.randomNonceString()
+                            currentNonce = nonce
+                            request.requestedScopes = [.email, .fullName]
+                            request.nonce = Self.sha256(nonce)
+                        } onCompletion: { result in
+                            Task { await handleAppleSignIn(result) }
+                        }
+                        .signInWithAppleButtonStyle(.black)
+                        .frame(height: 50)
+                        .cornerRadius(14)
+                        .disabled(isWorking)
 
                         Spacer(minLength: 40)
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, KuroDesignSpacing.padding)
                 }
             }
         }
@@ -144,12 +176,76 @@ struct AuthView: View {
         }
     }
 
+    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
+        errorText = nil
+        isWorking = true
+        defer {
+            isWorking = false
+            currentNonce = nil
+        }
+
+        do {
+            guard let credential = try result.get().credential as? ASAuthorizationAppleIDCredential else {
+                errorText = "Unexpected credential type."
+                return
+            }
+            guard let identityToken = credential.identityToken,
+                  let idToken = String(data: identityToken, encoding: .utf8) else {
+                errorText = "Missing identity token."
+                return
+            }
+            guard let rawNonce = currentNonce else {
+                errorText = "Missing nonce. Please try again."
+                return
+            }
+            let fullName = credential.fullName.flatMap {
+                [$0.givenName, $0.familyName].compactMap { $0 }.joined(separator: " ")
+            }
+            try await supabaseService.signInWithApple(idToken: idToken, rawNonce: rawNonce, fullName: fullName)
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
+    private static func randomNonceString(length: Int = 32) -> String {
+        precondition(length > 0)
+        var bytes = [UInt8](repeating: 0, count: length)
+        let result = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+        precondition(result == errSecSuccess, "Failed to generate random bytes")
+        let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
+        return String(bytes.map { charset[Int($0) % charset.count] })
+    }
+
+    private static func sha256(_ input: String) -> String {
+        let data = Data(input.utf8)
+        let hash = SHA256.hash(data: data)
+        return hash.compactMap { String(format: "%02x", $0) }.joined()
+    }
+
+    private func forgotPassword() async {
+        let e = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard e.contains("@") else {
+            errorText = "Enter your email above, then tap Forgot password."
+            return
+        }
+        errorText = nil
+        isWorking = true
+        defer { isWorking = false }
+
+        do {
+            try await supabaseService.resetPassword(email: e)
+            errorText = "Password reset email sent. Check your inbox."
+        } catch {
+            errorText = error.localizedDescription
+        }
+    }
+
     private func field(_ title: String, text: Binding<String>, isSecure: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title.uppercased())
-                .font(.system(size: 10, weight: .semibold))
+                .font(.kuroMicro(weight: .semibold))
                 .tracking(1.4)
-                .foregroundColor(.black.opacity(0.35))
+                .foregroundColor(.kuroTextTertiary)
 
             Group {
                 if isSecure {
@@ -158,7 +254,7 @@ struct AuthView: View {
                     TextField("", text: text)
                 }
             }
-            .font(.system(size: 14, weight: .regular))
+            .font(.kuroBody(weight: .regular))
             .foregroundColor(.black)
             .padding(.horizontal, 14)
             .padding(.vertical, 12)

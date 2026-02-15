@@ -83,7 +83,7 @@ struct KuroGlassPill: View {
 
                 Image(systemName: "arrow.right")
                     .font(.kuroCaption(weight: .semibold))
-                    .foregroundColor(.black.opacity(0.35))
+                    .foregroundColor(.kuroTextTertiary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)

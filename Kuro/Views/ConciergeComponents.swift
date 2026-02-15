@@ -421,7 +421,7 @@ struct ConciergeActionBar: View {
                 Text("UNDO")
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.6)
-                    .foregroundColor(canUndo ? .black : .black.opacity(0.25))
+                    .foregroundColor(canUndo ? .black : .kuroTextTertiary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(
@@ -466,40 +466,33 @@ struct ConciergeActionBar: View {
 // MARK: - Typing Indicator (500ms cycle)
 
 struct ConciergeTypingIndicator: View {
-    @State private var phase: Int = 0
+    @State private var animate = false
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
+            WhisperMessageMoonIcon()
+                .padding(.top, 2)
+
             HStack(spacing: 4) {
-                Circle().fill(Color.black.opacity(0.25)).frame(width: 6, height: 6).opacity(phase == 0 ? 1 : 0.35)
-                    .scaleEffect(phase == 0 ? 1.15 : 0.95)
-                Circle().fill(Color.black.opacity(0.25)).frame(width: 6, height: 6).opacity(phase == 1 ? 1 : 0.35)
-                    .scaleEffect(phase == 1 ? 1.15 : 0.95)
-                Circle().fill(Color.black.opacity(0.25)).frame(width: 6, height: 6).opacity(phase == 2 ? 1 : 0.35)
-                    .scaleEffect(phase == 2 ? 1.15 : 0.95)
+                loadingDot(delay: 0)
+                loadingDot(delay: 0.16)
+                loadingDot(delay: 0.32)
             }
-            Text("Thinking")
-                .font(.kuroCaption())
-                .foregroundColor(.black.opacity(0.55))
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                // Avoid full-screen materials in a frequently-updating view.
-                .fill(Color.kuroSecondaryBackground.opacity(0.96))
-                .overlay(
-                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
-                )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
-        .task {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 500_000_000)
-                phase = (phase + 1) % 3
+            .padding(.vertical, 8)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                    animate = true
+                }
             }
         }
+    }
+
+    private func loadingDot(delay: Double) -> some View {
+        Circle()
+            .fill(Color.black.opacity(0.35))
+            .frame(width: 6, height: 6)
+            .scaleEffect(animate ? 1 : 0.55)
+            .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true).delay(delay), value: animate)
     }
 }
 
@@ -608,7 +601,7 @@ struct ConciergeStarterActions: View {
                         .foregroundStyle(.black.opacity(0.62))
                     Image(systemName: "sparkles")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.32))
+                        .foregroundColor(.kuroTextTertiary)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
@@ -689,7 +682,7 @@ struct ConciergeClarifyCard: View {
                 Text(isGerman ? "ODER" : "OR")
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.4)
-                    .foregroundColor(.black.opacity(0.30))
+                    .foregroundColor(.kuroTextTertiary)
                 Rectangle()
                     .fill(Color.black.opacity(0.06))
                     .frame(height: 0.5)
@@ -984,154 +977,151 @@ struct ConciergeBubble: View {
     var autoReasonByItemId: [String: String] = [:]
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
-    @Environment(\.colorScheme) private var colorScheme
+    @State private var appeared = false
 
-    private func glassBubble<Content: View>(cornerRadius: CGFloat, @ViewBuilder content: () -> Content) -> some View {
+    private func plainSurface<Content: View>(cornerRadius: CGFloat, @ViewBuilder content: () -> Content) -> some View {
         content()
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.kuroSecondaryBackground.opacity(colorScheme == .dark ? 0.92 : 0.96))
+                    .fill(Color.white)
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.06), lineWidth: 0.8)
+                            .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
                     )
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.06), radius: 14, x: 0, y: 8)
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 
-	    var body: some View {
-	        HStack(alignment: .bottom) {
-	            if message.role == .assistant {
-	                VStack(alignment: .leading, spacing: 10) {
-	                    let isRecommendationMessage = (message.recommendationSets?.isEmpty == false) || (message.recommendations?.isEmpty == false)
-                    if !message.text.isEmpty {
-                        if isRecommendationMessage {
-                            ConciergeCuratorNote(text: message.text)
-                                .frame(maxWidth: 520, alignment: .leading)
-                        } else {
-	                            glassBubble(cornerRadius: KuroRadius.md) {
-	                                Text(message.text)
-	                                    .font(.kuroBody())
-	                                    .foregroundStyle(.primary.opacity(0.82))
-	                                    .padding(.horizontal, 14)
-	                                    .padding(.vertical, 12)
-	                            }
-	                            .frame(maxWidth: 360, alignment: .leading)
-	                        }
-	                    }
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            if message.role == .assistant {
+                assistantContent
+                Spacer(minLength: 30)
+            } else {
+                Spacer(minLength: 30)
+                userContent
+            }
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.5)) {
+                appeared = true
+            }
+        }
+    }
 
-                    if message.showClarifyActions {
-                        ConciergeClarifyCard(
-                            onPaste: onClarifyPaste,
-                            onImportLibrary: onClarifyImportLibrary,
-                            onExampleImport: onClarifyExampleImport,
-                            onExampleVibe: onClarifyExampleVibe
-                        )
+    private var userContent: some View {
+        Text(message.text)
+            .font(.system(size: 18, weight: .regular, design: .serif))
+            .lineSpacing(4)
+            .foregroundStyle(.black.opacity(0.55))
+            .multilineTextAlignment(.trailing)
+            .frame(maxWidth: 320, alignment: .trailing)
+    }
+
+    private var assistantContent: some View {
+        HStack(alignment: .top, spacing: 10) {
+            WhisperMessageMoonIcon()
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 12) {
+                if !message.text.isEmpty {
+                    Text(message.text)
+                        .font(.system(size: 18, weight: .regular, design: .serif))
+                        .lineSpacing(4)
+                        .foregroundStyle(.black.opacity(0.85))
+                        .frame(maxWidth: 320, alignment: .leading)
+                }
+
+                if message.showClarifyActions {
+                    ConciergeClarifyCard(
+                        onPaste: onClarifyPaste,
+                        onImportLibrary: onClarifyImportLibrary,
+                        onExampleImport: onClarifyExampleImport,
+                        onExampleVibe: onClarifyExampleVibe
+                    )
+                    .frame(maxWidth: 420, alignment: .leading)
+                }
+
+                if let ambiguity = message.ambiguity, let sourceText = message.sourceUserText {
+                    ambiguityCard(ambiguity: ambiguity, sourceText: sourceText)
                         .frame(maxWidth: 420, alignment: .leading)
-                    }
+                }
 
-                    // Ambiguity clarification cards
-                    if let ambiguity = message.ambiguity, let sourceText = message.sourceUserText {
-                        ambiguityCard(ambiguity: ambiguity, sourceText: sourceText)
-                            .frame(maxWidth: 420, alignment: .leading)
-                    }
+                if let items = message.items, !items.isEmpty, let parseResponse = message.parseResponse {
+                    ConciergeConfirmBubble(
+                        items: items,
+                        selected: selected,
+                        onSelect: onSelect,
+                        onConfirm: { onConfirmItems?(parseResponse) },
+                        onReparse: onReparse,
+                        isApplied: isImportApplied,
+                        autoReasonByItemId: autoReasonByItemId,
+                        itemActions: itemActions,
+                        excludedItemIds: $excludedItemIds
+                    )
+                    .frame(maxWidth: 420, alignment: .leading)
+                } else if let items = message.items, !items.isEmpty {
+                    plainSurface(cornerRadius: KuroRadius.md) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("MATCHES")
+                                    .font(.kuroCaption(weight: .medium))
+                                    .tracking(1.6)
+                                    .foregroundColor(.black.opacity(0.55))
+                                Spacer()
+                                Text("\(items.count)")
+                                    .font(.kuroCaption(weight: .medium))
+                                    .foregroundColor(.black.opacity(0.45))
+                            }
 
-                    // Inline confirm bubble for import items
-                    if let items = message.items, !items.isEmpty, let parseResponse = message.parseResponse {
-                        ConciergeConfirmBubble(
-                            items: items,
-                            selected: selected,
-                            onSelect: onSelect,
-                            onConfirm: { onConfirmItems?(parseResponse) },
-                            onReparse: onReparse,
-                            isApplied: isImportApplied,
-                            autoReasonByItemId: autoReasonByItemId,
-                            itemActions: itemActions,
-                            excludedItemIds: $excludedItemIds
-                        )
-                        .frame(maxWidth: 420, alignment: .leading)
-                    } else if let items = message.items, !items.isEmpty {
-                        glassBubble(cornerRadius: KuroRadius.md) {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text("MATCHES")
-                                        .font(.kuroCaption(weight: .medium))
-                                        .tracking(1.6)
-                                        .foregroundColor(.black.opacity(0.55))
-                                    Spacer()
-                                    Text("\(items.count)")
-                                        .font(.kuroCaption(weight: .medium))
-                                        .foregroundColor(.black.opacity(0.45))
-                                }
-
-                                VStack(spacing: 10) {
-                                    ForEach(items) { item in
-                                        ConciergeMatchRow(
-                                            item: item,
-                                            chosen: selected(item),
-                                            onSelect: { cand in onSelect(item, cand) }
-                                        )
-                                    }
+                            VStack(spacing: 10) {
+                                ForEach(items) { item in
+                                    ConciergeMatchRow(
+                                        item: item,
+                                        chosen: selected(item),
+                                        onSelect: { cand in onSelect(item, cand) }
+                                    )
                                 }
                             }
-                            .padding(14)
                         }
-                        .frame(maxWidth: 420, alignment: .leading)
+                        .padding(14)
                     }
-
-	                    if let sets = message.recommendationSets, !sets.isEmpty {
-                        let visibleSets = sets.prefix(2)
-	                        VStack(alignment: .leading, spacing: 18) {
-	                            ForEach(Array(visibleSets), id: \.id) { set in
-	                                let items = (set.items ?? [])
-	                                if !items.isEmpty {
-	                                    let curated = ConciergeCuratedCopy.titleAndSubtitle(for: set.modeId, fallbackTitle: set.title)
-	                                    let title = (set.displayTitle ?? curated?.0 ?? set.title).trimmingCharacters(in: .whitespacesAndNewlines)
-	                                    RecommendationRail(
-	                                        title: title.isEmpty ? "Selections" : title,
-	                                        subtitle: set.displaySubtitle ?? curated?.1,
-	                                        items: items,
-	                                        onOpen: { onOpenRecommendation($0) },
-	                                        onSave: { onQuickSave($0) },
-	                                        onHide: nil
-	                                    )
-	                                }
-	                            }
-	                        }
-	                        .frame(maxWidth: 520, alignment: .leading)
-	                    } else if let recs = message.recommendations, !recs.isEmpty {
-	                        VStack(alignment: .leading, spacing: 14) {
-	                            RecommendationRail(
-	                                title: "Selections",
-	                                subtitle: nil,
-	                                items: recs,
-	                                onOpen: { onOpenRecommendation($0) },
-	                                onSave: { onQuickSave($0) },
-	                                onHide: nil
-	                            )
-	                        }
-	                        .frame(maxWidth: 520, alignment: .leading)
-	                    }
+                    .frame(maxWidth: 420, alignment: .leading)
                 }
-                Spacer(minLength: 40)
-            } else {
-                // User bubble — direct black fill, no glass wrapper
-                Spacer(minLength: 40)
-                Text(message.text)
-                    .font(.kuroBody())
-                    .foregroundColor(.white.opacity(0.92))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                            .fill(colorScheme == .dark ? Color.white.opacity(0.10) : Color.black)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                                    .stroke(Color.white.opacity(colorScheme == .dark ? 0.18 : 0.0), lineWidth: 0.6)
-                            )
+
+                if let sets = message.recommendationSets, !sets.isEmpty {
+                    let visibleSets = sets.prefix(2)
+                    VStack(alignment: .leading, spacing: 18) {
+                        ForEach(Array(visibleSets), id: \.id) { set in
+                            let items = (set.items ?? [])
+                            if !items.isEmpty {
+                                let curated = ConciergeCuratedCopy.titleAndSubtitle(for: set.modeId, fallbackTitle: set.title)
+                                let title = (set.displayTitle ?? curated?.0 ?? set.title).trimmingCharacters(in: .whitespacesAndNewlines)
+                                RecommendationRail(
+                                    title: title.isEmpty ? "Selections" : title,
+                                    subtitle: set.displaySubtitle ?? curated?.1,
+                                    items: items,
+                                    onOpen: { onOpenRecommendation($0) },
+                                    onSave: { onQuickSave($0) },
+                                    onHide: nil
+                                )
+                            }
+                        }
+                    }
+                    .frame(maxWidth: 520, alignment: .leading)
+                } else if let recs = message.recommendations, !recs.isEmpty {
+                    RecommendationRail(
+                        title: "Selections",
+                        subtitle: nil,
+                        items: recs,
+                        onOpen: { onOpenRecommendation($0) },
+                        onSave: { onQuickSave($0) },
+                        onHide: nil
                     )
-                    .frame(maxWidth: 360, alignment: .trailing)
+                    .frame(maxWidth: 520, alignment: .leading)
+                }
             }
         }
     }
@@ -1140,7 +1130,7 @@ struct ConciergeBubble: View {
     private func ambiguityCard(ambiguity: SupabaseService.ConciergeAmbiguity, sourceText: String) -> some View {
         switch ambiguity.kind {
         case "status_unclear":
-            glassBubble(cornerRadius: KuroRadius.md) {
+            plainSurface(cornerRadius: KuroRadius.md) {
                 ConciergeStatusClarifyCard(
                     titleContext: ambiguity.title_context
                 ) { status in
@@ -1151,7 +1141,7 @@ struct ConciergeBubble: View {
             }
 
         case "unit_unclear":
-            glassBubble(cornerRadius: KuroRadius.md) {
+            plainSurface(cornerRadius: KuroRadius.md) {
                 ConciergeUnitClarifyCard(
                     numberContext: ambiguity.number_context
                 ) { unit in
@@ -1162,7 +1152,7 @@ struct ConciergeBubble: View {
             }
 
         case "intent_unclear":
-            glassBubble(cornerRadius: KuroRadius.md) {
+            plainSurface(cornerRadius: KuroRadius.md) {
                 ConciergeIntentClarifyCard(
                     titleContext: ambiguity.title_context
                 ) { intent in
@@ -1175,6 +1165,28 @@ struct ConciergeBubble: View {
         default:
             EmptyView()
         }
+    }
+}
+
+private struct WhisperMessageMoonIcon: View {
+    var body: some View {
+        ZStack {
+            Path { path in
+                path.move(to: CGPoint(x: 10, y: 2))
+                path.addCurve(to: CGPoint(x: 10, y: 18), control1: CGPoint(x: 8, y: 6), control2: CGPoint(x: 8, y: 14))
+                path.addCurve(to: CGPoint(x: 3.5, y: 10), control1: CGPoint(x: 6.5, y: 18), control2: CGPoint(x: 3.5, y: 14))
+                path.addCurve(to: CGPoint(x: 10, y: 2), control1: CGPoint(x: 3.5, y: 6), control2: CGPoint(x: 6.5, y: 2))
+                path.closeSubpath()
+            }
+            .fill(Color.black.opacity(0.35))
+
+            Circle()
+                .fill(Color.black.opacity(0.35))
+                .frame(width: 3, height: 3)
+                .offset(x: 4, y: -4)
+        }
+        .frame(width: 20, height: 20)
+        .accessibilityHidden(true)
     }
 }
 

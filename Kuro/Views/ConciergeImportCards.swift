@@ -175,7 +175,7 @@ struct ImportConfirmCard: View {
                     }) {
                         Image(systemName: isExcluded ? "square" : "checkmark.square.fill")
                             .font(.kuroTitle(weight: .regular))
-                            .foregroundColor(isExcluded ? .black.opacity(0.25) : .black.opacity(0.72))
+                            .foregroundColor(isExcluded ? .kuroTextTertiary : .black.opacity(0.72))
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 4)

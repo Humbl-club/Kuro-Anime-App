@@ -386,7 +386,9 @@ class SupabaseService {
             currentUserId = session.user.id.uuidString
             analytics.setUserId(currentUserId)
             await ensureProfileRow()
-            await bootstrapAfterAuth()
+            // Fire bootstrap without blocking — the UI can show immediately
+            // with shimmer/skeleton placeholders while data loads in parallel.
+            Task { await bootstrapAfterAuth() }
         } catch {
             isAuthenticated = false
             currentUserId = nil
@@ -435,6 +437,86 @@ class SupabaseService {
             authErrorMessage = error.localizedDescription
             throw error
         }
+    }
+
+    func signInWithApple(idToken: String, rawNonce: String, fullName: String?) async throws {
+        authErrorMessage = nil
+        do {
+            let session = try await client.auth.signInWithIdToken(
+                credentials: .init(
+                    provider: .apple,
+                    idToken: idToken,
+                    nonce: rawNonce
+                )
+            )
+            isAuthenticated = true
+            currentUserEmail = session.user.email
+            currentUserId = session.user.id.uuidString
+            analytics.setUserId(currentUserId)
+
+            // Apple only provides full name on first sign-in; persist it.
+            if let fullName, !fullName.isEmpty {
+                try? await client.auth.update(
+                    user: .init(data: ["full_name": .string(fullName)])
+                )
+            }
+
+            await ensureProfileRow()
+            await bootstrapAfterAuth()
+        } catch {
+            authErrorMessage = error.localizedDescription
+            isAuthenticated = false
+            currentUserId = nil
+            analytics.setUserId(nil)
+            throw error
+        }
+    }
+
+    func resetPassword(email: String) async throws {
+        try await client.auth.resetPasswordForEmail(email)
+    }
+
+    /// GDPR-compliant account deletion. Calls the `delete-account` Edge Function
+    /// which cascades through all user data tables, removes storage objects,
+    /// then deletes the auth.users row.
+    var isAppleUser: Bool {
+        get async {
+            guard let user = try? await client.auth.user() else { return false }
+            return user.identities?.contains(where: { $0.provider == "apple" }) ?? false
+        }
+    }
+
+    func deleteAccount(appleAuthorizationCode: String? = nil) async throws {
+        struct DeleteResponse: Decodable {
+            let success: Bool?
+            let error: String?
+            let message: String?
+        }
+        var body: [String: String] = ["confirm": "true"]
+        if let appleAuthorizationCode {
+            body["apple_authorization_code"] = appleAuthorizationCode
+        }
+        let response: DeleteResponse = try await client.functions.invoke(
+            "delete-account",
+            options: .init(body: body)
+        )
+        if response.success != true {
+            throw NSError(
+                domain: "KuroAccountDeletion",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: response.error ?? response.message ?? "Account deletion failed"]
+            )
+        }
+        // Clear local state (same as sign out).
+        await stopRealtimeSubscriptions()
+        isAuthenticated = false
+        currentUserEmail = nil
+        currentUserId = nil
+        authErrorMessage = nil
+        stopCountdownUpdates()
+        resetUserState()
+        analytics.setUserId(nil)
+        FeatureFlags.shared.setUserId(nil)
     }
 
     func signOut() async {
@@ -486,16 +568,19 @@ class SupabaseService {
     }
 
     private func bootstrapAfterAuth() async {
-        // Load user state early so collection indicators + progress are correct across the UI.
-        await fetchUserLists()
-        await fetchCollectionItems()
-        await fetchCollectionFeed()
-        await fetchUpcomingForUser(days: 7)
+        // Fetch all independent user data in parallel to cut startup latency.
+        // Each fetch updates @Observable properties, so the UI fills progressively.
+        async let lists: () = fetchUserLists()
+        async let collection: () = fetchCollectionItems()
+        async let feed: () = fetchCollectionFeed()
+        async let upcoming: () = fetchUpcomingForUser(days: 7)
+        _ = await (lists, collection, feed, upcoming)
+
         startCountdownUpdates()
         subscribeToUpdates()
 
-        // Refresh server-controlled feature flags (non-blocking; stale cache used on failure).
-        await FeatureFlags.shared.refresh(client: client, userId: currentUserId)
+        // Feature flags are non-critical; fire without blocking.
+        Task { await FeatureFlags.shared.refresh(client: client, userId: currentUserId) }
     }
 
     private func currentUserIdString() async -> String? {
@@ -3804,6 +3889,23 @@ class SupabaseService {
         userListByTypeAndId[mediaType.lowercased()]?[mediaId]?.progress
     }
 
+    func userListEntry(mediaType: String, mediaId: Int) -> UserList? {
+        userListByTypeAndId[mediaType.lowercased()]?[mediaId]
+    }
+
+    func incrementProgress(mediaId: Int, mediaType: String) async {
+        guard let entry = userListByTypeAndId[mediaType.lowercased()]?[mediaId] else { return }
+        let newProgress = entry.progress + 1
+        await upsertUserListEntry(
+            mediaId: mediaId,
+            mediaType: mediaType,
+            status: entry.status,
+            progress: newProgress,
+            rating: entry.score,
+            notes: entry.notes
+        )
+    }
+
     func isFavorited(_ animeId: Int) -> Bool {
         // Check if anime has high score (favorited)
         return userListByTypeAndId["anime"]?[animeId]?.score ?? 0 >= 90
@@ -3974,6 +4076,16 @@ class SupabaseService {
         let sort_order: Int
     }
 
+    struct CreateRailResponse: Decodable, Sendable {
+        let rail_id: String
+        let title: String
+    }
+
+    struct CreatePollResponse: Decodable, Sendable {
+        let poll_id: String
+        let question: String
+    }
+
     // Lightweight row for "My Clubs" list (fetched via direct table query)
     struct ClubListRow: Decodable, Sendable, Identifiable {
         let id: String
@@ -4109,6 +4221,39 @@ class SupabaseService {
         let params = RPCCastVoteParams(p_poll_id: pollId, p_option_id: optionId)
         let _: SimpleSuccessResponse = try await client
             .rpc("cast_club_vote", params: params)
+            .execute()
+            .value
+    }
+
+    func createClubRail(clubId: String, title: String, description: String? = nil) async throws -> CreateRailResponse {
+        let params = RPCCreateClubRailParams(p_club_id: clubId, p_title: title, p_description: description)
+        let resp: CreateRailResponse = try await client
+            .rpc("create_club_rail", params: params)
+            .execute()
+            .value
+        clubBundleCache.removeValue(forKey: clubId)
+        return resp
+    }
+
+    func createClubPoll(clubId: String, question: String, options: [String]) async throws -> CreatePollResponse {
+        let params = RPCCreateClubPollParams(p_club_id: clubId, p_question: question, p_options: options)
+        let resp: CreatePollResponse = try await client
+            .rpc("create_club_poll", params: params)
+            .execute()
+            .value
+        clubBundleCache.removeValue(forKey: clubId)
+        return resp
+    }
+
+    struct ToggleReactionResponse: Decodable, Sendable {
+        let action: String // "added" | "removed"
+        let emoji: String
+    }
+
+    func toggleReaction(railItemId: String, emoji: String) async throws -> ToggleReactionResponse {
+        let params = RPCToggleReactionParams(p_rail_item_id: railItemId, p_emoji: emoji)
+        return try await client
+            .rpc("toggle_club_reaction", params: params)
             .execute()
             .value
     }

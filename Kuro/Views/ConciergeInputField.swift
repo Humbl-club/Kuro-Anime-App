@@ -429,96 +429,40 @@ struct ConciergeInputField: View {
     }
 
     private var uiFont: UIFont {
-        (isInputFocused || !isEmpty)
-            ? .systemFont(ofSize: 15, weight: .light)
-            : .systemFont(ofSize: 13, weight: .light)
+        let base = UIFont.systemFont(ofSize: 17, weight: .regular)
+        let descriptor = base.fontDescriptor.withDesign(.serif) ?? base.fontDescriptor
+        return UIFont(descriptor: descriptor, size: 17)
     }
     
     // MARK: - Body
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if !suggestions.isEmpty && !isSending && !isImportIntent {
-                ConciergeSuggestionBar(suggestions: suggestions, onTap: applySuggestion)
-                    .transition(.opacity)
+        HStack(alignment: .center, spacing: 12) {
+            ZStack(alignment: .topLeading) {
+                if isEmpty {
+                    placeholderView
+                }
+
+                KuroGrowingTextView(
+                    text: $text,
+                    isFocused: Binding(
+                        get: { isInputFocused },
+                        set: { isInputFocused = $0 }
+                    ),
+                    measuredHeight: $measuredTextHeight,
+                    font: uiFont,
+                    textColor: UIColor.black.withAlphaComponent(0.85),
+                    maxHeight: inputMaxHeight
+                )
+                .frame(height: min(inputMaxHeight, max(Constants.lineHeight, measuredTextHeight)))
+                .onChange(of: text) { oldValue, newValue in
+                    handleTextChange(from: oldValue, to: newValue)
+                }
             }
 
-            // Main input container
-            HStack(alignment: .bottom, spacing: 12) {
-                    // Input area with placeholder
-                    ZStack(alignment: .topLeading) {
-                        // Placeholder text (static, no animation)
-                        if isEmpty {
-                            placeholderView
-                        }
-
-                        KuroGrowingTextView(
-                            text: $text,
-                            isFocused: Binding(
-                                get: { isInputFocused },
-                                set: { isInputFocused = $0 }
-                            ),
-                            measuredHeight: $measuredTextHeight,
-                            font: uiFont,
-                            textColor: UIColor.label.withAlphaComponent(inputOpacity),
-                            maxHeight: inputMaxHeight
-                        )
-                        .frame(height: min(inputMaxHeight, max(Constants.lineHeight, measuredTextHeight)))
-                        .onChange(of: text) { oldValue, newValue in
-                            handleTextChange(from: oldValue, to: newValue)
-                        }
-                    }
-
-                    // Intent indicator (if detected)
-                    if currentIntent != .unknown {
-                        IntentIndicator(intent: currentIntent)
-                            .transition(.scale.combined(with: .opacity))
-                    }
-
-                    // Paste affordance (collapsed, empty)
-                    if isEmpty && !isSending && !isInputFocused {
-                        Button(action: pasteFromClipboard) {
-                            Image(systemName: "doc.on.clipboard")
-                                .font(.kuroCaption(weight: .medium))
-                                .foregroundStyle(Color.black.opacity(0.30))
-                                .frame(width: 30, height: 30)
-                                .background(
-                                    Circle().fill(Color.black.opacity(0.04))
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.bottom, 2)
-                    }
-
-                    // Send button
-                    sendButton
-                }
-                .padding(.horizontal, Constants.horizontalPadding)
-                .padding(.vertical, Constants.verticalPadding)
-                .background(
-                    RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                        .fill(Color.kuroSecondaryBackground.opacity(0.96))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                                .stroke(
-                                    Color.primary.opacity(0.10),
-                                    lineWidth: 0.6
-                                )
-                        )
-                )
-                .overlay(alignment: .topLeading) {
-                    // Detected list chip (anchored to input, not floating mid-screen)
-                    if showDetectedChip {
-                        DetectedListChip(count: detectedCount) {
-                            withAnimation(.spring(response: 0.3)) {
-                                showDetectedChip = false
-                            }
-                        }
-                        .offset(x: 8, y: -44)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-                }
+            sendButton
         }
+        .padding(.vertical, 6)
         .onAppear {
             updateSuggestionsDebounced(text)
         }
@@ -537,26 +481,26 @@ struct ConciergeInputField: View {
     // MARK: - Subviews
     
     private var placeholderView: some View {
-        Text(isGermanLocale ? "Liste direkt importieren oder Stimmung beschreiben..." : "Import a list, or describe a mood...")
-            .font(.system(size: isInputFocused ? 15 : 13, weight: .light, design: .default))
-            .foregroundStyle(Color.black.opacity(0.30))
+        Text("Ask Whisper...")
+            .font(.system(size: 17, weight: .regular, design: .serif))
+            .italic()
+            .foregroundStyle(Color.black.opacity(0.35))
             .padding(.top, 2)
     }
     
     private var sendButton: some View {
         Button(action: handleSend) {
-            Image(systemName: "arrow.up")
-                .font(.kuroCaption(weight: .medium))
-                .foregroundStyle(canSend ? .white : Color.black.opacity(0.18))
-                .frame(width: 30, height: 30)
+            Image(systemName: "paperplane")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Color.black.opacity(canSend ? 0.55 : 0.28))
+                .frame(width: 32, height: 32)
                 .background(
                     Circle()
-                        .fill(canSend ? Color.black.opacity(0.88) : Color.black.opacity(0.04))
+                        .fill(Color.black.opacity(canSend ? 0.06 : 0.03))
                 )
         }
         .disabled(!canSend)
-        .buttonStyle(ConciergeSendButtonStyle())
-        .padding(.bottom, 2)
+        .buttonStyle(.plain)
     }
     
     // MARK: - Actions

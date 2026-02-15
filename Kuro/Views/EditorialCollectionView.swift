@@ -7,11 +7,16 @@ import SwiftUI
 struct EditorialCollectionView: View {
     @Environment(SupabaseService.self) private var supabaseService
     @State private var selectedFilter: CollectionFilter = .all
+    @State private var selectedSort: CollectionSort = .lastUpdated
+    @State private var showListView = false
     @State private var didInitialLoad = false
     @State private var bannerMessage: String? = nil
     @State private var showSearch = false
     @State private var searchText = ""
     @State private var searchResults: [Media]?
+    @State private var isEditMode = false
+    @State private var selectedKeys: Set<String> = []
+    @State private var showBatchStatusPicker = false
 
     enum CollectionFilter: String, CaseIterable {
         case all = "ALL"
@@ -33,9 +38,32 @@ struct EditorialCollectionView: View {
         }
     }
 
+    enum CollectionSort: String, CaseIterable {
+        case lastUpdated = "LAST UPDATED"
+        case titleAZ = "TITLE A-Z"
+        case rating = "RATING"
+        case progress = "PROGRESS"
+    }
+
     private var items: [Media] { supabaseService.collectionFeedItems }
 
-    private var displayItems: [Media] { searchResults ?? items }
+    private var displayItems: [Media] {
+        let base = searchResults ?? items
+        switch selectedSort {
+        case .lastUpdated:
+            return base
+        case .titleAZ:
+            return base.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        case .rating:
+            return base.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
+        case .progress:
+            return base.sorted {
+                let p0 = supabaseService.userListProgress(mediaType: $0.kind.rawValue, mediaId: $0.id) ?? 0
+                let p1 = supabaseService.userListProgress(mediaType: $1.kind.rawValue, mediaId: $1.id) ?? 0
+                return p0 > p1
+            }
+        }
+    }
 
     private var hasContent: Bool {
         !displayItems.isEmpty
@@ -68,6 +96,63 @@ struct EditorialCollectionView: View {
                 }
                 .padding(.vertical, 20)
 
+                // Sort + View Toggle Bar
+                HStack(spacing: 0) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(CollectionSort.allCases, id: \.self) { sort in
+                                Button {
+                                    KuroAccessibility.impactHaptic(.light)
+                                    withAnimation(KuroAnimation.fast) {
+                                        selectedSort = sort
+                                    }
+                                } label: {
+                                    Text(sort.rawValue)
+                                        .font(.system(size: 9, weight: .medium))
+                                        .tracking(1.0)
+                                        .foregroundColor(selectedSort == sort ? .black : .black.opacity(0.35))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, EditorialLayout.marginEditorial)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        withAnimation(KuroAnimation.fast) {
+                            showListView.toggle()
+                        }
+                    } label: {
+                        Image(systemName: showListView ? "square.grid.2x2" : "list.bullet")
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(.black.opacity(0.45))
+                    }
+                    .buttonStyle(.plain)
+
+                    if hasContent {
+                        Button {
+                            KuroAccessibility.impactHaptic(.light)
+                            withAnimation(KuroAnimation.fast) {
+                                isEditMode.toggle()
+                                if !isEditMode { selectedKeys.removeAll() }
+                            }
+                        } label: {
+                            Text(isEditMode ? "DONE" : "EDIT")
+                                .font(.kuroMicro(weight: .semibold))
+                                .tracking(1.0)
+                                .foregroundColor(isEditMode ? .black : .black.opacity(0.45))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.leading, 12)
+                    }
+
+                    Spacer().frame(width: EditorialLayout.marginEditorial)
+                }
+                .padding(.bottom, 12)
+
                 // Search field
                 if showSearch {
                     HStack(spacing: 8) {
@@ -83,7 +168,7 @@ struct EditorialCollectionView: View {
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.system(size: 14))
-                                    .foregroundColor(.black.opacity(0.30))
+                                    .foregroundColor(.kuroTextTertiary)
                             }
                         }
                     }
@@ -126,7 +211,11 @@ struct EditorialCollectionView: View {
                             EditorialCollectionEmpty()
                         }
                     } else {
-                        EditorialCollectionGrid(items: displayItems, geometry: geometry, title: nil)
+                        if showListView {
+                            CollectionListView(items: displayItems, isEditMode: isEditMode, selectedKeys: $selectedKeys)
+                        } else {
+                            EditorialCollectionGrid(items: displayItems, geometry: geometry, title: nil, isEditMode: isEditMode, selectedKeys: $selectedKeys)
+                        }
                         if searchResults == nil {
                             KuroLoadMoreSentinel(
                                 itemCount: items.count,
@@ -155,7 +244,7 @@ struct EditorialCollectionView: View {
                         Task { await ImagePipeline.shared.prefetch(urls: urls) }
                     }
                 }
-                .background(Color.white)
+                .background(Color.kuroBackground)
                 .overlay(alignment: .top) {
                     if let bannerMessage {
                         KuroTransientBanner(message: bannerMessage)
@@ -163,7 +252,28 @@ struct EditorialCollectionView: View {
                             .transition(.move(edge: .top).combined(with: .opacity))
                     }
                 }
+
+                // Batch action bar
+                if isEditMode && !selectedKeys.isEmpty {
+                    CollectionBatchBar(
+                        count: selectedKeys.count,
+                        onChangeStatus: { showBatchStatusPicker = true },
+                        onRemove: { Task { await batchRemove() } }
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
+        }
+        .confirmationDialog(
+            "Change status for \(selectedKeys.count) item\(selectedKeys.count == 1 ? "" : "s")",
+            isPresented: $showBatchStatusPicker,
+            titleVisibility: .visible
+        ) {
+            Button("Watching") { Task { await batchChangeStatus(.current) } }
+            Button("Completed") { Task { await batchChangeStatus(.completed) } }
+            Button("Planned") { Task { await batchChangeStatus(.planning) } }
+            Button("Paused") { Task { await batchChangeStatus(.paused) } }
+            Button("Cancel", role: .cancel) { }
         }
         .task {
             if !didInitialLoad {
@@ -230,6 +340,48 @@ struct EditorialCollectionView: View {
             // Fallback: simple substring match
             searchResults = items.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
         }
+    }
+
+    @MainActor
+    private func batchChangeStatus(_ status: ListStatus) async {
+        let selected = selectedMediaItems()
+        guard !selected.isEmpty else { return }
+        for media in selected {
+            await supabaseService.upsertUserListEntry(
+                mediaId: media.id,
+                mediaType: media.kind.rawValue,
+                status: status,
+                progress: supabaseService.userListProgress(mediaType: media.kind.rawValue, mediaId: media.id) ?? 0,
+                rating: nil,
+                notes: nil
+            )
+        }
+        KuroAccessibility.successHaptic()
+        showBanner("Updated \(selected.count) item\(selected.count == 1 ? "" : "s")")
+        withAnimation(KuroAnimation.fast) {
+            selectedKeys.removeAll()
+            isEditMode = false
+        }
+        await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
+    }
+
+    @MainActor
+    private func batchRemove() async {
+        let selected = selectedMediaItems()
+        guard !selected.isEmpty else { return }
+        for media in selected {
+            supabaseService.toggleInCollection(mediaId: media.id, mediaType: media.kind.rawValue)
+        }
+        KuroAccessibility.successHaptic()
+        showBanner("Removed \(selected.count) item\(selected.count == 1 ? "" : "s")")
+        withAnimation(KuroAnimation.fast) {
+            selectedKeys.removeAll()
+            isEditMode = false
+        }
+    }
+
+    private func selectedMediaItems() -> [Media] {
+        displayItems.filter { selectedKeys.contains($0.stableKey) }
     }
 
     @MainActor
@@ -304,11 +456,15 @@ struct EditorialCollectionGrid: View {
     let items: [any MediaDisplayable]
     let geometry: GeometryProxy
     let title: String?
+    var isEditMode: Bool = false
+    @Binding var selectedKeys: Set<String>
 
-    init(items: [any MediaDisplayable], geometry: GeometryProxy, title: String? = nil) {
+    init(items: [any MediaDisplayable], geometry: GeometryProxy, title: String? = nil, isEditMode: Bool = false, selectedKeys: Binding<Set<String>> = .constant([])) {
         self.items = items
         self.geometry = geometry
         self.title = title
+        self.isEditMode = isEditMode
+        self._selectedKeys = selectedKeys
     }
 
     var body: some View {
@@ -341,7 +497,20 @@ struct EditorialCollectionGrid: View {
 
             LazyVGrid(columns: columns, spacing: 16) {
                 ForEach(items, id: \.stableKey) { media in
-                    CollectionGridCard(media: media, cardWidth: cardWidth, cardHeight: totalCardHeight)
+                    CollectionGridCard(
+                        media: media,
+                        cardWidth: cardWidth,
+                        cardHeight: totalCardHeight,
+                        isEditMode: isEditMode,
+                        isSelected: selectedKeys.contains(media.stableKey)
+                    ) {
+                        let key = media.stableKey
+                        if selectedKeys.contains(key) {
+                            selectedKeys.remove(key)
+                        } else {
+                            selectedKeys.insert(key)
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -386,6 +555,8 @@ struct EditorialCollectionLoading: View {
 
 // MARK: - Editorial Collection Empty
 struct EditorialCollectionEmpty: View {
+    var onExploreDiscover: (() -> Void)? = nil
+
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
@@ -408,6 +579,29 @@ struct EditorialCollectionEmpty: View {
                 }
             }
 
+            if let onExploreDiscover {
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    onExploreDiscover()
+                } label: {
+                    Text("EXPLORE DISCOVER")
+                        .font(.system(size: 11, weight: .semibold))
+                        .tracking(1.5)
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule()
+                                .fill(Color.black.opacity(0.06))
+                        )
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.black.opacity(0.12), lineWidth: 0.5)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+
             // Instructions
             VStack(alignment: .leading, spacing: 12) {
                 InstructionRow(
@@ -420,7 +614,7 @@ struct EditorialCollectionEmpty: View {
                 )
                 InstructionRow(
                     icon: "checkmark.circle",
-                    text: "Green checkmark shows collected items"
+                    text: "Checkmark shows collected items"
                 )
             }
             .padding(.horizontal, 40)
@@ -513,6 +707,9 @@ struct CollectionGridCard: View {
     let media: any MediaDisplayable
     let cardWidth: CGFloat
     let cardHeight: CGFloat
+    var isEditMode: Bool = false
+    var isSelected: Bool = false
+    var onToggleSelection: (() -> Void)? = nil
     @State private var showDetail = false
     @State private var showAddToList = false
     @Environment(SupabaseService.self) private var supabaseService
@@ -538,6 +735,20 @@ struct CollectionGridCard: View {
         supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
     }
 
+    private var userEntry: UserList? {
+        supabaseService.userListEntry(mediaType: mediaType, mediaId: media.id)
+    }
+
+    private var canIncrementProgress: Bool {
+        guard let entry = userEntry, entry.status == .current else { return false }
+        let total = media.episodes ?? media.chapters ?? 0
+        return total == 0 || entry.progress < total
+    }
+
+    private var incrementLabel: String {
+        media.kind == .anime ? "+1 EP" : "+1 CH"
+    }
+
     private var userProgress: (watched: Int, total: Int)? {
         guard media.kind == .anime else { return nil }
         guard let watched = supabaseService.userListProgress(mediaType: "anime", mediaId: media.id) else { return nil }
@@ -554,6 +765,11 @@ struct CollectionGridCard: View {
 
     var body: some View {
         Button(action: {
+            if isEditMode {
+                KuroAccessibility.impactHaptic(.light)
+                onToggleSelection?()
+                return
+            }
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
@@ -614,10 +830,10 @@ struct CollectionGridCard: View {
                     }
 
                     // Collection indicator
-                    if isInCollection {
+                    if isInCollection && !isEditMode {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 16))
-                            .foregroundColor(.green)
+                            .foregroundColor(.black.opacity(0.55))
                             .background(
                                 Circle()
                                     .fill(Color.white)
@@ -626,6 +842,24 @@ struct CollectionGridCard: View {
                     }
                 }
                 .padding(6)
+
+                // Edit mode selection overlay
+                if isEditMode {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.black.opacity(isSelected ? 0.25 : 0.0))
+                        .allowsHitTesting(false)
+
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22, weight: .regular))
+                        .foregroundColor(isSelected ? .black.opacity(0.80) : .black.opacity(0.40))
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(isSelected ? 0.92 : 0.70))
+                                .frame(width: 26, height: 26)
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                        .padding(8)
+                }
             }
 
             // Title and info - FIXED HEIGHT
@@ -656,17 +890,55 @@ struct CollectionGridCard: View {
                     }
                 }
 
-                // PROGRESS DISPLAY (anime or manga)
+                // PROGRESS DISPLAY (anime or manga) with +1 button
                 if let progress = userProgress {
-                    Text("\(progress.watched)/\(progress.total) WATCHED")
-                        .font(.system(size: 10, weight: .medium))
-                        .tracking(0.5)
-                        .foregroundColor(.black.opacity(0.7))
+                    HStack(spacing: 6) {
+                        Text("\(progress.watched)/\(progress.total) WATCHED")
+                            .font(.system(size: 10, weight: .medium))
+                            .tracking(0.5)
+                            .foregroundColor(.black.opacity(0.7))
+                        if canIncrementProgress {
+                            Button {
+                                KuroAccessibility.impactHaptic(.light)
+                                Task { await supabaseService.incrementProgress(mediaId: media.id, mediaType: mediaType) }
+                            } label: {
+                                Text("+1 EP")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .tracking(0.8)
+                                    .foregroundColor(.black.opacity(0.55))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        Capsule().fill(Color.black.opacity(0.06))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 } else if let progress = mangaProgress {
-                    Text("\(progress.read)/\(progress.total) READ")
-                        .font(.system(size: 10, weight: .medium))
-                        .tracking(0.5)
-                        .foregroundColor(.black.opacity(0.7))
+                    HStack(spacing: 6) {
+                        Text("\(progress.read)/\(progress.total) READ")
+                            .font(.system(size: 10, weight: .medium))
+                            .tracking(0.5)
+                            .foregroundColor(.black.opacity(0.7))
+                        if canIncrementProgress {
+                            Button {
+                                KuroAccessibility.impactHaptic(.light)
+                                Task { await supabaseService.incrementProgress(mediaId: media.id, mediaType: mediaType) }
+                            } label: {
+                                Text("+1 CH")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .tracking(0.8)
+                                    .foregroundColor(.black.opacity(0.55))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        Capsule().fill(Color.black.opacity(0.06))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
 
                 // COUNTDOWN TIMER FOR AIRING ANIME (via upcomingAirings)
@@ -687,6 +959,15 @@ struct CollectionGridCard: View {
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityHint("Opens details")
         .contextMenu {
+            if canIncrementProgress {
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    Task { await supabaseService.incrementProgress(mediaId: media.id, mediaType: mediaType) }
+                }) {
+                    Label(incrementLabel, systemImage: "plus.circle")
+                }
+            }
+
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
                 showAddToList = true
@@ -722,5 +1003,240 @@ struct CollectionGridCard: View {
             parts.append("Next episode in \(countdown)")
         }
         return Text(parts.joined(separator: ", "))
+    }
+}
+
+// MARK: - Collection List View (compact rows)
+struct CollectionListView: View {
+    let items: [any MediaDisplayable]
+    var isEditMode: Bool = false
+    @Binding var selectedKeys: Set<String>
+
+    init(items: [any MediaDisplayable], isEditMode: Bool = false, selectedKeys: Binding<Set<String>> = .constant([])) {
+        self.items = items
+        self.isEditMode = isEditMode
+        self._selectedKeys = selectedKeys
+    }
+
+    var body: some View {
+        LazyVStack(spacing: 0) {
+            ForEach(items, id: \.stableKey) { media in
+                CollectionListRow(
+                    media: media,
+                    isEditMode: isEditMode,
+                    isSelected: selectedKeys.contains(media.stableKey)
+                ) {
+                    let key = media.stableKey
+                    if selectedKeys.contains(key) {
+                        selectedKeys.remove(key)
+                    } else {
+                        selectedKeys.insert(key)
+                    }
+                }
+                Rectangle()
+                    .fill(Color.black.opacity(0.06))
+                    .frame(height: 0.5)
+                    .padding(.horizontal, 20)
+            }
+        }
+        .padding(.bottom, 32)
+    }
+}
+
+// MARK: - Collection List Row
+private struct CollectionListRow: View {
+    let media: any MediaDisplayable
+    var isEditMode: Bool = false
+    var isSelected: Bool = false
+    var onToggleSelection: (() -> Void)? = nil
+    @State private var showDetail = false
+    @Environment(SupabaseService.self) private var supabaseService
+
+    private var mediaType: String { media.kind.rawValue }
+
+    private var userEntry: UserList? {
+        supabaseService.userListEntry(mediaType: mediaType, mediaId: media.id)
+    }
+
+    private var statusLabel: String {
+        guard let entry = userEntry else { return "" }
+        switch entry.status {
+        case .current: return media.kind == .anime ? "WATCHING" : "READING"
+        case .planning: return "PLANNED"
+        case .completed: return "COMPLETED"
+        case .dropped: return "DROPPED"
+        case .paused: return "PAUSED"
+        case .repeating: return media.kind == .anime ? "REWATCHING" : "REREADING"
+        }
+    }
+
+    private var progressText: String? {
+        guard let entry = userEntry, entry.progress > 0 else { return nil }
+        let total = media.episodes ?? media.chapters ?? 0
+        let unit = media.kind == .anime ? "ep" : "ch"
+        if total > 0 {
+            return "\(entry.progress)/\(total) \(unit)"
+        }
+        return "\(entry.progress) \(unit)"
+    }
+
+    private var canIncrement: Bool {
+        guard let entry = userEntry, entry.status == .current else { return false }
+        let total = media.episodes ?? media.chapters ?? 0
+        return total == 0 || entry.progress < total
+    }
+
+    var body: some View {
+        Button {
+            if isEditMode {
+                KuroAccessibility.impactHaptic(.light)
+                onToggleSelection?()
+                return
+            }
+            KuroAccessibility.impactHaptic(.light)
+            showDetail = true
+        } label: {
+            HStack(spacing: 12) {
+                // Edit mode checkbox
+                if isEditMode {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 20, weight: .regular))
+                        .foregroundColor(isSelected ? .black.opacity(0.80) : .black.opacity(0.30))
+                }
+
+                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 120) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().aspectRatio(contentMode: .fill)
+                            .frame(width: 40, height: 56).clipped()
+                    case .failure, .empty:
+                        Rectangle().fill(Color.black.opacity(0.05))
+                            .frame(width: 40, height: 56)
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(media.title)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+
+                    HStack(spacing: 6) {
+                        Text(statusLabel)
+                            .font(.system(size: 9, weight: .medium))
+                            .tracking(0.8)
+                            .foregroundColor(.black.opacity(0.55))
+
+                        if let progressText {
+                            Text(progressText)
+                                .font(.system(size: 9, weight: .regular))
+                                .foregroundColor(.black.opacity(0.4))
+                        }
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                if !isEditMode && canIncrement {
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        Task { await supabaseService.incrementProgress(mediaId: media.id, mediaType: mediaType) }
+                    } label: {
+                        Text(media.kind == .anime ? "+1 EP" : "+1 CH")
+                            .font(.system(size: 9, weight: .semibold))
+                            .tracking(0.8)
+                            .foregroundColor(.black.opacity(0.55))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule().fill(Color.black.opacity(0.06))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                if !isEditMode {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.black.opacity(0.25))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showDetail) {
+            MediaDetailSheet(kind: media.kind, id: media.id)
+        }
+    }
+}
+
+// MARK: - Batch Action Bar
+private struct CollectionBatchBar: View {
+    let count: Int
+    let onChangeStatus: () -> Void
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Text("\(count) SELECTED")
+                .font(.kuroMicro(weight: .semibold))
+                .tracking(1.0)
+                .foregroundColor(.black.opacity(0.60))
+
+            Spacer(minLength: 0)
+
+            Button {
+                KuroAccessibility.impactHaptic(.light)
+                onChangeStatus()
+            } label: {
+                Text("STATUS")
+                    .font(.kuroMicro(weight: .semibold))
+                    .tracking(1.0)
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule().fill(Color.black.opacity(0.06))
+                    )
+                    .overlay(
+                        Capsule().stroke(Color.black.opacity(0.10), lineWidth: 0.5)
+                    )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                KuroAccessibility.impactHaptic(.medium)
+                onRemove()
+            } label: {
+                Text("REMOVE")
+                    .font(.kuroMicro(weight: .semibold))
+                    .tracking(1.0)
+                    .foregroundColor(.red.opacity(0.85))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule().fill(Color.red.opacity(0.06))
+                    )
+                    .overlay(
+                        Capsule().stroke(Color.red.opacity(0.12), lineWidth: 0.5)
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    Rectangle()
+                        .fill(Color.black.opacity(0.02))
+                )
+                .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: -4)
+        )
     }
 }

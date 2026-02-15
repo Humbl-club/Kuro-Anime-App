@@ -55,7 +55,7 @@ struct ConciergeIntentDeck: View {
                         .foregroundStyle(.black.opacity(0.62))
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.22))
+                        .foregroundColor(.kuroTextTertiary)
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
@@ -84,14 +84,14 @@ struct ConciergeIntentDeck: View {
                 HStack(spacing: 8) {
                     Image(systemName: "person.text.rectangle")
                         .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.28))
+                        .foregroundColor(.kuroTextTertiary)
                     Text(isGermanLocale ? "Aus AniList importieren" : "Import from AniList")
                         .font(.kuroCaption(weight: .medium))
                         .foregroundStyle(.black.opacity(0.62))
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.22))
+                        .foregroundColor(.kuroTextTertiary)
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
@@ -135,7 +135,7 @@ struct ConciergeIntentDeck: View {
                     Text(eyebrow)
                         .font(.kuroMicro(weight: .medium))
                         .tracking(2.2)
-                        .foregroundStyle(.black.opacity(0.38))
+                        .foregroundColor(.kuroTextTertiary)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
@@ -165,6 +165,7 @@ struct ConciergeIntentDeck: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("\(title). \(subtitle)")
     }
 }
 
@@ -232,7 +233,7 @@ private struct ConciergeExamplesSheet: View {
                     Text(isGermanLocale ? "Import-Format" : "Import format")
                         .font(.kuroMicro(weight: .medium))
                         .tracking(1.8)
-                        .foregroundStyle(.black.opacity(0.38))
+                        .foregroundColor(.kuroTextTertiary)
                         .padding(.top, 2)
 
                     exampleRow(

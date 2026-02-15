@@ -87,6 +87,12 @@ struct MangaDetailView: View {
                         }
 
                         ClubActivitySection(mediaId: manga.id, mediaType: "MANGA")
+
+                        ExternalLinksSection(
+                            anilistId: manga.id,
+                            malId: manga.idMal,
+                            mediaType: "manga"
+                        )
                     }
                     .padding(.horizontal, ResponsiveLayout.padding())
                     .padding(.top, KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width))

@@ -325,7 +325,7 @@ struct EditorialListRow: View {
 
                     if let genres = media.genres?.first {
                         Text("·")
-                            .foregroundColor(.black.opacity(0.3))
+                            .foregroundColor(.kuroTextTertiary)
                         Text(genres.uppercased())
                             .font(.kuroMicro())
                             .tracking(1.8)
@@ -340,7 +340,7 @@ struct EditorialListRow: View {
             // Chevron
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .light))
-                .foregroundColor(.black.opacity(0.3))
+                .foregroundColor(.kuroTextTertiary)
                 .allowsHitTesting(false)
         }
         .padding(.vertical, 16)

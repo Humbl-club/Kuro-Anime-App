@@ -12,7 +12,6 @@ struct EditorialSearchResultItem: Identifiable {
 struct EditorialSearchView: View {
     @Environment(SupabaseService.self) private var supabaseService
     @State private var searchText = ""
-    @State private var selectedCategories: Set<String> = []
     @State private var searchTask: Task<Void, Never>? = nil
     @State private var scope: SearchScope = .all
 
@@ -21,8 +20,6 @@ struct EditorialSearchView: View {
         case anime = "ANIME"
         case manga = "MANGA"
     }
-
-    private let categories = ["TRENDING", "NEW SEASON", "CLASSICS", "HIDDEN GEMS"]
 
     private var serverResults: [EditorialSearchResultItem] {
         let anime = supabaseService.searchAnimeItems.map { EditorialSearchResultItem(id: "anime-\($0.id)", media: $0) }
@@ -41,20 +38,15 @@ struct EditorialSearchView: View {
 
                 EditorialScopeToggle(scope: $scope)
                     .padding(.horizontal, EditorialLayout.marginEditorial)
-                    .padding(.bottom, EditorialLayout.gutterSmall)
-
-                // Category Filters
-                EditorialCategoryFilters(
-                    categories: categories,
-                    selectedCategories: $selectedCategories
-                )
-                .padding(.bottom, EditorialLayout.gutterMedium)
+                    .padding(.bottom, EditorialLayout.gutterMedium)
 
                 // Search Results
                 ScrollView(.vertical, showsIndicators: false) {
-                    if !searchText.isEmpty || !selectedCategories.isEmpty {
+                    if !searchText.isEmpty {
                         if serverResults.isEmpty && !supabaseService.isSearching {
-                            EditorialSearchEmpty(searchText: searchText)
+                            EditorialSearchEmpty(searchText: searchText) { suggestion in
+                                searchText = suggestion
+                            }
                         } else {
                             EditorialSearchResults(
                                 results: serverResults,
@@ -77,13 +69,10 @@ struct EditorialSearchView: View {
                 .refreshable {
                     await supabaseService.refreshSearch()
                 }
-                .background(Color.white)
+                .background(Color.kuroBackground)
             }
         }
         .onChange(of: searchText) { _, _ in
-            debounceSearch()
-        }
-        .onChange(of: selectedCategories) { _, _ in
             debounceSearch()
         }
         .onChange(of: scope) { _, _ in
@@ -107,25 +96,10 @@ struct EditorialSearchView: View {
     private func runSearch(reset: Bool) async {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        var filters: SupabaseService.SearchFilters? = nil
-        if !selectedCategories.isEmpty {
-            var f = SupabaseService.SearchFilters()
-            for c in selectedCategories {
-                switch c {
-                case "TRENDING": f.trending = true
-                case "NEW SEASON": f.newSeason = true
-                case "CLASSICS": f.classics = true
-                case "HIDDEN GEMS": f.hiddenGems = true
-                default: break
-                }
-            }
-            filters = f
-        }
-
-        supabaseService.setSearchFilters(filters)
+        supabaseService.setSearchFilters(nil)
 
         // Avoid blanking the UI for very short queries; wait until the user has typed enough.
-        if trimmed.count < 2 && filters == nil {
+        if trimmed.count < 2 {
             return
         }
 
@@ -140,8 +114,7 @@ struct EditorialSearchView: View {
             }
         }
 
-        // If both query + filters are empty, don't fetch.
-        if trimmed.isEmpty && filters == nil { return }
+        if trimmed.isEmpty { return }
         if scope == .all {
             await supabaseService.fetchNextCombinedSearchPage()
         } else {
@@ -194,7 +167,7 @@ struct EditorialSearchBar: View {
         HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 18, weight: .ultraLight))
-                .foregroundColor(.black.opacity(0.3))
+                .foregroundColor(.kuroTextTertiary)
 
             TextField("", text: $searchText, prompt: Text("SEARCH").font(.kuroCaption()).tracking(1.8))
                 .font(.kuroBody())
@@ -211,7 +184,7 @@ struct EditorialSearchBar: View {
                 }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 16, weight: .regular))
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                 }
                 .transition(.scale.combined(with: .opacity))
             }
@@ -358,6 +331,7 @@ struct SearchResultRow: View {
     let media: any MediaDisplayable
     let query: String
     @State private var showDetail = false
+    @State private var showAddToList = false
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
@@ -458,7 +432,7 @@ struct SearchResultRow: View {
                     }
                     Image(systemName: "chevron.right")
                         .font(.system(size: 13, weight: .regular))
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                 }
             }
             .padding(.vertical, 12)
@@ -468,8 +442,32 @@ struct SearchResultRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityHint("Opens details")
+        .contextMenu {
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                supabaseService.toggleInCollection(mediaId: media.id, mediaType: mediaType)
+            }) {
+                Label(
+                    isSaved ? "Remove from List" : "Quick Add (Planned)",
+                    systemImage: isSaved ? "minus.circle" : "plus.circle"
+                )
+            }
+
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                showAddToList = true
+            }) {
+                Label(
+                    isSaved ? "Edit List" : "Add to List\u{2026}",
+                    systemImage: "slider.horizontal.3"
+                )
+            }
+        }
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
+        }
+        .sheet(isPresented: $showAddToList) {
+            AddToListSheet(media: media)
         }
     }
 
@@ -535,6 +533,14 @@ struct SearchResultSkeletonRow: View {
 // MARK: - Editorial Search Empty
 struct EditorialSearchEmpty: View {
     let searchText: String
+    var onSuggestionTap: ((String) -> Void)? = nil
+
+    private let suggestions = [
+        "Attack on Titan",
+        "Jujutsu Kaisen",
+        "One Piece",
+        "Chainsaw Man"
+    ]
 
     var body: some View {
         VStack(spacing: EditorialLayout.gutterMedium) {
@@ -547,7 +553,7 @@ struct EditorialSearchEmpty: View {
                 Text("NO RESULTS")
                     .font(.kuroHeadline())
                     .tracking(1.5)
-                    .foregroundColor(.black.opacity(0.3))
+                    .foregroundColor(.kuroTextTertiary)
 
                 if !searchText.isEmpty {
                     Text("No matches for '\(searchText)'")
@@ -557,10 +563,28 @@ struct EditorialSearchEmpty: View {
                         .multilineTextAlignment(.center)
                 }
 
-                Text("Try adjusting your search or filters")
-                    .font(.kuroCaption())
-                    .tracking(1.2)
-                    .foregroundColor(.black.opacity(0.3))
+                VStack(spacing: 10) {
+                    Text("TRY SEARCHING FOR")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(2.0)
+                        .foregroundColor(.black.opacity(0.35))
+                        .padding(.top, 8)
+
+                    VStack(spacing: 6) {
+                        ForEach(suggestions, id: \.self) { title in
+                            Button(action: {
+                                KuroAccessibility.impactHaptic(.light)
+                                onSuggestionTap?(title)
+                            }) {
+                                Text(title)
+                                    .font(.kuroBody(weight: .light))
+                                    .tracking(0.4)
+                                    .foregroundColor(.black.opacity(0.6))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
             }
             .frame(maxWidth: 280)
 
@@ -586,12 +610,12 @@ struct EditorialSearchPlaceholder: View {
                     Text("DISCOVER")
                         .font(.kuroDisplay())
                         .tracking(1.0)
-                        .foregroundColor(.black.opacity(0.2))
+                        .foregroundColor(.kuroTextTertiary)
 
                     Text("Begin your search for the extraordinary")
                         .font(.kuroBody())
                         .tracking(0.5)
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: 280)

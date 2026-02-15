@@ -323,6 +323,49 @@ struct RPCCastVoteParams: Encodable, Sendable {
     }
 }
 
+struct RPCCreateClubRailParams: Encodable, Sendable {
+    let p_club_id: String
+    let p_title: String
+    let p_description: String?
+
+    enum CodingKeys: String, CodingKey { case p_club_id, p_title, p_description }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_club_id, forKey: .p_club_id)
+        try c.encode(p_title, forKey: .p_title)
+        try c.encodeIfPresent(p_description, forKey: .p_description)
+    }
+}
+
+struct RPCCreateClubPollParams: Encodable, Sendable {
+    let p_club_id: String
+    let p_question: String
+    let p_options: [String]
+
+    enum CodingKeys: String, CodingKey { case p_club_id, p_question, p_options }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_club_id, forKey: .p_club_id)
+        try c.encode(p_question, forKey: .p_question)
+        try c.encode(p_options, forKey: .p_options)
+    }
+}
+
+struct RPCToggleReactionParams: Encodable, Sendable {
+    let p_rail_item_id: String
+    let p_emoji: String
+
+    enum CodingKeys: String, CodingKey { case p_rail_item_id, p_emoji }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_rail_item_id, forKey: .p_rail_item_id)
+        try c.encode(p_emoji, forKey: .p_emoji)
+    }
+}
+
 // Tag-overlap similarity (detail pages / concierge).
 struct RPCRecommendSimilarParams: Encodable, Sendable {
     let p_media_type: String // "ANIME" | "MANGA"

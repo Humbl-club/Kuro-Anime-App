@@ -77,7 +77,7 @@ struct GenreHubView: View {
                 .padding(.bottom, 32)
             }
         }
-        .background(Color.white)
+        .background(Color.kuroBackground)
         .task { await refresh() }
         .onChange(of: mediaKind) { _ in
             Task { await refresh() }
@@ -116,7 +116,7 @@ struct GenreHubView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
-        .background(Color.white)
+        .background(Color.kuroBackground)
     }
 
     private var tagSection: some View {
