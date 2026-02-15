@@ -374,10 +374,8 @@ private struct ClubActivityItemRow: View {
         guard let counts = item.member_status_counts else { return "" }
         if let tracking = counts["_tracking_count"], tracking > 0 {
             let notStarted = max(0, memberCount - tracking)
-            if notStarted > 0 {
-                return "\(tracking) tracking \u{00B7} \(notStarted) not started"
-            }
-            return "\(tracking) tracking"
+            // Tracking count represents members with any started progress/status.
+            return "\(tracking) started \u{00B7} \(notStarted) not started"
         }
         var parts: [String] = []
         let watching = (counts["CURRENT"] ?? 0) + (counts["WATCHING"] ?? 0) + (counts["READING"] ?? 0)
@@ -550,17 +548,18 @@ private struct ClubMemberStatusList: View {
         self.statusByUserId = statusMap
     }
 
-    private func memberLabel(_ userId: String) -> String? {
+    private func memberLabel(_ userId: String) -> String {
         if let currentUserId, userId == currentUserId { return "You" }
         if let displayName = displayNameById[userId] { return displayName }
         if let role = roleById[userId], role.lowercased() != "member" {
             return role.capitalized
         }
-        return nil
+        let idx = memberIndexById[userId] ?? 0
+        return idx > 0 ? "Member \(idx)" : "Member"
     }
 
-    private func memberInitial(_ label: String?, userId: String) -> String {
-        if let label, !label.isEmpty, let first = label.first {
+    private func memberInitial(_ label: String, userId: String) -> String {
+        if !label.isEmpty, let first = label.first {
             return String(first).uppercased()
         }
         let compact = userId.replacingOccurrences(of: "-", with: "")
@@ -646,13 +645,13 @@ private struct ClubMemberStatusList: View {
 
                         VStack(alignment: .leading, spacing: 1) {
                             HStack(spacing: 6) {
-                                if let label {
-                                    Text(label)
-                                        .font(.kuroCaption(weight: .medium))
-                                        .foregroundColor(.black.opacity(0.70))
-                                }
+                                Text(label)
+                                    .font(.kuroCaption(weight: .medium))
+                                    .foregroundColor(.black.opacity(0.70))
 
-                                if let role = roleById[ms.user_id]?.uppercased(), role != "MEMBER" {
+                                if let role = roleById[ms.user_id]?.uppercased(),
+                                   role != "MEMBER",
+                                   displayNameById[ms.user_id] != nil {
                                     Text(role)
                                         .font(.kuroMicro(weight: .medium))
                                         .tracking(1.0)
