@@ -75,34 +75,15 @@ private struct WhisperMoonMark: View {
 
     var body: some View {
         ZStack {
-            Path { path in
-                let rect = CGRect(x: 0, y: 0, width: size, height: size)
-                let c = CGPoint(x: rect.midX, y: rect.midY)
-                let outerRadius = rect.width * 0.36
-                let innerRadius = rect.width * 0.30
-
-                path.addArc(
-                    center: c,
-                    radius: outerRadius,
-                    startAngle: .degrees(105),
-                    endAngle: .degrees(255),
-                    clockwise: false
-                )
-                path.addArc(
-                    center: CGPoint(x: c.x + size * 0.11, y: c.y),
-                    radius: innerRadius,
-                    startAngle: .degrees(260),
-                    endAngle: .degrees(100),
-                    clockwise: true
-                )
-                path.closeSubpath()
-            }
-            .fill(Color.black.opacity(0.55))
+            Image(systemName: "moon.fill")
+                .font(.system(size: size * 0.72, weight: .regular))
+                .foregroundStyle(Color.black.opacity(0.55))
 
             Circle()
                 .fill(Color.black.opacity(0.55))
                 .frame(width: size * 0.14, height: size * 0.14)
-                .offset(x: size * 0.18, y: -size * 0.14)
+                .offset(x: size * 0.17, y: -size * 0.15)
         }
+        .frame(width: size, height: size)
     }
 }

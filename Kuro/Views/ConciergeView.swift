@@ -676,7 +676,7 @@ struct ConciergeView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
 
-                    if isWorking {
+                    if isWorking && !messages.isEmpty {
                         ConciergeTypingIndicator()
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }

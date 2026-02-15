@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-02-14
+**Last updated:** 2026-02-15
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -464,6 +464,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - `withFMTimeout` helper: uses `ThrowingTaskGroup` to race the FM call against a sleep timer; cancels loser
 - `StubFMProvider`: no-op implementation for devices/OS versions without Foundation Models support
 - Compile guards: `#if canImport(FoundationModels)` + `#available(iOS 26, *)`
+- **No entitlement needed**: Foundation Models framework works via simple `import FoundationModels` — no capability toggle or entitlement required in the Developer Portal. Only the Adapter entitlement (for custom LoRA fine-tunes) requires a separate request.
 - Integrated into `SupabaseService.fmService` (property on both production and mock service)
 
 ## 3.4) Network monitoring
@@ -1252,6 +1253,17 @@ Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in 
 
 ## 14) Change Log (append-only)
 
+- 2026-02-15: **43 UX improvements + TestFlight deployment** —
+  - **16-agent team** shipped 43 UX audit improvements across discover, collection, browse, search, detail pages, concierge, and settings. +4142/-1908 lines across 46 files.
+  - **Senior code audit fixes**: German umlaut typo fixed (`OnboardingView.swift:73` "Uberspringen" → "Überspringen"), Apple Sign In nonce cleanup (`AuthView.swift` defer block), monochrome palette violation fixed (`ProfileView.swift` deletion spinner red → black.opacity(0.55)).
+  - **Bundle ID**: Changed from `com.kuro.app` to `com.Kuro.app` to match App Store Connect registration.
+  - **App icon**: Generated 1024x1024 placeholder icon (white K on dark background) in `Assets.xcassets/AppIcon.appiconset/`.
+  - **Fastlane configured**: `fastlane/Appfile` (team + bundle ID), `fastlane/Fastfile` (beta lane: auto-increment build number, archive, upload to TestFlight). API Key auth via `.p8` file. Run `fastlane beta` to push new builds.
+  - **TestFlight build live**: Build 2, version 1.0 uploaded to App Store Connect (App ID: 6759221230). Foundation Models code compiled in but no entitlement needed — FM framework works without a special entitlement (confirmed via App Store Connect API: capability type does not exist in provisioning system). FM features activate on iOS 26 devices with Apple Intelligence enabled.
+  - **Entitlements**: `Kuro.entitlements` contains only `com.apple.developer.applesignin`. Foundation Models does NOT require an entitlement — just `import FoundationModels` + availability guards. The "Foundation Models Framework Adapter Entitlement" in the Developer Portal is only for custom-trained LoRA adapters, not basic `@Generable` usage.
+  - **Distribution certificate**: Apple Distribution (YLG68JL5Y7), expires 2027/01/27.
+  - **Signing**: Automatic (`CODE_SIGN_STYLE = Automatic`), `-allowProvisioningUpdates` flag in Fastlane build step.
+  - `.gitignore` updated: added Fastlane artifacts + `*.p8` exclusion.
 - 2026-02-14: **Concierge + Clubs activity copy polish** —
   - `Kuro/Views/DetailPages/ClubActivitySection.swift`: fixed member status rendering so per-member rows now use real watch/read progress and explicit “not started” state; removed placeholder “Member” text path and generic sharing-level misuse.
   - `Kuro/Services/SupabaseService.swift`: added concierge/club interaction telemetry points (`clubs_add_to_rail_*`) and helper state for remember-last-club UX in add-to-rail sheet.

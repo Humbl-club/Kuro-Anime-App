@@ -38,3 +38,12 @@ mockups/
 
 # Local test artifacts (do not commit)
 supabase/functions/concierge-recommend/test-fixtures.db
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# API keys — never commit
+*.p8

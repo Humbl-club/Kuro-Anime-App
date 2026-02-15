@@ -364,7 +364,7 @@ struct ConciergeInputField: View {
     // MARK: - State
     
     @State private var internalIntent: PrototypeConciergeIntent = .unknown
-    @FocusState private var isInputFocused: Bool
+    @State private var isInputFocused: Bool = false
     @State private var showDetectedChip = false
     @State private var detectedCount = 0
     @State private var lastTextLength = 0
@@ -811,8 +811,6 @@ private struct KuroGrowingTextView: UIViewRepresentable {
 
         if isFocused, !uiView.isFirstResponder {
             uiView.becomeFirstResponder()
-        } else if !isFocused, uiView.isFirstResponder {
-            uiView.resignFirstResponder()
         }
 
         DispatchQueue.main.async {
