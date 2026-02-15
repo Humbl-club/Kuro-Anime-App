@@ -2392,18 +2392,18 @@ serve(async (req) => {
     const minSecondaryItems = Math.max(8, Math.min(secondaryTotal, 12));
 
     const classicsId = classicsMode?.id ?? "classics_expanded";
+    const explicitClassicIntent = isClassicIntent(text);
     const preferredSecondaryIds = uniq([
       decision.secondaryId,
       ...decision.secondaryCandidates,
       premiumMode?.id ?? "premium_picks",
-      classicsId,
+      ...(explicitClassicIntent ? [classicsId] : []),
     ])
       .filter((id) => !!id && id !== decision.primaryId)
       .slice(0, 5);
 
     const primaryBuilt = await buildRailItems(decision.primaryId, primaryTotal);
     const primaryItemKeys = new Set(primaryBuilt.items.map((it: any) => `${it.mediaType}|${it.mediaId}`));
-    const explicitClassicIntent = isClassicIntent(text);
     const secondaryPriority = new Map<string, number>();
     preferredSecondaryIds.forEach((id, idx) => secondaryPriority.set(id, preferredSecondaryIds.length - idx));
 
@@ -2417,7 +2417,7 @@ serve(async (req) => {
       score += itemCoverage * 2.0;
       score -= overlapRatio * 5.0;
       if (built.items.length < minSecondaryItems) score -= 2.8;
-      if (modeId === classicsId && !explicitClassicIntent) score -= 1.5;
+      if (modeId === classicsId && !explicitClassicIntent) score -= 3.2;
       if (modeFamily(modeId) === modeFamily(decision.primaryId)) score -= 1.2;
       const acceptable = built.items.length >= minSecondaryItems && overlapRatio <= 0.45;
       return {
