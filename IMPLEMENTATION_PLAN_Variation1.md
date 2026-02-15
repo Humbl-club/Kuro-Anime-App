@@ -6,6 +6,8 @@ This file documents the idea of routing free-text "vibe" prompts into curated re
 
 The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed. Production-readiness session completed: Apple FM integration, on-device intelligence features, and comprehensive security/stability hardening across DB, edge functions, storage, and iOS. The February 2026 follow-up added the curated concierge copy layer and club activity status clarity pass.
 
+**5-page navigation restored (2026-02-15)**: Swipe pager expanded from 3 to 5 pages: Concierge ← [Discover] → Browse → Collection → Clubs. Browse promoted from sheet modal to page. Clubs elevated from ProfileView to own page. Distance-based mounting, `.snappy` animation, 120fps ProMotion, viewport-filtered exclusion zones. Search remains global sheet.
+
 **First TestFlight build live (2026-02-15)**: 43 UX improvements shipped via 16-agent team. Fastlane configured for automated TestFlight builds (`fastlane beta`). Build 2 (v1.0) uploaded to App Store Connect. Bundle ID: `com.Kuro.app`. Foundation Models compiled in — no entitlement needed (confirmed via ASC API). Placeholder app icon added.
 
 **Production readiness completed (2026-02-09)**: Apple FM migration (on-device classify, disambiguate, condense, search intent), synopsis condenser, NL collection search, Next Up picks, NetworkMonitor, lifecycle handling, IMPORT_SECRET auth, storage MIME + RLS + 5MB limits, 11 DB fixes, 5 edge function hardening items, mirror cron contention fix, 64 print→DEBUG, withRetry helper, UIScreen.main deprecation fix, 6 migrations applied, 6 edge functions deployed.

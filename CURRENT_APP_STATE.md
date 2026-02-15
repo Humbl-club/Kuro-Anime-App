@@ -387,12 +387,12 @@ node scripts/generate_app_state_inventory.js
 - RPC-backed paging
 
 ### Clubs
-- 6th page in the swipe pager.
-- `ClubsView`: joined club list, empty state with create/join prompts, pull-to-refresh.
+- 5th page in the swipe pager (rightmost).
+- `ClubsView`: joined club list, empty state with create/join prompts, pull-to-refresh. No `NavigationStack` wrapper (bare view inside pager); club detail opens as a sheet.
 - `ClubDetailView`: 3-tab layout (Rails / This Week / Polls), settings sheet for owner/admin.
 - `ClubActivitySection`: embedded on `AnimeDetailView` and `MangaDetailView` — shows which clubs have this title in a rail, aggregate member status counts, and (if sharing level allows) per-member details.
 - `ClubActivitySection`: now renders explicit member watch/read progress language (tracking, completed, planning, paused, dropped, not-started) and does not use placeholder status labels when per-member detail is unavailable.
-- Clubs tab also accessible from `ProfileView`.
+- Clubs tab also accessible from `ProfileView` (secondary access path via sheet).
 - Monochrome status pills (no colored dots).
 
 ---
@@ -677,10 +677,10 @@ Clubs are private groups (2-20 members) for sharing anime/manga watch activity. 
 - RLS: authenticated insert own, service_role select only
 
 ### iOS views
-- `ClubsView.swift`: 6th page in swipe pager. Lists joined clubs, empty state with create/join prompts.
+- `ClubsView.swift`: 5th page in swipe pager (rightmost). No `NavigationStack` wrapper; club detail opens as sheet. Lists joined clubs, empty state with create/join prompts.
 - `ClubDetailView.swift`: 3-tab segmented picker (RAILS / THIS WEEK / POLLS). Settings sheet for owner/admin.
 - `ClubActivitySection.swift`: Embedded on `AnimeDetailView` and `MangaDetailView`. Shows club context: which clubs have this title, aggregate member statuses.
-- `ProfileView.swift`: "Clubs" row opens ClubsView sheet.
+- `ProfileView.swift`: "Clubs" row opens ClubsView sheet (secondary access path).
 - Monochrome status pills (no colored dots).
 
 ---
@@ -1214,7 +1214,11 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - Header left is **only KURO text**.
 - A small **chat icon** appears next to the section title **only on Concierge page**.
 - Profile is a **top-right menu** (not a dedicated page).
-- **Clubs** is the 6th page in the swipe pager. Profile sheet also has a "Clubs" shortcut.
+- **Swipe pager**: 5 pages in order: Concierge (0) ← **Discover** (1, default) → Browse (2) → Collection (3) → Clubs (4). Natural discovery funnel: find → collect → share.
+- **Clubs** is the 5th page (rightmost). Profile sheet also has a "Clubs" shortcut.
+- **Browse** is a first-class page (3rd position), no longer a sheet modal.
+- **Search** remains a global sheet accessible from the header magnifying-glass icon on any page.
+- **Performance**: distance-based page mounting (current ± 1 neighbors mounted, distant pages use placeholder). `.snappy(duration: 0.22)` pager animation. 120fps ProMotion enabled via `CADisableMinimumFrameDurationOnPhone`. Exclusion zone filtering limited to viewport.
 - **Detail views** (AnimeDetailView, MangaDetailView):
   - **Synopsis condenser**: descriptions > 200 chars are condensed to 2-sentence hooks via `fmService.condenseSynopsis()` on supported devices; falls back to full description on non-FM devices.
   - **Next Up picks**: `NextUpSection` (anime) and `MangaNextUpSection` (manga) show personalized next episode/chapter recommendations based on user progress.
@@ -1251,8 +1255,67 @@ Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in 
 
 ---
 
+## 13.2) TestFlight / Fastlane deployment
+
+### How to push a new TestFlight build
+
+```bash
+fastlane beta
+```
+
+This single command:
+1. Auto-increments the build number (reads latest from App Store Connect, adds 1)
+2. Archives `Kuro.xcodeproj` (scheme `Kuro`, automatic signing, `generic/platform=iOS`)
+3. Uploads to TestFlight via App Store Connect API
+
+### Configuration files
+
+| File | Purpose |
+|------|---------|
+| `fastlane/Appfile` | Team ID (`YLG68JL5Y7`), Bundle ID (`com.Kuro.app`), App ID (`6759221230`) |
+| `fastlane/Fastfile` | `beta` lane definition (build + upload) |
+| `~/.appstoreconnect/private_keys/AuthKey_7L84A7P9X7.p8` | API key for App Store Connect auth (NOT in repo) |
+
+### Auth (API Key — no password/2FA needed)
+
+- **Key ID**: `7L84A7P9X7`
+- **Issuer ID**: `bca97a4b-8a3a-4051-9c89-510f10db0b06`
+- **Key file**: `~/.appstoreconnect/private_keys/AuthKey_7L84A7P9X7.p8`
+- Fastlane reads these automatically from the `api_key` block in the Fastfile.
+
+### Signing
+
+- `CODE_SIGN_STYLE = Automatic`
+- `-allowProvisioningUpdates` in Fastlane xcargs
+- Apple Distribution certificate (YLG68JL5Y7), expires 2027-01-27
+
+### Entitlements
+
+- `Kuro.entitlements` contains only `com.apple.developer.applesignin`
+- Foundation Models does **NOT** need an entitlement (just `import FoundationModels` + `#available(iOS 26, *)`)
+
+### Current build
+
+- **Version**: 1.0
+- **Latest build**: 2 (uploaded 2026-02-15)
+- **Bundle ID**: `com.Kuro.app` (capital K)
+
+---
+
 ## 14) Change Log (append-only)
 
+- 2026-02-15: **5-page swipe pager restored + performance polish** —
+  - Swipe pager expanded from 3 pages to 5: Concierge ← [Discover] → Browse → Collection → Clubs. Natural discovery funnel order.
+  - Browse promoted from sheet modal to first-class page (position 2). Search remains a global sheet from header icon.
+  - Clubs elevated from ProfileView sub-sheet to its own page (position 4, rightmost). ProfileView still has Clubs as secondary access path.
+  - `ClubsView` `NavigationStack` removed; club detail now opens as sheet (pager pages are bare views).
+  - Distance-based page mounting: current page + immediate neighbors mounted; distant pages use `Color(.systemBackground)` placeholder. `mountedSections` set retained as fallback for visited/launch-argument pages.
+  - Pager animation changed from `.interactiveSpring(response: 0.28)` to `.snappy(duration: 0.22, extraBounce: 0.02)` for crisper transitions.
+  - 120fps ProMotion enabled via `INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone = YES` in both Debug and Release build settings.
+  - Exclusion zone filtering: viewport intersection check + equality guard prevents unnecessary `swipeExclusions` state mutations during animation.
+  - BrowseView image prefetch increased from 32 to 48 items.
+  - Header dot indicators automatically show 5 dots. "Browse" removed from profile menu. `showBrowseSheet` state eliminated.
+  - Files changed: `ContentView.swift`, `ClubsView.swift`, `BrowseView.swift`, `project.pbxproj`. Commit: `172b3f7`.
 - 2026-02-15: **43 UX improvements + TestFlight deployment** —
   - **16-agent team** shipped 43 UX audit improvements across discover, collection, browse, search, detail pages, concierge, and settings. +4142/-1908 lines across 46 files.
   - **Senior code audit fixes**: German umlaut typo fixed (`OnboardingView.swift:73` "Uberspringen" → "Überspringen"), Apple Sign In nonce cleanup (`AuthView.swift` defer block), monochrome palette violation fixed (`ProfileView.swift` deletion spinner red → black.opacity(0.55)).
@@ -4231,7 +4294,7 @@ struct KuroMainView: View {
     // Removed: let sections = ["DISCOVER", "COLLECTION", "SEARCH"]
 
     enum Section: Int, CaseIterable {
-        case concierge, discover, collection, browse, search
+        case concierge, discover, browse, collection, clubs
 
         var title: String {
             switch self {
@@ -4254,7 +4317,7 @@ struct KuroMainView: View {
 	@State private var mountedSections: Set<Section> = [.discover]
 	@State private var swipeExclusions: [CGRect] = []
 	// Concierge is a first-class page to the LEFT of Discover.
-	private let swipeOrder: [Section] = [.concierge, .discover, .collection, .browse, .search]
+	private let swipeOrder: [Section] = [.concierge, .discover, .browse, .collection, .clubs]
 	private let swipeThreshold: CGFloat = 40
 	private let swipeEdgeMargin: CGFloat = 24
     
@@ -4385,7 +4448,7 @@ struct KuroHeaderNew: View {
     @Binding var showProfileSheet: Bool
     @Environment(SupabaseService.self) private var supabaseService
     
-    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .collection, .browse, .search]
+    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .browse, .collection, .clubs]
 
     private static let windowTextPaddingX: CGFloat = 14
     private static let windowTextPaddingY: CGFloat = 7

@@ -34,20 +34,27 @@ Kuro is a curated anime + manga app. It lets users browse premium picks, keep li
 
 ## 3) How the app is organized (screens)
 
-- **Concierge (left swipe)**: An inline concierge page for importing from your library/clipboard and asking for recommendations.
-- **Discover (main page)**: Curated sections like Essentials, Classics, Trending, etc.
-- **Collection**: Your personal list of anime/manga.
-- **Browse**: Explore the catalog with filters.
-- **Search**: Find specific titles. Now supports natural language queries like "show me action anime from 2020" using on-device AI.
-- **Clubs**: Private groups (2–20 members) for watching together. Create a club, invite friends with a code, share curated watchlists (rails), see weekly highlights, and vote in polls on what to watch next. Club owners control privacy settings — they decide what members can see about each other's progress. Club activity also shows up on anime/manga detail pages.
+The app has 5 swipeable pages that follow a natural discovery flow:
 
-Profile is a small menu in the top-right corner.
+1. **Concierge** (swipe left from Discover): An inline concierge page for importing from your library/clipboard and asking for recommendations.
+2. **Discover** (main page, opens by default): Curated sections like Essentials, Classics, Trending, etc.
+3. **Browse** (swipe right from Discover): Explore the full catalog with filters (genre, status, length, decade, format, sort).
+4. **Collection** (swipe right from Browse): Your personal list of anime/manga.
+5. **Clubs** (rightmost page): Private groups (2–20 members) for watching together. Create a club, invite friends with a code, share curated watchlists (rails), see weekly highlights, and vote in polls on what to watch next. Club owners control privacy settings — they decide what members can see about each other's progress. Club activity also shows up on anime/manga detail pages.
+
+**Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page. It supports natural language queries like "show me action anime from 2020" using on-device AI.
+
+Profile is a small menu in the top-right corner. Clubs is also accessible from the Profile sheet as a secondary shortcut.
 
 **Header today:**
 - Left: KURO wordmark
-- Center: current page name
-- Right: profile menu
+- Center: current page name in an animated window, with 5 dot indicators below
+- Right: search icon + profile menu
 - When on Concierge, a small chat icon appears next to the title.
+
+### How to push a new TestFlight build
+
+Run `fastlane beta` from the project root. This auto-increments the build number, archives the app, and uploads to TestFlight. No password or 2FA needed — it uses an API key stored at `~/.appstoreconnect/private_keys/AuthKey_7L84A7P9X7.p8`. The Fastlane config files are in `fastlane/Appfile` and `fastlane/Fastfile`.
 
 ---
 
@@ -443,6 +450,7 @@ These items were identified during the production-readiness review but require m
 
 ## 18) Change Log (append-only)
 
+- 2026-02-15: **5-page swipe navigation restored**: The app now has 5 swipeable pages instead of 3: Concierge ← Discover → Browse → Collection → Clubs. Browse was promoted from a popup to its own page. Clubs was elevated from being hidden inside Profile to its own rightmost page. Search stays as a popup from the header icon. Page transitions are snappier and the app runs at 120fps on ProMotion displays. Distant pages are automatically unloaded to save memory. Fastlane/TestFlight deployment instructions added to documentation.
 - 2026-02-15: **43 UX improvements shipped + first TestFlight build**: A 16-agent team shipped 43 improvements across the entire app (discover, collection, browse, search, detail pages, concierge, settings). Senior code review caught and fixed a German spelling error, a security nonce cleanup, and a color palette violation. Fastlane was set up for automated TestFlight builds (run `fastlane beta` to push a new build). Build 2 (version 1.0) is now live on TestFlight. The on-device AI features (Smart Descriptions, Smart Search, Next Up) are compiled in and will activate on supported devices — no special Apple entitlement is needed for Foundation Models, just the standard framework import. A placeholder app icon (white K on black) was added. Bundle ID is `com.Kuro.app`.
 - 2026-02-14: **Concierge and Clubs UX polish documented and completed**: Added "From your library" import action, curated concierge labels and 1–2 line curator notes, status clarifications in import flow, club member status/progress rendering on activity screens, and docs alignment for changed Concierge behavior.
 - 2026-02-09: **Production-readiness session**: Added on-device AI (Apple Foundation Models) for mode routing, disambiguation, synopsis condensing, and smart search. Three new user-facing features: Smart Descriptions (2-sentence hooks), Smart Search (natural language collection queries), and What to Watch/Read Next (personalized "Next Up" on detail pages). Offline detection with banner. App lifecycle handling (background/foreground). Security hardening: bulk import auth, storage restrictions (images only, 5MB), prompt injection protection, DB hardening, debug logging removed. Performance: image mirroring lock fix (58% skip → ~0%), automatic network retries, gentler mirror batches. All edge functions redeployed. Added sections 3.2–3.5, 15–17.
