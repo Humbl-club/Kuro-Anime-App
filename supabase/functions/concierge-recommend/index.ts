@@ -241,64 +241,62 @@ function curatedCopyForMode(locale: Locale, modeId: string, modeTitleFallback: s
       tasteAxis: locale === "de" ? "Ton und Handwerk" : "tone and craft",
     };
   }
+  const deTitles: Record<string, string> = {
+    // Hand-authored DE titles (do not auto-translate).
+    premium_picks: "Die Auswahl",
+    premium_comedy_grownup: "Komödie mit Biss",
+    cozy_comfort: "Sanfte Abende",
+    dark_serious: "Dunkel, nicht leer",
+    hidden_gems: "Unterschätzt",
+    classics_expanded: "Der Kanon",
+    short_one_season: "Kurz, abgeschlossen",
+    movie_night: "Ein perfekter Film",
+    romance_serious: "Romantik, die trifft",
+    romcom: "Leicht, aber scharf",
+    fantasy_non_isekai: "Fantasy mit Textur",
+    isekai: "Andere Welten, sauber",
+    sports: "Wettkampf, pur",
+    scifi: "Ideen mit Hitze",
+    horror_supernatural: "Unbehagen, richtig",
+    mecha: "Stahl und Einsatz",
+    mystery_detective: "Fälle mit Disziplin",
+    music_performance: "Klang und Gefühl",
+    historical: "Zeitgewicht",
+    school_coming_of_age: "Coming-of-Age, leise",
+    shoujo_josei: "Gefühl, mit Klarheit",
+    gateway_start_here: "Hier anfangen",
+    premium_action: "Action mit Handwerk",
+    similar_to_seed: "In derselben Umlaufbahn",
+  };
+  const deSubtitles: Record<string, string> = {
+    premium_picks: "Sichere Picks, neu für dich",
+    premium_comedy_grownup: "Trocken, klug, figurengetrieben",
+    cozy_comfort: "Ruhig, warm, erholsam",
+    dark_serious: "Ernst, aber mit Substanz",
+    hidden_gems: "Übersehenes, das sitzt",
+    classics_expanded: "Anker, die man kennt",
+    short_one_season: "Eine Staffel, sauberer Abschluss",
+    movie_night: "Standalone-Abende",
+    romance_serious: "Verdient, nicht fluffig",
+    romcom: "Wärme mit Timing",
+    fantasy_non_isekai: "Mythos, Staunen, Disziplin",
+    isekai: "Eskapismus mit Handwerk",
+    sports: "Training, das funktioniert",
+    scifi: "Spekulation, nicht Lärm",
+    horror_supernatural: "Atmosphäre statt Gore",
+    mecha: "Große Maschinen, echte Themen",
+    mystery_detective: "Rätsel, die halten",
+    music_performance: "Performance, die bewegt",
+    historical: "Geschichte mit Textur",
+    school_coming_of_age: "Jugend, klar gezeichnet",
+    shoujo_josei: "Figuren zuerst, präzise",
+    gateway_start_here: "Ein sauberer Einstieg",
+    premium_action: "Choreo, Tempo, Klarheit",
+    similar_to_seed: "Nahe an deinem Anker",
+  };
   return {
-    displayTitle: locale === "de"
-      ? ({
-        // Hand-authored DE titles (do not auto-translate).
-        premium_picks: "Die Auswahl",
-        premium_comedy_grownup: "Komödie mit Biss",
-        cozy_comfort: "Sanfte Abende",
-        dark_serious: "Dunkel, nicht leer",
-        hidden_gems: "Unterschätzt",
-        classics_expanded: "Der Kanon",
-        short_one_season: "Kurz, abgeschlossen",
-        movie_night: "Ein perfekter Film",
-        romance_serious: "Romantik, die trifft",
-        romcom: "Leicht, aber scharf",
-        fantasy_non_isekai: "Fantasy mit Textur",
-        isekai: "Andere Welten, sauber",
-        sports: "Wettkampf, pur",
-        scifi: "Ideen mit Hitze",
-        horror_supernatural: "Unbehagen, richtig",
-        mecha: "Stahl und Einsatz",
-        mystery_detective: "Fälle mit Disziplin",
-        music_performance: "Klang und Gefühl",
-        historical: "Zeitgewicht",
-        school_coming_of_age: "Coming-of-Age, leise",
-        shoujo_josei: "Gefühl, mit Klarheit",
-        gateway_start_here: "Hier anfangen",
-        premium_action: "Action mit Handwerk",
-        similar_to_seed: "In derselben Umlaufbahn",
-      } as any)[modeId] ?? c.displayTitle)
-      : c.displayTitle,
-    displaySubtitle: locale === "de"
-      ? ({
-        premium_picks: "Sichere Picks, neu für dich",
-        premium_comedy_grownup: "Trocken, klug, figurengetrieben",
-        cozy_comfort: "Ruhig, warm, erholsam",
-        dark_serious: "Ernst, aber mit Substanz",
-        hidden_gems: "Übersehenes, das sitzt",
-        classics_expanded: "Anker, die man kennt",
-        short_one_season: "Eine Staffel, sauberer Abschluss",
-        movie_night: "Standalone-Abende",
-        romance_serious: "Verdient, nicht fluffig",
-        romcom: "Wärme mit Timing",
-        fantasy_non_isekai: "Mythos, Staunen, Disziplin",
-        isekai: "Eskapismus mit Handwerk",
-        sports: "Training, das funktioniert",
-        scifi: "Spekulation, nicht Lärm",
-        horror_supernatural: "Atmosphäre statt Gore",
-        mecha: "Große Maschinen, echte Themen",
-        mystery_detective: "Rätsel, die halten",
-        music_performance: "Performance, die bewegt",
-        historical: "Geschichte mit Textur",
-        school_coming_of_age: "Jugend, klar gezeichnet",
-        shoujo_josei: "Figuren zuerst, präzise",
-        gateway_start_here: "Ein sauberer Einstieg",
-        premium_action: "Choreo, Tempo, Klarheit",
-        similar_to_seed: "Nahe an deinem Anker",
-      } as any)[modeId] ?? c.displaySubtitle)
-      : c.displaySubtitle,
+    displayTitle: locale === "de" ? (deTitles[modeId] ?? c.displayTitle) : c.displayTitle,
+    displaySubtitle: locale === "de" ? (deSubtitles[modeId] ?? c.displaySubtitle) : c.displaySubtitle,
     tasteAxis: locale === "de" ? c.tasteAxis.de : c.tasteAxis.en,
   };
 }
@@ -900,6 +898,7 @@ function normalizePromptForCache(text: string) {
 type RouterDecision = {
   primaryId: string;
   secondaryId: string;
+  secondaryCandidates: string[];
   primaryConfidence: number;
   primaryReason: string;
   usedLLM: boolean;
@@ -1797,10 +1796,80 @@ serve(async (req) => {
       }
     })();
 
-    const resolveSecondary = (primaryId: string) => {
+    const modeFamily = (modeId: string) => {
+      if (modeId.startsWith("premium_")) return "premium";
+      if (modeId.startsWith("classics")) return "classics";
+      if (modeId === "romcom" || modeId.startsWith("romance_")) return "romance";
+      if (modeId === "similar_to_seed") return "seed";
+      return modeId.split("_")[0] ?? modeId;
+    };
+
+    const arrayOverlapCount = (a: string[], b: string[]) => {
+      if (!a.length || !b.length) return 0;
+      const right = new Set(b.map((x) => x.toLowerCase()));
+      let n = 0;
+      for (const item of a) if (right.has(item.toLowerCase())) n++;
+      return n;
+    };
+
+    const rankSecondaryCandidates = async (primaryId: string): Promise<Array<{ id: string; score: number; reason: string }>> => {
       const classicsId = classicsMode?.id ?? "classics_expanded";
-      if (primaryId === classicsId) return premiumMode?.id ?? "premium_picks";
-      return classicsId;
+      const primary = modeById.get(primaryId) ?? null;
+      const primaryReq = safeStringArray(primary?.required_genres);
+      const topGenres = await userTopGenresPromise;
+      const wantsClassic = isClassicIntent(text);
+
+      const all = Array.from(modeById.values())
+        .filter((m) => m.id !== primaryId && m.id !== "similar_to_seed")
+        .map((m) => {
+          const s = scoreMode(text, m, requiredGenres, userExcludedGenres, constraints);
+          let score = s.score;
+          const reasons: string[] = [];
+
+          const req = safeStringArray(m.required_genres);
+          const genreOverlap = arrayOverlapCount(primaryReq, req);
+          if (genreOverlap > 0) {
+            score -= Math.min(4, genreOverlap * 1.6);
+            reasons.push("genre-overlap");
+          }
+
+          if (modeFamily(primaryId) === modeFamily(m.id)) {
+            score -= 2.2;
+            reasons.push("same-family");
+          }
+
+          // Keep classics available, but no longer hardwire it as the default second rail.
+          if (m.id === classicsId) {
+            if (wantsClassic) {
+              score += 2.5;
+              reasons.push("explicit-classic");
+            } else {
+              score -= 3.2;
+              reasons.push("avoid-default-classic");
+            }
+          }
+
+          // Prefer less saturated taste pockets for secondary rails.
+          const topGenreOverlap = arrayOverlapCount(req, topGenres);
+          if (topGenreOverlap > 0) {
+            score -= Math.min(3, topGenreOverlap * 1.1);
+            reasons.push("top-genre-overlap");
+          }
+
+          // Slightly prefer curated rails (when quality is present) to keep selection deterministic.
+          if (m.rail_id) {
+            score += 0.4;
+          }
+
+          return {
+            id: m.id,
+            score,
+            reason: reasons.length > 0 ? reasons.join(",") : (s.reason || "scored"),
+          };
+        })
+        .sort((a, b) => b.score - a.score);
+
+      return all;
     };
 
     const mkPick = (id: string, title: string, confidence: number, reason: string): ModePick => ({
@@ -1829,6 +1898,7 @@ serve(async (req) => {
       return {
         primaryId,
         secondaryId,
+        secondaryCandidates: [secondaryId],
         primaryConfidence: 0.75,
         primaryReason: "cache",
         usedLLM: Boolean((data as any).used_llm ?? false),
@@ -1859,21 +1929,42 @@ serve(async (req) => {
     const decideModes = async (): Promise<RouterDecision> => {
       const classicsId = classicsMode?.id ?? "classics_expanded";
 
+      const buildDecision = async (
+        primaryId: string,
+        primaryConfidence: number,
+        primaryReason: string,
+        usedLLM: boolean,
+        topScore: number,
+      ): Promise<RouterDecision> => {
+        const ranked = await rankSecondaryCandidates(primaryId);
+        const fallbackSecondary = primaryId === classicsId
+          ? (premiumMode?.id ?? "premium_picks")
+          : (premiumMode?.id ?? classicsId);
+        const secondaryId = ranked[0]?.id ?? fallbackSecondary;
+        return {
+          primaryId,
+          secondaryId,
+          secondaryCandidates: uniq([secondaryId, ...ranked.map((r) => r.id)]).slice(0, 8),
+          primaryConfidence,
+          primaryReason,
+          usedLLM,
+          topScore,
+        };
+      };
+
       // Cache (prevents repeated LLM spend and stabilizes routing).
       const cached = await loadCache();
-      if (cached) return cached;
+      if (cached) {
+        // Rehydrate ranked alternatives on cache hits so we do not lock users
+        // into a stale single secondary rail for the full cache TTL window.
+        const ranked = await rankSecondaryCandidates(cached.primaryId);
+        cached.secondaryCandidates = uniq([cached.secondaryId, ...ranked.map((r) => r.id)]).slice(0, 8);
+        return cached;
+      }
 
       // Hard overrides (one-shot magic).
       if (seedQuery) {
-        const secondaryId = resolveSecondary("similar_to_seed");
-        const dec: RouterDecision = {
-          primaryId: "similar_to_seed",
-          secondaryId,
-          primaryConfidence: 1,
-          primaryReason: "seed similarity",
-          usedLLM: false,
-          topScore: 999,
-        };
+        const dec = await buildDecision("similar_to_seed", 1, "seed similarity", false, 999);
         await saveCache(dec);
         return dec;
       }
@@ -1901,72 +1992,32 @@ serve(async (req) => {
         if (verified && Number.isFinite(verified.mediaId) && verified.mediaId > 0) {
           seedQuery = bareCandidate;
           seedOverride = verified;
-          const secondaryId = resolveSecondary("similar_to_seed");
-          const dec: RouterDecision = {
-            primaryId: "similar_to_seed",
-            secondaryId,
-            primaryConfidence: 1,
-            primaryReason: "bare title seed similarity",
-            usedLLM: false,
-            topScore: 999,
-          };
+          const dec = await buildDecision("similar_to_seed", 1, "bare title seed similarity", false, 999);
           await saveCache(dec);
           return dec;
         }
       }
 
       if (isClassicIntent(text)) {
-        const secondaryId = resolveSecondary(classicsId);
-        const dec: RouterDecision = {
-          primaryId: classicsId,
-          secondaryId,
-          primaryConfidence: 1,
-          primaryReason: "classic intent",
-          usedLLM: false,
-          topScore: 999,
-        };
+        const dec = await buildDecision(classicsId, 1, "classic intent", false, 999);
         await saveCache(dec);
         return dec;
       }
       if (isGatewayIntent(text)) {
         const primaryId = modeById.has("gateway_start_here") ? "gateway_start_here" : (premiumMode?.id ?? "premium_picks");
-        const secondaryId = resolveSecondary(primaryId);
-        const dec: RouterDecision = {
-          primaryId,
-          secondaryId,
-          primaryConfidence: 1,
-          primaryReason: "start here intent",
-          usedLLM: false,
-          topScore: 999,
-        };
+        const dec = await buildDecision(primaryId, 1, "start here intent", false, 999);
         await saveCache(dec);
         return dec;
       }
       if (isHiddenGemsIntent(text)) {
         const primaryId = modeById.has("hidden_gems") ? "hidden_gems" : (premiumMode?.id ?? "premium_picks");
-        const secondaryId = resolveSecondary(primaryId);
-        const dec: RouterDecision = {
-          primaryId,
-          secondaryId,
-          primaryConfidence: 1,
-          primaryReason: "hidden gems intent",
-          usedLLM: false,
-          topScore: 999,
-        };
+        const dec = await buildDecision(primaryId, 1, "hidden gems intent", false, 999);
         await saveCache(dec);
         return dec;
       }
       const genreMapped = mapStrongGenreToModeId(text, userExcludedGenres);
       if (genreMapped && modeById.has(genreMapped)) {
-        const secondaryId = resolveSecondary(genreMapped);
-        const dec: RouterDecision = {
-          primaryId: genreMapped,
-          secondaryId,
-          primaryConfidence: 0.9,
-          primaryReason: "strong genre signal",
-          usedLLM: false,
-          topScore: 999,
-        };
+        const dec = await buildDecision(genreMapped, 0.9, "strong genre signal", false, 999);
         await saveCache(dec);
         return dec;
       }
@@ -1989,15 +2040,7 @@ serve(async (req) => {
       const primaryConfidence = sigmoid(delta - 1);
       const primaryReason = top?.reason ?? "scored";
 
-      const secondaryId = resolveSecondary(topId);
-      const dec: RouterDecision = {
-        primaryId: topId,
-        secondaryId,
-        primaryConfidence,
-        primaryReason,
-        usedLLM: false,
-        topScore,
-      };
+      const dec = await buildDecision(topId, primaryConfidence, primaryReason, false, topScore);
       await saveCache(dec);
       return dec;
     };
@@ -2006,11 +2049,8 @@ serve(async (req) => {
 
 	    const modePicks: ModePick[] = [];
 	    const primaryMode = modeById.get(decision.primaryId) ?? null;
-	    const secondaryMode = modeById.get(decision.secondaryId) ?? null;
 	    const primaryCopy = curatedCopyForMode(locale, decision.primaryId, primaryMode?.title ?? decision.primaryId);
-	    const secondaryCopy = curatedCopyForMode(locale, decision.secondaryId, secondaryMode?.title ?? decision.secondaryId);
 	    modePicks.push(mkPick(decision.primaryId, primaryCopy.displayTitle, decision.primaryConfidence, decision.primaryReason));
-	    modePicks.push(mkPick(decision.secondaryId, secondaryCopy.displayTitle, 1, "anchor rail"));
 
     const perTypeLimit = (total: number) => mediaType === "BOTH" ? Math.max(3, Math.ceil(total / 2)) : total;
 
@@ -2322,13 +2362,131 @@ serve(async (req) => {
       return { title: mode?.title ?? modeId, items };
     };
 
-    // Exactly 2 rails: primary + classics anchor (unless primary is classics, then secondary becomes premium picks).
+    // Exactly 2 rails: primary + diversified secondary (no hard classics anchor).
     const primaryTotal = limit;
-    const classicsTotal = Math.min(20, Math.max(limit, 14));
-	    const [primaryBuilt, secondaryBuilt] = await Promise.all([
-	      buildRailItems(decision.primaryId, primaryTotal),
-	      buildRailItems(decision.secondaryId, classicsTotal),
-	    ]);
+    const secondaryTotal = Math.max(10, Math.min(16, limit + 2));
+    const minSecondaryItems = Math.max(8, Math.min(secondaryTotal, 12));
+
+    const classicsId = classicsMode?.id ?? "classics_expanded";
+    const preferredSecondaryIds = uniq([
+      decision.secondaryId,
+      ...decision.secondaryCandidates,
+      premiumMode?.id ?? "premium_picks",
+      classicsId,
+    ])
+      .filter((id) => !!id && id !== decision.primaryId)
+      .slice(0, 5);
+
+    const primaryBuilt = await buildRailItems(decision.primaryId, primaryTotal);
+    const primaryItemKeys = new Set(primaryBuilt.items.map((it: any) => `${it.mediaType}|${it.mediaId}`));
+    const explicitClassicIntent = isClassicIntent(text);
+    const secondaryPriority = new Map<string, number>();
+    preferredSecondaryIds.forEach((id, idx) => secondaryPriority.set(id, preferredSecondaryIds.length - idx));
+
+    const evaluateSecondary = (modeId: string, built: { title: string; items: any[] }) => {
+      const itemKeys = built.items.map((it: any) => `${it.mediaType}|${it.mediaId}`);
+      const overlapCount = itemKeys.filter((k) => primaryItemKeys.has(k)).length;
+      const overlapRatio = built.items.length > 0 ? overlapCount / built.items.length : 1;
+      const itemCoverage = Math.min(1, built.items.length / Math.max(1, secondaryTotal));
+      let score = 0;
+      score += (secondaryPriority.get(modeId) ?? 0) * 1.1;
+      score += itemCoverage * 2.0;
+      score -= overlapRatio * 5.0;
+      if (built.items.length < minSecondaryItems) score -= 2.8;
+      if (modeId === classicsId && !explicitClassicIntent) score -= 1.5;
+      if (modeFamily(modeId) === modeFamily(decision.primaryId)) score -= 1.2;
+      const acceptable = built.items.length >= minSecondaryItems && overlapRatio <= 0.45;
+      return {
+        score,
+        acceptable,
+        overlapRatio,
+        overlapCount,
+      };
+    };
+
+    const fallbackSecondaryId = preferredSecondaryIds[0] ?? (premiumMode?.id ?? classicsId);
+    const fallbackSecondaryBuilt = await buildRailItems(fallbackSecondaryId, secondaryTotal);
+
+    type SecondaryCandidateEvaluation = {
+      modeId: string;
+      built: { title: string; items: any[] };
+      eval: {
+        score: number;
+        acceptable: boolean;
+        overlapRatio: number;
+        overlapCount: number;
+      };
+    };
+
+    const secondaryCandidateResults: SecondaryCandidateEvaluation[] = await Promise.all(
+      preferredSecondaryIds.map(async (modeId): Promise<SecondaryCandidateEvaluation> => {
+        try {
+          const built = await buildRailItems(modeId, secondaryTotal);
+          return { modeId, built, eval: evaluateSecondary(modeId, built) };
+        } catch {
+          const emptyBuilt = { title: modeId, items: [] as any[] };
+          return {
+            modeId,
+            built: emptyBuilt,
+            eval: {
+              score: Number.NEGATIVE_INFINITY,
+              acceptable: false,
+              overlapRatio: 1,
+              overlapCount: 0,
+            },
+          };
+        }
+      }),
+    );
+
+    const chooseBetterSecondary = (a: SecondaryCandidateEvaluation, b: SecondaryCandidateEvaluation) => {
+      if (a.eval.acceptable !== b.eval.acceptable) {
+        return a.eval.acceptable ? -1 : 1;
+      }
+      if (a.eval.score !== b.eval.score) {
+        return b.eval.score - a.eval.score;
+      }
+      if (a.eval.overlapRatio !== b.eval.overlapRatio) {
+        return a.eval.overlapRatio - b.eval.overlapRatio;
+      }
+      if (a.built.items.length !== b.built.items.length) {
+        return b.built.items.length - a.built.items.length;
+      }
+      const ap = secondaryPriority.get(a.modeId) ?? 0;
+      const bp = secondaryPriority.get(b.modeId) ?? 0;
+      return bp - ap;
+    };
+
+    const sortedSecondaryCandidates = secondaryCandidateResults
+      .slice()
+      .sort(chooseBetterSecondary);
+
+    const chosenSecondary = sortedSecondaryCandidates[0] ?? {
+      modeId: fallbackSecondaryId,
+      built: fallbackSecondaryBuilt,
+      eval: evaluateSecondary(fallbackSecondaryId, fallbackSecondaryBuilt),
+    };
+
+    const chosenSecondaryId = chosenSecondary.modeId;
+    const chosenSecondaryBuilt = chosenSecondary.built;
+    const chosenEval = chosenSecondary.eval;
+
+    const secondaryMode = modeById.get(chosenSecondaryId) ?? null;
+    const secondaryCopy = curatedCopyForMode(locale, chosenSecondaryId, secondaryMode?.title ?? chosenSecondaryBuilt.title);
+    const secondaryConfidence = chosenEval.acceptable ? 0.82 : 0.64;
+    const secondaryReason = chosenEval.acceptable
+      ? "diversified-secondary"
+      : "fallback-secondary";
+
+    if (chosenSecondaryId !== decision.secondaryId) {
+      await saveCache({
+        ...decision,
+        secondaryId: chosenSecondaryId,
+        secondaryCandidates: uniq([chosenSecondaryId, ...decision.secondaryCandidates]),
+      });
+    }
+
+    modePicks.push(mkPick(chosenSecondaryId, secondaryCopy.displayTitle, secondaryConfidence, secondaryReason));
 
 	    const curatorNote = buildCuratorNote({
 	      locale,
@@ -2355,17 +2513,17 @@ serve(async (req) => {
 	        items: primaryBuilt.items,
 	      },
 	      {
-	        id: decision.secondaryId,
+	        id: chosenSecondaryId,
 	        title: secondaryCopy.displayTitle,
-	        internalTitle: secondaryBuilt.title,
+	        internalTitle: chosenSecondaryBuilt.title,
 	        displayTitle: secondaryCopy.displayTitle,
 	        displaySubtitle: secondaryCopy.displaySubtitle,
 	        curatorNote,
 	        locale,
-	        modeId: decision.secondaryId,
-	        confidence: 1,
-	        reason: "anchor rail",
-	        items: secondaryBuilt.items,
+	        modeId: chosenSecondaryId,
+	        confidence: modePicks[1].confidence,
+	        reason: modePicks[1].reason,
+	        items: chosenSecondaryBuilt.items,
 	      },
 	    ];
 
@@ -2387,6 +2545,23 @@ serve(async (req) => {
         p_status: "success",
         p_input_chars: text.length,
         p_items_count: allItems.length,
+      });
+
+      // Router quality telemetry for secondary-rail diversity and overlap monitoring.
+      await client.rpc("log_concierge_run", {
+        p_kind: "recommend_router_v2",
+        p_status: "success",
+        p_input_chars: text.length,
+        p_items_count: chosenSecondaryBuilt.items.length,
+        p_error: JSON.stringify({
+          primary_mode_id: decision.primaryId,
+          secondary_mode_id: chosenSecondaryId,
+          secondary_candidates_count: preferredSecondaryIds.length,
+          secondary_overlap_ratio: Number(chosenEval.overlapRatio.toFixed(4)),
+          secondary_overlap_count: chosenEval.overlapCount,
+          secondary_item_count: chosenSecondaryBuilt.items.length,
+          secondary_acceptable: chosenEval.acceptable,
+        }),
       });
     } catch {
       // best-effort

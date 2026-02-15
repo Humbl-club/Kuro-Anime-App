@@ -294,6 +294,13 @@ async function main() {
       warnings.push({ check: "rail_size_warn", rail: railId, count: rawItems.length, message: msg });
       totalWarnings++;
     }
+    // ── WARNING: sparse curated rail inventory ─────────────────────────
+    if (rawItems.length > 0 && rawItems.length < 20) {
+      const msg = `WARNING: ${railId} has low inventory (${rawItems.length} items, target: >=20)`;
+      log(msg);
+      warnings.push({ check: "rail_sparse_warn", rail: railId, count: rawItems.length, message: msg });
+      totalWarnings++;
+    }
 
     // ── HARD FAILURE: premium/gateway items with score < 70 ────────────
     if (isPremiumOrGateway(railId) && lowScore > 0) {

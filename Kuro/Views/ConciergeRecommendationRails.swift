@@ -112,6 +112,7 @@ struct RecommendationRail: View {
                 .scrollTargetLayout()
             }
             .scrollTargetBehavior(.viewAligned)
+            .kuroSwipeExclusionZone()
             .onAppear {
                 withAnimation(.easeOut(duration: 0.5)) {
                     appeared = true
@@ -206,7 +207,7 @@ struct RecommendationCard: View {
                 onOpen()
             }
             .simultaneousGesture(
-                DragGesture(minimumDistance: 8)
+                DragGesture(minimumDistance: 4)
                     .onChanged { _ in
                         if !isDraggingCard {
                             isDraggingCard = true
