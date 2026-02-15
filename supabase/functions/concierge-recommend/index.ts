@@ -80,6 +80,278 @@ function inferRequestMarket(req: Request): string {
   return "US";
 }
 
+type Locale = "en" | "de";
+
+function inferLocale(req: Request, market: string): Locale {
+  const m = (market || "").trim().toUpperCase();
+  if (["DE", "AT", "CH"].includes(m)) return "de";
+  const acceptLanguage = (req.headers.get("accept-language") ?? "").trim().toLowerCase();
+  if (acceptLanguage.startsWith("de")) return "de";
+  return "en";
+}
+
+type CuratedCopy = {
+  displayTitle: string;
+  displaySubtitle?: string;
+  // A short axis used for deterministic curator notes.
+  tasteAxis: { en: string; de: string };
+};
+
+const CURATED_MODE_COPY: Record<string, CuratedCopy> = {
+  premium_picks: {
+    displayTitle: "The Cut",
+    displaySubtitle: "High-confidence picks, new to you",
+    tasteAxis: { en: "craft-forward picks", de: "Handwerk und Qualität" },
+  },
+  gateway_start_here: {
+    displayTitle: "Start Here",
+    displaySubtitle: "A clean entry point",
+    tasteAxis: { en: "approachable, high-signal stories", de: "zugänglich und treffsicher" },
+  },
+  premium_action: {
+    displayTitle: "Action With Craft",
+    displaySubtitle: "Clean choreography, real momentum",
+    tasteAxis: { en: "momentum and clarity", de: "Tempo und Klarheit" },
+  },
+  premium_comedy_grownup: {
+    displayTitle: "Comedy With Bite",
+    displaySubtitle: "Smart, dry, character-led",
+    tasteAxis: { en: "dry wit and precision", de: "trockener Witz und Präzision" },
+  },
+  cozy_comfort: {
+    displayTitle: "Soft Evenings",
+    displaySubtitle: "Gentle, restorative stories",
+    tasteAxis: { en: "gentle pacing", de: "sanft und wohltuend" },
+  },
+  dark_serious: {
+    displayTitle: "Dark, Not Empty",
+    displaySubtitle: "Serious tone, strong craft",
+    tasteAxis: { en: "serious tone", de: "ernst, aber mit Substanz" },
+  },
+  hidden_gems: {
+    displayTitle: "Underseen",
+    displaySubtitle: "Quiet classics, overlooked hits",
+    tasteAxis: { en: "under-discussed brilliance", de: "unter dem Radar" },
+  },
+  classics_expanded: {
+    displayTitle: "The Canon",
+    displaySubtitle: "Anchors worth knowing",
+    tasteAxis: { en: "foundational works", de: "Grundpfeiler" },
+  },
+  short_one_season: {
+    displayTitle: "Short, Complete",
+    displaySubtitle: "One season, clean finish",
+    tasteAxis: { en: "tight structure", de: "straff und abgeschlossen" },
+  },
+  movie_night: {
+    displayTitle: "One Perfect Film",
+    displaySubtitle: "Stand-alone nights",
+    tasteAxis: { en: "one-shot impact", de: "ein Abend, ein Treffer" },
+  },
+  romance_serious: {
+    displayTitle: "Romance That Lands",
+    displaySubtitle: "Earned, not fluffy",
+    tasteAxis: { en: "emotional weight", de: "emotionale Wucht" },
+  },
+  romcom: {
+    displayTitle: "Light, Sharp Romance",
+    displaySubtitle: "Warmth with timing",
+    tasteAxis: { en: "warm timing", de: "warm und pointiert" },
+  },
+  fantasy_non_isekai: {
+    displayTitle: "Fantasy With Texture",
+    displaySubtitle: "Myth, wonder, discipline",
+    tasteAxis: { en: "mythic texture", de: "Mythos und Textur" },
+  },
+  isekai: {
+    displayTitle: "Other Worlds, Cleanly",
+    displaySubtitle: "Escapism with craft",
+    tasteAxis: { en: "clear escapism", de: "klare Eskapismus-Linie" },
+  },
+  sports: {
+    displayTitle: "Competition, Pure",
+    displaySubtitle: "Training arcs that work",
+    tasteAxis: { en: "earned momentum", de: "verdientes Momentum" },
+  },
+  scifi: {
+    displayTitle: "Ideas With Heat",
+    displaySubtitle: "Speculation, not noise",
+    tasteAxis: { en: "clean sci-fi ideas", de: "klare Sci-Fi-Ideen" },
+  },
+  horror_supernatural: {
+    displayTitle: "Unease, Done Right",
+    displaySubtitle: "Atmosphere over gore",
+    tasteAxis: { en: "atmosphere and tension", de: "Atmosphäre und Spannung" },
+  },
+  mecha: {
+    displayTitle: "Steel and Stakes",
+    displaySubtitle: "Big machines, real themes",
+    tasteAxis: { en: "scale and conviction", de: "Groesse und Haltung" },
+  },
+  mystery_detective: {
+    displayTitle: "Cases With Discipline",
+    displaySubtitle: "Puzzles that hold",
+    tasteAxis: { en: "sharp mystery logic", de: "scharfe Logik" },
+  },
+  music_performance: {
+    displayTitle: "Sound and Feeling",
+    displaySubtitle: "Performance that moves",
+    tasteAxis: { en: "rhythm and emotion", de: "Rhythmus und Gefühl" },
+  },
+  historical: {
+    displayTitle: "Period Weight",
+    displaySubtitle: "History with texture",
+    tasteAxis: { en: "weight and texture", de: "Gewicht und Textur" },
+  },
+  school_coming_of_age: {
+    displayTitle: "Coming-of-Age, Quietly",
+    displaySubtitle: "Youth, rendered cleanly",
+    tasteAxis: { en: "intimate growth", de: "intimes Wachsen" },
+  },
+  shoujo_josei: {
+    displayTitle: "Emotion, With Clarity",
+    displaySubtitle: "Character-first, precise",
+    tasteAxis: { en: "emotional clarity", de: "emotionale Klarheit" },
+  },
+  similar_to_seed: {
+    displayTitle: "In the Same Orbit",
+    displaySubtitle: "Close to your anchor",
+    tasteAxis: { en: "adjacent craft", de: "nahe am Anker" },
+  },
+};
+
+function softenFallbackTitle(raw: string): string {
+  const t = String(raw ?? "").trim();
+  if (!t) return "Selections";
+  return t
+    .replace(/\bpremium\b/gi, "")
+    .replace(/\(.*?\)/g, "")
+    .replace(/\s*\/\s*/g, " · ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function curatedCopyForMode(locale: Locale, modeId: string, modeTitleFallback: string): { displayTitle: string; displaySubtitle?: string; tasteAxis: string } {
+  const c = CURATED_MODE_COPY[modeId];
+  if (!c) {
+    const softened = softenFallbackTitle(modeTitleFallback);
+    return {
+      displayTitle: softened,
+      displaySubtitle: locale === "de" ? "Kuratiert, neu für dich" : "Curated, new to you",
+      tasteAxis: locale === "de" ? "Ton und Handwerk" : "tone and craft",
+    };
+  }
+  return {
+    displayTitle: locale === "de"
+      ? ({
+        // Hand-authored DE titles (do not auto-translate).
+        premium_picks: "Die Auswahl",
+        premium_comedy_grownup: "Komödie mit Biss",
+        cozy_comfort: "Sanfte Abende",
+        dark_serious: "Dunkel, nicht leer",
+        hidden_gems: "Unterschätzt",
+        classics_expanded: "Der Kanon",
+        short_one_season: "Kurz, abgeschlossen",
+        movie_night: "Ein perfekter Film",
+        romance_serious: "Romantik, die trifft",
+        romcom: "Leicht, aber scharf",
+        fantasy_non_isekai: "Fantasy mit Textur",
+        isekai: "Andere Welten, sauber",
+        sports: "Wettkampf, pur",
+        scifi: "Ideen mit Hitze",
+        horror_supernatural: "Unbehagen, richtig",
+        mecha: "Stahl und Einsatz",
+        mystery_detective: "Fälle mit Disziplin",
+        music_performance: "Klang und Gefühl",
+        historical: "Zeitgewicht",
+        school_coming_of_age: "Coming-of-Age, leise",
+        shoujo_josei: "Gefühl, mit Klarheit",
+        gateway_start_here: "Hier anfangen",
+        premium_action: "Action mit Handwerk",
+        similar_to_seed: "In derselben Umlaufbahn",
+      } as any)[modeId] ?? c.displayTitle)
+      : c.displayTitle,
+    displaySubtitle: locale === "de"
+      ? ({
+        premium_picks: "Sichere Picks, neu für dich",
+        premium_comedy_grownup: "Trocken, klug, figurengetrieben",
+        cozy_comfort: "Ruhig, warm, erholsam",
+        dark_serious: "Ernst, aber mit Substanz",
+        hidden_gems: "Übersehenes, das sitzt",
+        classics_expanded: "Anker, die man kennt",
+        short_one_season: "Eine Staffel, sauberer Abschluss",
+        movie_night: "Standalone-Abende",
+        romance_serious: "Verdient, nicht fluffig",
+        romcom: "Wärme mit Timing",
+        fantasy_non_isekai: "Mythos, Staunen, Disziplin",
+        isekai: "Eskapismus mit Handwerk",
+        sports: "Training, das funktioniert",
+        scifi: "Spekulation, nicht Lärm",
+        horror_supernatural: "Atmosphäre statt Gore",
+        mecha: "Große Maschinen, echte Themen",
+        mystery_detective: "Rätsel, die halten",
+        music_performance: "Performance, die bewegt",
+        historical: "Geschichte mit Textur",
+        school_coming_of_age: "Jugend, klar gezeichnet",
+        shoujo_josei: "Figuren zuerst, präzise",
+        gateway_start_here: "Ein sauberer Einstieg",
+        premium_action: "Choreo, Tempo, Klarheit",
+        similar_to_seed: "Nahe an deinem Anker",
+      } as any)[modeId] ?? c.displaySubtitle)
+      : c.displaySubtitle,
+    tasteAxis: locale === "de" ? c.tasteAxis.de : c.tasteAxis.en,
+  };
+}
+
+function clampWords(s: string, maxWords: number): string {
+  const parts = String(s ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= maxWords) return parts.join(" ");
+  return parts.slice(0, maxWords).join(" ");
+}
+
+function buildCuratorNote(args: {
+  locale: Locale;
+  primaryModeId: string;
+  primaryModeTitle: string;
+  constraints: UserConstraints;
+  ragUsed: boolean;
+  seedTitle?: string | null;
+  avoidedGenres?: string[];
+}): string {
+  const { locale, constraints, primaryModeId, primaryModeTitle } = args;
+  const copy = curatedCopyForMode(locale, primaryModeId, primaryModeTitle);
+
+  const constraintBits: string[] = [];
+  if (constraints.format === "MOVIE") constraintBits.push(locale === "de" ? "nur Filme" : "movie-only");
+  if (constraints.max_episodes != null) constraintBits.push(locale === "de" ? "kurz gehalten" : "kept it short");
+  if (constraints.year_min != null || constraints.year_max != null) {
+    const a = constraints.year_min != null ? String(constraints.year_min) : "";
+    const b = constraints.year_max != null ? String(constraints.year_max) : "";
+    const span = a && b ? `${a}-${b}` : (a ? `ab ${a}` : (b ? `bis ${b}` : ""));
+    if (span) constraintBits.push(locale === "de" ? `im Zeitraum ${span}` : `within ${span}`);
+  }
+  if (constraints.excluded_genres.length > 0) {
+    const g = constraints.excluded_genres.slice(0, 2).join(locale === "de" ? " und " : " and ");
+    constraintBits.push(locale === "de" ? `ohne ${g}` : `avoiding ${g}`);
+  }
+
+  const constraintPhrase = constraintBits.length
+    ? constraintBits[0]
+    : (locale === "de" ? "sauber gefiltert" : "cleanly filtered");
+
+  const personalPhrase = (() => {
+    if (args.ragUsed && args.seedTitle) {
+      const t = clampWords(String(args.seedTitle), 6);
+      return locale === "de" ? `in der Nähe von ${t}` : `near ${t}`;
+    }
+    return locale === "de" ? "neu für dich" : "new to you";
+  })();
+
+  return locale === "de"
+    ? `Ich habe ${constraintPhrase} beachtet, in Richtung ${copy.tasteAxis} geneigt und ${personalPhrase} priorisiert.`
+    : `I kept it ${constraintPhrase}, leaned toward ${copy.tasteAxis}, and prioritized ${personalPhrase}.`;
+}
+
 /** Strip common LLM prompt-injection patterns from user-supplied text before interpolation. */
 function sanitizeForLLM(text: string): string {
   return text
@@ -1263,12 +1535,16 @@ serve(async (req) => {
       const table = mt === "ANIME" ? "anime" : "manga";
       const linkTable = mt === "ANIME" ? "anime_tags" : "manga_tags";
       const idCol = mt === "ANIME" ? "anime_id" : "manga_id";
+      const mediaSelect =
+        mt === "ANIME"
+          ? "id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,episodes"
+          : "id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,chapters";
 
       // All three queries depend only on `ids` — run in parallel.
       const [mediaRes, boostsRes, tagLinksRes] = await Promise.all([
         client
           .from(table)
-          .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,episodes")
+          .select(mediaSelect)
           .in("id", ids),
         client
           .from("editorial_boosts")
@@ -1285,7 +1561,14 @@ serve(async (req) => {
       ]);
 
       if (mediaRes.error) throw mediaRes.error;
-      const byId = new Map<number, any>((mediaRes.data ?? []).map((r: any) => [r.id, r]));
+      const rows = Array.isArray(mediaRes.data) ? mediaRes.data : [];
+      const normalizedRows = rows.map((r: any) => {
+        if (mt === "MANGA" && r?.episodes == null && r?.chapters != null) {
+          r.episodes = r.chapters;
+        }
+        return r;
+      });
+      const byId = new Map<number, any>(normalizedRows.map((r: any) => [r.id, r]));
       const boostById = new Map<number, any>((boostsRes.data ?? []).map((b: any) => [b.media_id, b]));
       const tagLinks = !tagLinksRes.error ? (tagLinksRes.data ?? []) : [];
 
@@ -1308,6 +1591,7 @@ serve(async (req) => {
       limit: number;
       requiredGenres: string[];
       excludeGenres: string[];
+      avoidGenres?: string[];
       classicYearMax?: number;
       quality: { minScore: number; minPopularity: number; maxPopularity: number | null; excludeFormats: Set<string> };
       prioritizeClassicBoost?: boolean;
@@ -1368,10 +1652,39 @@ serve(async (req) => {
         return true;
       };
 
+      const avoid = Array.isArray(opts.avoidGenres) ? opts.avoidGenres.map((g) => String(g)).filter(Boolean) : [];
+      const shouldDiversify = avoid.length > 0 && opts.requiredGenres.length === 0;
+
+      const overlapCount = (m: any): number => {
+        if (!shouldDiversify) return 0;
+        const gs = Array.isArray(m?.genres) ? m.genres.map((x: any) => String(x)) : [];
+        if (!gs.length) return 0;
+        let n = 0;
+        for (const g of avoid) {
+          if (gs.includes(g)) n++;
+        }
+        return n;
+      };
+
+      const stableDiversify = (arr: CandidateRow[]): CandidateRow[] => {
+        if (!shouldDiversify || arr.length <= 1) return arr;
+        return arr
+          .map((r, idx) => ({ r, idx }))
+          .sort((a, b) => {
+            const ma = ctx.byId.get(a.r.media_id);
+            const mb = ctx.byId.get(b.r.media_id);
+            const oa = overlapCount(ma);
+            const ob = overlapCount(mb);
+            if (oa !== ob) return oa - ob; // prefer less overlap with top genres
+            return a.idx - b.idx; // stable tie-break
+          })
+          .map((x) => x.r);
+      };
+
       // Prefer: genre match + quality; then quality; then anything (no hard failures).
-      const primary: CandidateRow[] = [];
-      const secondary: CandidateRow[] = [];
-      const tertiary: CandidateRow[] = [];
+      let primary: CandidateRow[] = [];
+      let secondary: CandidateRow[] = [];
+      let tertiary: CandidateRow[] = [];
 
       for (const r of rows) {
         const m = ctx.byId.get(r.media_id);
@@ -1380,6 +1693,10 @@ serve(async (req) => {
         else if (passes(m)) secondary.push(r);
         else tertiary.push(r);
       }
+
+      primary = stableDiversify(primary);
+      secondary = stableDiversify(secondary);
+      tertiary = stableDiversify(tertiary);
 
       let ordered = [...primary, ...secondary, ...tertiary];
       if (opts.prioritizeClassicBoost) {
@@ -1433,8 +1750,52 @@ serve(async (req) => {
 
     const userId = userData.user.id;
     const market = inferRequestMarket(req);
+    const locale = inferLocale(req, market);
     const ragAssistEnabled = await isFeatureFlagEnabledForUser(client, "rag_assist_v1", userId, market);
     const promptNorm = normalizePromptForCache(text);
+
+    const userTopGenresPromise: Promise<string[]> = (async () => {
+      try {
+        const { data: ul, error: ulErr } = await client
+          .from("user_lists")
+          .select("media_type,media_id")
+          .eq("user_id", userId)
+          .limit(120);
+        if (ulErr || !Array.isArray(ul) || ul.length === 0) return [];
+
+        const animeIds = ul.filter((r: any) => String(r.media_type ?? "").toLowerCase() === "anime").map((r: any) => Number(r.media_id)).filter((x: number) => Number.isFinite(x) && x > 0).slice(0, 80);
+        const mangaIds = ul.filter((r: any) => String(r.media_type ?? "").toLowerCase() === "manga").map((r: any) => Number(r.media_id)).filter((x: number) => Number.isFinite(x) && x > 0).slice(0, 80);
+
+        const [aRes, mRes] = await Promise.all([
+          animeIds.length ? client.from("anime").select("id,genres").in("id", animeIds) : Promise.resolve({ data: [] as any[], error: null as any }),
+          mangaIds.length ? client.from("manga").select("id,genres").in("id", mangaIds) : Promise.resolve({ data: [] as any[], error: null as any }),
+        ]);
+
+        const counts = new Map<string, number>();
+        const bump = (g: string) => counts.set(g, (counts.get(g) ?? 0) + 1);
+        const ingest = (rows: any[]) => {
+          for (const r of rows) {
+            const gs = Array.isArray(r?.genres) ? r.genres.map((x: any) => String(x)) : [];
+            for (const g of gs) {
+              if (!g) continue;
+              if (g === "Hentai" || g === "Ecchi" || g === "Kids") continue;
+              bump(g);
+            }
+          }
+        };
+
+        if (Array.isArray(aRes.data)) ingest(aRes.data);
+        if (Array.isArray(mRes.data)) ingest(mRes.data);
+
+        const top = Array.from(counts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .map(([g]) => g)
+          .slice(0, 5);
+        return top;
+      } catch {
+        return [];
+      }
+    })();
 
     const resolveSecondary = (primaryId: string) => {
       const classicsId = classicsMode?.id ?? "classics_expanded";
@@ -1641,15 +2002,15 @@ serve(async (req) => {
       return dec;
     };
 
-    const decision = await decideModes();
+	    const decision = await decideModes();
 
-    const modePicks: ModePick[] = [];
-    const primaryModeTitle = decision.primaryId === "similar_to_seed"
-      ? "Similar to your seed"
-      : (modeById.get(decision.primaryId)?.title ?? decision.primaryId);
-    modePicks.push(mkPick(decision.primaryId, primaryModeTitle, decision.primaryConfidence, decision.primaryReason));
-    const secondaryTitle = modeById.get(decision.secondaryId)?.title ?? decision.secondaryId;
-    modePicks.push(mkPick(decision.secondaryId, secondaryTitle, 1, "anchor rail"));
+	    const modePicks: ModePick[] = [];
+	    const primaryMode = modeById.get(decision.primaryId) ?? null;
+	    const secondaryMode = modeById.get(decision.secondaryId) ?? null;
+	    const primaryCopy = curatedCopyForMode(locale, decision.primaryId, primaryMode?.title ?? decision.primaryId);
+	    const secondaryCopy = curatedCopyForMode(locale, decision.secondaryId, secondaryMode?.title ?? decision.secondaryId);
+	    modePicks.push(mkPick(decision.primaryId, primaryCopy.displayTitle, decision.primaryConfidence, decision.primaryReason));
+	    modePicks.push(mkPick(decision.secondaryId, secondaryCopy.displayTitle, 1, "anchor rail"));
 
     const perTypeLimit = (total: number) => mediaType === "BOTH" ? Math.max(3, Math.ceil(total / 2)) : total;
 
@@ -1704,10 +2065,32 @@ serve(async (req) => {
       });
     };
 
-    const fetchCurated = async (mode: ConciergeMode, total: number) => {
-      // Fetch extra to compensate for post-filtering by user constraints.
-      const hasActiveConstraints = userExcludedGenres.length > 0 || constraints.format != null || constraints.year_min != null || constraints.year_max != null;
-      const fetchLimit = hasActiveConstraints ? total + 20 : total;
+	    const fetchCurated = async (mode: ConciergeMode, total: number) => {
+	      const avoidGenres = await userTopGenresPromise;
+	      const stableDiversifyItems = (arr: any[]): any[] => {
+	        if (!Array.isArray(arr) || arr.length <= 1) return arr;
+	        if (!avoidGenres.length) return arr;
+	        const overlap = (it: any) => {
+	          const gs = Array.isArray(it?.genres) ? it.genres.map((g: any) => String(g)) : [];
+	          if (!gs.length) return 0;
+	          let n = 0;
+	          for (const g of avoidGenres) if (gs.includes(g)) n++;
+	          return n;
+	        };
+	        return arr
+	          .map((it, idx) => ({ it, idx }))
+	          .sort((a, b) => {
+	            const oa = overlap(a.it);
+	            const ob = overlap(b.it);
+	            if (oa !== ob) return oa - ob;
+	            return a.idx - b.idx;
+	          })
+	          .map((x) => x.it);
+	      };
+
+	      // Fetch extra to compensate for post-filtering by user constraints.
+	      const hasActiveConstraints = userExcludedGenres.length > 0 || constraints.format != null || constraints.year_min != null || constraints.year_max != null;
+	      const fetchLimit = hasActiveConstraints ? total + 20 : total;
       const perType = perTypeLimit(fetchLimit);
       const animeRid = railIdFor(mode, "ANIME");
       const mangaRid = railIdFor(mode, "MANGA");
@@ -1719,11 +2102,11 @@ serve(async (req) => {
           ? client.rpc("curated_rail_cards", { p_rail_id: mangaRid, p_limit: perType, p_exclude_seen: true }).then((r) => r.data)
           : [],
       ]);
-      const a = filterByConstraints(Array.isArray(animeRows) ? animeRows.map(mapCuratedRowToItem) : []);
-      const m = filterByConstraints(Array.isArray(mangaRows) ? mangaRows.map(mapCuratedRowToItem) : []);
-      const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
-      return merged;
-    };
+	      const a = stableDiversifyItems(filterByConstraints(Array.isArray(animeRows) ? animeRows.map(mapCuratedRowToItem) : []));
+	      const m = stableDiversifyItems(filterByConstraints(Array.isArray(mangaRows) ? mangaRows.map(mapCuratedRowToItem) : []));
+	      const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
+	      return merged;
+	    };
 
     let ragAssistUsed = false;
     let ragSeedEntityId: string | null = null;
@@ -1782,7 +2165,7 @@ serve(async (req) => {
       }
     };
 
-    const buildSimilarToSeedRail = async (total: number) => {
+	    const buildSimilarToSeedRail = async (total: number) => {
       // Only build when we have a decent seed title.
       const pickSeed = async (mt: MediaType) => {
         const { data: seeds, error: seedErr } = await client.rpc("search_titles", {
@@ -1807,14 +2190,15 @@ serve(async (req) => {
       if (ragSeed) {
         seedOverride = { mt: ragSeed.mt, mediaId: ragSeed.mediaId, title: ragSeed.title };
       }
-      const effectiveSeed = seedOverride ?? seed;
-      if (!effectiveSeed || !Number.isFinite(effectiveSeed.mediaId) || effectiveSeed.mediaId <= 0) {
-        return { title: "Similar", items: [] as any[] };
-      }
+	      const effectiveSeed = seedOverride ?? seed;
+	      if (!effectiveSeed || !Number.isFinite(effectiveSeed.mediaId) || effectiveSeed.mediaId <= 0) {
+	        return { title: "Similar", items: [] as any[] };
+	      }
 
-      const perType = perTypeLimit(total);
-      const q = compileQuality(null);
-      const getSim = async (mt: MediaType) => {
+	      const avoidGenres = await userTopGenresPromise;
+	      const perType = perTypeLimit(total);
+	      const q = compileQuality(null);
+	      const getSim = async (mt: MediaType) => {
         const { data: sim, error: simErr } = await client.rpc("recommend_ids_similar_to_seeds", {
           p_media_type: mt,
           p_seed_ids: [effectiveSeed.mediaId],
@@ -1843,22 +2227,23 @@ serve(async (req) => {
           : emptyCtx,
       ]);
 
-      const a = (mediaType === "ANIME" || mediaType === "BOTH")
-        ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, quality: q, constraints })
-        : [];
-      const m = (mediaType === "MANGA" || mediaType === "BOTH")
-        ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, quality: q, constraints })
-        : [];
+	      const a = (mediaType === "ANIME" || mediaType === "BOTH")
+	        ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, avoidGenres, quality: q, constraints })
+	        : [];
+	      const m = (mediaType === "MANGA" || mediaType === "BOTH")
+	        ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, avoidGenres, quality: q, constraints })
+	        : [];
 
       const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
       const title = effectiveSeed.title || seedQuery || "seed";
       return { title: `Similar to "${title}"`, items: merged };
     };
 
-    const buildAlgorithmicRail = async (mode: ConciergeMode | null, total: number) => {
-      const perType = perTypeLimit(total);
-      const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
-      const modeExcluded = uniq([...(mode?.exclude_genres ?? []), ...userExcludedGenres]);
+	    const buildAlgorithmicRail = async (mode: ConciergeMode | null, total: number) => {
+	      const avoidGenres = await userTopGenresPromise;
+	      const perType = perTypeLimit(total);
+	      const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
+	      const modeExcluded = uniq([...(mode?.exclude_genres ?? []), ...userExcludedGenres]);
       const q = compileQuality(mode);
       const pCats = uniq([...categories, ...(mode?.required_genres ?? [])]);
       const cats = pCats.length ? pCats : (categories.length ? categories : null);
@@ -1877,28 +2262,30 @@ serve(async (req) => {
           : emptyCtx,
       ]);
 
-      const a = (mediaType === "ANIME" || mediaType === "BOTH")
-        ? buildItemsFromRows("ANIME", animeRows, ctxAnime, {
-          limit: perType,
-          requiredGenres: modeRequired,
-          excludeGenres: modeExcluded,
-          classicYearMax: mode?.classic_year_max,
-          quality: q,
-          prioritizeClassicBoost: (mode?.id ?? "").includes("classic"),
-          constraints,
-        })
-        : [];
-      const m = (mediaType === "MANGA" || mediaType === "BOTH")
-        ? buildItemsFromRows("MANGA", mangaRows, ctxManga, {
-          limit: perType,
-          requiredGenres: modeRequired,
-          excludeGenres: modeExcluded,
-          classicYearMax: mode?.classic_year_max,
-          quality: q,
-          prioritizeClassicBoost: (mode?.id ?? "").includes("classic"),
-          constraints,
-        })
-        : [];
+	      const a = (mediaType === "ANIME" || mediaType === "BOTH")
+	        ? buildItemsFromRows("ANIME", animeRows, ctxAnime, {
+	          limit: perType,
+	          requiredGenres: modeRequired,
+	          excludeGenres: modeExcluded,
+	          avoidGenres,
+	          classicYearMax: mode?.classic_year_max,
+	          quality: q,
+	          prioritizeClassicBoost: (mode?.id ?? "").includes("classic"),
+	          constraints,
+	        })
+	        : [];
+	      const m = (mediaType === "MANGA" || mediaType === "BOTH")
+	        ? buildItemsFromRows("MANGA", mangaRows, ctxManga, {
+	          limit: perType,
+	          requiredGenres: modeRequired,
+	          excludeGenres: modeExcluded,
+	          avoidGenres,
+	          classicYearMax: mode?.classic_year_max,
+	          quality: q,
+	          prioritizeClassicBoost: (mode?.id ?? "").includes("classic"),
+	          constraints,
+	        })
+	        : [];
       return mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
     };
 
@@ -1938,29 +2325,49 @@ serve(async (req) => {
     // Exactly 2 rails: primary + classics anchor (unless primary is classics, then secondary becomes premium picks).
     const primaryTotal = limit;
     const classicsTotal = Math.min(20, Math.max(limit, 14));
-    const [primaryBuilt, secondaryBuilt] = await Promise.all([
-      buildRailItems(decision.primaryId, primaryTotal),
-      buildRailItems(decision.secondaryId, classicsTotal),
-    ]);
+	    const [primaryBuilt, secondaryBuilt] = await Promise.all([
+	      buildRailItems(decision.primaryId, primaryTotal),
+	      buildRailItems(decision.secondaryId, classicsTotal),
+	    ]);
 
-    const sets: any[] = [
-      {
-        id: decision.primaryId,
-        title: primaryBuilt.title,
-        modeId: decision.primaryId,
-        confidence: modePicks[0].confidence,
-        reason: modePicks[0].reason,
-        items: primaryBuilt.items,
-      },
-      {
-        id: decision.secondaryId,
-        title: secondaryBuilt.title,
-        modeId: decision.secondaryId,
-        confidence: 1,
-        reason: "anchor rail",
-        items: secondaryBuilt.items,
-      },
-    ];
+	    const curatorNote = buildCuratorNote({
+	      locale,
+	      primaryModeId: decision.primaryId,
+	      primaryModeTitle: primaryMode?.title ?? primaryBuilt.title,
+	      constraints,
+	      ragUsed: ragAssistUsed,
+	      seedTitle: seedOverride?.title ?? null,
+	      avoidedGenres: await userTopGenresPromise,
+	    });
+
+	    const sets: any[] = [
+	      {
+	        id: decision.primaryId,
+	        title: primaryCopy.displayTitle,
+	        internalTitle: primaryBuilt.title,
+	        displayTitle: primaryCopy.displayTitle,
+	        displaySubtitle: primaryCopy.displaySubtitle,
+	        curatorNote,
+	        locale,
+	        modeId: decision.primaryId,
+	        confidence: modePicks[0].confidence,
+	        reason: modePicks[0].reason,
+	        items: primaryBuilt.items,
+	      },
+	      {
+	        id: decision.secondaryId,
+	        title: secondaryCopy.displayTitle,
+	        internalTitle: secondaryBuilt.title,
+	        displayTitle: secondaryCopy.displayTitle,
+	        displaySubtitle: secondaryCopy.displaySubtitle,
+	        curatorNote,
+	        locale,
+	        modeId: decision.secondaryId,
+	        confidence: 1,
+	        reason: "anchor rail",
+	        items: secondaryBuilt.items,
+	      },
+	    ];
 
     // Flatten for backwards compatibility + LLM narration.
     const allItems: any[] = [];
@@ -1985,17 +2392,15 @@ serve(async (req) => {
       // best-effort
     }
 
-    const message = (() => {
-      if (sets.length === 0) {
-        return categories.length === 0
-          ? "Premium picks (new to you). Tell me a vibe like “funny”, “sad”, “cozy”, or a genre to sharpen it."
-          : null;
-      }
-      const titles = sets.slice(0, 2).map((s: any) => String(s.title ?? "")).filter(Boolean);
-      if (titles.length >= 2) return `Two rails for you: ${titles[0]} + ${titles[1]}.`;
-      if (titles.length === 1) return `Here’s a rail for you: ${titles[0]}.`;
-      return null;
-    })();
+	    const message = (() => {
+	      if (sets.length === 0) {
+	        return locale === "de"
+	          ? "Sag mir eine Stimmung oder eine klare Kante (kurz, ohne Romance, ein Jahr) — ich kuratiere es neu für dich."
+	          : "Give me a mood or one constraint (short, no romance, a year) and I’ll curate it — new to you.";
+	      }
+	      // Backwards-compat: older clients can show the curator note in plain text.
+	      return curatorNote;
+	    })();
 
     // Optional narration (pure presentation layer).
     let narrationError: string | null = null;
@@ -2113,12 +2518,14 @@ serve(async (req) => {
       }
     }
 
-    return json({
-      success: true,
-      categories,
-      modes: modePicks,
-      sets,
-      // Backwards compat: clients that only understand `items` still get a useful response.
+	    return json({
+	      success: true,
+	      locale,
+	      curatorNote,
+	      categories,
+	      modes: modePicks,
+	      sets,
+	      // Backwards compat: clients that only understand `items` still get a useful response.
       items: allItems,
       message,
       narrated: narrate,

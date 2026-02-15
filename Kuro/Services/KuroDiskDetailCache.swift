@@ -1,15 +1,15 @@
 import Foundation
 
 enum KuroDiskDetailCache {
-    private static let folderName = "kuro.detail.v1"
-    private static let maxFiles = 300
+    nonisolated private static let folderName = "kuro.detail.v1"
+    nonisolated private static let maxFiles = 300
 
-    private static func baseDir() -> URL? {
+    nonisolated private static func baseDir() -> URL? {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
             .appendingPathComponent(folderName, isDirectory: true)
     }
 
-    private static func fileURL(kind: MediaKind, id: Int) -> URL? {
+    nonisolated private static func fileURL(kind: MediaKind, id: Int) -> URL? {
         baseDir()?
             .appendingPathComponent(kind.rawValue, isDirectory: true)
             .appendingPathComponent("\(id).json", isDirectory: false)
@@ -45,7 +45,7 @@ enum KuroDiskDetailCache {
         }.value
     }
 
-    private static func enforceLimit() async {
+    nonisolated private static func enforceLimit() async {
         guard let base = baseDir() else { return }
         let fm = FileManager.default
         guard let kinds = try? fm.contentsOfDirectory(

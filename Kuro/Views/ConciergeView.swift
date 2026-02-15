@@ -4,6 +4,58 @@
 
 import SwiftUI
 
+// MARK: - Conversation Persistence (lightweight, text-only)
+
+private struct PersistedMessage: Codable {
+    let role: String  // "user" or "assistant"
+    let text: String
+    let timestamp: Date
+
+    init(from message: ConciergeMessage) {
+        self.role = message.role == .user ? "user" : "assistant"
+        self.text = message.text
+        self.timestamp = Date()
+    }
+
+    func toConciergeMessage() -> ConciergeMessage {
+        ConciergeMessage(
+            role: role == "user" ? .user : .assistant,
+            text: text,
+            items: nil
+        )
+    }
+}
+
+private enum ConciergeHistory {
+    private static let key = "kuro_concierge_history"
+    private static let maxMessages = 20
+
+    static func save(_ messages: [ConciergeMessage]) {
+        // Only persist text-only messages (drop interactive cards, recommendations, etc.)
+        let persistable = messages.suffix(maxMessages).compactMap { msg -> PersistedMessage? in
+            guard !msg.text.isEmpty else { return nil }
+            // Skip messages with interactive content that can't be restored
+            if msg.items != nil || msg.recommendations != nil || msg.recommendationSets != nil { return nil }
+            if msg.showClarifyActions || msg.ambiguity != nil { return nil }
+            return PersistedMessage(from: msg)
+        }
+        guard let data = try? JSONEncoder().encode(Array(persistable.suffix(maxMessages))) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
+
+    static func load() -> [ConciergeMessage] {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let persisted = try? JSONDecoder().decode([PersistedMessage].self, from: data) else {
+            return []
+        }
+        return persisted.map { $0.toConciergeMessage() }
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: key)
+    }
+}
+
 // MARK: - Import Reconciliation Types
 
 enum ImportItemAction: String, Sendable {
@@ -45,6 +97,7 @@ struct ConciergeView: View {
     @State private var excludedItemIds: Set<String> = []
     @State private var autoReasonByItemId: [String: String] = [:]
     @State private var lastApplySessionId: String? = nil
+    @State private var lastApplySessionResetTask: Task<Void, Never>? = nil
     @State private var selectedAnime: Anime? = nil
     @State private var selectedManga: Manga? = nil
     @State private var toast: KuroToastState? = nil
@@ -59,6 +112,20 @@ struct ConciergeView: View {
     @State private var lastRecommendWasRagAssist: Bool = false
     @State private var lastRagSeedEntityId: String? = nil
     @State private var ragFeedbackSentForQuery: Set<String> = []
+    @State private var showAniListImportSheet: Bool = false
+    @State private var aniListUsername: String = ""
+    @State private var aniListIncludeAnime: Bool = true
+    @State private var aniListIncludeManga: Bool = true
+    @State private var aniListIncludeCurrent: Bool = true
+    @State private var aniListIncludeCompleted: Bool = true
+    @State private var aniListIncludePlanning: Bool = true
+    @State private var aniListIncludePaused: Bool = false
+    @State private var aniListIncludeDropped: Bool = false
+    @State private var aniListIsImporting: Bool = false
+    @State private var showTutorial: Bool = false
+    @State private var tutorialStep: Int = 0
+
+    private static let tutorialKey = "kuro_concierge_tutorial_completed"
 
     private var mascotState: ConciergeMascotState {
         if isWorking { return .thinking }
@@ -75,6 +142,39 @@ struct ConciergeView: View {
         FeatureFlags.shared.isFmAssistEnabled && supabaseService.fmService.isAvailable
     }
 
+    private var conciergePerfV2Enabled: Bool {
+        FeatureFlags.shared.isConciergePerfV2Enabled
+    }
+
+    private var conciergeEditorialV1Enabled: Bool {
+        #if DEBUG
+        // Default to the editorial shell in Debug so we don't end up "testing" the legacy UI by accident.
+        // You can still force-disable with `--ff-off=concierge_editorial_v1`.
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("--ff-off=concierge_editorial_v1") { return false }
+        if args.contains("--ff-on=concierge_editorial_v1") { return true }
+        return true
+        #else
+        return FeatureFlags.shared.isConciergeEditorialV1Enabled
+        #endif
+    }
+
+    private var isGermanLocale: Bool {
+        let language = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
+        return language.hasPrefix("de")
+    }
+
+    private var editorialSubtitle: String {
+        "Use your Kuro list instantly — or tell me what you're in the mood for."
+    }
+
+    private var editorialFooterText: String {
+        if isWorking {
+            return isGermanLocale ? "Einen Moment." : "One moment."
+        }
+        return isGermanLocale ? "Importiere direkt aus deiner Bibliothek — oder lass mich zwei Rails kuratieren." : "Import from your list — or let me curate two rails."
+    }
+
     init(assistantEnabled: Bool = true) {
         self.assistantEnabled = assistantEnabled
     }
@@ -84,7 +184,11 @@ struct ConciergeView: View {
         ZStack {
             Color.kuroBackground.ignoresSafeArea()
 
-            chatView
+            if conciergeEditorialV1Enabled {
+                editorialChatView
+            } else {
+                chatView
+            }
 
             // Toast overlay
             if let toast {
@@ -104,87 +208,360 @@ struct ConciergeView: View {
         .sheet(item: $selectedManga) { manga in
             MangaDetailView(manga: manga)
         }
+        .sheet(isPresented: $showAniListImportSheet) {
+            aniListImportSheet
+        }
         .task {
+            // Whisper mode is intentionally ephemeral to match the prototype.
+            if !conciergeEditorialV1Enabled {
+                if messages.isEmpty {
+                    let restored = ConciergeHistory.load()
+                    if !restored.isEmpty {
+                        messages = restored
+                    }
+                }
+            } else if !messages.isEmpty {
+                messages = []
+            }
+
+            // Whisper mode: keep the opening scene minimal (no tutorial overlay).
+            if !conciergeEditorialV1Enabled && !UserDefaults.standard.bool(forKey: Self.tutorialKey) {
+                showTutorial = true
+            }
+
             // Warm up the edge function isolate on view appear (fire-and-forget)
             Task.detached(priority: .background) {
                 await supabaseService.conciergeWarmup()
             }
+        }
+        .onDisappear {
+            lastApplySessionResetTask?.cancel()
+            if !conciergeEditorialV1Enabled {
+                ConciergeHistory.save(messages)
+            }
+        }
+        .onChange(of: messages.count) { _, _ in
+            if !conciergeEditorialV1Enabled {
+                ConciergeHistory.save(messages)
+            }
+        }
+        .overlay {
+            if showTutorial {
+                ConciergeTutorialOverlay(
+                    step: $tutorialStep,
+                    isGerman: isGermanLocale,
+                    onDismiss: {
+                        withAnimation(KuroAnimation.fast) {
+                            showTutorial = false
+                        }
+                        UserDefaults.standard.set(true, forKey: Self.tutorialKey)
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(200)
+            }
+        }
+        .preferredColorScheme(conciergeEditorialV1Enabled ? .light : nil)
+    }
+
+    private var editorialChatView: some View {
+        ConciergeEditorialShell(
+            title: "Concierge",
+            subtitle: editorialSubtitle,
+            errorText: errorText,
+            showsIntentDeck: messages.isEmpty
+        ) {
+            EmptyView()
+        } responseStage: {
+            ConciergeResponseStage {
+                messageTimeline(
+                    horizontalPadding: 24,
+                    topPadding: 20,
+                    bottomPadding: 20,
+                    messageSpacing: 20,
+                    includeStarter: false
+                )
+            }
+        } composer: {
+            ConciergeInputField(
+                text: $input,
+                isSending: isWorking,
+                focusRequest: $focusRequest,
+                onSend: { text in
+                    Task { await send(text: text) }
+                }
+                ,onAutoSend: { text in
+                    // Auto-send only when the input field detects a real paste import list.
+                    Task { await send(text: text) }
+                }
+            )
+            .kuroSwipeExclusionZone()
+        } footer: {
+            EmptyView()
+        }
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { containerSize = geo.size }
+                    .onChange(of: geo.size) { containerSize = geo.size }
+            }
+        }
+    }
+
+    private var aniListImportSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text(isGermanLocale ? "AniList importieren" : "Import AniList")
+                        .font(.system(size: 26, weight: .ultraLight, design: .serif))
+                        .foregroundStyle(.black.opacity(0.84))
+
+                    Text(isGermanLocale
+                        ? "Gib deinen AniList-Namen ein. Wir importieren deine öffentlichen Listen und gleichen sie mit deiner Kuro-Bibliothek ab."
+                        : "Enter your AniList username. We’ll import your public lists and reconcile them into your Kuro library."
+                    )
+                    .font(.kuroBody(weight: .light))
+                    .foregroundStyle(.black.opacity(0.62))
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(isGermanLocale ? "Benutzername" : "Username")
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(1.8)
+                            .foregroundColor(.kuroTextTertiary)
+
+                        TextField(isGermanLocale ? "z.B. maxmustermann" : "e.g. yourname", text: $aniListUsername)
+                            .textInputAutocapitalization(.never)
+                            .disableAutocorrection(true)
+                            .font(.kuroBody())
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
+                                    .fill(Color.white.opacity(0.92))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
+                                            .stroke(Color.black.opacity(0.08), lineWidth: 0.7)
+                                    )
+                            )
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(isGermanLocale ? "Typ" : "Type")
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(1.8)
+                            .foregroundColor(.kuroTextTertiary)
+
+                        HStack(spacing: 10) {
+                            togglePill(
+                                title: isGermanLocale ? "Anime" : "Anime",
+                                isOn: $aniListIncludeAnime
+                            )
+                            togglePill(
+                                title: isGermanLocale ? "Manga" : "Manga",
+                                isOn: $aniListIncludeManga
+                            )
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(isGermanLocale ? "Status" : "Status")
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(1.8)
+                            .foregroundColor(.kuroTextTertiary)
+
+                        HStack(spacing: 10) {
+                            togglePill(
+                                title: isGermanLocale ? "Aktuell" : "Current",
+                                isOn: $aniListIncludeCurrent
+                            )
+                            togglePill(
+                                title: isGermanLocale ? "Fertig" : "Completed",
+                                isOn: $aniListIncludeCompleted
+                            )
+                            togglePill(
+                                title: isGermanLocale ? "Plan" : "Planning",
+                                isOn: $aniListIncludePlanning
+                            )
+                        }
+
+                        HStack(spacing: 10) {
+                            togglePill(
+                                title: isGermanLocale ? "Pausiert" : "On hold",
+                                isOn: $aniListIncludePaused
+                            )
+                            togglePill(
+                                title: isGermanLocale ? "Abgebrochen" : "Dropped",
+                                isOn: $aniListIncludeDropped
+                            )
+                        }
+                    }
+
+                    Button(action: {
+                        Task { await runAniListImport() }
+                    }) {
+                        HStack(spacing: 10) {
+                            if aniListIsImporting {
+                                ProgressView()
+                                    .tint(.white)
+                            }
+                            Text(isGermanLocale ? "IMPORTIEREN" : "IMPORT")
+                                .font(.kuroCaption(weight: .medium))
+                                .tracking(2.0)
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(canRunAniListImport ? Color.black.opacity(0.88) : Color.black.opacity(0.10))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canRunAniListImport || aniListIsImporting)
+                    .padding(.top, 6)
+
+                    Text(isGermanLocale
+                        ? "Hinweis: Private AniList-Listen brauchen später OAuth. Dieses MVP nutzt öffentliche Listen."
+                        : "Note: private AniList lists will require OAuth later. This MVP uses public lists."
+                    )
+                    .font(.kuroMicro())
+                    .foregroundColor(.kuroTextTertiary)
+                    .padding(.top, 4)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 18)
+                .padding(.bottom, 24)
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(isGermanLocale ? "Fertig" : "Done") { showAniListImportSheet = false }
+                        .font(.kuroCaption(weight: .medium))
+                }
+            }
+        }
+        .presentationDetents([.large])
+    }
+
+    private var canRunAniListImport: Bool {
+        !aniListUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && (aniListIncludeAnime || aniListIncludeManga)
+            && (aniListIncludeCurrent || aniListIncludeCompleted || aniListIncludePlanning || aniListIncludePaused || aniListIncludeDropped)
+    }
+
+    private func togglePill(title: String, isOn: Binding<Bool>) -> some View {
+        Button(action: { isOn.wrappedValue.toggle() }) {
+            Text(title)
+                .font(.kuroCaption(weight: .medium))
+                .foregroundStyle(isOn.wrappedValue ? .white : .black.opacity(0.68))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(isOn.wrappedValue ? Color.black.opacity(0.86) : Color.black.opacity(0.04))
+                        .overlay(
+                            Capsule(style: .continuous)
+                                .stroke(Color.black.opacity(0.10), lineWidth: 0.6)
+                        )
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(isOn.wrappedValue ? .isSelected : [])
+        .accessibilityHint("Toggles \(title) filter")
+    }
+
+    private func runAniListImport() async {
+        guard canRunAniListImport else { return }
+        if aniListIsImporting { return }
+
+        aniListIsImporting = true
+        defer { aniListIsImporting = false }
+
+        let u = aniListUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        var types: [String] = []
+        if aniListIncludeAnime { types.append("ANIME") }
+        if aniListIncludeManga { types.append("MANGA") }
+
+        var statuses: [String] = []
+        if aniListIncludeCurrent { statuses.append("CURRENT") }
+        if aniListIncludeCompleted { statuses.append("COMPLETED") }
+        if aniListIncludePlanning { statuses.append("PLANNING") }
+        if aniListIncludePaused { statuses.append("PAUSED") }
+        if aniListIncludeDropped { statuses.append("DROPPED") }
+
+        do {
+            let resp = try await supabaseService.conciergeImportAniList(
+                username: u,
+                types: types,
+                statuses: statuses,
+                maxItems: 200
+            )
+            guard resp.success, let text = resp.text, !text.isEmpty else {
+                showToast(.init(
+                    kind: .error,
+                    title: isGermanLocale ? "Import fehlgeschlagen" : "Import failed",
+                    subtitle: resp.error ?? (isGermanLocale ? "Bitte prüfe den Namen." : "Please check the username."),
+                    actionTitle: nil,
+                    onAction: nil
+                ), autoDismissSeconds: 4.0)
+                return
+            }
+
+            showAniListImportSheet = false
+
+            let count = resp.itemCount ?? 0
+            await sendExternalImport(
+                sourceLabel: "AniList",
+                displayText: isGermanLocale
+                    ? "AniList-Import — \(count) Titel"
+                    : "AniList import — \(count) items",
+                sourceText: text,
+                truncated: resp.truncated ?? false
+            )
+        } catch {
+            handleError(error)
+        }
+    }
+
+    private func sendExternalImport(sourceLabel: String, displayText: String, sourceText: String, truncated: Bool) async {
+        let t = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return }
+        guard !isWorking else { return }
+
+        errorText = nil
+        let sendStartedAt = supabaseService.beginInteractionTiming()
+
+        // Compact user bubble (avoid dumping 200 lines into chat).
+        let userMsg = ConciergeMessage(role: .user, text: displayText, sourceUserText: t, items: nil)
+        withAnimation(KuroAnimation.editorial) {
+            messages.append(userMsg)
+        }
+
+        isWorking = true
+        defer { isWorking = false }
+
+        await handleImportFlow(text: t, interactionStartedAt: sendStartedAt)
+
+        if truncated {
+            showToast(.init(
+                kind: .info,
+                title: isGermanLocale ? "Teilimport" : "Partial import",
+                subtitle: isGermanLocale ? "Ich habe zuerst 200 Titel importiert. Du kannst später mehr importieren." : "Imported the first 200 items. You can import more later.",
+                actionTitle: nil,
+                onAction: nil
+            ), autoDismissSeconds: 4.0)
         }
     }
 
     // MARK: Chat View (Always Visible)
     private var chatView: some View {
         VStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                        if messages.isEmpty {
-                            ConciergeIntroCard()
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 14)
-                                .padding(.bottom, KuroDesignSpacing.sm)
-
-                            ConciergeStarterActions(
-                                onPaste: { pasteFromClipboard() },
-                                onExampleImport: { seedExampleImport() },
-                                onExampleVibe: { seedExampleVibe() }
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-
-                        ForEach(messages) { msg in
-                            ConciergeBubble(
-                                message: msg,
-                                selected: { item in selectedByItemId[item.id] },
-                                onSelect: { item, candidate in
-                                    KuroAccessibility.impactHaptic(.light)
-                                    selectedByItemId[item.id] = candidate
-                                },
-                                onOpenRecommendation: { rec in
-                                    Task { await openRecommendation(rec) }
-                                },
-                                onQuickSave: { rec in
-                                    Task { await quickSaveRecommendation(rec) }
-                                },
-                                onClarifyPaste: { pasteFromClipboard() },
-                                onClarifyExampleImport: { seedExampleImport() },
-                                onClarifyExampleVibe: { seedExampleVibe() },
-                                onClarifyAmbiguity: clarifyV2Enabled ? { kind, value, sourceText in
-                                    Task { await handleClarification(kind: kind, value: value, sourceText: sourceText) }
-                                } : nil,
-                                onConfirmItems: { response in
-                                    Task { await confirmImport(response: response, sourceMessageId: msg.id) }
-                                },
-                                onReparse: {
-                                    reparse(message: msg)
-                                },
-                                isImportApplied: appliedImportMessageIds.contains(msg.id),
-                                autoReasonByItemId: autoReasonByItemId,
-                                itemActions: itemActions,
-                                excludedItemIds: $excludedItemIds
-                            )
-                            .id(msg.id)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-
-                        if isWorking {
-                            ConciergeTypingIndicator()
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                        }
-                    }
-                    .padding(.horizontal, KuroDesignSpacing.padding)
-                    .padding(.top, KuroDesignSpacing.md)
-                    .padding(.bottom, KuroDesignSpacing.md)
-                }
-                .scrollDismissesKeyboard(.interactively)
-                .onChange(of: messages.count) {
-                    if let last = messages.last {
-                        withAnimation(KuroAnimation.fast) {
-                            proxy.scrollTo(last.id, anchor: .bottom)
-                        }
-                    }
-                }
-            }
+            messageTimeline(
+                horizontalPadding: KuroDesignSpacing.padding,
+                topPadding: KuroDesignSpacing.md,
+                bottomPadding: KuroDesignSpacing.md,
+                includeStarter: true
+            )
 
             if let errorText {
                 Text(errorText)
@@ -234,10 +611,97 @@ struct ConciergeView: View {
         }
     }
 
+    private func messageTimeline(
+        horizontalPadding: CGFloat,
+        topPadding: CGFloat,
+        bottomPadding: CGFloat,
+        messageSpacing: CGFloat = KuroDesignSpacing.md,
+        includeStarter: Bool
+    ) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: messageSpacing) {
+                    if includeStarter && messages.isEmpty {
+                        ConciergeIntroCard()
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 14)
+                            .padding(.bottom, KuroDesignSpacing.sm)
+
+                        ConciergeStarterActions(
+                            onPaste: { pasteFromClipboard() },
+                            onImportLibrary: {
+                                Task { await importFromLibrary() }
+                            },
+                            onExampleImport: { seedExampleImport() },
+                            onExampleVibe: { seedExampleVibe() }
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+
+                    ForEach(messages) { msg in
+                        ConciergeBubble(
+                            message: msg,
+                            selected: { item in selectedByItemId[item.id] },
+                            onSelect: { item, candidate in
+                                KuroAccessibility.impactHaptic(.light)
+                                selectedByItemId[item.id] = candidate
+                            },
+                            onOpenRecommendation: { rec in
+                                Task { await openRecommendation(rec) }
+                            },
+                            onQuickSave: { rec in
+                                Task { await quickSaveRecommendation(rec) }
+                            },
+                            onClarifyPaste: { pasteFromClipboard() },
+                            onClarifyImportLibrary: {
+                                Task { await importFromLibrary() }
+                            },
+                            onClarifyExampleImport: { seedExampleImport() },
+                            onClarifyExampleVibe: { seedExampleVibe() },
+                            onClarifyAmbiguity: clarifyV2Enabled ? { kind, value, sourceText in
+                                Task { await handleClarification(kind: kind, value: value, sourceText: sourceText) }
+                            } : nil,
+                            onConfirmItems: { response in
+                                Task { await confirmImport(response: response, sourceMessageId: msg.id) }
+                            },
+                            onReparse: {
+                                reparse(message: msg)
+                            },
+                            isImportApplied: appliedImportMessageIds.contains(msg.id),
+                            autoReasonByItemId: autoReasonByItemId,
+                            itemActions: itemActions,
+                            excludedItemIds: $excludedItemIds
+                        )
+                        .id(msg.id)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+
+                    if isWorking && !messages.isEmpty {
+                        ConciergeTypingIndicator()
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
+                .padding(.horizontal, horizontalPadding)
+                .padding(.top, topPadding)
+                .padding(.bottom, bottomPadding)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: messages.count) {
+                if let last = messages.last {
+                    withAnimation(KuroAnimation.fast) {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: Send (Main Entry Point)
     private func send(text: String) async {
         guard !text.isEmpty else { return }
+        guard !isWorking else { return }
         errorText = nil
+        let sendStartedAt = supabaseService.beginInteractionTiming()
 
         #if DEBUG
         let sendStart = CFAbsoluteTimeGetCurrent()
@@ -269,25 +733,32 @@ struct ConciergeView: View {
             supabaseService.analytics.track("clarify_shown", payload: [
                 "reason": "low_signal",
                 "input_length": Double(text.count),
+                "surface": "concierge_chat",
+                "result": "clarify",
             ])
+            supabaseService.trackInteractionEvent(
+                "concierge_first_response_ms",
+                surface: "concierge_chat",
+                result: "clarify",
+                startedAt: sendStartedAt
+            )
             return
         }
 
         isWorking = true
-        lastApplySessionId = nil
 
         if looksLikeImport(text) {
             supabaseService.analytics.track("intent_detected", payload: [
                 "intent": "import",
                 "input_length": Double(text.count),
             ])
-            await handleImportFlow(text: text)
+            await handleImportFlow(text: text, interactionStartedAt: sendStartedAt)
         } else {
             supabaseService.analytics.track("intent_detected", payload: [
                 "intent": "recommend",
                 "input_length": Double(text.count),
             ])
-            await handleRecommendationFlow(text: text)
+            await handleRecommendationFlow(text: text, interactionStartedAt: sendStartedAt)
         }
 
         isWorking = false
@@ -318,6 +789,8 @@ struct ConciergeView: View {
                     "kind": kind,
                     "value": value,
                     "routed_to": "recommend",
+                    "surface": "concierge_chat",
+                    "result": "recommend",
                 ])
                 await handleRecommendationFlow(text: sourceText)
                 isWorking = false
@@ -330,6 +803,8 @@ struct ConciergeView: View {
             "kind": kind,
             "value": value,
             "routed_to": "import_reparse",
+            "surface": "concierge_chat",
+            "result": "import_reparse",
         ])
 
         do {
@@ -431,8 +906,22 @@ struct ConciergeView: View {
     }
 
     // MARK: Import Flow (Inline)
-    private func handleImportFlow(text: String) async {
+    private func handleImportFlow(text: String, interactionStartedAt: SupabaseService.InteractionStartedAt? = nil) async {
+        let parseStartedAt = supabaseService.beginInteractionTiming()
         do {
+            var firstResponseTracked = false
+
+            func trackFirstResponseIfNeeded(_ result: String) {
+                guard let interactionStartedAt, !firstResponseTracked else { return }
+                firstResponseTracked = true
+                supabaseService.trackInteractionEvent(
+                    "concierge_first_response_ms",
+                    surface: "concierge_chat",
+                    result: result,
+                    startedAt: interactionStartedAt
+                )
+            }
+
             #if DEBUG
             let parseStart = CFAbsoluteTimeGetCurrent()
             #endif
@@ -443,6 +932,13 @@ struct ConciergeView: View {
                 "item_count": Double(response.items.count),
                 "has_ambiguity": response.items.contains { $0.ambiguity != nil },
             ])
+            supabaseService.trackInteractionEvent(
+                "concierge_parse_ms",
+                surface: "concierge_parse",
+                result: "ok",
+                startedAt: parseStartedAt,
+                extra: ["item_count": response.items.count]
+            )
 
             #if DEBUG
             let parseEnd = CFAbsoluteTimeGetCurrent()
@@ -451,18 +947,19 @@ struct ConciergeView: View {
 
             // Prefetch top candidate covers so the confirm bubble feels instant.
             #if canImport(UIKit)
-            let coverUrls: [URL] = response.items.flatMap { item in
-                item.candidates.prefix(2).compactMap { c in
+            let maxPrefetchItems = conciergePerfV2Enabled ? 12 : 8
+            let coverUrls: [URL] = Array(response.items.flatMap { item in
+                item.candidates.prefix(1).compactMap { c in
                     guard let s = c.cover_image_medium, let url = URL(string: s) else { return nil }
                     return url
                 }
-            }
+            }.prefix(maxPrefetchItems))
             #if DEBUG
             let prefetchStart = CFAbsoluteTimeGetCurrent()
             print("[Concierge Timing] image prefetch started: \(String(format: "%.1f", (prefetchStart - parseEnd) * 1000))ms after parse")
             #endif
             Task.detached(priority: .background) {
-                await ImagePipeline.shared.prefetch(urls: coverUrls, maxPixelSize: 640)
+                await ImagePipeline.shared.prefetch(urls: coverUrls, maxPixelSize: 520)
             }
             #endif
 
@@ -507,6 +1004,7 @@ struct ConciergeView: View {
                 withAnimation(KuroAnimation.editorial) {
                     messages.append(assistantMsg)
                 }
+                trackFirstResponseIfNeeded("clarify")
                 #if DEBUG
                 print("[Concierge Timing] clarify card rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
                 #endif
@@ -519,7 +1017,7 @@ struct ConciergeView: View {
 
                 if allHighConfidence && !response.items.isEmpty {
                     // Auto-apply: skip confirm UI entirely
-                    await autoApplyImport(response: response)
+                    await autoApplyImport(response: response, interactionStartedAt: interactionStartedAt)
                 } else {
                     // Show inline confirm bubble in chat
                     let assistantMsg = ConciergeMessage(
@@ -532,6 +1030,7 @@ struct ConciergeView: View {
                     withAnimation(KuroAnimation.editorial) {
                         messages.append(assistantMsg)
                     }
+                    trackFirstResponseIfNeeded("confirm")
                     #if DEBUG
                     print("[Concierge Timing] confirm bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
                     #endif
@@ -547,6 +1046,12 @@ struct ConciergeView: View {
                 }
             }
         } catch {
+            supabaseService.trackInteractionEvent(
+                "concierge_parse_ms",
+                surface: "concierge_parse",
+                result: "error",
+                startedAt: parseStartedAt
+            )
             handleError(error)
         }
     }
@@ -632,14 +1137,17 @@ struct ConciergeView: View {
     }
 
     // MARK: Auto-Apply (High Confidence, Pure Adds Only)
-    private func autoApplyImport(response: SupabaseService.ConciergeParseResponse) async {
+    private func autoApplyImport(
+        response: SupabaseService.ConciergeParseResponse,
+        interactionStartedAt: SupabaseService.InteractionStartedAt? = nil
+    ) async {
         do {
             let chosen = buildApplyPayload(from: response)
             guard !chosen.isEmpty else { return }
 
             let res = try await supabaseService.conciergeApply(items: chosen)
             if let sessionId = res.sessionId {
-                lastApplySessionId = sessionId
+                setLastApplySession(sessionId)
             }
 
             // Refresh collection in background (don't block toast)
@@ -675,6 +1183,14 @@ struct ConciergeView: View {
             withAnimation(KuroAnimation.editorial) {
                 messages.append(confirmMsg)
             }
+            if let interactionStartedAt {
+                supabaseService.trackInteractionEvent(
+                    "concierge_first_response_ms",
+                    surface: "concierge_chat",
+                    result: "auto_apply",
+                    startedAt: interactionStartedAt
+                )
+            }
 
         } catch {
             handleError(error)
@@ -682,19 +1198,44 @@ struct ConciergeView: View {
     }
 
     // MARK: Recommendation Flow (Inline Rails)
-    private func handleRecommendationFlow(text: String) async {
+    private func handleRecommendationFlow(
+        text: String,
+        interactionStartedAt: SupabaseService.InteractionStartedAt? = nil
+    ) async {
+        let recommendStartedAt = supabaseService.beginInteractionTiming()
         do {
+            var firstResponseTracked = false
+
+            func trackFirstResponseIfNeeded(_ result: String) {
+                guard let interactionStartedAt, !firstResponseTracked else { return }
+                firstResponseTracked = true
+                supabaseService.trackInteractionEvent(
+                    "concierge_first_response_ms",
+                    surface: "concierge_chat",
+                    result: result,
+                    startedAt: interactionStartedAt
+                )
+            }
+
             #if DEBUG
             let recStart = CFAbsoluteTimeGetCurrent()
             #endif
 
             let rec = try await supabaseService.conciergeRecommend(text: text, scope: .both, limit: 8)
+            supabaseService.trackInteractionEvent(
+                "concierge_recommend_ms",
+                surface: "concierge_recommend",
+                result: "ok",
+                startedAt: recommendStartedAt,
+                extra: ["item_count": (rec.items ?? []).count]
+            )
             lastRecommendQuery = text
             lastRecommendWasRagAssist = rec.assist?.ragUsed == true
             lastRagSeedEntityId = rec.assist?.seedEntityId
             let sets = (rec.sets ?? []).filter { ($0.items ?? []).isEmpty == false }
             let flattened = sets.flatMap { $0.items ?? [] }
             let displayItems = !flattened.isEmpty ? flattened : (rec.items ?? [])
+            let note = (rec.curatorNote ?? sets.first?.curatorNote ?? rec.message ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
             #if DEBUG
             let recEnd = CFAbsoluteTimeGetCurrent()
@@ -703,15 +1244,16 @@ struct ConciergeView: View {
 
             // Prefetch recommendation posters for a snappy first render.
             #if canImport(UIKit)
-            let recUrls: [URL] = displayItems.compactMap { item in
+            let maxPrefetchItems = conciergePerfV2Enabled ? 12 : 8
+            let recUrls: [URL] = Array(displayItems.compactMap { item in
                 guard let s = item.coverImageMedium, let url = URL(string: s) else { return nil }
                 return url
-            }
+            }.prefix(maxPrefetchItems))
             #if DEBUG
             print("[Concierge Timing] rec image prefetch started: \(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - recEnd) * 1000))ms after response")
             #endif
             Task.detached(priority: .background) {
-                await ImagePipeline.shared.prefetch(urls: recUrls, maxPixelSize: 720)
+                await ImagePipeline.shared.prefetch(urls: recUrls, maxPixelSize: 560)
             }
             #endif
 
@@ -719,7 +1261,7 @@ struct ConciergeView: View {
                 // Append inline recommendation message with editorial rails
                 let assistantMsg = ConciergeMessage(
                     role: .assistant,
-                    text: rec.message ?? "",
+                    text: note,
                     items: nil,
                     recommendations: !sets.isEmpty ? nil : displayItems,
                     recommendationSets: !sets.isEmpty ? sets : nil
@@ -727,6 +1269,7 @@ struct ConciergeView: View {
                 withAnimation(KuroAnimation.editorial) {
                     messages.append(assistantMsg)
                 }
+                trackFirstResponseIfNeeded("recommend")
                 #if DEBUG
                 print("[Concierge Timing] rec bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - recStart) * 1000))ms total from rec start")
                 #endif
@@ -734,17 +1277,28 @@ struct ConciergeView: View {
                 lastRecommendWasRagAssist = false
                 lastRagSeedEntityId = nil
                 // No results — show text message
+                let locale = (rec.locale ?? "en").lowercased()
+                let fallback = locale.hasPrefix("de")
+                    ? "Sag mir eine Stimmung oder eine klare Kante (kurz, ohne Romance, ein Jahr) — ich kuratiere es neu fuer dich."
+                    : "Give me a mood or one constraint (short, no romance, a year) and I’ll curate it — new to you."
                 let assistantMsg = ConciergeMessage(
                     role: .assistant,
-                    text: rec.message ?? "Tell me a vibe (funny, sad, cozy, action) and I'll recommend something new-to-you.",
+                    text: rec.message ?? fallback,
                     items: nil
                 )
                 withAnimation(KuroAnimation.editorial) {
                     messages.append(assistantMsg)
                 }
+                trackFirstResponseIfNeeded("recommend_empty")
             }
 
         } catch {
+            supabaseService.trackInteractionEvent(
+                "concierge_recommend_ms",
+                surface: "concierge_recommend",
+                result: "error",
+                startedAt: recommendStartedAt
+            )
             handleError(error)
         }
     }
@@ -764,7 +1318,7 @@ struct ConciergeView: View {
 
             let res = try await supabaseService.conciergeApply(items: chosen)
             if let sessionId = res.sessionId {
-                lastApplySessionId = sessionId
+                setLastApplySession(sessionId)
             }
 
             // Refresh collection in background
@@ -916,7 +1470,7 @@ struct ConciergeView: View {
                 _ = await (_lists, _items, _feed)
             }
 
-            lastApplySessionId = nil
+            setLastApplySession(nil)
 
             if res.success {
                 if let lastAppliedImportMessageId {
@@ -950,6 +1504,20 @@ struct ConciergeView: View {
         if mediaType == "anime", s == "READING" { return "WATCHING" }
         if s.isEmpty { return "PLANNING" }
         return s
+    }
+
+    private func setLastApplySession(_ sessionId: String?) {
+        lastApplySessionResetTask?.cancel()
+        lastApplySessionId = sessionId
+        guard let sessionId else { return }
+        // Avoid stale sticky undo controls if the user moves on.
+        lastApplySessionResetTask = Task {
+            try? await Task.sleep(nanoseconds: 120_000_000_000)
+            guard !Task.isCancelled else { return }
+            if lastApplySessionId == sessionId {
+                lastApplySessionId = nil
+            }
+        }
     }
 
     // MARK: Adaptation Ambiguity Guard
@@ -1024,12 +1592,49 @@ struct ConciergeView: View {
         }
     }
 
+    private func importFromLibrary() async {
+        guard !isWorking else { return }
+        errorText = nil
+
+        let result = await supabaseService.conciergeLibraryExportText(
+            includeStatus: Set(ListStatus.allCases),
+            includeMediaTypes: ["anime", "manga"],
+            maxItems: 400
+        )
+
+        guard let result else {
+            showToast(.init(
+                kind: .info,
+                title: isGermanLocale ? "Bibliothek leer" : "Library is empty",
+                subtitle: isGermanLocale ? "Bitte füge zuerst Titel zu deiner Bibliothek hinzu." : "Add titles to your library first.",
+                actionTitle: nil,
+                onAction: nil
+            ))
+            return
+        }
+
+        await sendExternalImport(
+            sourceLabel: isGermanLocale ? "Kuro-Liste" : "Kuro library",
+            displayText: isGermanLocale
+                ? "Kuro-Liste importieren (\(result.exportedItemCount) Titel)"
+                : "Importing from Kuro library (\(result.exportedItemCount) items)",
+            sourceText: result.text,
+            truncated: result.truncated
+        )
+    }
+
     private func pasteFromClipboard() {
         #if os(iOS)
         guard let t = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
               !t.isEmpty
         else {
-            showToast(.init(kind: .info, title: "Clipboard is empty", subtitle: "Copy a list of titles, then tap Paste.", actionTitle: nil, onAction: nil))
+            showToast(.init(
+                kind: .info,
+                title: isGermanLocale ? "Zwischenablage ist leer" : "Clipboard is empty",
+                subtitle: isGermanLocale ? "Kopiere eine Liste von Titeln und tippe dann auf Einfügen." : "Copy a list of titles, then tap Paste.",
+                actionTitle: nil,
+                onAction: nil
+            ))
             return
         }
         input = t
@@ -1049,7 +1654,9 @@ struct ConciergeView: View {
     }
 
     private func seedExampleVibe() {
-        input = "Something funny, premium, not childish."
+        input = isGermanLocale
+            ? "Etwas lustig, trocken, figurengetrieben — nicht kindisch."
+            : "Something funny, dry, character-led — not childish."
         focusRequest = true
         KuroAccessibility.impactHaptic(.light)
     }
@@ -1114,6 +1721,133 @@ struct ConciergeView: View {
         if words.count >= 3 { return true }
 
         return false
+    }
+}
+
+// MARK: - Guided Tutorial Overlay
+
+private struct ConciergeTutorialOverlay: View {
+    @Binding var step: Int
+    let isGerman: Bool
+    let onDismiss: () -> Void
+
+    private let steps: [(iconEN: String, titleEN: String, bodyEN: String, iconDE: String, titleDE: String, bodyDE: String)] = [
+        (
+            iconEN: "text.bubble",
+            titleEN: "Describe a mood",
+            bodyEN: "Type something like \"dark, not gory, short\" and the Concierge curates two rails for you.",
+            iconDE: "text.bubble",
+            titleDE: "Beschreibe eine Stimmung",
+            bodyDE: "Schreibe z.B. \"dunkel, kein Gore, kurz\" und der Concierge kuratiert zwei Rails fur dich."
+        ),
+        (
+            iconEN: "doc.on.clipboard",
+            titleEN: "Or paste your list",
+            bodyEN: "Paste your anime list from any source. The Concierge matches, reconciles, and imports it.",
+            iconDE: "doc.on.clipboard",
+            titleDE: "Oder fuge deine Liste ein",
+            bodyDE: "Fuge deine Anime-Liste ein. Der Concierge gleicht ab, erkennt Konflikte und importiert."
+        ),
+        (
+            iconEN: "sparkles",
+            titleEN: "Curated for you",
+            bodyEN: "Recommendations come filtered against your library. No duplicates, no noise.",
+            iconDE: "sparkles",
+            titleDE: "Kuratiert fur dich",
+            bodyDE: "Empfehlungen werden gegen deine Bibliothek gefiltert. Keine Duplikate, kein Rauschen."
+        ),
+    ]
+
+    var body: some View {
+        ZStack {
+            // Dimmed backdrop
+            Color.black.opacity(0.32)
+                .ignoresSafeArea()
+                .onTapGesture { advance() }
+
+            VStack(spacing: 20) {
+                Spacer()
+
+                // Tutorial card
+                VStack(spacing: 18) {
+                    let s = steps[step]
+
+                    Circle()
+                        .fill(Color.white.opacity(0.12))
+                        .frame(width: 56, height: 56)
+                        .overlay(
+                            Image(systemName: isGerman ? s.iconDE : s.iconEN)
+                                .font(.system(size: 22, weight: .light))
+                                .foregroundColor(.white.opacity(0.88))
+                        )
+
+                    Text(isGerman ? s.titleDE : s.titleEN)
+                        .font(.system(size: 22, weight: .ultraLight, design: .serif))
+                        .foregroundColor(.white.opacity(0.92))
+
+                    Text(isGerman ? s.bodyDE : s.bodyEN)
+                        .font(.kuroBody(weight: .light))
+                        .foregroundColor(.white.opacity(0.68))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(3)
+                        .padding(.horizontal, 24)
+
+                    // Step indicator
+                    HStack(spacing: 6) {
+                        ForEach(0..<steps.count, id: \.self) { i in
+                            Circle()
+                                .fill(Color.white.opacity(step == i ? 0.80 : 0.25))
+                                .frame(width: 5, height: 5)
+                        }
+                    }
+                    .padding(.top, 4)
+
+                    Button(action: { advance() }) {
+                        Text(step < steps.count - 1
+                             ? (isGerman ? "WEITER" : "NEXT")
+                             : (isGerman ? "VERSTANDEN" : "GOT IT"))
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.8)
+                            .foregroundColor(.black.opacity(0.88))
+                            .padding(.horizontal, 28)
+                            .padding(.vertical, 12)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(Color.white.opacity(0.92))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.vertical, 28)
+                .padding(.horizontal, 20)
+
+                Spacer()
+
+                // Skip
+                if step < steps.count - 1 {
+                    Button(action: { onDismiss() }) {
+                        Text(isGerman ? "Uberspringen" : "Skip")
+                            .font(.kuroCaption(weight: .medium))
+                            .foregroundColor(.white.opacity(0.42))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 48)
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(isGerman ? "Concierge-Anleitung" : "Concierge tutorial")
+    }
+
+    private func advance() {
+        KuroAccessibility.impactHaptic(.light)
+        if step < steps.count - 1 {
+            withAnimation(KuroAnimation.fast) {
+                step += 1
+            }
+        } else {
+            onDismiss()
+        }
     }
 }
 

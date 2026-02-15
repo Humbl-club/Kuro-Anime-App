@@ -16,6 +16,7 @@ struct MediaDetailSheet: View {
                 MangaDetailLoaderView(mangaId: id)
             }
         }
+        .accessibilityIdentifier("media_detail_sheet")
         #if os(iOS)
         .presentationDragIndicator(.hidden)
         #endif

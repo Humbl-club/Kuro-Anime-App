@@ -239,7 +239,6 @@ struct DetectedListChip: View {
     let onDismiss: () -> Void
     
     @State private var isVisible = false
-    @State private var bounceOffset: CGFloat = 0
     
     var body: some View {
         HStack(spacing: 6) {
@@ -260,25 +259,11 @@ struct DetectedListChip: View {
                         .stroke(Color.primary.opacity(0.10), lineWidth: 0.5)
                 )
         )
-        .offset(y: bounceOffset)
         .opacity(isVisible ? 1 : 0)
         .offset(y: isVisible ? -8 : 10)
         .onAppear {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            withAnimation(.easeOut(duration: 0.18)) {
                 isVisible = true
-            }
-            
-            // Bounce animation
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
-                    bounceOffset = -4
-                }
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.5)) {
-                        bounceOffset = 0
-                    }
-                }
             }
         }
         .onTapGesture {
@@ -348,12 +333,12 @@ struct IntentIndicator: View {
     }
     
     private func animateTransition() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-            scale = 1.2
+        withAnimation(.easeOut(duration: 0.12)) {
+            scale = 1.06
         }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            withAnimation(.easeIn(duration: 0.12)) {
                 scale = 1.0
             }
         }
@@ -371,19 +356,23 @@ struct ConciergeInputField: View {
     var isSending: Bool = false
     var focusRequest: Binding<Bool>? = nil
     var onSend: (_ text: String) -> Void
+    /// Optional: when we detect a paste that clearly looks like an import list, auto-trigger send.
+    /// This keeps the flow "magic" without an extra button press.
+    var onAutoSend: ((_ text: String) -> Void)? = nil
     var detectedIntent: Binding<PrototypeConciergeIntent>?
     
     // MARK: - State
     
     @State private var internalIntent: PrototypeConciergeIntent = .unknown
-    @State private var placeholderOpacity: Double = 0.3
-    @FocusState private var isInputFocused: Bool
+    @State private var isInputFocused: Bool = false
     @State private var showDetectedChip = false
     @State private var detectedCount = 0
     @State private var lastTextLength = 0
     @State private var suggestions: [ConciergeSuggestion] = []
     @State private var suggestionTask: Task<Void, Never>? = nil
     @State private var detectedChipTask: Task<Void, Never>? = nil
+    @State private var measuredTextHeight: CGFloat = 20
+    @State private var lastAutoSentTextFingerprint: Int? = nil
     
     // MARK: - Constants
     
@@ -392,6 +381,7 @@ struct ConciergeInputField: View {
         static let horizontalPadding: CGFloat = 16
         static let verticalPadding: CGFloat = 12
         static let maxHeight: CGFloat = 120
+        static let collapsedMaxHeight: CGFloat = 38
         static let lineHeight: CGFloat = 20
     }
     
@@ -403,6 +393,11 @@ struct ConciergeInputField: View {
     
     private var characterCount: Int {
         text.count
+    }
+
+    private var isGermanLocale: Bool {
+        let language = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
+        return language.hasPrefix("de")
     }
     
     private var isEmpty: Bool {
@@ -421,82 +416,54 @@ struct ConciergeInputField: View {
     /// Dynamic opacity based on content length
     private var inputOpacity: Double {
         if isEmpty {
-            return 0.30
+            return 0.28
         } else if characterCount <= 2 {
             return 0.80
         } else {
             return 0.90
         }
     }
+
+    private var inputMaxHeight: CGFloat {
+        (isInputFocused || !isEmpty) ? Constants.maxHeight : Constants.collapsedMaxHeight
+    }
+
+    private var uiFont: UIFont {
+        let base = UIFont.systemFont(ofSize: 17, weight: .regular)
+        let descriptor = base.fontDescriptor.withDesign(.serif) ?? base.fontDescriptor
+        return UIFont(descriptor: descriptor, size: 17)
+    }
     
     // MARK: - Body
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if !suggestions.isEmpty && !isSending && !isImportIntent {
-                ConciergeSuggestionBar(suggestions: suggestions, onTap: applySuggestion)
-                    .transition(.opacity)
+        HStack(alignment: .center, spacing: 12) {
+            ZStack(alignment: .topLeading) {
+                if isEmpty {
+                    placeholderView
+                }
+
+                KuroGrowingTextView(
+                    text: $text,
+                    isFocused: Binding(
+                        get: { isInputFocused },
+                        set: { isInputFocused = $0 }
+                    ),
+                    measuredHeight: $measuredTextHeight,
+                    font: uiFont,
+                    textColor: UIColor.black.withAlphaComponent(0.85),
+                    maxHeight: inputMaxHeight
+                )
+                .frame(height: min(inputMaxHeight, max(Constants.lineHeight, measuredTextHeight)))
+                .onChange(of: text) { oldValue, newValue in
+                    handleTextChange(from: oldValue, to: newValue)
+                }
             }
 
-            // Main input container
-            HStack(alignment: .bottom, spacing: 12) {
-                    // Input area with placeholder
-                    ZStack(alignment: .topLeading) {
-                        // Placeholder text with pulsing animation
-                        if isEmpty {
-                            placeholderView
-                        }
-
-                        // Text input
-                        TextEditor(text: $text)
-                            .font(.kuroBody())
-                            .foregroundStyle(Color.primary.opacity(inputOpacity))
-                            .scrollContentBackground(.hidden)
-                            .background(Color.clear)
-                            .frame(minHeight: Constants.lineHeight, maxHeight: Constants.maxHeight)
-                            .focused($isInputFocused)
-                            .onChange(of: text) { oldValue, newValue in
-                                handleTextChange(from: oldValue, to: newValue)
-                            }
-                    }
-
-                    // Intent indicator (if detected)
-                    if currentIntent != .unknown {
-                        IntentIndicator(intent: currentIntent)
-                            .transition(.scale.combined(with: .opacity))
-                    }
-
-                    // Send button
-                    sendButton
-                }
-                .padding(.horizontal, Constants.horizontalPadding)
-                .padding(.vertical, Constants.verticalPadding)
-                .background(
-                    RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                        .fill(Color.kuroSecondaryBackground.opacity(0.96))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Constants.cornerRadius)
-                                .stroke(
-                                    Color.primary.opacity(0.10),
-                                    lineWidth: 0.6
-                                )
-                        )
-                )
-                .overlay(alignment: .topLeading) {
-                    // Detected list chip (anchored to input, not floating mid-screen)
-                    if showDetectedChip {
-                        DetectedListChip(count: detectedCount) {
-                            withAnimation(.spring(response: 0.3)) {
-                                showDetectedChip = false
-                            }
-                        }
-                        .offset(x: 8, y: -44)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-                }
+            sendButton
         }
+        .padding(.vertical, 6)
         .onAppear {
-            startPlaceholderPulse()
             updateSuggestionsDebounced(text)
         }
         .onDisappear {
@@ -514,29 +481,26 @@ struct ConciergeInputField: View {
     // MARK: - Subviews
     
     private var placeholderView: some View {
-        Text("Paste titles, or describe a mood...")
-            .font(.kuroBody())
-            .foregroundStyle(Color.primary.opacity(placeholderOpacity))
+        Text("Ask Whisper...")
+            .font(.system(size: 17, weight: .regular, design: .serif))
+            .italic()
+            .foregroundStyle(Color.black.opacity(0.35))
             .padding(.top, 2)
-            .onAppear {
-                startPlaceholderPulse()
-            }
     }
     
     private var sendButton: some View {
         Button(action: handleSend) {
-            Image(systemName: "arrow.up")
-                .font(.kuroCaption(weight: .medium))
-                .foregroundStyle(canSend ? .white : Color.black.opacity(0.18))
-                .frame(width: 30, height: 30)
+            Image(systemName: "paperplane")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(Color.black.opacity(canSend ? 0.55 : 0.28))
+                .frame(width: 32, height: 32)
                 .background(
                     Circle()
-                        .fill(canSend ? Color.black.opacity(0.88) : Color.black.opacity(0.04))
+                        .fill(Color.black.opacity(canSend ? 0.06 : 0.03))
                 )
         }
         .disabled(!canSend)
-        .buttonStyle(ConciergeSendButtonStyle())
-        .padding(.bottom, 2)
+        .buttonStyle(.plain)
     }
     
     // MARK: - Actions
@@ -556,10 +520,110 @@ struct ConciergeInputField: View {
 
         // Handle list detection chip
         handleListDetection(intent: newIntent, wasPaste: wasPaste)
+        maybeAutoSend(intent: newIntent, wasPaste: wasPaste, text: newValue)
 
         lastTextLength = newValue.count
 
         updateSuggestionsDebounced(newValue)
+    }
+
+    private func maybeAutoSend(intent: PrototypeConciergeIntent, wasPaste: Bool, text: String) {
+        guard wasPaste else { return }
+        guard !isSending else { return }
+        guard let onAutoSend else { return }
+
+        // Only auto-send when the detector is confident this is an import list.
+        guard case .importList = intent else { return }
+        guard looksLikeImportListText(text) else { return }
+
+        // Approximate count for dedupe.
+        let count = linesOrSegmentsCount(text)
+
+        guard count >= 2 else { return }
+
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // Prevent double-firing for the same pasted payload.
+        let fp = trimmed.hashValue ^ count
+        if lastAutoSentTextFingerprint == fp { return }
+        lastAutoSentTextFingerprint = fp
+
+        onAutoSend(trimmed)
+    }
+
+    private func linesOrSegmentsCount(_ text: String) -> Int {
+        let lines = text
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if lines.count >= 2 { return lines.count }
+
+        let commaItems = text
+            .components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        return commaItems.count
+    }
+
+    private func looksLikeImportListText(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+
+        let lines = trimmed
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if lines.count >= 2 {
+            let titleCount = lines.filter { segmentLooksTitleLike($0) }.count
+            return titleCount >= 2
+        }
+
+        let commaItems = trimmed
+            .components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if commaItems.count >= 2 {
+            let titleCount = commaItems.filter { segmentLooksTitleLike($0) }.count
+            return titleCount >= 2
+        }
+
+        return false
+    }
+
+    private func segmentLooksTitleLike(_ text: String) -> Bool {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard t.count >= 2 else { return false }
+
+        if t.range(of: #"\b(ep|episode|chapter|season|staffel|folge|vol|volume)\b"#, options: .regularExpression) != nil {
+            return true
+        }
+
+        if t.contains("(") && t.contains(")") {
+            return true
+        }
+
+        let words = t.split(whereSeparator: { $0 == " " || $0 == "\t" })
+        if words.count >= 2 { return true }
+
+        if t.range(of: #"[A-Z]"#, options: .regularExpression) != nil { return true }
+
+        return t.range(of: #"\d"#, options: .regularExpression) != nil
+    }
+
+    private func pasteFromClipboard() {
+        let pasted = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !pasted.isEmpty else { return }
+        ConciergeHapticsManager.shared.pasteSuccess()
+        text = pasted
+        focusRequest?.wrappedValue = true
+
+        let intent = ConciergeIntentDetector.detect(from: pasted)
+        maybeAutoSend(intent: intent, wasPaste: true, text: pasted)
     }
 
     private func updateSuggestionsDebounced(_ text: String) {
@@ -576,12 +640,22 @@ struct ConciergeInputField: View {
         let lower = trimmed.lowercased()
 
         if trimmed.isEmpty {
+            if isGermanLocale {
+                return [
+                    .init(systemImage: "film", title: "Ein perfekter Film", kind: .append("ein perfekter anime-film")),
+                    .init(systemImage: "sparkles", title: "Die Auswahl", kind: .template("Kuratiere mir etwas Neues. Sauber, nicht kindisch.")),
+                    .init(systemImage: "moon.stars", title: "Sanft", kind: .append("sanft, ruhig, wohltuend")),
+                    .init(systemImage: "eye", title: "Dunkel, nicht leer", kind: .append("dunkel, ernst, ohne gore")),
+                    .init(systemImage: "crown", title: "Der Kanon", kind: .append("klassiker")),
+                    .init(systemImage: "minus.circle", title: "Ohne Romance", kind: .append("ohne romance"))
+                ]
+            }
             return [
-                .init(systemImage: "sparkles", title: "Premium", kind: .template("Recommend something premium, clean, not childish.")),
-                .init(systemImage: "theatermasks", title: "Comedy", kind: .append("comedy")),
-                .init(systemImage: "moon.stars", title: "Cozy", kind: .append("cozy")),
-                .init(systemImage: "eye", title: "Dark", kind: .append("dark, serious")),
-                .init(systemImage: "film", title: "Movie", kind: .append("movie")),
+                .init(systemImage: "film", title: "One perfect film", kind: .append("one perfect anime film")),
+                .init(systemImage: "sparkles", title: "The Cut", kind: .template("Curate something new to me. Clean, not childish.")),
+                .init(systemImage: "moon.stars", title: "Soft", kind: .append("soft, quiet, restorative")),
+                .init(systemImage: "eye", title: "Dark, not empty", kind: .append("dark, serious, not gory")),
+                .init(systemImage: "crown", title: "The Canon", kind: .append("classics")),
                 .init(systemImage: "minus.circle", title: "No romance", kind: .append("no romance"))
             ]
         }
@@ -591,11 +665,30 @@ struct ConciergeInputField: View {
             return []
         case .recommendation, .unknown:
             var out: [ConciergeSuggestion] = []
+            if isGermanLocale {
+                if !lower.contains("ohne romance") && !lower.contains("ohne romanze") {
+                    out.append(.init(systemImage: "minus.circle", title: "Ohne Romance", kind: .append("ohne romance")))
+                }
+                if !lower.contains("ohne isekai") {
+                    out.append(.init(systemImage: "minus.circle", title: "Ohne Isekai", kind: .append("ohne isekai")))
+                }
+                if !lower.contains("kurz") && !lower.contains("eine staffel") {
+                    out.append(.init(systemImage: "bolt", title: "Kurz", kind: .append("kurz eine staffel")))
+                }
+                if !lower.contains("klassiker") && !lower.contains("klassisch") {
+                    out.append(.init(systemImage: "crown", title: "Der Kanon", kind: .append("klassiker")))
+                }
+                if out.isEmpty {
+                    out.append(.init(systemImage: "sparkles", title: "Neu für mich", kind: .append("neu für mich")))
+                }
+                return Array(out.prefix(6))
+            }
+
             if !lower.contains("no romance") { out.append(.init(systemImage: "minus.circle", title: "No romance", kind: .append("no romance"))) }
             if !lower.contains("no isekai") { out.append(.init(systemImage: "minus.circle", title: "No isekai", kind: .append("no isekai"))) }
             if !lower.contains("short") && !lower.contains("one season") { out.append(.init(systemImage: "bolt", title: "Short", kind: .append("short one season"))) }
-            if !lower.contains("classic") { out.append(.init(systemImage: "crown", title: "Classics", kind: .append("classics"))) }
-            if out.isEmpty { out.append(.init(systemImage: "sparkles", title: "Premium", kind: .append("premium"))) }
+            if !lower.contains("classic") { out.append(.init(systemImage: "crown", title: "The Canon", kind: .append("classics"))) }
+            if out.isEmpty { out.append(.init(systemImage: "sparkles", title: "New to me", kind: .append("new to me"))) }
             return Array(out.prefix(6))
         }
     }
@@ -680,11 +773,82 @@ struct ConciergeInputField: View {
         detectedChipTask?.cancel()
     }
     
-    // MARK: - Animation
-    
-    private func startPlaceholderPulse() {
-        // Static opacity — no repeatForever animation on the input field.
-        placeholderOpacity = 0.45
+}
+
+// MARK: - UIKit Growing Text View (Collapsed -> Expands on Focus)
+
+private struct KuroGrowingTextView: UIViewRepresentable {
+    @Binding var text: String
+    @Binding var isFocused: Bool
+    @Binding var measuredHeight: CGFloat
+    let font: UIFont
+    let textColor: UIColor
+    let maxHeight: CGFloat
+
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.isScrollEnabled = false
+        tv.backgroundColor = .clear
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.font = font
+        tv.textColor = textColor
+        tv.delegate = context.coordinator
+        tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return tv
+    }
+
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+        if uiView.font != font {
+            uiView.font = font
+        }
+        if uiView.textColor != textColor {
+            uiView.textColor = textColor
+        }
+
+        if isFocused, !uiView.isFirstResponder {
+            uiView.becomeFirstResponder()
+        }
+
+        DispatchQueue.main.async {
+            context.coordinator.updateHeight(uiView)
+        }
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        let parent: KuroGrowingTextView
+        init(parent: KuroGrowingTextView) { self.parent = parent }
+
+        func textViewDidChange(_ textView: UITextView) {
+            parent.text = textView.text ?? ""
+            updateHeight(textView)
+        }
+
+        func textViewDidBeginEditing(_ textView: UITextView) {
+            if parent.isFocused == false { parent.isFocused = true }
+        }
+
+        func textViewDidEndEditing(_ textView: UITextView) {
+            if parent.isFocused == true { parent.isFocused = false }
+        }
+
+        func updateHeight(_ textView: UITextView) {
+            let width = max(1, textView.bounds.width)
+            let targetSize = CGSize(width: width, height: .greatestFiniteMagnitude)
+            let size = textView.sizeThatFits(targetSize)
+            let clamped = min(parent.maxHeight, max(20, size.height))
+            if abs(parent.measuredHeight - clamped) > 0.5 {
+                parent.measuredHeight = clamped
+            }
+            textView.isScrollEnabled = size.height > parent.maxHeight
+        }
     }
 }
 

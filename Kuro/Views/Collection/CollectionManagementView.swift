@@ -26,6 +26,8 @@ struct CollectionManagementView: View {
                             .font(.kuroMicro(weight: mediaIsManga ? .light : .medium))
                             .foregroundColor(mediaIsManga ? .kuroBlack60 : .kuroBlack)
                     }
+                    .accessibilityLabel("Anime")
+                    .accessibilityAddTraits(!mediaIsManga ? .isSelected : [])
                     Button(action: {
                         withAnimation(KuroAnimation.spring) { mediaIsManga = true }
                         // Collection is server-driven; no giant prefetch needed.
@@ -35,6 +37,8 @@ struct CollectionManagementView: View {
                             .font(.kuroMicro(weight: mediaIsManga ? .medium : .light))
                             .foregroundColor(mediaIsManga ? .kuroBlack : .kuroBlack60)
                     }
+                    .accessibilityLabel("Manga")
+                    .accessibilityAddTraits(mediaIsManga ? .isSelected : [])
                 }
                 .padding(.horizontal, ResponsiveLayout.padding())
                 .padding(.top, KuroSpacing.lg)

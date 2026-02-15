@@ -1,3 +1,4 @@
+import AuthenticationServices
 import SwiftUI
 
 // Dedicated profile/settings page (moved out of the header to keep the top bar clean).
@@ -6,6 +7,9 @@ struct ProfileView: View {
     @Environment(SupabaseService.self) private var supabaseService
     @State private var isSyncing: Bool = false
     @State private var showClubs: Bool = false
+    @State private var toast: KuroToastState? = nil
+    @State private var showDeleteConfirmation: Bool = false
+    @State private var isDeleting: Bool = false
 
     var body: some View {
         ZStack {
@@ -71,6 +75,14 @@ struct ProfileView: View {
             .padding(.top, 10)
             .padding(.trailing, 14)
         }
+        .overlay(alignment: .top) {
+            if let toast {
+                KuroToast(toast: toast)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
         .sheet(isPresented: $showClubs) {
             ClubsView()
         }
@@ -110,7 +122,7 @@ struct ProfileView: View {
                 .foregroundColor(.kuroBlack80)
 
             if let email = supabaseService.currentUserEmail, !email.isEmpty {
-                Text(email)
+                Text(email.contains("privaterelay.appleid.com") ? "Signed in with Apple" : email)
                     .font(.kuroBody(weight: .light))
                     .foregroundColor(.kuroBlack60)
             } else {
@@ -123,14 +135,25 @@ struct ProfileView: View {
     }
 
     private var stats: some View {
-        let animeCount = supabaseService.userLists.filter { $0.mediaType == "anime" }.count
-        let mangaCount = supabaseService.userLists.filter { $0.mediaType == "manga" }.count
+        let animeLists = supabaseService.userLists.filter { $0.mediaType == "anime" }
+        let mangaLists = supabaseService.userLists.filter { $0.mediaType == "manga" }
         let doneCount = supabaseService.userLists.filter { $0.status == .completed }.count
+        let episodesWatched = animeLists.reduce(0) { $0 + $1.progress }
+        let chaptersRead = mangaLists.reduce(0) { $0 + $1.progress }
+        let scoredEntries = supabaseService.userLists.compactMap(\.score).filter { $0 > 0 }
+        let avgRating = scoredEntries.isEmpty ? 0.0 : Double(scoredEntries.reduce(0, +)) / Double(scoredEntries.count)
 
-        return HStack(spacing: 14) {
-            ProfileStatTile(value: "\(animeCount)", label: "ANIME")
-            ProfileStatTile(value: "\(mangaCount)", label: "MANGA")
-            ProfileStatTile(value: "\(doneCount)", label: "DONE")
+        return VStack(spacing: 10) {
+            HStack(spacing: 14) {
+                ProfileStatTile(value: "\(animeLists.count)", label: "ANIME")
+                ProfileStatTile(value: "\(mangaLists.count)", label: "MANGA")
+                ProfileStatTile(value: "\(doneCount)", label: "DONE")
+            }
+            HStack(spacing: 14) {
+                ProfileStatTile(value: "\(episodesWatched)", label: "EPISODES")
+                ProfileStatTile(value: "\(chaptersRead)", label: "CHAPTERS")
+                ProfileStatTile(value: scoredEntries.isEmpty ? "—" : String(format: "%.0f", avgRating), label: "AVG SCORE")
+            }
         }
     }
 
@@ -202,6 +225,7 @@ struct ProfileView: View {
                     await supabaseService.fetchCollectionItems()
                     await supabaseService.fetchUpcomingForUser(days: 7)
                     KuroAccessibility.successHaptic()
+                    showToast(.success, title: "Synced", subtitle: "Lists updated")
                 }
             }
 
@@ -227,6 +251,51 @@ struct ProfileView: View {
                 Task { await supabaseService.signOut() }
             }
 
+            ProfileActionRow(
+                icon: "person.crop.circle.badge.minus",
+                title: "Delete Account",
+                subtitle: "Permanently remove all data",
+                isDestructive: true
+            ) {
+                showDeleteConfirmation = true
+            }
+            .alert("Delete Account", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete Everything", role: .destructive) {
+                    Task {
+                        isDeleting = true
+                        defer { isDeleting = false }
+                        do {
+                            // For Apple users, obtain a fresh authorization code for token revocation.
+                            var appleCode: String? = nil
+                            if await supabaseService.isAppleUser {
+                                appleCode = await obtainAppleAuthorizationCode()
+                            }
+                            try await supabaseService.deleteAccount(appleAuthorizationCode: appleCode)
+                            dismiss()
+                        } catch {
+                            showToast(.error, title: "Deletion failed", subtitle: error.localizedDescription)
+                        }
+                    }
+                }
+            } message: {
+                Text("This will permanently delete your account, lists, club memberships, and all associated data. This action cannot be undone.")
+            }
+
+            if isDeleting {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .scaleEffect(0.9)
+                        .tint(.black.opacity(0.55))
+                    Text("Deleting account...")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.black.opacity(0.55))
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 6)
+                .padding(.horizontal, 8)
+            }
+
             if isSyncing {
                 HStack(spacing: 10) {
                     ProgressView()
@@ -243,14 +312,54 @@ struct ProfileView: View {
         }
     }
 
+    private func obtainAppleAuthorizationCode() async -> String? {
+        await withCheckedContinuation { continuation in
+            let provider = ASAuthorizationAppleIDProvider()
+            let request = provider.createRequest()
+            request.requestedScopes = []
+            let delegate = AppleAuthCodeDelegate { code in
+                continuation.resume(returning: code)
+            }
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = delegate
+            // Keep delegate alive until callback fires.
+            objc_setAssociatedObject(controller, "delegate", delegate, .OBJC_ASSOCIATION_RETAIN)
+            controller.performRequests()
+        }
+    }
+
+    private func showToast(_ kind: KuroToastState.Kind, title: String, subtitle: String?) {
+        withAnimation(.easeInOut(duration: 0.18)) {
+            toast = KuroToastState(kind: kind, title: title, subtitle: subtitle, actionTitle: nil, onAction: nil)
+        }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            withAnimation(.easeInOut(duration: 0.18)) {
+                toast = nil
+            }
+        }
+    }
+
     private var footer: some View {
         let version = (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "?"
         let build = (Bundle.main.infoDictionary?["CFBundleVersion"] as? String) ?? "?"
 
-        return Text("KURO  •  v\(version) (\(build))")
-            .font(.kuroMicro(weight: .light))
-            .tracking(1.6)
-            .foregroundColor(.kuroBlack30)
+        return VStack(spacing: 10) {
+            if let url = URL(string: "https://kuro.app/privacy") {
+                Link(destination: url) {
+                    Text("Privacy Policy")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.kuroBlack60)
+                        .underline(color: .kuroBlack30)
+                }
+                .buttonStyle(.plain)
+            }
+
+            Text("KURO  •  v\(version) (\(build))")
+                .font(.kuroMicro(weight: .light))
+                .tracking(1.6)
+                .foregroundColor(.kuroBlack30)
+        }
     }
 }
 
@@ -288,7 +397,7 @@ private struct ProfileStatTile: View {
             Text(label)
                 .font(.kuroMicro(weight: .medium))
                 .tracking(2.2)
-                .foregroundColor(.kuroBlack30)
+                .foregroundColor(.kuroTextTertiary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
@@ -300,6 +409,8 @@ private struct ProfileStatTile: View {
                         .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
                 )
         )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(value) \(label)")
     }
 }
 
@@ -342,7 +453,7 @@ private struct ProfileActionRow: View {
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.black.opacity(0.25))
+                    .foregroundColor(.kuroTextTertiary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
@@ -362,5 +473,34 @@ private struct ProfileActionRow: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Apple Auth Code Delegate (for token revocation on account deletion)
+
+private final class AppleAuthCodeDelegate: NSObject, ASAuthorizationControllerDelegate {
+    private let completion: (String?) -> Void
+    private var didComplete = false
+
+    init(completion: @escaping (String?) -> Void) {
+        self.completion = completion
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        guard !didComplete else { return }
+        didComplete = true
+        if let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+           let codeData = credential.authorizationCode,
+           let code = String(data: codeData, encoding: .utf8) {
+            completion(code)
+        } else {
+            completion(nil)
+        }
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        guard !didComplete else { return }
+        didComplete = true
+        completion(nil)
     }
 }

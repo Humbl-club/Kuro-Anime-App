@@ -2,13 +2,15 @@
 
 This file documents the idea of routing free-text "vibe" prompts into curated recommendation rails (modes), with the LLM used only as an optional presentation layer.
 
-## Current status (as of 2026-02-09)
+## Current status (as of 2026-02-15)
 
-The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed. Production-readiness session completed: Apple FM integration, on-device intelligence features, and comprehensive security/stability hardening across DB, edge functions, storage, and iOS.
+The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed. Production-readiness session completed: Apple FM integration, on-device intelligence features, and comprehensive security/stability hardening across DB, edge functions, storage, and iOS. The February 2026 follow-up added the curated concierge copy layer and club activity status clarity pass.
+
+**First TestFlight build live (2026-02-15)**: 43 UX improvements shipped via 16-agent team. Fastlane configured for automated TestFlight builds (`fastlane beta`). Build 2 (v1.0) uploaded to App Store Connect. Bundle ID: `com.Kuro.app`. Foundation Models compiled in — no entitlement needed (confirmed via ASC API). Placeholder app icon added.
 
 **Production readiness completed (2026-02-09)**: Apple FM migration (on-device classify, disambiguate, condense, search intent), synopsis condenser, NL collection search, Next Up picks, NetworkMonitor, lifecycle handling, IMPORT_SECRET auth, storage MIME + RLS + 5MB limits, 11 DB fixes, 5 edge function hardening items, mirror cron contention fix, 64 print→DEBUG, withRetry helper, UIScreen.main deprecation fix, 6 migrations applied, 6 edge functions deployed.
 
-**Concierge redesign completed (2026-02-09)**: State machine removed, inline chat architecture, visual token alignment with KuroDesignSystem, German NLP hardening (vibe allowlist, intent keywords, umlaut normalization), 6 new vibe modes (23 total), 12 new curated rails (50 total), auth+rate-limit parallelized, edge function warmup, auto-apply for high-confidence imports.
+**Concierge redesign completed (2026-02-09)**: State machine removed, inline chat architecture, visual token alignment with KuroDesignSystem, German NLP hardening (vibe allowlist, intent keywords, umlaut normalization), 6 new vibe modes (23 total), 12 new curated rails (50 total), auth+rate-limit parallelized, edge function warmup, and auto-apply for high-confidence imports.
 
 **Clubs feature completed (2026-02-09)**: Full social feature with 7 tables, 22 RLS policies, 6+ RPCs, analytics, iOS views (ClubsView, ClubDetailView, ClubActivitySection, ProfileView clubs tab), import reconciliation with Add/Update/Skip and previous_values tracking, concierge-undo edge function, monochrome palette polish, member detail, security fixes.
 
@@ -22,7 +24,30 @@ Implemented:
 - Backend returns grouped rails (`sets`) plus backward-compatible flattened items.
 - iOS renders rails from backend `sets`.
 - Classics rail expanded (do not remove existing classic boosts; return more classics by heuristic + config filters).
-- **23 modes** (v8, deployed): Premium Picks, Start Here, Premium Action, Premium Comedy (grown-up), Cozy/Comfort, Dark/Serious, Hidden Gems, Classics (expanded), Short & Complete, Movie Night, Romance (serious), Romcom, Fantasy (no isekai), Isekai, **Sports**, **Sci-Fi**, **Horror & Supernatural**, **Mecha**, **Mystery & Detective**, **Music & Performance**, **Historical & Period**, **School & Coming of Age**, **Shoujo & Josei**.
+- **23 modes** (v8, deployed): internal IDs map to butler-facing copy in `ConciergeCuratedCopy`:
+  - `premium_picks` → **The Cut**
+  - `gateway_start_here` → **Start Here**
+  - `premium_action` → **Action With Craft**
+  - `premium_comedy_grownup` → **Comedy With Bite**
+  - `cozy_comfort` → **Soft Evenings**
+  - `dark_serious` → **Dark, Not Empty**
+  - `hidden_gems` → **Underseen**
+  - `classics_expanded` → **The Canon**
+  - `short_one_season` → **Short, Complete**
+  - `movie_night` → **One Perfect Film**
+  - `romance_serious` → **Romance That Lands**
+  - `romcom` → **Light, Sharp Romance**
+  - `fantasy_non_isekai` → **Fantasy With Texture**
+  - `isekai` → **Other Worlds, Cleanly**
+  - `sports` → **Competition, Pure**
+  - `scifi` → **Ideas With Heat**
+  - `horror_supernatural` → **Unease, Done Right**
+  - `mecha` → **Steel and Stakes**
+  - `mystery_detective` → **Cases With Discipline**
+  - `music_performance` → **Sound and Feeling**
+  - `historical` → **Period Weight**
+  - `school_coming_of_age` → **Coming-of-Age, Quietly**
+  - `shoujo_josei` → **Emotion, With Clarity**
 - **50 curated rails** (27 original + 23 new: sports, sci-fi, horror/supernatural, mecha, mystery/detective, music/performance, historical, school/coming-of-age, shoujo/josei anime+manga, plus existing seinen anime+manga, josei manga).
 - Intent detectors in `scoreMode()` for movie, short, isekai/non-isekai, romcom/serious-romance, sports, sci-fi, horror disambiguation.
 - Enriched synonyms with German translations across all modes.
@@ -41,7 +66,7 @@ Not implemented yet:
 
 ## What happened to this plan file
 
-`/Applications/Kuro/IMPLEMENTATION_PLAN_Variation1.md` existed but was 0 bytes. The implementation moved forward in code, but this doc did not get written.
+`/Applications/Kuro/IMPLEMENTATION_PLAN_Variation1.md` started as a historical plan document and now tracks implementation status and follow-up refinements.
 
 ## Why this architecture is strong
 
@@ -82,7 +107,7 @@ Key behaviors:
 - If prompt includes a seed ("like Vagabond"), replaces the primary rail with `Similar to "X"` (deterministic similarity RPC), while keeping Classics as the other rail.
 - Returns:
   - `modes`: selected rails with `confidence` + `reason`
-  - `sets`: array of rails, each with `title` + `items`
+  - `sets`: array of rails, each with `title` + `items` (`set.title` is backend/internal; UI replaces with curated copy)
   - `items`: flattened (backwards compatibility and for narration)
 
 Perf note:
@@ -95,7 +120,7 @@ Perf note:
   - `/Applications/Kuro/Kuro/Views/ConciergeView.swift`
 
 Behavior:
-- If backend returns `sets`, Concierge renders each set as a titled horizontal rail.
+- If backend returns `sets`, Concierge renders each set as a titled horizontal rail (internal title -> curated/locale title at render time).
 - If `sets` is missing (older backend), it falls back to the previous single list rendering.
 
 ## Reanalysis: should we do more, and what's the "better way"

@@ -559,7 +559,7 @@ struct DiscoverEmptyView: View {
             Text("NO CONTENT")
                 .font(.system(size: 14, weight: .medium))
                 .tracking(1.5)
-                .foregroundColor(.black.opacity(0.3))
+                .foregroundColor(.kuroTextTertiary)
 
             ProgressView()
                 .scaleEffect(0.8)

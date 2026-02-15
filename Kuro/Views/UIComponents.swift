@@ -17,7 +17,7 @@ struct KuroHeader: View {
                     Text("KURO")
                         .font(.system(size: 11, weight: .regular))
                         .tracking(1.5)
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
 
                     Spacer()
 

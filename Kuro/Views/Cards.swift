@@ -15,11 +15,11 @@ enum CardStatus {
     var color: Color {
         switch self {
         case .none: return .clear
-        case .watching: return .blue.opacity(0.8)
-        case .completed: return .green.opacity(0.8)
-        case .onHold: return .orange.opacity(0.8)
-        case .dropped: return .gray.opacity(0.6)
-        case .planToWatch: return .purple.opacity(0.8)
+        case .watching: return .black.opacity(0.70)
+        case .completed: return .black.opacity(0.55)
+        case .onHold: return .black.opacity(0.40)
+        case .dropped: return .black.opacity(0.25)
+        case .planToWatch: return .black.opacity(0.35)
         }
     }
     
@@ -42,15 +42,15 @@ struct SmartBadge: View {
     let isTrending: Bool
     
     private var scoreColor: Color {
-        guard let score = score else { return .gray.opacity(0.8) }
+        guard let score = score else { return .black.opacity(0.30) }
         switch score {
-        case 9.0...: return .green.opacity(0.9)
-        case 7.0..<9.0: return .blue.opacity(0.9)
-        case 5.0..<7.0: return .orange.opacity(0.9)
-        default: return .red.opacity(0.9)
+        case 9.0...: return .black.opacity(0.80)
+        case 7.0..<9.0: return .black.opacity(0.65)
+        case 5.0..<7.0: return .black.opacity(0.45)
+        default: return .black.opacity(0.30)
         }
     }
-    
+
     var body: some View {
         HStack(spacing: 6) {
             // Score Badge with color coding
@@ -83,10 +83,10 @@ struct SmartBadge: View {
                     .padding(.vertical, 3)
                     .background(
                         Capsule()
-                            .fill(Color.purple.opacity(0.9))
+                            .fill(Color.black.opacity(0.75))
                     )
             }
-            
+
             if isTrending {
                 Image(systemName: "flame.fill")
                     .font(.system(size: 10))
@@ -94,7 +94,7 @@ struct SmartBadge: View {
                     .padding(4)
                     .background(
                         Circle()
-                            .fill(Color.red.opacity(0.9))
+                            .fill(Color.black.opacity(0.55))
                     )
             }
         }
@@ -130,7 +130,7 @@ struct QuickActionBar: View {
             }) {
                 Image(systemName: isInList ? "checkmark.circle.fill" : "plus.circle")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(isInList ? .green.opacity(0.8) : .black.opacity(0.6))
+                    .foregroundColor(isInList ? .black.opacity(0.80) : .black.opacity(0.6))
                     .scaleEffect(isAnimating && isInList ? 1.2 : 1.0)
                     .rotationEffect(.degrees(isAnimating && isInList ? 360 : 0))
             }
@@ -146,7 +146,7 @@ struct QuickActionBar: View {
             }) {
                 Image(systemName: isFavorited ? "heart.fill" : "heart")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(isFavorited ? .red.opacity(0.8) : .black.opacity(0.3))
+                    .foregroundColor(isFavorited ? .black.opacity(0.80) : .black.opacity(0.3))
                     .scaleEffect(isFavorited ? 1.1 : 1.0)
             }
             
@@ -207,7 +207,7 @@ struct SharedVerticalAnimeCard: View {
             case .empty:
                 Rectangle()
                     .fill(Color.black.opacity(0.04))
-                    .overlay(ProgressView().scaleEffect(0.6).tint(.black.opacity(0.3)))
+                    .overlay(ProgressView().scaleEffect(0.6).tint(.kuroTextTertiary))
             case .success(let image):
                 image
                     .resizable()
@@ -225,7 +225,7 @@ struct SharedVerticalAnimeCard: View {
                     .overlay(
                         Image(systemName: "photo")
                             .font(.system(size: 24))
-                            .foregroundColor(.black.opacity(0.2))
+                            .foregroundColor(.kuroTextTertiary)
                     )
             @unknown default:
                 EmptyView()
@@ -337,7 +337,7 @@ struct SharedVerticalAnimeCard: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white)
+                .fill(Color.kuroBackground)
                 .shadow(color: .black.opacity(0.04), radius: 20, x: 0, y: 10)
                 .shadow(color: .black.opacity(0.02), radius: 5, x: 0, y: 2)
                 .overlay(
@@ -399,7 +399,7 @@ struct SharedHorizontalAnimeCard: View {
             case .empty:
                 Rectangle()
                     .fill(Color.black.opacity(0.04))
-                    .overlay(ProgressView().scaleEffect(0.6).tint(.black.opacity(0.3)))
+                    .overlay(ProgressView().scaleEffect(0.6).tint(.kuroTextTertiary))
             case .success(let image):
                 image
                     .resizable()
@@ -410,7 +410,7 @@ struct SharedHorizontalAnimeCard: View {
                     .overlay(
                         Image(systemName: "photo")
                             .font(.system(size: 20))
-                            .foregroundColor(.black.opacity(0.2))
+                            .foregroundColor(.kuroTextTertiary)
                     )
             @unknown default:
                 EmptyView()
@@ -468,7 +468,7 @@ struct SharedHorizontalAnimeCard: View {
             }) {
                 Image(systemName: isInList ? "checkmark.circle.fill" : "plus.circle")
                     .font(.system(size: 14))
-                    .foregroundColor(isInList ? .green.opacity(0.8) : .black.opacity(0.5))
+                    .foregroundColor(isInList ? .black.opacity(0.80) : .black.opacity(0.5))
             }
 
             Button(action: {
@@ -478,7 +478,7 @@ struct SharedHorizontalAnimeCard: View {
             }) {
                 Image(systemName: isFavorited ? "heart.fill" : "heart")
                     .font(.system(size: 14))
-                    .foregroundColor(isFavorited ? .red.opacity(0.8) : .black.opacity(0.3))
+                    .foregroundColor(isFavorited ? .black.opacity(0.80) : .black.opacity(0.3))
             }
         }
         .padding(.top, 4)
@@ -526,7 +526,7 @@ struct SharedHorizontalAnimeCard: View {
         .frame(width: width)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white)
+                .fill(Color.kuroBackground)
                 .shadow(color: .black.opacity(0.04), radius: 15, x: 0, y: 8)
                 .shadow(color: .black.opacity(0.02), radius: 4, x: 0, y: 2)
                 .overlay(
@@ -587,10 +587,10 @@ struct SharedHorizontalAnimeCard: View {
     
     private func scoreColor(for score: Double) -> Color {
         switch score {
-        case 9.0...: return .green.opacity(0.9)
-        case 7.0..<9.0: return .blue.opacity(0.9)
-        case 5.0..<7.0: return .orange.opacity(0.9)
-        default: return .red.opacity(0.9)
+        case 9.0...: return .black.opacity(0.80)
+        case 7.0..<9.0: return .black.opacity(0.65)
+        case 5.0..<7.0: return .black.opacity(0.45)
+        default: return .black.opacity(0.30)
         }
     }
 }

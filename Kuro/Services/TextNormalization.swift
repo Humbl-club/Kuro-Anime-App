@@ -38,12 +38,15 @@ enum TextNormalization {
         var chars = Array(s)
         let placeholder: Character = "\u{0000}"
 
-        // Protect hyphens between letters
-        for i in 1 ..< (chars.count > 0 ? chars.count - 1 : 0) {
-            if chars[i] == "-",
-               chars[i - 1].isLetter,
-               chars[i + 1].isLetter {
-                chars[i] = placeholder
+        // Protect hyphens between letters.
+        // Guard the range explicitly to avoid creating an invalid `1..<0` range on empty/short input.
+        if chars.count >= 3 {
+            for i in 1 ..< (chars.count - 1) {
+                if chars[i] == "-",
+                   chars[i - 1].isLetter,
+                   chars[i + 1].isLetter {
+                    chars[i] = placeholder
+                }
             }
         }
 

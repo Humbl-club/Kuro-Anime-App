@@ -65,22 +65,18 @@ final class RecommendationRailViewModel {
 // MARK: - Recommendation Rail
 struct RecommendationRail: View {
     let title: String
+    let subtitle: String?
     let items: [ConciergeRecItem]
     let onOpen: (ConciergeRecItem) -> Void
     let onSave: (ConciergeRecItem) -> Void
     let onHide: ((ConciergeRecItem) -> Void)?
 
-    @Environment(\.colorScheme) private var colorScheme
-    
     @State private var viewModel = RecommendationRailViewModel()
-    @State private var scrollPosition: String?
-    @State private var centeredItemId: String?
-    
-    // Card metrics
+    @State private var appeared = false
+
     private let cardWidth: CGFloat = 140
-    private let cardHeight: CGFloat = 268 // 200 poster + 68 text
-    private let cardSpacing: CGFloat = 12
-    private let edgePadding: CGFloat = 20
+    private let cardSpacing: CGFloat = 16
+    private let edgePadding: CGFloat = 4
     
     // Computed property for visible items
     private var visibleItems: [ConciergeRecItem] {
@@ -88,43 +84,40 @@ struct RecommendationRail: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Section Header
+        VStack(alignment: .leading, spacing: 10) {
             sectionHeader
                 .padding(.horizontal, edgePadding)
-                .padding(.bottom, 12)
-            
-            // Horizontal Scrolling Cards
+
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: cardSpacing) {
-                    ForEach(visibleItems) { item in
+                    ForEach(Array(visibleItems.enumerated()), id: \.element.id) { index, item in
                         RecommendationCard(
                             item: item,
-                            isCentered: centeredItemId == item.id,
+                            index: index,
+                            appeared: appeared,
                             cardWidth: cardWidth,
-                            cardHeight: cardHeight,
                             onOpen: { onOpen(item) },
                             onSave: { onSave(item) },
-                            onHide: { viewModel.hideItem(item) },
+                            onHide: {
+                                viewModel.hideItem(item)
+                                onHide?(item)
+                            },
                             onWhyThis: { viewModel.showWhyThis(for: item) }
                         )
                         .id(item.id)
-                        .scrollTransition(.animated(.spring(response: 0.3, dampingFraction: 0.8))) { content, phase in
-                            content
-                                .scaleEffect(phase.isIdentity ? 1.0 : 0.95)
-                                .opacity(phase.isIdentity ? 1.0 : 0.7)
-                        }
                     }
                 }
-                .padding(.horizontal, edgePadding)
+                .padding(.horizontal, edgePadding + 4)
+                .padding(.vertical, 4)
                 .scrollTargetLayout()
             }
-            .scrollPosition(id: $scrollPosition)
-            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-            .onChange(of: scrollPosition) { _, newValue in
-                centeredItemId = newValue
+            .scrollTargetBehavior(.viewAligned)
+            .onAppear {
+                withAnimation(.easeOut(duration: 0.5)) {
+                    appeared = true
+                }
             }
-            .frame(height: cardHeight + 8) // Extra space for shadow
+            .frame(height: 284)
         }
         .sheet(isPresented: $viewModel.showWhyThisSheet) {
             if let item = viewModel.selectedItemForReasoning {
@@ -145,16 +138,27 @@ struct RecommendationRail: View {
     
     // MARK: - Section Header
     private var sectionHeader: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.kuroMicro(weight: .medium))
-                .tracking(2.0)
-                .textCase(.uppercase)
-                .foregroundStyle(.secondary.opacity(0.85))
-            
-            Rectangle()
-                .fill(Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.08))
-                .frame(height: 0.5)
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(title)
+                    .font(.system(size: 17, weight: .regular, design: .serif))
+                    .foregroundStyle(.black.opacity(0.85))
+                    .lineLimit(1)
+
+                Spacer(minLength: 0)
+
+                Text("\(visibleItems.count)")
+                    .font(.system(size: 12, weight: .regular, design: .default))
+                    .foregroundStyle(.black.opacity(0.35))
+                    .monospacedDigit()
+            }
+
+            if let subtitle, !subtitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Text(subtitle)
+                    .font(.system(size: 12, weight: .regular, design: .default))
+                    .foregroundStyle(.black.opacity(0.35))
+                    .lineLimit(1)
+            }
         }
     }
 }
@@ -162,58 +166,41 @@ struct RecommendationRail: View {
 // MARK: - Recommendation Card
 struct RecommendationCard: View {
     let item: ConciergeRecItem
-    let isCentered: Bool
+    let index: Int
+    let appeared: Bool
     let cardWidth: CGFloat
-    let cardHeight: CGFloat
     let onOpen: () -> Void
     let onSave: () -> Void
     let onHide: () -> Void
     let onWhyThis: () -> Void
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     
-    @State private var isPressed = false
     @State private var isDraggingCard = false
     
-    private let posterAspectRatio: CGFloat = 0.7 // 140:200
-    
-    private var posterHeight: CGFloat {
-        cardWidth / posterAspectRatio
-    }
+    private let posterHeight: CGFloat = 210
     
     private var metaLine: String {
         var parts: [String] = []
-        
         if let year = item.year {
             parts.append(String(year))
         }
-        
-        if let format = item.format {
-            let formatLower = format.lowercased()
-            switch formatLower {
-            case "tv":
-                parts.append("Series")
-            case "movie":
-                parts.append("Movie")
-            case "ova", "ona":
-                parts.append(format.uppercased())
-            case "manga":
-                parts.append("Manga")
-            case "novel":
-                parts.append("Novel")
-            default:
-                parts.append(formatLower.capitalized)
-            }
+        if let score = item.averageScore, score > 0 {
+            let normalized = Double(score) / 10.0
+            parts.append("★ \(String(format: "%.2f", normalized))")
+        } else if let format = item.format {
+            parts.append(format.capitalized)
         }
-        
         return parts.joined(separator: " · ")
     }
     
     var body: some View {
         cardContent
-            .frame(width: cardWidth, height: cardHeight)
-            .scaleEffect(isPressed ? 0.98 : (isCentered ? 1.02 : 1.0))
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isCentered)
-            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isPressed)
+            .frame(width: cardWidth)
+            .opacity(appeared ? 1 : 0)
+            .offset(x: appeared ? 0 : 10)
+            .animation(.easeOut(duration: 0.5).delay(Double(index + 1) * 0.1), value: appeared)
             .onTapGesture {
+                guard !suppressCardTaps else { return }
                 guard !isDraggingCard else { return }
                 KuroAccessibility.impactHaptic(.light)
                 onOpen()
@@ -232,18 +219,6 @@ struct RecommendationCard: View {
                         }
                     }
             )
-            .onLongPressGesture(
-                minimumDuration: 0.5,
-                pressing: { pressing in
-                    withAnimation(.easeInOut(duration: 0.1)) {
-                        isPressed = pressing
-                    }
-                    if pressing {
-                        KuroAccessibility.impactHaptic(.heavy)
-                    }
-                },
-                perform: {}
-            )
             .contextMenu {
                 contextMenuContent
             }
@@ -251,7 +226,7 @@ struct RecommendationCard: View {
     
     // MARK: - Card Content
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 10) {
             // Poster Image Container
             ZStack(alignment: .topTrailing) {
                 // Poster Image
@@ -263,29 +238,23 @@ struct RecommendationCard: View {
                         .padding(8)
                 }
             }
-            
-            // Text Content
-            VStack(alignment: .leading, spacing: 4) {
-                Text(sanitizedTitle)
-                    .font(.kuroCaption())
-                    .foregroundStyle(.primary.opacity(0.82))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.92)
-                    .allowsTightening(true)
-                    .truncationMode(.tail)
-                    .frame(height: 38, alignment: .topLeading)
-                
-                if !metaLine.isEmpty {
-                    Text(metaLine)
-                        .font(.kuroMicro())
-                        .foregroundStyle(.secondary.opacity(0.75))
-                        .lineLimit(1)
-                }
+
+            Text(sanitizedTitle.uppercased())
+                .font(.system(size: 14, weight: .semibold, design: .serif))
+                .tracking(0.8)
+                .foregroundStyle(.black.opacity(0.85))
+                .lineLimit(2)
+                .frame(height: 36, alignment: .topLeading)
+
+            if !metaLine.isEmpty {
+                Text(metaLine)
+                    .font(.system(size: 12, weight: .regular, design: .default))
+                    .foregroundStyle(.black.opacity(0.35))
+                    .lineLimit(1)
             }
-            .frame(width: cardWidth, alignment: .topLeading)
-            .padding(.top, 10)
         }
-        .frame(width: cardWidth, height: cardHeight, alignment: .top)
+        .frame(width: cardWidth, alignment: .topLeading)
+        .contentShape(Rectangle())
     }
     
     private var posterImage: some View {
@@ -305,16 +274,20 @@ struct RecommendationCard: View {
             }
         }
         .frame(width: cardWidth, height: posterHeight)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .clipShape(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+        )
+        .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 4)
     }
     
     private var placeholderView: some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(Color.primary.opacity(0.05))
+        Rectangle()
+            .fill(Color.black.opacity(0.06))
             .overlay(
-                ProgressView()
-                    .scaleEffect(0.6)
-                    .tint(.secondary.opacity(0.75))
+                Text("KURO")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(3.0)
+                    .foregroundColor(.black.opacity(0.10))
             )
     }
     
@@ -606,6 +579,7 @@ extension ConciergeRecItem {
         VStack(spacing: 32) {
             RecommendationRail(
                 title: "If you like action",
+                subtitle: "Clean choreography, real momentum",
                 items: mockItems,
                 onOpen: { item in
                     print("Open: \(item.title)")
@@ -620,6 +594,7 @@ extension ConciergeRecItem {
             
             RecommendationRail(
                 title: "Critically acclaimed",
+                subtitle: "Anchors worth knowing",
                 items: Array(mockItems.reversed()),
                 onOpen: { item in
                     print("Open: \(item.title)")
@@ -652,9 +627,9 @@ extension ConciergeRecItem {
     HStack {
         RecommendationCard(
             item: mockItem,
-            isCentered: false,
+            index: 0,
+            appeared: true,
             cardWidth: 140,
-            cardHeight: 268,
             onOpen: {},
             onSave: {},
             onHide: {},
@@ -663,9 +638,9 @@ extension ConciergeRecItem {
         
         RecommendationCard(
             item: mockItem,
-            isCentered: true,
+            index: 1,
+            appeared: true,
             cardWidth: 140,
-            cardHeight: 268,
             onOpen: {},
             onSave: {},
             onHide: {},

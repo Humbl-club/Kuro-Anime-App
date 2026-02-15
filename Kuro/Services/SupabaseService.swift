@@ -40,6 +40,31 @@ class SupabaseService {
         let c = currentUserEmail?.trimmingCharacters(in: .whitespacesAndNewlines).first
         return c.map { String($0).uppercased() } ?? "M"
     }
+
+    // MARK: - Shared interaction telemetry helpers
+
+    typealias InteractionStartedAt = CFAbsoluteTime
+
+    func beginInteractionTiming() -> InteractionStartedAt {
+        CFAbsoluteTimeGetCurrent()
+    }
+
+    func trackInteractionEvent(
+        _ event: String,
+        surface: String,
+        result: String,
+        startedAt: InteractionStartedAt? = nil,
+        extra: [String: Any] = [:]
+    ) {
+        var payload = extra
+        payload["surface"] = surface
+        payload["result"] = result
+        payload["market"] = Locale.current.region?.identifier.uppercased() ?? "US"
+        if let startedAt {
+            payload["latency_ms"] = Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1000.0)
+        }
+        analytics.track(event, payload: payload)
+    }
     
     // Observable properties (no @Published needed with @Observable)
     var animeItems: [Anime] = []
@@ -226,7 +251,11 @@ class SupabaseService {
         "Thriller"
     ]
 
-    private func sanitizeAnimeForDiscovery(_ items: [Anime], policy: DiscoveryPolicy = .init()) -> [Anime] {
+    private func sanitizeAnimeForDiscovery(_ items: [Anime]) -> [Anime] {
+        sanitizeAnimeForDiscovery(items, policy: DiscoveryPolicy(includeAdult: false, excludeEcchi: true))
+    }
+
+    private func sanitizeAnimeForDiscovery(_ items: [Anime], policy: DiscoveryPolicy) -> [Anime] {
         items.filter { anime in
             if !policy.includeAdult {
                 if anime.isAdult { return false }
@@ -239,7 +268,11 @@ class SupabaseService {
         }
     }
 
-    private func sanitizeMangaForDiscovery(_ items: [Manga], policy: DiscoveryPolicy = .init()) -> [Manga] {
+    private func sanitizeMangaForDiscovery(_ items: [Manga]) -> [Manga] {
+        sanitizeMangaForDiscovery(items, policy: DiscoveryPolicy(includeAdult: false, excludeEcchi: true))
+    }
+
+    private func sanitizeMangaForDiscovery(_ items: [Manga], policy: DiscoveryPolicy) -> [Manga] {
         items.filter { manga in
             if !policy.includeAdult {
                 if manga.isAdult { return false }
@@ -353,7 +386,9 @@ class SupabaseService {
             currentUserId = session.user.id.uuidString
             analytics.setUserId(currentUserId)
             await ensureProfileRow()
-            await bootstrapAfterAuth()
+            // Fire bootstrap without blocking — the UI can show immediately
+            // with shimmer/skeleton placeholders while data loads in parallel.
+            Task { await bootstrapAfterAuth() }
         } catch {
             isAuthenticated = false
             currentUserId = nil
@@ -402,6 +437,86 @@ class SupabaseService {
             authErrorMessage = error.localizedDescription
             throw error
         }
+    }
+
+    func signInWithApple(idToken: String, rawNonce: String, fullName: String?) async throws {
+        authErrorMessage = nil
+        do {
+            let session = try await client.auth.signInWithIdToken(
+                credentials: .init(
+                    provider: .apple,
+                    idToken: idToken,
+                    nonce: rawNonce
+                )
+            )
+            isAuthenticated = true
+            currentUserEmail = session.user.email
+            currentUserId = session.user.id.uuidString
+            analytics.setUserId(currentUserId)
+
+            // Apple only provides full name on first sign-in; persist it.
+            if let fullName, !fullName.isEmpty {
+                try? await client.auth.update(
+                    user: .init(data: ["full_name": .string(fullName)])
+                )
+            }
+
+            await ensureProfileRow()
+            await bootstrapAfterAuth()
+        } catch {
+            authErrorMessage = error.localizedDescription
+            isAuthenticated = false
+            currentUserId = nil
+            analytics.setUserId(nil)
+            throw error
+        }
+    }
+
+    func resetPassword(email: String) async throws {
+        try await client.auth.resetPasswordForEmail(email)
+    }
+
+    /// GDPR-compliant account deletion. Calls the `delete-account` Edge Function
+    /// which cascades through all user data tables, removes storage objects,
+    /// then deletes the auth.users row.
+    var isAppleUser: Bool {
+        get async {
+            guard let user = try? await client.auth.user() else { return false }
+            return user.identities?.contains(where: { $0.provider == "apple" }) ?? false
+        }
+    }
+
+    func deleteAccount(appleAuthorizationCode: String? = nil) async throws {
+        struct DeleteResponse: Decodable {
+            let success: Bool?
+            let error: String?
+            let message: String?
+        }
+        var body: [String: String] = ["confirm": "true"]
+        if let appleAuthorizationCode {
+            body["apple_authorization_code"] = appleAuthorizationCode
+        }
+        let response: DeleteResponse = try await client.functions.invoke(
+            "delete-account",
+            options: .init(body: body)
+        )
+        if response.success != true {
+            throw NSError(
+                domain: "KuroAccountDeletion",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: response.error ?? response.message ?? "Account deletion failed"]
+            )
+        }
+        // Clear local state (same as sign out).
+        await stopRealtimeSubscriptions()
+        isAuthenticated = false
+        currentUserEmail = nil
+        currentUserId = nil
+        authErrorMessage = nil
+        stopCountdownUpdates()
+        resetUserState()
+        analytics.setUserId(nil)
+        FeatureFlags.shared.setUserId(nil)
     }
 
     func signOut() async {
@@ -453,16 +568,19 @@ class SupabaseService {
     }
 
     private func bootstrapAfterAuth() async {
-        // Load user state early so collection indicators + progress are correct across the UI.
-        await fetchUserLists()
-        await fetchCollectionItems()
-        await fetchCollectionFeed()
-        await fetchUpcomingForUser(days: 7)
+        // Fetch all independent user data in parallel to cut startup latency.
+        // Each fetch updates @Observable properties, so the UI fills progressively.
+        async let lists: () = fetchUserLists()
+        async let collection: () = fetchCollectionItems()
+        async let feed: () = fetchCollectionFeed()
+        async let upcoming: () = fetchUpcomingForUser(days: 7)
+        _ = await (lists, collection, feed, upcoming)
+
         startCountdownUpdates()
         subscribeToUpdates()
 
-        // Refresh server-controlled feature flags (non-blocking; stale cache used on failure).
-        await FeatureFlags.shared.refresh(client: client, userId: currentUserId)
+        // Feature flags are non-critical; fire without blocking.
+        Task { await FeatureFlags.shared.refresh(client: client, userId: currentUserId) }
     }
 
     private func currentUserIdString() async -> String? {
@@ -2608,15 +2726,16 @@ class SupabaseService {
         countdownByAnimeId = map
     }
 
-    private func startCountdownUpdates() {
-        countdownTimer?.invalidate()
-        // Avoid passing an actor-isolated closure to Timer (Swift 6 strict concurrency warning).
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.updateCountdowns()
-            }
-        }
-    }
+	    private func startCountdownUpdates() {
+	        countdownTimer?.invalidate()
+	        // Avoid passing an actor-isolated closure to Timer (Swift 6 strict concurrency warning).
+	        countdownTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+	            guard let strongSelf = self else { return }
+	            Task { @MainActor in
+	                strongSelf.updateCountdowns()
+	            }
+	        }
+	    }
 
     private func stopCountdownUpdates() {
         countdownTimer?.invalidate()
@@ -3177,10 +3296,11 @@ class SupabaseService {
             return try await task.value
         }
 
-        // Run decoding off the main actor to avoid UI jank (keyboard/input stutter).
+        // Keep the request in a Task so callers can share in-flight work.
+        // This runs on the main actor; the network call is async and should not block the UI thread.
         let client = self.client
         let clarify = clarification
-        let task = Task<ConciergeParseResponse, Error>.detached(priority: .userInitiated) {
+        let task = Task<ConciergeParseResponse, Error>(priority: .userInitiated) {
             var payload: [String: Any] = [
                 "text": text,
                 "scope": scope.rawValue,
@@ -3191,10 +3311,9 @@ class SupabaseService {
             }
             let data = try JSONSerialization.data(withJSONObject: payload, options: [])
             let options = FunctionInvokeOptions(method: .post, body: data)
-            let resp: ConciergeParseResponse = try await SupabaseService.withRetry {
+            return try await SupabaseService.withRetry {
                 try await client.functions.invoke("concierge-parse", options: options)
             }
-            return resp
         }
         conciergeParseInFlight[key] = task
         defer { conciergeParseInFlight[key] = nil }
@@ -3243,7 +3362,7 @@ class SupabaseService {
                 "items": items,
             ]
             let client = self.client
-            let task = Task<ConciergeApplyResponse, Error>.detached(priority: .userInitiated) {
+            let task = Task<ConciergeApplyResponse, Error>(priority: .userInitiated) {
                 let data = try JSONSerialization.data(withJSONObject: payload, options: [])
                 let options = FunctionInvokeOptions(method: .post, body: data)
                 return try await client.functions.invoke("concierge-apply", options: options)
@@ -3275,7 +3394,7 @@ class SupabaseService {
                 "sessionId": sessionId,
             ]
             let client = self.client
-            let task = Task<ConciergeUndoResponse, Error>.detached(priority: .userInitiated) {
+            let task = Task<ConciergeUndoResponse, Error>(priority: .userInitiated) {
                 let data = try JSONSerialization.data(withJSONObject: payload, options: [])
                 let options = FunctionInvokeOptions(method: .post, body: data)
                 return try await client.functions.invoke("concierge-undo", options: options)
@@ -3286,13 +3405,56 @@ class SupabaseService {
         }
     }
 
+    // MARK: - Concierge: Import from AniList (public lists)
 
-    struct ConciergeRecommendResponse: Decodable, Sendable {
+    struct ConciergeAniListImportResponse: Decodable, Sendable {
         let success: Bool
-        let categories: [String]?
-        struct Mode: Decodable, Sendable, Identifiable {
-            let id: String
-            let title: String
+        let source: String?
+        let username: String?
+        let itemCount: Int?
+        let truncated: Bool?
+        let text: String?
+        let error: String?
+    }
+
+    func conciergeImportAniList(
+        username: String,
+        types: [String] = ["ANIME", "MANGA"],
+        statuses: [String] = ["CURRENT", "COMPLETED", "PLANNING"],
+        maxItems: Int = 200
+    ) async throws -> ConciergeAniListImportResponse {
+        let u = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !u.isEmpty else { throw NSError(domain: "Concierge", code: 0, userInfo: [NSLocalizedDescriptionKey: "Missing AniList username"]) }
+        let cap = max(25, min(400, maxItems))
+
+        do {
+            let payload: [String: Any] = [
+                "username": u,
+                "types": types,
+                "statuses": statuses,
+                "maxItems": cap,
+            ]
+            let client = self.client
+            let task = Task<ConciergeAniListImportResponse, Error>(priority: .userInitiated) {
+                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+                let options = FunctionInvokeOptions(method: .post, body: data)
+                return try await client.functions.invoke("concierge-import-anilist", options: options)
+            }
+            return try await task.value
+        } catch {
+            throw translateConciergeFunctionError(error)
+        }
+    }
+
+
+	    struct ConciergeRecommendResponse: Decodable, Sendable {
+	        let success: Bool
+	        let locale: String?
+	        let curatorNote: String?
+	        let categories: [String]?
+	        struct Mode: Decodable, Sendable, Identifiable {
+	            let id: String
+	            let title: String
             let confidence: Double?
             let reason: String?
         }
@@ -3312,14 +3474,19 @@ class SupabaseService {
 
             var id: String { "\(mediaType)|\(mediaId)" }
         }
-        struct Set: Decodable, Sendable, Identifiable {
-            let id: String
-            let title: String
-            let modeId: String?
-            let confidence: Double?
-            let reason: String?
-            let items: [Item]?
-        }
+	        struct Set: Decodable, Sendable, Identifiable {
+	            let id: String
+	            let title: String
+	            let internalTitle: String?
+	            let displayTitle: String?
+	            let displaySubtitle: String?
+	            let curatorNote: String?
+	            let locale: String?
+	            let modeId: String?
+	            let confidence: Double?
+	            let reason: String?
+	            let items: [Item]?
+	        }
         struct Assist: Decodable, Sendable {
             let ragUsed: Bool?
             let seedEntityId: String?
@@ -3352,9 +3519,10 @@ class SupabaseService {
             return try await task.value
         }
 
-        // Run decoding off the main actor to keep the chat input responsive.
+        // Keep the request in a Task so callers can share in-flight work.
+        // This runs on the main actor; the network call is async and should not block the UI thread.
         let client = self.client
-        let task = Task<ConciergeRecommendResponse, Error>.detached(priority: .userInitiated) {
+        let task = Task<ConciergeRecommendResponse, Error>(priority: .userInitiated) {
             let payload: [String: Any] = [
                 "text": text,
                 "scope": scope.rawValue,
@@ -3462,7 +3630,13 @@ class SupabaseService {
             },
         ]
 
-        await channel.subscribe()
+        do {
+            _ = try await channel.subscribeWithError()
+        } catch {
+            #if DEBUG
+            print("⚠️ realtime subscribe failed: \(error)")
+            #endif
+        }
     }
 
     @MainActor
@@ -3524,6 +3698,165 @@ class SupabaseService {
         userIdsByTypeAndStatus = byTypeStatus
     }
 
+    // MARK: - Concierge: Library export helper
+
+    struct ConciergeLibraryExportResult: Sendable {
+        let text: String
+        let exportedItemCount: Int
+        let truncated: Bool
+    }
+
+    /// Build plain-text concierge payload from the user's current library list.
+    /// Useful for one-tap import from within the app.
+    func conciergeLibraryExportText(
+        includeStatus: Set<ListStatus>? = nil,
+        includeMediaTypes: Set<String> = ["anime", "manga"],
+        maxItems: Int = 400
+    ) async -> ConciergeLibraryExportResult? {
+        if userLists.isEmpty {
+            await fetchUserLists()
+        }
+
+        guard !userLists.isEmpty else { return nil }
+
+        let allowedStatuses = includeStatus.map(Set.init) ?? Set(ListStatus.allCases)
+        let allowedTypes = Set(includeMediaTypes.map { $0.lowercased() })
+
+        let filtered = userLists.filter {
+            allowedTypes.contains($0.mediaType.lowercased()) && allowedStatuses.contains($0.status)
+        }
+
+        guard !filtered.isEmpty else { return nil }
+
+        let capped = Array(filtered.prefix(max(0, maxItems)))
+        guard !capped.isEmpty else { return nil }
+
+        // 1) Resolve titles for this snapshot.
+        let lookup = await resolveLibraryTitles(for: capped)
+
+        // 2) Keep list in server order (updatedAt desc from fetchUserLists).
+        let lines: [String] = capped.compactMap { entry in
+            guard let title = lookup[entry.mediaId] else { return nil }
+            let suffix = conciergeLibrarySuffix(for: entry)
+            return suffix.isEmpty ? title : "\(title) \(suffix)"
+        }
+
+        guard !lines.isEmpty else { return nil }
+        return ConciergeLibraryExportResult(
+            text: lines.joined(separator: "\n"),
+            exportedItemCount: lines.count,
+            truncated: filtered.count > capped.count
+        )
+    }
+
+    private func conciergeLibrarySuffix(for entry: UserList) -> String {
+        let isAnime = entry.mediaType.lowercased() == "anime"
+        let progress = max(0, entry.progress)
+        switch entry.status {
+        case .completed:
+            return "(completed)"
+        case .dropped:
+            return "(dropped)"
+        case .paused:
+            return "(paused)"
+        case .planning:
+            return "(planning)"
+        case .repeating:
+            return isAnime ? "(rewatching)" : "(re-reading)"
+        case .current:
+            if progress > 0 {
+                return isAnime ? "(watching ep \(progress))" : "(reading ch \(progress))"
+            }
+            return isAnime ? "(watching)" : "(reading)"
+        }
+    }
+
+    private func resolveLibraryTitles(for items: [UserList]) async -> [Int: String] {
+        let animeIds = Set(items.filter { $0.mediaType.lowercased() == "anime" }.map(\.mediaId))
+        let mangaIds = Set(items.filter { $0.mediaType.lowercased() == "manga" }.map(\.mediaId))
+
+        var titlesById: [Int: String] = [:]
+
+        for (table, ids) in [("anime", animeIds), ("manga", mangaIds)] as [(String, Set<Int>)] {
+            let idList = Array(ids).sorted()
+            guard !idList.isEmpty else { continue }
+
+            struct MediaTitleRow: Decodable {
+                let id: Int
+                let titleEnglish: String?
+                let titleRomaji: String?
+                let titleNative: String?
+
+                enum CodingKeys: String, CodingKey {
+                    case id
+                    case titleEnglish = "title_english"
+                    case titleRomaji = "title_romaji"
+                    case titleNative = "title_native"
+                }
+            }
+
+            for start in stride(from: 0, through: max(0, idList.count), by: 200) {
+                let end = min(start + 200, idList.count)
+                guard start < end else { continue }
+                let chunk = Array(idList[start..<end])
+
+                do {
+                    let rows: [MediaTitleRow] = try await client
+                        .from(table)
+                        .select("id,title_english,title_romaji,title_native")
+                        .in("id", values: chunk)
+                        .execute()
+                        .value
+
+                    for row in rows {
+                        let title = row.titleEnglish?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            ?? row.titleRomaji?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            ?? row.titleNative?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            ?? ""
+                        if !title.isEmpty {
+                            titlesById[row.id] = title
+                        }
+                    }
+                } catch {
+                    #if DEBUG
+                    print("[SupabaseService] Failed to resolve titles for \(table): \(error)")
+                    #endif
+                }
+
+            }
+        }
+
+        // Use local detail cache as a fallback if table lookups failed.
+        var localAnimeLookup: [Int: String] = [:]
+        for item in animeItems {
+            let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !title.isEmpty && title.lowercased() != "unknown" {
+                localAnimeLookup[item.id] = title
+            }
+        }
+
+        var localMangaLookup: [Int: String] = [:]
+        for item in mangaItems {
+            let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !title.isEmpty && title.lowercased() != "unknown" {
+                localMangaLookup[item.id] = title
+            }
+        }
+
+        for item in items {
+            if titlesById[item.mediaId] == nil {
+                let fallback = item.mediaType.lowercased() == "anime"
+                    ? localAnimeLookup[item.mediaId]
+                    : localMangaLookup[item.mediaId]
+                if let fallback, !fallback.isEmpty {
+                    titlesById[item.mediaId] = fallback
+                }
+            }
+        }
+
+        return titlesById
+    }
+
     func userMediaIds(mediaType: String, status: ListStatus? = nil) -> Set<Int> {
         let t = mediaType.lowercased()
         if let status {
@@ -3554,6 +3887,23 @@ class SupabaseService {
 
     func userListProgress(mediaType: String, mediaId: Int) -> Int? {
         userListByTypeAndId[mediaType.lowercased()]?[mediaId]?.progress
+    }
+
+    func userListEntry(mediaType: String, mediaId: Int) -> UserList? {
+        userListByTypeAndId[mediaType.lowercased()]?[mediaId]
+    }
+
+    func incrementProgress(mediaId: Int, mediaType: String) async {
+        guard let entry = userListByTypeAndId[mediaType.lowercased()]?[mediaId] else { return }
+        let newProgress = entry.progress + 1
+        await upsertUserListEntry(
+            mediaId: mediaId,
+            mediaType: mediaType,
+            status: entry.status,
+            progress: newProgress,
+            rating: entry.score,
+            notes: entry.notes
+        )
     }
 
     func isFavorited(_ animeId: Int) -> Bool {
@@ -3726,6 +4076,16 @@ class SupabaseService {
         let sort_order: Int
     }
 
+    struct CreateRailResponse: Decodable, Sendable {
+        let rail_id: String
+        let title: String
+    }
+
+    struct CreatePollResponse: Decodable, Sendable {
+        let poll_id: String
+        let question: String
+    }
+
     // Lightweight row for "My Clubs" list (fetched via direct table query)
     struct ClubListRow: Decodable, Sendable, Identifiable {
         let id: String
@@ -3738,7 +4098,20 @@ class SupabaseService {
     // Club bundle cache (5 min TTL per spec)
     private var clubBundleCache: [String: TimedCache<ClubBundle>] = [:]
     private var clubBundleInFlight: [String: Task<ClubBundle, Error>] = [:]
+    private let rememberedClubIdKey = "com.kuro.rememberedAddToClubId"
     var myClubs: [ClubListRow] = []
+
+    func rememberedAddToClubId() -> String? {
+        UserDefaults.standard.string(forKey: rememberedClubIdKey)
+    }
+
+    func setRememberedAddToClubId(_ clubId: String?) {
+        if let clubId, !clubId.isEmpty {
+            UserDefaults.standard.set(clubId, forKey: rememberedClubIdKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: rememberedClubIdKey)
+        }
+    }
 
     func fetchMyClubs() async {
         guard let userId = await currentUserIdString() else { return }
@@ -3817,7 +4190,7 @@ class SupabaseService {
 
         let client = self.client
         let cid = clubId
-        let task = Task<ClubBundle, Error>.detached(priority: .userInitiated) {
+        let task = Task<ClubBundle, Error>(priority: .userInitiated) {
             let params = RPCClubIdParams(p_club_id: cid)
             let bundle: ClubBundle = try await client
                 .rpc("fetch_club_bundle", params: params)
@@ -3832,6 +4205,10 @@ class SupabaseService {
         return bundle
     }
 
+    func refreshClubBundle(clubId: String) async throws -> ClubBundle {
+        try await fetchClubBundle(clubId: clubId, forceRefresh: true)
+    }
+
     func addRailItem(railId: String, mediaType: String, mediaId: Int, note: String? = nil) async throws -> AddRailItemResponse {
         let params = RPCAddRailItemParams(p_rail_id: railId, p_media_type: mediaType, p_media_id: mediaId, p_note: note)
         return try await client
@@ -3844,6 +4221,39 @@ class SupabaseService {
         let params = RPCCastVoteParams(p_poll_id: pollId, p_option_id: optionId)
         let _: SimpleSuccessResponse = try await client
             .rpc("cast_club_vote", params: params)
+            .execute()
+            .value
+    }
+
+    func createClubRail(clubId: String, title: String, description: String? = nil) async throws -> CreateRailResponse {
+        let params = RPCCreateClubRailParams(p_club_id: clubId, p_title: title, p_description: description)
+        let resp: CreateRailResponse = try await client
+            .rpc("create_club_rail", params: params)
+            .execute()
+            .value
+        clubBundleCache.removeValue(forKey: clubId)
+        return resp
+    }
+
+    func createClubPoll(clubId: String, question: String, options: [String]) async throws -> CreatePollResponse {
+        let params = RPCCreateClubPollParams(p_club_id: clubId, p_question: question, p_options: options)
+        let resp: CreatePollResponse = try await client
+            .rpc("create_club_poll", params: params)
+            .execute()
+            .value
+        clubBundleCache.removeValue(forKey: clubId)
+        return resp
+    }
+
+    struct ToggleReactionResponse: Decodable, Sendable {
+        let action: String // "added" | "removed"
+        let emoji: String
+    }
+
+    func toggleReaction(railItemId: String, emoji: String) async throws -> ToggleReactionResponse {
+        let params = RPCToggleReactionParams(p_rail_item_id: railItemId, p_emoji: emoji)
+        return try await client
+            .rpc("toggle_club_reaction", params: params)
             .execute()
             .value
     }

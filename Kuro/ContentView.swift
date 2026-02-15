@@ -36,7 +36,7 @@ struct KuroRootView: View {
         if showLaunch {
             KuroLaunchView()
                 .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         withAnimation(.easeInOut(duration: 0.6)) {
                             showLaunch = false
                         }
@@ -55,19 +55,19 @@ struct KuroLaunchView: View {
     
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
-            
+            Color.kuroBackground.ignoresSafeArea()
+
             VStack(spacing: 8) {
                 Text("KURO")
-                    .font(.system(size: 24, weight: .ultraLight, design: .serif))
+                    .font(.kuroHeadline(weight: .ultraLight))
                     .tracking(8)
                     .foregroundColor(.black)
                     .opacity(logoOpacity)
-                
+
                 Text("CURATED ANIME")
-                    .font(.system(size: 10, weight: .light))
+                    .font(.kuroMicro(weight: .light))
                     .tracking(3)
-                    .foregroundColor(.black.opacity(0.5))
+                    .foregroundColor(.kuroTextTertiary)
                     .opacity(subtitleOpacity)
             }
             .onAppear {
@@ -91,7 +91,7 @@ struct KuroMainView: View {
     // Removed: let sections = ["DISCOVER", "COLLECTION", "SEARCH"]
 
     enum Section: Int, CaseIterable {
-        case concierge, discover, collection, browse, search, clubs
+        case concierge, discover, collection
 
         var title: String {
             switch self {
@@ -101,40 +101,96 @@ struct KuroMainView: View {
                 return "DISCOVER"
             case .collection:
                 return "COLLECTION"
-            case .browse:
-                return "BROWSE"
-            case .search:
-                return "SEARCH"
-            case .clubs:
-                return "CLUBS"
             }
         }
     }
 
 	@State private var selection: Section = .discover
 	@State private var showProfileSheet = false
+	@State private var showSearchSheet = false
+	@State private var showBrowseSheet = false
 	@State private var mountedSections: Set<Section> = [.discover]
 	@State private var swipeExclusions: [CGRect] = []
+    @State private var suppressCardTaps = false
+    @State private var tapSuppressionResetTask: Task<Void, Never>? = nil
+    @State private var didTrackSuppressionThisGesture = false
     @State private var didApplyStartArgument = false
-	// Concierge is a first-class page to the LEFT of Discover.
-	private let swipeOrder: [Section] = [.concierge, .discover, .collection, .browse, .search, .clubs]
-	private let swipeThreshold: CGFloat = 40
-	private let swipeEdgeMargin: CGFloat = 24
+    @State private var showOnboarding = !OnboardingView.hasCompletedOnboarding
+    @State private var edgeBounceOffset: CGFloat = 0
+	// Three core tabs: Concierge | Discover | Collection
+    private let swipeOrder: [Section] = [.concierge, .discover, .collection]
+    private let swipeThreshold: CGFloat = 40
+    private let swipeEdgeMargin: CGFloat = 24
+
+    private var conciergeEditorialV1Enabled: Bool {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if args.contains("--ff-off=concierge_editorial_v1") { return false }
+        if args.contains("--ff-on=concierge_editorial_v1") { return true }
+        return true
+        #else
+        return FeatureFlags.shared.isConciergeEditorialV1Enabled
+        #endif
+    }
+
+    private var hidesHeaderForConcierge: Bool {
+        selection == .concierge && conciergeEditorialV1Enabled
+    }
+
+    private func sectionFromLaunchArgument(_ raw: String) -> Section? {
+        switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "concierge": return .concierge
+        case "discover": return .discover
+        case "collection": return .collection
+        default: return nil
+        }
+    }
+
+    // MARK: - Swipe conflict helpers (deduplicated from onChanged/onEnded)
+
+    private var rootWidth: CGFloat {
+        #if os(iOS)
+        (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.screen.bounds.width) ?? 393
+        #else
+        1024
+        #endif
+    }
+
+    /// Returns true when the drag starts inside an exclusion zone and is NOT on a screen edge.
+    private func isSwipeExcluded(start: CGPoint) -> Bool {
+        let edgeAllowed = (start.x <= swipeEdgeMargin) || (start.x >= max(0, rootWidth - swipeEdgeMargin))
+        let expanded = swipeExclusions.map { $0.insetBy(dx: -14, dy: -14) }
+        return expanded.contains(where: { $0.contains(start) }) && !edgeAllowed
+    }
+
+    private func scheduleTapSuppressionReset(delayNs: UInt64 = 120_000_000) {
+        tapSuppressionResetTask?.cancel()
+        tapSuppressionResetTask = Task {
+            try? await Task.sleep(nanoseconds: delayNs)
+            guard !Task.isCancelled else { return }
+            suppressCardTaps = false
+        }
+    }
     
     var body: some View {
 	        ZStack {
 	            Color(.systemBackground).ignoresSafeArea()
 
 	            VStack(spacing: 0) {
-                // Fixed Header - Three-part layout
-                KuroHeaderNew(selection: $selection, showProfileSheet: $showProfileSheet)
+                if !hidesHeaderForConcierge {
+                    KuroHeaderNew(selection: $selection, showProfileSheet: $showProfileSheet, showSearchSheet: $showSearchSheet, showBrowseSheet: $showBrowseSheet)
+                }
 
                 // Header-driven pager: keeps sections mounted once visited.
 	                KuroSectionPager(
 	                    selection: $selection,
 	                    mountedSections: $mountedSections,
-	                    order: swipeOrder
+	                    order: swipeOrder,
+                        suppressCardTaps: suppressCardTaps
 	                )
+	                .offset(x: edgeBounceOffset)
 	                .background(Color.clear)
 	            }
 	        }
@@ -148,30 +204,52 @@ struct KuroMainView: View {
                 guard !didApplyStartArgument else { return }
                 didApplyStartArgument = true
                 let args = ProcessInfo.processInfo.arguments
-                if args.contains("--kuro-start-concierge") || args.contains("--kuro-start=concierge") {
+                if let kv = args.first(where: { $0.hasPrefix("--kuro-start=") }),
+                   let value = kv.split(separator: "=", maxSplits: 1).last,
+                   let target = sectionFromLaunchArgument(String(value))
+                {
+                    selection = target
+                    mountedSections.insert(target)
+                } else if args.contains("--kuro-start-concierge") {
                     selection = .concierge
                     mountedSections.insert(.concierge)
                 }
             }
 	        .simultaneousGesture(
-	            DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
-	                .onEnded { value in
-	                    let start = value.startLocation
-	                    #if os(iOS)
-	                    let rootWidth: CGFloat = (UIApplication.shared.connectedScenes
-	                        .compactMap { $0 as? UIWindowScene }
-	                        .first?.screen.bounds.width) ?? 393
-	                    #else
-	                    let rootWidth: CGFloat = 1024
-	                    #endif
-	                    let edgeAllowed = (start.x <= swipeEdgeMargin) || (start.x >= max(0, rootWidth - swipeEdgeMargin))
+            DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
+                    .onChanged { value in
+                        guard FeatureFlags.shared.isSwipeTapGuardEnabled else { return }
+                        guard !isSwipeExcluded(start: value.startLocation) else { return }
 
-	                    let expanded = swipeExclusions.map { $0.insetBy(dx: -14, dy: -14) }
-	                    if expanded.contains(where: { $0.contains(start) }) && !edgeAllowed { return }
+                        let dx = abs(value.translation.width)
+                        let dy = abs(value.translation.height)
+                        let predictedDx = abs(value.predictedEndTranslation.width)
+                        let velocityHint = abs(value.predictedEndTranslation.width - value.translation.width)
+                        guard dx > 12, dx > dy * 1.1 else { return }
+                        guard predictedDx > 18 || velocityHint > 20 || dx > 24 else { return }
+                        if !suppressCardTaps {
+                            suppressCardTaps = true
+                        }
+                        if !didTrackSuppressionThisGesture {
+                            didTrackSuppressionThisGesture = true
+                            supabaseService.trackInteractionEvent(
+                                "card_tap_suppressed_during_swipe",
+                                surface: "root_pager",
+                                result: "active"
+                            )
+                        }
+                    }
+	                .onEnded { value in
+                        let shouldManageSuppression = FeatureFlags.shared.isSwipeTapGuardEnabled
+                        defer { didTrackSuppressionThisGesture = false }
+                        if shouldManageSuppression && suppressCardTaps {
+                            scheduleTapSuppressionReset()
+                        }
+
+                        guard !isSwipeExcluded(start: value.startLocation) else { return }
 
 	                    let dx = value.translation.width
 	                    let dy = value.translation.height
-	                    // Be forgiving: people swipe slightly diagonally.
 	                    guard abs(dx) > abs(dy) * 0.85 else { return }
 
 	                    let predictedDx = value.predictedEndTranslation.width
@@ -180,9 +258,26 @@ struct KuroMainView: View {
 
 	                    guard let currentIndex = swipeOrder.firstIndex(of: selection) else { return }
 	                    let nextIndex = currentIndex + (effectiveDx < 0 ? 1 : -1)
-	                    guard swipeOrder.indices.contains(nextIndex) else { return }
+	                    guard swipeOrder.indices.contains(nextIndex) else {
+	                        KuroAccessibility.impactHaptic(.rigid)
+	                        let bounceDirection: CGFloat = effectiveDx < 0 ? -1 : 1
+	                        withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) {
+	                            edgeBounceOffset = bounceDirection * 12
+	                        }
+	                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7).delay(0.1)) {
+	                            edgeBounceOffset = 0
+	                        }
+	                        return
+	                    }
 	                    selection = swipeOrder[nextIndex]
 	                    KuroAccessibility.impactHaptic(.light)
+
+                        guard shouldManageSuppression else {
+                            suppressCardTaps = false
+                            return
+                        }
+                        let delayNs: UInt64 = abs(predictedDx) > 220 ? 280_000_000 : 120_000_000
+                        scheduleTapSuppressionReset(delayNs: delayNs)
 	                }
 	        )
 	            .onChange(of: selection) { _, newValue in
@@ -196,6 +291,46 @@ struct KuroMainView: View {
                 ProfileView()
                     .environment(supabaseService)
             }
+            .sheet(isPresented: $showSearchSheet) {
+                NavigationStack {
+                    EditorialSearchView()
+                        .environment(supabaseService)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button(action: { showSearchSheet = false }) {
+                                    Image(systemName: "xmark")
+                                        .font(.kuroBody(weight: .light))
+                                        .foregroundColor(.kuroBlack60)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                }
+            }
+            .sheet(isPresented: $showBrowseSheet) {
+                NavigationStack {
+                    BrowseView()
+                        .environment(supabaseService)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button(action: { showBrowseSheet = false }) {
+                                    Image(systemName: "xmark")
+                                        .font(.kuroBody(weight: .light))
+                                        .foregroundColor(.kuroBlack60)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                }
+            }
+            .onDisappear {
+                tapSuppressionResetTask?.cancel()
+            }
+            .fullScreenCover(isPresented: $showOnboarding) {
+                OnboardingView {
+                    showOnboarding = false
+                }
+            }
     }
 }
 
@@ -206,6 +341,7 @@ private struct KuroSectionPager: View {
     @Binding var selection: Section
     @Binding var mountedSections: Set<Section>
     let order: [Section]
+    let suppressCardTaps: Bool
 
     private var selectionIndex: Int {
         order.firstIndex(of: selection) ?? 0
@@ -222,7 +358,7 @@ private struct KuroSectionPager: View {
                         .frame(width: width, height: height)
                 }
             }
-            .environment(\.kuroSuppressCardTaps, false)
+            .environment(\.kuroSuppressCardTaps, suppressCardTaps)
             .offset(x: (-CGFloat(selectionIndex) * width))
             .clipped()
             // Animate only when the selection changes (header-driven paging).
@@ -238,20 +374,11 @@ private struct KuroSectionPager: View {
         if shouldMount {
             switch section {
             case .concierge:
-                // Concierge features (mascot, suggestions, haptics) are behind `assistantEnabled`.
                 ConciergeView(assistantEnabled: true)
             case .discover:
                 EditorialDiscoverView()
             case .collection:
                 EditorialCollectionView()
-            case .browse:
-                BrowseView()
-            case .search:
-                EditorialSearchView()
-            case .clubs:
-                NavigationStack {
-                    ClubsView()
-                }
             }
         } else {
             // Placeholder keeps layout stable without triggering `.task` in heavy pages.
@@ -264,9 +391,11 @@ private struct KuroSectionPager: View {
 struct KuroHeaderNew: View {
     @Binding var selection: KuroMainView.Section
     @Binding var showProfileSheet: Bool
+    @Binding var showSearchSheet: Bool
+    @Binding var showBrowseSheet: Bool
     @Environment(SupabaseService.self) private var supabaseService
-    
-    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .collection, .browse, .search, .clubs]
+
+    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .collection]
 
     private static let windowTextPaddingX: CGFloat = 14
     private static let windowTextPaddingY: CGFloat = 7
@@ -350,7 +479,7 @@ struct KuroHeaderNew: View {
                     Text("KURO")
                         .font(.system(size: 11, weight: .regular))
                         .tracking(1.5)
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -374,6 +503,17 @@ struct KuroHeaderNew: View {
 
                         titleWindow
                     }
+
+                    // Dot indicators for positional context
+                    HStack(spacing: 5) {
+                        ForEach(swipeOrder, id: \.self) { section in
+                            Circle()
+                                .fill(Color.black.opacity(section == selection ? 0.55 : 0.15))
+                                .frame(width: 4, height: 4)
+                        }
+                    }
+                    .animation(.easeOut(duration: 0.18), value: selection)
+                    .accessibilityHidden(true)
                 }
                 .contentShape(Rectangle())
                 .accessibilityElement(children: .ignore)
@@ -382,12 +522,36 @@ struct KuroHeaderNew: View {
                 .accessibilityHint("Swipe left or right to change sections.")
                 .frame(maxWidth: .infinity, alignment: .center)
 
-                // Right: Action (minimal interaction)
-                HStack {
+                // Right: Actions
+                HStack(spacing: 10) {
                     Spacer()
+
+                    Button(action: {
+                        KuroAccessibility.impactHaptic(.light)
+                        showSearchSheet = true
+                    }) {
+                        Circle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: 32, height: 32)
+                            .overlay(
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 13, weight: .regular))
+                                    .foregroundColor(.black.opacity(0.60))
+                            )
+                            .overlay(
+                                Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
+                            )
+                    }
+                    .buttonStyle(KuroHeaderIconButtonStyle())
+                    .accessibilityLabel("Search")
+                    .accessibilityHint("Opens search")
+
                     Menu {
                         Button("Profile") {
                             showProfileSheet = true
+                        }
+                        Button("Browse") {
+                            showBrowseSheet = true
                         }
                         Button("Sign Out", role: .destructive) {
                             Task { await supabaseService.signOut() }
@@ -457,8 +621,8 @@ struct KuroHeaderNew: View {
                 .fill(Color.black.opacity(0.08))
                 .frame(height: 0.5)
         }
-        .frame(height: 48)
-        .background(Color.white)
+        .frame(height: 54)
+        .background(Color.kuroBackground)
         .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 6)
     }
 }
@@ -604,7 +768,7 @@ struct DiscoverSectionNew: View {
                     Text(subtitle)
                         .font(.system(size: 10, weight: .light))
                         .tracking(0.8)
-                        .foregroundColor(.black.opacity(0.35))
+                        .foregroundColor(.kuroTextTertiary)
                         .padding(.bottom, 2)
                 }
 
@@ -671,7 +835,7 @@ struct SophisticatedCardLoading: View {
                 .overlay(
                     ProgressView()
                         .scaleEffect(0.5)
-                        .foregroundColor(.black.opacity(0.2))
+                        .foregroundColor(.kuroTextTertiary)
                 )
 
             // Right: Text placeholders
@@ -749,7 +913,7 @@ struct DiscoverSection: View {
                     Text(subtitle)
                         .font(.system(size: 10, weight: .light))
                         .tracking(0.8)
-                        .foregroundColor(.black.opacity(0.35))
+                        .foregroundColor(.kuroTextTertiary)
                         .padding(.bottom, 2)
                 }
 
@@ -835,19 +999,19 @@ struct LoadingStateView: View {
 struct DiscoverEmptyStateView: View {
     var body: some View {
         VStack(spacing: 16) {
-            Text("LOADING YOUR COLLECTION...")
-                .font(.system(size: 14, weight: .light))
-                .tracking(1.0)
-                .foregroundColor(.black.opacity(0.6))
+            Image(systemName: "square.stack.3d.up.slash")
+                .font(.system(size: 28, weight: .light))
+                .foregroundColor(.black.opacity(0.25))
 
-            Text("Connecting to Supabase...")
+            Text("NO CONTENT FOUND")
+                .font(.system(size: 14, weight: .medium))
+                .tracking(1.5)
+                .foregroundColor(.kuroTextTertiary)
+
+            Text("Check your connection and try again.")
                 .font(.system(size: 12, weight: .light))
                 .tracking(0.5)
-                .foregroundColor(.black.opacity(0.3))
-
-            ProgressView()
-                .scaleEffect(0.8)
-                .padding(.top, 20)
+                .foregroundColor(.kuroTextTertiary)
         }
         .padding(.top, 80)
     }
@@ -1079,7 +1243,7 @@ struct SearchResultRowReal: View {
                         .overlay(
                             ProgressView()
                                 .scaleEffect(0.5)
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundColor(.kuroTextTertiary)
                         )
                 }
                 .frame(width: 50, height: 70, alignment: .center) // Fixed dimensions
@@ -1104,12 +1268,12 @@ struct SearchResultRowReal: View {
                         Text("\(episodes) EPS")
                             .font(.system(size: 9, weight: .light))
                             .tracking(0.5)
-                            .foregroundColor(.black.opacity(0.3))
+                            .foregroundColor(.kuroTextTertiary)
                     } else if let chapters = media.chapters {
                         Text("\(chapters) CH")
                             .font(.system(size: 9, weight: .light))
                             .tracking(0.5)
-                            .foregroundColor(.black.opacity(0.3))
+                            .foregroundColor(.kuroTextTertiary)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading) // Fill available space
@@ -1124,7 +1288,7 @@ struct SearchResultRowReal: View {
                             
                             Text("★")
                                 .font(.system(size: 8))
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundColor(.kuroTextTertiary)
                         }
                     }
                     
@@ -1132,7 +1296,7 @@ struct SearchResultRowReal: View {
                     
                     Image(systemName: "chevron.right")
                         .font(.system(size: 10, weight: .light))
-                        .foregroundColor(.black.opacity(0.2))
+                        .foregroundColor(.kuroTextTertiary)
                 }
                 .frame(height: 70) // Match image height for consistent alignment
             }
@@ -1160,7 +1324,7 @@ struct CollectionCardLoading: View {
                 .overlay(
                     ProgressView()
                         .scaleEffect(0.6)
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                 )
             
             VStack(alignment: .leading, spacing: 4) {
@@ -1181,7 +1345,7 @@ struct CollectionCardLoading: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white)
+                .fill(Color.kuroBackground)
                 .shadow(color: .black.opacity(0.04), radius: 20, x: 0, y: 10)
                 .shadow(color: .black.opacity(0.02), radius: 5, x: 0, y: 2)
                 .overlay(
@@ -1212,7 +1376,7 @@ struct CollectionCardReal: View {
                         .overlay(
                             ProgressView()
                                 .scaleEffect(0.6)
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundColor(.kuroTextTertiary)
                         )
                 }
                 .aspectRatio(0.7, contentMode: .fill)
@@ -1250,7 +1414,7 @@ struct CollectionCardReal: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.white)
+                    .fill(Color.kuroBackground)
                     .shadow(color: .black.opacity(0.04), radius: 20, x: 0, y: 10)
                     .shadow(color: .black.opacity(0.02), radius: 5, x: 0, y: 2)
                     .overlay(
@@ -1268,7 +1432,7 @@ struct CollectionCardReal: View {
             }
         }
     }
-    
+
     private var episodeText: String {
         if let episodes = media.episodes {
             return "\(episodes) EPS"
@@ -1320,7 +1484,7 @@ struct FeaturedCardSimple: View {
                 .overlay(
                     Text("IMAGE")
                         .font(.system(size: 24, weight: .ultraLight))
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                 )
             
             VStack(alignment: .leading, spacing: 12) {
@@ -1358,7 +1522,7 @@ struct CollectionCardSimple: View {
                 .overlay(
                     Text("IMG")
                         .font(.system(size: 12, weight: .light))
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                 )
             
             VStack(alignment: .leading, spacing: 4) {
@@ -1432,7 +1596,7 @@ struct SearchResultRowSimple: View {
                 .overlay(
                     Text("IMG")
                         .font(.system(size: 8, weight: .light))
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                 )
             
             VStack(alignment: .leading, spacing: 4) {
@@ -1450,14 +1614,14 @@ struct SearchResultRowSimple: View {
                 Text("12 EPS")
                     .font(.system(size: 9, weight: .light))
                     .tracking(0.5)
-                    .foregroundColor(.black.opacity(0.3))
+                    .foregroundColor(.kuroTextTertiary)
             }
             
             Spacer()
             
             Image(systemName: "chevron.right")
                 .font(.system(size: 10, weight: .light))
-                .foregroundColor(.black.opacity(0.2))
+                .foregroundColor(.kuroTextTertiary)
         }
         .padding(.vertical, 12)
     }
@@ -1485,7 +1649,7 @@ struct SophisticatedAnimeCard: View {
                         .overlay(
                             ProgressView()
                                 .scaleEffect(0.5)
-                                .foregroundColor(.black.opacity(0.2))
+                                .foregroundColor(.kuroTextTertiary)
                         )
                 }
                 .frame(width: 100, height: 150)  // Fixed consistent size
@@ -1511,7 +1675,7 @@ struct SophisticatedAnimeCard: View {
 
                         if let rating = media.rating {
                             Text("·")
-                                .foregroundColor(.black.opacity(0.2))
+                                .foregroundColor(.kuroTextTertiary)
                             HStack(spacing: 2) {
                                 Text("★")
                                     .font(.system(size: 9))
@@ -1525,7 +1689,7 @@ struct SophisticatedAnimeCard: View {
 
                         if let episodes = media.episodes {
                             Text("·")
-                                .foregroundColor(.black.opacity(0.2))
+                                .foregroundColor(.kuroTextTertiary)
                             Text("\(episodes) EP")
                                 .font(.system(size: 10, weight: .light))
                                 .tracking(0.8)
@@ -1569,6 +1733,8 @@ struct SophisticatedAnimeCard: View {
             .frame(height: 150)
         }
         .buttonStyle(PlainButtonStyle())
+        .accessibilityLabel(Text("\(media.title), \(media.year)"))
+        .accessibilityHint("Opens details")
         .sheet(isPresented: $showDetail) {
             if let anime = media as? Anime {
                 AnimeDetailView(anime: anime)
@@ -1601,7 +1767,7 @@ struct DiscoverCardElegant: View {
                         .overlay(
                             ProgressView()
                                 .scaleEffect(0.6)
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundColor(.kuroTextTertiary)
                         )
                 }
                 .aspectRatio(0.7, contentMode: .fill) // Elegant portrait ratio
@@ -1628,7 +1794,7 @@ struct DiscoverCardElegant: View {
 
                         if let rating = media.rating {
                             Text("·")
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundColor(.kuroTextTertiary)
                             Text(String(format: "%.1f", rating))
                                 .font(.system(size: 9, weight: .light))
                                 .tracking(0.8)
@@ -1642,6 +1808,8 @@ struct DiscoverCardElegant: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
+        .accessibilityLabel(Text("\(media.title), \(media.year)"))
+        .accessibilityHint("Opens details")
         .sheet(isPresented: $showDetail) {
             if let anime = media as? Anime {
                 AnimeDetailView(anime: anime)
@@ -1663,7 +1831,7 @@ struct DiscoverCardLoading: View {
                 .overlay(
                     ProgressView()
                         .scaleEffect(0.6)
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                 )
 
             // Info placeholder
@@ -1707,7 +1875,7 @@ struct FeaturedCardReal: View {
                         .overlay(
                             Text("IMAGE")
                                 .font(.system(size: 24, weight: .ultraLight))
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundColor(.kuroTextTertiary)
                         )
                 }
                 .frame(maxWidth: .infinity)
@@ -1756,7 +1924,7 @@ struct FeaturedCardLoading: View {
                 .overlay(
                     ProgressView()
                         .scaleEffect(0.8)
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                 )
             
             VStack(alignment: .leading, spacing: 12) {

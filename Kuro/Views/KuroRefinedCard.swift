@@ -85,18 +85,19 @@ struct KuroPortraitCard: View {
     let cardHeight: CGFloat
     
     @State private var showDetail = false
+    @State private var showAddToList = false
     @State private var isPressed = false
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
-    
+
     private var mediaType: String {
         media.kind.rawValue
     }
-    
+
     private var isInCollection: Bool {
         supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
     }
-    
+
     private var imageHeight: CGFloat {
         cardWidth / 0.7 // Standard poster ratio
     }
@@ -147,7 +148,7 @@ struct KuroPortraitCard: View {
                                 .overlay(
                                     ProgressView()
                                         .scaleEffect(0.6)
-                                        .tint(.black.opacity(0.3))
+                                        .tint(.kuroTextTertiary)
                                 )
                         @unknown default:
                             EmptyView()
@@ -201,8 +202,32 @@ struct KuroPortraitCard: View {
         }
         .buttonStyle(.plain)
         .pressable($isPressed)
+        .contextMenu {
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                supabaseService.toggleInCollection(mediaId: media.id, mediaType: mediaType)
+            }) {
+                Label(
+                    isInCollection ? "Remove from List" : "Quick Add (Planned)",
+                    systemImage: isInCollection ? "minus.circle" : "plus.circle"
+                )
+            }
+
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                showAddToList = true
+            }) {
+                Label(
+                    isInCollection ? "Edit List" : "Add to List\u{2026}",
+                    systemImage: "slider.horizontal.3"
+                )
+            }
+        }
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
+        }
+        .sheet(isPresented: $showAddToList) {
+            AddToListSheet(media: media)
         }
     }
 }
@@ -211,12 +236,22 @@ struct KuroPortraitCard: View {
 struct KuroCompactCard: View {
     let media: any MediaDisplayable
     let width: CGFloat = 110
-    
+
     @State private var showDetail = false
+    @State private var showAddToList = false
     @State private var isPressed = false
     @State private var didDrag = false
+    @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
-    
+
+    private var mediaType: String {
+        media.kind.rawValue
+    }
+
+    private var isInCollection: Bool {
+        supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
+    }
+
     private var height: CGFloat {
         width / 0.7
     }
@@ -320,8 +355,32 @@ struct KuroCompactCard: View {
         .opacity(isPressed ? 0.95 : 1.0)
         .accessibilityAddTraits(.isButton)
         .pressable($isPressed)
+        .contextMenu {
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                supabaseService.toggleInCollection(mediaId: media.id, mediaType: mediaType)
+            }) {
+                Label(
+                    isInCollection ? "Remove from List" : "Quick Add (Planned)",
+                    systemImage: isInCollection ? "minus.circle" : "plus.circle"
+                )
+            }
+
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                showAddToList = true
+            }) {
+                Label(
+                    isInCollection ? "Edit List" : "Add to List\u{2026}",
+                    systemImage: "slider.horizontal.3"
+                )
+            }
+        }
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
+        }
+        .sheet(isPresented: $showAddToList) {
+            AddToListSheet(media: media)
         }
     }
 }
@@ -330,11 +389,21 @@ struct KuroCompactCard: View {
 struct KuroHeroCard: View {
     let media: any MediaDisplayable
     let width: CGFloat
-    
+
     @State private var showDetail = false
+    @State private var showAddToList = false
     @State private var isPressed = false
+    @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
-    
+
+    private var mediaType: String {
+        media.kind.rawValue
+    }
+
+    private var isInCollection: Bool {
+        supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
+    }
+
     private var height: CGFloat {
         max(220, floor(width * 0.54))
     }
@@ -417,8 +486,32 @@ struct KuroHeroCard: View {
         }
         .buttonStyle(.plain)
         .pressable($isPressed, duration: 0.15)
+        .contextMenu {
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                supabaseService.toggleInCollection(mediaId: media.id, mediaType: mediaType)
+            }) {
+                Label(
+                    isInCollection ? "Remove from List" : "Quick Add (Planned)",
+                    systemImage: isInCollection ? "minus.circle" : "plus.circle"
+                )
+            }
+
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                showAddToList = true
+            }) {
+                Label(
+                    isInCollection ? "Edit List" : "Add to List\u{2026}",
+                    systemImage: "slider.horizontal.3"
+                )
+            }
+        }
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
+        }
+        .sheet(isPresented: $showAddToList) {
+            AddToListSheet(media: media)
         }
     }
 }

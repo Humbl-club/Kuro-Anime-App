@@ -12,7 +12,6 @@ struct EditorialDiscoverView: View {
     @State private var bannerMessage: String? = nil
 
     private let screenWidth: CGFloat = 393 // iPhone 14 Pro width (safe default)
-    @State private var showGenrePicker = false
 
     // Premium rails
     @State private var showFullEssentials = false
@@ -28,32 +27,6 @@ struct EditorialDiscoverView: View {
     @State private var showFullNewlyAdded = false
     @State private var showFullAiringToday = false
     @State private var showFullCurrentSeason = false
-    @State private var showGenreHub: GenreHubPresentation? = nil
-
-    private struct GenreHubPresentation: Identifiable {
-        let id: String
-        let genre: String
-    }
-
-    private var safeCanonicalGenres: [String] {
-        SupabaseService.canonicalGenres.filter { $0 != "Hentai" && $0 != "Ecchi" }
-    }
-
-    private var primaryGenreChips: [String] {
-        // Put mainstream entry points up front (avoid niche genres in the first row).
-        let preferred = [
-            "Action",
-            "Adventure",
-            "Comedy",
-            "Drama",
-            "Fantasy",
-            "Romance",
-            "Sci-Fi",
-            "Slice of Life",
-            "Thriller"
-        ]
-        return preferred.filter { safeCanonicalGenres.contains($0) }
-    }
 
     private var hasAnyContent: Bool {
         !vm.essentials.isEmpty ||
@@ -77,40 +50,11 @@ struct EditorialDiscoverView: View {
             if isLoadingSections && !hasAnyContent {
                 EditorialLoadingView()
             } else if !isLoadingSections && !hasAnyContent {
-                EditorialEmptyView()
+                EditorialEmptyView(onRetry: {
+                    await refreshSections()
+                })
             } else {
                 VStack(spacing: 24) {
-                    // Genre quick access pills
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("BROWSE BY GENRE")
-                            .font(.system(size: 10, weight: .semibold))
-                            .tracking(1.5)
-                            .foregroundColor(.black.opacity(0.5))
-                            .padding(.horizontal, 20)
-
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                FilterChip(
-                                    title: "All Genres",
-                                    isSelected: false,
-                                    action: { showGenrePicker = true }
-                                )
-
-                                ForEach(primaryGenreChips, id: \.self) { genre in
-                                    FilterChip(
-                                        title: genre,
-                                        isSelected: false,
-                                        action: { showGenreHub = GenreHubPresentation(id: genre, genre: genre) }
-                                    )
-                                }
-
-                            }
-                            .padding(.horizontal, 20)
-                        }
-                        .kuroSwipeExclusionZone()
-                    }
-                    .padding(.top, 8)
-
                     // Premium discovery rails
                     if !vm.essentials.isEmpty {
                         CompactHorizontalSection(
@@ -249,7 +193,7 @@ struct EditorialDiscoverView: View {
         // A parent `.scrollDisabled(true)` (e.g. on a paging container) can propagate via environment.
         // Keep Discover scrollable regardless.
         .scrollDisabled(false)
-        .background(Color.white)
+        .background(Color.kuroBackground)
         .refreshable {
             await refreshSections()
         }
@@ -265,17 +209,6 @@ struct EditorialDiscoverView: View {
                 didInitialLoad = true
                 await refreshSections()
             }
-        }
-        .sheet(isPresented: $showGenrePicker) {
-            GenrePickerSheet(genres: safeCanonicalGenres) { selected in
-                if let selected {
-                    showGenreHub = GenreHubPresentation(id: selected, genre: selected)
-                }
-                showGenrePicker = false
-            }
-        }
-        .sheet(item: $showGenreHub) { item in
-            GenreHubView(genre: item.genre)
         }
         .sheet(isPresented: $showFullEssentials) {
             FullSectionView(title: "ESSENTIAL ANIME", items: vm.essentials)
@@ -778,7 +711,7 @@ struct GridAnimeCard: View {
                             if isInCollection {
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 16))
-                                    .foregroundColor(.green)
+                                    .foregroundColor(.black.opacity(0.55))
                                     .background(
                                         Circle()
                                             .fill(Color.white)
@@ -869,6 +802,8 @@ struct EditorialLoadingView: View {
                     Rectangle()
                         .fill(Color.black.opacity(0.06))
                         .frame(width: 120, height: 16)
+                        .kuroShimmer()
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                         .padding(.horizontal, 20)
 
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -877,6 +812,8 @@ struct EditorialLoadingView: View {
                                 Rectangle()
                                     .fill(Color.black.opacity(0.04))
                                     .frame(width: 110, height: 200)
+                                    .kuroShimmer()
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
                         }
                         .padding(.horizontal, 20)
@@ -891,16 +828,57 @@ struct EditorialLoadingView: View {
 
 // MARK: - Editorial Empty View
 struct EditorialEmptyView: View {
+    var onRetry: (() async -> Void)? = nil
+
+    @State private var isRetrying = false
+
     var body: some View {
         VStack(spacing: 16) {
-            Text("NO CONTENT")
+            Image(systemName: "square.stack.3d.up.slash")
+                .font(.system(size: 28, weight: .light))
+                .foregroundColor(.black.opacity(0.25))
+
+            Text("NO CONTENT FOUND")
                 .font(.system(size: 14, weight: .medium))
                 .tracking(1.5)
-                .foregroundColor(.black.opacity(0.3))
+                .foregroundColor(.kuroTextTertiary)
 
-            ProgressView()
-                .scaleEffect(0.8)
-                .tint(.black.opacity(0.3))
+            Text("Pull to refresh or tap retry.")
+                .font(.system(size: 12, weight: .light))
+                .tracking(0.5)
+                .foregroundColor(.kuroTextTertiary)
+
+            if let onRetry {
+                Button(action: {
+                    guard !isRetrying else { return }
+                    KuroAccessibility.impactHaptic(.light)
+                    isRetrying = true
+                    Task {
+                        await onRetry()
+                        isRetrying = false
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        if isRetrying {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .tint(.black.opacity(0.6))
+                        }
+                        Text(isRetrying ? "LOADING" : "RETRY")
+                            .font(.system(size: 11, weight: .medium))
+                            .tracking(1.5)
+                            .foregroundColor(.black.opacity(0.6))
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule()
+                            .stroke(Color.black.opacity(0.15), lineWidth: 0.5)
+                    )
+                }
+                .disabled(isRetrying)
+                .padding(.top, 8)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.top, 120)
@@ -1197,7 +1175,7 @@ struct FullSectionView<Item: MediaDisplayable>: View {
                     // Search bar
                     HStack {
                         Image(systemName: "magnifyingglass")
-                            .foregroundColor(.black.opacity(0.3))
+                            .foregroundColor(.kuroTextTertiary)
                         TextField("Search \(title.lowercased())...", text: $searchText)
                             .font(.system(size: 14))
                     }
@@ -1271,7 +1249,7 @@ struct FullMangaSectionView<Item: MediaDisplayable>: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     HStack {
                         Image(systemName: "magnifyingglass")
-                            .foregroundColor(.black.opacity(0.3))
+                            .foregroundColor(.kuroTextTertiary)
                         TextField("Search \(title.lowercased())...", text: $searchText)
                             .font(.system(size: 14))
                     }

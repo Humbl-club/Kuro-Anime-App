@@ -60,7 +60,10 @@ struct KuroConciergeMascot: View {
                         .buttonStyle(.plain)
                     }
 
-                    Text("Paste a list to import, or ask for a vibe.\nClean results by default — no adult content.")
+                    Text(isGerman
+                        ? "Nutze deine Kuro-Bibliothek oder schildere kurz die Stimmung.\nSauber gefiltert."
+                        : "Use your Kuro library directly, or describe the mood.\nCleanly filtered."
+                    )
                         .font(.kuroCaption())
                         .foregroundStyle(.secondary.opacity(0.75))
 
@@ -287,6 +290,122 @@ extension Optional where Wrapped == String {
     }
 }
 
+private enum ConciergeCuratedCopy {
+    private static let en: [String: (String, String?)] = [
+        "premium_picks": ("The Cut", "High-confidence picks, new to you"),
+        "gateway_start_here": ("Start Here", "A clean entry point"),
+        "premium_action": ("Action With Craft", "Clean choreography, real momentum"),
+        "premium_comedy_grownup": ("Comedy With Bite", "Smart, dry, character-led"),
+        "cozy_comfort": ("Soft Evenings", "Gentle, restorative stories"),
+        "dark_serious": ("Dark, Not Empty", "Serious tone, strong craft"),
+        "hidden_gems": ("Underseen", "Quiet classics, overlooked hits"),
+        "classics_expanded": ("The Canon", "Anchors worth knowing"),
+        "short_one_season": ("Short, Complete", "One season, clean finish"),
+        "movie_night": ("One Perfect Film", "Stand-alone nights"),
+        "romance_serious": ("Romance That Lands", "Earned, not fluffy"),
+        "romcom": ("Light, Sharp Romance", "Warmth with timing"),
+        "fantasy_non_isekai": ("Fantasy With Texture", "Myth, wonder, discipline"),
+        "isekai": ("Other Worlds, Cleanly", "Escapism with craft"),
+        "sports": ("Competition, Pure", "Training arcs that work"),
+        "scifi": ("Ideas With Heat", "Speculation, not noise"),
+        "horror_supernatural": ("Unease, Done Right", "Atmosphere over gore"),
+        "mecha": ("Steel and Stakes", "Big machines, real themes"),
+        "mystery_detective": ("Cases With Discipline", "Puzzles that hold"),
+        "music_performance": ("Sound and Feeling", "Performance that moves"),
+        "historical": ("Period Weight", "History with texture"),
+        "school_coming_of_age": ("Coming-of-Age, Quietly", "Youth, rendered cleanly"),
+        "shoujo_josei": ("Emotion, With Clarity", "Character-first, precise"),
+        "similar_to_seed": ("In the Same Orbit", "Close to your anchor"),
+    ]
+
+    private static let de: [String: (String, String?)] = [
+        "premium_picks": ("Die Auswahl", "Sichere Picks, neu für dich"),
+        "gateway_start_here": ("Hier anfangen", "Ein sauberer Einstieg"),
+        "premium_action": ("Action mit Handwerk", "Choreo, Tempo, Klarheit"),
+        "premium_comedy_grownup": ("Komödie mit Biss", "Trocken, klug, figurengetrieben"),
+        "cozy_comfort": ("Sanfte Abende", "Ruhig, warm, erholsam"),
+        "dark_serious": ("Dunkel, nicht leer", "Ernst, aber mit Substanz"),
+        "hidden_gems": ("Unterschätzt", "Übersehenes, das sitzt"),
+        "classics_expanded": ("Der Kanon", "Anker, die man kennt"),
+        "short_one_season": ("Kurz, abgeschlossen", "Eine Staffel, sauberer Abschluss"),
+        "movie_night": ("Ein perfekter Film", "Standalone-Abende"),
+        "romance_serious": ("Romantik, die trifft", "Verdient, nicht fluffig"),
+        "romcom": ("Leicht, aber scharf", "Wärme mit Timing"),
+        "fantasy_non_isekai": ("Fantasy mit Textur", "Mythos, Staunen, Disziplin"),
+        "isekai": ("Andere Welten, sauber", "Eskapismus mit Handwerk"),
+        "sports": ("Wettkampf, pur", "Training, das funktioniert"),
+        "scifi": ("Ideen mit Hitze", "Spekulation, nicht Lärm"),
+        "horror_supernatural": ("Unbehagen, richtig", "Atmosphäre statt Gore"),
+        "mecha": ("Stahl und Einsatz", "Große Maschinen, echte Themen"),
+        "mystery_detective": ("Fälle mit Disziplin", "Rätsel, die halten"),
+        "music_performance": ("Klang und Gefühl", "Performance, die bewegt"),
+        "historical": ("Zeitgewicht", "Geschichte mit Textur"),
+        "school_coming_of_age": ("Coming-of-Age, leise", "Jugend, klar gezeichnet"),
+        "shoujo_josei": ("Gefühl, mit Klarheit", "Figuren zuerst, präzise"),
+        "similar_to_seed": ("In derselben Umlaufbahn", "Nahe an deinem Anker"),
+    ]
+
+    static func titleAndSubtitle(for modeId: String?) -> (String, String?)? {
+        guard let modeId, !modeId.isEmpty else { return nil }
+        let language = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
+        if language.hasPrefix("de") { return de[modeId] }
+        return en[modeId]
+    }
+
+    static func titleAndSubtitle(for modeId: String?, fallbackTitle: String?) -> (String, String?)? {
+        if let direct = titleAndSubtitle(for: modeId) { return direct }
+
+        let raw = (fallbackTitle ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return nil }
+        let l = raw.lowercased()
+
+        // Heuristic mapping so older server payloads don't surface internal "Premium / Cozy" labels.
+        if l.contains("premium comedy") || l.contains("grown") {
+            return titleAndSubtitle(for: "premium_comedy_grownup")
+        }
+        if l.contains("cozy") || l.contains("comfort") {
+            return titleAndSubtitle(for: "cozy_comfort")
+        }
+        if l.contains("premium picks") || l.contains("picks") {
+            return titleAndSubtitle(for: "premium_picks")
+        }
+        if l.contains("hidden") && l.contains("gem") {
+            return titleAndSubtitle(for: "hidden_gems")
+        }
+        if l.contains("classic") || l.contains("canon") {
+            return titleAndSubtitle(for: "classics_expanded")
+        }
+        if l.contains("dark") || l.contains("serious") {
+            return titleAndSubtitle(for: "dark_serious")
+        }
+        if l.contains("action") {
+            return titleAndSubtitle(for: "premium_action")
+        }
+        if l.contains("movie") {
+            return titleAndSubtitle(for: "movie_night")
+        }
+        if l.contains("one season") || l.contains("short") {
+            return titleAndSubtitle(for: "short_one_season")
+        }
+
+        // As a final fallback, soften the raw label so it doesn't read like a mode/debug tag.
+        let softened = raw
+            .replacingOccurrences(of: "premium", with: "", options: [.caseInsensitive])
+            .replacingOccurrences(of: "cozy", with: "", options: [.caseInsensitive])
+            .replacingOccurrences(of: "comfort", with: "", options: [.caseInsensitive])
+            .replacingOccurrences(of: "grown-up", with: "", options: [.caseInsensitive])
+            .replacingOccurrences(of: "grownup", with: "", options: [.caseInsensitive])
+            .replacingOccurrences(of: "/", with: " · ")
+            .replacingOccurrences(of: "(", with: "")
+            .replacingOccurrences(of: ")", with: "")
+            .replacingOccurrences(of: "  ", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if softened.isEmpty { return nil }
+        return (softened, nil)
+    }
+}
+
 // MARK: - Action Bar
 
 struct ConciergeActionBar: View {
@@ -302,7 +421,7 @@ struct ConciergeActionBar: View {
                 Text("UNDO")
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.6)
-                    .foregroundColor(canUndo ? .black : .black.opacity(0.25))
+                    .foregroundColor(canUndo ? .black : .kuroTextTertiary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(
@@ -347,40 +466,33 @@ struct ConciergeActionBar: View {
 // MARK: - Typing Indicator (500ms cycle)
 
 struct ConciergeTypingIndicator: View {
-    @State private var phase: Int = 0
+    @State private var animate = false
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
+            WhisperMessageMoonIcon()
+                .padding(.top, 2)
+
             HStack(spacing: 4) {
-                Circle().fill(Color.black.opacity(0.25)).frame(width: 6, height: 6).opacity(phase == 0 ? 1 : 0.35)
-                    .scaleEffect(phase == 0 ? 1.15 : 0.95)
-                Circle().fill(Color.black.opacity(0.25)).frame(width: 6, height: 6).opacity(phase == 1 ? 1 : 0.35)
-                    .scaleEffect(phase == 1 ? 1.15 : 0.95)
-                Circle().fill(Color.black.opacity(0.25)).frame(width: 6, height: 6).opacity(phase == 2 ? 1 : 0.35)
-                    .scaleEffect(phase == 2 ? 1.15 : 0.95)
+                loadingDot(delay: 0)
+                loadingDot(delay: 0.16)
+                loadingDot(delay: 0.32)
             }
-            Text("Thinking")
-                .font(.kuroCaption())
-                .foregroundColor(.black.opacity(0.55))
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                // Avoid full-screen materials in a frequently-updating view.
-                .fill(Color.kuroSecondaryBackground.opacity(0.96))
-                .overlay(
-                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
-                )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
-        .task {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 500_000_000)
-                phase = (phase + 1) % 3
+            .padding(.vertical, 8)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                    animate = true
+                }
             }
         }
+    }
+
+    private func loadingDot(delay: Double) -> some View {
+        Circle()
+            .fill(Color.black.opacity(0.35))
+            .frame(width: 6, height: 6)
+            .scaleEffect(animate ? 1 : 0.55)
+            .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true).delay(delay), value: animate)
     }
 }
 
@@ -410,7 +522,10 @@ struct ConciergeIntroCard: View {
                     .fill(Color.black.opacity(0.06))
                     .frame(height: 0.5)
 
-                Text("Paste titles to import, or describe the mood.\nDefaults are clean — no adult content.")
+                Text(isGerman
+                    ? "Importe deine Liste — oder beschreibe kurz die Stimmung.\nSauber gefiltert."
+                    : "Import your library, or describe the mood.\nCleanly filtered."
+                )
                     .font(.kuroBody(weight: .light))
                     .foregroundColor(.black.opacity(0.62))
                     .lineSpacing(3)
@@ -418,7 +533,23 @@ struct ConciergeIntroCard: View {
             .padding(KuroDesignSpacing.md)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Concierge. Paste titles to import, or ask for a vibe.")
+        .accessibilityLabel(isGerman
+            ? "Concierge. Bibliothek importieren oder Stimmung beschreiben."
+            : "Concierge. Import from your list or describe a mood."
+        )
+    }
+}
+
+private struct ConciergeCuratorNote: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 13, weight: .regular, design: .serif))
+            .italic()
+            .foregroundStyle(.black.opacity(0.64))
+            .lineSpacing(2.5)
+            .padding(.horizontal, 1)
     }
 }
 
@@ -426,6 +557,7 @@ struct ConciergeIntroCard: View {
 
 struct ConciergeStarterActions: View {
     let onPaste: () -> Void
+    let onImportLibrary: () -> Void
     let onExampleImport: () -> Void
     let onExampleVibe: () -> Void
 
@@ -434,8 +566,17 @@ struct ConciergeStarterActions: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             KuroGlassPill(
-                title: "Paste from clipboard",
-                subtitle: "Fast import",
+                title: isGerman ? "Aus deiner Bibliothek" : "From your library",
+                subtitle: isGerman ? "Sofort in den Importfluss" : "Send your list in one tap",
+                systemImage: "doc.text.image",
+                action: onImportLibrary
+            )
+            .offset(y: appeared ? 0 : 3)
+            .opacity(appeared ? 1 : 0)
+
+            KuroGlassPill(
+                title: isGerman ? "Aus der Zwischenablage" : "From clipboard",
+                subtitle: isGerman ? "Für manuelle Listen" : "For pasted lists",
                 systemImage: "doc.on.clipboard",
                 action: onPaste
             )
@@ -443,20 +584,29 @@ struct ConciergeStarterActions: View {
             .opacity(appeared ? 1 : 0)
 
             KuroGlassPill(
-                title: "Try an import example",
-                subtitle: "Shows the format",
-                systemImage: "text.append",
-                action: onExampleImport
-            )
-            .offset(y: appeared ? 0 : 10)
-            .opacity(appeared ? 1 : 0)
-
-            KuroGlassPill(
-                title: "Give me a vibe",
+                title: "Curate for me",
                 subtitle: "Recommendations",
                 systemImage: "sparkles",
                 action: onExampleVibe
             )
+            .offset(y: appeared ? 0 : 10)
+            .opacity(appeared ? 1 : 0)
+
+            Button {
+                onExampleImport()
+            } label: {
+                HStack(spacing: 8) {
+                    Text(isGerman ? "Beispiele zeigen" : "Show examples")
+                        .font(.kuroCaption(weight: .medium))
+                        .foregroundStyle(.black.opacity(0.62))
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.kuroTextTertiary)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
             .offset(y: appeared ? 0 : 14)
             .opacity(appeared ? 1 : 0)
         }
@@ -472,13 +622,15 @@ struct ConciergeStarterActions: View {
 // MARK: - Locale Helper
 
 private var isGerman: Bool {
-    Locale.current.language.languageCode?.identifier == "de"
+    let language = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
+    return language.hasPrefix("de")
 }
 
 // MARK: - Clarify Card (Two-Path Intent Picker, Locale-Aware)
 
 struct ConciergeClarifyCard: View {
     let onPaste: () -> Void
+    let onImportLibrary: () -> Void
     let onExampleImport: () -> Void
     let onExampleVibe: () -> Void
 
@@ -499,15 +651,22 @@ struct ConciergeClarifyCard: View {
                 }
 
                 KuroGlassPill(
-                    title: isGerman ? "Aus Zwischenablage einfugen" : "Paste from clipboard",
-                    subtitle: isGerman ? "Titel, Fortschritt, Bewertungen" : "Titles, progress, ratings",
+                    title: isGerman ? "Aus deiner Bibliothek" : "From your library",
+                    subtitle: isGerman ? "Nutze deine Kuro-Liste direkt" : "Use your Kuro list directly",
+                    systemImage: "doc.text.image",
+                    action: onImportLibrary
+                )
+
+                KuroGlassPill(
+                    title: isGerman ? "Aus Zwischenablage einfügen" : "From clipboard",
+                    subtitle: isGerman ? "Titel und Fortschritt einfügen" : "Drop titles or progress",
                     systemImage: "doc.on.clipboard",
                     action: onPaste
                 )
 
                 KuroGlassPill(
-                    title: isGerman ? "Beispiel ausprobieren" : "Try an example",
-                    subtitle: isGerman ? "Attack on Titan (fertig), JJK Folge 12..." : "Attack on Titan (completed), JJK ep 12...",
+                    title: isGerman ? "Kurzer Vorschlag" : "Concise prompt",
+                    subtitle: isGerman ? "Ich habe die Stimmung im Blick." : "I can tune this in seconds.",
                     systemImage: "text.append",
                     action: onExampleImport
                 )
@@ -523,7 +682,7 @@ struct ConciergeClarifyCard: View {
                 Text(isGerman ? "ODER" : "OR")
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.4)
-                    .foregroundColor(.black.opacity(0.30))
+                    .foregroundColor(.kuroTextTertiary)
                 Rectangle()
                     .fill(Color.black.opacity(0.06))
                     .frame(height: 0.5)
@@ -546,7 +705,7 @@ struct ConciergeClarifyCard: View {
 
                 KuroGlassPill(
                     title: isGerman ? "Stimmung beschreiben" : "Describe a mood",
-                    subtitle: isGerman ? "Lustig, gemutlich, dunkel, hochwertig..." : "Funny, cozy, dark, premium...",
+                    subtitle: isGerman ? "Lustig, ruhig, düster..." : "Funny, quiet, dark...",
                     systemImage: "text.bubble",
                     action: onExampleVibe
                 )
@@ -583,7 +742,7 @@ struct ConciergeStatusClarifyCard: View {
 
             // Title context
             if let title = titleContext, !title.isEmpty {
-                Text(isGerman ? "Fur: \(title)" : "For: \(title)")
+                Text(isGerman ? "Für: \(title)" : "For: \(title)")
                     .font(.kuroCaption())
                     .foregroundColor(.black.opacity(0.55))
                     .lineLimit(2)
@@ -808,6 +967,7 @@ struct ConciergeBubble: View {
     let onOpenRecommendation: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
     let onQuickSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
     let onClarifyPaste: () -> Void
+    let onClarifyImportLibrary: () -> Void
     let onClarifyExampleImport: () -> Void
     let onClarifyExampleVibe: () -> Void
     var onClarifyAmbiguity: ((_ kind: String, _ value: String, _ sourceText: String) -> Void)? = nil
@@ -817,140 +977,151 @@ struct ConciergeBubble: View {
     var autoReasonByItemId: [String: String] = [:]
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
-    @Environment(\.colorScheme) private var colorScheme
+    @State private var appeared = false
 
-    private func glassBubble<Content: View>(cornerRadius: CGFloat, @ViewBuilder content: () -> Content) -> some View {
+    private func plainSurface<Content: View>(cornerRadius: CGFloat, @ViewBuilder content: () -> Content) -> some View {
         content()
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.kuroSecondaryBackground.opacity(colorScheme == .dark ? 0.92 : 0.96))
+                    .fill(Color.white)
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(Color.primary.opacity(colorScheme == .dark ? 0.16 : 0.06), lineWidth: 0.8)
+                            .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
                     )
-                    .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.06), radius: 14, x: 0, y: 8)
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 
     var body: some View {
-        HStack(alignment: .bottom) {
+        HStack(alignment: .top, spacing: 0) {
             if message.role == .assistant {
-                VStack(alignment: .leading, spacing: 10) {
-                    if !message.text.isEmpty {
-                        glassBubble(cornerRadius: KuroRadius.md) {
-                            Text(message.text)
-                                .font(.kuroBody())
-                                .foregroundStyle(.primary.opacity(0.82))
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 12)
-                        }
-                        .frame(maxWidth: 360, alignment: .leading)
-                    }
+                assistantContent
+                Spacer(minLength: 30)
+            } else {
+                Spacer(minLength: 30)
+                userContent
+            }
+        }
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 10)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.5)) {
+                appeared = true
+            }
+        }
+    }
 
-                    if message.showClarifyActions {
-                        ConciergeClarifyCard(
-                            onPaste: onClarifyPaste,
-                            onExampleImport: onClarifyExampleImport,
-                            onExampleVibe: onClarifyExampleVibe
-                        )
+    private var userContent: some View {
+        Text(message.text)
+            .font(.system(size: 18, weight: .regular, design: .serif))
+            .lineSpacing(4)
+            .foregroundStyle(.black.opacity(0.55))
+            .multilineTextAlignment(.trailing)
+            .frame(maxWidth: 320, alignment: .trailing)
+    }
+
+    private var assistantContent: some View {
+        HStack(alignment: .top, spacing: 10) {
+            WhisperMessageMoonIcon()
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 12) {
+                if !message.text.isEmpty {
+                    Text(message.text)
+                        .font(.system(size: 18, weight: .regular, design: .serif))
+                        .lineSpacing(4)
+                        .foregroundStyle(.black.opacity(0.85))
+                        .frame(maxWidth: 320, alignment: .leading)
+                }
+
+                if message.showClarifyActions {
+                    ConciergeClarifyCard(
+                        onPaste: onClarifyPaste,
+                        onImportLibrary: onClarifyImportLibrary,
+                        onExampleImport: onClarifyExampleImport,
+                        onExampleVibe: onClarifyExampleVibe
+                    )
+                    .frame(maxWidth: 420, alignment: .leading)
+                }
+
+                if let ambiguity = message.ambiguity, let sourceText = message.sourceUserText {
+                    ambiguityCard(ambiguity: ambiguity, sourceText: sourceText)
                         .frame(maxWidth: 420, alignment: .leading)
-                    }
+                }
 
-                    // Ambiguity clarification cards
-                    if let ambiguity = message.ambiguity, let sourceText = message.sourceUserText {
-                        ambiguityCard(ambiguity: ambiguity, sourceText: sourceText)
-                            .frame(maxWidth: 420, alignment: .leading)
-                    }
-
-                    // Inline confirm bubble for import items
-                    if let items = message.items, !items.isEmpty, let parseResponse = message.parseResponse {
-                        ConciergeConfirmBubble(
-                            items: items,
-                            selected: selected,
-                            onSelect: onSelect,
-                            onConfirm: { onConfirmItems?(parseResponse) },
-                            onReparse: onReparse,
-                            isApplied: isImportApplied,
-                            autoReasonByItemId: autoReasonByItemId,
-                            itemActions: itemActions,
-                            excludedItemIds: $excludedItemIds
-                        )
-                        .frame(maxWidth: 420, alignment: .leading)
-                    } else if let items = message.items, !items.isEmpty {
-                        glassBubble(cornerRadius: KuroRadius.md) {
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text("MATCHES")
-                                        .font(.kuroCaption(weight: .medium))
-                                        .tracking(1.6)
-                                        .foregroundColor(.black.opacity(0.55))
-                                    Spacer()
-                                    Text("\(items.count)")
-                                        .font(.kuroCaption(weight: .medium))
-                                        .foregroundColor(.black.opacity(0.45))
-                                }
-
-                                VStack(spacing: 10) {
-                                    ForEach(items) { item in
-                                        ConciergeMatchRow(
-                                            item: item,
-                                            chosen: selected(item),
-                                            onSelect: { cand in onSelect(item, cand) }
-                                        )
-                                    }
-                                }
+                if let items = message.items, !items.isEmpty, let parseResponse = message.parseResponse {
+                    ConciergeConfirmBubble(
+                        items: items,
+                        selected: selected,
+                        onSelect: onSelect,
+                        onConfirm: { onConfirmItems?(parseResponse) },
+                        onReparse: onReparse,
+                        isApplied: isImportApplied,
+                        autoReasonByItemId: autoReasonByItemId,
+                        itemActions: itemActions,
+                        excludedItemIds: $excludedItemIds
+                    )
+                    .frame(maxWidth: 420, alignment: .leading)
+                } else if let items = message.items, !items.isEmpty {
+                    plainSurface(cornerRadius: KuroRadius.md) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("MATCHES")
+                                    .font(.kuroCaption(weight: .medium))
+                                    .tracking(1.6)
+                                    .foregroundColor(.black.opacity(0.55))
+                                Spacer()
+                                Text("\(items.count)")
+                                    .font(.kuroCaption(weight: .medium))
+                                    .foregroundColor(.black.opacity(0.45))
                             }
-                            .padding(14)
-                        }
-                        .frame(maxWidth: 420, alignment: .leading)
-                    }
 
-                    if let sets = message.recommendationSets, !sets.isEmpty {
-                        VStack(alignment: .leading, spacing: 18) {
-                            ForEach(sets, id: \.id) { set in
-                                let items = (set.items ?? [])
-                                if !items.isEmpty {
-                                    RecommendationRail(
-                                        title: set.title.isEmpty ? "Recommendations" : set.title,
-                                        items: items,
-                                        onOpen: { onOpenRecommendation($0) },
-                                        onSave: { onQuickSave($0) },
-                                        onHide: nil
+                            VStack(spacing: 10) {
+                                ForEach(items) { item in
+                                    ConciergeMatchRow(
+                                        item: item,
+                                        chosen: selected(item),
+                                        onSelect: { cand in onSelect(item, cand) }
                                     )
                                 }
                             }
                         }
-                        .frame(maxWidth: 520, alignment: .leading)
-                    } else if let recs = message.recommendations, !recs.isEmpty {
-                        RecommendationRail(
-                            title: "Recommendations",
-                            items: recs,
-                            onOpen: { onOpenRecommendation($0) },
-                            onSave: { onQuickSave($0) },
-                            onHide: nil
-                        )
-                        .frame(maxWidth: 520, alignment: .leading)
+                        .padding(14)
                     }
+                    .frame(maxWidth: 420, alignment: .leading)
                 }
-                Spacer(minLength: 40)
-            } else {
-                // User bubble — direct black fill, no glass wrapper
-                Spacer(minLength: 40)
-                Text(message.text)
-                    .font(.kuroBody())
-                    .foregroundColor(.white.opacity(0.92))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                            .fill(colorScheme == .dark ? Color.white.opacity(0.10) : Color.black)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                                    .stroke(Color.white.opacity(colorScheme == .dark ? 0.18 : 0.0), lineWidth: 0.6)
-                            )
+
+                if let sets = message.recommendationSets, !sets.isEmpty {
+                    let visibleSets = sets.prefix(2)
+                    VStack(alignment: .leading, spacing: 18) {
+                        ForEach(Array(visibleSets), id: \.id) { set in
+                            let items = (set.items ?? [])
+                            if !items.isEmpty {
+                                let curated = ConciergeCuratedCopy.titleAndSubtitle(for: set.modeId, fallbackTitle: set.title)
+                                let title = (set.displayTitle ?? curated?.0 ?? set.title).trimmingCharacters(in: .whitespacesAndNewlines)
+                                RecommendationRail(
+                                    title: title.isEmpty ? "Selections" : title,
+                                    subtitle: set.displaySubtitle ?? curated?.1,
+                                    items: items,
+                                    onOpen: { onOpenRecommendation($0) },
+                                    onSave: { onQuickSave($0) },
+                                    onHide: nil
+                                )
+                            }
+                        }
+                    }
+                    .frame(maxWidth: 520, alignment: .leading)
+                } else if let recs = message.recommendations, !recs.isEmpty {
+                    RecommendationRail(
+                        title: "Selections",
+                        subtitle: nil,
+                        items: recs,
+                        onOpen: { onOpenRecommendation($0) },
+                        onSave: { onQuickSave($0) },
+                        onHide: nil
                     )
-                    .frame(maxWidth: 360, alignment: .trailing)
+                    .frame(maxWidth: 520, alignment: .leading)
+                }
             }
         }
     }
@@ -959,7 +1130,7 @@ struct ConciergeBubble: View {
     private func ambiguityCard(ambiguity: SupabaseService.ConciergeAmbiguity, sourceText: String) -> some View {
         switch ambiguity.kind {
         case "status_unclear":
-            glassBubble(cornerRadius: KuroRadius.md) {
+            plainSurface(cornerRadius: KuroRadius.md) {
                 ConciergeStatusClarifyCard(
                     titleContext: ambiguity.title_context
                 ) { status in
@@ -970,7 +1141,7 @@ struct ConciergeBubble: View {
             }
 
         case "unit_unclear":
-            glassBubble(cornerRadius: KuroRadius.md) {
+            plainSurface(cornerRadius: KuroRadius.md) {
                 ConciergeUnitClarifyCard(
                     numberContext: ambiguity.number_context
                 ) { unit in
@@ -981,7 +1152,7 @@ struct ConciergeBubble: View {
             }
 
         case "intent_unclear":
-            glassBubble(cornerRadius: KuroRadius.md) {
+            plainSurface(cornerRadius: KuroRadius.md) {
                 ConciergeIntentClarifyCard(
                     titleContext: ambiguity.title_context
                 ) { intent in
@@ -994,6 +1165,28 @@ struct ConciergeBubble: View {
         default:
             EmptyView()
         }
+    }
+}
+
+private struct WhisperMessageMoonIcon: View {
+    var body: some View {
+        ZStack {
+            Path { path in
+                path.move(to: CGPoint(x: 10, y: 2))
+                path.addCurve(to: CGPoint(x: 10, y: 18), control1: CGPoint(x: 8, y: 6), control2: CGPoint(x: 8, y: 14))
+                path.addCurve(to: CGPoint(x: 3.5, y: 10), control1: CGPoint(x: 6.5, y: 18), control2: CGPoint(x: 3.5, y: 14))
+                path.addCurve(to: CGPoint(x: 10, y: 2), control1: CGPoint(x: 3.5, y: 6), control2: CGPoint(x: 6.5, y: 2))
+                path.closeSubpath()
+            }
+            .fill(Color.black.opacity(0.35))
+
+            Circle()
+                .fill(Color.black.opacity(0.35))
+                .frame(width: 3, height: 3)
+                .offset(x: 4, y: -4)
+        }
+        .frame(width: 20, height: 20)
+        .accessibilityHidden(true)
     }
 }
 
@@ -1052,6 +1245,10 @@ struct ConciergeConfirmBubble: View {
         })
     }
 
+    private var actionableCount: Int {
+        addItems.count + updateItems.count
+    }
+
     private func glassBubble<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         content()
             .background(
@@ -1069,18 +1266,48 @@ struct ConciergeConfirmBubble: View {
     var body: some View {
         glassBubble {
             VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 6) {
-                    Text("IMPORT PREVIEW")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.8)
-                        .foregroundStyle(.secondary.opacity(0.85))
+                HStack(alignment: .top, spacing: 10) {
+                    Rectangle()
+                        .fill(Color.black.opacity(0.44))
+                        .frame(width: 1.5, height: 18)
+                        .padding(.top, 1)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("IMPORT REVIEW")
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(2.0)
+                            .foregroundStyle(.secondary.opacity(0.88))
+                        Text("Review matches and confirm changes.")
+                            .font(.kuroCaption(weight: .light))
+                            .foregroundColor(.black.opacity(0.52))
+                    }
+
                     Spacer(minLength: 0)
-                    Text("\(items.count)")
-                        .font(.kuroMicro(weight: .medium))
-                        .foregroundStyle(.secondary.opacity(0.75))
-                        .monospacedDigit()
+
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("\(items.count)")
+                            .font(.kuroMicro(weight: .medium))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary.opacity(0.75))
+                        Text("items")
+                            .font(.kuroMicro(weight: .medium))
+                            .foregroundStyle(.secondary.opacity(0.42))
+                    }
                 }
-                .padding(.bottom, 14)
+                .padding(.bottom, 12)
+
+                HStack(spacing: 8) {
+                    if !addItems.isEmpty {
+                        summaryPill("NEW", count: addItems.count)
+                    }
+                    if !updateItems.isEmpty {
+                        summaryPill("UPDATE", count: updateItems.count)
+                    }
+                    if !skipItems.isEmpty {
+                        summaryPill("UNCHANGED", count: skipItems.count)
+                    }
+                }
+                .padding(.bottom, 10)
 
                 Rectangle()
                     .fill(Color.primary.opacity(0.08))
@@ -1101,12 +1328,12 @@ struct ConciergeConfirmBubble: View {
                 if isApplied {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.kuroCaption(weight: .semibold))
-                        Text("APPLIED")
+                            .font(.kuroCaption(weight: .medium))
+                        Text("APPLIED TO LIBRARY")
                             .font(.kuroCaption(weight: .medium))
                             .tracking(1.6)
                     }
-                    .foregroundColor(.black.opacity(0.60))
+                    .foregroundColor(.black.opacity(0.58))
                     .padding(.top, 16)
                 } else {
                     HStack(spacing: 10) {
@@ -1119,14 +1346,14 @@ struct ConciergeConfirmBubble: View {
                                 Text("RE-PARSE")
                                     .font(.kuroCaption(weight: .medium))
                                     .tracking(1.6)
-                                    .foregroundColor(.black.opacity(0.55))
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 13)
+                                    .foregroundColor(.black.opacity(0.62))
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 11)
                                     .background(
-                                        Capsule(style: .continuous)
+                                        RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
                                             .fill(Color.black.opacity(0.04))
                                             .overlay(
-                                                Capsule(style: .continuous)
+                                                RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
                                                     .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
                                             )
                                     )
@@ -1150,7 +1377,7 @@ struct ConciergeConfirmBubble: View {
                             }
                             .foregroundColor(confirmableCount > 0 ? .white : .white.opacity(0.40))
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 13)
+                            .padding(.vertical, 12)
                             .background(
                                 Capsule(style: .continuous)
                                     .fill(confirmableCount > 0 ? Color.black.opacity(0.88) : Color.black.opacity(0.10))
@@ -1160,6 +1387,11 @@ struct ConciergeConfirmBubble: View {
                         .disabled(confirmableCount == 0)
                     }
                     .padding(.top, 16)
+
+                    Text("\(confirmableCount) of \(actionableCount) ready to apply")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.black.opacity(0.46))
+                        .padding(.top, 8)
                 }
             }
             .padding(.horizontal, 18)
@@ -1186,157 +1418,23 @@ struct ConciergeConfirmBubble: View {
             excludedItemIds.insert(id)
         }
     }
-}
 
-// MARK: - Reconcile Row (Add / Update / Skip)
-
-private struct ConciergeReconcileRow: View {
-    let item: SupabaseService.ConciergeParseItem
-    let action: ImportItemAction
-    let chosen: SupabaseService.ConciergeCandidate?
-    let onSelect: (SupabaseService.ConciergeCandidate) -> Void
-    let isExcluded: Bool
-    let onToggleExclude: (() -> Void)?
-
-    @State private var expanded: Bool = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
-            HStack(alignment: .top, spacing: 10) {
-                // Per-item toggle (add/update only)
-                if action != .skip, let toggle = onToggleExclude {
-                    Button(action: toggle) {
-                        Image(systemName: isExcluded ? "square" : "checkmark.square.fill")
-                            .font(.kuroBody())
-                            .foregroundColor(isExcluded ? .black.opacity(0.25) : .black.opacity(0.72))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, 2)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.normalized.isEmpty ? item.raw : item.normalized)
-                        .font(.kuroBody(weight: .regular))
-                        .foregroundColor(.black.opacity(isExcluded ? 0.40 : 0.90))
-                        .lineLimit(2)
-
-                    if let c = chosen {
-                        Text(c.title_raw)
-                            .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.55))
-                            .lineLimit(2)
-                    }
-
-                    // Diff display for update items
-                    if action == .update, let existing = item.existing_entry {
-                        diffView(existing: existing, parsed: item.parsed)
-                    }
-
-                    // Skip caption
-                    if action == .skip {
-                        Text("Already up to date")
-                            .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.45))
-                    }
-                }
-
-                Spacer(minLength: 0)
-
-                if item.candidates.count > 1 && action != .skip {
-                    Button(action: { withAnimation(KuroAnimation.fast) { expanded.toggle() } }) {
-                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                            .font(.kuroCaption(weight: .semibold))
-                            .foregroundColor(.black.opacity(0.4))
-                            .frame(width: 28, height: 28)
-                            .background(Circle().fill(Color.black.opacity(0.04)))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .opacity(isExcluded ? 0.5 : 1.0)
-
-            if expanded {
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(item.candidates.prefix(4), id: \.media_id) { cand in
-                        Button(action: { onSelect(cand) }) {
-                            HStack(spacing: 10) {
-                                Circle()
-                                    .fill(chosen?.media_id == cand.media_id ? Color.black : Color.clear)
-                                    .frame(width: 8, height: 8)
-                                    .overlay(
-                                        Circle().strokeBorder(Color.black.opacity(0.3), lineWidth: 1)
-                                    )
-                                Text(cand.title_raw)
-                                    .font(.kuroCaption())
-                                    .foregroundColor(.black.opacity(0.82))
-                                    .lineLimit(1)
-                                Spacer(minLength: 0)
-                                if let year = cand.year {
-                                    Text(String(year))
-                                        .font(.kuroCaption())
-                                        .foregroundColor(.black.opacity(0.45))
-                                }
-                                Text("\(Int(cand.score * 100))%")
-                                    .font(.kuroCaption(weight: .medium))
-                                    .foregroundColor(.black.opacity(0.45))
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                                    .fill(Color.black.opacity(chosen?.media_id == cand.media_id ? 0.06 : 0.03))
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
+    private func summaryPill(_ title: String, count: Int) -> some View {
+        HStack(spacing: 5) {
+            Text(title)
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.1)
+            Text("\(count)")
+                .font(.kuroMicro(weight: .medium))
+                .monospacedDigit()
         }
-    }
-
-    @ViewBuilder
-    private func diffView(existing: SupabaseService.ConciergeExistingEntry, parsed: SupabaseService.ConciergeParseItemParsed) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            // Status diff
-            if let parsedStatus = parsed.status,
-               parsedStatus.uppercased() != existing.status.uppercased() {
-                diffLine(from: existing.status, to: parsedStatus.uppercased())
-            }
-
-            // Episode progress diff
-            if let ep = parsed.progressEpisodes,
-               ep != (existing.progress_episodes ?? 0) {
-                diffLine(from: "Ep \(existing.progress_episodes ?? 0)", to: "Ep \(ep)")
-            }
-
-            // Chapter progress diff
-            if let ch = parsed.progressChapters,
-               ch != (existing.progress_chapters ?? 0) {
-                diffLine(from: "Ch \(existing.progress_chapters ?? 0)", to: "Ch \(ch)")
-            }
-
-            // Volume progress diff
-            if let vol = parsed.progressVolumes,
-               vol != (existing.progress_volumes ?? 0) {
-                diffLine(from: "Vol \(existing.progress_volumes ?? 0)", to: "Vol \(vol)")
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func diffLine(from: String, to: String) -> some View {
-        HStack(spacing: 4) {
-            Text(from)
-                .font(.kuroCaption())
-                .strikethrough()
-                .foregroundColor(.black.opacity(0.40))
-            Text("\u{2192}")
-                .font(.kuroCaption())
-                .foregroundColor(.black.opacity(0.40))
-            Text(to)
-                .font(.kuroCaption(weight: .medium))
-                .foregroundColor(.black.opacity(0.82))
-        }
+        .foregroundColor(.black.opacity(0.48))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color.black.opacity(0.04))
+        )
     }
 }
 
@@ -1419,128 +1517,5 @@ private struct ConciergeMatchRow: View {
                 }
             }
         }
-    }
-}
-
-// MARK: - Recommendation Rail (Editorial)
-
-private struct ConciergeRail: View {
-    let title: String
-    let items: [SupabaseService.ConciergeRecommendResponse.Item]
-    @Binding var hiddenRecommendationIds: Set<String>
-    let onOpen: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-    let onQuickSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            // Rail header — editorial style
-            HStack(spacing: 10) {
-                Text(title.uppercased())
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(1.6)
-                    .foregroundColor(.black.opacity(0.55))
-                Rectangle()
-                    .fill(Color.black.opacity(0.08))
-                    .frame(height: 0.5)
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 12) {
-                    ForEach(items) { item in
-                        ConciergeRecCard(
-                            item: item,
-                            onOpen: { onOpen(item) },
-                            onQuickSave: { onQuickSave(item) },
-                            onHide: { hiddenRecommendationIds.insert("\(item.mediaId)_\(item.mediaType)") }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Recommendation Card (Editorial Style)
-
-private struct ConciergeRecCard: View {
-    let item: SupabaseService.ConciergeRecommendResponse.Item
-    let onOpen: () -> Void
-    let onQuickSave: () -> Void
-    let onHide: () -> Void
-
-    @State private var isPressed = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            // Poster with score badge overlay
-            Button(action: onOpen) {
-                KuroCachedAsyncImage(url: URL(string: item.coverImageMedium ?? "")) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                    case .failure:
-                        Color.black.opacity(0.08)
-                            .overlay(
-                                Text("KURO")
-                                    .font(.kuroCaption(weight: .medium))
-                                    .tracking(2)
-                                    .foregroundColor(.black.opacity(0.15))
-                            )
-                    case .empty:
-                        Color.primary.opacity(0.05)
-                            .overlay(
-                                ProgressView()
-                                    .scaleEffect(0.6)
-                                    .tint(.secondary.opacity(0.75))
-                            )
-                    @unknown default:
-                        Color.primary.opacity(0.05)
-                    }
-                }
-                .frame(width: 140, height: 200)
-                .clipShape(RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous))
-                .overlay(alignment: .topTrailing) {
-                    if let score = item.averageScore {
-                        KuroScoreBadge(score: Double(score) / 10.0)
-                            .padding(6)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-            .scaleEffect(isPressed ? 0.98 : 1.0)
-            .animation(KuroAnimation.editorial, value: isPressed)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in isPressed = true }
-                    .onEnded { _ in isPressed = false }
-            )
-            .contextMenu {
-                Button(action: onQuickSave) {
-                    Label("Save to Planning", systemImage: "bookmark")
-                }
-                Button(action: onHide) {
-                    Label("Hide", systemImage: "eye.slash")
-                }
-            }
-
-            // Title + metadata
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.kuroBody(weight: .regular))
-                    .foregroundColor(.black.opacity(0.92))
-                    .lineLimit(2)
-                    .frame(height: 38, alignment: .top)
-                Text([item.year.map(String.init), item.format].compactMap { $0 }.joined(separator: " · "))
-                    .font(.kuroCaption())
-                    .foregroundColor(.black.opacity(0.50))
-                    .lineLimit(1)
-            }
-        }
-        .frame(width: 140, alignment: .leading)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(item.title)
-        .accessibilityHint("Recommendation. Long press for options.")
     }
 }

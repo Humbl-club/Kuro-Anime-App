@@ -57,7 +57,7 @@ struct SearchView: View {
             // Search field
             HStack {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.black.opacity(0.3))
+                    .foregroundColor(.kuroTextTertiary)
                     .font(.system(size: 16, weight: .light))
 
                 TextField("SEARCH ANIME", text: $searchText)
@@ -101,12 +101,12 @@ struct SearchView: View {
                             Text("NO RESULTS FOUND")
                                 .font(.system(size: 11, weight: .regular))
                                 .tracking(1.5)
-                                .foregroundColor(.black.opacity(0.3))
+                                .foregroundColor(.kuroTextTertiary)
 
                             Text("Try adjusting your search or filters")
                                 .font(.system(size: 10, weight: .light))
                                 .tracking(1.0)
-                                .foregroundColor(.black.opacity(0.2))
+                                .foregroundColor(.kuroTextTertiary)
                         }
                         .padding(.top, 60)
                     } else {
@@ -130,12 +130,12 @@ struct SearchView: View {
                         Text("BEGIN TYPING TO SEARCH")
                             .font(.system(size: 11, weight: .regular))
                             .tracking(1.5)
-                            .foregroundColor(.black.opacity(0.3))
+                            .foregroundColor(.kuroTextTertiary)
 
                         Text("DISCOVER YOUR NEXT OBSESSION")
                             .font(.system(size: 10, weight: .light))
                             .tracking(1.0)
-                            .foregroundColor(.black.opacity(0.2))
+                            .foregroundColor(.kuroTextTertiary)
                     }
                     .padding(.top, 80)
                     Spacer()
