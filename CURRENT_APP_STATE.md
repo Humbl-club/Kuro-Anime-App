@@ -389,8 +389,8 @@ node scripts/generate_app_state_inventory.js
 ### Clubs
 - 5th page in the swipe pager (rightmost).
 - `ClubsView`: joined club list, empty state with create/join prompts, pull-to-refresh. No `NavigationStack` wrapper (bare view inside pager); club detail opens as a sheet.
-- `ClubDetailView`: 3-tab layout (Rails / This Week / Polls), settings sheet for owner/admin.
-- `ClubActivitySection`: embedded on `AnimeDetailView` and `MangaDetailView` — shows which clubs have this title in a rail, aggregate member status counts, and (if sharing level allows) per-member details.
+- `ClubDetailView`: 3-tab layout (Rails / This Week / Polls), settings sheet for owner/admin. Each rail has a "+" button (for unlocked rails or owner/admin on locked rails) that opens `AddItemToRailSheet` — server-side search via `search_anime_page`/`search_manga_page` RPCs with debounced input, compact result rows, typed `PostgrestError` handling for duplicates/lock/membership errors.
+- `ClubActivitySection`: embedded on `AnimeDetailView` and `MangaDetailView` — shows which clubs have this title in a rail, aggregate member status counts, and (if sharing level allows) per-member details. Member identity uses stable 6-char UUID hex prefix (not positional "Member N").
 - `ClubActivitySection`: now renders explicit member watch/read progress language (tracking, completed, planning, paused, dropped, not-started) and does not use placeholder status labels when per-member detail is unavailable.
 - Clubs tab also accessible from `ProfileView` (secondary access path via sheet).
 - Monochrome status pills (no colored dots).
@@ -487,7 +487,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 **Key design primitives**
 - `KuroGlassCard` in `Kuro/Views/KuroGlass.swift`
 - `KuroGlassPill` in `Kuro/Views/KuroGlass.swift`
-- `KuroScoreBadge`, `KuroPortraitCard`, `KuroCompactCard` in `Kuro/Views/KuroRefinedCard.swift`
+- `KuroScoreBadge`, `KuroPortraitCard`, `KuroCompactCard` in `Kuro/Views/KuroRefinedCard.swift`. Card widths are adaptive: `floor((screenWidth - 56) / 2.8)` clamped to [112, 144]. `CompactHorizontalSection` / `CompactHorizontalMangaSection` require explicit `containerWidth` (no default). All surfaces pass screen width or GeometryReader width.
 - Concierge iconography: `KuroConciergeMark` (butler glyph) in `Kuro/Views/KuroConciergeMark.swift`
 
 **Typography**
@@ -690,7 +690,7 @@ Clubs are private groups (2-20 members) for sharing anime/manga watch activity. 
 
 ### iOS views
 - `ClubsView.swift`: 5th page in swipe pager (rightmost). No `NavigationStack` wrapper; club detail opens as sheet. Lists joined clubs with enriched cards (member count, activity preview, unread dot). Empty state with create/join prompts. Foreground notification check on `willEnterForeground`.
-- `ClubDetailView.swift`: 4-tab segmented picker (RAILS / THIS WEEK / POLLS / CHAT — chat gated by `clubs_chat_v1` flag). Settings sheet for owner/admin. Reactions row (fire/heart/eyes/100 capsules) on each rail item (gated by `clubs_reactions_v1`). Pace text on This Week items ("3 ep behind the group" / "In sync", gated by `clubs_pace_sync_v1`, requires sharing_level=progress and ≥3 members). Milestone celebration cards when all members complete a title. Realtime subscription (on appear/disappear, gated by `clubs_realtime_v1`).
+- `ClubDetailView.swift`: 4-tab segmented picker (RAILS / THIS WEEK / POLLS / CHAT — chat gated by `clubs_chat_v1` flag). Settings sheet for owner/admin. Reactions row (fire/heart/eyes/100 capsules) on each rail item (gated by `clubs_reactions_v1`). Pace text on This Week items ("3 ep behind the group" / "In sync", gated by `clubs_pace_sync_v1`, requires sharing_level=progress and ≥3 members). Milestone celebration cards when all members complete a title. Realtime subscription (on appear/disappear, gated by `clubs_realtime_v1`). Add-to-rail: "+" button per rail header (gated by lock status + role), opens `AddItemToRailSheet` with media type toggle, debounced server-side search, typed `PostgrestError` handling (DUPLICATE_ITEM, NOT_A_MEMBER, RAIL_LOCKED, MEDIA_NOT_FOUND). Task lifecycle managed via `.onDisappear` cancellation.
 - `ClubActivitySection.swift`: Embedded on `AnimeDetailView` and `MangaDetailView`. Shows club context: which clubs have this title, aggregate member statuses.
 - `ProfileView.swift`: "Clubs" row opens ClubsView sheet (secondary access path).
 - Monochrome status pills (no colored dots).
@@ -1357,6 +1357,7 @@ This single command:
 
 ## 14) Change Log (append-only)
 
+- 2026-02-16: **Add-to-rail from ClubDetailView + adaptive card sizing** — "+" button per club rail opens `AddItemToRailSheet` (server-side search via `search_anime_page`/`search_manga_page` RPCs, debounced, typed `PostgrestError` handling for DUPLICATE_ITEM/NOT_A_MEMBER/RAIL_LOCKED/MEDIA_NOT_FOUND). Gated by lock status + role. Member identity labels use stable 6-char UUID hex prefix instead of positional "Member N". Search task lifecycle managed via `.onDisappear` cancellation. `fetchSearchAnimePage`/`fetchSearchMangaPage` exposed as internal. Adaptive card sizing: removed misleading `containerWidth` default (393pt), all surfaces now pass explicit screen/geometry width. `KuroCompactCard` width adaptive via `floor((screenWidth - 56) / 2.8)` clamped [112, 144] in SimilarSection, MangaSimilarSection, KuroHorizontalSection. GenreHubView passes `screenWidth` to all 10 section call sites. Commit: `5273f21`.
 - 2026-02-16: **Clubs Enhancement — 6-phase feature expansion** —
   - **Phase 0**: Verified existing stub RPCs (`create_club_rail`, `create_club_poll`, `toggle_club_reaction`) were already complete on remote DB.
   - **Phase 1 (List Enrichment)**: New `fetch_my_clubs_enriched()` RPC returns member_count, last_activity_at, activity_preview per club. `ClubsView` cards now show member count icon, 1-line activity preview, and unread dot (UserDefaults-backed last-seen timestamps). Replaced two-query `fetchMyClubs()` with single enriched RPC.
