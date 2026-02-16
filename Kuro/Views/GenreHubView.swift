@@ -31,6 +31,10 @@ struct GenreHubView: View {
 
     @State private var isLoading = false
 
+    private var screenWidth: CGFloat {
+        max(320, UIScreen.main.bounds.width)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -41,35 +45,35 @@ struct GenreHubView: View {
 
                     if mediaKind == .anime {
                         if !essentialsAnime.isEmpty {
-                            CompactHorizontalSection(title: "ESSENTIAL \(genre.uppercased())", subtitle: "Premium picks", items: filteredAnime(essentialsAnime))
+                            CompactHorizontalSection(title: "ESSENTIAL \(genre.uppercased())", subtitle: "Premium picks", items: filteredAnime(essentialsAnime), containerWidth: screenWidth)
                         }
                         if !newToYouAnime.isEmpty {
-                            CompactHorizontalSection(title: "NEW TO YOU", subtitle: "Great + unseen", items: filteredAnime(newToYouAnime))
+                            CompactHorizontalSection(title: "NEW TO YOU", subtitle: "Great + unseen", items: filteredAnime(newToYouAnime), containerWidth: screenWidth)
                         }
                         if !topRatedAnime.isEmpty {
-                            CompactHorizontalSection(title: "TOP RATED", subtitle: "Highest scores", items: filteredAnime(topRatedAnime))
+                            CompactHorizontalSection(title: "TOP RATED", subtitle: "Highest scores", items: filteredAnime(topRatedAnime), containerWidth: screenWidth)
                         }
                         if !trendingAnime.isEmpty {
-                            CompactHorizontalSection(title: "TRENDING", subtitle: "Right now", items: filteredAnime(trendingAnime))
+                            CompactHorizontalSection(title: "TRENDING", subtitle: "Right now", items: filteredAnime(trendingAnime), containerWidth: screenWidth)
                         }
                         if !classicsAnime.isEmpty {
-                            CompactHorizontalSection(title: "CLASSICS", subtitle: "Before 2015", items: filteredAnime(classicsAnime))
+                            CompactHorizontalSection(title: "CLASSICS", subtitle: "Before 2015", items: filteredAnime(classicsAnime), containerWidth: screenWidth)
                         }
                     } else {
                         if !essentialsManga.isEmpty {
-                            CompactHorizontalMangaSection(title: "ESSENTIAL \(genre.uppercased())", subtitle: "Premium picks", items: filteredManga(essentialsManga))
+                            CompactHorizontalMangaSection(title: "ESSENTIAL \(genre.uppercased())", subtitle: "Premium picks", items: filteredManga(essentialsManga), containerWidth: screenWidth)
                         }
                         if !newToYouManga.isEmpty {
-                            CompactHorizontalMangaSection(title: "NEW TO YOU", subtitle: "Great + unseen", items: filteredManga(newToYouManga))
+                            CompactHorizontalMangaSection(title: "NEW TO YOU", subtitle: "Great + unseen", items: filteredManga(newToYouManga), containerWidth: screenWidth)
                         }
                         if !topRatedManga.isEmpty {
-                            CompactHorizontalMangaSection(title: "TOP RATED", subtitle: "Highest scores", items: filteredManga(topRatedManga))
+                            CompactHorizontalMangaSection(title: "TOP RATED", subtitle: "Highest scores", items: filteredManga(topRatedManga), containerWidth: screenWidth)
                         }
                         if !trendingManga.isEmpty {
-                            CompactHorizontalMangaSection(title: "TRENDING", subtitle: "Right now", items: filteredManga(trendingManga))
+                            CompactHorizontalMangaSection(title: "TRENDING", subtitle: "Right now", items: filteredManga(trendingManga), containerWidth: screenWidth)
                         }
                         if !classicsManga.isEmpty {
-                            CompactHorizontalMangaSection(title: "CLASSICS", subtitle: "Before 2015", items: filteredManga(classicsManga))
+                            CompactHorizontalMangaSection(title: "CLASSICS", subtitle: "Before 2015", items: filteredManga(classicsManga), containerWidth: screenWidth)
                         }
                     }
                 }

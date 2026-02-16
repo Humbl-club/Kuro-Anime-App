@@ -554,8 +554,10 @@ private struct ClubMemberStatusList: View {
         if let role = roleById[userId], role.lowercased() != "member" {
             return role.capitalized
         }
-        let idx = memberIndexById[userId] ?? 0
-        return idx > 0 ? "Member \(idx)" : "Member"
+        // Stable short identifier from UUID (consistent across sessions)
+        let compact = userId.replacingOccurrences(of: "-", with: "")
+        let short = String(compact.prefix(6))
+        return short.isEmpty ? "Member" : short
     }
 
     private func memberInitial(_ label: String, userId: String) -> String {

@@ -307,6 +307,12 @@ struct SimilarSection: View {
     let title: String
     let items: [Anime]
 
+    private var cardWidth: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        let candidate = floor((screenWidth - 56) / 2.8)
+        return min(144, max(112, candidate))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: KuroSpacing.md) {
             Text(title)
@@ -317,7 +323,7 @@ struct SimilarSection: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(items.prefix(14), id: \.id) { item in
-                        KuroCompactCard(media: item)
+                        KuroCompactCard(media: item, width: cardWidth)
                     }
                 }
             }
@@ -1089,13 +1095,13 @@ struct ActionButtons: View {
                 AddToListSheet(media: anime)
             }
 
-            if let link = watchLink, !link.url.isEmpty {
+            if let link = watchLink, let linkURL = validatedURL(from: link.url) {
                 Button(action: {
                     if allLinks.count > 1 {
                         showProviders = true
-                    } else if let url = URL(string: link.url) {
+                    } else {
                         KuroAccessibility.impactHaptic(.medium)
-                        openURL(url)
+                        openURL(linkURL)
                     }
                 }) {
                     Image(systemName: "play.fill")
@@ -1107,7 +1113,7 @@ struct ActionButtons: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(link.label)
-            } else if let urlString = anime.siteUrl, let url = URL(string: urlString) {
+            } else if let url = validatedURL(from: anime.siteUrl) {
                 ShareLink(item: url, subject: Text(anime.displayTitle)) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 13, weight: .semibold))
@@ -1134,9 +1140,11 @@ struct ActionButtons: View {
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(title: "Watch On", links: allLinks) { link in
-                if let url = URL(string: link.url) {
+                if let url = validatedURL(from: link.url) {
                     KuroAccessibility.impactHaptic(.light)
                     openURL(url)
+                } else {
+                    onToast(.init(kind: .error, title: "Couldn’t open link", subtitle: "Try a different provider.", actionTitle: nil, onAction: nil))
                 }
             }
         }
@@ -1147,9 +1155,24 @@ struct ActionButtons: View {
         let best = await supabaseService.getBestWatchLink(anime: anime, userProgress: progress)
         let links = await supabaseService.fetchExternalLinks(mediaType: "ANIME", mediaId: anime.id)
         await MainActor.run {
-            self.watchLink = best
-            self.allLinks = links
+            self.watchLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
+            self.allLinks = links.filter { validatedURL(from: $0.url) != nil }
         }
+    }
+
+    private func validatedURL(from raw: String?) -> URL? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        var candidate = trimmed.replacingOccurrences(of: " ", with: "%20")
+        let lower = candidate.lowercased()
+        if !(lower.hasPrefix("http://") || lower.hasPrefix("https://")) {
+            guard !candidate.contains("://") else { return nil }
+            candidate = "https://\(candidate)"
+        }
+        guard let url = URL(string: candidate) else { return nil }
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
+        return url
     }
 
     private func toggleSaved() {

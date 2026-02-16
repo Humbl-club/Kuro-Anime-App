@@ -1009,7 +1009,7 @@ class SupabaseService {
         }
     }
 
-    private func fetchSearchAnimePage(
+    func fetchSearchAnimePage(
         query: String,
         filters: SearchFilters?,
         cursorRank: Double?,
@@ -1045,7 +1045,7 @@ class SupabaseService {
         }
     }
 
-    private func fetchSearchMangaPage(
+    func fetchSearchMangaPage(
         query: String,
         filters: SearchFilters?,
         cursorRank: Double?,

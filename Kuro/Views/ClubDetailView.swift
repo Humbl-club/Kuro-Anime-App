@@ -3,6 +3,7 @@
 // Uses segmented picker, @Observable pattern, KuroDesignSystem tokens throughout.
 
 import SwiftUI
+import PostgREST
 
 struct ClubDetailView: View {
     let clubId: String
@@ -37,6 +38,7 @@ struct ClubDetailView: View {
     @State private var voteInFlightPollIds: Set<String> = []
     @State private var optimisticVoteByPollId: [String: String] = [:]
     @State private var optimisticVoteCountsByPollId: [String: [String: Int]] = [:]
+    @State private var addToRailId: String? = nil
 
     private var clubsInteractionV2Enabled: Bool {
         FeatureFlags.shared.isClubsInteractionV2Enabled
@@ -138,6 +140,18 @@ struct ClubDetailView: View {
                 Task { await loadBundle(force: true) }
             }
             .environment(supabaseService)
+        }
+        .sheet(isPresented: Binding(
+            get: { addToRailId != nil },
+            set: { if !$0 { addToRailId = nil } }
+        )) {
+            if let railId = addToRailId {
+                AddItemToRailSheet(railId: railId, clubId: clubId) {
+                    showToast(.success, title: "Item added", subtitle: nil)
+                    Task { await loadBundle(force: true) }
+                }
+                .environment(supabaseService)
+            }
         }
     }
 
@@ -328,7 +342,10 @@ struct ClubDetailView: View {
                     ForEach(bundle.rails) { rail in
                         ClubRailSection(
                             rail: rail,
-                            memberCount: bundle.member_count
+                            memberCount: bundle.member_count,
+                            onAddItem: canAddToRail(rail, role: bundle.my_role) ? {
+                                addToRailId = rail.id
+                            } : nil
                         )
                     }
                 }
@@ -587,6 +604,11 @@ struct ClubDetailView: View {
         }
     }
 
+    private func canAddToRail(_ rail: SupabaseService.ClubRail, role: String) -> Bool {
+        if !rail.is_locked { return true }
+        return ["owner", "admin"].contains(role)
+    }
+
     private func handleMembershipLoss() {
         bundle = nil
         errorText = "You're no longer a member of this club."
@@ -603,6 +625,7 @@ struct ClubDetailView: View {
 private struct ClubRailSection: View {
     let rail: SupabaseService.ClubRail
     let memberCount: Int
+    var onAddItem: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
@@ -620,6 +643,23 @@ private struct ClubRailSection: View {
                 }
 
                 Spacer()
+
+                if let onAddItem {
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        onAddItem()
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.black.opacity(0.55))
+                            .padding(6)
+                            .background(
+                                Circle()
+                                    .fill(Color.black.opacity(0.06))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.horizontal, 20)
 
@@ -1439,6 +1479,318 @@ private struct ClubReactionRow: View {
     }
 }
 
+// MARK: - Add Item to Rail Sheet
+
+private struct AddItemToRailSheet: View {
+    let railId: String
+    let clubId: String
+    let onAdded: () -> Void
+
+    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.dismiss) private var dismiss
+
+    enum MediaTab: String, CaseIterable {
+        case anime = "ANIME"
+        case manga = "MANGA"
+    }
+
+    @State private var selectedMedia: MediaTab = .anime
+    @State private var searchText = ""
+    @State private var animeResults: [AnimeCard] = []
+    @State private var mangaResults: [MangaCard] = []
+    @State private var isSearching = false
+    @State private var isAdding = false
+    @State private var errorMessage: String? = nil
+    @State private var searchTask: Task<Void, Never>? = nil
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Media type toggle
+                Picker("Type", selection: $selectedMedia) {
+                    ForEach(MediaTab.allCases, id: \.self) { tab in
+                        Text(tab.rawValue).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 20)
+                .padding(.vertical, KuroDesignSpacing.sm)
+
+                // Search field
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(.black.opacity(0.35))
+                    TextField("Search titles...", text: $searchText)
+                        .font(.kuroBody(weight: .light))
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
+                        .fill(Color.black.opacity(0.04))
+                )
+                .padding(.horizontal, 20)
+
+                EditorialLayout.divider()
+                    .padding(.top, KuroDesignSpacing.sm)
+
+                // Error message
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.red.opacity(0.85))
+                        .padding(.horizontal, 20)
+                        .padding(.top, KuroDesignSpacing.sm)
+                }
+
+                // Results
+                if isAdding {
+                    VStack(spacing: KuroDesignSpacing.md) {
+                        ProgressView()
+                            .scaleEffect(0.9)
+                            .tint(.kuroBlack60)
+                        Text("Adding...")
+                            .font(.kuroCaption(weight: .light))
+                            .foregroundColor(.kuroBlack60)
+                    }
+                    .padding(.top, KuroDesignSpacing.xxl)
+                    Spacer()
+                } else if isSearching && animeResults.isEmpty && mangaResults.isEmpty {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .tint(.black.opacity(0.45))
+                        .padding(.top, KuroDesignSpacing.xxl)
+                    Spacer()
+                } else if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    VStack(spacing: KuroDesignSpacing.sm) {
+                        Image(systemName: "text.magnifyingglass")
+                            .font(.system(size: 20, weight: .light))
+                            .foregroundColor(.kuroBlack30)
+                        Text("Type to search")
+                            .font(.kuroCaption(weight: .light))
+                            .foregroundColor(.kuroBlack30)
+                    }
+                    .padding(.top, KuroDesignSpacing.xxl)
+                    Spacer()
+                } else if selectedMedia == .anime && animeResults.isEmpty && !isSearching {
+                    Text("No anime found")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.kuroBlack30)
+                        .padding(.top, KuroDesignSpacing.xxl)
+                    Spacer()
+                } else if selectedMedia == .manga && mangaResults.isEmpty && !isSearching {
+                    Text("No manga found")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.kuroBlack30)
+                        .padding(.top, KuroDesignSpacing.xxl)
+                    Spacer()
+                } else {
+                    ScrollView(.vertical, showsIndicators: false) {
+                        LazyVStack(spacing: 0) {
+                            if selectedMedia == .anime {
+                                ForEach(animeResults) { card in
+                                    RailSearchResultRow(
+                                        title: card.title,
+                                        imageURL: card.coverImageMedium,
+                                        year: card.year,
+                                        format: card.format
+                                    ) {
+                                        addItem(mediaType: "ANIME", mediaId: card.id)
+                                    }
+                                }
+                            } else {
+                                ForEach(mangaResults) { card in
+                                    RailSearchResultRow(
+                                        title: card.title,
+                                        imageURL: card.coverImageMedium,
+                                        year: card.year,
+                                        format: card.format
+                                    ) {
+                                        addItem(mediaType: "MANGA", mediaId: card.id)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.bottom, KuroDesignSpacing.xxl)
+                    }
+                }
+            }
+            .background(Color.kuroBackground)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("ADD ITEM")
+                        .font(.kuroNavigation(weight: .regular))
+                        .tracking(1.5)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .font(.kuroBody(weight: .light))
+                }
+            }
+            .onChange(of: searchText) { _, _ in
+                debouncedSearch()
+            }
+            .onChange(of: selectedMedia) { _, _ in
+                debouncedSearch()
+            }
+            .onDisappear {
+                searchTask?.cancel()
+                searchTask = nil
+            }
+        }
+    }
+
+    private func debouncedSearch() {
+        searchTask?.cancel()
+        errorMessage = nil
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.count >= 2 else {
+            animeResults = []
+            mangaResults = []
+            isSearching = false
+            return
+        }
+        isSearching = true
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            await performSearch(query: query)
+        }
+    }
+
+    private func performSearch(query: String) async {
+        do {
+            if selectedMedia == .anime {
+                animeResults = try await supabaseService.fetchSearchAnimePage(
+                    query: query, filters: nil, cursorRank: nil,
+                    cursorPopularity: nil, cursorId: nil, limit: 20
+                )
+            } else {
+                mangaResults = try await supabaseService.fetchSearchMangaPage(
+                    query: query, filters: nil, cursorRank: nil,
+                    cursorPopularity: nil, cursorId: nil, limit: 20
+                )
+            }
+        } catch {
+            if !Task.isCancelled {
+                // Clear stale results so old rows aren't actionable
+                if selectedMedia == .anime { animeResults = [] } else { mangaResults = [] }
+                errorMessage = "Search failed. Check your connection and try again."
+                #if DEBUG
+                print("❌ AddItemToRailSheet search: \(error)")
+                #endif
+            }
+        }
+        if !Task.isCancelled {
+            isSearching = false
+        }
+    }
+
+    private func addItem(mediaType: String, mediaId: Int) {
+        guard !isAdding else { return }
+        isAdding = true
+        errorMessage = nil
+        Task {
+            do {
+                _ = try await supabaseService.addRailItem(
+                    railId: railId, mediaType: mediaType, mediaId: mediaId
+                )
+                KuroAccessibility.successHaptic()
+                onAdded()
+                dismiss()
+            } catch let pgError as PostgrestError {
+                // Decode structured error from add_club_rail_item RPC
+                errorMessage = Self.mapRailItemError(pgError.message)
+                KuroAccessibility.errorHaptic()
+                isAdding = false
+            } catch {
+                errorMessage = "Could not add item. Please try again."
+                KuroAccessibility.errorHaptic()
+                isAdding = false
+            }
+        }
+    }
+
+    /// Maps a PostgrestError message from the add_club_rail_item RPC to a user-facing string.
+    private static func mapRailItemError(_ message: String) -> String {
+        if message.hasPrefix("DUPLICATE_ITEM") {
+            return "This title is already in this rail."
+        } else if message.hasPrefix("NOT_A_MEMBER") {
+            return "You're no longer a member of this club."
+        } else if message.hasPrefix("RAIL_LOCKED") {
+            return "This rail is locked. Only admins can add items."
+        } else if message.hasPrefix("MEDIA_NOT_FOUND") {
+            return "This title was not found in the catalog."
+        } else if message.hasPrefix("INVALID_MEDIA_TYPE") {
+            return "Invalid media type."
+        } else {
+            return "Could not add item. Please try again."
+        }
+    }
+}
+
+private struct RailSearchResultRow: View {
+    let title: String
+    let imageURL: String?
+    let year: String
+    let format: String?
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                KuroCachedAsyncImage(url: URL(string: imageURL ?? ""), maxPixelSize: 120) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 40, height: 56)
+                            .clipped()
+                    default:
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: 40, height: 56)
+                    }
+                }
+                .frame(width: 40, height: 56)
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.kuroBody(weight: .regular))
+                        .foregroundColor(.black.opacity(0.85))
+                        .lineLimit(2)
+
+                    HStack(spacing: 6) {
+                        Text(year)
+                            .font(.kuroCaption(weight: .light))
+                            .foregroundColor(.black.opacity(0.45))
+                        if let format, !format.isEmpty {
+                            Text(format.lowercased())
+                                .font(.kuroCaption(weight: .light))
+                                .foregroundColor(.black.opacity(0.45))
+                        }
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "plus.circle")
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundColor(.black.opacity(0.35))
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Club Settings Sheet
 
 private struct ClubSettingsSheet: View {
@@ -1735,7 +2087,10 @@ private struct ClubSettingsSheet: View {
     private func memberDisplayName(_ member: SupabaseService.ClubMember, index: Int) -> String {
         let trimmed = member.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !trimmed.isEmpty { return trimmed }
-        return "Member \(index + 1)"
+        // Stable short identifier from UUID (consistent across sessions)
+        let compact = member.user_id.replacingOccurrences(of: "-", with: "")
+        let short = String(compact.prefix(6))
+        return short.isEmpty ? "Member" : short
     }
 
     private func joinedLabel(_ raw: String) -> String {

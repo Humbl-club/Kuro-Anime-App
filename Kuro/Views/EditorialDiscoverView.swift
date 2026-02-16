@@ -11,8 +11,6 @@ struct EditorialDiscoverView: View {
     @State private var didInitialLoad = false
     @State private var bannerMessage: String? = nil
 
-    private let screenWidth: CGFloat = 393 // iPhone 14 Pro width (safe default)
-
     // Premium rails
     @State private var showFullEssentials = false
     @State private var showFullClassics = false
@@ -46,21 +44,24 @@ struct EditorialDiscoverView: View {
     }
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            if isLoadingSections && !hasAnyContent {
-                EditorialLoadingView()
-            } else if !isLoadingSections && !hasAnyContent {
-                EditorialEmptyView(onRetry: {
-                    await refreshSections()
-                })
-            } else {
-                VStack(spacing: 24) {
+        GeometryReader { geo in
+            let currentWidth = max(320, geo.size.width)
+            ScrollView(.vertical, showsIndicators: false) {
+                if isLoadingSections && !hasAnyContent {
+                    EditorialLoadingView()
+                } else if !isLoadingSections && !hasAnyContent {
+                    EditorialEmptyView(onRetry: {
+                        await refreshSections()
+                    })
+                } else {
+                    VStack(spacing: 24) {
                     // Premium discovery rails
                     if !vm.essentials.isEmpty {
                         CompactHorizontalSection(
                             title: "ESSENTIAL ANIME",
                             subtitle: "Gateway picks (high confidence)",
                             items: Array(vm.essentials.prefix(10)),
+                            containerWidth: currentWidth,
                             onSeeAll: { showFullEssentials = true }
                         )
                     }
@@ -70,7 +71,7 @@ struct EditorialDiscoverView: View {
                             title: "CLASSICS",
                             subtitle: "Proven greats",
                             items: Array(vm.classics.prefix(8)),
-                            screenWidth: screenWidth,
+                            screenWidth: currentWidth,
                             onSeeAll: { showFullClassics = true }
                         )
                     }
@@ -80,7 +81,7 @@ struct EditorialDiscoverView: View {
                             title: "NEW TO YOU",
                             subtitle: "High score, not in your list",
                             items: Array(vm.newToYou.prefix(8)),
-                            screenWidth: screenWidth,
+                            screenWidth: currentWidth,
                             onSeeAll: { showFullNewToYou = true }
                         )
                     }
@@ -91,6 +92,7 @@ struct EditorialDiscoverView: View {
                             title: "AIRING TODAY",
                             subtitle: "Next 24 hours",
                             items: Array(vm.airingToday.prefix(10)),
+                            containerWidth: currentWidth,
                             onSeeAll: { showFullAiringToday = true }
                         )
                     }
@@ -101,6 +103,7 @@ struct EditorialDiscoverView: View {
                             title: "CURRENT SEASON",
                             subtitle: "Airing now",
                             items: Array(vm.currentSeason.prefix(10)),
+                            containerWidth: currentWidth,
                             onSeeAll: { showFullCurrentSeason = true }
                         )
                     }
@@ -111,6 +114,7 @@ struct EditorialDiscoverView: View {
                             title: "TRENDING",
                             subtitle: "Popular right now",
                             items: vm.trending,
+                            containerWidth: currentWidth,
                             onSeeAll: { showFullTrending = true },
                             showFilters: true
                         )
@@ -122,7 +126,7 @@ struct EditorialDiscoverView: View {
                             title: "TOP RATED",
                             subtitle: "Highest scores",
                             items: vm.topRated,
-                            screenWidth: screenWidth,
+                            screenWidth: currentWidth,
                             onSeeAll: { showFullTopRated = true },
                             showFilters: true
                         )
@@ -134,7 +138,7 @@ struct EditorialDiscoverView: View {
                             title: "JUST ADDED",
                             subtitle: "Fresh arrivals",
                             items: Array(vm.newlyAdded.prefix(8)),
-                            screenWidth: screenWidth,
+                            screenWidth: currentWidth,
                             onSeeAll: { showFullNewlyAdded = true }
                         )
                     }
@@ -145,6 +149,7 @@ struct EditorialDiscoverView: View {
                             title: "ESSENTIAL MANGA",
                             subtitle: "Foundational reads",
                             items: Array(vm.essentialsManga.prefix(10)),
+                            containerWidth: currentWidth,
                             onSeeAll: { showFullEssentialsManga = true }
                         )
                     }
@@ -154,7 +159,7 @@ struct EditorialDiscoverView: View {
                             title: "MANGA CLASSICS",
                             subtitle: "Proven greats",
                             items: Array(vm.classicsManga.prefix(8)),
-                            screenWidth: screenWidth,
+                            screenWidth: currentWidth,
                             onSeeAll: { showFullClassicsManga = true }
                         )
                     }
@@ -164,7 +169,7 @@ struct EditorialDiscoverView: View {
                             title: "NEW TO YOU (MANGA)",
                             subtitle: "High score, not in your list",
                             items: Array(vm.newToYouManga.prefix(8)),
-                            screenWidth: screenWidth,
+                            screenWidth: currentWidth,
                             onSeeAll: { showFullNewToYouManga = true }
                         )
                     }
@@ -173,7 +178,8 @@ struct EditorialDiscoverView: View {
                         CompactHorizontalMangaSection(
                             title: "TRENDING MANGA",
                             subtitle: "Popular manga",
-                            items: Array(vm.trendingManga.prefix(10))
+                            items: Array(vm.trendingManga.prefix(10)),
+                            containerWidth: currentWidth
                         )
                     }
 
@@ -182,32 +188,33 @@ struct EditorialDiscoverView: View {
                             title: "TOP RATED MANGA",
                             subtitle: "Highest scores",
                             items: Array(vm.topRatedManga.prefix(8)),
-                            screenWidth: screenWidth
+                            screenWidth: currentWidth
                         )
                     }
                 }
                 .padding(.top, 12)
                 .padding(.bottom, 32)
             }
-        }
-        // A parent `.scrollDisabled(true)` (e.g. on a paging container) can propagate via environment.
-        // Keep Discover scrollable regardless.
-        .scrollDisabled(false)
-        .background(Color.kuroBackground)
-        .refreshable {
-            await refreshSections()
-        }
-        .overlay(alignment: .top) {
-            if let bannerMessage {
-                KuroTransientBanner(message: bannerMessage)
-                    .padding(.top, 10)
-                    .transition(.move(edge: .top).combined(with: .opacity))
             }
-        }
-        .task {
-            if !didInitialLoad {
-                didInitialLoad = true
+            // A parent `.scrollDisabled(true)` (e.g. on a paging container) can propagate via environment.
+            // Keep Discover scrollable regardless.
+            .scrollDisabled(false)
+            .background(Color.kuroBackground)
+            .refreshable {
                 await refreshSections()
+            }
+            .overlay(alignment: .top) {
+                if let bannerMessage {
+                    KuroTransientBanner(message: bannerMessage)
+                        .padding(.top, 10)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+            }
+            .task {
+                if !didInitialLoad {
+                    didInitialLoad = true
+                    await refreshSections()
+                }
             }
         }
         .sheet(isPresented: $showFullEssentials) {
@@ -359,6 +366,7 @@ struct CompactHorizontalSection<Item: MediaDisplayable>: View {
     let title: String
     let subtitle: String
     let items: [Item]
+    var containerWidth: CGFloat
     var onSeeAll: (() -> Void)? = nil
     var showFilters: Bool = false
 
@@ -382,6 +390,12 @@ struct CompactHorizontalSection<Item: MediaDisplayable>: View {
         case .completed:
             return items.filter { $0.statusRaw == "FINISHED" }
         }
+    }
+
+    private var cardWidth: CGFloat {
+        // Scale up horizontal cards on large screens while preserving density.
+        let candidate = floor((containerWidth - 56) / 2.8)
+        return min(144, max(112, candidate))
     }
 
     var body: some View {
@@ -433,7 +447,7 @@ struct CompactHorizontalSection<Item: MediaDisplayable>: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 12) {
                     ForEach(filteredItems, id: \.id) { anime in
-                        KuroCompactCard(media: anime)
+                        KuroCompactCard(media: anime, width: cardWidth)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -507,12 +521,12 @@ struct Dense2ColumnSection: View {
 // Small, efficient, shows key info
 struct CompactAnimeCard: View {
     let media: any MediaDisplayable
+    var cardWidth: CGFloat = 110
     @State private var showDetail = false
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
     var body: some View {
-        let cardWidth: CGFloat = 110
-        let imageHeight: CGFloat = 165
+        let imageHeight: CGFloat = floor(cardWidth / 0.6667)
         // Keep a fixed total height so horizontal rows never "wobble" based on title wrapping.
         let titleHeight: CGFloat = 34
         let metaHeight: CGFloat = 12
@@ -892,7 +906,13 @@ struct CompactHorizontalMangaSection<Item: MediaDisplayable>: View {
     let title: String
     let subtitle: String
     let items: [Item]
+    var containerWidth: CGFloat
     var onSeeAll: (() -> Void)? = nil
+
+    private var cardWidth: CGFloat {
+        let candidate = floor((containerWidth - 56) / 2.8)
+        return min(144, max(112, candidate))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -924,7 +944,7 @@ struct CompactHorizontalMangaSection<Item: MediaDisplayable>: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(items, id: \.id) { manga in
-                        CompactAnimeCard(media: manga)
+                        CompactAnimeCard(media: manga, cardWidth: cardWidth)
                     }
                 }
                 .padding(.horizontal, 20)

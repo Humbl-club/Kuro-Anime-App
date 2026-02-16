@@ -262,6 +262,12 @@ struct MangaSimilarSection: View {
     let title: String
     let items: [Manga]
 
+    private var cardWidth: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        let candidate = floor((screenWidth - 56) / 2.8)
+        return min(144, max(112, candidate))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: KuroSpacing.md) {
             Text(title)
@@ -272,7 +278,7 @@ struct MangaSimilarSection: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(items.prefix(14), id: \.id) { item in
-                        KuroCompactCard(media: item)
+                        KuroCompactCard(media: item, width: cardWidth)
                     }
                 }
             }
@@ -1008,13 +1014,13 @@ struct MangaActionButtons: View {
                 AddToListSheet(media: manga)
             }
 
-            if let link = readLink, !link.url.isEmpty {
+            if let link = readLink, let linkURL = validatedURL(from: link.url) {
                 Button(action: {
                     if allLinks.count > 1 {
                         showProviders = true
-                    } else if let url = URL(string: link.url) {
+                    } else {
                         KuroAccessibility.impactHaptic(.medium)
-                        openURL(url)
+                        openURL(linkURL)
                     }
                 }) {
                     Image(systemName: "book.fill")
@@ -1026,7 +1032,7 @@ struct MangaActionButtons: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(link.label)
-            } else if let urlString = manga.siteUrl, let url = URL(string: urlString) {
+            } else if let url = validatedURL(from: manga.siteUrl) {
                 ShareLink(item: url, subject: Text(manga.displayTitle)) {
                     Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 13, weight: .semibold))
@@ -1053,9 +1059,11 @@ struct MangaActionButtons: View {
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(title: "Read On", links: allLinks) { link in
-                if let url = URL(string: link.url) {
+                if let url = validatedURL(from: link.url) {
                     KuroAccessibility.impactHaptic(.light)
                     openURL(url)
+                } else {
+                    onToast(.init(kind: .error, title: "Couldn’t open link", subtitle: "Try a different provider.", actionTitle: nil, onAction: nil))
                 }
             }
         }
@@ -1065,9 +1073,24 @@ struct MangaActionButtons: View {
         let links = await supabaseService.fetchExternalLinks(mediaType: "MANGA", mediaId: manga.id)
         let best = await supabaseService.getBestReadLink(manga: manga)
         await MainActor.run {
-            self.allLinks = links
-            self.readLink = best
+            self.allLinks = links.filter { validatedURL(from: $0.url) != nil }
+            self.readLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
         }
+    }
+
+    private func validatedURL(from raw: String?) -> URL? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        var candidate = trimmed.replacingOccurrences(of: " ", with: "%20")
+        let lower = candidate.lowercased()
+        if !(lower.hasPrefix("http://") || lower.hasPrefix("https://")) {
+            guard !candidate.contains("://") else { return nil }
+            candidate = "https://\(candidate)"
+        }
+        guard let url = URL(string: candidate) else { return nil }
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
+        return url
     }
 
     private func toggleSaved() {

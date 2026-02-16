@@ -235,7 +235,7 @@ struct KuroPortraitCard: View {
 // MARK: - Refined Compact Card (Horizontal Scroll)
 struct KuroCompactCard: View {
     let media: any MediaDisplayable
-    let width: CGFloat = 110
+    var width: CGFloat = 110
 
     @State private var showDetail = false
     @State private var showAddToList = false
@@ -583,7 +583,13 @@ struct KuroHorizontalSection: View {
     let subtitle: String
     let items: [any MediaDisplayable]
     var onSeeAll: (() -> Void)? = nil
-    
+
+    private var cardWidth: CGFloat {
+        let screenWidth = UIScreen.main.bounds.width
+        let candidate = floor((screenWidth - 56) / 2.8)
+        return min(144, max(112, candidate))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             KuroSectionHeader(
@@ -592,11 +598,11 @@ struct KuroHorizontalSection: View {
                 showSeeAll: onSeeAll != nil,
                 onSeeAll: onSeeAll
             )
-            
+
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(items, id: \.id) { media in
-                        KuroCompactCard(media: media)
+                        KuroCompactCard(media: media, width: cardWidth)
                     }
                 }
                 .padding(.horizontal, 20)
