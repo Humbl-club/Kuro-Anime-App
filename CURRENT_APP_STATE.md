@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-02-15
+**Last updated:** 2026-02-16
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -407,7 +407,7 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 - **Collection**: keyset paging RPCs `collection_*_page` + in-memory caches.
 - **Upcoming**: `airing_next(days)` RPC + caching/backoff for rate-safe refresh.
 - **Concierge**: calls Edge Functions for parse/recommend/apply/undo; caches parse + recommend.
-- **Realtime**: subscribes to user-scoped channel to refresh list/collection data on changes.
+- **Realtime**: subscribes to user-scoped channel to refresh list/collection data on changes. Club-specific channel subscription for live updates (rail items, polls, votes, reactions, messages) with 500ms debounce.
 - **Local caches**: `discoverBundleCache`, `conciergeParseCache`, `conciergeRecommendCache` (in-memory, TTL-based).
 - **Apple FM integration**: `fmService` property (`AppleFMService` instance) provides on-device classification, disambiguation, synopsis condensation, and NL collection search intent parsing.
 - **Retry logic**: `withRetry` static helper (exponential backoff, max 2 retries, URLError-only) wrapping 5 key call sites: `fetchMoreAnime`, `fetchMoreManga`, `fetchDiscoverBundle`, `conciergeParse`, `conciergeRecommend`.
@@ -579,9 +579,11 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - `club_members` (id uuid, club_id, user_id uuid, role [owner/admin/member], sharing_level, joined_at)
 - `club_rails` (id uuid, club_id, title, description, created_by, is_locked, sort_order)
 - `club_rail_items` (id uuid, rail_id, media_type [ANIME/MANGA], media_id int, added_by uuid, sort_order, note)
+- `club_rail_item_reactions` (id uuid, item_id FK, user_id FK, emoji CHECK(fire/heart/eyes/100), created_at; UNIQUE(item_id, user_id, emoji))
 - `club_polls` (id uuid, club_id, question, created_by, closes_at, is_closed)
 - `club_poll_options` (id uuid, poll_id, label, media_type, media_id, sort_order)
 - `club_votes` (id uuid, poll_id, option_id, user_id uuid; UNIQUE(poll_id, user_id))
+- `club_messages` (id uuid, club_id FK, user_id FK CASCADE, text 1-280 chars, created_at; auto-pruned after 30 days)
 - `club_analytics` (id uuid, event_type, club_id, user_id, metadata jsonb, created_at; events: club_created/joined/left/rail_opened/vote_cast/import_applied/import_undone)
 
 ### Ops / metrics
@@ -599,7 +601,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - `profiles` row is ensured on sign-in (`SupabaseService.ensureProfileRow()`).
 - RLS is enabled; user tables are scoped to `auth.uid()` in migrations.
 - Concierge endpoints always derive user id from JWT (never accept raw user_id from client).
-- **Clubs RLS**: 25 policies across 7 tables. All access gated by membership via `is_club_member()` / `is_club_admin_or_owner()` / `is_club_owner()` (SECURITY DEFINER helpers to avoid infinite recursion on club_members self-query). club_members INSERT is managed via SECURITY DEFINER RPCs only (no direct policy). Rail lock enforced in `club_rail_items` INSERT policy (`cr.is_locked = false`).
+- **Clubs RLS**: 30+ policies across 9 tables. All access gated by membership via `is_club_member()` / `is_club_admin_or_owner()` / `is_club_owner()` (SECURITY DEFINER helpers to avoid infinite recursion on club_members self-query). club_members INSERT is managed via SECURITY DEFINER RPCs only (no direct policy). Rail lock enforced in `club_rail_items` INSERT policy (`cr.is_locked = false`). `club_rail_item_reactions`: member-gated SELECT/INSERT, self-only DELETE. `club_messages`: member-gated SELECT/INSERT, self-only DELETE.
 - **Club analytics RLS**: authenticated insert own (`user_id = auth.uid()`), service_role select only.
 - **Storage RLS** (P0-7): `media` bucket policies — read public (anon + authenticated), write/delete authenticated only, service_role full access. MIME types restricted to `image/jpeg`, `image/png`, `image/webp`, `image/avif`, `image/gif` (P0-6). File size limit: 5MB (P1-15).
 - **Security fixes**: `generate_invite_code()`, `sharing_level_rank()`, and all club helper functions use `SET search_path = public` to prevent search_path injection.
@@ -627,16 +629,18 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 ### Overview
 Clubs are private groups (2-20 members) for sharing anime/manga watch activity. Privacy-by-design: three sharing levels control what members see.
 
-### Tables (7)
+### Tables (9)
 | Table | Primary key | Key constraints |
 |-------|------------|----------------|
 | `clubs` | uuid | `name` <= 80 chars, `invite_code` UNIQUE, `sharing_level` IN (private/status/progress), `max_members` default 20 |
 | `club_members` | uuid | UNIQUE(club_id, user_id), `role` IN (owner/admin/member), user_id is UUID (not TEXT like legacy tables) |
 | `club_rails` | uuid | `title` <= 120 chars, `is_locked` boolean, `sort_order` int |
 | `club_rail_items` | uuid | UNIQUE(rail_id, media_type, media_id), `media_type` IN (ANIME/MANGA), `note` <= 280 chars |
+| `club_rail_item_reactions` | uuid | UNIQUE(item_id, user_id, emoji), `emoji` CHECK IN (fire/heart/eyes/100), member-gated RLS |
 | `club_polls` | uuid | `question` <= 200 chars, `is_closed` boolean + `closes_at` (no `is_active`) |
 | `club_poll_options` | uuid | `label` <= 120 chars, optional media_type/media_id link. Append-only (no updated_at) |
 | `club_votes` | uuid | UNIQUE(poll_id, user_id). Append-only. Single-choice: delete+reinsert to change vote |
+| `club_messages` | uuid | `text` 1-280 chars, FK CASCADE on user delete, 30-day auto-prune via cron, member-gated RLS, rate-limited (20/min) |
 
 ### Privacy model
 - **Sharing levels** (club-wide default + per-member override):
@@ -647,20 +651,28 @@ Clubs are private groups (2-20 members) for sharing anime/manga watch activity. 
 - Per-member `sharing_level` can only be more restrictive than the club default (enforced by `sharing_level_rank()`)
 - Effective level = `min(member_override ?? club_default, club_default)`
 
-### RLS design (25 policies + 4 helper functions)
+### RLS design (30+ policies + 4 helper functions)
 - 3 SECURITY DEFINER helpers (`is_club_member`, `is_club_admin_or_owner`, `is_club_owner`) avoid infinite recursion on club_members self-query
 - `club_members` has NO INSERT policy for `authenticated` role -- membership managed exclusively via SECURITY DEFINER RPCs (`create_club`, `join_club`)
 - `club_rail_items` INSERT policy enforces rail lock: `AND cr.is_locked = false`
 - `club_poll_options` and `club_votes` have no UPDATE policy (append-only; delete+reinsert pattern)
+- `club_rail_item_reactions`: member-gated SELECT/INSERT, self-only DELETE
+- `club_messages`: member-gated SELECT/INSERT, self-only DELETE
 - All helper functions use `SET search_path = public`
 
-### RPCs (6)
+### RPCs (12)
 1. `create_club` -- SECURITY DEFINER; creates club + owner row; invite code with collision retry (max 5)
 2. `join_club` -- SECURITY DEFINER; rate-limited (10/min via rate_limit_hit); validates code/expiry/cap/membership/member count
 3. `leave_club` -- SECURITY DEFINER; ownership transfer: oldest admin first, then oldest member; deletes club if last member
-4. `fetch_club_bundle` -- SECURITY INVOKER (relies on RLS); returns club + members + rails (with LEFT JOIN media enrichment + per-member `member_statuses` jsonb array) + polls (anonymous vote counts only, never voter IDs)
+4. `fetch_club_bundle` -- SECURITY INVOKER (relies on RLS); returns club + members (with display_name) + rails (with LEFT JOIN media enrichment + per-member `member_statuses` jsonb array + per-item `reactions` aggregates + `my_reactions` + `episode_count`/`chapter_count`) + polls (anonymous vote counts only, never voter IDs)
 5. `add_club_rail_item` -- SECURITY DEFINER; validates membership + lock + media existence + note length; auto-increments sort_order
 6. `cast_club_vote` -- SECURITY DEFINER; validates membership + open poll + option belongs to poll; delete+reinsert for re-vote
+7. `create_club_rail` -- SECURITY DEFINER; membership check, title 1-120 chars, auto sort_order; returns {rail_id, title}
+8. `create_club_poll` -- SECURITY DEFINER; membership check, question 1-200 chars, 2-10 options; returns {poll_id, question}
+9. `toggle_club_reaction` -- SECURITY DEFINER; membership check, toggle insert/delete; returns {action, emoji}
+10. `fetch_my_clubs_enriched` -- SECURITY DEFINER; returns caller's clubs with member_count, last_activity_at, activity_preview, ordered by activity
+11. `send_club_message` -- SECURITY DEFINER; membership check, 280 char max, rate-limited (20/min); returns {message_id, created_at}
+12. `fetch_club_messages` -- SECURITY DEFINER; membership check, paginated newest-first (max 100/page); returns messages
 
 ### fetch_club_bundle implementation notes
 - Uses LEFT JOINs to anime/manga tables (one join per media type, not N scalar subqueries per item)
@@ -677,11 +689,28 @@ Clubs are private groups (2-20 members) for sharing anime/manga watch activity. 
 - RLS: authenticated insert own, service_role select only
 
 ### iOS views
-- `ClubsView.swift`: 5th page in swipe pager (rightmost). No `NavigationStack` wrapper; club detail opens as sheet. Lists joined clubs, empty state with create/join prompts.
-- `ClubDetailView.swift`: 3-tab segmented picker (RAILS / THIS WEEK / POLLS). Settings sheet for owner/admin.
+- `ClubsView.swift`: 5th page in swipe pager (rightmost). No `NavigationStack` wrapper; club detail opens as sheet. Lists joined clubs with enriched cards (member count, activity preview, unread dot). Empty state with create/join prompts. Foreground notification check on `willEnterForeground`.
+- `ClubDetailView.swift`: 4-tab segmented picker (RAILS / THIS WEEK / POLLS / CHAT — chat gated by `clubs_chat_v1` flag). Settings sheet for owner/admin. Reactions row (fire/heart/eyes/100 capsules) on each rail item (gated by `clubs_reactions_v1`). Pace text on This Week items ("3 ep behind the group" / "In sync", gated by `clubs_pace_sync_v1`, requires sharing_level=progress and ≥3 members). Milestone celebration cards when all members complete a title. Realtime subscription (on appear/disappear, gated by `clubs_realtime_v1`).
 - `ClubActivitySection.swift`: Embedded on `AnimeDetailView` and `MangaDetailView`. Shows club context: which clubs have this title, aggregate member statuses.
 - `ProfileView.swift`: "Clubs" row opens ClubsView sheet (secondary access path).
 - Monochrome status pills (no colored dots).
+
+### Realtime
+- `club_rail_items`, `club_polls`, `club_votes`, `club_rail_item_reactions`, `club_messages` added to `supabase_realtime` publication.
+- iOS subscribes to club-specific channel on `ClubDetailView` appear; 500ms debounce triggers `refreshClubBundle`.
+- Unsubscribes on disappear; switches subscription when opening a different club.
+
+### Chat (ephemeral)
+- Text-only messages, 280 char max, rate-limited (20/min per user).
+- 30-day auto-prune via `prune_club_messages` cron job (daily 3 AM UTC).
+- Reversed ScrollView (newest at bottom, like iMessage), paginated load-earlier.
+- GDPR: CASCADE on user delete, explicit cleanup in `delete_user_concierge_data()`.
+
+### Notifications (in-app)
+- `check_club_activity_since` RPC returns boolean for new activity since last-seen.
+- Last-seen stored in local UserDefaults per club (`com.kuro.clubLastSeen.*`).
+- Badge dot on Clubs page indicator in header when unseen activity exists.
+- Badge cleared when navigating to Clubs page.
 
 ---
 
@@ -708,9 +737,15 @@ Client + edge functions rely on these RPCs:
   - `create_club(p_name, p_description, p_sharing_level)` — creates club + owner membership, generates invite code with collision retry
   - `join_club(p_invite_code)` — validates code/expiry/cap, rate-limited (10/min), inserts member
   - `leave_club(p_club_id)` — removes member, transfers ownership (oldest admin first, then oldest member) or deletes club if last member
-  - `fetch_club_bundle(p_club_id)` — SECURITY INVOKER, returns club info + members + rails (with media joins via LEFT JOIN, per-member watch statuses as `member_statuses` jsonb array) + polls (anonymous vote counts). Privacy: <3 members returns only own data; `private` sharing returns aggregates only; `status` returns names+statuses; `progress` returns full detail
+  - `fetch_club_bundle(p_club_id)` — SECURITY INVOKER, returns club info + members (with display_name) + rails (with media joins via LEFT JOIN, per-member watch statuses as `member_statuses` jsonb array, per-item `reactions` aggregate counts + `my_reactions` + `episode_count`/`chapter_count`) + polls (anonymous vote counts). Privacy: <3 members returns only own data; `private` sharing returns aggregates only; `status` returns names+statuses; `progress` returns full detail
   - `add_club_rail_item(p_rail_id, p_media_type, p_media_id, p_note)` — validates membership + lock + media existence
   - `cast_club_vote(p_poll_id, p_option_id)` — validates membership + open poll, delete+reinsert for re-vote
+  - `create_club_rail(p_club_id, p_title, p_description)` — validates membership, title 1-120 chars, auto sort_order
+  - `create_club_poll(p_club_id, p_question, p_options[])` — validates membership, 2-10 options, returns {poll_id, question}
+  - `toggle_club_reaction(p_rail_item_id, p_emoji)` — validates membership, toggle insert/delete, returns {action, emoji}
+  - `fetch_my_clubs_enriched()` — returns caller's clubs with member_count, last_activity_at, activity_preview
+  - `send_club_message(p_club_id, p_text)` — validates membership, 280 char max, rate-limited (20/min)
+  - `fetch_club_messages(p_club_id, p_limit, p_before)` — validates membership, paginated newest-first, max 100/page
 - **Club helper functions**:
   - `is_club_member(uuid)`, `is_club_admin_or_owner(uuid)`, `is_club_owner(uuid)` — SECURITY DEFINER, STABLE
   - `sharing_level_rank(text)` — IMMUTABLE, returns 0/1/2 for private/status/progress
@@ -894,6 +929,24 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
 
 ### supabase/migrations/20260209225348_add_import_secret_to_cron_jobs.sql
 - Adds `x-import-secret` header to 4 pg_cron bulk import jobs *(P0-4)*
+
+*(Migrations 20260211–20260215 omitted — feature flags, RAG tables, privacy/GDPR, club identity, rails overlap, concierge flags, club stubs)*
+
+### supabase/migrations/20260216015514_clubs_list_enrichment.sql
+- Functions (1): `fetch_my_clubs_enriched()` — SECURITY DEFINER, returns caller's clubs with member_count, last_activity_at, activity_preview
+
+### supabase/migrations/20260216015733_club_reactions_in_bundle.sql
+- Updates `fetch_club_bundle()`: adds per-item `reactions` (aggregate counts), `my_reactions` (caller's own), `episode_count`/`chapter_count`, `display_name` from profiles JOIN
+
+### supabase/migrations/20260216015921_clubs_realtime_publication.sql
+- Adds `club_rail_items`, `club_polls`, `club_votes`, `club_rail_item_reactions` to `supabase_realtime` publication
+
+### supabase/migrations/20260216020023_club_messages.sql
+- Tables (1): `club_messages` (text 1-280 chars, FK CASCADE on user delete)
+- Functions (2): `send_club_message()` (SECURITY DEFINER, rate-limited 20/min), `fetch_club_messages()` (SECURITY DEFINER, paginated)
+- Policies (3): member-gated SELECT/INSERT, self-only DELETE
+- Cron (1): `prune_club_messages` — daily 3 AM UTC, deletes messages > 30 days
+- Added `club_messages` to `supabase_realtime` publication
 
 
 <!-- END AUTO-MIGRATION-MAP -->
@@ -1215,7 +1268,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - A small **chat icon** appears next to the section title **only on Concierge page**.
 - Profile is a **top-right menu** (not a dedicated page).
 - **Swipe pager**: 5 pages in order: Concierge (0) ← **Discover** (1, default) → Browse (2) → Collection (3) → Clubs (4). Natural discovery funnel: find → collect → share.
-- **Clubs** is the 5th page (rightmost). Profile sheet also has a "Clubs" shortcut.
+- **Clubs** is the 5th page (rightmost). Profile sheet also has a "Clubs" shortcut. Club list cards show member count, activity preview, and unread dot. Club detail has 4 tabs (Rails/This Week/Polls/Chat). Reactions (fire/heart/eyes/100) on rail items. Pace tracking on This Week. Milestone celebrations. Realtime updates. Badge dot on Clubs page indicator for unseen activity.
 - **Browse** is a first-class page (3rd position), no longer a sheet modal.
 - **Search** remains a global sheet accessible from the header magnifying-glass icon on any page.
 - **Performance**: distance-based page mounting (current ± 1 neighbors mounted, distant pages use placeholder). `.snappy(duration: 0.22)` pager animation. 120fps ProMotion enabled via `CADisableMinimumFrameDurationOnPhone`. Exclusion zone filtering limited to viewport.
@@ -1304,6 +1357,17 @@ This single command:
 
 ## 14) Change Log (append-only)
 
+- 2026-02-16: **Clubs Enhancement — 6-phase feature expansion** —
+  - **Phase 0**: Verified existing stub RPCs (`create_club_rail`, `create_club_poll`, `toggle_club_reaction`) were already complete on remote DB.
+  - **Phase 1 (List Enrichment)**: New `fetch_my_clubs_enriched()` RPC returns member_count, last_activity_at, activity_preview per club. `ClubsView` cards now show member count icon, 1-line activity preview, and unread dot (UserDefaults-backed last-seen timestamps). Replaced two-query `fetchMyClubs()` with single enriched RPC.
+  - **Phase 2 (Reactions)**: Updated `fetch_club_bundle()` to include per-item `reactions` (anonymous aggregate counts) and `my_reactions` (caller's own). New `ClubReactionRow` with 4 emoji capsules (fire/heart/eyes/100), optimistic toggle, monochrome palette.
+  - **Phase 3 (Progress Sync)**: Client-only pace tracking using median of member progress. Shows "3 ep behind the group" / "In sync" / "2 ep ahead" on This Week items (only when sharing_level=progress and ≥3 members). Milestone celebration cards when all members complete a title.
+  - **Phase 4 (Realtime)**: Added 5 tables to `supabase_realtime` publication. iOS subscribes to per-club Realtime channel on detail view appear, 500ms debounce triggers bundle refresh. Unsubscribes on disappear.
+  - **Phase 5 (Chat)**: `club_messages` table (280 char max, FK CASCADE, 30-day auto-prune cron). `send_club_message` RPC (rate-limited 20/min) + `fetch_club_messages` RPC (paginated). New CHAT tab in `ClubDetailView` with reversed ScrollView, `ClubChatBubble` (member initial + name + relative time), text input with send button. Real-time message delivery via Supabase Realtime.
+  - **Phase 6 (Notifications)**: In-app badge dot on Clubs page indicator when unseen club activity exists. `checkClubNotifications()` calls `check_club_activity_since` RPC. Badge cleared on navigate to Clubs. Foreground check on `willEnterForeground`.
+  - **Feature flags** (6 new): `clubs_list_enriched_v1` (100%), `clubs_reactions_v1` (50%), `clubs_pace_sync_v1` (100%), `clubs_realtime_v1` (50%), `clubs_chat_v1` (0% staged), `clubs_notifications_v1` (100%).
+  - **Migrations** (4): `clubs_list_enrichment`, `club_reactions_in_bundle`, `clubs_realtime_publication`, `club_messages`.
+  - Files changed: `SupabaseService.swift`, `SupabaseRPCParams.swift`, `FeatureFlags.swift`, `ClubsView.swift`, `ClubDetailView.swift`, `ContentView.swift`.
 - 2026-02-15: **5-page swipe pager restored + performance polish** —
   - Swipe pager expanded from 3 pages to 5: Concierge ← [Discover] → Browse → Collection → Clubs. Natural discovery funnel order.
   - Browse promoted from sheet modal to first-class page (position 2). Search remains a global sheet from header icon.

@@ -366,6 +366,35 @@ struct RPCToggleReactionParams: Encodable, Sendable {
     }
 }
 
+// Club chat RPCs.
+struct RPCSendClubMessageParams: Encodable, Sendable {
+    let p_club_id: String
+    let p_text: String
+
+    enum CodingKeys: String, CodingKey { case p_club_id, p_text }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_club_id, forKey: .p_club_id)
+        try c.encode(p_text, forKey: .p_text)
+    }
+}
+
+struct RPCFetchClubMessagesParams: Encodable, Sendable {
+    let p_club_id: String
+    let p_limit: Int
+    let p_before: String?
+
+    enum CodingKeys: String, CodingKey { case p_club_id, p_limit, p_before }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_club_id, forKey: .p_club_id)
+        try c.encode(p_limit, forKey: .p_limit)
+        try c.encodeIfPresent(p_before, forKey: .p_before)
+    }
+}
+
 // Tag-overlap similarity (detail pages / concierge).
 struct RPCRecommendSimilarParams: Encodable, Sendable {
     let p_media_type: String // "ANIME" | "MANGA"

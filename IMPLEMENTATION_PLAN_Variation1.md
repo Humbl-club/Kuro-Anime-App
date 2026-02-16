@@ -2,9 +2,11 @@
 
 This file documents the idea of routing free-text "vibe" prompts into curated recommendation rails (modes), with the LLM used only as an optional presentation layer.
 
-## Current status (as of 2026-02-15)
+## Current status (as of 2026-02-16)
 
 The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed. Production-readiness session completed: Apple FM integration, on-device intelligence features, and comprehensive security/stability hardening across DB, edge functions, storage, and iOS. The February 2026 follow-up added the curated concierge copy layer and club activity status clarity pass.
+
+**Clubs Enhancement completed (2026-02-16)**: 6-phase expansion shipped — list enrichment (member counts, activity previews, unread dots), emoji reactions (fire/heart/eyes/100 with anonymous aggregate counts), watch-together pace sync (median-based "3 ep behind the group"), Supabase Realtime subscriptions (live updates without pull-to-refresh), ephemeral club chat (280 char, 30-day auto-prune, rate-limited), and in-app notification badges. 4 new DB migrations, 6 new feature flags (staged rollout: 0-100%), 9 tables total, 12 RPCs. All privacy-preserving: anonymous reaction counts, median-only pace, ephemeral chat with GDPR cascade delete.
 
 **5-page navigation restored (2026-02-15)**: Swipe pager expanded from 3 to 5 pages: Concierge ← [Discover] → Browse → Collection → Clubs. Browse promoted from sheet modal to page. Clubs elevated from ProfileView to own page. Distance-based mounting, `.snappy` animation, 120fps ProMotion, viewport-filtered exclusion zones. Search remains global sheet.
 

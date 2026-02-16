@@ -31,6 +31,12 @@ final class FeatureFlags {
     var isConciergePerfV2Enabled: Bool { evaluate("concierge_perf_v2") }
     var isConciergeEditorialV1Enabled: Bool { evaluate("concierge_editorial_v1") }
     var isSwipeTapGuardEnabled: Bool { evaluate("swipe_tap_guard_v1") }
+    var isClubsListEnrichedV1Enabled: Bool { evaluate("clubs_list_enriched_v1") }
+    var isClubsReactionsV1Enabled: Bool { evaluate("clubs_reactions_v1") }
+    var isClubsPaceSyncV1Enabled: Bool { evaluate("clubs_pace_sync_v1") }
+    var isClubsRealtimeV1Enabled: Bool { evaluate("clubs_realtime_v1") }
+    var isClubsChatV1Enabled: Bool { evaluate("clubs_chat_v1") }
+    var isClubsNotificationsV1Enabled: Bool { evaluate("clubs_notifications_v1") }
 
     // MARK: - Init
 

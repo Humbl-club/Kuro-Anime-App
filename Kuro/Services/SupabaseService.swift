@@ -4000,6 +4000,8 @@ class SupabaseService {
         let my_rating: Int?
         let member_status_counts: [String: Int]?
         let member_statuses: [MemberItemStatus]?
+        let reactions: [String: Int]?
+        let my_reactions: [String]?
 
         /// Total count for the relevant media type (episodes for anime, chapters for manga).
         var totalCount: Int? {
@@ -4086,13 +4088,16 @@ class SupabaseService {
         let question: String
     }
 
-    // Lightweight row for "My Clubs" list (fetched via direct table query)
+    // Lightweight row for "My Clubs" list (fetched via enriched RPC)
     struct ClubListRow: Decodable, Sendable, Identifiable {
         let id: String
         let name: String
         let sharing_level: String
         let is_archived: Bool
         let created_at: String
+        let member_count: Int?
+        let last_activity_at: String?
+        let activity_preview: String?
     }
 
     // Club bundle cache (5 min TTL per spec)
@@ -4114,39 +4119,53 @@ class SupabaseService {
     }
 
     func fetchMyClubs() async {
-        guard let userId = await currentUserIdString() else { return }
         do {
-            struct MembershipRow: Decodable { let club_id: String }
-            let memberships: [MembershipRow] = try await client
-                .from("club_members")
-                .select("club_id")
-                .eq("user_id", value: userId)
-                .execute()
-                .value
-
-            let clubIds = memberships.map(\.club_id)
-            guard !clubIds.isEmpty else {
-                myClubs = []
-                return
-            }
-
-            // Fetch the club rows for these IDs
             let clubs: [ClubListRow] = try await client
-                .from("clubs")
-                .select("id, name, sharing_level, is_archived, created_at")
-                .in("id", values: clubIds)
-                .eq("is_archived", value: false)
-                .order("created_at", ascending: false)
+                .rpc("fetch_my_clubs_enriched")
                 .execute()
                 .value
-
             myClubs = clubs
         } catch {
             #if DEBUG
             print("❌ fetchMyClubs: \(error)")
             #endif
-            // Error logged in debug only
         }
+    }
+
+    // MARK: - Club last-seen (UserDefaults per-club timestamps)
+
+    private static let clubLastSeenPrefix = "com.kuro.clubLastSeen."
+
+    func clubLastSeenAt(clubId: String) -> Date? {
+        let ts = UserDefaults.standard.double(forKey: Self.clubLastSeenPrefix + clubId)
+        return ts > 0 ? Date(timeIntervalSince1970: ts) : nil
+    }
+
+    func markClubSeen(clubId: String) {
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: Self.clubLastSeenPrefix + clubId)
+    }
+
+    func hasUnseenActivity(club: ClubListRow) -> Bool {
+        guard let activityStr = club.last_activity_at else { return false }
+        guard let activityDate = Self.parseISO8601(activityStr) else { return false }
+        guard let lastSeen = clubLastSeenAt(clubId: club.id) else { return true }
+        return activityDate > lastSeen
+    }
+
+    private static let isoFractional: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let isoBasic: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    static func parseISO8601(_ str: String) -> Date? {
+        isoFractional.date(from: str) ?? isoBasic.date(from: str)
     }
 
     func createClub(name: String, description: String? = nil, sharingLevel: String = "status") async throws -> CreateClubResponse {
@@ -4296,6 +4315,172 @@ class SupabaseService {
         let sharingLevel: String
         let members: [ClubMember]
         let matchingItems: [ClubMediaActivityMatch]
+    }
+
+    // MARK: - Club Notifications
+
+    var hasUnseenClubActivity: Bool = false
+
+    private static let clubNotificationLastCheckKey = "com.kuro.clubNotificationLastCheck"
+
+    struct ClubActivityCheckResponse: Decodable, Sendable {
+        let has_new_activity: Bool
+        let latest_activity_at: String?
+    }
+
+    func checkClubNotifications() async {
+        guard FeatureFlags.shared.isClubsNotificationsV1Enabled else { return }
+        let lastCheck = UserDefaults.standard.double(forKey: Self.clubNotificationLastCheckKey)
+        let since = lastCheck > 0 ? Date(timeIntervalSince1970: lastCheck) : Date().addingTimeInterval(-86400)
+
+        struct CheckParams: Encodable, Sendable {
+            let p_since: String
+
+            enum CodingKeys: String, CodingKey { case p_since }
+            nonisolated func encode(to encoder: Encoder) throws {
+                var c = encoder.container(keyedBy: CodingKeys.self)
+                try c.encode(p_since, forKey: .p_since)
+            }
+        }
+
+        let isoStr = ISO8601DateFormatter().string(from: since)
+        let params = CheckParams(p_since: isoStr)
+
+        do {
+            let resp: ClubActivityCheckResponse = try await client
+                .rpc("check_club_activity_since", params: params)
+                .execute()
+                .value
+            hasUnseenClubActivity = resp.has_new_activity
+        } catch {
+            #if DEBUG
+            print("❌ checkClubNotifications: \(error)")
+            #endif
+        }
+    }
+
+    func clearClubNotificationBadge() {
+        hasUnseenClubActivity = false
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: Self.clubNotificationLastCheckKey)
+    }
+
+    // MARK: - Club Chat
+
+    struct ClubMessage: Decodable, Sendable, Identifiable {
+        let id: String
+        let user_id: String
+        let display_name: String?
+        let text: String
+        let created_at: String
+    }
+
+    struct SendMessageResponse: Decodable, Sendable {
+        let message_id: String
+        let created_at: String
+    }
+
+    func sendClubMessage(clubId: String, text: String) async throws -> SendMessageResponse {
+        let params = RPCSendClubMessageParams(p_club_id: clubId, p_text: text)
+        return try await client
+            .rpc("send_club_message", params: params)
+            .execute()
+            .value
+    }
+
+    func fetchClubMessages(clubId: String, limit: Int = 50, before: String? = nil) async throws -> [ClubMessage] {
+        let params = RPCFetchClubMessagesParams(p_club_id: clubId, p_limit: limit, p_before: before)
+        return try await client
+            .rpc("fetch_club_messages", params: params)
+            .execute()
+            .value
+    }
+
+    // MARK: - Club Realtime
+
+    private var clubRealtimeChannel: RealtimeChannelV2?
+    private var clubRealtimeListenTasks: [Task<Void, Never>] = []
+    private var clubRealtimeDebounceTask: Task<Void, Never>?
+    private var clubRealtimeSubscribedId: String?
+    var clubOnlineMemberCount: Int = 0
+
+    func subscribeToClubUpdates(clubId: String) async {
+        guard FeatureFlags.shared.isClubsRealtimeV1Enabled else { return }
+        guard clubRealtimeSubscribedId != clubId else { return }
+
+        await unsubscribeFromClubUpdates()
+        clubRealtimeSubscribedId = clubId
+
+        let channel = client.channel("kuro.club.\(clubId)")
+        clubRealtimeChannel = channel
+
+        let itemStream = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "club_rail_items"
+        )
+        let voteStream = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "club_votes"
+        )
+        let reactionStream = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "club_rail_item_reactions"
+        )
+
+        clubRealtimeListenTasks = [
+            Task { [weak self] in
+                guard let self else { return }
+                for await _ in itemStream {
+                    await MainActor.run { self.scheduleClubRefresh(clubId: clubId) }
+                }
+            },
+            Task { [weak self] in
+                guard let self else { return }
+                for await _ in voteStream {
+                    await MainActor.run { self.scheduleClubRefresh(clubId: clubId) }
+                }
+            },
+            Task { [weak self] in
+                guard let self else { return }
+                for await _ in reactionStream {
+                    await MainActor.run { self.scheduleClubRefresh(clubId: clubId) }
+                }
+            },
+        ]
+
+        do {
+            _ = try await channel.subscribeWithError()
+        } catch {
+            #if DEBUG
+            print("⚠️ club realtime subscribe failed: \(error)")
+            #endif
+        }
+    }
+
+    func unsubscribeFromClubUpdates() async {
+        for task in clubRealtimeListenTasks { task.cancel() }
+        clubRealtimeListenTasks.removeAll()
+        clubRealtimeDebounceTask?.cancel()
+        clubRealtimeDebounceTask = nil
+
+        if let channel = clubRealtimeChannel {
+            await channel.unsubscribe()
+            clubRealtimeChannel = nil
+        }
+        clubRealtimeSubscribedId = nil
+        clubOnlineMemberCount = 0
+    }
+
+    @MainActor
+    private func scheduleClubRefresh(clubId: String) {
+        clubRealtimeDebounceTask?.cancel()
+        clubRealtimeDebounceTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard let self, !Task.isCancelled else { return }
+            _ = try? await self.refreshClubBundle(clubId: clubId)
+        }
     }
 
     /// Scans cached club bundles to find clubs that have this media item in a rail.

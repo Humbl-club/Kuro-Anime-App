@@ -1,5 +1,5 @@
 // MARK: - CLUBS VIEW (Main Clubs Page)
-// Entry point for the Clubs section (6th page in the swipe pager).
+// Entry point for the Clubs section (5th page in the swipe pager).
 // Shows joined clubs, create/join flows, and empty state.
 
 import SwiftUI
@@ -60,6 +60,13 @@ struct ClubsView: View {
             isInitialLoading = true
             await supabaseService.fetchMyClubs()
             isInitialLoading = false
+            supabaseService.clearClubNotificationBadge()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task {
+                await supabaseService.fetchMyClubs()
+                await supabaseService.checkClubNotifications()
+            }
         }
         .sheet(isPresented: $showCreateSheet) {
             CreateClubSheet { response in
@@ -222,7 +229,7 @@ struct ClubsView: View {
                         KuroAccessibility.impactHaptic(.light)
                         selectedClubId = club.id
                     } label: {
-                        ClubCardRow(club: club)
+                        ClubCardRow(club: club, hasUnseen: supabaseService.hasUnseenActivity(club: club))
                     }
                     .buttonStyle(.plain)
                 }
@@ -249,6 +256,7 @@ struct ClubsView: View {
 
 private struct ClubCardRow: View {
     let club: SupabaseService.ClubListRow
+    let hasUnseen: Bool
 
     private var sharingBadge: String {
         switch club.sharing_level {
@@ -263,10 +271,18 @@ private struct ClubCardRow: View {
         KuroGlassCard(cornerRadius: KuroRadius.lg) {
             HStack(spacing: KuroDesignSpacing.md) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(club.name)
-                        .font(.kuroHeadline(weight: .light))
-                        .foregroundColor(.black.opacity(0.90))
-                        .lineLimit(1)
+                    HStack(spacing: 8) {
+                        Text(club.name)
+                            .font(.kuroHeadline(weight: .light))
+                            .foregroundColor(.black.opacity(0.90))
+                            .lineLimit(1)
+
+                        if hasUnseen {
+                            Circle()
+                                .fill(Color.black.opacity(0.70))
+                                .frame(width: 6, height: 6)
+                        }
+                    }
 
                     HStack(spacing: 8) {
                         Text(sharingBadge)
@@ -279,6 +295,23 @@ private struct ClubCardRow: View {
                                 Capsule()
                                     .stroke(Color.black.opacity(0.12), lineWidth: 0.6)
                             )
+
+                        if let count = club.member_count, count > 0 {
+                            HStack(spacing: 3) {
+                                Image(systemName: "person.2")
+                                    .font(.system(size: 9, weight: .regular))
+                                Text("\(count)")
+                                    .font(.kuroMicro(weight: .medium))
+                            }
+                            .foregroundColor(.black.opacity(0.40))
+                        }
+                    }
+
+                    if let preview = club.activity_preview, !preview.isEmpty {
+                        Text(preview)
+                            .font(.kuroCaption(weight: .light))
+                            .foregroundColor(.black.opacity(0.45))
+                            .lineLimit(1)
                     }
                 }
 

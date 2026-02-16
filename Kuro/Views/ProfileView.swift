@@ -84,7 +84,22 @@ struct ProfileView: View {
             }
         }
         .sheet(isPresented: $showClubs) {
-            ClubsView()
+            NavigationStack {
+                ClubsView()
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .principal) {
+                            Text("CLUBS")
+                                .font(.kuroNavigation(weight: .regular))
+                                .tracking(1.5)
+                        }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showClubs = false }
+                                .font(.kuroBody(weight: .light))
+                        }
+                    }
+            }
+            .environment(supabaseService)
         }
     }
 

@@ -285,10 +285,15 @@ struct KuroMainView: View {
 	        )
 	            .onChange(of: selection) { _, newValue in
 	                mountedSections.insert(newValue)
+                    if newValue == .clubs {
+                        supabaseService.clearClubNotificationBadge()
+                    }
 	            }
 	            .task {
 	                // Warm the Discover bundle so the first Discover render feels instant.
                 _ = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24)
+                // Check club notifications
+                await supabaseService.checkClubNotifications()
             }
             .sheet(isPresented: $showProfileSheet) {
                 ProfileView()
@@ -500,9 +505,19 @@ struct KuroHeaderNew: View {
                     // Dot indicators for positional context
                     HStack(spacing: 5) {
                         ForEach(swipeOrder, id: \.self) { section in
-                            Circle()
-                                .fill(Color.black.opacity(section == selection ? 0.55 : 0.15))
-                                .frame(width: 4, height: 4)
+                            ZStack {
+                                Circle()
+                                    .fill(Color.black.opacity(section == selection ? 0.55 : 0.15))
+                                    .frame(width: 4, height: 4)
+
+                                // Badge dot for Clubs when unseen activity exists
+                                if section == .clubs && supabaseService.hasUnseenClubActivity && selection != .clubs {
+                                    Circle()
+                                        .fill(Color.black.opacity(0.70))
+                                        .frame(width: 6, height: 6)
+                                        .offset(x: 5, y: -3)
+                                }
+                            }
                         }
                     }
                     .animation(.easeOut(duration: 0.18), value: selection)

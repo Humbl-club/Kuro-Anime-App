@@ -14,6 +14,15 @@ struct ClubDetailView: View {
         case rails = "RAILS"
         case thisWeek = "THIS WEEK"
         case polls = "POLLS"
+        case chat = "CHAT"
+
+        static var visibleCases: [Tab] {
+            var tabs: [Tab] = [.rails, .thisWeek, .polls]
+            if FeatureFlags.shared.isClubsChatV1Enabled {
+                tabs.append(.chat)
+            }
+            return tabs
+        }
     }
 
     @State private var selectedTab: Tab = .rails
@@ -98,7 +107,12 @@ struct ClubDetailView: View {
             }
         }
         .task {
+            supabaseService.markClubSeen(clubId: clubId)
             await loadBundle()
+            await supabaseService.subscribeToClubUpdates(clubId: clubId)
+        }
+        .onDisappear {
+            Task { await supabaseService.unsubscribeFromClubUpdates() }
         }
         .refreshable {
             await loadBundle(force: true)
@@ -137,7 +151,7 @@ struct ClubDetailView: View {
 
             // Tab picker
             Picker("Section", selection: $selectedTab) {
-                ForEach(Tab.allCases, id: \.self) { tab in
+                ForEach(Tab.visibleCases, id: \.self) { tab in
                     Text(tab.rawValue).tag(tab)
                 }
             }
@@ -162,18 +176,24 @@ struct ClubDetailView: View {
             }
 
             // Tab content
-            ScrollView(.vertical, showsIndicators: false) {
-                switch selectedTab {
-                case .rails:
-                    railsTab(bundle)
-                case .thisWeek:
-                    thisWeekTab(bundle)
-                case .polls:
-                    pollsTab(bundle)
+            if selectedTab == .chat {
+                ClubChatTab(clubId: clubId, bundle: bundle)
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    switch selectedTab {
+                    case .rails:
+                        railsTab(bundle)
+                    case .thisWeek:
+                        thisWeekTab(bundle)
+                    case .polls:
+                        pollsTab(bundle)
+                    case .chat:
+                        EmptyView()
+                    }
                 }
-            }
-            .safeAreaInset(edge: .bottom) {
-                Color.clear.frame(height: 24)
+                .safeAreaInset(edge: .bottom) {
+                    Color.clear.frame(height: 24)
+                }
             }
         }
     }
@@ -282,6 +302,28 @@ struct ClubDetailView: View {
                     .padding(.top, KuroDesignSpacing.sm)
                 }
 
+                // Milestone celebrations (all members completed)
+                if FeatureFlags.shared.isClubsPaceSyncV1Enabled {
+                    let milestones = bundle.rails.flatMap { rail in
+                        rail.items.compactMap { item -> SupabaseService.ClubRailItem? in
+                            guard bundle.member_count >= 3,
+                                  let counts = item.member_status_counts,
+                                  let completed = counts["COMPLETED"],
+                                  completed >= bundle.member_count else { return nil }
+                            return item
+                        }
+                    }
+                    if !milestones.isEmpty {
+                        VStack(spacing: KuroDesignSpacing.sm) {
+                            ForEach(milestones) { item in
+                                ClubMilestoneCard(item: item, memberCount: bundle.member_count)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, KuroDesignSpacing.sm)
+                    }
+                }
+
                 LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
                     ForEach(bundle.rails) { rail in
                         ClubRailSection(
@@ -326,7 +368,8 @@ struct ClubDetailView: View {
                     ThisWeekRow(
                         item: entry.item,
                         railTitle: entry.rail.title,
-                        memberCount: bundle.member_count
+                        memberCount: bundle.member_count,
+                        sharingLevel: bundle.club.sharing_level
                     )
                 }
             }
@@ -594,7 +637,12 @@ private struct ClubRailSection: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(spacing: 12) {
                         ForEach(rail.items) { item in
-                            ClubRailItemCard(item: item, memberCount: memberCount)
+                            VStack(spacing: 6) {
+                                ClubRailItemCard(item: item, memberCount: memberCount)
+                                if FeatureFlags.shared.isClubsReactionsV1Enabled {
+                                    ClubReactionRow(item: item)
+                                }
+                            }
                         }
                     }
                     .padding(.horizontal, 20)
@@ -767,6 +815,7 @@ private struct ThisWeekRow: View {
     let item: SupabaseService.ClubRailItem
     let railTitle: String
     let memberCount: Int
+    var sharingLevel: String = "status"
 
     @State private var showDetail = false
 
@@ -780,6 +829,34 @@ private struct ThisWeekRow: View {
             return "\(prefix) \(progress)"
         }
         return ""
+    }
+
+    private var paceText: String? {
+        guard FeatureFlags.shared.isClubsPaceSyncV1Enabled else { return nil }
+        guard sharingLevel == "progress", memberCount >= 3 else { return nil }
+        guard let statuses = item.member_statuses, !statuses.isEmpty else { return nil }
+        guard let myProgress = item.my_progress else { return nil }
+
+        let otherProgresses = statuses
+            .filter { $0.progress != nil }
+            .map { $0.progress! }
+            .sorted()
+
+        guard !otherProgresses.isEmpty else { return nil }
+
+        let median: Int
+        let count = otherProgresses.count
+        if count % 2 == 0 {
+            median = (otherProgresses[count / 2 - 1] + otherProgresses[count / 2]) / 2
+        } else {
+            median = otherProgresses[count / 2]
+        }
+
+        let diff = myProgress - median
+        if diff == 0 { return "In sync" }
+        let unit = item.media_type.uppercased() == "ANIME" ? "ep" : "ch"
+        if diff < 0 { return "\(abs(diff)) \(unit) behind the group" }
+        return "\(diff) \(unit) ahead"
     }
 
     private var othersText: String? {
@@ -833,6 +910,12 @@ private struct ThisWeekRow: View {
                             .foregroundColor(.black.opacity(0.55))
                     }
 
+                    if let pace = paceText {
+                        Text(pace)
+                            .font(.kuroCaption(weight: .light))
+                            .foregroundColor(.black.opacity(0.45))
+                    }
+
                     if let othersText {
                         Text(othersText)
                             .font(.kuroCaption(weight: .light))
@@ -847,6 +930,290 @@ private struct ThisWeekRow: View {
         .buttonStyle(.plain)
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: mediaKind, id: item.media_id)
+        }
+    }
+}
+
+// MARK: - Club Chat Tab
+
+private struct ClubChatTab: View {
+    let clubId: String
+    let bundle: SupabaseService.ClubBundle
+
+    @Environment(SupabaseService.self) private var supabaseService
+    @State private var messages: [SupabaseService.ClubMessage] = []
+    @State private var messageText = ""
+    @State private var isLoading = true
+    @State private var isSending = false
+    @State private var hasMorePages = true
+    @FocusState private var isInputFocused: Bool
+
+    private var currentUserId: String? {
+        supabaseService.currentUserId
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Messages area
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVStack(spacing: KuroDesignSpacing.sm) {
+                        if hasMorePages && !isLoading {
+                            Button("Load earlier messages") {
+                                Task { await loadMore() }
+                            }
+                            .font(.kuroCaption(weight: .light))
+                            .foregroundColor(.black.opacity(0.45))
+                            .padding(.vertical, KuroDesignSpacing.sm)
+                        }
+
+                        if isLoading && messages.isEmpty {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .tint(.black.opacity(0.45))
+                                .padding(.vertical, KuroDesignSpacing.xl)
+                        }
+
+                        ForEach(messages) { msg in
+                            ClubChatBubble(
+                                message: msg,
+                                isOwnMessage: msg.user_id == currentUserId,
+                                members: bundle.members
+                            )
+                            .id(msg.id)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, KuroDesignSpacing.md)
+                    .padding(.bottom, KuroDesignSpacing.sm)
+                }
+                .onChange(of: messages.count) { _, _ in
+                    if let last = messages.last {
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
+                    }
+                }
+            }
+
+            EditorialLayout.divider()
+
+            // Input bar
+            HStack(spacing: KuroDesignSpacing.sm) {
+                TextField("Message...", text: $messageText, axis: .vertical)
+                    .font(.kuroBody(weight: .light))
+                    .lineLimit(1...4)
+                    .focused($isInputFocused)
+                    .onChange(of: messageText) { _, newValue in
+                        if newValue.count > 280 {
+                            messageText = String(newValue.prefix(280))
+                        }
+                    }
+
+                Button {
+                    sendMessage()
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 28, weight: .regular))
+                        .foregroundColor(
+                            canSend ? .black.opacity(0.80) : .black.opacity(0.20)
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSend)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .background(Color.kuroBackground)
+        }
+        .task {
+            await loadMessages()
+        }
+    }
+
+    private var canSend: Bool {
+        !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
+    }
+
+    private func loadMessages() async {
+        isLoading = true
+        do {
+            messages = try await supabaseService.fetchClubMessages(clubId: clubId)
+            hasMorePages = messages.count >= 50
+        } catch {
+            #if DEBUG
+            print("❌ loadMessages: \(error)")
+            #endif
+        }
+        isLoading = false
+    }
+
+    private func loadMore() async {
+        guard let oldest = messages.first else { return }
+        do {
+            let older = try await supabaseService.fetchClubMessages(
+                clubId: clubId, limit: 50, before: oldest.created_at
+            )
+            if older.isEmpty {
+                hasMorePages = false
+            } else {
+                messages.insert(contentsOf: older, at: 0)
+                hasMorePages = older.count >= 50
+            }
+        } catch {
+            #if DEBUG
+            print("❌ loadMore: \(error)")
+            #endif
+        }
+    }
+
+    private func sendMessage() {
+        let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        isSending = true
+        messageText = ""
+
+        // Optimistic local message
+        let optimisticMsg = SupabaseService.ClubMessage(
+            id: UUID().uuidString,
+            user_id: currentUserId ?? "",
+            display_name: nil,
+            text: text,
+            created_at: ISO8601DateFormatter().string(from: Date())
+        )
+        messages.append(optimisticMsg)
+
+        Task {
+            do {
+                let resp = try await supabaseService.sendClubMessage(clubId: clubId, text: text)
+                // Replace optimistic message with server response
+                if let idx = messages.firstIndex(where: { $0.id == optimisticMsg.id }) {
+                    messages[idx] = SupabaseService.ClubMessage(
+                        id: resp.message_id,
+                        user_id: currentUserId ?? "",
+                        display_name: nil,
+                        text: text,
+                        created_at: resp.created_at
+                    )
+                }
+            } catch {
+                // Remove optimistic message on failure
+                messages.removeAll { $0.id == optimisticMsg.id }
+                KuroAccessibility.errorHaptic()
+            }
+            isSending = false
+        }
+    }
+}
+
+// MARK: - Club Chat Bubble
+
+private struct ClubChatBubble: View {
+    let message: SupabaseService.ClubMessage
+    let isOwnMessage: Bool
+    let members: [SupabaseService.ClubMember]
+
+    private var displayName: String {
+        if let name = message.display_name, !name.isEmpty { return name }
+        if let member = members.first(where: { $0.user_id == message.user_id }),
+           let name = member.display_name, !name.isEmpty {
+            return name
+        }
+        return String(message.user_id.prefix(8))
+    }
+
+    private var initial: String {
+        String(displayName.prefix(1)).uppercased()
+    }
+
+    private var relativeTime: String {
+        guard let date = SupabaseService.parseISO8601(message.created_at) else { return "" }
+        let seconds = Date().timeIntervalSince(date)
+        if seconds < 60 { return "now" }
+        if seconds < 3600 { return "\(Int(seconds / 60))m" }
+        if seconds < 86400 { return "\(Int(seconds / 3600))h" }
+        return "\(Int(seconds / 86400))d"
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            if !isOwnMessage {
+                Circle()
+                    .fill(Color.black.opacity(0.06))
+                    .frame(width: 24, height: 24)
+                    .overlay(
+                        Text(initial)
+                            .font(.kuroMicro(weight: .medium))
+                            .foregroundColor(.black.opacity(0.55))
+                    )
+            }
+
+            VStack(alignment: isOwnMessage ? .trailing : .leading, spacing: 2) {
+                if !isOwnMessage {
+                    HStack(spacing: 4) {
+                        Text(displayName)
+                            .font(.kuroMicro(weight: .medium))
+                            .foregroundColor(.black.opacity(0.50))
+                        Text(relativeTime)
+                            .font(.kuroMicro())
+                            .foregroundColor(.black.opacity(0.30))
+                    }
+                }
+
+                Text(message.text)
+                    .font(.kuroBody(weight: .light))
+                    .foregroundColor(.black.opacity(0.85))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color.black.opacity(isOwnMessage ? 0.08 : 0.04))
+                    )
+
+                if isOwnMessage {
+                    Text(relativeTime)
+                        .font(.kuroMicro())
+                        .foregroundColor(.black.opacity(0.30))
+                }
+            }
+
+            if isOwnMessage {
+                Spacer(minLength: 40)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: isOwnMessage ? .trailing : .leading)
+    }
+}
+
+// MARK: - Club Milestone Card
+
+private struct ClubMilestoneCard: View {
+    let item: SupabaseService.ClubRailItem
+    let memberCount: Int
+
+    var body: some View {
+        KuroGlassCard(cornerRadius: KuroRadius.lg) {
+            HStack(spacing: KuroDesignSpacing.sm) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(.black.opacity(0.55))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("COMPLETED TOGETHER")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(1.0)
+                        .foregroundColor(.black.opacity(0.50))
+
+                    Text("All \(memberCount) members finished \(item.title_display)")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.black.opacity(0.65))
+                        .lineLimit(2)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, KuroDesignSpacing.md)
+            .padding(.vertical, KuroDesignSpacing.sm)
         }
     }
 }
@@ -988,6 +1355,87 @@ private struct ClubPollOptionRow: View {
         }
         .buttonStyle(.plain)
         .disabled(isClosed || isSubmittingVote)
+    }
+}
+
+// MARK: - Club Reaction Row
+
+private struct ClubReactionRow: View {
+    let item: SupabaseService.ClubRailItem
+
+    @Environment(SupabaseService.self) private var supabaseService
+    @State private var optimisticReactions: [String: Int]?
+    @State private var optimisticMyReactions: Set<String>?
+
+    private static let emojis = ["fire", "heart", "eyes", "100"]
+    private static let emojiDisplay: [String: String] = [
+        "fire": "\u{1F525}", "heart": "\u{2764}\u{FE0F}", "eyes": "\u{1F440}", "100": "\u{1F4AF}"
+    ]
+
+    private var effectiveReactions: [String: Int] {
+        optimisticReactions ?? item.reactions ?? [:]
+    }
+
+    private var effectiveMyReactions: Set<String> {
+        optimisticMyReactions ?? Set(item.my_reactions ?? [])
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(Self.emojis, id: \.self) { emoji in
+                let count = effectiveReactions[emoji] ?? 0
+                let isMine = effectiveMyReactions.contains(emoji)
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    toggleReaction(emoji: emoji)
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(Self.emojiDisplay[emoji] ?? emoji)
+                            .font(.system(size: 11))
+                        if count > 0 {
+                            Text("\(count)")
+                                .font(.kuroMicro(weight: .medium))
+                                .foregroundColor(.black.opacity(0.55))
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(Color.black.opacity(isMine ? 0.10 : 0.04))
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(width: 110, alignment: .leading)
+    }
+
+    private func toggleReaction(emoji: String) {
+        let isMine = effectiveMyReactions.contains(emoji)
+        var newReactions = effectiveReactions
+        var newMy = effectiveMyReactions
+
+        if isMine {
+            newReactions[emoji] = max(0, (newReactions[emoji] ?? 0) - 1)
+            if newReactions[emoji] == 0 { newReactions.removeValue(forKey: emoji) }
+            newMy.remove(emoji)
+        } else {
+            newReactions[emoji] = (newReactions[emoji] ?? 0) + 1
+            newMy.insert(emoji)
+        }
+
+        optimisticReactions = newReactions
+        optimisticMyReactions = newMy
+
+        Task {
+            do {
+                _ = try await supabaseService.toggleReaction(railItemId: item.id, emoji: emoji)
+            } catch {
+                optimisticReactions = nil
+                optimisticMyReactions = nil
+            }
+        }
     }
 }
 
