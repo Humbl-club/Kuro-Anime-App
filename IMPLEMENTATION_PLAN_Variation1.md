@@ -447,6 +447,7 @@ Three new on-device intelligence features shipped:
 | P2-8 | iOS | EditorialDiscoverView blank on first-load failure | `@State loadError` with inline retry view when `fetchDiscoverBundle()` fails |
 | P2-9 | Accessibility | Missing VoiceOver traits across views | `.accessibilityAddTraits(.isHeader)` on section headers in ClubDetailView, EditorialCollectionView, EditorialDiscoverView, ConciergeRecommendationRails. `.accessibilityLabel` on ClubsView empty state + club cards. Message bubble labels ("You said:"/"Concierge:") and combined clarification card labels in ConciergeView/Components |
 | P2-10 | Infrastructure | No deep linking | `DeepLinkRouter.swift` (enum DeepLink: anime/manga/club/collection/discover/concierge), `KuroApp.swift` `.onOpenURL`, `ContentView.swift` navigation/sheet handling, Associated Domains placeholder in entitlements |
+| P2-11 | Infrastructure | Default Supabase emails, no auth callback flow | 5 branded email templates (confirm, reset, magic-link, change-email, invite) with monochrome editorial styling. `auth-callback` edge function deployed (dark redirect page, token extraction, `kuro://` deep link). `DeepLinkRouter` extended with `.authCallback`. `KuroApp` intercepts auth callbacks before auth gate. `SupabaseService` extended with `redirectTo` + `handleAuthCallback()`. Manual step: paste templates + add redirect URL in Supabase Dashboard. |
 
 ### Still Pending (deferred)
 

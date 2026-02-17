@@ -261,7 +261,8 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260215130000_fix_club_fk_housekeeping_gdpr.sql` *(fix club FK constraints, housekeeping, GDPR cleanup)*
 - `supabase/migrations/20260216193000_add_club_rail_item_structured_errors.sql` *(structured error codes for add_club_rail_item RPC)*
 
-### Supabase Edge Functions (index.ts) (count: 12)
+### Supabase Edge Functions (index.ts) (count: 13)
+- `supabase/functions/auth-callback/index.ts` *(email verification redirect — serves dark-themed HTML page that forwards tokens via kuro:// deep link)*
 - `supabase/functions/bulk-import-anime/index.ts`
 - `supabase/functions/bulk-import-manga/index.ts`
 - `supabase/functions/concierge-apply/index.ts`
@@ -314,8 +315,8 @@ node scripts/generate_app_state_inventory.js
 
 ### iOS app structure (`/Kuro`)
 - `Kuro/ContentView.swift` — app entry point + navigation/swipe pager + top header
-- `Kuro/KuroApp.swift` — `@main` entry, `scenePhase` lifecycle handling, `NetworkMonitor` + `SupabaseService` environment injection, `.onOpenURL` deep link handler
-- `Kuro/Services/DeepLinkRouter.swift` — `enum DeepLink` with cases for anime(id:), manga(id:), club(id:), collection, discover, concierge(prompt:); parses `kuro://` scheme URLs
+- `Kuro/KuroApp.swift` — `@main` entry, `scenePhase` lifecycle handling, `NetworkMonitor` + `SupabaseService` environment injection, `.onOpenURL` deep link handler (auth callbacks intercepted at app level before auth gate)
+- `Kuro/Services/DeepLinkRouter.swift` — `enum DeepLink` with cases for anime(id:), manga(id:), club(id:), collection, discover, concierge(prompt:), authCallback(accessToken:, refreshToken:); parses `kuro://` scheme URLs
 - `Kuro/Services/AppleFMService.swift` — Apple Foundation Models integration (on-device LLM: mode classification, disambiguation, synopsis condensation, collection search intent)
 - `Kuro/Services/NetworkMonitor.swift` — `NWPathMonitor` connectivity tracking, `@Environment` injection, offline banner
 - `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching, `fmService` (AppleFMService), `withRetry` helper
@@ -361,6 +362,7 @@ node scripts/generate_app_state_inventory.js
 - `concierge-apply/` — apply parsed items to user lists
 - `concierge-undo/` — rollback last import session
 - `mirror-images/` — mirror external images to Storage CDN
+- `auth-callback/` — email verification redirect; serves dark-themed HTML page with animated K logo, extracts tokens from URL hash, redirects to `kuro://auth/callback` deep link (verify_jwt: false)
 
 ### Scripts
 - `scripts/import_anilist_fast.js`, `scripts/import_anilist_local.js`, `scripts/run_full_import.js` — AniList ingestion
@@ -386,7 +388,8 @@ node scripts/generate_app_state_inventory.js
 - **Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page.
 - **Offline banner**: Monochrome "OFFLINE" text banner (9pt, tracked) appears at top of `RootView` when `networkMonitor.isConnected == false`. Injected as `@Environment` from `KuroApp`.
 - **App lifecycle**: `scenePhase` tracked in `KuroApp.swift` for background/foreground transitions.
-- **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.collection`, `.discover`, `.concierge(prompt:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links.
+- **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.collection`, `.discover`, `.concierge(prompt:)`, `.authCallback(accessToken:, refreshToken:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links. Auth callbacks are intercepted at `KuroApp` level (before auth gate) and call `handleAuthCallback()` to set session immediately.
+- **Auth email flow**: Email verification uses Supabase's `redirectTo` pointing to `auth-callback` edge function. The edge function serves a branded dark HTML page that extracts tokens from URL hash fragment and redirects to `kuro://auth/callback?access_token=...&refresh_token=...`. 5 branded email templates in `emails/` (confirm, reset-password, magic-link, change-email, invite).
 
 ### Header (top bar)
 - Left: **KURO** wordmark only (no concierge icon next to it).
@@ -1417,6 +1420,7 @@ This single command:
 
 ## 14) Change Log (append-only)
 
+- 2026-02-17: **Branded email templates + auth callback deep linking** — 5 editorial email templates in `emails/` (confirm, reset-password, magic-link, change-email, invite) with monochrome Kuro branding (Cormorant serif wordmark, warm gray background, black CTA buttons). `auth-callback` edge function deployed (verify_jwt: false) — serves dark-themed HTML redirect page with animated K logo that extracts tokens from Supabase hash fragment and redirects to `kuro://auth/callback`. `DeepLinkRouter` extended with `.authCallback(accessToken:, refreshToken:)` case. `KuroApp.swift` intercepts auth callbacks at app level (before auth gate) and calls `handleAuthCallback()`. `SupabaseService` extended with `authCallbackURL`, `redirectTo` in `signUpWithEmail`/`resetPassword`, and `handleAuthCallback()` method using `setSession()`. Commit: `740a2b4`.
 - 2026-02-17: **Detail page error feedback + accessibility fix** — `EpisodesSection`/`EpisodeListSheet` (AnimeDetailView) and `ChaptersSection`/`ChapterListSheet` (MangaDetailView) now show error toast to user when `markWatched`/`markRead` fails (was only `#if DEBUG` print). Thread `onError` callback from parent detail views; list sheets have own toast state + overlay. `ChapterItemRow` accessibility hint changed from hardcoded "Opens on AniList" to generic "Opens external link". Commit: `504716c`.
 - 2026-02-16: **P2 production blockers completed — backend hardening, iOS bug fixes, accessibility, deep linking** —
   - **Backend**: Migration `catalog_created_at_not_null` backfilled NULLs + set NOT NULL on `created_at` for 8 catalog tables. Migration `drop_unused_indexes_merge_policies_health_check` dropped 12 unused indexes (FTS/trigram superseded by title_search MV, duplicate genre GIN, unused sort indexes), merged duplicate club_members DELETE policies into single `club_members_delete_self_or_admin`, created `check_mirror_health()` JSONB function. Mirror-images edge function: AVIF support in `getExtFromContentType()`, cache-control changed to `max-age=31536000, immutable`.

@@ -480,12 +480,22 @@ A batch of lower-priority production improvements was completed across the backe
   - `kuro://discover` — goes to the Discover page
   - `kuro://collection` — goes to your Collection
   - `kuro://concierge?prompt=action` — opens the Concierge with a pre-filled prompt
+  - `kuro://auth/callback?access_token=...&refresh_token=...` — handles email verification callback (signs user in immediately)
 - The app's entitlements file was updated with an Associated Domains placeholder for future Universal Links support (`kuro.app`).
+
+### Branded email templates + auth callback (new feature)
+- 5 custom email templates replace the default Supabase emails: signup verification, password reset, magic link, email change, and invitation.
+- Designed in the Kuro editorial style: monochrome, serif "K" wordmark, warm gray (#f5f5f0) background, black call-to-action buttons, minimal copy.
+- **Email verification flow**: When a user signs up or clicks a verification link, Supabase verifies the token and redirects to the `auth-callback` edge function. This serves a dark-themed HTML page with an animated K logo that automatically extracts the session tokens and opens the Kuro app via deep link (`kuro://auth/callback`). The app receives the tokens and signs the user in immediately — no need to go back and manually log in.
+- A "Open Kuro" fallback button appears after 4 seconds in case the automatic redirect doesn't work.
+- Email templates are in `emails/` and need to be pasted into Supabase Dashboard → Authentication → Email Templates.
+- The auth-callback edge function URL needs to be added to Supabase Dashboard → Authentication → URL Configuration → Additional Redirect URLs.
 
 ---
 
 ## 18) Change Log (append-only)
 
+- 2026-02-17: **Branded email templates + auth callback deep linking**: 5 branded email templates (confirm, reset, magic-link, change-email, invite) with monochrome Kuro editorial styling. Auth-callback edge function deployed — dark-themed redirect page that extracts tokens from URL hash and opens Kuro via deep link. iOS handles auth callbacks at app level (before auth gate) with `handleAuthCallback()` using `setSession()`. `signUpWithEmail` and `resetPassword` now pass `redirectTo` pointing to the edge function. Files: `emails/*`, `supabase/functions/auth-callback/index.ts`, `DeepLinkRouter.swift`, `SupabaseService.swift`, `KuroApp.swift`, `ContentView.swift`.
 - 2026-02-17: **Detail page error feedback fix**: When marking an episode as watched or a chapter as read fails (e.g. network error), the app now shows a visible error toast instead of silently failing. This applies to both the inline preview and the full episode/chapter list sheets. Also fixed the chapter row accessibility hint from "Opens on AniList" to the generic "Opens external link" since the link can go to any source.
 - 2026-02-16: **P2 production blockers completed**: Backend hardening (NOT NULL on catalog created_at, 12 unused indexes dropped, duplicate club_members policy merged, mirror health check function, mirror AVIF support + 1-year cache). iOS bug fixes (vote error toast in clubs, Task.detached cancellation in concierge, discover error state with retry). Accessibility pass across 6 views (VoiceOver headings, labels, combined descriptions). Deep linking infrastructure (kuro:// scheme with anime/manga/club/page routes, Associated Domains placeholder). Added section 17.1.
 - 2026-02-16: **Add to rail from clubs + adaptive card sizing**: You can now add anime or manga directly to a club rail without leaving the club. Each rail has a "+" button that opens a search sheet — type a title, tap to add. Locked rails only show the button for admins/owners. Error messages are clear (e.g. "This title is already in this rail"). Member labels in club activity now use a stable short ID instead of "Member 1, Member 2". Card sizes across Discover, Genre Hub, and detail pages now adapt to your screen width instead of being hardcoded.
