@@ -66,7 +66,7 @@ struct MangaDetailView: View {
                         
                         // Chapters Section (if available)
                         if let chapterCount = manga.chapterCount {
-                            ChaptersSection(manga: manga, chapterCount: chapterCount)
+                            ChaptersSection(manga: manga, chapterCount: chapterCount, onError: showToast)
                         }
                         
                         // Volumes Section (if available)
@@ -546,6 +546,7 @@ struct MangaStatsGrid: View {
 struct ChaptersSection: View {
     let manga: Manga
     let chapterCount: Int
+    var onError: ((KuroToastState) -> Void)? = nil
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.openURL) private var openURL
     @State private var chapters: [MangaChapter] = []
@@ -661,6 +662,7 @@ struct ChaptersSection: View {
             await supabaseService.setUserProgress(mediaId: manga.id, mediaType: "manga", progress: target)
             if let msg = supabaseService.errorMessage, !msg.isEmpty {
                 KuroAccessibility.errorHaptic()
+                onError?(KuroToastState(kind: .error, title: "Update failed", subtitle: "Could not mark chapter \(ch.number).", actionTitle: nil, onAction: nil))
                 #if DEBUG
                 print("markRead failed for chapter \(ch.number): \(msg)")
                 #endif
@@ -736,7 +738,7 @@ struct ChapterItemRow: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityValue(accessibilityValueText())
-        .accessibilityHint(hasExternalLink ? "Opens on AniList" : "")
+        .accessibilityHint(hasExternalLink ? "Opens external link" : "")
         .accessibilityAction { if hasExternalLink { onOpen() } }
         .accessibilityAction(named: "Mark read") {
             if !isRead && !isMarking { onMarkRead() }
@@ -793,6 +795,8 @@ struct ChapterListSheet: View {
     @State private var hasMore: Bool = true
     @State private var offset: Int = 0
     @State private var markingChapter: Int? = nil
+    @State private var toast: KuroToastState? = nil
+    @State private var toastDismissTask: Task<Void, Never>? = nil
 
     private let pageSize: Int = 50
 
@@ -855,7 +859,27 @@ struct ChapterListSheet: View {
                 await loadMore(reset: true)
             }
         }
+        .overlay(alignment: .bottom) {
+            if let toast {
+                KuroToast(toast: toast)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
         .presentationDetents([.medium, .large])
+    }
+
+    @MainActor
+    private func showToast(_ next: KuroToastState) {
+        toastDismissTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.2)) { toast = next }
+        toastDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(2.2 * 1_000_000_000))
+            if !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.2)) { toast = nil }
+            }
+        }
     }
 
     private func loadMore(reset: Bool = false) async {
@@ -892,6 +916,7 @@ struct ChapterListSheet: View {
             await supabaseService.setUserProgress(mediaId: manga.id, mediaType: "manga", progress: target)
             if let msg = supabaseService.errorMessage, !msg.isEmpty {
                 KuroAccessibility.errorHaptic()
+                showToast(KuroToastState(kind: .error, title: "Update failed", subtitle: "Could not mark chapter \(ch.number).", actionTitle: nil, onAction: nil))
                 #if DEBUG
                 print("markRead failed for chapter \(ch.number): \(msg)")
                 #endif

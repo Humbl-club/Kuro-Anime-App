@@ -69,7 +69,8 @@ struct AnimeDetailView: View {
                             EpisodesSection(
                                 anime: anime,
                                 episodeCount: episodeCount,
-                                countLabel: anime.episodeCount == nil ? "SO FAR" : "TOTAL"
+                                countLabel: anime.episodeCount == nil ? "SO FAR" : "TOTAL",
+                                onError: showToast
                             )
                         }
 
@@ -708,6 +709,7 @@ struct EpisodesSection: View {
     let anime: Anime
     let episodeCount: Int
     let countLabel: String
+    var onError: ((KuroToastState) -> Void)? = nil
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.openURL) private var openURL
     @State private var episodes: [Episode] = []
@@ -838,6 +840,7 @@ struct EpisodesSection: View {
             await supabaseService.setUserProgress(mediaId: anime.id, mediaType: "anime", progress: target)
             if let msg = supabaseService.errorMessage, !msg.isEmpty {
                 KuroAccessibility.errorHaptic()
+                onError?(KuroToastState(kind: .error, title: "Update failed", subtitle: "Could not mark episode \(ep.number).", actionTitle: nil, onAction: nil))
                 #if DEBUG
                 print("markWatched failed for episode \(ep.number): \(msg)")
                 #endif
@@ -968,6 +971,8 @@ struct EpisodeListSheet: View {
     @State private var hasMore: Bool = true
     @State private var offset: Int = 0
     @State private var markingEpisode: Int? = nil
+    @State private var toast: KuroToastState? = nil
+    @State private var toastDismissTask: Task<Void, Never>? = nil
 
     private let pageSize: Int = 50
 
@@ -1027,7 +1032,27 @@ struct EpisodeListSheet: View {
                 await loadMore(reset: true)
             }
         }
+        .overlay(alignment: .bottom) {
+            if let toast {
+                KuroToast(toast: toast)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
         .presentationDetents([.medium, .large])
+    }
+
+    @MainActor
+    private func showToast(_ next: KuroToastState) {
+        toastDismissTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.2)) { toast = next }
+        toastDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(2.2 * 1_000_000_000))
+            if !Task.isCancelled {
+                withAnimation(.easeInOut(duration: 0.2)) { toast = nil }
+            }
+        }
     }
 
     private func loadMore(reset: Bool = false) async {
@@ -1080,6 +1105,7 @@ struct EpisodeListSheet: View {
             await supabaseService.setUserProgress(mediaId: anime.id, mediaType: "anime", progress: target)
             if let msg = supabaseService.errorMessage, !msg.isEmpty {
                 KuroAccessibility.errorHaptic()
+                showToast(KuroToastState(kind: .error, title: "Update failed", subtitle: "Could not mark episode \(ep.number).", actionTitle: nil, onAction: nil))
                 #if DEBUG
                 print("markWatched failed for episode \(ep.number): \(msg)")
                 #endif
