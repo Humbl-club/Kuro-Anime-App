@@ -377,6 +377,8 @@ struct KuroMainView: View {
         case .concierge:
             selection = .concierge
             mountedSections.insert(.concierge)
+        case .authCallback:
+            break // Handled at app level in KuroApp.swift, never reaches here
         }
     }
 }

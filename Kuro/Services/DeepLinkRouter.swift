@@ -12,6 +12,7 @@ enum DeepLink: Equatable {
     case collection
     case discover
     case concierge(prompt: String?)
+    case authCallback(accessToken: String, refreshToken: String)
 
     /// Parse a `kuro://` URL into a `DeepLink`.
     ///
@@ -23,12 +24,14 @@ enum DeepLink: Equatable {
     /// - `kuro://discover`
     /// - `kuro://concierge`
     /// - `kuro://concierge?prompt=hello`
+    /// - `kuro://auth/callback?access_token=...&refresh_token=...`
     static func from(url: URL) -> DeepLink? {
         guard let scheme = url.scheme?.lowercased(),
               scheme == "kuro" else { return nil }
 
         let host = url.host?.lowercased() ?? ""
         let pathComponents = url.pathComponents.filter { $0 != "/" }
+        let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems
 
         switch host {
         case "anime":
@@ -47,11 +50,14 @@ enum DeepLink: Equatable {
         case "discover":
             return .discover
         case "concierge":
-            let prompt = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-                .queryItems?
-                .first(where: { $0.name == "prompt" })?
-                .value
+            let prompt = queryItems?.first(where: { $0.name == "prompt" })?.value
             return .concierge(prompt: prompt)
+        case "auth":
+            guard pathComponents.first?.lowercased() == "callback",
+                  let accessToken = queryItems?.first(where: { $0.name == "access_token" })?.value,
+                  let refreshToken = queryItems?.first(where: { $0.name == "refresh_token" })?.value,
+                  !accessToken.isEmpty, !refreshToken.isEmpty else { return nil }
+            return .authCallback(accessToken: accessToken, refreshToken: refreshToken)
         default:
             return nil
         }

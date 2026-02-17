@@ -31,7 +31,20 @@ struct KuroApp: App {
                 // Until we have a full dark palette, keep system appearance stable.
                 .preferredColorScheme(.light)
                 .onOpenURL { url in
-                    pendingDeepLink = DeepLink.from(url: url)
+                    if let link = DeepLink.from(url: url) {
+                        // Auth callbacks are handled immediately at the app level
+                        // (before auth gate), not passed to ContentView.
+                        if case .authCallback(let accessToken, let refreshToken) = link {
+                            Task {
+                                await supabaseService.handleAuthCallback(
+                                    accessToken: accessToken,
+                                    refreshToken: refreshToken
+                                )
+                            }
+                        } else {
+                            pendingDeepLink = link
+                        }
+                    }
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     switch newPhase {

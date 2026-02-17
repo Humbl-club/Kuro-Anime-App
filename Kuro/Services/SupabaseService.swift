@@ -416,10 +416,13 @@ class SupabaseService {
         }
     }
 
+    /// Auth callback redirect URL — edge function that bounces back to the app via kuro:// deep link.
+    static let authCallbackURL = URL(string: "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/auth-callback")!
+
     func signUpWithEmail(email: String, password: String) async throws {
         authErrorMessage = nil
         do {
-            _ = try await client.auth.signUp(email: email, password: password)
+            _ = try await client.auth.signUp(email: email, password: password, redirectTo: Self.authCallbackURL)
             // Depending on Supabase settings, user may need email confirmation. We still attempt bootstrap if a session exists.
             if let session = (try? await client.auth.session) {
                 isAuthenticated = true
@@ -473,7 +476,25 @@ class SupabaseService {
     }
 
     func resetPassword(email: String) async throws {
-        try await client.auth.resetPasswordForEmail(email)
+        try await client.auth.resetPasswordForEmail(email, redirectTo: Self.authCallbackURL)
+    }
+
+    /// Handle auth callback deep link — set session from tokens received via email verification redirect.
+    func handleAuthCallback(accessToken: String, refreshToken: String) async {
+        do {
+            try await client.auth.setSession(accessToken: accessToken, refreshToken: refreshToken)
+            let session = try await client.auth.session
+            isAuthenticated = true
+            currentUserEmail = session.user.email
+            currentUserId = session.user.id.uuidString
+            analytics.setUserId(currentUserId)
+            await ensureProfileRow()
+            await bootstrapAfterAuth()
+        } catch {
+            #if DEBUG
+            print("handleAuthCallback failed: \(error.localizedDescription)")
+            #endif
+        }
     }
 
     /// GDPR-compliant account deletion. Calls the `delete-account` Edge Function
