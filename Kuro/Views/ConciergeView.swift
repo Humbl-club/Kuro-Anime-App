@@ -58,6 +58,13 @@ struct ConciergeView: View {
     @State private var lastAppliedImportMessageId: UUID? = nil
     @State private var lastRecommendQuery: String? = nil
     @State private var lastRecommendWasRagAssist: Bool = false
+    @State private var warmupTask: Task<Void, Never>? = nil
+    @State private var prefetchTask: Task<Void, Never>? = nil
+    @State private var prefetchTask2: Task<Void, Never>? = nil
+    @State private var backgroundRefreshTask: Task<Void, Never>? = nil
+    @State private var backgroundRefreshTask2: Task<Void, Never>? = nil
+    @State private var undoRefreshTask: Task<Void, Never>? = nil
+    @State private var disambiguationTask: Task<Void, Never>? = nil
     @State private var lastRagSeedEntityId: String? = nil
     @State private var ragFeedbackSentForQuery: Set<String> = []
     @State private var showAniListImportSheet: Bool = false
@@ -139,12 +146,20 @@ struct ConciergeView: View {
         }
         .task {
             // Warm up the edge function isolate on view appear (fire-and-forget)
-            Task.detached(priority: .background) {
+            warmupTask = Task.detached(priority: .background) {
                 await supabaseService.conciergeWarmup()
             }
         }
         .onDisappear {
             lastApplySessionResetTask?.cancel()
+            warmupTask?.cancel()
+            prefetchTask?.cancel()
+            prefetchTask2?.cancel()
+            backgroundRefreshTask?.cancel()
+            backgroundRefreshTask2?.cancel()
+            undoRefreshTask?.cancel()
+            toastDismissTask?.cancel()
+            disambiguationTask?.cancel()
         }
         .preferredColorScheme(.light)
     }
@@ -843,7 +858,7 @@ struct ConciergeView: View {
             let prefetchStart = CFAbsoluteTimeGetCurrent()
             print("[Concierge Timing] image prefetch started: \(String(format: "%.1f", (prefetchStart - parseEnd) * 1000))ms after parse")
             #endif
-            Task.detached(priority: .background) {
+            prefetchTask = Task.detached(priority: .background) {
                 await ImagePipeline.shared.prefetch(urls: coverUrls, maxPixelSize: 520)
             }
             #endif
@@ -926,7 +941,7 @@ struct ConciergeView: View {
             // (e.g. "Hunter x Hunter" 1999 vs 2011). This runs after the confirm bubble is visible
             // so the UI stays snappy, and it never overrides a user-made selection.
             if !ambiguousItemsNeedingHelp.isEmpty {
-                Task {
+                disambiguationTask = Task {
                     await autoDisambiguateAmbiguousAdaptations(items: ambiguousItemsNeedingHelp, userText: text)
                 }
             }
@@ -1036,7 +1051,7 @@ struct ConciergeView: View {
             }
 
             // Refresh collection in background (don't block toast)
-            Task.detached {
+            backgroundRefreshTask = Task.detached {
                 async let _lists: () = supabaseService.fetchUserLists()
                 async let _items: () = supabaseService.fetchCollectionItems()
                 async let _feed: () = supabaseService.fetchCollectionFeed(status: nil)
@@ -1137,7 +1152,7 @@ struct ConciergeView: View {
             #if DEBUG
             print("[Concierge Timing] rec image prefetch started: \(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - recEnd) * 1000))ms after response")
             #endif
-            Task.detached(priority: .background) {
+            prefetchTask2 = Task.detached(priority: .background) {
                 await ImagePipeline.shared.prefetch(urls: recUrls, maxPixelSize: 560)
             }
             #endif
@@ -1207,7 +1222,7 @@ struct ConciergeView: View {
             }
 
             // Refresh collection in background
-            Task.detached {
+            backgroundRefreshTask2 = Task.detached {
                 async let _lists: () = supabaseService.fetchUserLists()
                 async let _items: () = supabaseService.fetchCollectionItems()
                 async let _feed: () = supabaseService.fetchCollectionFeed(status: nil)
@@ -1348,7 +1363,7 @@ struct ConciergeView: View {
             let res = try await supabaseService.conciergeUndo(sessionId: sessionId)
 
             // Refresh in background
-            Task.detached {
+            undoRefreshTask = Task.detached {
                 async let _lists: () = supabaseService.fetchUserLists()
                 async let _items: () = supabaseService.fetchCollectionItems()
                 async let _feed: () = supabaseService.fetchCollectionFeed(status: nil)

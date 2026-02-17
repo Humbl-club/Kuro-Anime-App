@@ -806,11 +806,27 @@ struct EpisodesSection: View {
         episodes = await supabaseService.fetchEpisodesNext(animeId: anime.id, fromNumber: nextEpisodeNumber, limit: 10)
     }
 
+    /// Validate and normalize a raw URL string (trim whitespace, ensure http/https scheme).
+    private func validatedEpisodeURL(from raw: String?) -> URL? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        var candidate = trimmed.replacingOccurrences(of: " ", with: "%20")
+        let lower = candidate.lowercased()
+        if !(lower.hasPrefix("http://") || lower.hasPrefix("https://")) {
+            guard !candidate.contains("://") else { return nil }
+            candidate = "https://\(candidate)"
+        }
+        guard let url = URL(string: candidate) else { return nil }
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
+        return url
+    }
+
     private func openEpisode(_ ep: Episode) {
         KuroAccessibility.impactHaptic(.light)
-        if let urlString = ep.streamUrl, let url = URL(string: urlString) {
+        if let url = validatedEpisodeURL(from: ep.streamUrl) {
             openURL(url)
-        } else if let urlString = anime.siteUrl, let url = URL(string: urlString) {
+        } else if let url = validatedEpisodeURL(from: anime.siteUrl) {
             openURL(url)
         }
     }
@@ -820,6 +836,12 @@ struct EpisodesSection: View {
         markingEpisode = ep.number
         Task {
             await supabaseService.setUserProgress(mediaId: anime.id, mediaType: "anime", progress: target)
+            if let msg = supabaseService.errorMessage, !msg.isEmpty {
+                KuroAccessibility.errorHaptic()
+                #if DEBUG
+                print("markWatched failed for episode \(ep.number): \(msg)")
+                #endif
+            }
             await MainActor.run { markingEpisode = nil }
         }
     }
@@ -1026,11 +1048,27 @@ struct EpisodeListSheet: View {
         hasLoadedOnce = true
     }
 
+    /// Validate and normalize a raw URL string (trim whitespace, ensure http/https scheme).
+    private func validatedEpisodeURL(from raw: String?) -> URL? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        var candidate = trimmed.replacingOccurrences(of: " ", with: "%20")
+        let lower = candidate.lowercased()
+        if !(lower.hasPrefix("http://") || lower.hasPrefix("https://")) {
+            guard !candidate.contains("://") else { return nil }
+            candidate = "https://\(candidate)"
+        }
+        guard let url = URL(string: candidate) else { return nil }
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
+        return url
+    }
+
     private func openEpisode(_ ep: Episode) {
         KuroAccessibility.impactHaptic(.light)
-        if let urlString = ep.streamUrl, let url = URL(string: urlString) {
+        if let url = validatedEpisodeURL(from: ep.streamUrl) {
             openURL(url)
-        } else if let urlString = anime.siteUrl, let url = URL(string: urlString) {
+        } else if let url = validatedEpisodeURL(from: anime.siteUrl) {
             openURL(url)
         }
     }
@@ -1040,6 +1078,12 @@ struct EpisodeListSheet: View {
         markingEpisode = ep.number
         Task {
             await supabaseService.setUserProgress(mediaId: anime.id, mediaType: "anime", progress: target)
+            if let msg = supabaseService.errorMessage, !msg.isEmpty {
+                KuroAccessibility.errorHaptic()
+                #if DEBUG
+                print("markWatched failed for episode \(ep.number): \(msg)")
+                #endif
+            }
             await MainActor.run { markingEpisode = nil }
         }
     }

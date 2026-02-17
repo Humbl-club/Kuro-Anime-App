@@ -27,7 +27,7 @@ serve(async (req) => {
   // New: skip processing if URL already points to our Storage CDN
   const skipIfMirrored: boolean = payload.skipIfMirrored ?? true;
   // New: cache control for uploads (seconds)
-  const cacheControl: string = (payload.cacheControl !== undefined ? String(payload.cacheControl) : '604800');
+  const cacheControl: string = (payload.cacheControl !== undefined ? String(payload.cacheControl) : 'max-age=31536000, immutable');
   // New: soft time budget to keep cron runs reliable (Edge Functions have a hard timeout).
   const timeBudgetMs: number = payload.timeBudgetMs ?? 90000;
   const startedMs = Date.now();
@@ -228,6 +228,7 @@ serve(async (req) => {
     if (!ct) return 'jpg';
     if (ct.includes('png')) return 'png';
     if (ct.includes('webp')) return 'webp';
+    if (ct.includes('avif')) return 'avif';
     return 'jpg';
   }
 

@@ -10,6 +10,7 @@ struct EditorialDiscoverView: View {
     @State private var isLoadingSections = false
     @State private var didInitialLoad = false
     @State private var bannerMessage: String? = nil
+    @State private var loadError = false
 
     // Premium rails
     @State private var showFullEssentials = false
@@ -49,6 +50,35 @@ struct EditorialDiscoverView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 if isLoadingSections && !hasAnyContent {
                     EditorialLoadingView()
+                } else if loadError && !hasAnyContent {
+                    VStack(spacing: KuroDesignSpacing.md) {
+                        Image(systemName: "wifi.slash")
+                            .font(.system(size: 28, weight: .light))
+                            .foregroundColor(.black.opacity(0.25))
+                        Text("COULDN'T LOAD")
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.6)
+                            .foregroundColor(.black.opacity(0.55))
+                        Text("Check your connection and try again.")
+                            .font(.kuroBody(weight: .light))
+                            .foregroundColor(.black.opacity(0.40))
+                        Button {
+                            Task { await refreshSections() }
+                        } label: {
+                            Text("RETRY")
+                                .font(.kuroCaption(weight: .medium))
+                                .tracking(1.6)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 10)
+                                .background(Capsule().fill(Color.black))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, KuroDesignSpacing.sm)
+                    }
+                    .padding(.top, 80)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Failed to load discover content. Retry button available.")
                 } else if !isLoadingSections && !hasAnyContent {
                     EditorialEmptyView(onRetry: {
                         await refreshSections()
@@ -287,9 +317,12 @@ struct EditorialDiscoverView: View {
             guard let bundle else {
                 if hadContentBefore {
                     showBanner("Couldn't refresh. Try again.")
+                } else {
+                    loadError = true
                 }
                 return
             }
+            loadError = false
 
             vm.essentials = bundle.anime.essentials
             vm.classics = bundle.anime.classics
@@ -407,6 +440,7 @@ struct CompactHorizontalSection<Item: MediaDisplayable>: View {
                         .font(.system(size: 16, weight: .semibold))
                         .tracking(0.5)
                         .foregroundColor(.black)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text(subtitle)
                         .font(.system(size: 11, weight: .regular))
@@ -922,6 +956,7 @@ struct CompactHorizontalMangaSection<Item: MediaDisplayable>: View {
                         .font(.system(size: 16, weight: .semibold))
                         .tracking(0.5)
                         .foregroundColor(.black)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text(subtitle)
                         .font(.system(size: 11, weight: .regular))
@@ -1046,6 +1081,7 @@ struct Dense2ColumnSectionFixed<Item: MediaDisplayable>: View {
                         .font(.system(size: 16, weight: .semibold))
                         .tracking(0.5)
                         .foregroundColor(.black)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text(subtitle)
                         .font(.system(size: 11, weight: .regular))
@@ -1124,6 +1160,7 @@ struct Dense2ColumnMangaSectionFixed<Item: MediaDisplayable>: View {
                         .font(.system(size: 16, weight: .semibold))
                         .tracking(0.5)
                         .foregroundColor(.black)
+                        .accessibilityAddTraits(.isHeader)
 
                     Text(subtitle)
                         .font(.system(size: 11, weight: .regular))

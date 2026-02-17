@@ -126,6 +126,7 @@ struct ClubsView: View {
                     .foregroundColor(.black.opacity(0.50))
             }
         }
+        .accessibilityLabel("Loading clubs")
     }
 
     private var emptyState: some View {
@@ -168,6 +169,8 @@ struct ClubsView: View {
             .padding(.horizontal, KuroDesignSpacing.md)
             .padding(.bottom, KuroDesignSpacing.lg)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("No clubs yet. Create a club or join with an invite code.")
     }
 
     // MARK: - Club List
@@ -232,6 +235,7 @@ struct ClubsView: View {
                         ClubCardRow(club: club, hasUnseen: supabaseService.hasUnseenActivity(club: club))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("\(club.name), \(club.member_count ?? 0) member\((club.member_count ?? 0) == 1 ? "" : "s")\(supabaseService.hasUnseenActivity(club: club) ? ", new activity" : "")")
                 }
             }
         }

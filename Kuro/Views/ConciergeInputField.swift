@@ -500,6 +500,8 @@ struct ConciergeInputField: View {
         }
         .disabled(!canSend)
         .buttonStyle(.plain)
+        .accessibilityLabel("Send message")
+        .accessibilityHint(canSend ? "Sends your message to Concierge" : "Type a message first")
     }
     
     // MARK: - Actions

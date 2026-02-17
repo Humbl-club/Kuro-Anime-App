@@ -165,6 +165,9 @@ struct RecommendationRail: View {
                     .lineLimit(1)
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityLabel("\(title), \(visibleItems.count) recommendations")
     }
 }
 
@@ -179,6 +182,7 @@ struct RecommendationCard: View {
     let onHide: () -> Void
     let onWhyThis: () -> Void
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @State private var didDrag = false
 
     private let posterHeight: CGFloat = 210
     
@@ -202,11 +206,27 @@ struct RecommendationCard: View {
             .opacity(appeared ? 1 : 0)
             .offset(x: appeared ? 0 : 10)
             .animation(.easeOut(duration: 0.5).delay(Double(index + 1) * 0.1), value: appeared)
-            .onTapGesture {
-                guard !suppressCardTaps else { return }
-                KuroAccessibility.impactHaptic(.light)
-                onOpen()
-            }
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                    .onChanged { value in
+                        if abs(value.translation.width) > 10 || abs(value.translation.height) > 10 {
+                            didDrag = true
+                        }
+                    }
+                    .onEnded { value in
+                        defer { didDrag = false }
+                        guard !suppressCardTaps else { return }
+                        guard !didDrag else { return }
+                        if abs(value.translation.width) < 10 && abs(value.translation.height) < 10 {
+                            KuroAccessibility.impactHaptic(.light)
+                            onOpen()
+                        }
+                    }
+            )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(item.title)\(metaLine.isEmpty ? "" : ", \(metaLine)")")
+            .accessibilityHint("Double tap to view details")
             .contextMenu {
                 contextMenuContent
             }
@@ -242,7 +262,6 @@ struct RecommendationCard: View {
             }
         }
         .frame(width: cardWidth, alignment: .topLeading)
-        .contentShape(Rectangle())
     }
     
     private var posterImage: some View {

@@ -2,9 +2,9 @@
 
 This file documents the idea of routing free-text "vibe" prompts into curated recommendation rails (modes), with the LLM used only as an optional presentation layer.
 
-## Current status (as of 2026-02-16)
+## Current status (as of 2026-02-17)
 
-The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed. Production-readiness session completed: Apple FM integration, on-device intelligence features, and comprehensive security/stability hardening across DB, edge functions, storage, and iOS. The February 2026 follow-up added the curated concierge copy layer and club activity status clarity pass.
+The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed. Production-readiness session completed: Apple FM integration, on-device intelligence features, and comprehensive security/stability hardening across DB, edge functions, storage, and iOS. The February 2026 follow-up added the curated concierge copy layer and club activity status clarity pass. P2 production blockers completed (2026-02-16): backend hardening (NOT NULL on catalog created_at, 12 unused indexes dropped, merged duplicate policies, mirror health check, AVIF support), iOS bug fixes (vote error handling, task cancellation, discover error state), accessibility pass (6 views), and deep linking infrastructure (kuro:// scheme).
 
 **Add-to-rail + adaptive sizing (2026-02-16)**: "+" button per club rail in ClubDetailView opens AddItemToRailSheet with server-side search and typed PostgrestError handling. Member identity labels stabilized (UUID hex prefix). Adaptive card widths across all surfaces (Discover, GenreHub, detail similar sections) — removed hardcoded 393pt default, cards scale via `floor((screenWidth - 56) / 2.8)` clamped [112, 144].
 
@@ -432,6 +432,21 @@ Three new on-device intelligence features shipped:
 - **IMPORT_SECRET** environment variable set in Supabase project + **4 pg_cron jobs** updated to include secret header
 - **xcconfig files created** for environment configuration (Debug.xcconfig, Release.xcconfig)
 - **Mock SupabaseService** cleaned up for testability
+
+### Production Quality (P2) -- COMPLETED
+
+| ID | Category | Issue | Fix |
+|----|----------|-------|-----|
+| P2-1 | Backend | `created_at` nullable on catalog tables | Migration `catalog_created_at_not_null`: backfilled NULLs + NOT NULL on 8 tables (anime, manga, episodes, chapters, volumes, characters, studios, staff) |
+| P2-2 | Backend | 12 unused indexes (FTS/trigram superseded) | Migration `drop_unused_indexes_merge_policies_health_check`: dropped 12 indexes (FTS, duplicate genre GIN, unused sort) |
+| P2-3 | Backend | Duplicate DELETE policies on club_members | Same migration: merged into single `club_members_delete_self_or_admin` |
+| P2-4 | Backend | No mirror health monitoring | Same migration: created `check_mirror_health()` function returning JSONB (run stats, consecutive failures, alert boolean) |
+| P2-5 | Backend | Mirror-images missing AVIF support | `getExtFromContentType()` now handles `image/avif`; cache-control changed to `max-age=31536000, immutable` |
+| P2-6 | iOS | Vote errors silently swallowed | ClubDetailView: `castVote` wrapped in do/catch with `.error` toast + `errorHaptic()` |
+| P2-7 | iOS | Task.detached leak on ConciergeView disappear | Tracked `@State` task refs (warmupTask, prefetchTask, prefetchTask2, backgroundRefreshTask, backgroundRefreshTask2) with consolidated `.onDisappear` cancellation |
+| P2-8 | iOS | EditorialDiscoverView blank on first-load failure | `@State loadError` with inline retry view when `fetchDiscoverBundle()` fails |
+| P2-9 | Accessibility | Missing VoiceOver traits across views | `.accessibilityAddTraits(.isHeader)` on section headers in ClubDetailView, EditorialCollectionView, EditorialDiscoverView, ConciergeRecommendationRails. `.accessibilityLabel` on ClubsView empty state + club cards. Message bubble labels ("You said:"/"Concierge:") and combined clarification card labels in ConciergeView/Components |
+| P2-10 | Infrastructure | No deep linking | `DeepLinkRouter.swift` (enum DeepLink: anime/manga/club/collection/discover/concierge), `KuroApp.swift` `.onOpenURL`, `ContentView.swift` navigation/sheet handling, Associated Domains placeholder in entitlements |
 
 ### Still Pending (deferred)
 

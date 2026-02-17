@@ -20,18 +20,20 @@ fileprivate func pixelAlign(_ value: CGFloat, scale: CGFloat = 3.0) -> CGFloat {
 
 // MARK: - Content View
 struct ContentView: View {
+    @Binding var pendingDeepLink: DeepLink?
     @Environment(SupabaseService.self) private var supabaseService
-    
+
     var body: some View {
-        KuroRootView()
+        KuroRootView(pendingDeepLink: $pendingDeepLink)
             .environment(supabaseService)
     }
 }
 
 // MARK: - Root View with Launch
 struct KuroRootView: View {
+    @Binding var pendingDeepLink: DeepLink?
     @State private var showLaunch = true
-    
+
     var body: some View {
         if showLaunch {
             KuroLaunchView()
@@ -43,7 +45,7 @@ struct KuroRootView: View {
                     }
                 }
         } else {
-            KuroMainView()
+            KuroMainView(pendingDeepLink: $pendingDeepLink)
         }
     }
 }
@@ -84,11 +86,8 @@ struct KuroLaunchView: View {
 
 // MARK: - Main View
 struct KuroMainView: View {
+    @Binding var pendingDeepLink: DeepLink?
     @Environment(SupabaseService.self) private var supabaseService
-    // Removed: @State private var currentSection = 0
-    // Removed: @State private var selectedMood: String? = nil
-    // Removed: @State private var dragOffset: CGFloat = 0
-    // Removed: let sections = ["DISCOVER", "COLLECTION", "SEARCH"]
 
     enum Section: Int, CaseIterable {
         case concierge, discover, browse, collection, clubs
@@ -120,6 +119,9 @@ struct KuroMainView: View {
     @State private var didApplyStartArgument = false
     @State private var showOnboarding = !OnboardingView.hasCompletedOnboarding
     @State private var edgeBounceOffset: CGFloat = 0
+    @State private var deepLinkAnimeId: Int? = nil
+    @State private var deepLinkMangaId: Int? = nil
+    @State private var deepLinkClubId: String? = nil
 	// Five-page discovery funnel: Concierge ← [Discover] → Browse → Collection → Clubs
     private let swipeOrder: [Section] = [.concierge, .discover, .browse, .collection, .clubs]
     private let swipeThreshold: CGFloat = 40
@@ -318,11 +320,64 @@ struct KuroMainView: View {
             .onDisappear {
                 tapSuppressionResetTask?.cancel()
             }
+            .onChange(of: pendingDeepLink) { _, link in
+                guard let link else { return }
+                pendingDeepLink = nil
+                handleDeepLink(link)
+            }
+            .sheet(isPresented: Binding(
+                get: { deepLinkAnimeId != nil },
+                set: { if !$0 { deepLinkAnimeId = nil } }
+            )) {
+                if let animeId = deepLinkAnimeId {
+                    MediaDetailSheet(kind: .anime, id: animeId)
+                        .environment(supabaseService)
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { deepLinkMangaId != nil },
+                set: { if !$0 { deepLinkMangaId = nil } }
+            )) {
+                if let mangaId = deepLinkMangaId {
+                    MediaDetailSheet(kind: .manga, id: mangaId)
+                        .environment(supabaseService)
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { deepLinkClubId != nil },
+                set: { if !$0 { deepLinkClubId = nil } }
+            )) {
+                if let clubId = deepLinkClubId {
+                    NavigationStack {
+                        ClubDetailView(clubId: clubId)
+                            .environment(supabaseService)
+                    }
+                }
+            }
             .fullScreenCover(isPresented: $showOnboarding) {
                 OnboardingView {
                     showOnboarding = false
                 }
             }
+    }
+
+    private func handleDeepLink(_ link: DeepLink) {
+        switch link {
+        case .anime(let id):
+            deepLinkAnimeId = id
+        case .manga(let id):
+            deepLinkMangaId = id
+        case .club(let id):
+            deepLinkClubId = id
+        case .collection:
+            selection = .collection
+            mountedSections.insert(.collection)
+        case .discover:
+            selection = .discover
+        case .concierge:
+            selection = .concierge
+            mountedSections.insert(.concierge)
+        }
     }
 }
 
@@ -1957,6 +2012,6 @@ struct FeaturedCardLoading: View {
 
 // MARK: - Preview
 #Preview {
-    ContentView()
+    ContentView(pendingDeepLink: .constant(nil))
         .environment(SupabaseService.shared)
 }

@@ -1,0 +1,389 @@
+# CLAUDE.md — Kuro Project Rules & Context
+
+**Last synced: 2026-02-17** | **This file is mandatory reading. Every rule is binding.**
+
+---
+
+## MANDATORY RULES — READ FIRST
+
+### Rule 1: Update documentation after EVERY change
+After **every single work initiative** — no matter how small — you MUST update these 3 files:
+1. `CURRENT_APP_STATE.md` — authoritative technical snapshot (update the relevant sections + append to Change Log)
+2. `CURRENT_APP_STATE_PLAIN.md` — plain English version (update relevant sections + append to Change Log)
+3. `IMPLEMENTATION_PLAN_Variation1.md` — update status section if the change relates to any tracked feature
+
+This is **not optional**. This is **not a suggestion**. Failure to update = incorrect system state = broken context for the next session.
+
+### Rule 2: Update memory after EVERY change
+After every change, update `~/.claude/projects/-Applications-Kuro/memory/MEMORY.md` with:
+- Any new files created or deleted
+- Any new patterns discovered
+- Any gotchas encountered
+- Updated file counts if files were added/removed
+- Any new architectural decisions
+
+This is **mandatory, not optional**. The memory file is how future sessions get instant context.
+
+### Rule 3: Read before writing
+Never propose changes to code you haven't read. Always read the file first. Understand existing patterns before modifying.
+
+### Rule 4: Match existing patterns exactly
+This codebase has established patterns. Match them. Don't introduce new paradigms, different naming conventions, or alternative approaches unless explicitly asked.
+
+---
+
+## WHAT THIS APP IS (exact description)
+
+Kuro is a curated anime + manga iOS app. It lets users browse premium editorial picks, maintain personal watchlists, create private clubs with friends, and use a "Concierge" AI assistant to import lists and get mood-based recommendations. The app runs on SwiftUI with a Supabase backend.
+
+**Tech stack (exact):**
+- **Frontend**: iOS SwiftUI, `@Observable` pattern (NOT Combine — never use `ObservableObject`, `@Published`, `sink`, `assign`)
+- **Backend**: Supabase — PostgreSQL + Edge Functions (Deno/TypeScript) + Storage + RPC + RLS
+- **On-device AI**: Apple Foundation Models (iOS 26+) for classification tasks
+- **Server-side AI**: Groq (narration only — never for routing/classification)
+- **Data source**: AniList (imported via scripts + edge functions)
+- **CI/CD**: Fastlane for TestFlight builds
+
+---
+
+## CURRENT APPLICATION STATE (as of 2026-02-17)
+
+### Navigation (5-page swipe pager)
+Pages swipe left-to-right in this exact order:
+1. **Concierge** — inline editorial shell for imports + recommendations
+2. **Discover** — curated editorial sections (Essentials, Classics, Trending, etc.)
+3. **Browse** — full catalog with filters (genre, status, length, decade, format, sort)
+4. **Collection** — user's personal anime/manga list
+5. **Clubs** — private groups (2-20 members) with shared rails, polls, reactions, chat
+
+**Search is NOT a page.** It opens as a sheet from the magnifying glass icon in the header.
+
+Default page on launch: **Discover** (index 1).
+
+### Concierge (AI assistant)
+- **Architecture**: Deterministic-first NLP parser → LLM fallback (Groq for narration only)
+- **23 vibe modes** (v8 config), each with curated editorial copy in EN/DE
+- **50 curated rails** across anime/manga
+- **UI**: Editorial shell with modular components (9 Swift files), inline chat (no full-screen takeovers)
+- **Import flow**: Parse → Reconcile (Add/Update/Skip) → Confirm → Apply → Toast with Undo
+- **Auto-apply**: When all items score >= 0.85 and no ambiguous adaptations
+- **German NLP**: Vibe adjective inflection allowlist, intent keywords, umlaut normalization
+
+### Clubs
+- Private groups, 2-20 members, invite-code based
+- 4-tab detail view: Rails / This Week / Polls / Chat (chat gated by `clubs_chat_v1` flag)
+- Emoji reactions (fire/heart/eyes/100), anonymous aggregate counts
+- Pace sync ("3 ep behind the group"), milestone celebrations
+- Ephemeral chat: 280 char max, 30-day auto-prune, rate-limited 20/min
+- Supabase Realtime subscriptions for live updates (gated by `clubs_realtime_v1`)
+- Privacy levels: private (aggregates only), status (names + statuses), progress (full detail)
+- In-app notification badges for unseen activity
+
+### On-device AI (Apple Foundation Models)
+- Mode classification, disambiguation, synopsis condensation, NL collection search intent
+- `AppleFMService.swift`: `@MainActor @Observable`, fresh session per request, `#available(iOS 26, *)`
+- 4 `@Generable` structs — reasoning properties BEFORE selection properties (sequential generation order)
+- Graceful fallback via `StubFMProvider` on non-FM-capable devices
+- **NO ENTITLEMENT NEEDED** — just `import FoundationModels` + availability guard
+
+### Feature Flags (staged rollout)
+Server-controlled via `feature_flags` DB table, cached in UserDefaults, deterministic hash rollout.
+All 13 flags defined in `FeatureFlags.swift`:
+- `rag_assist_v1` — RAG retrieval assist
+- `fm_assist_v1` — Apple Foundation Models assist
+- `clarify_v2` — improved clarification flow
+- `clubs_interaction_v2` — clubs interaction improvements
+- `concierge_perf_v2` — concierge performance optimizations
+- `concierge_editorial_v1` — editorial shell UI
+- `swipe_tap_guard_v1` — swipe/tap gesture conflict guard
+- `clubs_list_enriched_v1` (100%) — enriched club list cards
+- `clubs_reactions_v1` (50%) — emoji reactions
+- `clubs_pace_sync_v1` (100%) — pace tracking
+- `clubs_realtime_v1` (50%) — live updates
+- `clubs_chat_v1` (0% staged) — ephemeral chat
+- `clubs_notifications_v1` (100%) — in-app badges
+- Debug override: `--ff-on=flag_name` / `--ff-off=flag_name` launch args
+
+### Deep Linking
+`kuro://` scheme routes:
+- `kuro://anime/12345` → anime detail sheet
+- `kuro://manga/67890` → manga detail sheet
+- `kuro://club/uuid` → club detail sheet
+- `kuro://collection` → Collection page
+- `kuro://discover` → Discover page
+- `kuro://concierge?prompt=action` → Concierge with pre-filled prompt
+
+---
+
+## FILE MAP (exact, current as of 2026-02-17)
+
+### iOS app — 63 Swift files in `Kuro/`
+
+**Entry points:**
+- `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
+- `ContentView.swift` — 5-page swipe pager, header (KURO wordmark / section title / search + profile), deep link sheet presentation
+
+**Services (11 files):**
+- `SupabaseService.swift` — core data layer, RPC calls, caching, auth bootstrap, `fmService`, `withRetry` helper
+- `AppleFMService.swift` — on-device FM (4 capabilities, FMProvider protocol, StubFMProvider fallback)
+- `AppConfig.swift` — reads SUPABASE_URL/ANON_KEY from Info.plist/env
+- `NetworkMonitor.swift` — NWPathMonitor connectivity, `isConnected`, offline banner
+- `FeatureFlags.swift` — server-controlled flags, UserDefaults cache, stable hash rollout
+- `DeepLinkRouter.swift` — `enum DeepLink`, `kuro://` URL parsing
+- `ConciergeAnalytics.swift` — concierge + club interaction telemetry
+- `TextNormalization.swift` — search/parsing text utilities
+- `ImagePipeline.swift` — NSCache (~80MB) + URLCache disk cache, downsampling, request dedup
+- `KuroDiskDetailCache.swift` — on-disk detail page cache
+- `KuroPerf.swift` — performance measurement utilities
+- `SupabaseRPCParams.swift` — RPC parameter structs
+
+**Concierge UI (10 files):**
+- `ConciergeView.swift` — main concierge view controller
+- `ConciergeEditorialShell.swift` — editorial shell wrapper
+- `ConciergeComponents.swift` — shared components + curated copy layer (EN/DE mode titles)
+- `ConciergeInputField.swift` — text input field
+- `ConciergeComposerDock.swift` — input composer dock
+- `ConciergeActionFooter.swift` — action footer bar
+- `ConciergeIntentDeck.swift` — quick-action intent cards
+- `ConciergeImportCards.swift` — import preview/confirm cards
+- `ConciergeRecommendationRails.swift` — recommendation rail rendering
+- `ConciergeResponseStage.swift` — response stage rendering
+
+**Views (remaining):**
+- `EditorialDiscoverView.swift` — Discover page
+- `BrowseView.swift` — Browse page (full-page, not a sheet)
+- `EditorialCollectionView.swift` — Collection page
+- `ClubsView.swift` — Clubs list page (enriched cards, unread dots)
+- `ClubDetailView.swift` — Club detail (4-tab: Rails/This Week/Polls/Chat)
+- `ClubCreateSheets.swift` — Create/join club sheets
+- `EditorialSearchView.swift` — Search sheet
+- `OnboardingView.swift` — First-launch onboarding
+- `ProfileView.swift` — Profile menu (includes Clubs secondary access)
+- `AuthView.swift` — Authentication
+- Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift`, `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `ExternalLinksSection.swift`
+- UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `EditorialCards.swift`, `Cards.swift`, `UIComponents.swift`, `GenreHubView.swift`, `CountdownTimer.swift`
+- Legacy/secondary: `DiscoverView.swift`, `DiscoverViewModel.swift`, `SearchView.swift`, `SearchViewModel.swift`, `CollectionManagementView.swift`
+
+**Design (2 files):**
+- `KuroDesignSystem.swift` — colors, typography, spacing, radii, animations
+- `Color+Hex.swift` — hex color utility
+
+**Models (2 files):**
+- `SupabaseModels.swift` — all Supabase data models
+- `DiscoverBundle.swift` — discover bundle response model
+
+### Supabase — 88 migrations, 12 edge functions
+
+**Edge functions (12):**
+- `concierge-parse` — deterministic NLP parser, title candidate search
+- `concierge-recommend` — deterministic recommendations + optional Groq narration (~1800 lines)
+- `concierge-apply` — apply parsed items to user lists
+- `concierge-resolve` — LLM disambiguation for ambiguous titles
+- `concierge-undo` — rollback last import session
+- `concierge-retrieve-assist` — RAG retrieval assist
+- `concierge-retrieve-feedback` — RAG feedback collection
+- `concierge-import-anilist` — AniList import helper
+- `bulk-import-anime` — bulk anime catalog import (requires IMPORT_SECRET)
+- `bulk-import-manga` — bulk manga catalog import (requires IMPORT_SECRET)
+- `mirror-images` — mirror external images to Storage CDN
+- `delete-account` — GDPR account deletion
+
+**Database tables (key groups):**
+- Catalog: `anime`, `manga`, `episodes`, `chapters`, `volumes`, `characters`, `staff`, `studios`, `authors`, `tags`, `genres`, `external_links` + join tables
+- User: `profiles`, `anime_user_lists`, `manga_user_lists`, `import_sessions`, `import_session_items`
+- Concierge: `concierge_runs`, `concierge_config`, `rate_limit_buckets`, `llm_daily_usage`, `system_flags`
+- Clubs (9 tables): `clubs`, `club_members`, `club_rails`, `club_rail_items`, `club_rail_item_reactions`, `club_polls`, `club_poll_options`, `club_votes`, `club_messages`, `club_analytics`
+- Ops: `mirror_runs`, `import_state`, `feature_flags`
+
+**Cron jobs (pg_cron):**
+- Hourly: bulk-import-anime, bulk-import-manga (with IMPORT_SECRET header)
+- Daily: mirror-images (per-batch locks, 200 batch, 15-min spacing), matview refresh, concierge housekeeping, club message pruning (30-day)
+
+### Scripts & quality gates
+- `scripts/quality-gates/` — 8 scripts: `check_secrets.sh`, `check_migrations.sh`, `test_router_offline.sh`, `router_test_cases.js`, `test_concierge_corpora.sh`, `audit_rails.sh`, `build_ios.sh`, `run_all.sh`
+- `.githooks/pre-commit` — secrets + migration name checks
+- `scripts/` — 19+ operational scripts (imports, audits, load tests, generators), including `audit_curated_rails_quality.js` (rail quality checks)
+
+### Config & CI
+- `fastlane/Appfile` + `fastlane/Fastfile` — TestFlight automation
+- `Config/Shared.xcconfig`, `Config/Debug.xcconfig`, `Config/Release.xcconfig` — build settings
+- `Kuro.entitlements` — `com.apple.developer.applesignin` + `applinks:kuro.app` (Associated Domains placeholder)
+
+---
+
+## DESIGN SYSTEM (exact tokens — use these, never hardcode)
+
+### Colors (monochrome only)
+- Primary text: `Color.kuroBlack80` (black @ 0.8)
+- Secondary text: `Color.kuroTextSecondary` (black @ 0.55) — WCAG AA compliant
+- Tertiary text: `Color.kuroTextTertiary` (black @ 0.45)
+- Subtle backgrounds: `Color.kuroBlack08` (black @ 0.08)
+- Status pill text: `black.opacity(0.55)` — pill background: `black.opacity(0.06)`
+- **NO colored status pills/dots anywhere.** Red ONLY for destructive actions (leave/delete).
+
+### Typography (serif for editorial, sans-serif for body)
+- `.kuroHero()` — 64pt serif, dramatic statements
+- `.kuroDisplay()` — 44pt serif, large section headers
+- `.kuroFeature()` — 34pt serif, feature titles
+- `.kuroHeadline()` — 26pt serif, card titles
+- `.kuroTitle()` — 19pt serif, secondary titles
+- `.kuroBody()` — 15pt sans-serif, descriptions
+- `.kuroCaption()` — 11pt sans-serif, small labels
+- `.kuroMicro()` — 9pt sans-serif, tiny metadata
+
+### Spacing (8px base unit)
+- `KuroDesignSpacing.xs` = 4pt, `.sm` = 8pt, `.md` = 16pt, `.lg` = 24pt
+
+### Radii
+- `KuroRadius.xs` = 4pt, `.sm` = 8pt, `.md` = 12pt, `.lg` = 16pt
+
+### Card sizing (adaptive, never hardcoded)
+- Width formula: `floor((screenWidth - 56) / 2.8)` clamped to [112, 144]
+- Always pass explicit `containerWidth` — no defaults, no hardcoded 393pt
+- Poster corners: 8-12pt depending on card type
+
+### App appearance
+- **Light mode only** — `.preferredColorScheme(.light)` is set in KuroApp.swift
+- Dark mode tokens are prepared but not active
+
+---
+
+## BACKEND DETAILS (exact)
+
+### Supabase project
+- **URL**: `https://bkdifromsqxkndnllmdj.supabase.co`
+- **Project ref**: `bkdifromsqxkndnllmdj`
+
+### Auth & RLS
+- Supabase Auth (email/password, Apple Sign In)
+- RLS enabled on ALL tables — user tables scoped to `auth.uid()`
+- Edge functions derive user ID from JWT — NEVER accept raw user_id from client
+- Club RLS: 30+ policies, 4 SECURITY DEFINER helpers (`is_club_member`, `is_club_admin_or_owner`, `is_club_owner`, `sharing_level_rank`)
+- Storage RLS: read public, write/delete authenticated, service_role full access
+
+### User ID type mismatch (known tech debt)
+- Club tables: UUID
+- Legacy tables (`anime_user_lists`, `manga_user_lists`): TEXT
+- JOINs require `::text` cast
+
+### Edge function environment variables
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_MODEL_RESOLVE`
+- `IMPORT_SECRET` — shared secret for bulk-import auth (pg_cron can't send JWTs)
+
+---
+
+## BUILD & DEPLOY COMMANDS (exact)
+
+```bash
+# iOS build (simulator — use this simulator name exactly)
+xcodebuild -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+
+# iOS build (CI / generic — for when simulator name might not exist)
+xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build
+
+# TestFlight upload (auto-increments build number, archives, uploads)
+fastlane beta
+
+# Push migrations to production
+supabase db push --linked --include-all
+
+# Deploy an edge function
+supabase functions deploy <function-name> --project-ref bkdifromsqxkndnllmdj
+
+# List deployed edge functions
+supabase functions list --project-ref bkdifromsqxkndnllmdj
+
+# Run quality gates
+scripts/quality-gates/run_all.sh
+
+# Check migration checksums (read-only by default)
+scripts/quality-gates/check_migrations.sh
+# To update checksums: scripts/quality-gates/check_migrations.sh --update
+```
+
+### TestFlight / App Store Connect
+- **Bundle ID**: `com.Kuro.app` (capital K — must match exactly)
+- **App Store Connect App ID**: 6759221230
+- **Team ID**: YLG68JL5Y7
+- **API Key**: Key ID `7L84A7P9X7`, Issuer ID `bca97a4b-8a3a-4051-9c89-510f10db0b06`
+- **API Key file**: `~/.appstoreconnect/private_keys/AuthKey_7L84A7P9X7.p8`
+- **Signing**: Automatic, `-allowProvisioningUpdates`
+
+---
+
+## ABSOLUTE DO-NOTs (violations will break things)
+
+1. **Do NOT create `Kuro/Info.plist`** — project uses `GENERATE_INFOPLIST_FILE = YES`. Custom keys go via xcconfig build settings or `INFOPLIST_KEY_` prefixed settings.
+2. **Do NOT add Foundation Models entitlement** to `Kuro.entitlements` — FM works without it. The "Adapter Entitlement" in Developer Portal is only for custom LoRA fine-tunes.
+3. **Do NOT use colored status indicators** — monochrome palette only. No colored dots, pills, or badges.
+4. **Do NOT use `UIScreen.main`** — deprecated. Use `displayScale` / window scene APIs.
+5. **Do NOT hardcode card widths** (e.g., 393pt) — always pass screen/geometry width.
+6. **Do NOT use Combine** — no `ObservableObject`, `@Published`, `sink`, `assign`. Use `@Observable`.
+7. **Do NOT use `supabase db execute`** — it doesn't exist. Use `inspect db table-stats --linked`.
+8. **Do NOT run `supabase db dump --linked`** — requires Docker which isn't available.
+9. **Do NOT use `iPhone 16 Pro` simulator** — those simulators don't exist. Use `iPhone 17 Pro`.
+10. **Do NOT create tables without RLS policies** — every new table must have Row Level Security.
+11. **Do NOT create SQL functions without `SET search_path = public, extensions`**.
+12. **Do NOT accept raw `user_id` from client in edge functions** — always derive from JWT.
+13. **Do NOT skip updating the 3 MD files** after changes (Rule 1).
+14. **Do NOT skip updating MEMORY.md** after changes (Rule 2).
+15. **Do NOT leave `print()` statements without `#if DEBUG` wrapping**.
+16. **Do NOT add features, refactor code, or make "improvements" beyond what was asked.**
+
+---
+
+## PATTERNS TO FOLLOW (exact)
+
+### When adding a new Supabase table:
+1. Create migration in `supabase/migrations/`
+2. Enable RLS: `ALTER TABLE public.new_table ENABLE ROW LEVEL SECURITY;`
+3. Add appropriate policies (scoped to `auth.uid()`)
+4. All helper functions: `SET search_path = public, extensions`
+5. Push: `supabase db push --linked --include-all`
+6. Run: `get_advisors(security)` to verify
+7. Update the 3 MD files + MEMORY.md
+
+### When adding a new Swift file:
+1. Follow existing file naming conventions
+2. Use `KuroDesignSystem` tokens for all UI
+3. Use `@Observable` (never Combine)
+4. Wrap all `print()` in `#if DEBUG`
+5. For background tasks: use `@State` task refs + `.onDisappear` cancellation
+6. Update the 3 MD files + MEMORY.md (including file inventory + counts)
+
+### When adding a new edge function:
+1. Create in `supabase/functions/<name>/index.ts`
+2. Derive user ID from JWT, never from request body
+3. Sanitize user text with `sanitizeForLLM()` before any LLM prompt
+4. Add rate limiting where appropriate
+5. Deploy: `supabase functions deploy <name> --project-ref bkdifromsqxkndnllmdj`
+6. Update the 3 MD files + MEMORY.md
+
+### Structured RPC error handling (club RPCs):
+- `add_club_rail_item()` uses `RAISE EXCEPTION ... DETAIL = 'ERROR_CODE'` for machine-readable errors
+- Error codes: `UNAUTHENTICATED`, `INVALID_MEDIA_TYPE`, `RAIL_NOT_FOUND`, `NOT_A_MEMBER`, `RAIL_LOCKED`, `MEDIA_NOT_FOUND`, `NOTE_TOO_LONG`, `DUPLICATE_ITEM`
+- iOS parses `PostgrestError` detail field to show typed error messages (not free-form string matching)
+- When adding new SECURITY DEFINER RPCs, follow this pattern: emit structured error codes in DETAIL so clients can branch without parsing messages
+
+### Retry logic:
+- Use `SupabaseService.withRetry()` — exponential backoff (500ms, 1s), only retries `URLError`, not HTTP 4xx
+
+### Accessibility:
+- Section headers: `.accessibilityAddTraits(.isHeader)`
+- Interactive elements: `.accessibilityLabel` with descriptive text
+- Message bubbles: prefix with "You said: ..." / "Concierge: ..."
+
+---
+
+## REFERENCE: Where to find full details
+
+| Need | File |
+|------|------|
+| Complete technical state (14K+ lines) | `CURRENT_APP_STATE.md` |
+| Plain English overview | `CURRENT_APP_STATE_PLAIN.md` |
+| Implementation status tracker | `IMPLEMENTATION_PLAN_Variation1.md` |
+| Session memory / gotchas | `~/.claude/projects/-Applications-Kuro/memory/MEMORY.md` |
+| Clubs product spec | `docs/clubs-spec.md` |
+| Production blockers audit | `docs/production-blockers.md` |
+| Apple FM migration report | `docs/apple-fm-migration-report.md` |

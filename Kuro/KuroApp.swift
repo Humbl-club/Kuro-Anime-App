@@ -11,6 +11,7 @@ import SwiftUI
 struct KuroApp: App {
     @State private var supabaseService = SupabaseService.shared
     @State private var networkMonitor = NetworkMonitor()
+    @State private var pendingDeepLink: DeepLink? = nil
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -23,12 +24,15 @@ struct KuroApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            RootView(pendingDeepLink: $pendingDeepLink)
                 .environment(supabaseService)
                 .environment(networkMonitor)
                 // The current design system is light-first (black-on-white editorial).
                 // Until we have a full dark palette, keep system appearance stable.
                 .preferredColorScheme(.light)
+                .onOpenURL { url in
+                    pendingDeepLink = DeepLink.from(url: url)
+                }
                 .onChange(of: scenePhase) { _, newPhase in
                     switch newPhase {
                     case .active:
@@ -46,6 +50,7 @@ struct KuroApp: App {
 }
 
 private struct RootView: View {
+    @Binding var pendingDeepLink: DeepLink?
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(NetworkMonitor.self) private var networkMonitor
 
@@ -75,7 +80,7 @@ private struct RootView: View {
                         }
                     }
                 } else if supabaseService.isAuthenticated {
-                    ContentView()
+                    ContentView(pendingDeepLink: $pendingDeepLink)
                 } else {
                     AuthView()
                 }

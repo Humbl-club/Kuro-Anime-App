@@ -113,6 +113,8 @@ struct EditorialCollectionView: View {
                                         .foregroundColor(selectedSort == sort ? .black : .black.opacity(0.35))
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityLabel("Sort by \(sort.rawValue)")
+                                .accessibilityAddTraits(selectedSort == sort ? .isSelected : [])
                             }
                         }
                         .padding(.horizontal, EditorialLayout.marginEditorial)
@@ -445,6 +447,7 @@ struct EditorialFilterTab: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
+        .accessibilityLabel("\(title) filter")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .accessibilityHint("Filters collection")
         .animation(KuroAnimation.editorial, value: isSelected)
@@ -1168,6 +1171,9 @@ private struct CollectionListRow: View {
             .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(media.title)\(statusLabel.isEmpty ? "" : ", \(statusLabel)")\(progressText.map { ", \($0)" } ?? "")")
+        .accessibilityHint("Opens details")
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
         }

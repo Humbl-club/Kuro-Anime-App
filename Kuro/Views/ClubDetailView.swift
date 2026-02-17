@@ -474,13 +474,19 @@ struct ClubDetailView: View {
                                     if clubsInteractionV2Enabled {
                                         await voteOnPoll(poll: poll, optionId: optionId)
                                     } else {
-                                        try? await supabaseService.castVote(pollId: poll.id, optionId: optionId)
-                                        KuroAccessibility.impactHaptic(.light)
-                                        await loadBundle(force: true)
+                                        do {
+                                            try await supabaseService.castVote(pollId: poll.id, optionId: optionId)
+                                            KuroAccessibility.impactHaptic(.light)
+                                            await loadBundle(force: true)
+                                        } catch {
+                                            showToast(.error, title: "Vote failed", subtitle: "Please try again.")
+                                            KuroAccessibility.errorHaptic()
+                                        }
                                     }
                                 }
                             }
                         )
+                        .accessibilityElement(children: .combine)
                     }
                 }
 
@@ -490,6 +496,7 @@ struct ClubDetailView: View {
                         .tracking(1.6)
                         .foregroundColor(.kuroBlack30)
                         .padding(.top, KuroDesignSpacing.sm)
+                        .accessibilityAddTraits(.isHeader)
 
                     ForEach(closedPolls) { poll in
                         ClubPollCard(
@@ -500,6 +507,7 @@ struct ClubDetailView: View {
                             optimisticVoteCounts: nil,
                             onVote: { _ in }
                         )
+                        .accessibilityElement(children: .combine)
                     }
                 }
             }
@@ -635,6 +643,7 @@ private struct ClubRailSection: View {
                     .font(.kuroTitle(weight: .regular))
                     .foregroundColor(.black.opacity(0.85))
                     .lineLimit(1)
+                    .accessibilityAddTraits(.isHeader)
 
                 if rail.is_locked {
                     Image(systemName: "lock.fill")
@@ -1446,6 +1455,7 @@ private struct ClubReactionRow: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("\(emoji), \(count) reaction\(count == 1 ? "" : "s")\(isMine ? ", reacted" : "")")
             }
         }
         .frame(width: 110, alignment: .leading)
@@ -1703,8 +1713,8 @@ private struct AddItemToRailSheet: View {
                 onAdded()
                 dismiss()
             } catch let pgError as PostgrestError {
-                // Decode structured error from add_club_rail_item RPC
-                errorMessage = Self.mapRailItemError(pgError.message)
+                // Decode structured RPC error fields (details/code/hint) from add_club_rail_item.
+                errorMessage = Self.mapRailItemError(pgError)
                 KuroAccessibility.errorHaptic()
                 isAdding = false
             } catch {
@@ -1715,19 +1725,47 @@ private struct AddItemToRailSheet: View {
         }
     }
 
-    /// Maps a PostgrestError message from the add_club_rail_item RPC to a user-facing string.
-    private static func mapRailItemError(_ message: String) -> String {
-        if message.hasPrefix("DUPLICATE_ITEM") {
+    private enum AddRailItemErrorCode: String {
+        case duplicateItem = "DUPLICATE_ITEM"
+        case notAMember = "NOT_A_MEMBER"
+        case railLocked = "RAIL_LOCKED"
+        case mediaNotFound = "MEDIA_NOT_FOUND"
+        case invalidMediaType = "INVALID_MEDIA_TYPE"
+        case unauthenticated = "UNAUTHENTICATED"
+        case noteTooLong = "NOTE_TOO_LONG"
+        case railNotFound = "RAIL_NOT_FOUND"
+    }
+
+    /// Maps a structured PostgrestError from add_club_rail_item RPC to a user-facing string.
+    private static func mapRailItemError(_ error: PostgrestError) -> String {
+        let detailsCode = error.detail.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let hintCode = error.hint.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        let structuredCode =
+            detailsCode.flatMap(AddRailItemErrorCode.init(rawValue:)) ??
+            hintCode.flatMap(AddRailItemErrorCode.init(rawValue:))
+
+        switch structuredCode {
+        case .duplicateItem:
             return "This title is already in this rail."
-        } else if message.hasPrefix("NOT_A_MEMBER") {
+        case .notAMember:
             return "You're no longer a member of this club."
-        } else if message.hasPrefix("RAIL_LOCKED") {
+        case .railLocked:
             return "This rail is locked. Only admins can add items."
-        } else if message.hasPrefix("MEDIA_NOT_FOUND") {
+        case .mediaNotFound:
             return "This title was not found in the catalog."
-        } else if message.hasPrefix("INVALID_MEDIA_TYPE") {
+        case .invalidMediaType:
             return "Invalid media type."
-        } else {
+        case .unauthenticated:
+            return "Please sign in again to continue."
+        case .noteTooLong:
+            return "Note is too long. Keep it under 280 characters."
+        case .railNotFound:
+            return "This rail is no longer available."
+        case nil:
+            // Fallback to SQLSTATE for environments that haven't picked up structured detail codes yet.
+            if error.code == "23505" {
+                return "This title is already in this rail."
+            }
             return "Could not add item. Please try again."
         }
     }
@@ -1833,6 +1871,7 @@ private struct ClubSettingsSheet: View {
                             .font(.kuroCaption(weight: .medium))
                             .tracking(1.6)
                             .foregroundColor(.kuroBlack30)
+                            .accessibilityAddTraits(.isHeader)
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text(bundle.club.name)
@@ -1876,6 +1915,7 @@ private struct ClubSettingsSheet: View {
                                 .font(.kuroCaption(weight: .medium))
                                 .tracking(1.6)
                                 .foregroundColor(.kuroBlack30)
+                                .accessibilityAddTraits(.isHeader)
 
                             HStack(spacing: 12) {
                                 Text(code)
@@ -1926,6 +1966,7 @@ private struct ClubSettingsSheet: View {
                             .font(.kuroCaption(weight: .medium))
                             .tracking(1.6)
                             .foregroundColor(.kuroBlack30)
+                            .accessibilityAddTraits(.isHeader)
 
                         ForEach(Array(bundle.members.enumerated()), id: \.element.user_id) { index, member in
                             let label = memberDisplayName(member, index: index)

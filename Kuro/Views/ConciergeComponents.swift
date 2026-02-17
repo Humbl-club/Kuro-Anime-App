@@ -1018,6 +1018,7 @@ struct ConciergeBubble: View {
             .foregroundStyle(.black.opacity(0.55))
             .multilineTextAlignment(.trailing)
             .frame(maxWidth: 320, alignment: .trailing)
+            .accessibilityLabel("You said: \(message.text)")
     }
 
     private var assistantContent: some View {
@@ -1032,6 +1033,7 @@ struct ConciergeBubble: View {
                         .lineSpacing(4)
                         .foregroundStyle(.black.opacity(0.85))
                         .frame(maxWidth: 320, alignment: .leading)
+                        .accessibilityLabel("Concierge: \(message.text)")
                 }
 
                 if message.showClarifyActions {

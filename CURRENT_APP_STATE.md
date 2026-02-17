@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-02-16
+**Last updated:** 2026-02-17
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -99,31 +99,46 @@ This section is auto-generated. Rebuild it after any repo change:
 node scripts/generate_app_state_inventory.js
 ```
 
-### iOS (Swift) files (count: 50)
+### iOS (Swift) files (count: 63)
 - `Kuro/ContentView.swift`
+- `Kuro/Design/Color+Hex.swift` *(hex color utility)*
 - `Kuro/Design/KuroDesignSystem.swift`
 - `Kuro/KuroApp.swift`
 - `Kuro/Models/DiscoverBundle.swift`
 - `Kuro/Models/SupabaseModels.swift`
-- `Kuro/Services/AppleFMService.swift` *(new: Apple Foundation Models — on-device classification, disambiguation, synopsis condensation, collection search intent)*
+- `Kuro/Services/AppleFMService.swift` *(Apple Foundation Models — on-device classification, disambiguation, synopsis condensation, collection search intent)*
 - `Kuro/Services/AppConfig.swift`
+- `Kuro/Services/ConciergeAnalytics.swift` *(concierge telemetry + interaction tracking)*
+- `Kuro/Services/DeepLinkRouter.swift` *(deep link parsing for kuro:// scheme — anime, manga, club, collection, discover, concierge routes)*
+- `Kuro/Services/FeatureFlags.swift` *(feature flag definitions for staged rollout — clubs, concierge, realtime)*
 - `Kuro/Services/ImagePipeline.swift`
 - `Kuro/Services/KuroDiskDetailCache.swift`
 - `Kuro/Services/KuroPerf.swift`
-- `Kuro/Services/NetworkMonitor.swift` *(new: NWPathMonitor-based connectivity tracking, @Environment injection, offline banner)*
+- `Kuro/Services/NetworkMonitor.swift` *(NWPathMonitor-based connectivity tracking, @Environment injection, offline banner)*
 - `Kuro/Services/SupabaseRPCParams.swift`
 - `Kuro/Services/SupabaseService.swift`
+- `Kuro/Services/TextNormalization.swift` *(text normalization utilities for search/parsing)*
 - `Kuro/Views/AuthView.swift`
 - `Kuro/Views/BrowseView.swift`
-- `Kuro/Views/BrowseViewRefined.swift`
 - `Kuro/Views/Cards.swift`
+- `Kuro/Views/ClubCreateSheets.swift` *(create/join club sheet UI)*
 - `Kuro/Views/ClubDetailView.swift`
 - `Kuro/Views/ClubsView.swift`
 - `Kuro/Views/Collection/CollectionManagementView.swift`
+- `Kuro/Views/ConciergeActionFooter.swift` *(concierge action footer bar)*
+- `Kuro/Views/ConciergeComponents.swift` *(shared concierge UI components, curated copy layer)*
+- `Kuro/Views/ConciergeComposerDock.swift` *(concierge input composer dock)*
+- `Kuro/Views/ConciergeEditorialShell.swift` *(editorial shell wrapper for concierge page)*
+- `Kuro/Views/ConciergeImportCards.swift` *(import preview/confirm card components)*
+- `Kuro/Views/ConciergeInputField.swift` *(concierge text input field)*
+- `Kuro/Views/ConciergeIntentDeck.swift` *(quick-action intent deck for concierge)*
+- `Kuro/Views/ConciergeRecommendationRails.swift` *(recommendation rail rendering)*
+- `Kuro/Views/ConciergeResponseStage.swift` *(concierge response stage rendering)*
 - `Kuro/Views/ConciergeView.swift`
 - `Kuro/Views/CountdownTimer.swift`
 - `Kuro/Views/DetailPages/AnimeDetailView.swift`
 - `Kuro/Views/DetailPages/ClubActivitySection.swift`
+- `Kuro/Views/DetailPages/ExternalLinksSection.swift` *(streaming/source link section on detail pages)*
 - `Kuro/Views/DetailPages/MangaDetailView.swift`
 - `Kuro/Views/DetailPages/MediaDetailSheet.swift`
 - `Kuro/Views/DiscoverView.swift`
@@ -143,13 +158,13 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/KuroRefinedCard.swift`
 - `Kuro/Views/KuroToast.swift`
 - `Kuro/Views/KuroTransientBanner.swift`
+- `Kuro/Views/OnboardingView.swift` *(first-launch onboarding flow)*
 - `Kuro/Views/ProfileView.swift`
 - `Kuro/Views/SearchView.swift`
 - `Kuro/Views/SearchViewModel.swift`
-- `Kuro/Views/SettingsView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 80)
+### Supabase migrations (count: 88)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql` *(baseline schema SQL; already applied in production migration history; used for fresh project bootstrap)*
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -228,22 +243,44 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260209222728_fix_remaining_functions_search_path.sql` *(fix search_path on remaining functions)*
 - `supabase/migrations/20260209224945_fix_mirror_cron_contention.sql` *(per-batch lock keys, 120s TTL, 200 batch size, 15-min spacing for mirror cron jobs)*
 - `supabase/migrations/20260209225348_add_import_secret_to_cron_jobs.sql` *(add x-import-secret header to 4 pg_cron bulk import jobs)*
+- `supabase/migrations/20260216000000_catalog_created_at_not_null.sql` *(backfill NULLs + NOT NULL on created_at for 8 catalog tables: anime, manga, episodes, chapters, volumes, characters, studios, staff)*
+- `supabase/migrations/20260216000001_drop_unused_indexes_merge_policies_health_check.sql` *(drop 12 unused indexes, merge duplicate club_members DELETE policies, create check_mirror_health() function)*
+- `supabase/migrations/20260211030140_feature_flags.sql` *(feature flags table for staged rollout)*
+- `supabase/migrations/20260211100000_rag_tables.sql` *(RAG/embedding tables for future semantic search)*
+- `supabase/migrations/20260211110000_privacy_retention_and_gdpr.sql` *(privacy retention policies + GDPR compliance helpers)*
+- `supabase/migrations/20260211113000_rag_retrieve_candidates.sql` *(RAG candidate retrieval RPC)*
+- `supabase/migrations/20260211154000_fetch_club_bundle_member_identity.sql` *(stable member identity in club bundle via UUID hex prefix)*
+- `supabase/migrations/20260211162000_reduce_school_shoujo_overlap.sql` *(reduce overlap between school_coming_of_age and shoujo_josei rails)*
+- `supabase/migrations/20260211170000_enable_concierge_intelligence_de_canary.sql` *(enable concierge intelligence German canary flag)*
+- `supabase/migrations/20260213130000_clubs_concierge_swipe_flags.sql` *(clubs + concierge swipe feature flags)*
+- `supabase/migrations/20260213143000_concierge_editorial_v1_flag.sql` *(concierge editorial shell v1 flag)*
+- `supabase/migrations/20260215124919_add_create_rail_and_poll_rpcs.sql` *(add create_club_rail + create_club_poll RPCs)*
+- `supabase/migrations/20260215124946_create_club_rail_and_poll_rpcs.sql` *(club rail + poll RPC creation)*
+- `supabase/migrations/20260215125056_fix_invite_code_crypto_and_club_members_insert.sql` *(fix invite code cryptographic generation + club_members insert policy)*
+- `supabase/migrations/20260215125312_club_reactions_and_invite_share.sql` *(club reactions table + invite sharing improvements)*
+- `supabase/migrations/20260215130000_fix_club_fk_housekeeping_gdpr.sql` *(fix club FK constraints, housekeeping, GDPR cleanup)*
+- `supabase/migrations/20260216193000_add_club_rail_item_structured_errors.sql` *(structured error codes for add_club_rail_item RPC)*
 
-### Supabase Edge Functions (index.ts) (count: 8)
+### Supabase Edge Functions (index.ts) (count: 12)
 - `supabase/functions/bulk-import-anime/index.ts`
 - `supabase/functions/bulk-import-manga/index.ts`
 - `supabase/functions/concierge-apply/index.ts`
+- `supabase/functions/concierge-import-anilist/index.ts` *(AniList import helper)*
 - `supabase/functions/concierge-parse/index.ts`
 - `supabase/functions/concierge-recommend/index.ts`
 - `supabase/functions/concierge-resolve/index.ts`
+- `supabase/functions/concierge-retrieve-assist/index.ts` *(RAG retrieval assist)*
+- `supabase/functions/concierge-retrieve-feedback/index.ts` *(RAG feedback collection)*
 - `supabase/functions/concierge-undo/index.ts`
+- `supabase/functions/delete-account/index.ts` *(GDPR account deletion)*
 - `supabase/functions/mirror-images/index.ts`
 
-### Quality gate scripts (count: 7)
+### Quality gate scripts (count: 8)
 - `scripts/quality-gates/check_secrets.sh`
 - `scripts/quality-gates/check_migrations.sh`
 - `scripts/quality-gates/test_router_offline.sh`
 - `scripts/quality-gates/router_test_cases.js`
+- `scripts/quality-gates/test_concierge_corpora.sh`
 - `scripts/quality-gates/audit_rails.sh`
 - `scripts/quality-gates/build_ios.sh`
 - `scripts/quality-gates/run_all.sh`
@@ -277,7 +314,8 @@ node scripts/generate_app_state_inventory.js
 
 ### iOS app structure (`/Kuro`)
 - `Kuro/ContentView.swift` — app entry point + navigation/swipe pager + top header
-- `Kuro/KuroApp.swift` — `@main` entry, `scenePhase` lifecycle handling, `NetworkMonitor` + `SupabaseService` environment injection
+- `Kuro/KuroApp.swift` — `@main` entry, `scenePhase` lifecycle handling, `NetworkMonitor` + `SupabaseService` environment injection, `.onOpenURL` deep link handler
+- `Kuro/Services/DeepLinkRouter.swift` — `enum DeepLink` with cases for anime(id:), manga(id:), club(id:), collection, discover, concierge(prompt:); parses `kuro://` scheme URLs
 - `Kuro/Services/AppleFMService.swift` — Apple Foundation Models integration (on-device LLM: mode classification, disambiguation, synopsis condensation, collection search intent)
 - `Kuro/Services/NetworkMonitor.swift` — `NWPathMonitor` connectivity tracking, `@Environment` injection, offline banner
 - `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching, `fmService` (AppleFMService), `withRetry` helper
@@ -286,21 +324,28 @@ node scripts/generate_app_state_inventory.js
 - `Config/` — xcconfig files (Shared, Debug, Release) for env-based builds
 
 ### Feature-to-file map (frontend)
-- **Concierge UI**: `Kuro/Views/ConciergeView.swift` (inline chat, import, recommend UI, toasts)
+- **Concierge UI**: `Kuro/Views/ConciergeView.swift` (inline chat, import, recommend UI, toasts), `ConciergeEditorialShell.swift` (editorial shell wrapper), `ConciergeComponents.swift` (shared components + curated copy), `ConciergeInputField.swift` (text input), `ConciergeComposerDock.swift` (input composer dock), `ConciergeActionFooter.swift` (action footer bar), `ConciergeIntentDeck.swift` (quick-action intent deck), `ConciergeImportCards.swift` (import preview/confirm cards), `ConciergeRecommendationRails.swift` (recommendation rail rendering), `ConciergeResponseStage.swift` (response stage rendering)
 - **Discover**: `Kuro/Views/EditorialDiscoverView.swift` (sections, rails, filters)
 - **Collection**: `Kuro/Views/EditorialCollectionView.swift` + list helpers in `SupabaseService`
-- **Browse**: `Kuro/Views/BrowseViewRefined.swift`
+- **Browse**: `Kuro/Views/BrowseView.swift` (full-page browse with filters)
 - **Search**: `Kuro/Views/EditorialSearchView.swift`
-- **Clubs**: `Kuro/Views/ClubsView.swift` (club list, create/join), `Kuro/Views/ClubDetailView.swift` (3-tab: Rails/This Week/Polls), `Kuro/Views/DetailPages/ClubActivitySection.swift` (media detail club context)
+- **Clubs**: `Kuro/Views/ClubsView.swift` (club list, enriched cards, unread dots), `Kuro/Views/ClubDetailView.swift` (4-tab: Rails/This Week/Polls/Chat), `Kuro/Views/ClubCreateSheets.swift` (create/join sheets), `Kuro/Views/DetailPages/ClubActivitySection.swift` (media detail club context)
 - **Cards / badges**: `Kuro/Views/KuroRefinedCard.swift`, `Kuro/Views/KuroCardText.swift`
 - **Glass UI**: `Kuro/Views/KuroGlass.swift`
 - **Toasts**: `Kuro/Views/KuroToast.swift`
 - **Image caching**: `Kuro/Views/KuroCachedAsyncImage.swift`, `Kuro/Services/ImagePipeline.swift`
 - **Profile**: `Kuro/Views/ProfileView.swift` (includes Clubs tab)
+- **Onboarding**: `Kuro/Views/OnboardingView.swift` (first-launch onboarding flow)
 - **Apple Foundation Models**: `Kuro/Services/AppleFMService.swift` (on-device: mode classification, disambiguation, synopsis condensation, NL collection search intent)
 - **Network monitoring**: `Kuro/Services/NetworkMonitor.swift` (connectivity state, offline banner in `KuroApp.swift`)
+- **Feature flags**: `Kuro/Services/FeatureFlags.swift` (staged rollout definitions for clubs, concierge, realtime features)
+- **Analytics**: `Kuro/Services/ConciergeAnalytics.swift` (concierge + club interaction telemetry)
+- **Text normalization**: `Kuro/Services/TextNormalization.swift` (search/parsing text utilities)
 - **Synopsis condenser**: `AnimeDetailView.swift`, `MangaDetailView.swift` call `fmService.condenseSynopsis()` for descriptions > 200 chars
 - **Next Up picks**: `NextUpSection` (in `AnimeDetailView.swift`), `MangaNextUpSection` (in `MangaDetailView.swift`) — personalized next episode/chapter recommendations
+- **Deep linking**: `Kuro/Services/DeepLinkRouter.swift` (URL parsing), `KuroApp.swift` (`.onOpenURL` handler), `ContentView.swift` (navigation + sheet presentation for deep link targets)
+- **External links**: `Kuro/Views/DetailPages/ExternalLinksSection.swift` (streaming/source links on detail pages)
+- **Design utilities**: `Kuro/Design/Color+Hex.swift` (hex color conversion)
 
 ### Supabase
 - `supabase/migrations/` — schema, indexes, views, RPCs, cron jobs
@@ -335,12 +380,13 @@ node scripts/generate_app_state_inventory.js
 - Swipe order (left to right):
   1. **Concierge**
   2. **Discover**
-  3. **Collection**
-  4. **Browse**
-  5. **Search**
-  6. **Clubs**
+  3. **Browse**
+  4. **Collection**
+  5. **Clubs**
+- **Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page.
 - **Offline banner**: Monochrome "OFFLINE" text banner (9pt, tracked) appears at top of `RootView` when `networkMonitor.isConnected == false`. Injected as `@Environment` from `KuroApp`.
 - **App lifecycle**: `scenePhase` tracked in `KuroApp.swift` for background/foreground transitions.
+- **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.collection`, `.discover`, `.concierge(prompt:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links.
 
 ### Header (top bar)
 - Left: **KURO** wordmark only (no concierge icon next to it).
@@ -372,24 +418,29 @@ node scripts/generate_app_state_inventory.js
   - Recommendations with LLM narration (optional), 23 vibe mode IDs
   - Editorial mode-to-copy mapping in `ConciergeComponents.swift` (`ConciergeCuratedCopy`) that surfaces polished section names (e.g., “The Cut”, “Dark, Not Empty”, etc.) in EN/DE while keeping backend IDs stable
   - Edge function warmup on view appear (`concierge-parse?warmup=true`)
+  - **Task lifecycle**: tracked `@State` task references (`warmupTask`, `prefetchTask`, `prefetchTask2`, `backgroundRefreshTask`, `backgroundRefreshTask2`) with consolidated `.onDisappear` cancellation — prevents leaked `Task.detached` work
 - All UI components use `KuroDesignSystem` tokens (fonts, spacing, radii, animations).
 - German NLP: `GERMAN_VIBE_FORMS` allowlist (15 adjective stems x 5 inflections), German intent keywords in `scoreMode()`, umlaut normalization (u->ue, o->oe, a->ae, ss->ss).
+- **Accessibility** (P2): Message bubbles ("You said: ..." / "Concierge: ..."), recommendation rail headers `.isHeader`, clarification cards with combined labels. `ConciergeRecommendationRails`: `.accessibilityAddTraits(.isHeader)` on rail title. `ConciergeComponents`: combined accessibility labels on clarification cards.
 
 ### Discover
 - Editorial layout with sections (Essentials, Classics, New to You, Trending, etc.)
 - Cards are two-column + compact horizontal rails
 - Cards show rating pill + metadata line (YEAR · EPS/CH)
+- **Per-rail error state** (P2): `@State loadError` with inline retry view when `fetchDiscoverBundle()` fails on first load. Accessibility label on error state.
+- **Accessibility**: `.accessibilityAddTraits(.isHeader)` on CompactHorizontalSection and Dense2ColumnSectionFixed titles.
 
 ### Collection
 - Uses collection feed + paging RPCs
+- **Accessibility**: `.accessibilityAddTraits(.isHeader)` on section headers in `EditorialCollectionView`.
 
 ### Browse + Search
 - RPC-backed paging
 
 ### Clubs
 - 5th page in the swipe pager (rightmost).
-- `ClubsView`: joined club list, empty state with create/join prompts, pull-to-refresh. No `NavigationStack` wrapper (bare view inside pager); club detail opens as a sheet.
-- `ClubDetailView`: 3-tab layout (Rails / This Week / Polls), settings sheet for owner/admin. Each rail has a "+" button (for unlocked rails or owner/admin on locked rails) that opens `AddItemToRailSheet` — server-side search via `search_anime_page`/`search_manga_page` RPCs with debounced input, compact result rows, typed `PostgrestError` handling for duplicates/lock/membership errors.
+- `ClubsView`: joined club list, empty state with create/join prompts, pull-to-refresh. No `NavigationStack` wrapper (bare view inside pager); club detail opens as a sheet. **Accessibility**: `.accessibilityLabel` on empty state ("No clubs yet...") and club cards (name + member count).
+- `ClubDetailView`: 4-tab layout (Rails / This Week / Polls / Chat — chat gated by `clubs_chat_v1` flag), settings sheet for owner/admin. Each rail has a "+" button (for unlocked rails or owner/admin on locked rails) that opens `AddItemToRailSheet` — server-side search via `search_anime_page`/`search_manga_page` RPCs with debounced input, compact result rows, typed `PostgrestError` handling for duplicates/lock/membership errors.
 - `ClubActivitySection`: embedded on `AnimeDetailView` and `MangaDetailView` — shows which clubs have this title in a rail, aggregate member status counts, and (if sharing level allows) per-member details. Member identity uses stable 6-char UUID hex prefix (not positional "Member N").
 - `ClubActivitySection`: now renders explicit member watch/read progress language (tracking, completed, planning, paused, dropped, not-started) and does not use placeholder status labels when per-member detail is unavailable.
 - Clubs tab also accessible from `ProfileView` (secondary access path via sheet).
@@ -542,6 +593,8 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - `characters`
 - `staff`
 - `studios`
+- All 8 catalog tables have `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()` (NULLs backfilled via migration `catalog_created_at_not_null`)
+- `studios`
 - `authors`
 - `tags`, `anime_tags`, `manga_tags`
 - `genres`
@@ -601,7 +654,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - `profiles` row is ensured on sign-in (`SupabaseService.ensureProfileRow()`).
 - RLS is enabled; user tables are scoped to `auth.uid()` in migrations.
 - Concierge endpoints always derive user id from JWT (never accept raw user_id from client).
-- **Clubs RLS**: 30+ policies across 9 tables. All access gated by membership via `is_club_member()` / `is_club_admin_or_owner()` / `is_club_owner()` (SECURITY DEFINER helpers to avoid infinite recursion on club_members self-query). club_members INSERT is managed via SECURITY DEFINER RPCs only (no direct policy). Rail lock enforced in `club_rail_items` INSERT policy (`cr.is_locked = false`). `club_rail_item_reactions`: member-gated SELECT/INSERT, self-only DELETE. `club_messages`: member-gated SELECT/INSERT, self-only DELETE.
+- **Clubs RLS**: 30+ policies across 9 tables. All access gated by membership via `is_club_member()` / `is_club_admin_or_owner()` / `is_club_owner()` (SECURITY DEFINER helpers to avoid infinite recursion on club_members self-query). club_members INSERT is managed via SECURITY DEFINER RPCs only (no direct policy). Rail lock enforced in `club_rail_items` INSERT policy (`cr.is_locked = false`). `club_rail_item_reactions`: member-gated SELECT/INSERT, self-only DELETE. `club_messages`: member-gated SELECT/INSERT, self-only DELETE. **Merged policy** (P2): duplicate `club_members` DELETE policies consolidated into single `club_members_delete_self_or_admin`.
 - **Club analytics RLS**: authenticated insert own (`user_id = auth.uid()`), service_role select only.
 - **Storage RLS** (P0-7): `media` bucket policies — read public (anon + authenticated), write/delete authenticated only, service_role full access. MIME types restricted to `image/jpeg`, `image/png`, `image/webp`, `image/avif`, `image/gif` (P0-6). File size limit: 5MB (P1-15).
 - **Security fixes**: `generate_invite_code()`, `sharing_level_rank()`, and all club helper functions use `SET search_path = public` to prevent search_path injection.
@@ -690,7 +743,7 @@ Clubs are private groups (2-20 members) for sharing anime/manga watch activity. 
 
 ### iOS views
 - `ClubsView.swift`: 5th page in swipe pager (rightmost). No `NavigationStack` wrapper; club detail opens as sheet. Lists joined clubs with enriched cards (member count, activity preview, unread dot). Empty state with create/join prompts. Foreground notification check on `willEnterForeground`.
-- `ClubDetailView.swift`: 4-tab segmented picker (RAILS / THIS WEEK / POLLS / CHAT — chat gated by `clubs_chat_v1` flag). Settings sheet for owner/admin. Reactions row (fire/heart/eyes/100 capsules) on each rail item (gated by `clubs_reactions_v1`). Pace text on This Week items ("3 ep behind the group" / "In sync", gated by `clubs_pace_sync_v1`, requires sharing_level=progress and ≥3 members). Milestone celebration cards when all members complete a title. Realtime subscription (on appear/disappear, gated by `clubs_realtime_v1`). Add-to-rail: "+" button per rail header (gated by lock status + role), opens `AddItemToRailSheet` with media type toggle, debounced server-side search, typed `PostgrestError` handling (DUPLICATE_ITEM, NOT_A_MEMBER, RAIL_LOCKED, MEDIA_NOT_FOUND). Task lifecycle managed via `.onDisappear` cancellation.
+- `ClubDetailView.swift`: 4-tab segmented picker (RAILS / THIS WEEK / POLLS / CHAT — chat gated by `clubs_chat_v1` flag). Settings sheet for owner/admin. Reactions row (fire/heart/eyes/100 capsules) on each rail item (gated by `clubs_reactions_v1`). Pace text on This Week items ("3 ep behind the group" / "In sync", gated by `clubs_pace_sync_v1`, requires sharing_level=progress and ≥3 members). Milestone celebration cards when all members complete a title. Realtime subscription (on appear/disappear, gated by `clubs_realtime_v1`). Add-to-rail: "+" button per rail header (gated by lock status + role), opens `AddItemToRailSheet` with media type toggle, debounced server-side search, typed `PostgrestError` handling (DUPLICATE_ITEM, NOT_A_MEMBER, RAIL_LOCKED, MEDIA_NOT_FOUND). Task lifecycle managed via `.onDisappear` cancellation. **Vote error handling**: `castVote` wrapped in do/catch with `.error` toast + `errorHaptic()`. **Accessibility**: `.accessibilityAddTraits(.isHeader)` on section headers.
 - `ClubActivitySection.swift`: Embedded on `AnimeDetailView` and `MangaDetailView`. Shows club context: which clubs have this title, aggregate member statuses.
 - `ProfileView.swift`: "Clubs" row opens ClubsView sheet (secondary access path).
 - Monochrome status pills (no colored dots).
@@ -751,6 +804,8 @@ Client + edge functions rely on these RPCs:
   - `sharing_level_rank(text)` — IMMUTABLE, returns 0/1/2 for private/status/progress
   - `generate_invite_code(int)` — 8-char alphanumeric (62^8 combinations)
   - `log_club_event(p_event_type, p_club_id, p_metadata)` — SECURITY DEFINER, inserts analytics row
+- **Ops functions**:
+  - `check_mirror_health()` — returns JSONB with mirror run stats (total runs, successes, failures, consecutive failures, alert boolean). Used for operational health monitoring.
 
 <!-- BEGIN AUTO-MIGRATION-MAP -->
 
@@ -1130,6 +1185,8 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - RPCs: `acquire_import_lock`, `release_import_lock`
 - Tables touched: `anime`, `characters`, `manga`, `mirror_runs`, `staff`
 - **Lock fix** (P1-14/P1-16): lock release in `finally` block (was missing on error paths). Per-batch lock keys derived from `mediaTypes:offset` (e.g. `mirror-images:ANIME,MANGA:0`). Lock TTL reduced from 1800s to 120s. Batch size 200 (was 500). Cron jobs spaced 15 min apart (was 10 min).
+- **AVIF support** (P2): `getExtFromContentType()` now handles `image/avif` → `.avif` extension.
+- **Cache-control** (P2): default changed to `max-age=31536000, immutable` (1 year, immutable) for mirrored images.
 
 
 <!-- END AUTO-EDGE-MAP -->
@@ -1189,6 +1246,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
   - `concierge_metrics_hourly`
   - `llm_usage_daily_totals`
   - `rate_limit_recent_top`
+- Mirror health: `check_mirror_health()` function returns JSONB with run stats, consecutive failures, and alert boolean
 - Ops doc: `supabase/CONCIERGE_OPS.md`
 - Scripts:
   - `scripts/check_cron_health.js`
@@ -1344,7 +1402,9 @@ This single command:
 
 ### Entitlements
 
-- `Kuro.entitlements` contains only `com.apple.developer.applesignin`
+- `Kuro.entitlements` contains:
+  - `com.apple.developer.applesignin`
+  - `com.apple.developer.associated-domains` — placeholder `applinks:kuro.app` for deep linking (Universal Links)
 - Foundation Models does **NOT** need an entitlement (just `import FoundationModels` + `#available(iOS 26, *)`)
 
 ### Current build
@@ -1357,6 +1417,12 @@ This single command:
 
 ## 14) Change Log (append-only)
 
+- 2026-02-16: **P2 production blockers completed — backend hardening, iOS bug fixes, accessibility, deep linking** —
+  - **Backend**: Migration `catalog_created_at_not_null` backfilled NULLs + set NOT NULL on `created_at` for 8 catalog tables. Migration `drop_unused_indexes_merge_policies_health_check` dropped 12 unused indexes (FTS/trigram superseded by title_search MV, duplicate genre GIN, unused sort indexes), merged duplicate club_members DELETE policies into single `club_members_delete_self_or_admin`, created `check_mirror_health()` JSONB function. Mirror-images edge function: AVIF support in `getExtFromContentType()`, cache-control changed to `max-age=31536000, immutable`.
+  - **iOS bug fixes**: Vote error handling in ClubDetailView (do/catch with `.error` toast + `errorHaptic()`). Task.detached cancellation in ConciergeView (tracked `@State` task refs: warmupTask, prefetchTask, prefetchTask2, backgroundRefreshTask, backgroundRefreshTask2; consolidated `.onDisappear` cancellation). Per-rail error state in EditorialDiscoverView (`@State loadError` with inline retry view on first-load failure).
+  - **Accessibility pass**: ClubDetailView (`.isHeader` on section headers), ClubsView (`.accessibilityLabel` on empty state + club cards), EditorialCollectionView (`.isHeader` on section headers), EditorialDiscoverView (`.isHeader` on section titles + error state label), ConciergeView/Components (message bubbles "You said:"/"Concierge:", rail headers `.isHeader`, clarification cards combined labels), ConciergeRecommendationRails (`.isHeader` on rail title).
+  - **Deep linking**: `DeepLinkRouter.swift` (new) with `enum DeepLink` — cases for anime(id:), manga(id:), club(id:), collection, discover, concierge(prompt:); parses `kuro://` scheme URLs. `KuroApp.swift` `.onOpenURL` handler passes `pendingDeepLink` binding to ContentView. ContentView navigates to page for page-level links, presents detail sheet for anime/manga/club links. `Kuro.entitlements` updated with Associated Domains placeholder (`applinks:kuro.app`).
+  - Files changed: `ContentView.swift`, `Kuro.entitlements`, `KuroApp.swift`, `ClubDetailView.swift`, `ClubsView.swift`, `ConciergeComponents.swift`, `ConciergeInputField.swift`, `ConciergeRecommendationRails.swift`, `ConciergeView.swift`, `EditorialCollectionView.swift`, `EditorialDiscoverView.swift`, `mirror-images/index.ts`. New file: `DeepLinkRouter.swift`.
 - 2026-02-16: **Add-to-rail from ClubDetailView + adaptive card sizing** — "+" button per club rail opens `AddItemToRailSheet` (server-side search via `search_anime_page`/`search_manga_page` RPCs, debounced, typed `PostgrestError` handling for DUPLICATE_ITEM/NOT_A_MEMBER/RAIL_LOCKED/MEDIA_NOT_FOUND). Gated by lock status + role. Member identity labels use stable 6-char UUID hex prefix instead of positional "Member N". Search task lifecycle managed via `.onDisappear` cancellation. `fetchSearchAnimePage`/`fetchSearchMangaPage` exposed as internal. Adaptive card sizing: removed misleading `containerWidth` default (393pt), all surfaces now pass explicit screen/geometry width. `KuroCompactCard` width adaptive via `floor((screenWidth - 56) / 2.8)` clamped [112, 144] in SimilarSection, MangaSimilarSection, KuroHorizontalSection. GenreHubView passes `screenWidth` to all 10 section call sites. Commit: `5273f21`.
 - 2026-02-16: **Clubs Enhancement — 6-phase feature expansion** —
   - **Phase 0**: Verified existing stub RPCs (`create_club_rail`, `create_club_poll`, `toggle_club_reaction`) were already complete on remote DB.

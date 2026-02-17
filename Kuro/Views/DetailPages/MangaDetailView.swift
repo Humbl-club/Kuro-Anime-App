@@ -598,6 +598,7 @@ struct ChaptersSection: View {
                             chapter: ch,
                             isRead: ch.number <= userProgress,
                             isMarking: markingChapter == ch.number,
+                            hasExternalLink: manga.siteUrl != nil && !manga.siteUrl!.isEmpty,
                             onOpen: { openChapter(ch) },
                             onMarkRead: { markRead(ch) }
                         )
@@ -645,10 +646,12 @@ struct ChaptersSection: View {
     }
 
     private func openChapter(_ ch: MangaChapter) {
+        guard let urlString = manga.siteUrl, !urlString.isEmpty else { return }
         KuroAccessibility.impactHaptic(.light)
-        if let urlString = manga.siteUrl, let url = URL(string: urlString) {
-            openURL(url)
-        }
+        let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let url = URL(string: trimmed),
+              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return }
+        openURL(url)
     }
 
     private func markRead(_ ch: MangaChapter) {
@@ -656,6 +659,12 @@ struct ChaptersSection: View {
         markingChapter = ch.number
         Task {
             await supabaseService.setUserProgress(mediaId: manga.id, mediaType: "manga", progress: target)
+            if let msg = supabaseService.errorMessage, !msg.isEmpty {
+                KuroAccessibility.errorHaptic()
+                #if DEBUG
+                print("markRead failed for chapter \(ch.number): \(msg)")
+                #endif
+            }
             await MainActor.run { markingChapter = nil }
         }
     }
@@ -665,6 +674,7 @@ struct ChapterItemRow: View {
     let chapter: MangaChapter
     let isRead: Bool
     let isMarking: Bool
+    let hasExternalLink: Bool
     let onOpen: () -> Void
     let onMarkRead: () -> Void
 
@@ -711,21 +721,23 @@ struct ChapterItemRow: View {
                 .accessibilityLabel("Mark read")
             }
 
-            Image(systemName: "chevron.right")
-                .font(.kuroMicro())
-                .foregroundColor(.kuroBlack30)
+            if hasExternalLink {
+                Image(systemName: "link.circle")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(.kuroBlack30)
+            }
         }
         .padding(KuroSpacing.md)
         .background(Color.kuroBlack08)
         .cornerRadius(KuroRadius.sm)
         .contentShape(Rectangle())
-        .onTapGesture(perform: onOpen)
+        .onTapGesture { if hasExternalLink { onOpen() } }
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityValue(accessibilityValueText())
-        .accessibilityHint("Opens chapter")
-        .accessibilityAction { onOpen() }
+        .accessibilityHint(hasExternalLink ? "Opens on AniList" : "")
+        .accessibilityAction { if hasExternalLink { onOpen() } }
         .accessibilityAction(named: "Mark read") {
             if !isRead && !isMarking { onMarkRead() }
         }
@@ -810,6 +822,7 @@ struct ChapterListSheet: View {
                             chapter: ch,
                             isRead: ch.number <= userProgress,
                             isMarking: markingChapter == ch.number,
+                            hasExternalLink: manga.siteUrl != nil && !manga.siteUrl!.isEmpty,
                             onOpen: { openChapter(ch) },
                             onMarkRead: { markRead(ch) }
                         )
@@ -864,10 +877,12 @@ struct ChapterListSheet: View {
     }
 
     private func openChapter(_ ch: MangaChapter) {
+        guard let urlString = manga.siteUrl, !urlString.isEmpty else { return }
         KuroAccessibility.impactHaptic(.light)
-        if let urlString = manga.siteUrl, let url = URL(string: urlString) {
-            openURL(url)
-        }
+        let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let url = URL(string: trimmed),
+              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return }
+        openURL(url)
     }
 
     private func markRead(_ ch: MangaChapter) {
@@ -875,6 +890,12 @@ struct ChapterListSheet: View {
         markingChapter = ch.number
         Task {
             await supabaseService.setUserProgress(mediaId: manga.id, mediaType: "manga", progress: target)
+            if let msg = supabaseService.errorMessage, !msg.isEmpty {
+                KuroAccessibility.errorHaptic()
+                #if DEBUG
+                print("markRead failed for chapter \(ch.number): \(msg)")
+                #endif
+            }
             await MainActor.run { markingChapter = nil }
         }
     }
@@ -915,28 +936,8 @@ struct VolumesSection: View {
                 }
             }
             
-            if volumeCount > 6 {
-                Button(action: {
-                    // Navigate to full volume list
-                    KuroAccessibility.impactHaptic(.light)
-                }) {
-                    HStack {
-                        Text("VIEW ALL \(volumeCount) VOLUMES")
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.0)
-                            .foregroundColor(.kuroBlack80)
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.kuroMicro())
-                            .foregroundColor(.kuroBlack30)
-                    }
-                    .padding(KuroSpacing.md)
-                    .background(Color.kuroBlack08)
-                    .cornerRadius(KuroRadius.sm)
-                }
-            }
+            // "VIEW ALL VOLUMES" removed — no volume detail destination exists yet.
+            // Re-add when volume browsing is implemented.
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
