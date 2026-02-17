@@ -1,6 +1,6 @@
 # CLAUDE.md — Kuro Project Rules & Context
 
-**Last synced: 2026-02-17** | **This file is mandatory reading. Every rule is binding.**
+**Last synced: 2026-02-18** | **This file is mandatory reading. Every rule is binding.**
 
 ---
 
@@ -46,7 +46,7 @@ Kuro is a curated anime + manga iOS app. It lets users browse premium editorial 
 
 ---
 
-## CURRENT APPLICATION STATE (as of 2026-02-17)
+## CURRENT APPLICATION STATE (as of 2026-02-18)
 
 ### Navigation (5-page swipe pager)
 Pages swipe left-to-right in this exact order:
@@ -105,17 +105,49 @@ All 13 flags defined in `FeatureFlags.swift`:
 - Debug override: `--ff-on=flag_name` / `--ff-off=flag_name` launch args
 
 ### Deep Linking
-`kuro://` scheme routes:
+`kuro://` scheme routes (registered via `Info.plist` at project root):
 - `kuro://anime/12345` → anime detail sheet
 - `kuro://manga/67890` → manga detail sheet
 - `kuro://club/uuid` → club detail sheet
 - `kuro://collection` → Collection page
 - `kuro://discover` → Discover page
 - `kuro://concierge?prompt=action` → Concierge with pre-filled prompt
+- `kuro://auth/callback#access_token=...&refresh_token=...` → signs user in (email verification)
+
+### Auth Email Flow (complete step-by-step)
+1. User signs up or clicks email verification link
+2. Supabase verifies token server-side
+3. Supabase 303-redirects to `redirectTo` URL: `kuro://auth/callback#access_token=...&refresh_token=...&type=signup`
+4. iOS intercepts the `kuro://` custom scheme (registered in `Info.plist`)
+5. `KuroApp.swift:33` `.onOpenURL` fires → `DeepLink.from(url:)` parses the URL
+6. `DeepLinkRouter.parseAuthParams()` extracts tokens from URL fragment (Supabase) or query params (edge function fallback)
+7. Auth callbacks are handled at app level (line 37, before auth gate) — NOT passed to ContentView
+8. `SupabaseService.handleAuthCallback()` (line 483) calls `client.auth.setSession()` with the tokens
+9. User is signed in immediately — no manual login step
+
+**Key code locations:**
+- `SupabaseService.authCallbackURL` (line 420): `kuro://auth/callback`
+- `signUpWithEmail` (line 422): passes `redirectTo: Self.authCallbackURL`
+- `resetPassword` (line 478): passes `redirectTo: Self.authCallbackURL`
+- `handleAuthCallback` (line 483): `setSession()` + `ensureProfileRow()` + `bootstrapAfterAuth()`
+
+**Fallback path:** `auth-callback` edge function (315 lines) — dark-themed HTML page with Cormorant serif, grain overlay, animated K logo, type-specific status messages (signup/recovery/magiclink/email_change/invite), "Open Kuro" CTA button after 4s timeout. Used when direct `kuro://` redirect fails.
+
+**5 branded email templates** in `emails/`: warm gray `#f5f5f0` background, Cormorant serif K wordmark, monochrome editorial styling, MSO-compatible table layout, `{{ .ConfirmationURL }}` Supabase template variables.
+
+**Custom SMTP (required for production):**
+- Supabase built-in SMTP: ~2 emails/hour, only team member emails, no SLA
+- Resend MCP server configured in `.mcp.json` (API key: `re_9Bs...`)
+- Production setup: configure Resend SMTP credentials in Supabase Dashboard → Auth → SMTP Settings (`smtp.resend.com`, port 465, API key as password)
+
+**Pending manual Supabase Dashboard steps:**
+1. Auth → URL Configuration → add `kuro://auth/callback` to Additional Redirect URLs
+2. Auth → Email Templates → paste content from `emails/*.html` (5 templates)
+3. Auth → SMTP Settings → configure Resend credentials (host: `smtp.resend.com`, port: 465, user: `resend`, password: Resend API key)
 
 ---
 
-## FILE MAP (exact, current as of 2026-02-17)
+## FILE MAP (exact, current as of 2026-02-18)
 
 ### iOS app — 63 Swift files in `Kuro/`
 
@@ -172,9 +204,9 @@ All 13 flags defined in `FeatureFlags.swift`:
 - `SupabaseModels.swift` — all Supabase data models
 - `DiscoverBundle.swift` — discover bundle response model
 
-### Supabase — 88 migrations, 12 edge functions
+### Supabase — 88 migrations, 13 edge functions
 
-**Edge functions (12):**
+**Edge functions (13):**
 - `concierge-parse` — deterministic NLP parser, title candidate search
 - `concierge-recommend` — deterministic recommendations + optional Groq narration (~1800 lines)
 - `concierge-apply` — apply parsed items to user lists
@@ -187,6 +219,7 @@ All 13 flags defined in `FeatureFlags.swift`:
 - `bulk-import-manga` — bulk manga catalog import (requires IMPORT_SECRET)
 - `mirror-images` — mirror external images to Storage CDN
 - `delete-account` — GDPR account deletion
+- `auth-callback` — email verification fallback redirect page (verify_jwt: false)
 
 **Database tables (key groups):**
 - Catalog: `anime`, `manga`, `episodes`, `chapters`, `volumes`, `characters`, `staff`, `studios`, `authors`, `tags`, `genres`, `external_links` + join tables
@@ -204,10 +237,18 @@ All 13 flags defined in `FeatureFlags.swift`:
 - `.githooks/pre-commit` — secrets + migration name checks
 - `scripts/` — 19+ operational scripts (imports, audits, load tests, generators), including `audit_curated_rails_quality.js` (rail quality checks)
 
-### Config & CI
-- `fastlane/Appfile` + `fastlane/Fastfile` — TestFlight automation
+### Config, CI & Root Files
+- `fastlane/Appfile` + `fastlane/Fastfile` — TestFlight automation (`fastlane beta`)
 - `Config/Shared.xcconfig`, `Config/Debug.xcconfig`, `Config/Release.xcconfig` — build settings
-- `Kuro.entitlements` — `com.apple.developer.applesignin` + `applinks:kuro.app` (Associated Domains placeholder)
+- `Kuro/Kuro.entitlements` — `com.apple.developer.applesignin` + `applinks:kuro.app` (Associated Domains placeholder)
+- `Info.plist` (project root, NOT `Kuro/Info.plist`) — `CFBundleURLTypes` registering `kuro://` URL scheme. `GENERATE_INFOPLIST_FILE = YES` + `INFOPLIST_FILE = Info.plist` in both Debug+Release configs (lines 447-448, 495-496 of project.pbxproj). Xcode merges generated keys with custom ones.
+- `.mcp.json` (project root) — MCP server config: Supabase (HTTP, project ref `bkdifromsqxkndnllmdj`) + Resend (`@resend/mcp` via npx, API key in env)
+- `emails/` — 5 branded HTML email templates (Cormorant serif wordmark, warm gray `#f5f5f0` background, black CTA buttons, MSO-compatible table layout):
+  - `confirm.html` — signup email verification
+  - `reset-password.html` — password reset
+  - `magic-link.html` — passwordless login
+  - `change-email.html` — email address change
+  - `invite.html` — team/club invitation
 
 ---
 
@@ -255,7 +296,10 @@ All 13 flags defined in `FeatureFlags.swift`:
 - **Project ref**: `bkdifromsqxkndnllmdj`
 
 ### Auth & RLS
-- Supabase Auth (email/password, Apple Sign In)
+- Supabase Auth (email/password with branded templates, Apple Sign In)
+- Email verification: `redirectTo` → `kuro://auth/callback` (direct app redirect, no intermediate page)
+- 5 branded templates in `emails/` — must be pasted into Supabase Dashboard
+- Custom SMTP required for production (Resend configured in `.mcp.json`)
 - RLS enabled on ALL tables — user tables scoped to `auth.uid()`
 - Edge functions derive user ID from JWT — NEVER accept raw user_id from client
 - Club RLS: 30+ policies, 4 SECURITY DEFINER helpers (`is_club_member`, `is_club_admin_or_owner`, `is_club_owner`, `sharing_level_rank`)
@@ -314,7 +358,7 @@ scripts/quality-gates/check_migrations.sh
 
 ## ABSOLUTE DO-NOTs (violations will break things)
 
-1. **Do NOT create `Kuro/Info.plist`** — project uses `GENERATE_INFOPLIST_FILE = YES`. Custom keys go via xcconfig build settings or `INFOPLIST_KEY_` prefixed settings.
+1. **Do NOT create `Kuro/Info.plist`** — that causes duplicate resource errors. `Info.plist` lives at the **project root** (not inside `Kuro/`). `GENERATE_INFOPLIST_FILE = YES` + `INFOPLIST_FILE = Info.plist` — Xcode merges generated keys with custom ones. Simple keys still go via `INFOPLIST_KEY_` build settings.
 2. **Do NOT add Foundation Models entitlement** to `Kuro.entitlements` — FM works without it. The "Adapter Entitlement" in Developer Portal is only for custom LoRA fine-tunes.
 3. **Do NOT use colored status indicators** — monochrome palette only. No colored dots, pills, or badges.
 4. **Do NOT use `UIScreen.main`** — deprecated. Use `displayScale` / window scene APIs.

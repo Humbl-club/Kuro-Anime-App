@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-02-17
+**Last updated:** 2026-02-18
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -441,6 +441,10 @@ A thorough security review was done to make the app safer before it ships:
 
 These items were identified during the production-readiness review but require manual action in the Supabase dashboard (they cannot be done through code):
 
+- **Email templates + SMTP setup** (3 steps — required for email verification to work for real users):
+  1. Auth → URL Configuration → add `kuro://auth/callback` to Additional Redirect URLs
+  2. Auth → Email Templates → paste HTML from `emails/*.html` into each template slot
+  3. Auth → SMTP Settings → configure Resend credentials (host: `smtp.resend.com`, port: 465, user: `resend`, password: Resend API key)
 - **Postgres upgrade**: The database version should be upgraded to the latest available version via the Supabase dashboard.
 - **OTP expiry reduction**: One-time password (email login codes) should have their expiry time reduced in the dashboard auth settings.
 - **Leaked password protection**: Enable the "leaked password protection" setting in the dashboard so users cannot sign up with passwords known to be compromised.
@@ -486,16 +490,26 @@ A batch of lower-priority production improvements was completed across the backe
 ### Branded email templates + auth callback (new feature)
 - 5 custom email templates replace the default Supabase emails: signup verification, password reset, magic link, email change, and invitation.
 - Designed in the Kuro editorial style: monochrome, serif "K" wordmark, warm gray (#f5f5f0) background, black call-to-action buttons, minimal copy.
-- **Email verification flow**: When a user signs up or clicks a verification link, Supabase verifies the token and redirects to the `auth-callback` edge function. This serves a dark-themed HTML page with an animated K logo that automatically extracts the session tokens and opens the Kuro app via deep link (`kuro://auth/callback`). The app receives the tokens and signs the user in immediately — no need to go back and manually log in.
-- A "Open Kuro" fallback button appears after 4 seconds in case the automatic redirect doesn't work.
-- Email templates are in `emails/` and need to be pasted into Supabase Dashboard → Authentication → Email Templates.
-- The auth-callback edge function URL needs to be added to Supabase Dashboard → Authentication → URL Configuration → Additional Redirect URLs.
+- **Email verification flow** (how it works today):
+  1. A user signs up or requests a password reset.
+  2. Supabase sends a branded email (using one of the 5 templates in the `emails/` folder).
+  3. The user clicks the link in the email.
+  4. Supabase verifies the token and redirects directly into the Kuro app (via `kuro://auth/callback`). There is no intermediate webpage — the app opens immediately.
+  5. The app receives the login tokens and signs the user in. No need to go back and type a password.
+  6. If the direct redirect doesn't work (e.g., on a desktop browser), a fallback page appears: a dark-themed page with an animated K logo and an "Open Kuro" button.
+- **5 branded email templates** in the `emails/` folder: signup verification, password reset, magic link (passwordless login), email change confirmation, and invitation. They match Kuro's editorial style: warm gray background, serif K wordmark, black call-to-action buttons, minimal copy.
+- **Custom SMTP required for production**: Supabase's built-in email service is severely limited — only ~2 emails per hour and only to team member addresses. For a real user base, you need a third-party email provider like Resend (3,000 emails/month free), AWS SES, Postmark, or Brevo. Resend is already configured as an MCP server in `.mcp.json`.
+- **Pending manual steps** (must be done in the Supabase Dashboard before emails work for real users):
+  1. **Auth → URL Configuration**: Add `kuro://auth/callback` to the "Additional Redirect URLs" list
+  2. **Auth → Email Templates**: Paste the HTML content from each file in `emails/` into the corresponding template slot (Confirm signup, Reset password, Magic link, Change email address, Invite user)
+  3. **Auth → SMTP Settings**: Enter Resend's SMTP credentials — host: `smtp.resend.com`, port: 465, username: `resend`, password: your Resend API key
 
 ---
 
 ## 18) Change Log (append-only)
 
-- 2026-02-17: **Branded email templates + auth callback deep linking**: 5 branded email templates (confirm, reset, magic-link, change-email, invite) with monochrome Kuro editorial styling. Auth-callback edge function deployed — dark-themed redirect page that extracts tokens from URL hash and opens Kuro via deep link. iOS handles auth callbacks at app level (before auth gate) with `handleAuthCallback()` using `setSession()`. `signUpWithEmail` and `resetPassword` now pass `redirectTo` pointing to the edge function. Files: `emails/*`, `supabase/functions/auth-callback/index.ts`, `DeepLinkRouter.swift`, `SupabaseService.swift`, `KuroApp.swift`, `ContentView.swift`.
+- 2026-02-18: **Direct app redirect + Resend SMTP**: Email verification now redirects directly into the Kuro app via `kuro://auth/callback` deep link — no intermediate webpage. URL scheme registered in `Info.plist` at project root. Resend MCP server configured for production email delivery.
+- 2026-02-17: **Branded email templates + auth callback deep linking**: 5 branded email templates (confirm, reset, magic-link, change-email, invite) with monochrome Kuro editorial styling. Auth-callback edge function deployed as fallback. iOS handles auth callbacks at app level (before auth gate) with `handleAuthCallback()` using `setSession()`. `signUpWithEmail` and `resetPassword` now pass `redirectTo` pointing to `kuro://auth/callback`. Files: `emails/*`, `supabase/functions/auth-callback/index.ts`, `DeepLinkRouter.swift`, `SupabaseService.swift`, `KuroApp.swift`, `ContentView.swift`.
 - 2026-02-17: **Detail page error feedback fix**: When marking an episode as watched or a chapter as read fails (e.g. network error), the app now shows a visible error toast instead of silently failing. This applies to both the inline preview and the full episode/chapter list sheets. Also fixed the chapter row accessibility hint from "Opens on AniList" to the generic "Opens external link" since the link can go to any source.
 - 2026-02-16: **P2 production blockers completed**: Backend hardening (NOT NULL on catalog created_at, 12 unused indexes dropped, duplicate club_members policy merged, mirror health check function, mirror AVIF support + 1-year cache). iOS bug fixes (vote error toast in clubs, Task.detached cancellation in concierge, discover error state with retry). Accessibility pass across 6 views (VoiceOver headings, labels, combined descriptions). Deep linking infrastructure (kuro:// scheme with anime/manga/club/page routes, Associated Domains placeholder). Added section 17.1.
 - 2026-02-16: **Add to rail from clubs + adaptive card sizing**: You can now add anime or manga directly to a club rail without leaving the club. Each rail has a "+" button that opens a search sheet — type a title, tap to add. Locked rails only show the button for admins/owners. Error messages are clear (e.g. "This title is already in this rail"). Member labels in club activity now use a stable short ID instead of "Member 1, Member 2". Card sizes across Discover, Genre Hub, and detail pages now adapt to your screen width instead of being hardcoded.

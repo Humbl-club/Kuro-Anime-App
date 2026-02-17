@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-02-17
+**Last updated:** 2026-02-18
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -60,10 +60,15 @@ This file is a **contract**. It must be updated **after every single change** to
   - `SUPABASE_ANON_KEY`
   from **Info.plist** or process env.
 - If missing, `SupabaseService` uses **hardcoded fallback** URL + anon key (see `SupabaseService.init()`).
+- **Info.plist** (project root, NOT `Kuro/Info.plist`): registers `kuro://` URL scheme via `CFBundleURLTypes`. `GENERATE_INFOPLIST_FILE = YES` + `INFOPLIST_FILE = Info.plist` — Xcode merges generated keys with custom ones.
 - **xcconfig files** (for future env-based builds):
   - `Config/Shared.xcconfig` — shared settings
   - `Config/Debug.xcconfig` — debug overrides
   - `Config/Release.xcconfig` — release overrides
+
+### MCP servers (`.mcp.json` at project root)
+- `supabase` — Supabase MCP (database, functions, docs, storage, branching)
+- `resend` — Resend email API (for custom SMTP setup + email management)
 
 ### Supabase Edge Functions env vars
 - `SUPABASE_URL`
@@ -85,7 +90,11 @@ This file is a **contract**. It must be updated **after every single change** to
 - `Kuro/` — iOS app source (SwiftUI views, services, models)
 - `supabase/` — Supabase migrations, edge functions, ops docs
 - `scripts/` — import scripts, audits, load tests, ops tools
+- `emails/` — 5 branded HTML email templates (confirm, reset-password, magic-link, change-email, invite). Cormorant serif wordmark, warm gray `#f5f5f0` background, black CTA buttons, MSO-compatible table layout. Use `{{ .ConfirmationURL }}` Supabase template variables. Must be pasted into Supabase Dashboard → Auth → Email Templates.
 - `mockups/` — UI references
+- `Info.plist` — custom URL scheme registration (`kuro://`). Lives at project root (NOT `Kuro/Info.plist` — that causes duplicate resource errors). `GENERATE_INFOPLIST_FILE = YES` + `INFOPLIST_FILE = Info.plist` in both Debug+Release build configs.
+- `.mcp.json` — MCP server config: Supabase (HTTP) + Resend (`@resend/mcp` via npx, API key in env)
+- `CLAUDE.md` — mandatory project rules + full context for new sessions
 - `BROWSE_REFINED_SUMMARY.md`, `MASTER_PLAN.md`, `COMPLETE_APP_DOCUMENTATION.md` — historical docs
 
 <!-- BEGIN AUTO-INVENTORY -->
@@ -286,6 +295,20 @@ node scripts/generate_app_state_inventory.js
 - `scripts/quality-gates/build_ios.sh`
 - `scripts/quality-gates/run_all.sh`
 
+### Email templates (count: 5)
+- `emails/confirm.html` *(signup email verification — "Verify your email")*
+- `emails/reset-password.html` *(password reset — "Reset your password")*
+- `emails/magic-link.html` *(passwordless login — "Your magic link")*
+- `emails/change-email.html` *(email address change — "Confirm your new email")*
+- `emails/invite.html` *(team/club invitation — "You've been invited")*
+
+Design: Cormorant serif K wordmark, warm gray `#f5f5f0` background, white inner card, black CTA buttons, MSO-compatible table layout. Use `{{ .ConfirmationURL }}` Supabase template variables.
+
+### Root config files
+- `Info.plist` — `CFBundleURLTypes` registering `kuro://` URL scheme (Editor role, bundle URL name `com.Kuro.app`). `GENERATE_INFOPLIST_FILE = YES` + `INFOPLIST_FILE = Info.plist` in project.pbxproj lines 447-448, 495-496.
+- `.mcp.json` — MCP server config: Supabase (HTTP, project ref `bkdifromsqxkndnllmdj`, features: branching/functions/development/debugging/account/database/docs/storage) + Resend (`@resend/mcp` via npx, `RESEND_API_KEY` env var)
+- `CLAUDE.md` — mandatory project rules, file map, design system tokens, build commands, DO-NOTs
+
 ### Git hooks
 - `.githooks/pre-commit`
 
@@ -315,11 +338,11 @@ node scripts/generate_app_state_inventory.js
 
 ### iOS app structure (`/Kuro`)
 - `Kuro/ContentView.swift` — app entry point + navigation/swipe pager + top header
-- `Kuro/KuroApp.swift` — `@main` entry, `scenePhase` lifecycle handling, `NetworkMonitor` + `SupabaseService` environment injection, `.onOpenURL` deep link handler (auth callbacks intercepted at app level before auth gate)
+- `Kuro/KuroApp.swift` — `@main` entry (63 lines), `scenePhase` lifecycle handling, `NetworkMonitor` + `SupabaseService` environment injection, `.onOpenURL` deep link handler (line 33). Auth callbacks intercepted at app level (line 37, before auth gate) — calls `handleAuthCallback()` directly instead of passing to ContentView. URL cache: 64MB memory + 256MB disk.
 - `Kuro/Services/DeepLinkRouter.swift` — `enum DeepLink` with cases for anime(id:), manga(id:), club(id:), collection, discover, concierge(prompt:), authCallback(accessToken:, refreshToken:); parses `kuro://` scheme URLs
 - `Kuro/Services/AppleFMService.swift` — Apple Foundation Models integration (on-device LLM: mode classification, disambiguation, synopsis condensation, collection search intent)
 - `Kuro/Services/NetworkMonitor.swift` — `NWPathMonitor` connectivity tracking, `@Environment` injection, offline banner
-- `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching, `fmService` (AppleFMService), `withRetry` helper
+- `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching, `fmService` (AppleFMService), `withRetry` helper, `authCallbackURL` (line 420), `handleAuthCallback()` (line 483), `signUpWithEmail`/`resetPassword` with `redirectTo`
 - `Kuro/Views/` — SwiftUI UI components
 - `Kuro/Models/` — data models (Anime, Manga, UserList, etc.)
 - `Config/` — xcconfig files (Shared, Debug, Release) for env-based builds
@@ -362,7 +385,7 @@ node scripts/generate_app_state_inventory.js
 - `concierge-apply/` — apply parsed items to user lists
 - `concierge-undo/` — rollback last import session
 - `mirror-images/` — mirror external images to Storage CDN
-- `auth-callback/` — email verification redirect; serves dark-themed HTML page with animated K logo, extracts tokens from URL hash, redirects to `kuro://auth/callback` deep link (verify_jwt: false)
+- `auth-callback/` — email verification fallback redirect; serves dark-themed HTML page with animated K logo. Primary flow uses direct `kuro://auth/callback` redirect (no intermediate page). verify_jwt: false.
 
 ### Scripts
 - `scripts/import_anilist_fast.js`, `scripts/import_anilist_local.js`, `scripts/run_full_import.js` — AniList ingestion
@@ -389,7 +412,23 @@ node scripts/generate_app_state_inventory.js
 - **Offline banner**: Monochrome "OFFLINE" text banner (9pt, tracked) appears at top of `RootView` when `networkMonitor.isConnected == false`. Injected as `@Environment` from `KuroApp`.
 - **App lifecycle**: `scenePhase` tracked in `KuroApp.swift` for background/foreground transitions.
 - **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.collection`, `.discover`, `.concierge(prompt:)`, `.authCallback(accessToken:, refreshToken:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links. Auth callbacks are intercepted at `KuroApp` level (before auth gate) and call `handleAuthCallback()` to set session immediately.
-- **Auth email flow**: Email verification uses Supabase's `redirectTo` pointing to `auth-callback` edge function. The edge function serves a branded dark HTML page that extracts tokens from URL hash fragment and redirects to `kuro://auth/callback?access_token=...&refresh_token=...`. 5 branded email templates in `emails/` (confirm, reset-password, magic-link, change-email, invite).
+- **Auth email flow (complete)**:
+  1. User triggers email verification (signup, password reset, magic link, email change, invite).
+  2. Supabase sends branded email from `emails/*.html` template (requires custom SMTP + template paste in dashboard).
+  3. User clicks verification link → Supabase verifies token server-side.
+  4. Supabase 303-redirects to `redirectTo`: `kuro://auth/callback#access_token=...&refresh_token=...&type=signup`.
+  5. iOS intercepts `kuro://` scheme (registered in `Info.plist` at project root via `CFBundleURLTypes`).
+  6. `KuroApp.swift:33` `.onOpenURL` → `DeepLink.from(url:)` → `DeepLinkRouter.parseAuthParams()` extracts tokens from URL fragment (priority) or query params (fallback).
+  7. Auth callbacks intercepted at app level (line 37, before auth gate) — NOT passed to ContentView.
+  8. `SupabaseService.handleAuthCallback()` (line 483) → `client.auth.setSession()` → `ensureProfileRow()` → `bootstrapAfterAuth()`.
+  9. User is signed in immediately — no manual login step.
+  - **Key code**: `authCallbackURL` (SupabaseService.swift:420), `signUpWithEmail` passes `redirectTo` (line 422), `resetPassword` passes `redirectTo` (line 478), `handleAuthCallback` (line 483).
+  - **Fallback**: `auth-callback` edge function (315 lines) — dark-themed HTML page with Cormorant serif, grain SVG overlay, animated K logo, type-specific status messages (signup/recovery/magiclink/email_change/invite), loading dots, "Open Kuro" CTA button after 4s timeout, "Continue in browser" secondary link. Security headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`.
+  - **Custom SMTP required**: Supabase built-in SMTP limited to ~2 emails/hour, only team member emails, no SLA. Production requires Resend (or AWS SES, Postmark, SendGrid, Brevo). Resend MCP server configured in `.mcp.json`.
+  - **Pending Supabase Dashboard manual steps**:
+    1. Auth → URL Configuration → add `kuro://auth/callback` to Additional Redirect URLs
+    2. Auth → Email Templates → paste content from `emails/*.html` (5 templates: confirm, reset-password, magic-link, change-email, invite)
+    3. Auth → SMTP Settings → configure Resend credentials (host: `smtp.resend.com`, port: 465, user: `resend`, password: Resend API key)
 
 ### Header (top bar)
 - Left: **KURO** wordmark only (no concierge icon next to it).
@@ -1420,6 +1459,7 @@ This single command:
 
 ## 14) Change Log (append-only)
 
+- 2026-02-18: **Direct kuro:// redirect + Resend SMTP setup** — Changed `SupabaseService.authCallbackURL` from edge function URL to `kuro://auth/callback` directly, so Supabase redirects straight into the app after email verification (no intermediate webpage). `DeepLinkRouter.parseAuthParams()` now handles tokens from both URL fragment (`#access_token=...`) and query params. `Info.plist` created at project root with `CFBundleURLTypes` registering `kuro://` URL scheme. `INFOPLIST_FILE = Info.plist` added to project.pbxproj. Resend MCP server configured in `.mcp.json` for production email delivery. Commit: `13fa6f4`.
 - 2026-02-17: **Branded email templates + auth callback deep linking** — 5 editorial email templates in `emails/` (confirm, reset-password, magic-link, change-email, invite) with monochrome Kuro branding (Cormorant serif wordmark, warm gray background, black CTA buttons). `auth-callback` edge function deployed (verify_jwt: false) — serves dark-themed HTML redirect page with animated K logo that extracts tokens from Supabase hash fragment and redirects to `kuro://auth/callback`. `DeepLinkRouter` extended with `.authCallback(accessToken:, refreshToken:)` case. `KuroApp.swift` intercepts auth callbacks at app level (before auth gate) and calls `handleAuthCallback()`. `SupabaseService` extended with `authCallbackURL`, `redirectTo` in `signUpWithEmail`/`resetPassword`, and `handleAuthCallback()` method using `setSession()`. Commit: `740a2b4`.
 - 2026-02-17: **Detail page error feedback + accessibility fix** — `EpisodesSection`/`EpisodeListSheet` (AnimeDetailView) and `ChaptersSection`/`ChapterListSheet` (MangaDetailView) now show error toast to user when `markWatched`/`markRead` fails (was only `#if DEBUG` print). Thread `onError` callback from parent detail views; list sheets have own toast state + overlay. `ChapterItemRow` accessibility hint changed from hardcoded "Opens on AniList" to generic "Opens external link". Commit: `504716c`.
 - 2026-02-16: **P2 production blockers completed — backend hardening, iOS bug fixes, accessibility, deep linking** —
