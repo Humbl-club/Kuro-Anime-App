@@ -24,7 +24,8 @@ enum DeepLink: Equatable {
     /// - `kuro://discover`
     /// - `kuro://concierge`
     /// - `kuro://concierge?prompt=hello`
-    /// - `kuro://auth/callback?access_token=...&refresh_token=...`
+    /// - `kuro://auth/callback#access_token=...&refresh_token=...`  (Supabase fragment redirect)
+    /// - `kuro://auth/callback?access_token=...&refresh_token=...`  (edge function fallback)
     static func from(url: URL) -> DeepLink? {
         guard let scheme = url.scheme?.lowercased(),
               scheme == "kuro" else { return nil }
@@ -53,13 +54,40 @@ enum DeepLink: Equatable {
             let prompt = queryItems?.first(where: { $0.name == "prompt" })?.value
             return .concierge(prompt: prompt)
         case "auth":
-            guard pathComponents.first?.lowercased() == "callback",
-                  let accessToken = queryItems?.first(where: { $0.name == "access_token" })?.value,
-                  let refreshToken = queryItems?.first(where: { $0.name == "refresh_token" })?.value,
+            guard pathComponents.first?.lowercased() == "callback" else { return nil }
+            // Supabase sends tokens in the URL fragment (#access_token=...&refresh_token=...).
+            // The edge function fallback sends them as query params (?access_token=...).
+            // Parse both so either path works.
+            let params = Self.parseAuthParams(fragment: url.fragment, queryItems: queryItems)
+            guard let accessToken = params["access_token"],
+                  let refreshToken = params["refresh_token"],
                   !accessToken.isEmpty, !refreshToken.isEmpty else { return nil }
             return .authCallback(accessToken: accessToken, refreshToken: refreshToken)
         default:
             return nil
         }
+    }
+
+    /// Extract key-value pairs from either the URL fragment or query items.
+    /// Fragment takes priority (direct Supabase redirect), query is fallback (edge function).
+    private static func parseAuthParams(fragment: String?, queryItems: [URLQueryItem]?) -> [String: String] {
+        // Try fragment first (e.g. "access_token=abc&refresh_token=def&type=signup")
+        if let fragment, !fragment.isEmpty {
+            var params: [String: String] = [:]
+            for pair in fragment.components(separatedBy: "&") {
+                let kv = pair.components(separatedBy: "=")
+                if kv.count == 2, let key = kv[0].removingPercentEncoding,
+                   let value = kv[1].removingPercentEncoding {
+                    params[key] = value
+                }
+            }
+            if params["access_token"] != nil { return params }
+        }
+        // Fallback to query params
+        var params: [String: String] = [:]
+        for item in queryItems ?? [] {
+            if let value = item.value { params[item.name] = value }
+        }
+        return params
     }
 }

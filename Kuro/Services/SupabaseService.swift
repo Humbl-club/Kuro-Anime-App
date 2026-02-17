@@ -416,8 +416,8 @@ class SupabaseService {
         }
     }
 
-    /// Auth callback redirect URL — edge function that bounces back to the app via kuro:// deep link.
-    static let authCallbackURL = URL(string: "https://bkdifromsqxkndnllmdj.supabase.co/functions/v1/auth-callback")!
+    /// Auth callback redirect URL — custom scheme so Supabase redirects straight into the app (no intermediate webpage).
+    static let authCallbackURL = URL(string: "kuro://auth/callback")!
 
     func signUpWithEmail(email: String, password: String) async throws {
         authErrorMessage = nil
