@@ -38,6 +38,7 @@ struct MangaDetailView: View {
                     // so the banner truly reaches the top edge.
                     MangaHeroSection(manga: manga, geometry: geometry, scrollOffset: $scrollOffset)
                         .offset(y: -safeTop)
+                        .padding(.bottom, -safeTop)
                     
                     // Content Section
                     VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)) {
@@ -64,10 +65,8 @@ struct MangaDetailView: View {
                             TagChipsSection(title: "SUB‑GENRES", tags: topTags.map(\.name))
                         }
                         
-                        // Chapters Section (if available)
-                        if let chapterCount = manga.chapterCount {
-                            ChaptersSection(manga: manga, chapterCount: chapterCount, onError: showToast)
-                        }
+                        // Chapters Section (rows-first; count is optional)
+                        ChaptersSection(manga: manga, chapterCount: manga.chapterCount, onError: showToast)
                         
                         // Volumes Section (if available)
                         if let volumeCount = manga.volumeCount {
@@ -87,6 +86,10 @@ struct MangaDetailView: View {
                         }
 
                         ClubActivitySection(mediaId: manga.id, mediaType: "MANGA")
+
+                        if FeatureFlags.shared.isSocialActivityV1Enabled {
+                            FriendsActivitySection(mediaId: manga.id, mediaType: "MANGA")
+                        }
 
                         ExternalLinksSection(
                             anilistId: manga.id,
@@ -155,10 +158,12 @@ struct MangaDetailView: View {
             similar = await sim
 
             // Condense long synopses on-device via Apple FM (no-op on unsupported devices)
-            if let desc = manga.description, !desc.isEmpty, desc.count > 200 {
+            let sourceSynopsis = manga.displayDescription
+            let hasReadyEnhanced = (manga.synopsisEnhancedState ?? "").lowercased() == "ready"
+            if !hasReadyEnhanced, sourceSynopsis.count > 200 {
                 condensedSynopsis = await supabaseService.fmService.condenseSynopsis(
                     mediaId: manga.id,
-                    description: desc,
+                    description: sourceSynopsis,
                     title: manga.displayTitle,
                     genres: manga.genreList ?? []
                 )
@@ -282,7 +287,6 @@ struct MangaSimilarSection: View {
                     }
                 }
             }
-            .kuroSwipeExclusionZone()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -545,14 +549,16 @@ struct MangaStatsGrid: View {
 // MARK: - Chapters Section
 struct ChaptersSection: View {
     let manga: Manga
-    let chapterCount: Int
+    let chapterCount: Int?
     var onError: ((KuroToastState) -> Void)? = nil
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.openURL) private var openURL
     @State private var chapters: [MangaChapter] = []
+    @State private var chapterStatus: MangaChapterStatus? = nil
     @State private var isLoading: Bool = false
     @State private var showAllChapters: Bool = false
     @State private var markingChapter: Int? = nil
+    @State private var legalReadLink: (url: String, site: String, label: String)? = nil
 
     private var userProgress: Int {
         supabaseService.userLists.first(where: { $0.mediaType.lowercased() == "manga" && $0.mediaId == manga.id })?.progress ?? 0
@@ -560,6 +566,12 @@ struct ChaptersSection: View {
 
     private var nextChapterNumber: Int {
         max(1, userProgress + 1)
+    }
+
+    private var knownChapterTotal: Int {
+        if let chapterCount { return chapterCount }
+        if let statusCount = chapterStatus?.chapterRows { return statusCount }
+        return chapters.count
     }
     
     var body: some View {
@@ -572,7 +584,7 @@ struct ChaptersSection: View {
                 
                 Spacer()
                 
-                Text("\(chapterCount) TOTAL")
+                Text("\(knownChapterTotal) TOTAL")
                     .font(.kuroMicro(weight: .light))
                     .tracking(0.5)
                     .foregroundColor(.kuroBlack60)
@@ -585,7 +597,7 @@ struct ChaptersSection: View {
                     }
                 } else if chapters.isEmpty {
                     HStack {
-                        Text("No chapter data yet")
+                        Text(emptyStateMessage())
                             .font(.kuroMicro(weight: .light))
                             .foregroundColor(.kuroBlack60)
                         Spacer()
@@ -599,20 +611,30 @@ struct ChaptersSection: View {
                             chapter: ch,
                             isRead: ch.number <= userProgress,
                             isMarking: markingChapter == ch.number,
-                            hasExternalLink: manga.siteUrl != nil && !manga.siteUrl!.isEmpty,
+                            hasExternalLink: legalReadLink != nil,
                             onOpen: { openChapter(ch) },
                             onMarkRead: { markRead(ch) }
                         )
                     }
                 }
 
-                if chapterCount > 5 {
+                if !chapters.isEmpty && legalReadLink == nil {
+                    HStack {
+                        Text("No legal read link is available yet.")
+                            .font(.kuroMicro(weight: .light))
+                            .foregroundColor(.kuroBlack60)
+                        Spacer()
+                    }
+                    .padding(.horizontal, KuroSpacing.md)
+                }
+
+                if knownChapterTotal > 5 {
                     Button(action: {
                         KuroAccessibility.impactHaptic(.light)
                         showAllChapters = true
                     }) {
                         HStack {
-                            Text("VIEW ALL \(chapterCount) CHAPTERS")
+                            Text("VIEW ALL \(knownChapterTotal) CHAPTERS")
                                 .font(.kuroMicro(weight: .medium))
                                 .tracking(1.0)
                                 .foregroundColor(.kuroBlack80)
@@ -633,9 +655,11 @@ struct ChaptersSection: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .task(id: nextChapterNumber) {
             await loadPreview()
+            await refreshChapterStatus()
+            await refreshLegalReadLink()
         }
         .sheet(isPresented: $showAllChapters) {
-            ChapterListSheet(manga: manga, chapterCount: chapterCount)
+            ChapterListSheet(manga: manga, chapterCount: chapterCount, chapterStatus: chapterStatus)
                 .environment(supabaseService)
         }
     }
@@ -646,17 +670,45 @@ struct ChaptersSection: View {
         chapters = await supabaseService.fetchChaptersNext(mangaId: manga.id, fromNumber: nextChapterNumber, limit: 10)
     }
 
-    private func openChapter(_ ch: MangaChapter) {
-        guard let urlString = manga.siteUrl, !urlString.isEmpty else { return }
+    private func refreshChapterStatus() async {
+        let status = await supabaseService.fetchMangaChapterStatus(mangaId: manga.id)
+        await MainActor.run { chapterStatus = status }
+    }
+
+    private func openChapter(_ _: MangaChapter) {
+        guard let legalReadLink else { return }
         KuroAccessibility.impactHaptic(.light)
-        let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let url = URL(string: trimmed),
-              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return }
+        guard let url = validatedURL(from: legalReadLink.url) else { return }
         openURL(url)
     }
 
+    private func refreshLegalReadLink() async {
+        let best = await supabaseService.getBestLegalReadLink(
+            manga: manga,
+            locale: Locale.current.identifier
+        )
+        await MainActor.run {
+            legalReadLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
+        }
+    }
+
+    private func validatedURL(from raw: String?) -> URL? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        var candidate = trimmed.replacingOccurrences(of: " ", with: "%20")
+        let lower = candidate.lowercased()
+        if !(lower.hasPrefix("http://") || lower.hasPrefix("https://")) {
+            guard !candidate.contains("://") else { return nil }
+            candidate = "https://\(candidate)"
+        }
+        guard let url = URL(string: candidate), let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else { return nil }
+        return url
+    }
+
     private func markRead(_ ch: MangaChapter) {
-        let target = min(ch.number, chapterCount)
+        let target = chapterCount.map { min(ch.number, $0) } ?? ch.number
         markingChapter = ch.number
         Task {
             await supabaseService.setUserProgress(mediaId: manga.id, mediaType: "manga", progress: target)
@@ -668,6 +720,19 @@ struct ChaptersSection: View {
                 #endif
             }
             await MainActor.run { markingChapter = nil }
+        }
+    }
+
+    private func emptyStateMessage() -> String {
+        switch chapterStatus?.mappingStatus.lowercased() {
+        case "syncing":
+            return "Syncing chapter data..."
+        case "unresolved":
+            return "Chapter data is still being matched for this title."
+        case "no_source":
+            return "Chapter data is not available for this title yet."
+        default:
+            return "No chapter data yet"
         }
     }
 }
@@ -738,7 +803,7 @@ struct ChapterItemRow: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityValue(accessibilityValueText())
-        .accessibilityHint(hasExternalLink ? "Opens external link" : "")
+        .accessibilityHint(hasExternalLink ? "Opens legal read provider" : "")
         .accessibilityAction { if hasExternalLink { onOpen() } }
         .accessibilityAction(named: "Mark read") {
             if !isRead && !isMarking { onMarkRead() }
@@ -784,7 +849,8 @@ struct ChapterSkeletonRow: View {
 
 struct ChapterListSheet: View {
     let manga: Manga
-    let chapterCount: Int
+    let chapterCount: Int?
+    let chapterStatus: MangaChapterStatus?
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
@@ -797,6 +863,7 @@ struct ChapterListSheet: View {
     @State private var markingChapter: Int? = nil
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
+    @State private var legalReadLink: (url: String, site: String, label: String)? = nil
 
     private let pageSize: Int = 50
 
@@ -808,13 +875,26 @@ struct ChapterListSheet: View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: KuroSpacing.sm) {
+                    if legalReadLink == nil {
+                        HStack {
+                            Text("No legal read provider is available yet.")
+                                .font(.kuroMicro(weight: .light))
+                                .foregroundColor(.kuroBlack60)
+                            Spacer()
+                        }
+                        .padding(.horizontal, KuroSpacing.md)
+                        .padding(.vertical, KuroSpacing.sm)
+                        .background(Color.kuroBlack08)
+                        .cornerRadius(KuroRadius.sm)
+                    }
+
                     if hasLoadedOnce && chapters.isEmpty && !isLoading {
                         VStack(spacing: 10) {
                             Text("NO CHAPTERS FOUND")
                                 .font(.kuroMicro(weight: .medium))
                                 .tracking(1.2)
                                 .foregroundColor(.kuroBlack60)
-                            Text("Chapter data may still be importing.")
+                            Text(emptyStateMessage())
                                 .font(.kuroMicro(weight: .light))
                                 .foregroundColor(.kuroBlack30)
                         }
@@ -826,7 +906,7 @@ struct ChapterListSheet: View {
                             chapter: ch,
                             isRead: ch.number <= userProgress,
                             isMarking: markingChapter == ch.number,
-                            hasExternalLink: manga.siteUrl != nil && !manga.siteUrl!.isEmpty,
+                            hasExternalLink: legalReadLink != nil,
                             onOpen: { openChapter(ch) },
                             onMarkRead: { markRead(ch) }
                         )
@@ -857,6 +937,7 @@ struct ChapterListSheet: View {
             }
             .task {
                 await loadMore(reset: true)
+                await refreshLegalReadLink()
             }
         }
         .overlay(alignment: .bottom) {
@@ -900,17 +981,15 @@ struct ChapterListSheet: View {
         hasLoadedOnce = true
     }
 
-    private func openChapter(_ ch: MangaChapter) {
-        guard let urlString = manga.siteUrl, !urlString.isEmpty else { return }
+    private func openChapter(_ _: MangaChapter) {
+        guard let legalReadLink else { return }
         KuroAccessibility.impactHaptic(.light)
-        let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let url = URL(string: trimmed),
-              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return }
+        guard let url = validatedURL(from: legalReadLink.url) else { return }
         openURL(url)
     }
 
     private func markRead(_ ch: MangaChapter) {
-        let target = min(ch.number, chapterCount)
+        let target = chapterCount.map { min(ch.number, $0) } ?? ch.number
         markingChapter = ch.number
         Task {
             await supabaseService.setUserProgress(mediaId: manga.id, mediaType: "manga", progress: target)
@@ -923,6 +1002,44 @@ struct ChapterListSheet: View {
             }
             await MainActor.run { markingChapter = nil }
         }
+    }
+
+    private func emptyStateMessage() -> String {
+        switch chapterStatus?.mappingStatus.lowercased() {
+        case "syncing":
+            return "Chapter data may still be importing."
+        case "unresolved":
+            return "Matching is still in progress for this title."
+        case "no_source":
+            return "No chapter source is available yet."
+        default:
+            return "Chapter data may still be importing."
+        }
+    }
+
+    private func refreshLegalReadLink() async {
+        let best = await supabaseService.getBestLegalReadLink(
+            manga: manga,
+            locale: Locale.current.identifier
+        )
+        await MainActor.run {
+            legalReadLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
+        }
+    }
+
+    private func validatedURL(from raw: String?) -> URL? {
+        guard let raw else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        var candidate = trimmed.replacingOccurrences(of: " ", with: "%20")
+        let lower = candidate.lowercased()
+        if !(lower.hasPrefix("http://") || lower.hasPrefix("https://")) {
+            guard !candidate.contains("://") else { return nil }
+            candidate = "https://\(candidate)"
+        }
+        guard let url = URL(string: candidate), let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else { return nil }
+        return url
     }
 }
 
@@ -1058,17 +1175,28 @@ struct MangaActionButtons: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(link.label)
-            } else if let url = validatedURL(from: manga.siteUrl) {
-                ShareLink(item: url, subject: Text(manga.displayTitle)) {
-                    Image(systemName: "square.and.arrow.up")
+            } else {
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    onToast(
+                        .init(
+                            kind: .info,
+                            title: "No legal read link yet",
+                            subtitle: "We only show verified legal providers.",
+                            actionTitle: nil,
+                            onAction: nil
+                        )
+                    )
+                }) {
+                    Image(systemName: "book.closed")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.kuroBlack)
+                        .foregroundColor(.kuroBlack30)
                         .frame(width: 38, height: 38)
                         .background(Color.kuroBlack08)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .simultaneousGesture(TapGesture().onEnded { KuroAccessibility.impactHaptic(.light) })
+                .accessibilityLabel("No legal read link available")
             }
         }
         .padding(10)
@@ -1096,8 +1224,14 @@ struct MangaActionButtons: View {
     }
 
     private func refreshLinks() async {
-        let links = await supabaseService.fetchExternalLinks(mediaType: "MANGA", mediaId: manga.id)
-        let best = await supabaseService.getBestReadLink(manga: manga)
+        let links = await supabaseService.fetchLegalReadLinks(
+            mediaId: manga.id,
+            locale: Locale.current.identifier
+        )
+        let best = await supabaseService.getBestLegalReadLink(
+            manga: manga,
+            locale: Locale.current.identifier
+        )
         await MainActor.run {
             self.allLinks = links.filter { validatedURL(from: $0.url) != nil }
             self.readLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
@@ -1114,8 +1248,14 @@ struct MangaActionButtons: View {
             guard !candidate.contains("://") else { return nil }
             candidate = "https://\(candidate)"
         }
-        guard let url = URL(string: candidate) else { return nil }
-        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
+        if let url = URL(string: candidate) {
+            guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
+            return url
+        }
+        // Percent-encode non-ASCII characters (CJK, Korean, etc.)
+        guard let encoded = candidate.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: encoded),
+              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
         return url
     }
 

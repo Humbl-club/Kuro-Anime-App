@@ -38,6 +38,7 @@ struct AnimeDetailView: View {
                     // so the banner truly reaches the top edge.
                     HeroSection(anime: anime, geometry: geometry, scrollOffset: $scrollOffset)
                         .offset(y: -safeTop)
+                        .padding(.bottom, -safeTop)
                     
                     // Content Section
                     VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)) {
@@ -89,11 +90,10 @@ struct AnimeDetailView: View {
 
                         ClubActivitySection(mediaId: anime.id, mediaType: "ANIME")
 
-                        ExternalLinksSection(
-                            anilistId: anime.id,
-                            malId: anime.idMal,
-                            mediaType: "anime"
-                        )
+                        if FeatureFlags.shared.isSocialActivityV1Enabled {
+                            FriendsActivitySection(mediaId: anime.id, mediaType: "ANIME")
+                        }
+
                     }
                     .padding(.horizontal, ResponsiveLayout.padding())
                     .padding(.top, KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width))
@@ -157,10 +157,12 @@ struct AnimeDetailView: View {
             similar = await sim
 
             // Condense long synopses on-device via Apple FM (no-op on unsupported devices)
-            if let desc = anime.description, !desc.isEmpty, desc.count > 200 {
+            let sourceSynopsis = anime.displayDescription
+            let hasReadyEnhanced = (anime.synopsisEnhancedState ?? "").lowercased() == "ready"
+            if !hasReadyEnhanced, sourceSynopsis.count > 200 {
                 condensedSynopsis = await supabaseService.fmService.condenseSynopsis(
                     mediaId: anime.id,
-                    description: desc,
+                    description: sourceSynopsis,
                     title: anime.displayTitle,
                     genres: anime.genreList ?? []
                 )
@@ -328,7 +330,6 @@ struct SimilarSection: View {
                     }
                 }
             }
-            .kuroSwipeExclusionZone()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -828,8 +829,16 @@ struct EpisodesSection: View {
         KuroAccessibility.impactHaptic(.light)
         if let url = validatedEpisodeURL(from: ep.streamUrl) {
             openURL(url)
-        } else if let url = validatedEpisodeURL(from: anime.siteUrl) {
-            openURL(url)
+        } else {
+            onError?(
+                KuroToastState(
+                    kind: .info,
+                    title: "No legal stream link yet",
+                    subtitle: "This episode does not have a verified legal provider.",
+                    actionTitle: nil,
+                    onAction: nil
+                )
+            )
         }
     }
 
@@ -1093,8 +1102,16 @@ struct EpisodeListSheet: View {
         KuroAccessibility.impactHaptic(.light)
         if let url = validatedEpisodeURL(from: ep.streamUrl) {
             openURL(url)
-        } else if let url = validatedEpisodeURL(from: anime.siteUrl) {
-            openURL(url)
+        } else {
+            showToast(
+                KuroToastState(
+                    kind: .info,
+                    title: "No legal stream link yet",
+                    subtitle: "This episode does not have a verified legal provider.",
+                    actionTitle: nil,
+                    onAction: nil
+                )
+            )
         }
     }
 
@@ -1183,17 +1200,28 @@ struct ActionButtons: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(link.label)
-            } else if let url = validatedURL(from: anime.siteUrl) {
-                ShareLink(item: url, subject: Text(anime.displayTitle)) {
-                    Image(systemName: "square.and.arrow.up")
+            } else {
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    onToast(
+                        .init(
+                            kind: .info,
+                            title: "No legal watch link yet",
+                            subtitle: "We only show verified legal providers.",
+                            actionTitle: nil,
+                            onAction: nil
+                        )
+                    )
+                }) {
+                    Image(systemName: "play.slash")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.kuroBlack)
+                        .foregroundColor(.kuroBlack30)
                         .frame(width: 38, height: 38)
                         .background(Color.kuroBlack08)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .simultaneousGesture(TapGesture().onEnded { KuroAccessibility.impactHaptic(.light) })
+                .accessibilityLabel("No legal watch link available")
             }
         }
         .padding(10)
@@ -1222,8 +1250,15 @@ struct ActionButtons: View {
 
     private func refreshLinks() async {
         let progress = supabaseService.getProgress(for: anime.id)
-        let best = await supabaseService.getBestWatchLink(anime: anime, userProgress: progress)
-        let links = await supabaseService.fetchExternalLinks(mediaType: "ANIME", mediaId: anime.id)
+        let best = await supabaseService.getBestLegalWatchLink(
+            anime: anime,
+            userProgress: progress,
+            locale: Locale.current.identifier
+        )
+        let links = await supabaseService.fetchLegalWatchLinks(
+            mediaId: anime.id,
+            locale: Locale.current.identifier
+        )
         await MainActor.run {
             self.watchLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
             self.allLinks = links.filter { validatedURL(from: $0.url) != nil }
@@ -1240,8 +1275,14 @@ struct ActionButtons: View {
             guard !candidate.contains("://") else { return nil }
             candidate = "https://\(candidate)"
         }
-        guard let url = URL(string: candidate) else { return nil }
-        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
+        if let url = URL(string: candidate) {
+            guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
+            return url
+        }
+        // Percent-encode non-ASCII characters (CJK, Korean, etc.)
+        guard let encoded = candidate.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: encoded),
+              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
         return url
     }
 

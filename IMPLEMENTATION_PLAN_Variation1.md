@@ -2,9 +2,35 @@
 
 This file documents the idea of routing free-text "vibe" prompts into curated recommendation rails (modes), with the LLM used only as an optional presentation layer.
 
-## Current status (as of 2026-02-17)
+## Current status (as of 2026-02-24)
 
-The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed. Production-readiness session completed: Apple FM integration, on-device intelligence features, and comprehensive security/stability hardening across DB, edge functions, storage, and iOS. The February 2026 follow-up added the curated concierge copy layer and club activity status clarity pass. P2 production blockers completed (2026-02-16): backend hardening (NOT NULL on catalog created_at, 12 unused indexes dropped, merged duplicate policies, mirror health check, AVIF support), iOS bug fixes (vote error handling, task cancellation, discover error state), accessibility pass (6 views), and deep linking infrastructure (kuro:// scheme). Detail page error feedback (2026-02-17): markWatched/markRead now show error toasts, chapter accessibility hint fixed. Branded email templates + auth callback (2026-02-17): 5 editorial email templates, auth-callback edge function. Direct kuro:// redirect (2026-02-18): Supabase redirects straight to app after email verification, URL scheme registered, Resend MCP configured for production SMTP.
+The core plan is fully implemented, expanded, and quality-hardened. All major feature work completed. Production-readiness session completed: Apple FM integration, on-device intelligence features, and comprehensive security/stability hardening across DB, edge functions, storage, and iOS. The February 2026 follow-up added the curated concierge copy layer and club activity status clarity pass. P2 production blockers completed (2026-02-16): backend hardening (NOT NULL on catalog created_at, 12 unused indexes dropped, merged duplicate policies, mirror health check, AVIF support), iOS bug fixes (vote error handling, task cancellation, discover error state), accessibility pass (6 views), and deep linking infrastructure (kuro:// scheme). Detail page error feedback (2026-02-17): markWatched/markRead now show error toasts, chapter accessibility hint fixed. Branded email templates + auth callback (2026-02-17): 5 editorial email templates, auth-callback edge function. Direct kuro:// redirect (2026-02-18): Supabase redirects straight to app after email verification, URL scheme registered, Resend MCP configured for production SMTP. Pre-ship quality audit (2026-02-18): 7-agent audit fixed withRetry force-unwrap, auth callback silent failure, precondition crash, BrowseGrid ForEach identity, Unicode URL encoding (1,417 links), Privacy Manifest, join_club archived check. Audit follow-up (2026-02-18): 4-agent team fixed 21 remaining findings — error handling across auth/clubs/chat, deleted ~2,100 lines dead code, fixed force-unwraps, backend hardening (storage path restriction, description validation, input limits, RPCs in migrations). Database health audit (2026-02-18): comprehensive audit of 70 tables, 67 functions, 15 cron jobs — all healthy; dropped 2 duplicate indexes + 1 dead function; backfilled 3 remote-only migrations locally; Postgres 17.6 confirmed; pending Dashboard items reduced from 6 to 3. 93 total migrations (91 local + 2 remote-applied), 60 Swift files.
+
+**Senior stability audit pass (2026-02-20)**: Published evidence-backed audit artifacts in `/Applications/Kuro/docs/` (`audit-2026-02-20-manifest.md`, `audit-2026-02-20-findings.md`, `audit-2026-02-20-remediation-plan.md`, `audit-2026-02-20-release-gate.md`). Current gate is **NO-GO** pending remediation of one P0 (plaintext import secret exposure in migration SQL) and one P1 (deployed migration/function artifacts not yet committed).
+
+**Backend parity re-check + deploy closeout (2026-02-20)**: Re-ran Supabase CLI health checks (`functions list`, `migration list --linked`, `db lint --linked`, `inspect db db-stats`) plus iOS generic build, then applied pending migrations and deployed chapter-enrichment functions. Result: parity gap closed (remote now has `20260221150000` and `20260221162000`; function versions `manga-chapter-enrich:v4`, `manga-source-review-action:v2`). DB remains healthy with warnings-only lint and iOS build remains green.
+
+**Chapter-enrichment collision hardening (2026-02-20)**: `manga-chapter-enrich` upgraded to `v6` with looser collision thresholds, English-title preference in tiebreak selection, stronger chapter-coverage weighting, and a race-safe chapter insert path (replacing failing PostgREST upsert conflict target). Verified on AniList `86707` (`Tales of Demons and Gods`): mapping now resolves, 321 chapter rows inserted, max chapter 468, status is `ready`.
+
+**Import orchestration hardening (2026-02-20)**: `scripts/run_full_import.js` now includes automatic timeout fallback. When heavy anime/manga import calls return timeout-class failures (e.g. 504), the script automatically executes a schedule-safe lightweight batch and continues the loop. This keeps cursor progress moving during long backfills without manual restarts.
+
+**Import cursor persistence fix (2026-02-20)**: `ensureImportState()` in `scripts/run_full_import.js` no longer rewinds `import_state.last_page` to zero. It now seeds ANIME/MANGA rows only when missing (`onConflict: media_type`, `ignoreDuplicates: true`) so existing cursor progress is preserved.
+
+**Synopsis enrichment runtime hardening (2026-02-23)**: Applied migration `20260223002000_synopsis_retry_backoff_and_resume.sql` remotely and hardened the local continuous enrichment loop. `scripts/synopsis_enrichment_worker.swift` now tracks due backlog before/after, emits quality counters (`tone_polish_used`, `fallback_used`, `autodeduped_sentences`), and writes generated samples (`reports/synopsis-enrichment/generated-samples-latest.md`). `scripts/run_synopsis_enrichment.sh` now guards overlap via `.worker.lock` and self-heals stale locks via PID+TTL fallback (`SYNOPSIS_LOCK_TTL_SECONDS`), and `scripts/install_synopsis_enrichment_launchd.sh` preserves existing env values while validating required Supabase secrets before install. Dashboard (`scripts/synopsis_dashboard_server.js`) now shows cumulative/24h totals plus generated-sample visibility, and `/api/status` now backfills `updated_at` from latest run metadata when missing in status JSON.
+
+**Catalog safety runner split (2026-02-24)**: Added a fully separate catalog-safety runtime so synopsis and safety pipelines are operationally isolated. New migration `20260224101000_catalog_safety_runner_v1.sql` adds safety state fields on `anime`/`manga`, lexicon/audit tables, and service-role RPCs (`get_catalog_safety_candidates`, `upsert_catalog_safety_result`, `mark_catalog_safety_failed`, `get_catalog_safety_open_gaps`, `get_catalog_safety_backlog_count`). New scripts: `scripts/catalog_safety_worker.swift`, `scripts/run_catalog_safety.sh`, `scripts/install_catalog_safety_launchd.sh`, and `scripts/catalog_safety_dashboard_server.js` (localhost `:8788`). Safety reports now live under `reports/catalog-safety/` (`uncertain-latest.md` + per-run uncertain files), independent from synopsis report files and launchd label.
+
+**Catalog safety audit remediation (2026-02-24)**: Removed silent open-gap fallback in `scripts/catalog_safety_worker.swift`. Open-gap fetch now uses explicit error handling, increments `open_gaps_fetch_failed`, logs warning lines to worker log, preserves `uncertain-latest.md` when fetch fails to avoid false empty/open-gap dashboards, and now includes `open_gaps_fetch_failed` in run summary lines for faster ops triage. Technical inventory in `CURRENT_APP_STATE.md` was regenerated to remove stale file/count claims, `CLAUDE.md` runtime function-version snapshot was synchronized with live deployed versions, and the safety dashboard now visualizes queue completion progress (baseline/remaining/reduced + %).
+
+**Catalog safety uncertain-rate fix (2026-02-24)**: Investigated high uncertain runs and confirmed dominant pattern was `model_uncertain + no_strong_signal`. Updated worker decisioning to mark titles as safe when there is no meaningful porn signal (low rule score + no rule hits), added `safe_fallback_no_signal` metric, and surfaced it on the safety dashboard. Forced validation run showed expected behavior (`processed=240`, `safe=235`, `uncertain=0`, `blocked=5`).
+
+**Detail page scrolling fixes (2026-02-24)**: Fixed two bugs on anime/manga detail sheets. (1) Vertical dead zone at bottom: hero `.offset(y: -safeTop)` was visual-only, leaving a phantom layout gap; added `.padding(.bottom, -safeTop)` to compensate. (2) Horizontal rails ("More Like This") couldn't scroll: removed `.kuroSwipeExclusionZone()` from `SimilarSection`/`MangaSimilarSection` — these sections only appear inside sheets where the pager gesture doesn't apply, so the exclusion zone just added a competing drag recognizer. Build: SUCCEEDED.
+
+**Social Activity Layer + Add to Club Context Menu (2026-02-24)**: Replaced club-level ephemeral chat with title-level social activity. New migration `20260224150000_social_activity_layer.sql` adds `title_comments` and `title_comment_reactions` tables, `shares_club_with()` SECURITY DEFINER helper, RLS policies gating visibility to club co-members, and 5 RPCs (`upsert_title_comment`, `delete_title_comment`, `toggle_comment_reaction`, `fetch_friend_activity_for_title`, `count_friends_tracking`). Rate-limited (10 comments/5min, 30 reactions/min). Feature flag `social_activity_v1` at 0% for staged rollout. iOS: new `FriendsActivitySection.swift` on detail pages (friend tracking pills, comments, reactions), friend count indicators on all card types (Portrait/Compact/Hero/SharedVertical/SharedHorizontal), batch prefetch on Discover/Browse/Collection, "Add to Club..." context menu on cards, `AddToClubRailSheet` made public. Club chat tab removed from `ClubDetailView` (~315 lines), `clubs_chat_v1` disabled, `prune_club_messages` cron unscheduled. 2 new files, 12 modified, 64 Swift files, 142 migrations. Build: SUCCEEDED.
+
+**Manga matching hardening v2 (2026-02-20)**: `manga-chapter-enrich` now supports runtime matcher mode (`strict`/`fuzzy_v2`), weighted fuzzy title scoring with confidence+margin gates, hard conflict filtering on external IDs, persistent mapping verification memory (`next_verify_at`, `verify_status`, fail counters), and automatic safety degrade to strict mode when 24h wrong-map proxy exceeds threshold. Added migration `20260220103000_manga_fuzzy_matcher_v2.sql` (new verification columns + candidate priority class 4 + quality metrics RPC + daily auto-expire for stale pending review rows). `scripts/check_cron_health.js` now prints a dedicated fuzzy quality scorecard (auto-resolve, wrong-map proxy, unresolved trend, verify deactivation, mode/degraded flag).
+
+**Additional backend pipeline (2026-02-19)**: Implemented Manga Chapter Enrichment v1 as a separate additive path (no router behavior changes): new edge function `manga-chapter-enrich`, new mapping/review tables (`manga_source_links`, `manga_source_link_review`), candidate + metrics RPCs, and 15-minute cron schedule. Follow-up migration `20260219234000_fix_manga_chapter_enrich_cron_secret.sql` hardens the cron header path so `x-import-secret` is always sent. Added `manga-source-review-action` edge function plus migration `20260219235500_manga_review_approved_mapping_method.sql` so unresolved review rows can be approved/rejected and immediately re-enriched in one call. iOS manga chapter-open behavior now uses strict legal-provider link allowlist and no longer falls back to generic `siteUrl`.
 
 **Add-to-rail + adaptive sizing (2026-02-16)**: "+" button per club rail in ClubDetailView opens AddItemToRailSheet with server-side search and typed PostgrestError handling. Member identity labels stabilized (UUID hex prefix). Adaptive card widths across all surfaces (Discover, GenreHub, detail similar sections) — removed hardcoded 393pt default, cards scale via `floor((screenWidth - 56) / 2.8)` clamped [112, 144].
 
@@ -204,7 +230,7 @@ If you ever want to switch to 1-mode:
 ## Deployment notes
 
 To get the latest 23-mode router live, you must deploy:
-- DB migrations (in order): **63 total migrations** — see `supabase/migrations/` for full list
+- DB migrations (in order): **93 total migrations (91 local + 2 remote-applied)** — see `supabase/migrations/` for full list
   - Key mode migrations:
     - `20260205190000_concierge_modes_config.sql` (v1: 6 modes)
     - `20260205233000_concierge_modes_v2_config.sql` (v2: 8 modes + rail_id + router_llm)
@@ -449,6 +475,33 @@ Three new on-device intelligence features shipped:
 | P2-10 | Infrastructure | No deep linking | `DeepLinkRouter.swift` (enum DeepLink: anime/manga/club/collection/discover/concierge), `KuroApp.swift` `.onOpenURL`, `ContentView.swift` navigation/sheet handling, Associated Domains placeholder in entitlements |
 | P2-11 | Infrastructure | Default Supabase emails, no auth callback flow | **Code complete.** 5 branded email templates in `emails/` (confirm, reset, magic-link, change-email, invite) with monochrome editorial styling (Cormorant serif, warm gray `#f5f5f0`, MSO-compatible). `auth-callback` edge function deployed (315 lines, dark-themed HTML fallback with animated K logo, type-specific messages, "Open Kuro" CTA after 4s). `redirectTo` changed from edge function URL to `kuro://auth/callback` directly (commit `13fa6f4`) — Supabase redirects straight into app (no intermediate webpage). `Info.plist` at project root registers `kuro://` URL scheme via `CFBundleURLTypes`. `INFOPLIST_FILE = Info.plist` in both Debug+Release configs. `DeepLinkRouter` extended with `.authCallback(accessToken:, refreshToken:)` + `parseAuthParams()` (fragment priority, query fallback). `KuroApp.swift:37` intercepts auth callbacks before auth gate. `SupabaseService`: `authCallbackURL` (line 420), `handleAuthCallback()` (line 483) via `setSession()`, `signUpWithEmail`/`resetPassword` pass `redirectTo`. Resend MCP server configured in `.mcp.json`. **3 manual Supabase Dashboard steps pending**: (1) add `kuro://auth/callback` to Additional Redirect URLs, (2) paste 5 email templates, (3) configure Resend SMTP credentials (`smtp.resend.com:465`). |
 
+### 2026-02-18: Database Health Audit
+- Full audit: 15 cron jobs healthy (1,177/1,177 OK), 70 tables (~420 MB), 67 functions, zero Swift-DB mismatches
+- Dropped 2 duplicate indexes (~19 MB), 1 dead function
+- Backfilled 3 remote-only migration files locally
+- Postgres 17.6 confirmed, pending Dashboard items reduced to 3
+
+### Backend Quality Remediation (2026-02-19) -- COMPLETE
+- 5-phase remediation based on 7-agent backend audit
+- Phase 1: Critical security — dropped 5 dangerous functions, revoked 4 admin functions, fixed analytics policy
+- Phase 2: Edge function auth — added IMPORT_SECRET to mirror-images, deployed concierge-import-anilist
+- Phase 3: Swift model fixes — fixed CodingKeys (mal_id, kitsu_id), removed dead properties (tags, trailerUrl), added Realtime publication, made is_adult NOT NULL
+- Phase 4: RPC hardening — rate limits on reactions/club creation, emoji allowlist, tightened 5 policies to authenticated, fixed storage policy, added FK indexes, dropped ambiguous overloads
+- Phase 5: Cron cleanup — added history cleanup, removed duplicate job, fixed scheduling overlap, updated mirror cron auth
+
+### 2026-02-19: Pre-Ship Audit P0 Remediation — COMPLETE
+- 7-agent full-stack audit identified 13 P0, 21 P1, 24 P2, 10 P3 issues
+- All 13 P0 issues fixed:
+  - 9 nullable DB columns constrained to NOT NULL (1 migration, 17 ALTER statements)
+  - Import rating field carried through parse→apply pipeline (SupabaseService + ConciergeView)
+  - Club Realtime subscriptions extended to polls + messages tables
+  - Silent error handling replaced with user-visible error messages (4 locations)
+  - Deep link prompt injection wired end-to-end (ContentView → ConciergeView)
+  - Club chat error/retry UI added
+  - Club reaction error feedback via toast
+  - Mock initializer fixed for new struct properties
+- Build verified: BUILD SUCCEEDED
+
 ### Still Pending (deferred)
 
 These items were evaluated and intentionally deferred:
@@ -457,9 +510,9 @@ These items were evaluated and intentionally deferred:
 |----|-------|-----------------|
 | P0-1 | Anon key hardcoded in SupabaseService.swift | Actually safe — this is the public anon key (not service_role). xcconfig infrastructure created for future migration. |
 | P0-5 | Image mirroring backlog (2.7%) | Long-term data backfill issue, not a code fix. Mirror cron will catch up over time. |
-| P1-7 | Postgres version upgrade | Dashboard-only operation (Supabase console) |
-| P1-8 | OTP configuration | Dashboard-only operation (Supabase console) |
-| P1-9 | Leaked password detection | Dashboard-only operation (Supabase console) |
+| P1-7 | ~~Postgres version upgrade~~ | **Done** (2026-02-18): Postgres 17.6 confirmed via DB health audit |
+| P1-8 | OTP configuration | Dashboard-only operation (Supabase console) — kept as-is after review |
+| P1-9 | ~~Leaked password detection~~ | **Skipped** (2026-02-18): evaluated and deprioritized during DB health audit |
 | — | Email templates + SMTP | Dashboard-only: (1) add `kuro://auth/callback` to redirect URLs, (2) paste 5 email templates, (3) configure Resend SMTP credentials |
 | — | Concierge Redesign phases 1-8 | Already completed in earlier session (see above) |
 | — | On-device Core ML classifier | Deferred until sufficient labeled data from feedback loop |
