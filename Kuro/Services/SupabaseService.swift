@@ -31,6 +31,7 @@ class SupabaseService {
     var isAuthBootstrapping: Bool = true
     var isAuthenticated: Bool = false
     var authErrorMessage: String? = nil
+    private var authStateTask: Task<Void, Never>?
     // Lightweight identity for UI (header menus, etc.)
     var currentUserEmail: String? = nil
     // Used for local-only UI labeling (e.g. Clubs member list "You").
@@ -137,7 +138,7 @@ class SupabaseService {
                 throw error // Non-network errors are not retried
             }
         }
-        throw lastError!
+        throw lastError ?? URLError(.unknown)
     }
 
     private struct BackoffState: Sendable {
@@ -212,15 +213,56 @@ class SupabaseService {
         "max"
     ]
 
+    // Strict legal provider allowlist for watch links.
+    private let animeLegalProviderAllowlist: [String] = [
+        "crunchyroll",
+        "netflix",
+        "hidive",
+        "disney",
+        "amazon",
+        "prime video",
+        "hulu",
+        "youtube",
+        "apple tv",
+        "apple",
+        "max"
+    ]
+
     private let mangaProviderRanking: [String] = [
         "manga plus",
+        "mangaplus",
         "viz",
+        "viz media",
         "bookwalker",
+        "global bookwalker",
         "comixology",
         "kindle",
+        "kobo",
+        "j-novel club",
+        "manga up",
         "kodansha",
         "yen press",
         "azuki"
+    ]
+
+    // Strict legal provider allowlist for read/buy links.
+    private let mangaLegalProviderAllowlist: [String] = [
+        "manga plus",
+        "mangaplus",
+        "viz",
+        "viz media",
+        "bookwalker",
+        "global bookwalker",
+        "comixology",
+        "kindle",
+        "kobo",
+        "kodansha",
+        "yen press",
+        "azuki",
+        "j-novel club",
+        "manga up",
+        "google play books",
+        "apple books"
     ]
 
     // MARK: - Discovery policy
@@ -394,6 +436,59 @@ class SupabaseService {
             currentUserId = nil
             analytics.setUserId(nil)
         }
+
+        // Listen for auth state changes (token refresh failure, server-side revocation, etc.)
+        startAuthStateListener()
+    }
+
+    private func startAuthStateListener() {
+        authStateTask?.cancel()
+        authStateTask = Task { [weak self] in
+            guard let self else { return }
+            for await (event, session) in client.auth.authStateChanges {
+                guard !Task.isCancelled else { return }
+                switch event {
+                case .signedIn:
+                    if !isAuthenticated, let session {
+                        isAuthenticated = true
+                        currentUserEmail = session.user.email
+                        currentUserId = session.user.id.uuidString
+                        analytics.setUserId(currentUserId)
+                    }
+                case .signedOut:
+                    if isAuthenticated {
+                        await stopRealtimeSubscriptions()
+                        isAuthenticated = false
+                        currentUserEmail = nil
+                        currentUserId = nil
+                        authErrorMessage = nil
+                        stopCountdownUpdates()
+                        resetUserState()
+                        analytics.setUserId(nil)
+                        FeatureFlags.shared.setUserId(nil)
+                    }
+                case .tokenRefreshed:
+                    if let session {
+                        currentUserEmail = session.user.email
+                    }
+                default:
+                    break
+                }
+            }
+        }
+    }
+
+    /// Lightweight session check on foreground — if the token expired while backgrounded,
+    /// catch it early rather than waiting for the next API call to fail.
+    func refreshSessionIfNeeded() async {
+        do {
+            _ = try await client.auth.session
+        } catch {
+            #if DEBUG
+            print("⚠️ Session refresh failed on foreground: \(error.localizedDescription)")
+            #endif
+            // The authStateChanges listener will handle .signedOut if the session is truly gone.
+        }
     }
 
     func signInWithEmail(email: String, password: String) async throws {
@@ -422,8 +517,8 @@ class SupabaseService {
     func signUpWithEmail(email: String, password: String) async throws {
         authErrorMessage = nil
         do {
-            _ = try await client.auth.signUp(email: email, password: password, redirectTo: Self.authCallbackURL)
-            // Depending on Supabase settings, user may need email confirmation. We still attempt bootstrap if a session exists.
+            _ = try await client.auth.signUp(email: email, password: password)
+            // With email confirmation disabled, the session is immediately available.
             if let session = (try? await client.auth.session) {
                 isAuthenticated = true
                 currentUserEmail = session.user.email
@@ -439,6 +534,22 @@ class SupabaseService {
         } catch {
             authErrorMessage = error.localizedDescription
             throw error
+        }
+    }
+
+    /// Lightweight email existence check for inline sign-up validation.
+    func checkEmailExists(email: String) async -> Bool {
+        do {
+            let result: Bool = try await client
+                .rpc("check_email_exists", params: ["p_email": email])
+                .execute()
+                .value
+            return result
+        } catch {
+            #if DEBUG
+            print("[Auth] checkEmailExists error: \(error.localizedDescription)")
+            #endif
+            return false
         }
     }
 
@@ -491,6 +602,7 @@ class SupabaseService {
             await ensureProfileRow()
             await bootstrapAfterAuth()
         } catch {
+            authErrorMessage = "Verification failed. Please request a new link."
             #if DEBUG
             print("handleAuthCallback failed: \(error.localizedDescription)")
             #endif
@@ -2493,6 +2605,7 @@ class SupabaseService {
 
     func updateUserListProgress(mediaId: Int, mediaType: String, progress: Int) async {
         guard let userId = await currentUserIdString() else { return }
+        errorMessage = nil
         do {
             let table = mediaType.lowercased() == "anime" ? "anime_user_lists" : "manga_user_lists"
             let idColumn = mediaType.lowercased() == "anime" ? "anime_id" : "manga_id"
@@ -2506,12 +2619,13 @@ class SupabaseService {
                 .eq(idColumn, value: mediaId)
                 .execute()
 
+            errorMessage = nil
             await fetchUserLists()
         } catch {
+            errorMessage = "Couldn't update progress: \(error.localizedDescription)"
             #if DEBUG
             print("❌ Failed to update progress: \(error)")
             #endif
-            // Error logged in debug only
         }
     }
 
@@ -2925,6 +3039,21 @@ class SupabaseService {
         }
     }
 
+    func fetchMangaChapterStatus(mangaId: Int) async -> MangaChapterStatus? {
+        do {
+            let rows: [MangaChapterStatus] = try await client
+                .rpc("get_manga_chapter_status", params: ["p_manga_id": mangaId])
+                .execute()
+                .value
+            return rows.first
+        } catch {
+            #if DEBUG
+            print("❌ fetch manga chapter status: \(error)")
+            #endif
+            return nil
+        }
+    }
+
     func setUserProgress(mediaId: Int, mediaType: String, progress: Int) async {
         if let existing = userLists.first(where: { $0.mediaId == mediaId && $0.mediaType.lowercased() == mediaType.lowercased() }) {
             let rating = existing.score.map { $0 / 10 }
@@ -2983,19 +3112,85 @@ class SupabaseService {
             .min(by: { lhs, rhs in weight(for: lhs) < weight(for: rhs) })
     }
 
+    private func normalizedLocaleLanguage(_ locale: String?) -> String {
+        let source = (locale ?? Locale.current.identifier).lowercased()
+        if source.hasPrefix("de") { return "de" }
+        return "en"
+    }
+
+    private func normalizedExternalLanguage(_ raw: String?) -> String {
+        let source = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if source.isEmpty { return "unknown" }
+        if source.hasPrefix("de") || source.contains("german") || source.contains("deutsch") { return "de" }
+        if source.hasPrefix("en") || source.contains("english") { return "en" }
+        return "other"
+    }
+
+    private func isAllowedMangaLegalProvider(_ site: String?) -> Bool {
+        guard let site, !site.isEmpty else { return false }
+        let normalized = site.lowercased()
+        return mangaLegalProviderAllowlist.contains(where: { normalized.contains($0) })
+    }
+
+    private func isAllowedAnimeLegalProvider(_ site: String?) -> Bool {
+        guard let site, !site.isEmpty else { return false }
+        let normalized = site.lowercased()
+        return animeLegalProviderAllowlist.contains(where: { normalized.contains($0) })
+    }
+
+    private func languageRank(for link: ExternalLink, locale: String?) -> Int {
+        let target = normalizedLocaleLanguage(locale)
+        let language = normalizedExternalLanguage(link.language)
+        if language == target { return 0 }
+        if language == "en" || language == "de" { return 1 }
+        if language == "unknown" { return 2 }
+        return 3
+    }
+
+    private func providerRank(for link: ExternalLink, ranking: [String]) -> Int {
+        let site = (link.site ?? "").lowercased()
+        return ranking.firstIndex(where: { site.contains($0) }) ?? 999
+    }
+
+    private func isValidHttpURL(_ raw: String) -> Bool {
+        let normalized = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return normalized.hasPrefix("http://") || normalized.hasPrefix("https://")
+    }
+
     func getProgress(for mediaId: Int) -> Int? {
         userLists.first { $0.mediaId == mediaId && $0.mediaType.lowercased() == "anime" }?.progress
     }
 
-    func getBestWatchLink(anime: Anime, userProgress: Int?) async -> (url: String, site: String, label: String)? {
+    func fetchLegalWatchLinks(mediaId: Int, locale: String? = nil) async -> [ExternalLink] {
+        let links = await fetchExternalLinks(mediaType: "ANIME", mediaId: mediaId)
+        return links
+            .filter { !$0.isDisabled }
+            .filter { isValidHttpURL($0.url) }
+            .filter { isAllowedAnimeLegalProvider($0.site) }
+            .sorted { lhs, rhs in
+                let lhsTuple = (lhs.priority ?? 999, languageRank(for: lhs, locale: locale), providerRank(for: lhs, ranking: animeProviderRanking))
+                let rhsTuple = (rhs.priority ?? 999, languageRank(for: rhs, locale: locale), providerRank(for: rhs, ranking: animeProviderRanking))
+                if lhsTuple != rhsTuple { return lhsTuple < rhsTuple }
+                return (lhs.site ?? "").localizedCaseInsensitiveCompare(rhs.site ?? "") == .orderedAscending
+            }
+    }
+
+    func getBestLegalWatchLink(
+        anime: Anime,
+        userProgress: Int?,
+        locale: String? = nil
+    ) async -> (url: String, site: String, label: String)? {
         let nextEpisode = max(1, (userProgress ?? 0) + 1)
         if let episodeLink = await getStreamLinkForEpisode(animeId: anime.id, episodeNumber: nextEpisode) {
+            guard isValidHttpURL(episodeLink.url), isAllowedAnimeLegalProvider(episodeLink.site) else {
+                return nil
+            }
             let label = "WATCH EP \(nextEpisode) ON \(episodeLink.site.uppercased())"
             return (episodeLink.url, episodeLink.site, label)
         }
 
-        let links = await fetchExternalLinks(mediaType: "ANIME", mediaId: anime.id)
-        guard let best = bestLink(from: links, ranking: animeProviderRanking) else {
+        let links = await fetchLegalWatchLinks(mediaId: anime.id, locale: locale)
+        guard let best = links.first else {
             return nil
         }
         let siteLabel = (best.site ?? "PROVIDER").uppercased()
@@ -3003,11 +3198,34 @@ class SupabaseService {
         return (best.url, best.site ?? "Provider", "\(verb) ON \(siteLabel)")
     }
 
-    func getBestReadLink(manga: Manga) async -> (url: String, site: String, label: String)? {
-        let links = await fetchExternalLinks(mediaType: "MANGA", mediaId: manga.id)
-        guard let best = bestLink(from: links, ranking: mangaProviderRanking) else { return nil }
+    func getBestWatchLink(anime: Anime, userProgress: Int?) async -> (url: String, site: String, label: String)? {
+        await getBestLegalWatchLink(anime: anime, userProgress: userProgress, locale: Locale.current.identifier)
+    }
+
+    func fetchLegalReadLinks(mediaType: String = "MANGA", mediaId: Int, locale: String? = nil) async -> [ExternalLink] {
+        guard mediaType.uppercased() == "MANGA" else { return [] }
+        let links = await fetchExternalLinks(mediaType: "MANGA", mediaId: mediaId)
+        return links
+            .filter { !$0.isDisabled }
+            .filter { isValidHttpURL($0.url) }
+            .filter { isAllowedMangaLegalProvider($0.site) }
+            .sorted { lhs, rhs in
+                let lhsTuple = (lhs.priority ?? 999, languageRank(for: lhs, locale: locale), providerRank(for: lhs, ranking: mangaProviderRanking))
+                let rhsTuple = (rhs.priority ?? 999, languageRank(for: rhs, locale: locale), providerRank(for: rhs, ranking: mangaProviderRanking))
+                if lhsTuple != rhsTuple { return lhsTuple < rhsTuple }
+                return (lhs.site ?? "").localizedCaseInsensitiveCompare(rhs.site ?? "") == .orderedAscending
+            }
+    }
+
+    func getBestLegalReadLink(manga: Manga, locale: String? = nil) async -> (url: String, site: String, label: String)? {
+        let links = await fetchLegalReadLinks(mediaId: manga.id, locale: locale)
+        guard let best = links.first else { return nil }
         let siteLabel = (best.site ?? "Reader").uppercased()
         return (best.url, best.site ?? "Reader", "READ ON \(siteLabel)")
+    }
+
+    func getBestReadLink(manga: Manga) async -> (url: String, site: String, label: String)? {
+        await getBestLegalReadLink(manga: manga, locale: Locale.current.identifier)
     }
 
     // MARK: - Browse (server-driven paging + filters)
@@ -3020,6 +3238,9 @@ class SupabaseService {
         cursorInt: Int?,
         cursorDate: Date?,
         cursorId: Int?,
+        minYear: Int? = nil,
+        maxYear: Int? = nil,
+        format: String? = nil,
         limit: Int
     ) async -> [AnimeCard] {
         do {
@@ -3033,6 +3254,9 @@ class SupabaseService {
                 p_cursor_int: cursorInt,
                 p_cursor_ts: cursorDate,
                 p_cursor_id: cursorId,
+                p_min_year: minYear,
+                p_max_year: maxYear,
+                p_format: format,
                 p_limit: max(1, min(120, limit))
             )
             let rows: [AnimeCard] = try await client.rpc("browse_anime_page", params: params).execute().value
@@ -3055,6 +3279,9 @@ class SupabaseService {
         cursorInt: Int?,
         cursorDate: Date?,
         cursorId: Int?,
+        minYear: Int? = nil,
+        maxYear: Int? = nil,
+        format: String? = nil,
         limit: Int
     ) async -> [MangaCard] {
         do {
@@ -3068,6 +3295,9 @@ class SupabaseService {
                 p_cursor_int: cursorInt,
                 p_cursor_ts: cursorDate,
                 p_cursor_id: cursorId,
+                p_min_year: minYear,
+                p_max_year: maxYear,
+                p_format: format,
                 p_limit: max(1, min(120, limit))
             )
             let rows: [MangaCard] = try await client.rpc("browse_manga_page", params: params).execute().value
@@ -3244,6 +3474,9 @@ class SupabaseService {
         let lastEpisode: Bool?
         let completed: Bool?
         let yearMention: Int?
+        let rating: Double?
+        let progressTotal: Int?
+        let progressUnit: String?
     }
 
     struct ConciergeExistingEntry: Decodable, Sendable {
@@ -3957,6 +4190,7 @@ class SupabaseService {
 
     private func updateListRating(mediaId: Int, mediaType: String, rating: Int?) async {
         guard let userId = await currentUserIdString() else { return }
+        errorMessage = nil
         do {
             let table = mediaType.lowercased() == "anime" ? "anime_user_lists" : "manga_user_lists"
             let idColumn = mediaType.lowercased() == "anime" ? "anime_id" : "manga_id"
@@ -3972,12 +4206,13 @@ class SupabaseService {
                 .eq(idColumn, value: mediaId)
                 .execute()
 
+            errorMessage = nil
             await fetchUserLists()
         } catch {
+            errorMessage = "Couldn't update rating: \(error.localizedDescription)"
             #if DEBUG
             print("❌ Failed to update rating: \(error)")
             #endif
-            // Error logged in debug only
         }
     }
 
@@ -4416,6 +4651,118 @@ class SupabaseService {
             .value
     }
 
+    // MARK: - Social Activity (Friend Comments & Indicators)
+
+    struct TitleComment: Decodable, Sendable, Identifiable {
+        let id: String
+        let user_id: String
+        let display_name: String?
+        let text: String
+        let created_at: String
+        let updated_at: String
+        let is_own: Bool
+        let up_count: Int
+        let down_count: Int
+        let my_reaction: String?
+    }
+
+    struct FriendTitleActivity: Decodable, Sendable {
+        let user_id: String
+        let display_name: String?
+        let status: String?
+        let progress: Int?
+        let rating: Int?
+        let updated_at: String?
+    }
+
+    struct FriendActivityResponse: Decodable, Sendable {
+        let friends_tracking: [FriendTitleActivity]
+        let comments: [TitleComment]
+    }
+
+    struct FriendCountItem: Decodable, Sendable {
+        let media_type: String
+        let media_id: Int
+        let count: Int
+    }
+
+    struct UpsertCommentResponse: Decodable, Sendable {
+        let id: String
+        let user_id: String
+        let text: String
+        let created_at: String
+        let updated_at: String
+    }
+
+    struct ToggleCommentReactionResponse: Decodable, Sendable {
+        let toggled_on: Bool
+        let reaction_type: String
+    }
+
+    func fetchFriendActivityForTitle(mediaType: String, mediaId: Int) async throws -> FriendActivityResponse {
+        let params = RPCFetchFriendActivityParams(p_media_type: mediaType, p_media_id: mediaId)
+        return try await client
+            .rpc("fetch_friend_activity_for_title", params: params)
+            .execute()
+            .value
+    }
+
+    func upsertTitleComment(mediaType: String, mediaId: Int, text: String) async throws -> UpsertCommentResponse {
+        let params = RPCUpsertTitleCommentParams(p_media_type: mediaType, p_media_id: mediaId, p_text: text)
+        return try await client
+            .rpc("upsert_title_comment", params: params)
+            .execute()
+            .value
+    }
+
+    func deleteTitleComment(mediaType: String, mediaId: Int) async throws {
+        let params = RPCDeleteTitleCommentParams(p_media_type: mediaType, p_media_id: mediaId)
+        try await client
+            .rpc("delete_title_comment", params: params)
+            .execute()
+    }
+
+    func toggleCommentReaction(commentId: String, reactionType: String) async throws -> ToggleCommentReactionResponse {
+        let params = RPCToggleCommentReactionParams(p_comment_id: commentId, p_reaction_type: reactionType)
+        return try await client
+            .rpc("toggle_comment_reaction", params: params)
+            .execute()
+            .value
+    }
+
+    // Friend count cache for card indicators
+    private var friendTrackingCounts: [String: Int] = [:]
+    private var friendCountPrefetchTask: Task<Void, Never>?
+
+    func friendCount(mediaId: Int, mediaType: String) -> Int {
+        friendTrackingCounts["\(mediaType)-\(mediaId)"] ?? 0
+    }
+
+    func prefetchFriendCounts(items: [(mediaType: String, mediaId: Int)]) {
+        friendCountPrefetchTask?.cancel()
+        friendCountPrefetchTask = Task { [weak self] in
+            guard let self, !items.isEmpty else { return }
+            let payload = items.map { ["media_type": $0.mediaType, "media_id": "\($0.mediaId)"] }
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+                  let jsonString = String(data: jsonData, encoding: .utf8) else { return }
+            do {
+                let params = RPCCountFriendsTrackingParams(p_items: jsonString)
+                let counts: [FriendCountItem] = try await client
+                    .rpc("count_friends_tracking", params: params)
+                    .execute()
+                    .value
+                guard !Task.isCancelled else { return }
+                for item in counts {
+                    self.friendTrackingCounts["\(item.media_type)-\(item.media_id)"] = item.count
+                }
+            } catch {
+                #if DEBUG
+                print("[SocialActivity] prefetchFriendCounts error: \(error.localizedDescription)")
+                #endif
+            }
+        }
+    }
+
     // MARK: - Club Realtime
 
     private var clubRealtimeChannel: RealtimeChannelV2?
@@ -4449,6 +4796,18 @@ class SupabaseService {
             schema: "public",
             table: "club_rail_item_reactions"
         )
+        let pollStream = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "club_polls",
+            filter: "club_id=eq.\(clubId)"
+        )
+        let messageStream = channel.postgresChange(
+            AnyAction.self,
+            schema: "public",
+            table: "club_messages",
+            filter: "club_id=eq.\(clubId)"
+        )
 
         clubRealtimeListenTasks = [
             Task { [weak self] in
@@ -4466,6 +4825,18 @@ class SupabaseService {
             Task { [weak self] in
                 guard let self else { return }
                 for await _ in reactionStream {
+                    await MainActor.run { self.scheduleClubRefresh(clubId: clubId) }
+                }
+            },
+            Task { [weak self] in
+                guard let self else { return }
+                for await _ in pollStream {
+                    await MainActor.run { self.scheduleClubRefresh(clubId: clubId) }
+                }
+            },
+            Task { [weak self] in
+                guard let self else { return }
+                for await _ in messageStream {
                     await MainActor.run { self.scheduleClubRefresh(clubId: clubId) }
                 }
             },

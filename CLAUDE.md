@@ -1,6 +1,6 @@
 # CLAUDE.md — Kuro Project Rules & Context
 
-**Last synced: 2026-02-18** | **This file is mandatory reading. Every rule is binding.**
+**Last synced: 2026-02-24** | **This file is mandatory reading. Every rule is binding.**
 
 ---
 
@@ -46,7 +46,66 @@ Kuro is a curated anime + manga iOS app. It lets users browse premium editorial 
 
 ---
 
-## CURRENT APPLICATION STATE (as of 2026-02-18)
+## CURRENT APPLICATION STATE (as of 2026-02-24)
+
+### Backend parity snapshot (2026-02-20 CLI re-check)
+- Verified with:
+  - `supabase functions list --project-ref bkdifromsqxkndnllmdj`
+  - `supabase migration list --linked`
+  - `supabase db lint --linked`
+  - `supabase inspect db db-stats --linked`
+  - `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build`
+- Current state:
+  - iOS build passes (`BUILD SUCCEEDED`).
+  - DB lint warnings only: `public.generate_invite_code` has a shadowed/unused `_i` loop variable.
+  - DB runtime health is stable (no blocking/long-running queries reported; cache hit rates remain high).
+  - Deployment parity is now closed:
+    - Migrations `20260221150000` and `20260221162000` are applied remotely.
+    - Deployed versions are `manga-chapter-enrich:v4` and `manga-source-review-action:v2`.
+
+### Backend/runtime snapshot refresh (2026-02-24 CLI check)
+- Verified with:
+  - `supabase migration list --linked`
+  - `supabase functions list --project-ref bkdifromsqxkndnllmdj`
+- Current state:
+  - Remote migrations include `20260223002000_synopsis_retry_backoff_and_resume`.
+  - Deployed function versions:
+    - `manga-chapter-enrich:v10`
+    - `bulk-import-anime:v20`
+    - `bulk-import-manga:v19`
+    - `manga-source-review-action:v2`
+
+### Synopsis enrichment runtime (local Mac, continuous)
+- Worker: `scripts/synopsis_enrichment_worker.swift`
+  - writes enhanced synopsis variants through RPCs (non-destructive; raw source text preserved)
+  - emits metrics: `tone_polish_used`, `fallback_used`, `autodeduped_sentences`, `backlog_due_before`, `backlog_due_after`
+  - writes reports to `reports/synopsis-enrichment/` including `generated-samples-latest.md` and `weak-sources-latest.md`.
+- Runner: `scripts/run_synopsis_enrichment.sh`
+  - single-run lock (`reports/synopsis-enrichment/.worker.lock`) prevents overlaps
+  - stale lock auto-recovery uses lock PID + TTL (`SYNOPSIS_LOCK_TTL_SECONDS`, default 1800s)
+  - default profile: `140..420` chars, `3..4` sentences, min source chars `110`.
+- Launchd installer: `scripts/install_synopsis_enrichment_launchd.sh`
+  - preserves existing env values if already installed
+  - fails fast if `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are missing.
+- Dashboard: `scripts/synopsis_dashboard_server.js` (localhost)
+  - exposes run status, cumulative totals, 24h rollups, and generated sample previews.
+
+### Catalog safety runtime (local Mac, separate pipeline)
+- Migration scaffold: `supabase/migrations/20260224101000_catalog_safety_runner_v1.sql`
+  - adds safety state columns on `anime` and `manga`
+  - adds `catalog_safety_terms` + `catalog_safety_audit`
+  - adds service-role RPCs: `get_catalog_safety_candidates`, `upsert_catalog_safety_result`, `mark_catalog_safety_failed`, `get_catalog_safety_open_gaps`, `get_catalog_safety_backlog_count`
+- Worker: `scripts/catalog_safety_worker.swift`
+  - separate report root: `reports/catalog-safety/`
+  - writes `latest-status.json`, `run-*.log`, and `uncertain-latest.md`
+- Runner + launchd:
+  - `scripts/run_catalog_safety.sh`
+  - `scripts/install_catalog_safety_launchd.sh` (label: `com.kuro.catalog-safety`, default 10-minute interval)
+- Dashboard:
+  - `scripts/catalog_safety_dashboard_server.js`
+  - localhost URL: `http://127.0.0.1:8788`
+- Isolation rule:
+  - do not share lock files, launchd label, report directories, or dashboard port with synopsis pipeline.
 
 ### Navigation (5-page swipe pager)
 Pages swipe left-to-right in this exact order:
@@ -71,13 +130,23 @@ Default page on launch: **Discover** (index 1).
 
 ### Clubs
 - Private groups, 2-20 members, invite-code based
-- 4-tab detail view: Rails / This Week / Polls / Chat (chat gated by `clubs_chat_v1` flag)
+- 3-tab detail view: Rails / This Week / Polls (chat tab removed)
 - Emoji reactions (fire/heart/eyes/100), anonymous aggregate counts
 - Pace sync ("3 ep behind the group"), milestone celebrations
-- Ephemeral chat: 280 char max, 30-day auto-prune, rate-limited 20/min
 - Supabase Realtime subscriptions for live updates (gated by `clubs_realtime_v1`)
 - Privacy levels: private (aggregates only), status (names + statuses), progress (full detail)
 - In-app notification badges for unseen activity
+- "Add to Club..." context menu on all card types
+
+### Social Activity Layer
+- Title-level comments + reactions visible to users who share a club ("friends")
+- `title_comments` (one per user per title, 500 char max) + `title_comment_reactions` (thumbs_up/thumbs_down)
+- `shares_club_with()` SECURITY DEFINER helper for friend detection
+- 5 RPCs: `upsert_title_comment`, `delete_title_comment`, `toggle_comment_reaction`, `fetch_friend_activity_for_title`, `count_friends_tracking`
+- Friend count indicators on cards (Portrait, Compact, Hero, SharedVertical, SharedHorizontal)
+- Batch prefetch of friend counts on Discover, Browse, Collection page loads
+- Feature flag: `social_activity_v1` at 0% rollout
+- Rate limits: 10 comments/5min, 30 reactions/min
 
 ### On-device AI (Apple Foundation Models)
 - Mode classification, disambiguation, synopsis condensation, NL collection search intent
@@ -97,10 +166,11 @@ All 13 flags defined in `FeatureFlags.swift`:
 - `concierge_editorial_v1` — editorial shell UI
 - `swipe_tap_guard_v1` — swipe/tap gesture conflict guard
 - `clubs_list_enriched_v1` (100%) — enriched club list cards
-- `clubs_reactions_v1` (50%) — emoji reactions
+- `clubs_reactions_v1` (100%) — emoji reactions
 - `clubs_pace_sync_v1` (100%) — pace tracking
-- `clubs_realtime_v1` (50%) — live updates
-- `clubs_chat_v1` (0% staged) — ephemeral chat
+- `clubs_realtime_v1` (100%) — live updates
+- `clubs_chat_v1` (0%, deprecated) — ephemeral chat (removed from UI, replaced by social activity)
+- `social_activity_v1` (0%) — title-level friend comments + reactions
 - `clubs_notifications_v1` (100%) — in-app badges
 - Debug override: `--ff-on=flag_name` / `--ff-off=flag_name` launch args
 
@@ -137,19 +207,19 @@ All 13 flags defined in `FeatureFlags.swift`:
 
 **Custom SMTP (required for production):**
 - Supabase built-in SMTP: ~2 emails/hour, only team member emails, no SLA
-- Resend MCP server configured in `.mcp.json` (API key: `re_9Bs...`)
+- Resend MCP server configured in `.mcp.json`
 - Production setup: configure Resend SMTP credentials in Supabase Dashboard → Auth → SMTP Settings (`smtp.resend.com`, port 465, API key as password)
 
-**Pending manual Supabase Dashboard steps:**
-1. Auth → URL Configuration → add `kuro://auth/callback` to Additional Redirect URLs
-2. Auth → Email Templates → paste content from `emails/*.html` (5 templates)
-3. Auth → SMTP Settings → configure Resend credentials (host: `smtp.resend.com`, port: 465, user: `resend`, password: Resend API key)
+**Pending manual Supabase Dashboard step:**
+1. Auth → Settings → Set "Enable email confirmations" to **OFF** (inline validation replaces email verification)
+
+*Previously required (no longer needed for launch):* redirect URLs, email templates, SMTP/Resend config. The `emails/` templates and `auth-callback` edge function remain in repo if email confirmation is re-enabled later.
 
 ---
 
-## FILE MAP (exact, current as of 2026-02-18)
+## FILE MAP (exact, current as of 2026-02-24)
 
-### iOS app — 63 Swift files in `Kuro/`
+### iOS app — 64 Swift files in `Kuro/`
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
@@ -186,15 +256,16 @@ All 13 flags defined in `FeatureFlags.swift`:
 - `BrowseView.swift` — Browse page (full-page, not a sheet)
 - `EditorialCollectionView.swift` — Collection page
 - `ClubsView.swift` — Clubs list page (enriched cards, unread dots)
-- `ClubDetailView.swift` — Club detail (4-tab: Rails/This Week/Polls/Chat)
+- `ClubDetailView.swift` — Club detail (3-tab: Rails/This Week/Polls)
 - `ClubCreateSheets.swift` — Create/join club sheets
 - `EditorialSearchView.swift` — Search sheet
 - `OnboardingView.swift` — First-launch onboarding
 - `ProfileView.swift` — Profile menu (includes Clubs secondary access)
 - `AuthView.swift` — Authentication
-- Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift`, `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `ExternalLinksSection.swift`
+- Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift`, `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `FriendsActivitySection.swift`, `ExternalLinksSection.swift`
 - UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `EditorialCards.swift`, `Cards.swift`, `UIComponents.swift`, `GenreHubView.swift`, `CountdownTimer.swift`
-- Legacy/secondary: `DiscoverView.swift`, `DiscoverViewModel.swift`, `SearchView.swift`, `SearchViewModel.swift`, `CollectionManagementView.swift`
+- Shared: `AddToListSheet.swift` — add/edit list entry sheet (used by cards + detail pages)
+- Legacy/secondary: `DiscoverViewModel.swift`
 
 **Design (2 files):**
 - `KuroDesignSystem.swift` — colors, typography, spacing, radii, animations
@@ -204,9 +275,9 @@ All 13 flags defined in `FeatureFlags.swift`:
 - `SupabaseModels.swift` — all Supabase data models
 - `DiscoverBundle.swift` — discover bundle response model
 
-### Supabase — 88 migrations, 13 edge functions
+### Supabase — 143 migration files in repo, 15 deployed edge functions (as of 2026-02-25)
 
-**Edge functions (13):**
+**Edge functions (15):**
 - `concierge-parse` — deterministic NLP parser, title candidate search
 - `concierge-recommend` — deterministic recommendations + optional Groq narration (~1800 lines)
 - `concierge-apply` — apply parsed items to user lists
@@ -218,6 +289,8 @@ All 13 flags defined in `FeatureFlags.swift`:
 - `bulk-import-anime` — bulk anime catalog import (requires IMPORT_SECRET)
 - `bulk-import-manga` — bulk manga catalog import (requires IMPORT_SECRET)
 - `mirror-images` — mirror external images to Storage CDN
+- `manga-chapter-enrich` — MangaDex chapter enrichment + mapping/match pipeline
+- `manga-source-review-action` — approve/reject unresolved mappings and optionally trigger re-enrich
 - `delete-account` — GDPR account deletion
 - `auth-callback` — email verification fallback redirect page (verify_jwt: false)
 
@@ -226,11 +299,13 @@ All 13 flags defined in `FeatureFlags.swift`:
 - User: `profiles`, `anime_user_lists`, `manga_user_lists`, `import_sessions`, `import_session_items`
 - Concierge: `concierge_runs`, `concierge_config`, `rate_limit_buckets`, `llm_daily_usage`, `system_flags`
 - Clubs (9 tables): `clubs`, `club_members`, `club_rails`, `club_rail_items`, `club_rail_item_reactions`, `club_polls`, `club_poll_options`, `club_votes`, `club_messages`, `club_analytics`
+- Social activity (2 tables): `title_comments`, `title_comment_reactions`
 - Ops: `mirror_runs`, `import_state`, `feature_flags`
 
 **Cron jobs (pg_cron):**
 - Hourly: bulk-import-anime, bulk-import-manga (with IMPORT_SECRET header)
-- Daily: mirror-images (per-batch locks, 200 batch, 15-min spacing), matview refresh, concierge housekeeping, club message pruning (30-day)
+- Daily: mirror-images (per-batch locks, 200 batch, 15-min spacing, IMPORT_SECRET auth), matview refresh, concierge housekeeping, cron history cleanup (14-day retention)
+- Unscheduled (deprecated): club message pruning (was 30-day, at 03:15 — chat replaced by social activity layer)
 
 ### Scripts & quality gates
 - `scripts/quality-gates/` — 8 scripts: `check_secrets.sh`, `check_migrations.sh`, `test_router_offline.sh`, `router_test_cases.js`, `test_concierge_corpora.sh`, `audit_rails.sh`, `build_ios.sh`, `run_all.sh`

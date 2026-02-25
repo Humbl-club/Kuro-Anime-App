@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-02-24
+**Last updated:** 2026-02-25
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -387,7 +387,7 @@ flowchart TD
 - If imports stop: check the import cursor and re-run import scripts.
 - If bulk imports fail with "unauthorized": make sure the correct secret key is being sent in the request header.
 - If on-device AI features are not working: they require an Apple device with Foundation Models support (recent hardware). Older devices will fall back to non-AI behavior.
-- **Dashboard actions still needed**: 3 email/auth setup steps must be done manually in the Supabase dashboard (see section 17).
+- **Dashboard action still needed**: 1 auth setup step must be done manually in the Supabase dashboard (see section 17).
 
 ---
 
@@ -443,10 +443,8 @@ A thorough security review was done to make the app safer before it ships:
 
 These items were identified during the production-readiness review but require manual action in the Supabase dashboard (they cannot be done through code):
 
-- **Email templates + SMTP setup** (3 steps — required for email verification to work for real users):
-  1. Auth → URL Configuration → add `kuro://auth/callback` to Additional Redirect URLs
-  2. Auth → Email Templates → paste HTML from `emails/*.html` into each template slot
-  3. Auth → SMTP Settings → configure Resend credentials (host: `smtp.resend.com`, port: 465, user: `resend`, password: Resend API key)
+- **Disable email confirmations** (1 step — required so new sign-ups are authenticated immediately):
+  1. Auth → Email → turn OFF "Confirm email" (email verification is no longer required for sign-up)
 - **Image mirroring backlog**: Only about 2.7% of catalog images have been mirrored to our CDN so far. This is a long-running data task that will take time to fully catch up.
 
 ---
@@ -489,19 +487,16 @@ A batch of lower-priority production improvements was completed across the backe
 ### Branded email templates + auth callback (new feature)
 - 5 custom email templates replace the default Supabase emails: signup verification, password reset, magic link, email change, and invitation.
 - Designed in the Kuro editorial style: monochrome, serif "K" wordmark, warm gray (#f5f5f0) background, black call-to-action buttons, minimal copy.
-- **Email verification flow** (how it works today):
-  1. A user signs up or requests a password reset.
-  2. Supabase sends a branded email (using one of the 5 templates in the `emails/` folder).
-  3. The user clicks the link in the email.
-  4. Supabase verifies the token and redirects directly into the Kuro app (via `kuro://auth/callback`). There is no intermediate webpage — the app opens immediately.
-  5. The app receives the login tokens and signs the user in. No need to go back and type a password.
-  6. If the direct redirect doesn't work (e.g., on a desktop browser), a fallback page appears: a dark-themed page with an animated K logo and an "Open Kuro" button.
+- **Sign-up flow** (how it works today):
+  1. A user enters their email. The form validates the format in real time and checks uniqueness with a 500ms debounce (sign-up only). A subtle checkmark appears when the email is valid and available.
+  2. The user enters a password. A "8 characters minimum" hint shows until the password meets the requirement, then a checkmark appears.
+  3. The submit button stays disabled until both fields pass validation.
+  4. On sign-up, the user is immediately authenticated — no email verification step, no "check your email" message. They go straight into the app.
+- **Password reset and other email flows** still use branded email templates (reset link, magic link, email change, invitation). These redirect into the app via `kuro://auth/callback`. If the direct redirect doesn't work (e.g., on a desktop browser), a fallback page appears: a dark-themed page with an animated K logo and an "Open Kuro" button.
 - **5 branded email templates** in the `emails/` folder: signup verification, password reset, magic link (passwordless login), email change confirmation, and invitation. They match Kuro's editorial style: warm gray background, serif K wordmark, black call-to-action buttons, minimal copy.
 - **Custom SMTP required for production**: Supabase's built-in email service is severely limited — only ~2 emails per hour and only to team member addresses. For a real user base, you need a third-party email provider like Resend (3,000 emails/month free), AWS SES, Postmark, or Brevo. Resend is already configured as an MCP server in `.mcp.json`.
-- **Pending manual steps** (must be done in the Supabase Dashboard before emails work for real users):
-  1. **Auth → URL Configuration**: Add `kuro://auth/callback` to the "Additional Redirect URLs" list
-  2. **Auth → Email Templates**: Paste the HTML content from each file in `emails/` into the corresponding template slot (Confirm signup, Reset password, Magic link, Change email address, Invite user)
-  3. **Auth → SMTP Settings**: Enter Resend's SMTP credentials — host: `smtp.resend.com`, port: 465, username: `resend`, password: your Resend API key
+- **Pending manual step** (must be done in the Supabase Dashboard):
+  1. **Auth → Email → Enable email confirmations**: Turn OFF "Confirm email" so that new sign-ups are authenticated immediately without email verification
 
 ---
 
@@ -624,3 +619,9 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 ### 2026-02-24 — Detail page scrolling fixes
 - **Bottom dead zone gone**: The anime and manga detail pages had a ~59pt dead zone at the very bottom where touches didn't register. The hero banner was being visually shifted up but its invisible layout frame still took the original space. Fixed by shrinking the layout to match.
 - **Horizontal rails scroll again**: The "More Like This" section on detail pages couldn't be swiped horizontally because three competing touch recognizers were fighting. Removed the one that only matters on the main pager pages (not inside sheet presentations).
+
+### 2026-02-25 — Sign-up flow streamlined with inline validation
+- **Inline field validation**: The sign-up/login screen now validates email format in real time as you type. During sign-up, it also checks if the email is already taken (with a 500ms debounce so it doesn't fire on every keystroke). Password shows a "8 characters minimum" hint until valid. Both fields show subtle checkmarks when they pass validation. The submit button stays disabled until everything checks out.
+- **No more email verification on sign-up**: New users are authenticated immediately after signing up — no "check your email" step. This removes friction from onboarding.
+- **New database function**: `check_email_exists` powers the real-time email uniqueness check from the sign-up form.
+- **Pending Dashboard steps reduced**: The 3 manual Supabase Dashboard steps (redirect URLs, email templates, SMTP) have been replaced by just 1: disable email confirmations in the Dashboard so sign-ups go through instantly.

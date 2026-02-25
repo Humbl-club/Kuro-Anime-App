@@ -14,6 +14,15 @@ struct AuthView: View {
     @State private var errorText: String? = nil
     @State private var currentNonce: String? = nil
 
+    // Inline validation state
+    private enum EmailStatus { case empty, invalidFormat, checking, taken, available }
+    private enum PasswordStatus { case empty, tooShort, valid }
+    @State private var emailStatus: EmailStatus = .empty
+    @State private var passwordStatus: PasswordStatus = .empty
+    @State private var emailCheckTask: Task<Void, Never>?
+
+    private static let emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
     var body: some View {
         ZStack {
             Color.kuroBackground.ignoresSafeArea()
@@ -46,12 +55,12 @@ struct AuthView: View {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 14) {
                         VStack(spacing: 10) {
-                            field("Email", text: $email, isSecure: false)
+                            validatedField("Email", text: $email, isSecure: false, status: emailStatusView)
                                 .textInputAutocapitalization(.never)
                                 .keyboardType(.emailAddress)
                                 .autocorrectionDisabled(true)
 
-                            field("Password", text: $password, isSecure: true)
+                            validatedField("Password", text: $password, isSecure: true, status: passwordStatusView)
                         }
                         .padding(.top, 18)
 
@@ -89,6 +98,7 @@ struct AuthView: View {
                             KuroAccessibility.impactHaptic(.light)
                             mode = (mode == .signIn ? .signUp : .signIn)
                             errorText = nil
+                            revalidateEmail()
                         } label: {
                             Text(mode == .signIn ? "Create an account" : "Already have an account?")
                                 .font(.kuroCaption(weight: .regular))
@@ -128,7 +138,10 @@ struct AuthView: View {
                         .padding(.top, 6)
 
                         SignInWithAppleButton(.signIn) { request in
-                            let nonce = Self.randomNonceString()
+                            guard let nonce = Self.randomNonceString() else {
+                                errorText = "Security error. Please try again."
+                                return
+                            }
                             currentNonce = nonce
                             request.requestedScopes = [.email, .fullName]
                             request.nonce = Self.sha256(nonce)
@@ -146,12 +159,110 @@ struct AuthView: View {
                 }
             }
         }
+        .onChange(of: email) { _, _ in
+            revalidateEmail()
+        }
+        .onChange(of: password) { _, _ in
+            revalidatePassword()
+        }
+        .onChange(of: supabaseService.authErrorMessage) { _, newValue in
+            if let msg = newValue {
+                errorText = msg
+                supabaseService.authErrorMessage = nil
+            }
+        }
     }
 
+    // MARK: - Validation logic
+
     private var canSubmit: Bool {
-        let e = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        return e.contains("@") && password.count >= 8
+        let emailOk: Bool
+        switch mode {
+        case .signUp:
+            emailOk = emailStatus == .available
+        case .signIn:
+            emailOk = emailStatus == .available || emailStatus == .checking
+        }
+        return emailOk && passwordStatus == .valid
     }
+
+    private func revalidateEmail() {
+        emailCheckTask?.cancel()
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            emailStatus = .empty
+            return
+        }
+        guard trimmed.wholeMatch(of: Self.emailRegex) != nil else {
+            emailStatus = .invalidFormat
+            return
+        }
+        // Format is valid — in sign-in mode, that's enough
+        if mode == .signIn {
+            emailStatus = .available
+            return
+        }
+        // Sign-up mode: debounced uniqueness check
+        emailStatus = .checking
+        emailCheckTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            let exists = await supabaseService.checkEmailExists(email: trimmed)
+            guard !Task.isCancelled else { return }
+            emailStatus = exists ? .taken : .available
+        }
+    }
+
+    private func revalidatePassword() {
+        guard !password.isEmpty else {
+            passwordStatus = .empty
+            return
+        }
+        passwordStatus = password.count >= 8 ? .valid : .tooShort
+    }
+
+    // MARK: - Status indicator views
+
+    @ViewBuilder
+    private var emailStatusView: some View {
+        switch emailStatus {
+        case .empty:
+            EmptyView()
+        case .invalidFormat:
+            statusHint("Enter a valid email")
+        case .checking:
+            ProgressView()
+                .controlSize(.small)
+        case .taken:
+            statusHint("Email already in use")
+        case .available:
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.kuroTextTertiary)
+        }
+    }
+
+    @ViewBuilder
+    private var passwordStatusView: some View {
+        switch passwordStatus {
+        case .empty:
+            EmptyView()
+        case .tooShort:
+            statusHint("8 characters minimum")
+        case .valid:
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.kuroTextTertiary)
+        }
+    }
+
+    private func statusHint(_ text: String) -> some View {
+        Text(text)
+            .font(.kuroMicro(weight: .regular))
+            .foregroundColor(.kuroTextTertiary)
+    }
+
+    // MARK: - Actions
 
     private func submit() async {
         let e = email.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -167,9 +278,6 @@ struct AuthView: View {
                 try await supabaseService.signInWithEmail(email: e, password: p)
             } else {
                 try await supabaseService.signUpWithEmail(email: e, password: p)
-                if !supabaseService.isAuthenticated {
-                    errorText = "Check your email to confirm your account, then sign in."
-                }
             }
         } catch {
             errorText = supabaseService.authErrorMessage ?? error.localizedDescription
@@ -207,11 +315,11 @@ struct AuthView: View {
         }
     }
 
-    private static func randomNonceString(length: Int = 32) -> String {
+    private static func randomNonceString(length: Int = 32) -> String? {
         precondition(length > 0)
         var bytes = [UInt8](repeating: 0, count: length)
         let result = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        precondition(result == errSecSuccess, "Failed to generate random bytes")
+        guard result == errSecSuccess else { return nil }
         let charset: [Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
         return String(bytes.map { charset[Int($0) % charset.count] })
     }
@@ -240,22 +348,29 @@ struct AuthView: View {
         }
     }
 
-    private func field(_ title: String, text: Binding<String>, isSecure: Bool) -> some View {
+    // MARK: - Field builder
+
+    private func validatedField<S: View>(_ title: String, text: Binding<String>, isSecure: Bool, status: S) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title.uppercased())
                 .font(.kuroMicro(weight: .semibold))
                 .tracking(1.4)
                 .foregroundColor(.kuroTextTertiary)
 
-            Group {
-                if isSecure {
-                    SecureField("", text: text)
-                } else {
-                    TextField("", text: text)
+            HStack(spacing: 8) {
+                Group {
+                    if isSecure {
+                        SecureField("", text: text)
+                    } else {
+                        TextField("", text: text)
+                    }
                 }
+                .font(.kuroBody(weight: .regular))
+                .foregroundColor(.black)
+
+                status
+                    .frame(height: 16)
             }
-            .font(.kuroBody(weight: .regular))
-            .foregroundColor(.black)
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .background(
@@ -265,4 +380,3 @@ struct AuthView: View {
         }
     }
 }
-

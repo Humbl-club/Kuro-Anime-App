@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-02-24
+**Last updated:** 2026-02-25
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -176,7 +176,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/ProfileView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 142)
+### Supabase migrations (count: 143)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql`
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -319,6 +319,7 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260223002000_synopsis_retry_backoff_and_resume.sql`
 - `supabase/migrations/20260224101000_catalog_safety_runner_v1.sql`
 - `supabase/migrations/20260224150000_social_activity_layer.sql`
+- `supabase/migrations/20260225100000_check_email_exists_rpc.sql`
 
 ### Supabase Edge Functions (index.ts) (count: 15)
 - `supabase/functions/auth-callback/index.ts`
@@ -381,7 +382,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Services/DeepLinkRouter.swift` — `enum DeepLink` with cases for anime(id:), manga(id:), club(id:), collection, discover, concierge(prompt:), authCallback(accessToken:, refreshToken:); parses `kuro://` scheme URLs
 - `Kuro/Services/AppleFMService.swift` — Apple Foundation Models integration (on-device LLM: mode classification, disambiguation, synopsis condensation, collection search intent)
 - `Kuro/Services/NetworkMonitor.swift` — `NWPathMonitor` connectivity tracking, `@Environment` injection, offline banner
-- `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching, `fmService` (AppleFMService), `withRetry` helper, `authCallbackURL` (line 420), `handleAuthCallback()` (line 483), `signUpWithEmail`/`resetPassword` with `redirectTo`
+- `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching, `fmService` (AppleFMService), `withRetry` helper, `authCallbackURL` (line 420), `handleAuthCallback()` (line 483), `signUpWithEmail`/`resetPassword`, `checkEmailExists(email:)` (debounced uniqueness check via `check_email_exists` RPC)
 - `Kuro/Views/` — SwiftUI UI components
 - `Kuro/Models/` — data models (Anime, Manga, UserList, etc.)
 - `Config/` — xcconfig files (Shared, Debug, Release) for env-based builds
@@ -452,23 +453,15 @@ node scripts/generate_app_state_inventory.js
 - **Offline banner**: Monochrome "OFFLINE" text banner (9pt, tracked) appears at top of `RootView` when `networkMonitor.isConnected == false`. Injected as `@Environment` from `KuroApp`.
 - **App lifecycle**: `scenePhase` tracked in `KuroApp.swift` for background/foreground transitions.
 - **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.collection`, `.discover`, `.concierge(prompt:)`, `.authCallback(accessToken:, refreshToken:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links. Auth callbacks are intercepted at `KuroApp` level (before auth gate) and call `handleAuthCallback()` to set session immediately.
-- **Auth email flow (complete)**:
-  1. User triggers email verification (signup, password reset, magic link, email change, invite).
-  2. Supabase sends branded email from `emails/*.html` template (requires custom SMTP + template paste in dashboard).
-  3. User clicks verification link → Supabase verifies token server-side.
-  4. Supabase 303-redirects to `redirectTo`: `kuro://auth/callback#access_token=...&refresh_token=...&type=signup`.
-  5. iOS intercepts `kuro://` scheme (registered in `Info.plist` at project root via `CFBundleURLTypes`).
-  6. `KuroApp.swift:33` `.onOpenURL` → `DeepLink.from(url:)` → `DeepLinkRouter.parseAuthParams()` extracts tokens from URL fragment (priority) or query params (fallback).
-  7. Auth callbacks intercepted at app level (line 37, before auth gate) — NOT passed to ContentView.
-  8. `SupabaseService.handleAuthCallback()` (line 483) → `client.auth.setSession()` → `ensureProfileRow()` → `bootstrapAfterAuth()`.
-  9. User is signed in immediately — no manual login step.
-  - **Key code**: `authCallbackURL` (SupabaseService.swift:420), `signUpWithEmail` passes `redirectTo` (line 422), `resetPassword` passes `redirectTo` (line 478), `handleAuthCallback` (line 483).
+- **Auth flow (signup + sign-in)**:
+  1. User enters email and password in `AuthView.swift`.
+  2. **Inline validation (sign-up mode)**: Real-time email format check (regex on keystroke), debounced 500ms uniqueness check via `check_email_exists` RPC, password minimum length check. Two enums drive state: `EmailStatus` (.empty, .invalidFormat, .checking, .taken, .available) and `PasswordStatus` (.empty, .tooShort, .valid). Inline hint text + checkmarks displayed inside fields. `canSubmit` gates on validation state.
+  3. `signUpWithEmail` creates the account — email confirmation is disabled (no `redirectTo`). User is signed in immediately after signup.
+  4. `SupabaseService.handleAuthCallback()` (line 483) still exists for deep link auth flows (password reset, magic link) → `client.auth.setSession()` → `ensureProfileRow()` → `bootstrapAfterAuth()`.
+  - **Key code**: `AuthView.swift` (inline validation enums + debounced RPC check), `SupabaseService.checkEmailExists(email:)` (calls `check_email_exists` RPC), `authCallbackURL` (SupabaseService.swift:420), `handleAuthCallback` (line 483).
   - **Fallback**: `auth-callback` edge function (315 lines) — dark-themed HTML page with Cormorant serif, grain SVG overlay, animated K logo, type-specific status messages (signup/recovery/magiclink/email_change/invite), loading dots, "Open Kuro" CTA button after 4s timeout, "Continue in browser" secondary link. Security headers: `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`.
-  - **Custom SMTP required**: Supabase built-in SMTP limited to ~2 emails/hour, only team member emails, no SLA. Production requires Resend (or AWS SES, Postmark, SendGrid, Brevo). Resend MCP server configured in `.mcp.json`.
-  - **Pending Supabase Dashboard manual steps**:
-    1. Auth → URL Configuration → add `kuro://auth/callback` to Additional Redirect URLs
-    2. Auth → Email Templates → paste content from `emails/*.html` (5 templates: confirm, reset-password, magic-link, change-email, invite)
-    3. Auth → SMTP Settings → configure Resend credentials (host: `smtp.resend.com`, port: 465, user: `resend`, password: Resend API key)
+  - **Pending Supabase Dashboard manual step**:
+    1. Auth → Settings → disable "Enable email confirmations" (so signup signs in immediately without verification email)
 
 ### Header (top bar)
 - Left: **KURO** wordmark only (no concierge icon next to it).
@@ -742,7 +735,8 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 **Schema definitions are in** `supabase/migrations/`.
 
 ### Auth + RLS
-- Supabase Auth is used (email/password; OAuth can be added later).
+- Supabase Auth is used (email/password, email confirmation disabled; OAuth can be added later).
+- Inline sign-up validation: `AuthView.swift` checks email format (regex) and uniqueness (debounced `check_email_exists` RPC) in real time. `check_email_exists` is a SECURITY DEFINER function querying `auth.users`, granted to anon+authenticated.
 - `profiles` row is ensured on sign-in (`SupabaseService.ensureProfileRow()`).
 - RLS is enabled; user tables are scoped to `auth.uid()` in migrations.
 - Concierge endpoints always derive user id from JWT (never accept raw user_id from client).
@@ -15530,3 +15524,29 @@ grant execute on function public.admin_schema_snapshot() to service_role;
 ### 2026-02-24 — Fix Detail Page Scrolling Issues
 - **Vertical dead zone fix**: Added `.padding(.bottom, -safeTop)` after `.offset(y: -safeTop)` on hero sections in both `AnimeDetailView.swift` and `MangaDetailView.swift`. The offset is visual-only and didn't shrink the layout frame, creating a phantom gap at the bottom of the scroll content equal to `safeTop` (~59pt). The negative bottom padding compensates.
 - **Horizontal scroll fix**: Removed `.kuroSwipeExclusionZone()` from `SimilarSection` (AnimeDetailView:332) and `MangaSimilarSection` (MangaDetailView:289). These sections only appear inside `.sheet()` presentations where the root pager's gesture doesn't apply. The exclusion zone added a competing `DragGesture(minimumDistance: 4)` that fought with the native horizontal ScrollView gesture and the `.kuroDeliberateTap` gesture on each card, preventing horizontal scrolling.
+
+### 2026-02-25 — Inline Auth Validation + Email Confirmation Disabled
+
+Added inline email/password validation to `AuthView.swift` and disabled email confirmation flow.
+
+Backend (migration `20260225100000_check_email_exists_rpc.sql`):
+- New SECURITY DEFINER function `check_email_exists(email_input)` querying `auth.users` to check if an email is already registered.
+- Granted to `anon` + `authenticated` roles.
+
+iOS — AuthView inline validation:
+- `AuthView.swift`: Two new enums — `EmailStatus` (.empty, .invalidFormat, .checking, .taken, .available) and `PasswordStatus` (.empty, .tooShort, .valid).
+- Real-time email format validation via regex on keystroke.
+- Debounced 500ms uniqueness check via `check_email_exists` RPC (sign-up mode only).
+- Inline status indicators: hint text + checkmarks inside text fields.
+- Removed "Check your email to confirm your account" post-signup message.
+- `canSubmit` now gates on validation state (both fields must pass).
+
+iOS — SupabaseService auth changes:
+- `SupabaseService.swift`: Added `checkEmailExists(email:)` method calling the new RPC.
+- Removed `redirectTo: Self.authCallbackURL` from `signUpWithEmail` (email confirmation being disabled).
+
+Dashboard steps reduced:
+- Previous: 3 manual Supabase Dashboard steps (redirect URLs, email templates, SMTP config).
+- Now: 1 step — disable email confirmations in Auth settings. Redirect URLs, email templates, and SMTP config are no longer launch blockers.
+
+Totals: 0 new Swift files, 2 modified Swift files, 1 new migration. 64 Swift files, 143 migrations.
