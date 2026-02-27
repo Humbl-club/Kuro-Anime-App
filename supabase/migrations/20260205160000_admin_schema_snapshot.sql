@@ -109,7 +109,5 @@ begin
   return out;
 end;
 $$;
-
 revoke all on function public.admin_schema_snapshot() from public;
 grant execute on function public.admin_schema_snapshot() to service_role;
-

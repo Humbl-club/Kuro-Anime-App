@@ -5,7 +5,6 @@
 -- - Admin-only metrics views (no grants)
 
 begin;
-
 -- 1) Config (single-row JSON, simple to edit in the dashboard).
 create table if not exists public.concierge_config (
   id boolean primary key default true, -- single row: id=true
@@ -13,7 +12,6 @@ create table if not exists public.concierge_config (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 alter table public.concierge_config enable row level security;
 -- No policies: clients cannot read/write config directly.
 
@@ -24,7 +22,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 -- Default config (safe launch defaults).
 insert into public.concierge_config(id, config)
 values (
@@ -56,7 +53,6 @@ values (
   )
 )
 on conflict (id) do nothing;
-
 create or replace function public.get_concierge_config()
 returns jsonb
 language plpgsql
@@ -69,9 +65,7 @@ begin
   select config into cfg from public.concierge_config where id = true;
   return coalesce(cfg, '{}'::jsonb);
 end $$;
-
 grant execute on function public.get_concierge_config() to anon, authenticated;
-
 -- 2) Parse feedback table (for iterative improvement).
 create table if not exists public.concierge_parse_feedback (
   id bigserial primary key,
@@ -85,10 +79,8 @@ create table if not exists public.concierge_parse_feedback (
   top_media_id integer,
   created_at timestamptz not null default now()
 );
-
 create index if not exists idx_concierge_parse_feedback_created on public.concierge_parse_feedback (created_at desc);
 create index if not exists idx_concierge_parse_feedback_user_created on public.concierge_parse_feedback (user_id, created_at desc);
-
 alter table public.concierge_parse_feedback enable row level security;
 -- No policies: do not expose raw user text to other clients.
 
@@ -144,9 +136,7 @@ begin
     p_top_media_id
   );
 end $$;
-
 grant execute on function public.log_concierge_parse_feedback(text, text, text, real, integer, text, integer) to authenticated;
-
 -- 3) Make guardrail functions read defaults from config when caller passes null.
 create or replace function public.check_concierge_rate_limit(
   p_kind text,
@@ -207,7 +197,6 @@ begin
     'max_ip', max_i
   );
 end $$;
-
 -- LLM budget defaults from config when caller passes null.
 create or replace function public.llm_budget_reserve(
   p_reserved_tokens integer,
@@ -287,7 +276,6 @@ begin
     'max_daily_calls', max_calls
   );
 end $$;
-
 -- 4) Housekeeping + retention.
 create or replace function public.concierge_housekeeping()
 returns void
@@ -334,7 +322,6 @@ begin
   delete from public.concierge_parse_feedback
   where created_at < now() - make_interval(days => greatest(7, days_feedback));
 end $$;
-
 -- Schedule housekeeping daily (best-effort). If pg_cron isn't available, the function still exists.
 do $$
 begin
@@ -350,7 +337,6 @@ begin
     perform cron.schedule('concierge_housekeeping_daily', '0 4 * * *', 'select public.concierge_housekeeping();');
   end if;
 end $$;
-
 -- 5) Admin views (no grants; use dashboard/service role).
 create or replace view public.concierge_metrics_hourly as
 select
@@ -363,7 +349,6 @@ select
   coalesce(sum(case when error is null then 0 else 1 end), 0)::int as errors
 from public.concierge_runs
 group by 1, 2, 3;
-
 create or replace view public.llm_usage_daily_totals as
 select
   day,
@@ -374,7 +359,6 @@ select
 from public.llm_daily_usage
 group by 1
 order by day desc;
-
 create or replace view public.rate_limit_recent_top as
 select
   window_start,
@@ -384,5 +368,4 @@ from public.rate_limit_buckets
 where window_start > now() - interval '6 hours'
 order by hits desc, window_start desc
 limit 200;
-
 commit;

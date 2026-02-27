@@ -202,4 +202,4 @@ WHERE rail_id = 'cozy_comfort_manga' AND media_type = 'MANGA'
 AND anilist_id IN (
   SELECT anilist_id FROM curated_rail_items
   WHERE rail_id = 'romcom_manga' AND media_type = 'MANGA'
-);
+);;

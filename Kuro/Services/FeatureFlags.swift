@@ -35,8 +35,8 @@ final class FeatureFlags {
     var isClubsReactionsV1Enabled: Bool { evaluate("clubs_reactions_v1") }
     var isClubsPaceSyncV1Enabled: Bool { evaluate("clubs_pace_sync_v1") }
     var isClubsRealtimeV1Enabled: Bool { evaluate("clubs_realtime_v1") }
-    var isClubsChatV1Enabled: Bool { evaluate("clubs_chat_v1") }
     var isClubsNotificationsV1Enabled: Bool { evaluate("clubs_notifications_v1") }
+    var isSocialActivityV1Enabled: Bool { evaluate("social_activity_v1") }
 
     // MARK: - Init
 

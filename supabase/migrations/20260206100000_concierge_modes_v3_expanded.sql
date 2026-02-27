@@ -5,7 +5,6 @@
 -- - Total: 14 modes (within the recommended 20-50 ceiling)
 
 begin;
-
 update public.concierge_config
 set config =
   jsonb_set(
@@ -222,5 +221,4 @@ set config =
     true
   )
 where id = true;
-
 commit;

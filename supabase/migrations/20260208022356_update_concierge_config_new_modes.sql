@@ -44,3 +44,4 @@ SET config = jsonb_set(
   ]'::jsonb
 )
 WHERE id = true;
+;

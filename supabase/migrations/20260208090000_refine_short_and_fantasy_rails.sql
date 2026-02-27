@@ -3,14 +3,11 @@
 -- - fantasy_non_isekai_*: FINISHED, cap length, exclude isekai via tags
 
 begin;
-
 insert into public.curated_rails(id,title,media_type,description) values ('short_one_season_anime','Short & Complete','ANIME','Pinned short, complete anime (one cour).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('short_one_season_manga','Short & Complete','MANGA','Pinned short, complete manga (approachable length).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('fantasy_non_isekai_anime','Fantasy (no isekai)','ANIME','Pinned fantasy picks excluding isekai (tag-based), avoiding long-runners.') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('fantasy_non_isekai_manga','Fantasy (no isekai)','MANGA','Pinned fantasy picks excluding isekai (tag-based), avoiding long-runners.') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
-
 delete from public.curated_rail_items where rail_id in ('short_one_season_anime','short_one_season_manga','fantasy_non_isekai_anime','fantasy_non_isekai_manga');
-
 insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) values
 ('short_one_season_anime','ANIME',21827,1,null),
 ('short_one_season_anime','ANIME',127230,2,null),
@@ -493,5 +490,4 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('fantasy_non_isekai_manga','MANGA',86410,119,null),
 ('fantasy_non_isekai_manga','MANGA',121166,120,null)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 commit;

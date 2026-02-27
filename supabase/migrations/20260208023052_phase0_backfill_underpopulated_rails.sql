@@ -1,10 +1,10 @@
 
 -- ============================================================
 -- Phase 0 Backfill: Repopulate under-populated rails
--- premium_picks_anime: 6 -> 40
--- premium_action_anime: 23 -> 45
--- short_one_season_anime: 19 -> 45
--- premium_picks_manga: 0 -> 40
+-- premium_picks_anime: 6 → 40
+-- premium_action_anime: 23 → 45
+-- short_one_season_anime: 19 → 45
+-- premium_picks_manga: 0 → 40
 -- ============================================================
 
 -- ============================================================
@@ -191,3 +191,4 @@ WHERE cri.rail_id = ranked.rail_id
   AND cri.media_type = ranked.media_type
   AND cri.anilist_id = ranked.anilist_id
   AND cri.rank IS DISTINCT FROM ranked.new_rank;
+;

@@ -1,9 +1,9 @@
 
 -- ============================================================
 -- Final Backfill: Fill remaining slots with unique quality titles
--- premium_picks_anime: 24 -> 40 (add 16)
--- short_one_season_anime: 35 -> 45 (add 10)
--- premium_picks_manga: 38 -> 40 (add 2)
+-- premium_picks_anime: 24 → 40 (add 16)
+-- short_one_season_anime: 35 → 45 (add 10)
+-- premium_picks_manga: 38 → 40 (add 2)
 -- ============================================================
 
 -- PREMIUM PICKS ANIME: Add 16 more prestige titles
@@ -65,3 +65,4 @@ WHERE cri.rail_id = ranked.rail_id
   AND cri.media_type = ranked.media_type
   AND cri.anilist_id = ranked.anilist_id
   AND cri.rank IS DISTINCT FROM ranked.new_rank;
+;

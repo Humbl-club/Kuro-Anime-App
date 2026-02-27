@@ -17,6 +17,7 @@ Important
 ---------
 - The project DB timezone is UTC (pg_cron schedules are interpreted in UTC).
 - For cursor-driven runs, omit `startPage` (or set it to 0) so the function advances using `import_state`.
+- Bulk import and mirror functions require `x-import-secret` (value must match Edge env `IMPORT_SECRET`).
 
 2) Anime Import (core slice, hourly)
 - Function: bulk-import-anime
@@ -95,6 +96,8 @@ Run a heavier import in tiny slices so you still refresh episodes/relations over
       "includeRelations": true,
       "includeChapters": true,
       "includeVolumes": true,
+      "maxPlaceholderChapters": 120,
+      "maxPlaceholderVolumes": 24,
       "pagesPerBatch": 1,
       "perPage": 10,
       "delayMs": 0,

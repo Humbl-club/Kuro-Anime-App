@@ -60,7 +60,7 @@ DELETE FROM curated_rail_items
 WHERE rail_id = 'isekai_anime' AND media_type = 'ANIME'
 AND anilist_id IN (
   -- NOT isekai at all
-  199,     -- Spirited Away (Miyazaki film, portal fantasy != isekai)
+  199,     -- Spirited Away (Miyazaki film, portal fantasy ≠ isekai)
   20931,   -- Death Parade (afterlife setting, not isekai)
   121,     -- Fullmetal Alchemist (native fantasy)
   124845,  -- Wonder Egg Priority (not isekai)
@@ -201,4 +201,4 @@ AND anilist_id IN (
   -- Add any remaining recap movies / franchise films if present
   103110,  -- IDOLiSH7 (if present)
   127721   -- IDOLiSH7 Third BEAT (if present)
-);
+);;

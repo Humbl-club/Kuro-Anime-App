@@ -30,6 +30,9 @@ struct RPCBrowseAnimePageParams: Encodable, Sendable {
     let p_cursor_int: Int?
     let p_cursor_ts: Date?
     let p_cursor_id: Int?
+    let p_min_year: Int?
+    let p_max_year: Int?
+    let p_format: String?
     let p_limit: Int
 
     enum CodingKeys: String, CodingKey {
@@ -41,6 +44,9 @@ struct RPCBrowseAnimePageParams: Encodable, Sendable {
         case p_cursor_int
         case p_cursor_ts
         case p_cursor_id
+        case p_min_year
+        case p_max_year
+        case p_format
         case p_limit
     }
 
@@ -54,6 +60,9 @@ struct RPCBrowseAnimePageParams: Encodable, Sendable {
         try c.encodeIfPresent(p_cursor_int, forKey: .p_cursor_int)
         try c.encodeIfPresent(p_cursor_ts, forKey: .p_cursor_ts)
         try c.encodeIfPresent(p_cursor_id, forKey: .p_cursor_id)
+        try c.encodeIfPresent(p_min_year, forKey: .p_min_year)
+        try c.encodeIfPresent(p_max_year, forKey: .p_max_year)
+        try c.encodeIfPresent(p_format, forKey: .p_format)
         try c.encode(p_limit, forKey: .p_limit)
     }
 }
@@ -67,6 +76,9 @@ struct RPCBrowseMangaPageParams: Encodable, Sendable {
     let p_cursor_int: Int?
     let p_cursor_ts: Date?
     let p_cursor_id: Int?
+    let p_min_year: Int?
+    let p_max_year: Int?
+    let p_format: String?
     let p_limit: Int
 
     enum CodingKeys: String, CodingKey {
@@ -78,6 +90,9 @@ struct RPCBrowseMangaPageParams: Encodable, Sendable {
         case p_cursor_int
         case p_cursor_ts
         case p_cursor_id
+        case p_min_year
+        case p_max_year
+        case p_format
         case p_limit
     }
 
@@ -91,6 +106,9 @@ struct RPCBrowseMangaPageParams: Encodable, Sendable {
         try c.encodeIfPresent(p_cursor_int, forKey: .p_cursor_int)
         try c.encodeIfPresent(p_cursor_ts, forKey: .p_cursor_ts)
         try c.encodeIfPresent(p_cursor_id, forKey: .p_cursor_id)
+        try c.encodeIfPresent(p_min_year, forKey: .p_min_year)
+        try c.encodeIfPresent(p_max_year, forKey: .p_max_year)
+        try c.encodeIfPresent(p_format, forKey: .p_format)
         try c.encode(p_limit, forKey: .p_limit)
     }
 }
@@ -392,6 +410,72 @@ struct RPCFetchClubMessagesParams: Encodable, Sendable {
         try c.encode(p_club_id, forKey: .p_club_id)
         try c.encode(p_limit, forKey: .p_limit)
         try c.encodeIfPresent(p_before, forKey: .p_before)
+    }
+}
+
+// Social activity RPCs.
+struct RPCFetchFriendActivityParams: Encodable, Sendable {
+    let p_media_type: String
+    let p_media_id: Int
+
+    enum CodingKeys: String, CodingKey { case p_media_type, p_media_id }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_media_type, forKey: .p_media_type)
+        try c.encode(p_media_id, forKey: .p_media_id)
+    }
+}
+
+struct RPCUpsertTitleCommentParams: Encodable, Sendable {
+    let p_media_type: String
+    let p_media_id: Int
+    let p_text: String
+
+    enum CodingKeys: String, CodingKey { case p_media_type, p_media_id, p_text }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_media_type, forKey: .p_media_type)
+        try c.encode(p_media_id, forKey: .p_media_id)
+        try c.encode(p_text, forKey: .p_text)
+    }
+}
+
+struct RPCDeleteTitleCommentParams: Encodable, Sendable {
+    let p_media_type: String
+    let p_media_id: Int
+
+    enum CodingKeys: String, CodingKey { case p_media_type, p_media_id }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_media_type, forKey: .p_media_type)
+        try c.encode(p_media_id, forKey: .p_media_id)
+    }
+}
+
+struct RPCToggleCommentReactionParams: Encodable, Sendable {
+    let p_comment_id: String
+    let p_reaction_type: String
+
+    enum CodingKeys: String, CodingKey { case p_comment_id, p_reaction_type }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_comment_id, forKey: .p_comment_id)
+        try c.encode(p_reaction_type, forKey: .p_reaction_type)
+    }
+}
+
+struct RPCCountFriendsTrackingParams: Encodable, Sendable {
+    let p_items: String  // JSON string of [{media_type, media_id}, ...]
+
+    enum CodingKeys: String, CodingKey { case p_items }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_items, forKey: .p_items)
     }
 }
 

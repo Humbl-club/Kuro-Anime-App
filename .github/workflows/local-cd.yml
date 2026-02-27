@@ -1,0 +1,31 @@
+name: Local CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_supabase:
+        description: "Deploy Supabase migrations/functions (1/0)"
+        required: true
+        default: "1"
+      deploy_testflight:
+        description: "Upload TestFlight build (1/0)"
+        required: true
+        default: "0"
+      deploy_functions:
+        description: "Comma-separated function slugs"
+        required: true
+        default: "bulk-import-anime,bulk-import-manga,manga-chapter-enrich"
+
+jobs:
+  local-cd:
+    runs-on: [self-hosted, macOS]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run local CD script
+        env:
+          DEPLOY_SUPABASE: ${{ github.event.inputs.deploy_supabase }}
+          DEPLOY_TESTFLIGHT: ${{ github.event.inputs.deploy_testflight }}
+          DEPLOY_FUNCTIONS: ${{ github.event.inputs.deploy_functions }}
+        run: ./scripts/run_local_cd_logged.sh

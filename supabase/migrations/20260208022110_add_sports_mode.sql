@@ -91,3 +91,4 @@ INSERT INTO curated_rail_items (rail_id, media_type, anilist_id, rank) VALUES
   ('sports_manga', 'MANGA', 85475, 34),   -- Rikudou (77, 12K)
   ('sports_manga', 'MANGA', 85612, 35)    -- Hinomaru Sumo (76, 5K)
 ON CONFLICT (rail_id, media_type, anilist_id) DO NOTHING;
+;

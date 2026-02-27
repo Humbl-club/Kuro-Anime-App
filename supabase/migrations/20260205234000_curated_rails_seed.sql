@@ -1,14 +1,11 @@
 -- Seed curated rails (generated).
 begin;
-
 insert into public.curated_rails(id,title,media_type,description) values ('classics_anime','Classics','ANIME','Pinned classics (expanded).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('classics_manga','Classics','MANGA','Pinned classics (expanded).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('gateway_anime','Start Here','ANIME','Pinned starters for first-time watchers.') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('gateway_manga','Start Here','MANGA','Pinned starters for first-time readers.') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
-
 -- Replace items for these rails to keep seed deterministic.
 delete from public.curated_rail_items where rail_id in ('classics_anime','classics_manga','gateway_anime','gateway_manga');
-
 insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) values
 ('classics_anime','ANIME',21,1,null),
 ('classics_anime','ANIME',11061,2,null),
@@ -320,5 +317,4 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('gateway_manga','MANGA',109285,48,null),
 ('gateway_manga','MANGA',85189,49,null),
 ('gateway_manga','MANGA',30745,50,null);
-
 commit;

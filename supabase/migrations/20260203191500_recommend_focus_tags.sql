@@ -1,7 +1,6 @@
 -- Add optional focus tag ids to premium recommender (for explicit requests like "isekai").
 
 begin;
-
 create or replace function public.recommend_ids_premium(
   p_media_type text,
   p_categories text[] default null,
@@ -160,8 +159,5 @@ as $$
   order by score desc
   limit (select lim from req);
 $$;
-
 grant execute on function public.recommend_ids_premium(text, text[], integer, boolean, integer[]) to authenticated;
-
 commit;
-

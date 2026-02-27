@@ -2,7 +2,6 @@
 -- Backwards-compatible: same function name/args, one new nullable column appended.
 
 drop function if exists public.search_titles(text, text, integer);
-
 create or replace function public.search_titles(
   p_query text,
   p_media_type text default null,
@@ -42,5 +41,4 @@ language sql stable as $$
   order by score desc, ts.popularity desc nulls last
   limit greatest(1, least(p_limit, 50));
 $$;
-
 grant execute on function public.search_titles(text, text, integer) to anon, authenticated;

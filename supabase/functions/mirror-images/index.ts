@@ -14,6 +14,15 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 type MediaType = 'ANIME' | 'MANGA' | 'CHARACTER' | 'STAFF';
 
 serve(async (req) => {
+  // Auth gate: require IMPORT_SECRET (same pattern as bulk-import-anime/manga)
+  const importSecret = Deno.env.get('IMPORT_SECRET');
+  const reqSecret = req.headers.get('x-import-secret');
+  if (!importSecret || reqSecret !== importSecret) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401, headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseKey);

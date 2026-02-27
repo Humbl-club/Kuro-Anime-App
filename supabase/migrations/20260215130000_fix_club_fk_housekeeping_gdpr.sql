@@ -13,7 +13,6 @@
 -- ============================================================
 
 begin;
-
 -- ==========================================================
 -- 1. Fix club FK constraints for account deletion
 --    Current: all NO ACTION → blocks auth.users deletion
@@ -24,51 +23,40 @@ ALTER TABLE public.clubs
   DROP CONSTRAINT IF EXISTS clubs_created_by_fkey,
   ADD CONSTRAINT clubs_created_by_fkey
     FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
-
 ALTER TABLE public.clubs ALTER COLUMN created_by DROP NOT NULL;
-
 -- club_members.user_id → CASCADE (membership removed on user delete)
 ALTER TABLE public.club_members
   DROP CONSTRAINT IF EXISTS club_members_user_id_fkey,
   ADD CONSTRAINT club_members_user_id_fkey
     FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
 -- club_rails.created_by → SET NULL (rail persists, creator anonymized)
 ALTER TABLE public.club_rails
   DROP CONSTRAINT IF EXISTS club_rails_created_by_fkey,
   ADD CONSTRAINT club_rails_created_by_fkey
     FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
-
 ALTER TABLE public.club_rails ALTER COLUMN created_by DROP NOT NULL;
-
 -- club_rail_items.added_by → SET NULL (item persists, adder anonymized)
 ALTER TABLE public.club_rail_items
   DROP CONSTRAINT IF EXISTS club_rail_items_added_by_fkey,
   ADD CONSTRAINT club_rail_items_added_by_fkey
     FOREIGN KEY (added_by) REFERENCES auth.users(id) ON DELETE SET NULL;
-
 ALTER TABLE public.club_rail_items ALTER COLUMN added_by DROP NOT NULL;
-
 -- club_polls.created_by → SET NULL (poll persists, creator anonymized)
 ALTER TABLE public.club_polls
   DROP CONSTRAINT IF EXISTS club_polls_created_by_fkey,
   ADD CONSTRAINT club_polls_created_by_fkey
     FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
-
 ALTER TABLE public.club_polls ALTER COLUMN created_by DROP NOT NULL;
-
 -- club_votes.user_id → CASCADE (vote removed on user delete)
 ALTER TABLE public.club_votes
   DROP CONSTRAINT IF EXISTS club_votes_user_id_fkey,
   ADD CONSTRAINT club_votes_user_id_fkey
     FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
 -- club_rail_item_reactions.user_id → CASCADE (new table from 20260215125312)
 ALTER TABLE public.club_rail_item_reactions
   DROP CONSTRAINT IF EXISTS club_rail_item_reactions_user_id_fkey,
   ADD CONSTRAINT club_rail_item_reactions_user_id_fkey
     FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
-
 -- ==========================================================
 -- 2. Restore club_analytics cleanup in concierge_housekeeping()
 --    Lost when privacy migration (20260211110000) overwrote the function.
@@ -147,7 +135,6 @@ BEGIN
   WHERE created_at < now() - make_interval(days => greatest(30, days_club_analytics));
 END;
 $$;
-
 -- ==========================================================
 -- 3. Add club_analytics + club data to GDPR deletion function
 -- ==========================================================
@@ -274,10 +261,8 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'deleted', deleted_counts);
 END;
 $$;
-
 -- Re-grant to authenticated users
 GRANT EXECUTE ON FUNCTION public.delete_user_concierge_data(text) TO authenticated;
-
 -- ==========================================================
 -- 4. RPC: check_club_activity_since(timestamp)
 --    Returns the latest activity timestamp across all clubs
@@ -327,7 +312,5 @@ BEGIN
   );
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.check_club_activity_since(timestamptz) TO authenticated;
-
 commit;

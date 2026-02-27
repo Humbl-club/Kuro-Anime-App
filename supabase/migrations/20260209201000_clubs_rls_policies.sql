@@ -14,7 +14,6 @@
 -- ============================================================
 
 begin;
-
 -- ==========================================================
 -- 0. HELPER FUNCTIONS
 --    SECURITY DEFINER so they bypass RLS on club_members.
@@ -31,7 +30,6 @@ AS $$
     WHERE club_id = p_club_id AND user_id = auth.uid()
   );
 $$;
-
 CREATE OR REPLACE FUNCTION public.is_club_admin_or_owner(p_club_id uuid)
 RETURNS boolean
 LANGUAGE sql STABLE SECURITY DEFINER
@@ -44,7 +42,6 @@ AS $$
       AND role IN ('owner', 'admin')
   );
 $$;
-
 -- Internal helper: check if caller is the club owner (not admin).
 CREATE OR REPLACE FUNCTION public.is_club_owner(p_club_id uuid)
 RETURNS boolean
@@ -58,7 +55,6 @@ AS $$
       AND role = 'owner'
   );
 $$;
-
 -- ==========================================================
 -- 1. clubs
 --    SELECT  -> member of the club
@@ -72,26 +68,22 @@ DO $$ BEGIN
     ON public.clubs FOR SELECT TO authenticated
     USING (public.is_club_member(id));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "clubs_insert_authenticated"
     ON public.clubs FOR INSERT TO authenticated
     WITH CHECK (created_by = auth.uid());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "clubs_update_owner"
     ON public.clubs FOR UPDATE TO authenticated
     USING (public.is_club_owner(id))
     WITH CHECK (public.is_club_owner(id));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "clubs_delete_owner"
     ON public.clubs FOR DELETE TO authenticated
     USING (public.is_club_owner(id));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- ==========================================================
 -- 2. club_members
 --    SELECT  -> member of the same club
@@ -106,7 +98,6 @@ DO $$ BEGIN
     ON public.club_members FOR SELECT TO authenticated
     USING (public.is_club_member(club_id));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- Members can update only their own row (e.g. sharing_level).
 DO $$ BEGIN
   CREATE POLICY "club_members_update_self"
@@ -114,21 +105,18 @@ DO $$ BEGIN
     USING (user_id = auth.uid())
     WITH CHECK (user_id = auth.uid());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- Members can delete their own row (leave club).
 DO $$ BEGIN
   CREATE POLICY "club_members_delete_self"
     ON public.club_members FOR DELETE TO authenticated
     USING (user_id = auth.uid());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- Owner/admin can remove other members.
 DO $$ BEGIN
   CREATE POLICY "club_members_delete_admin"
     ON public.club_members FOR DELETE TO authenticated
     USING (public.is_club_admin_or_owner(club_id));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- ==========================================================
 -- 3. club_rails
 --    SELECT  -> club member
@@ -142,7 +130,6 @@ DO $$ BEGIN
     ON public.club_rails FOR SELECT TO authenticated
     USING (public.is_club_member(club_id));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_rails_insert_member"
     ON public.club_rails FOR INSERT TO authenticated
@@ -151,20 +138,17 @@ DO $$ BEGIN
       AND created_by = auth.uid()
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_rails_update_admin"
     ON public.club_rails FOR UPDATE TO authenticated
     USING (public.is_club_admin_or_owner(club_id))
     WITH CHECK (public.is_club_admin_or_owner(club_id));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_rails_delete_admin"
     ON public.club_rails FOR DELETE TO authenticated
     USING (public.is_club_admin_or_owner(club_id));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- ==========================================================
 -- 4. club_rail_items
 --    SELECT  -> club member (via rail -> club)
@@ -188,7 +172,6 @@ DO $$ BEGIN
       )
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_rail_items_insert_member"
     ON public.club_rail_items FOR INSERT TO authenticated
@@ -202,7 +185,6 @@ DO $$ BEGIN
       )
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_rail_items_delete_adder_or_admin"
     ON public.club_rail_items FOR DELETE TO authenticated
@@ -215,7 +197,6 @@ DO $$ BEGIN
       )
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- ==========================================================
 -- 5. club_polls
 --    SELECT  -> club member
@@ -229,7 +210,6 @@ DO $$ BEGIN
     ON public.club_polls FOR SELECT TO authenticated
     USING (public.is_club_member(club_id));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_polls_insert_member"
     ON public.club_polls FOR INSERT TO authenticated
@@ -238,7 +218,6 @@ DO $$ BEGIN
       AND created_by = auth.uid()
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_polls_update_creator_or_admin"
     ON public.club_polls FOR UPDATE TO authenticated
@@ -251,7 +230,6 @@ DO $$ BEGIN
       OR public.is_club_admin_or_owner(club_id)
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_polls_delete_creator_or_admin"
     ON public.club_polls FOR DELETE TO authenticated
@@ -260,7 +238,6 @@ DO $$ BEGIN
       OR public.is_club_admin_or_owner(club_id)
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- ==========================================================
 -- 6. club_poll_options
 --    SELECT  -> club member (via poll -> club)
@@ -280,7 +257,6 @@ DO $$ BEGIN
       )
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_poll_options_insert_creator"
     ON public.club_poll_options FOR INSERT TO authenticated
@@ -292,7 +268,6 @@ DO $$ BEGIN
       )
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_poll_options_delete_creator"
     ON public.club_poll_options FOR DELETE TO authenticated
@@ -304,7 +279,6 @@ DO $$ BEGIN
       )
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- ==========================================================
 -- 7. club_votes
 --    SELECT  -> club member (via poll -> club)
@@ -325,7 +299,6 @@ DO $$ BEGIN
       )
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_votes_insert_member"
     ON public.club_votes FOR INSERT TO authenticated
@@ -339,11 +312,9 @@ DO $$ BEGIN
       )
     );
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "club_votes_delete_self"
     ON public.club_votes FOR DELETE TO authenticated
     USING (user_id = auth.uid());
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 commit;

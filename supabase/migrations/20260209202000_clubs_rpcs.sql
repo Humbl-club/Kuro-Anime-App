@@ -14,7 +14,6 @@
 -- ============================================================
 
 begin;
-
 -- ==========================================================
 -- 0. HELPER FUNCTIONS (used by RPCs and RLS policies)
 -- ==========================================================
@@ -32,7 +31,6 @@ AS $$
     WHERE club_id = p_club_id AND user_id = auth.uid()
   );
 $$;
-
 -- Admin/owner check: returns true if auth.uid() is admin or owner of the given club.
 CREATE OR REPLACE FUNCTION public.is_club_admin_or_owner(p_club_id uuid)
 RETURNS boolean
@@ -48,7 +46,6 @@ AS $$
       AND role IN ('owner', 'admin')
   );
 $$;
-
 -- Sharing level numeric rank for comparisons: private=0, status=1, progress=2.
 CREATE OR REPLACE FUNCTION public.sharing_level_rank(p_level text)
 RETURNS int
@@ -62,11 +59,9 @@ AS $$
     ELSE 0
   END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.is_club_member(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_club_admin_or_owner(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.sharing_level_rank(text) TO authenticated;
-
 -- ==========================================================
 -- 1. create_club
 -- ==========================================================
@@ -136,9 +131,7 @@ BEGIN
   );
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.create_club(text, text, text) TO authenticated;
-
 -- ==========================================================
 -- 2. join_club
 -- ==========================================================
@@ -213,9 +206,7 @@ BEGIN
   );
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.join_club(text) TO authenticated;
-
 -- ==========================================================
 -- 3. leave_club
 -- ==========================================================
@@ -283,9 +274,7 @@ BEGIN
   RETURN jsonb_build_object('success', true);
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.leave_club(uuid) TO authenticated;
-
 -- ==========================================================
 -- 4. fetch_club_bundle
 --    SECURITY INVOKER — relies on RLS for data access.
@@ -623,9 +612,7 @@ BEGIN
   );
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.fetch_club_bundle(uuid) TO authenticated;
-
 -- ==========================================================
 -- 5. add_club_rail_item
 -- ==========================================================
@@ -730,9 +717,7 @@ BEGIN
   );
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.add_club_rail_item(uuid, text, int, text) TO authenticated;
-
 -- ==========================================================
 -- 6. cast_club_vote
 -- ==========================================================
@@ -802,7 +787,5 @@ BEGIN
   RETURN jsonb_build_object('success', true);
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.cast_club_vote(uuid, uuid) TO authenticated;
-
 commit;

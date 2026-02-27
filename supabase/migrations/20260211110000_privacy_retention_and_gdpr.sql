@@ -10,7 +10,6 @@
 -- ============================================================
 
 begin;
-
 -- ==========================================================
 -- 1. Update concierge_config retention defaults
 -- ==========================================================
@@ -24,7 +23,6 @@ SET config = config || jsonb_build_object(
 )
 WHERE id = true
   AND NOT (config->'retention_days' ? 'concierge_events');
-
 -- ==========================================================
 -- 2. Extend concierge_housekeeping() with new retention
 -- ==========================================================
@@ -96,7 +94,6 @@ BEGIN
   WHERE created_at < now() - make_interval(days => greatest(30, days_rag_feedback));
 END;
 $$;
-
 -- ==========================================================
 -- 3. GDPR: delete_user_concierge_data()
 --    Deletes all user-associated data from concierge tables.
@@ -188,10 +185,8 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'deleted', deleted_counts);
 END;
 $$;
-
 -- Grant to authenticated users (they can only delete their own data)
 GRANT EXECUTE ON FUNCTION public.delete_user_concierge_data(text) TO authenticated;
-
 -- ==========================================================
 -- 4. Fix RLS initplan optimization on RAG table policies
 --    Replace bare auth.uid() with (SELECT auth.uid()) for
@@ -209,7 +204,6 @@ DO $$ BEGIN
   CREATE POLICY rag_feedback_select_own ON public.rag_retrieval_feedback
     FOR SELECT USING (user_id = (SELECT auth.uid())::text);
 END $$;
-
 -- concierge_events: drop and recreate with initplan
 DO $$ BEGIN
   DROP POLICY IF EXISTS concierge_events_insert_own ON public.concierge_events;
@@ -219,7 +213,6 @@ DO $$ BEGIN
       user_id IS NULL OR user_id = (SELECT auth.uid())::text
     );
 END $$;
-
 -- concierge_events: no SELECT policy (analytics only via service_role/dashboard)
 -- This is intentional: users should not be able to read telemetry events.
 

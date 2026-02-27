@@ -2,12 +2,9 @@
 -- Clean (no adult/ecchi/hentai) and broadly appealing.
 
 begin;
-
 insert into public.curated_rails(id,title,media_type,description) values ('premium_picks_anime','Premium Picks','ANIME','Pinned premium picks used as the default fallback for vague prompts.') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('premium_picks_manga','Premium Picks','MANGA','Pinned premium picks used as the default fallback for vague prompts.') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
-
 delete from public.curated_rail_items where rail_id in ('premium_picks_anime','premium_picks_manga');
-
 insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) values
 ('premium_picks_anime','ANIME',16498,1,null),
 ('premium_picks_anime','ANIME',5114,2,null),
@@ -250,5 +247,4 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('premium_picks_manga','MANGA',39982,119,null),
 ('premium_picks_manga','MANGA',86770,120,null)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 commit;

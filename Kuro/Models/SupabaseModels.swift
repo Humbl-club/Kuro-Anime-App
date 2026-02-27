@@ -58,8 +58,13 @@ extension Anime: MediaDisplayable {
     var imageURL: String? { displayImage.isEmpty ? nil : displayImage }
     var year: String { displayYear }
     
-    var displayDescription: String { 
-        return description ?? "No description available" 
+    var displayDescription: String {
+        if let synopsisEnhanced,
+           (synopsisEnhancedState ?? "ready").lowercased() == "ready",
+           !synopsisEnhanced.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return synopsisEnhanced
+        }
+        return description ?? "No description available"
     }
     
     var episodes: Int? {
@@ -97,8 +102,13 @@ extension Manga: MediaDisplayable {
         return "TBA"
     }
     
-    var displayDescription: String { 
-        return description ?? "No description available" 
+    var displayDescription: String {
+        if let synopsisEnhanced,
+           (synopsisEnhancedState ?? "ready").lowercased() == "ready",
+           !synopsisEnhanced.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return synopsisEnhanced
+        }
+        return description ?? "No description available"
     }
     
     var episodes: Int? { nil } // Manga doesn't have episodes
@@ -243,7 +253,7 @@ struct MangaCard: Identifiable, Codable, Sendable, MediaDisplayable {
 struct Anime: Identifiable, Codable {
     let id: Int                           // INTEGER PRIMARY KEY (AniList ID)
     let idMal: Int?                       // MyAnimeList ID
-    let idKitsu: String?                  // Kitsu ID
+    let idKitsu: Int?                     // Kitsu ID
     
     // Titles
     let titleEnglish: String?
@@ -262,6 +272,12 @@ struct Anime: Identifiable, Codable {
     let status: String?                   // FINISHED, RELEASING, etc.
     let description: String?
     let descriptionNormalized: String?
+    let synopsisEnhanced: String?
+    let synopsisEnhancedSource: String?
+    let synopsisEnhancedModel: String?
+    let synopsisEnhancedVersion: String?
+    let synopsisEnhancedUpdatedAt: Date?
+    let synopsisEnhancedState: String?
     
     // Numbers
     let episodeCount: Int?
@@ -291,15 +307,13 @@ struct Anime: Identifiable, Codable {
     
     // Categories
     let genreList: [String]?
-    let tags: String?              // JSONB tags from AniList stored as JSON string
-    
+
     // Content rating
     let isAdult: Bool
     let ageRating: String?
-    
+
     // External links
     let siteUrl: String?
-    let trailerUrl: String?
     
     // Metadata
     let source: String?                   // MANGA, LIGHT_NOVEL, ORIGINAL, etc.
@@ -312,8 +326,8 @@ struct Anime: Identifiable, Codable {
     
     enum CodingKeys: String, CodingKey {
         case id
-        case idMal = "id_mal"
-        case idKitsu = "id_kitsu"
+        case idMal = "mal_id"
+        case idKitsu = "kitsu_id"
         case titleEnglish = "title_english"
         case titleRomaji = "title_romaji"
         case titleNative = "title_native"
@@ -324,6 +338,12 @@ struct Anime: Identifiable, Codable {
         case bannerImage = "banner_image"
         case format, status, description
         case descriptionNormalized = "description_normalized"
+        case synopsisEnhanced = "synopsis_enhanced"
+        case synopsisEnhancedSource = "synopsis_enhanced_source"
+        case synopsisEnhancedModel = "synopsis_enhanced_model"
+        case synopsisEnhancedVersion = "synopsis_enhanced_version"
+        case synopsisEnhancedUpdatedAt = "synopsis_enhanced_updated_at"
+        case synopsisEnhancedState = "synopsis_enhanced_state"
         case episodeCount = "episodes", duration
         case totalDuration = "total_duration"
         case season
@@ -339,11 +359,10 @@ struct Anime: Identifiable, Codable {
         case averageScore = "average_score"
         case meanScore = "mean_score"
         case popularity, trending, favourites
-        case genreList = "genres", tags
+        case genreList = "genres"
         case isAdult = "is_adult"
         case ageRating = "age_rating"
         case siteUrl = "site_url"
-        case trailerUrl = "trailer_url"
         case source
         case countryOfOrigin = "country_of_origin"
         case createdAt = "created_at"
@@ -374,15 +393,6 @@ struct Anime: Identifiable, Codable {
         return "ONGOING"
     }
     
-    // Helper property to decode tags as dictionary when needed
-    var tagsAsDictionary: [String: Any]? {
-        guard let tags = tags,
-              let data = tags.data(using: .utf8),
-              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            return nil
-        }
-        return dict
-    }
 }
 
 struct Manga: Identifiable, Codable {
@@ -404,6 +414,12 @@ struct Manga: Identifiable, Codable {
     let status: String?
     let description: String?
     let descriptionNormalized: String?
+    let synopsisEnhanced: String?
+    let synopsisEnhancedSource: String?
+    let synopsisEnhancedModel: String?
+    let synopsisEnhancedVersion: String?
+    let synopsisEnhancedUpdatedAt: Date?
+    let synopsisEnhancedState: String?
     
     // Numbers
     let chapterCount: Int?
@@ -421,22 +437,21 @@ struct Manga: Identifiable, Codable {
     
     // Categories
     let genreList: [String]?
-    let tags: String?              // Optional JSONB tags (if present)
 
     // Content rating
     let isAdult: Bool
     let ageRating: String?
-    
+
     // External
     let siteUrl: String?
-    
+
     // Timestamps
     let createdAt: Date
     let updatedAt: Date
-    
+
     enum CodingKeys: String, CodingKey {
         case id
-        case idMal = "id_mal"
+        case idMal = "mal_id"
         case titleEnglish = "title_english"
         case titleRomaji = "title_romaji"
         case titleNative = "title_native"
@@ -445,13 +460,18 @@ struct Manga: Identifiable, Codable {
         case coverImageColor = "cover_image_color"
         case format, status, description
         case descriptionNormalized = "description_normalized"
+        case synopsisEnhanced = "synopsis_enhanced"
+        case synopsisEnhancedSource = "synopsis_enhanced_source"
+        case synopsisEnhancedModel = "synopsis_enhanced_model"
+        case synopsisEnhancedVersion = "synopsis_enhanced_version"
+        case synopsisEnhancedUpdatedAt = "synopsis_enhanced_updated_at"
+        case synopsisEnhancedState = "synopsis_enhanced_state"
         case chapterCount = "chapters", volumeCount = "volumes"
         case startDateYear = "start_date_year"
         case startDateMonth = "start_date_month"
         case averageScore = "average_score"
         case popularity, trending, favourites
         case genreList = "genres"
-        case tags
         case isAdult = "is_adult"
         case ageRating = "age_rating"
         case siteUrl = "site_url"
@@ -615,6 +635,26 @@ struct MangaChapter: Identifiable, Codable {
         case thumbnail, pages
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+}
+
+struct MangaChapterStatus: Codable, Sendable {
+    let mangaId: Int
+    let chapterRows: Int
+    let chapterCountField: Int?
+    let mappingStatus: String
+    let lastSyncAt: Date?
+    let nextRetryAt: Date?
+    let lastReason: String?
+
+    enum CodingKeys: String, CodingKey {
+        case mangaId = "manga_id"
+        case chapterRows = "chapter_rows"
+        case chapterCountField = "chapter_count_field"
+        case mappingStatus = "mapping_status"
+        case lastSyncAt = "last_sync_at"
+        case nextRetryAt = "next_retry_at"
+        case lastReason = "last_reason"
     }
 }
 

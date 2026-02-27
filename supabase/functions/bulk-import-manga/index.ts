@@ -6,8 +6,11 @@ const ANILIST_API = 'https://graphql.anilist.co';
 const DEFAULT_DELAY_MS = 670; // ms
 const DEFAULT_PER_PAGE = 25;
 const DEFAULT_RETRIES = 3;
-const DEFAULT_MAX_PLACEHOLDER_CHAPTERS = 0;
-const DEFAULT_MAX_PLACEHOLDER_VOLUMES = 0;
+// AniList only gives chapter/volume counts for most manga, not per-row data.
+// Use conservative non-zero defaults so imports materialize useful placeholders
+// without exploding row count on long-running series.
+const DEFAULT_MAX_PLACEHOLDER_CHAPTERS = 120;
+const DEFAULT_MAX_PLACEHOLDER_VOLUMES = 24;
 
 serve(async (req) => {
   // Secret header auth: pg_cron/pg_net can't send JWTs, so verify a shared secret instead.
@@ -34,8 +37,9 @@ serve(async (req) => {
   const retries: number = payload?.retries ?? DEFAULT_RETRIES;
   const lightweight: boolean = payload?.lightweight ?? false;
   const includeRelations: boolean = payload?.includeRelations ?? !lightweight;
-  const includeChapters: boolean = payload?.includeChapters ?? !lightweight;
-  const includeVolumes: boolean = payload?.includeVolumes ?? !lightweight;
+  // Default to non-destructive imports. Placeholder rows must be explicitly requested.
+  const includeChapters: boolean = payload?.includeChapters ?? false;
+  const includeVolumes: boolean = payload?.includeVolumes ?? false;
   const forceRefresh: boolean = payload?.forceRefresh ?? false;
   const lockTtlSeconds: number = payload?.lockTtlSeconds ?? 1800;
   const maxPlaceholderChapters: number = payload?.maxPlaceholderChapters ?? DEFAULT_MAX_PLACEHOLDER_CHAPTERS;
@@ -58,9 +62,18 @@ serve(async (req) => {
 
   const results = { manga: 0, chapters: 0, volumes: 0, characters: 0, authors: 0, staff: 0, tags: 0, relationships: 0, errors: 0 };
   const runType = lightweight ? 'core' : 'heavy';
+  const heavyImportsEnabled = parseBooleanEnv(Deno.env.get("IMPORT_HEAVY_ENABLED"), true);
   const tRunStart = Date.now();
   let runId: number | null = await startImportRun(supabase, 'MANGA', runType, payload);
   let lockAcquired = false;
+
+  if (!lightweight && !heavyImportsEnabled) {
+    await finishImportRun(supabase, runId, 'skipped', results, 'heavy_disabled', tRunStart);
+    return new Response(
+      JSON.stringify({ success: true, skipped: true, reason: 'heavy_disabled', results }),
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+  }
 
   try {
     lockAcquired = await acquireImportLock(supabase, 'manga', lockTtlSeconds);
@@ -216,6 +229,7 @@ async function processMangaItem(
     country_of_origin: manga.countryOfOrigin,
     is_adult: manga.isAdult,
     site_url: manga.siteUrl,
+    synopsis_enhanced_state: 'pending',
     updated_at_anilist: updatedAtAnilist,
     last_synced_at: new Date().toISOString()
   };
@@ -242,23 +256,41 @@ async function processMangaItem(
   }
 
   // Chapters
-  // AniList does not provide per-chapter rows; only materialize placeholders if explicitly requested and capped.
+  // AniList does not provide per-chapter rows; only materialize placeholders when explicitly requested.
+  // Never delete existing rows here because chapter enrichment owns canonical chapter coverage.
   if (includeChapters && maxPlaceholderChapters > 0 && manga.chapters && manga.chapters > 0) {
-    await supabase.from('chapters').delete().eq('manga_id', insertedManga.id);
-    const count = Math.min(manga.chapters, maxPlaceholderChapters);
-    const rows = Array.from({ length: count }, (_, i) => ({ manga_id: insertedManga.id, number: i + 1, title: `Chapter ${i + 1}` }));
-    const { error } = await supabase.from('chapters').insert(rows);
-    if (!error) results.chapters += rows.length;
+    const { count: existingCount, error: countError } = await supabase
+      .from('chapters')
+      .select('*', { count: 'exact', head: true })
+      .eq('manga_id', insertedManga.id);
+    if (countError) {
+      console.error('chapters count failed:', countError);
+    }
+    if ((existingCount ?? 0) === 0) {
+      const count = Math.min(manga.chapters, maxPlaceholderChapters);
+      const rows = Array.from({ length: count }, (_, i) => ({ manga_id: insertedManga.id, number: i + 1, title: `Chapter ${i + 1}` }));
+      const { error } = await supabase.from('chapters').insert(rows);
+      if (!error) results.chapters += rows.length;
+    }
   }
 
   // Volumes
-  // AniList does not provide per-volume rows; only materialize placeholders if explicitly requested and capped.
+  // AniList does not provide per-volume rows; only materialize placeholders when explicitly requested.
+  // Never delete existing rows here because downstream enrichment can provide richer data.
   if (includeVolumes && maxPlaceholderVolumes > 0 && manga.volumes && manga.volumes > 0) {
-    await supabase.from('volumes').delete().eq('manga_id', insertedManga.id);
-    const count = Math.min(manga.volumes, maxPlaceholderVolumes);
-    const rows = Array.from({ length: count }, (_, i) => ({ manga_id: insertedManga.id, number: i + 1, title: `Volume ${i + 1}`, cover_image_large: null, cover_image_medium: null }));
-    const { error } = await supabase.from('volumes').insert(rows);
-    if (!error) results.volumes += rows.length;
+    const { count: existingCount, error: countError } = await supabase
+      .from('volumes')
+      .select('*', { count: 'exact', head: true })
+      .eq('manga_id', insertedManga.id);
+    if (countError) {
+      console.error('volumes count failed:', countError);
+    }
+    if ((existingCount ?? 0) === 0) {
+      const count = Math.min(manga.volumes, maxPlaceholderVolumes);
+      const rows = Array.from({ length: count }, (_, i) => ({ manga_id: insertedManga.id, number: i + 1, title: `Volume ${i + 1}`, cover_image_large: null, cover_image_medium: null }));
+      const { error } = await supabase.from('volumes').insert(rows);
+      if (!error) results.volumes += rows.length;
+    }
   }
 
   // Authors (from staff nodes)
@@ -353,6 +385,14 @@ async function fetchJsonWithRetry(query: string, variables: Record<string, unkno
       throw e;
     }
   }
+}
+
+function parseBooleanEnv(raw: string | undefined, fallback: boolean): boolean {
+  if (!raw) return fallback;
+  const normalized = raw.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  return fallback;
 }
 
 function sleep(ms: number) {

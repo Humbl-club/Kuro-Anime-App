@@ -289,6 +289,17 @@ struct EditorialCollectionView: View {
                 if !urls.isEmpty {
                     Task { await ImagePipeline.shared.prefetch(urls: urls) }
                 }
+
+                if FeatureFlags.shared.isSocialActivityV1Enabled {
+                    let feedItems: [(mediaType: String, mediaId: Int)] = await MainActor.run {
+                        supabaseService.collectionFeedItems.prefix(80).map {
+                            (mediaType: $0.kind == .anime ? "ANIME" : "MANGA", mediaId: $0.id)
+                        }
+                    }
+                    if !feedItems.isEmpty {
+                        supabaseService.prefetchFriendCounts(items: feedItems)
+                    }
+                }
             }
         }
         .onChange(of: selectedFilter) { _, _ in

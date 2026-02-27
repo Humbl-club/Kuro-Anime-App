@@ -57,9 +57,18 @@ serve(async (req) => {
 
   const results = { anime: 0, episodes: 0, characters: 0, studios: 0, staff: 0, tags: 0, relationships: 0, errors: 0 };
   const runType = lightweight ? 'core' : 'heavy';
+  const heavyImportsEnabled = parseBooleanEnv(Deno.env.get("IMPORT_HEAVY_ENABLED"), true);
   const tRunStart = Date.now();
   let runId: number | null = await startImportRun(supabase, 'ANIME', runType, payload);
   let lockAcquired = false;
+
+  if (!lightweight && !heavyImportsEnabled) {
+    await finishImportRun(supabase, runId, 'skipped', results, 'heavy_disabled', tRunStart);
+    return new Response(
+      JSON.stringify({ success: true, skipped: true, reason: 'heavy_disabled', results }),
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+  }
 
   try {
     lockAcquired = await acquireImportLock(supabase, 'anime', lockTtlSeconds);
@@ -223,6 +232,7 @@ async function processAnimeItem(supabase: any, anime: any, results: any, include
     country_of_origin: anime.countryOfOrigin,
     is_adult: anime.isAdult,
     site_url: anime.siteUrl,
+    synopsis_enhanced_state: 'pending',
     updated_at_anilist: updatedAtAnilist,
     last_synced_at: new Date().toISOString()
   };
@@ -357,6 +367,14 @@ async function fetchJsonWithRetry(query: string, variables: Record<string, unkno
       throw e;
     }
   }
+}
+
+function parseBooleanEnv(raw: string | undefined, fallback: boolean): boolean {
+  if (!raw) return fallback;
+  const normalized = raw.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  return fallback;
 }
 
 function sleep(ms: number) {

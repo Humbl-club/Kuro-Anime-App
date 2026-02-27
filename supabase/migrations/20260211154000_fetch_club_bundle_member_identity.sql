@@ -6,7 +6,6 @@
 -- ============================================================
 
 begin;
-
 CREATE OR REPLACE FUNCTION public.fetch_club_bundle(p_club_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -355,8 +354,5 @@ BEGIN
   );
 END;
 $$;
-
-
 GRANT EXECUTE ON FUNCTION public.fetch_club_bundle(uuid) TO authenticated;
-
 commit;

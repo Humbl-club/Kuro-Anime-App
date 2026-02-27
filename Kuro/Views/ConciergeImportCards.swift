@@ -249,10 +249,10 @@ struct ImportConfirmCard: View {
                         Text("\(Int(matchPercentage * 100))% match")
                             .foregroundColor(matchColor)
                         
-                        if studioText != nil {
+                        if let studioText {
                             Text("·")
                                 .foregroundStyle(.secondary.opacity(0.55))
-                            Text(studioText!)
+                            Text(studioText)
                                 .foregroundStyle(.secondary.opacity(0.90))
                         }
                     }
@@ -685,7 +685,10 @@ extension ProtoConciergeParseItem {
                 caughtUp: nil,
                 lastEpisode: nil,
                 completed: nil,
-                yearMention: nil
+                yearMention: nil,
+                rating: nil,
+                progressTotal: nil,
+                progressUnit: nil
             ),
             candidates: candidates,
             candidateError: nil,

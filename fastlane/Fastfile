@@ -19,8 +19,11 @@ platform :ios do
       clean: true,
       xcargs: "-allowProvisioningUpdates",
       export_options: {
-        signingStyle: "automatic",
-        teamID: "YLG68JL5Y7"
+        signingStyle: "manual",
+        teamID: "YLG68JL5Y7",
+        provisioningProfiles: {
+          "com.Kuro.app" => "com.Kuro.app AppStore"
+        }
       }
     )
 

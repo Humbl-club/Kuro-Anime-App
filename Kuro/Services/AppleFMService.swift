@@ -269,6 +269,9 @@ final class AppleFMService: FMProvider {
 
             return ModeClassificationResult(modeId: output.modeId, reason: output.reason)
         } catch {
+            #if DEBUG
+            print("[AppleFMService] classifyMode error: \(error)")
+            #endif
             return nil
         }
         #else
@@ -322,6 +325,9 @@ final class AppleFMService: FMProvider {
                 reasoning: output.reasoning
             )
         } catch {
+            #if DEBUG
+            print("[AppleFMService] disambiguate error: \(error)")
+            #endif
             return nil
         }
         #else
@@ -365,6 +371,9 @@ final class AppleFMService: FMProvider {
             synopsisCache[cacheKey] = hook
             return hook
         } catch {
+            #if DEBUG
+            print("[AppleFMService] condenseSynopsis error: \(error)")
+            #endif
             return nil
         }
         #else
@@ -412,6 +421,9 @@ final class AppleFMService: FMProvider {
                 keywords: output.keywords.filter { !$0.isEmpty }
             )
         } catch {
+            #if DEBUG
+            print("[AppleFMService] parseSearchIntent error: \(error)")
+            #endif
             return nil
         }
         #else

@@ -2,7 +2,6 @@
 -- Falls back to the original heuristic rails if curated rails are not populated.
 
 begin;
-
 create or replace function public.discover_bundle(
   p_limit integer default 30,
   p_hours integer default 24
@@ -553,6 +552,4 @@ as $$
     )
   );
 $$;
-
 commit;
-

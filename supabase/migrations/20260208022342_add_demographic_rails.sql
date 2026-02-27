@@ -170,3 +170,4 @@ INSERT INTO curated_rail_items (rail_id, media_type, anilist_id, rank) VALUES
   ('josei_manga', 'MANGA', 148305, 14),    -- Akuyaku Reijou no Naka no Hito (82)
   ('josei_manga', 'MANGA', 137431, 15)     -- Talk to My Back (77)
 ON CONFLICT (rail_id, media_type, anilist_id) DO NOTHING;
+;

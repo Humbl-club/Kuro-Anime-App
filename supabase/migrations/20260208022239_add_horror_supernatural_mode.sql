@@ -95,3 +95,4 @@ INSERT INTO curated_rail_items (rail_id, media_type, anilist_id, rank) VALUES
   ('horror_supernatural_manga', 'MANGA', 33866, 35),   -- Black Butler / Kuroshitsuji (81, 36K) - Supernatural
   ('horror_supernatural_manga', 'MANGA', 85435, 36)    -- The Ancient Magus' Bride (81, 27K) - Supernatural
 ON CONFLICT (rail_id, media_type, anilist_id) DO NOTHING;
+;

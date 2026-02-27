@@ -98,3 +98,4 @@ INSERT INTO curated_rail_items (rail_id, media_type, anilist_id, rank) VALUES
   ('scifi_manga', 'MANGA', 66413, 31),    -- Hinamatsuri (84, 23K)
   ('scifi_manga', 'MANGA', 110159, 32)    -- Ponkotsu Ponko (80, 7K)
 ON CONFLICT (rail_id, media_type, anilist_id) DO NOTHING;
+;

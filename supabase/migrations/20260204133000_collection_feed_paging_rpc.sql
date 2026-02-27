@@ -1,5 +1,4 @@
 begin;
-
 -- Merged collection feed (anime + manga) with keyset paging.
 -- Orders by list updated_at desc, then by source (anime before manga), then list row id desc.
 
@@ -130,8 +129,5 @@ as $$
   order by f.list_updated_at desc, f.source_rank asc, f.list_row_id desc
   limit (select lim from params);
 $$;
-
 grant execute on function public.collection_feed_page(integer, timestamptz, integer, integer, text, text) to anon, authenticated;
-
 commit;
-

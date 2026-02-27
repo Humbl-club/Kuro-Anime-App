@@ -4,7 +4,6 @@
 -- One entry per franchise. No Hentai/Ecchi. No sequel spam.
 
 begin;
-
 -- ============================================================
 -- Create rail definitions
 -- ============================================================
@@ -23,7 +22,6 @@ insert into public.curated_rails(id,title,media_type,description) values
   ('shoujo_josei_anime','Shoujo & Josei','ANIME','Stories aimed at female audiences: shoujo, josei, magical girl.'),
   ('shoujo_josei_manga','Shoujo & Josei','MANGA','Stories aimed at female audiences: shoujo, josei, magical girl.')
 on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
-
 -- ============================================================
 -- Clear any old items for these rails
 -- ============================================================
@@ -36,7 +34,6 @@ delete from public.curated_rail_items where rail_id in (
   'school_anime','school_manga',
   'shoujo_josei_anime','shoujo_josei_manga'
 );
-
 -- ============================================================
 -- mecha_anime  (one per franchise, score >= 72)
 -- ============================================================
@@ -67,7 +64,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('mecha_anime','ANIME',4558,24,null), -- GaoGaiGar (76)
 ('mecha_anime','ANIME',2746,25,null)  -- Gridman Universe (81)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- mecha_manga  (one per franchise, score >= 72)
 -- ============================================================
@@ -88,7 +84,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('mecha_manga','MANGA',2986,14,null), -- 86 Eighty-Six (72)
 ('mecha_manga','MANGA',5218,15,null)  -- Levius/est (72)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- mystery_detective_anime  (one per franchise, score >= 76)
 -- ============================================================
@@ -119,7 +114,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('mystery_detective_anime','ANIME',13601,24,null), -- Psycho-Pass (from premium_picks, high score mystery)
 ('mystery_detective_anime','ANIME',20931,25,null)  -- ID: Invaded (from premium_picks)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- mystery_detective_manga  (one per franchise, score >= 76)
 -- ============================================================
@@ -153,7 +147,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('mystery_detective_manga','MANGA',211,27,null),  -- Black Butler (81)
 ('mystery_detective_manga','MANGA',1907,28,null)  -- Don't Call it Mystery (83)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- music_performance_anime  (one per franchise, score >= 70)
 -- ============================================================
@@ -182,7 +175,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('music_performance_anime','ANIME',1055,22,null), -- Doukyuusei (81)
 ('music_performance_anime','ANIME',15975,23,null) -- The Colors Within (78)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- music_performance_manga  (one per franchise, score >= 70)
 -- ============================================================
@@ -208,7 +200,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('music_performance_manga','MANGA',4065,19,null), -- Ya Boy Kongming! (73)
 ('music_performance_manga','MANGA',4895,20,null)  -- Let's Go Karaoke! (77)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- historical_anime  (one per franchise, score >= 72)
 -- Note: no "Historical" AniList genre exists; curated by title.
@@ -235,7 +226,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('historical_anime','ANIME',1166,19,null), -- Heroic Legend of Arslan (73)
 ('historical_anime','ANIME',1546,20,null)  -- Kingdom S1 (74)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- historical_manga  (one per franchise, score >= 72)
 -- ============================================================
@@ -256,7 +246,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('historical_manga','MANGA',5209,14,null), -- Nobunaga no Chef (73)
 ('historical_manga','MANGA',300,15,null)   -- Mushishi (85)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- school_anime  (one per franchise, score >= 74)
 -- ============================================================
@@ -287,7 +276,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('school_anime','ANIME',733,24,null),  -- SCHOOL-LIVE! (74)
 ('school_anime','ANIME',1787,25,null)  -- Wasteful Days of High School Girls (74)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- school_manga  (one per franchise, score >= 72)
 -- ============================================================
@@ -308,7 +296,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('school_manga','MANGA',226,14,null),  -- Kimi ni Todoke (82)
 ('school_manga','MANGA',2912,15,null)  -- Angel Beats! Heaven's Door (75)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- shoujo_josei_anime  (one per franchise, score >= 72)
 -- ============================================================
@@ -339,7 +326,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('shoujo_josei_anime','ANIME',271,24,null),  -- BOCCHI THE ROCK! (87)
 ('shoujo_josei_anime','ANIME',848,25,null)   -- Whisper of the Heart (81)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 -- ============================================================
 -- shoujo_josei_manga  (one per franchise, score >= 72)
 -- ============================================================
@@ -365,5 +351,4 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('shoujo_josei_manga','MANGA',194,19,null),  -- Given (83)
 ('shoujo_josei_manga','MANGA',145,20,null)   -- Solanin (80)
 on conflict (rail_id, media_type, anilist_id) do update set rank = excluded.rank, note = excluded.note;
-
 commit;

@@ -4,12 +4,10 @@
 -- - Keyset pagination RPCs for browse (avoid OFFSET cost)
 
 begin;
-
 -- 1) Indexes for common filters/sorts
 -- Genres are queried via `contains(genres, ['Action'])`, so a GIN index is critical.
 create index if not exists idx_anime_genres_gin on public.anime using gin (genres);
 create index if not exists idx_manga_genres_gin on public.manga using gin (genres);
-
 -- Sort columns used heavily by browse/discover.
 create index if not exists idx_anime_popularity_id on public.anime (popularity desc nulls last, id desc);
 create index if not exists idx_anime_trending_id on public.anime (trending desc nulls last, id desc);
@@ -18,12 +16,10 @@ create index if not exists idx_anime_created_id on public.anime (created_at desc
 create index if not exists idx_anime_status_popularity_id on public.anime (status, popularity desc nulls last, id desc);
 create index if not exists idx_anime_season_year_popularity_id on public.anime (season, season_year, popularity desc nulls last, id desc);
 create index if not exists idx_anime_next_airing_at on public.anime (next_airing_at);
-
 create index if not exists idx_manga_popularity_id on public.manga (popularity desc nulls last, id desc);
 create index if not exists idx_manga_trending_id on public.manga (trending desc nulls last, id desc);
 create index if not exists idx_manga_score_id on public.manga (average_score desc nulls last, id desc);
 create index if not exists idx_manga_created_id on public.manga (created_at desc, id desc);
-
 -- Text search (used by app search). Expression GIN index avoids table scans.
 -- NOTE: uses the "simple" config since title fields are mostly proper nouns.
 create index if not exists idx_anime_search_tsv on public.anime using gin (
@@ -42,7 +38,6 @@ create index if not exists idx_manga_search_tsv on public.manga using gin (
     coalesce(description_normalized, '')
   )
 );
-
 -- 2) Helper for season derivation (server-side, so clients don't hardcode logic).
 create or replace function public.current_season_name(p_at timestamptz default now())
 returns text
@@ -56,7 +51,6 @@ as $$
     else 'FALL'
   end;
 $$;
-
 -- 3) Discover bundle (single call).
 -- Returns minimal card fields for rails; details are fetched by id when needed.
 create or replace function public.discover_bundle(
@@ -419,9 +413,7 @@ as $$
     )
   );
 $$;
-
 grant execute on function public.discover_bundle(integer, integer) to anon, authenticated;
-
 -- 4) Browse keyset pagination RPCs (cards).
 -- This keeps the app fast at deeper pages and protects Postgres from OFFSET scans.
 -- NOTE: Reapplying migrations can fail if the function's return type changed in a later migration.
@@ -532,7 +524,6 @@ as $$
     b.id desc
   limit (select lim from params);
 $$;
-
 -- NOTE: manga browse cursor uses chapters filter instead of episodes.
 create or replace function public.browse_manga_page(
   p_genre text default null,
@@ -633,8 +624,6 @@ as $$
     b.id desc
   limit (select lim from params);
 $$;
-
 grant execute on function public.browse_anime_page(text, text, integer, integer, text, integer, timestamptz, integer, integer) to anon, authenticated;
 grant execute on function public.browse_manga_page(text, text, integer, integer, text, integer, timestamptz, integer, integer) to anon, authenticated;
-
 commit;

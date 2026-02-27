@@ -4,11 +4,9 @@
 --   but policies compare to auth.uid()::text, so convert to TEXT
 
 begin;
-
 -- Add kitsu_id if missing (keep uniqueness for non-null values).
 alter table public.tags add column if not exists kitsu_id integer;
 create unique index if not exists idx_tags_kitsu_id_unique on public.tags(kitsu_id) where kitsu_id is not null;
-
 -- Convert comments.user_id from integer -> text only if needed.
 do $$
 begin
@@ -45,5 +43,4 @@ begin
     );
   end if;
 end $$;
-
 commit;

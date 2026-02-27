@@ -2,7 +2,6 @@
 -- Preserves all existing fields; only appends new synonym entries.
 
 begin;
-
 update public.concierge_config
 set config = jsonb_set(
   config,
@@ -69,5 +68,4 @@ set config = jsonb_set(
   true
 )
 where id = true;
-
 commit;

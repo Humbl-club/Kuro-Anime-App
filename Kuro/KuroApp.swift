@@ -47,15 +47,8 @@ struct KuroApp: App {
                     }
                 }
                 .onChange(of: scenePhase) { _, newPhase in
-                    switch newPhase {
-                    case .active:
-                        break
-                    case .background:
-                        break
-                    case .inactive:
-                        break
-                    @unknown default:
-                        break
+                    if newPhase == .active, supabaseService.isAuthenticated {
+                        Task { await supabaseService.refreshSessionIfNeeded() }
                     }
                 }
         }

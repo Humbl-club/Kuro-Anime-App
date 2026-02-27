@@ -1,3 +1,4 @@
+
 -- Feature flags for server-controlled rollout of new concierge capabilities.
 -- Flags are evaluated client-side using hash(user_id) % 100 < rollout_percentage.
 
@@ -44,3 +45,4 @@ VALUES
 ON CONFLICT (flag_name) DO NOTHING;
 
 COMMENT ON TABLE feature_flags IS 'Server-controlled feature flags for gradual rollout of concierge intelligence features.';
+;

@@ -3,7 +3,6 @@
 -- Rails are seeded by: 20260209120000_new_vibe_rails.sql
 
 begin;
-
 update public.concierge_config
 set config = jsonb_set(
   config,
@@ -70,5 +69,4 @@ set config = jsonb_set(
   true
 )
 where id = true;
-
 commit;

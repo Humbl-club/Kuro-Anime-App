@@ -4,14 +4,12 @@
 -- - Add lightweight title-based penalties for "reborn / another world / slime" phrasing
 
 begin;
-
 create table if not exists public.editorial_tag_boosts (
   tag_id integer primary key references public.tags(id) on delete cascade,
   boost integer not null default 0,
   reason text,
   created_at timestamptz not null default now()
 );
-
 -- Story-first boosts (small but meaningful; not a hard filter).
 insert into public.editorial_tag_boosts (tag_id, boost, reason) values
   (170, 6, 'Seinen'),
@@ -24,7 +22,6 @@ insert into public.editorial_tag_boosts (tag_id, boost, reason) values
   (49, 1, 'Historical')
 on conflict (tag_id) do update
   set boost = excluded.boost, reason = excluded.reason;
-
 -- A couple more soft penalties for default recommendations (still searchable).
 insert into public.editorial_penalty_tags (tag_id, penalty, reason) values
   (19294, -8, 'Reverse Isekai'),
@@ -32,7 +29,6 @@ insert into public.editorial_penalty_tags (tag_id, penalty, reason) values
   (848, -3, 'Dungeon')
 on conflict (tag_id) do update
   set penalty = excluded.penalty, reason = excluded.reason;
-
 create or replace function public.recommend_ids_premium(
   p_media_type text,
   p_categories text[] default null,
@@ -241,8 +237,5 @@ as $$
   order by score desc
   limit (select lim from req);
 $$;
-
 grant execute on function public.recommend_ids_premium(text, text[], integer, boolean, integer[]) to authenticated;
-
 commit;
-

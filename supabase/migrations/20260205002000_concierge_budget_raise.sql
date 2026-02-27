@@ -3,7 +3,6 @@
 -- - per-user daily tokens: 50,000
 
 begin;
-
 update public.concierge_config
 set config =
   jsonb_set(
@@ -18,6 +17,4 @@ set config =
     true
   )
 where id = true;
-
 commit;
-

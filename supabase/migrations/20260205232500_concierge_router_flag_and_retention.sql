@@ -3,12 +3,10 @@
 -- - Retention for concierge_mode_cache
 
 begin;
-
 -- Router kill switch (separate from llm_enabled narration/resolve).
 insert into public.system_flags(key, enabled)
 values ('llm_router_enabled', false)
 on conflict (key) do nothing;
-
 -- Extend housekeeping to prune mode cache.
 create or replace function public.concierge_housekeeping()
 returns void
@@ -60,7 +58,6 @@ begin
   delete from public.concierge_mode_cache
   where updated_at < now() - make_interval(days => greatest(7, days_mode_cache));
 end $$;
-
 -- Patch config retention defaults to include mode_cache (best-effort).
 update public.concierge_config
 set config = jsonb_set(
@@ -71,6 +68,4 @@ set config = jsonb_set(
 )
 where id = true
   and (config->'retention_days'->>'mode_cache') is null;
-
 commit;
-

@@ -2,7 +2,6 @@
 -- New rails are seeded by: 20260207020000_curated_rails_more_vibes_seed.sql
 
 begin;
-
 update public.concierge_config
 set config = jsonb_set(
   config,
@@ -31,6 +30,4 @@ set config = jsonb_set(
   true
 )
 where id = true;
-
 commit;
-

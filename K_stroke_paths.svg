@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Vertical Stroke -->
+  <path id="stroke-vertical" 
+        d="M 360 180 
+           C 360 180, 340 512, 360 844"
+        fill="none" 
+        stroke="#1a1a1f" 
+        stroke-width="45"
+        stroke-linecap="round"/>
+  
+  <!-- Upper Diagonal -->
+  <path id="stroke-upper" 
+        d="M 360 350 
+           C 360 350, 550 200, 680 130"
+        fill="none" 
+        stroke="#1a1a1f" 
+        stroke-width="32"
+        stroke-linecap="round"/>
+  
+  <!-- Lower Diagonal -->
+  <path id="stroke-lower" 
+        d="M 360 450 
+           C 360 450, 550 600, 680 750"
+        fill="none" 
+        stroke="#1a1a1f" 
+        stroke-width="32"
+        stroke-linecap="round"/>
+</svg>

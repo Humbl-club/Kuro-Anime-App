@@ -1,7 +1,6 @@
 -- When a focus tag is specified (e.g. explicit "isekai"), require it rather than only boosting it.
 
 begin;
-
 create or replace function public.recommend_ids_premium(
   p_media_type text,
   p_categories text[] default null,
@@ -162,6 +161,4 @@ as $$
   order by score desc
   limit (select lim from req);
 $$;
-
 commit;
-

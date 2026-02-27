@@ -258,6 +258,19 @@ struct SharedVerticalAnimeCard: View {
             }
             .labelStyle(CompactLabelStyle())
 
+            if FeatureFlags.shared.isSocialActivityV1Enabled {
+                let count = supabaseService.friendCount(mediaId: anime.id, mediaType: "ANIME")
+                if count > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "person.2")
+                            .font(.system(size: 8, weight: .regular))
+                        Text("\(count) friend\(count == 1 ? "" : "s")")
+                            .font(.system(size: 9, weight: .light))
+                    }
+                    .foregroundColor(.black.opacity(0.40))
+                }
+            }
+
             if isExpanded {
                 expandedContent
             }
@@ -380,10 +393,10 @@ struct SharedHorizontalAnimeCard: View {
     @State private var isPressed = false
     @State private var showActions = false
     @State private var didLongPress = false
-    @State private var didDrag = false
     @State private var isFavorited = false
     @State private var isInList = false
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     
     init(anime: Anime, width: CGFloat, height: CGFloat, showBadge: Bool = true, tap: @escaping () -> Void) {
         self.anime = anime
@@ -444,6 +457,19 @@ struct SharedHorizontalAnimeCard: View {
                     Text("\(episodes) ep")
                         .font(.system(size: 9, weight: .regular))
                         .foregroundColor(.black.opacity(0.6))
+                }
+            }
+
+            if FeatureFlags.shared.isSocialActivityV1Enabled {
+                let count = supabaseService.friendCount(mediaId: anime.id, mediaType: "ANIME")
+                if count > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "person.2")
+                            .font(.system(size: 8, weight: .regular))
+                        Text("\(count) friend\(count == 1 ? "" : "s")")
+                            .font(.system(size: 9, weight: .light))
+                    }
+                    .foregroundColor(.black.opacity(0.40))
                 }
             }
 
@@ -537,26 +563,12 @@ struct SharedHorizontalAnimeCard: View {
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .opacity(isPressed ? 0.9 : 1.0)
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isPressed)
-        // Intentional tap: if the user is swiping, do not open the detail sheet accidentally.
-        // Use simultaneousGesture so horizontal ScrollView drags still win.
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0, coordinateSpace: .local)
-                .onChanged { value in
-                    if abs(value.translation.width) > 10 || abs(value.translation.height) > 10 {
-                        didDrag = true
-                    }
-                }
-                .onEnded { value in
-                    defer { didDrag = false }
-                    guard !didLongPress else { return }
-                    guard !didDrag else { return }
-                    // Treat as a tap only if there was essentially no movement.
-                    if abs(value.translation.width) < 10 && abs(value.translation.height) < 10 {
-                        KuroAccessibility.impactHaptic(.light)
-                        tap()
-                    }
-                }
-        )
+        .kuroDeliberateTap {
+            guard !didLongPress else { return }
+            guard !suppressCardTaps else { return }
+            KuroAccessibility.impactHaptic(.light)
+            tap()
+        }
         .onLongPressGesture(minimumDuration: 0.5, maximumDistance: .infinity, pressing: { pressing in
             if pressing {
                 isPressed = true

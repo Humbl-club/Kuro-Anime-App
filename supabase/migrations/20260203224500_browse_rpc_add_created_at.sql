@@ -1,11 +1,9 @@
 -- Keyset paging for "newlyAdded" needs created_at exposed to clients.
 
 begin;
-
 -- Need to drop before recreating because OUT parameters define the row type.
 drop function if exists public.browse_anime_page(text, text, integer, integer, text, integer, timestamptz, integer, integer);
 drop function if exists public.browse_manga_page(text, text, integer, integer, text, integer, timestamptz, integer, integer);
-
 create or replace function public.browse_anime_page(
   p_genre text default null,
   p_status text default null,
@@ -112,9 +110,7 @@ as $$
     b.id desc
   limit (select lim from params);
 $$;
-
 grant execute on function public.browse_anime_page(text, text, integer, integer, text, integer, timestamptz, integer, integer) to anon, authenticated;
-
 create or replace function public.browse_manga_page(
   p_genre text default null,
   p_status text default null,
@@ -217,7 +213,5 @@ as $$
     b.id desc
   limit (select lim from params);
 $$;
-
 grant execute on function public.browse_manga_page(text, text, integer, integer, text, integer, timestamptz, integer, integer) to anon, authenticated;
-
 commit;

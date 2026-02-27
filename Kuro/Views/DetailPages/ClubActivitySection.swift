@@ -1,4 +1,5 @@
 import SwiftUI
+import PostgREST
 
 // MARK: - Club Activity Section for Media Detail Views
 // Shows club context for a media item: which clubs have it in a rail,
@@ -108,7 +109,7 @@ private struct ClubActivityCard: View {
 
 // MARK: - Add to Club Rail Sheet
 
-private struct AddToClubRailSheet: View {
+struct AddToClubRailSheet: View {
     let mediaId: Int
     let mediaType: String
 
@@ -340,8 +341,7 @@ private struct AddToClubRailSheet: View {
             dismiss()
         } catch {
             KuroAccessibility.errorHaptic()
-            let msg = "\(error)"
-            if msg.contains("NOT_A_MEMBER") {
+            if errorCode(from: error) == .notAMember {
                 errorText = "You're no longer a member of this club."
                 bundle = nil
             } else {
@@ -356,6 +356,24 @@ private struct AddToClubRailSheet: View {
                 extra: ["club_id": clubId]
             )
         }
+    }
+
+    private enum AddToRailErrorCode: String {
+        case notAMember = "NOT_A_MEMBER"
+    }
+
+    private func errorCode(from error: Error) -> AddToRailErrorCode? {
+        guard let pgError = error as? PostgrestError else { return nil }
+        let candidates = [pgError.detail, pgError.hint, pgError.message]
+        for raw in candidates {
+            guard let raw else { continue }
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let token = trimmed.split(separator: ":", maxSplits: 1).first.map(String.init) ?? trimmed
+            let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            if let code = AddToRailErrorCode(rawValue: normalized) { return code }
+        }
+        return nil
     }
 }
 
@@ -557,7 +575,7 @@ private struct ClubMemberStatusList: View {
         // Stable short identifier from UUID (consistent across sessions)
         let compact = userId.replacingOccurrences(of: "-", with: "")
         let short = String(compact.prefix(6))
-        return short.isEmpty ? "Member" : short
+        return short.isEmpty ? "Unknown" : short
     }
 
     private func memberInitial(_ label: String, userId: String) -> String {

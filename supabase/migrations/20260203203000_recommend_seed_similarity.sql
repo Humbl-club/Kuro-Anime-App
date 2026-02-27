@@ -2,7 +2,6 @@
 -- Used for prompts like: "story manga like Vagabond".
 
 begin;
-
 create or replace function public.recommend_ids_similar_to_seeds(
   p_media_type text,
   p_seed_ids integer[],
@@ -166,8 +165,5 @@ as $$
   order by score desc
   limit (select lim from req);
 $$;
-
 grant execute on function public.recommend_ids_similar_to_seeds(text, integer[], integer, boolean) to authenticated;
-
 commit;
-

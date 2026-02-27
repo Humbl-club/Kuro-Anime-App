@@ -13,10 +13,8 @@
 -- ============================================================
 
 begin;
-
 -- Ensure trigram operator class exists for gin_trgm_ops indexes below.
 create extension if not exists pg_trgm with schema public;
-
 -- ==========================================================
 -- 1. rag_entity_index
 -- ==========================================================
@@ -34,9 +32,7 @@ CREATE TABLE IF NOT EXISTS public.rag_entity_index (
   updated_at       timestamptz NOT NULL DEFAULT now(),
   UNIQUE (anilist_id, media_type, locale)
 );
-
 ALTER TABLE public.rag_entity_index ENABLE ROW LEVEL SECURITY;
-
 -- Trigram index for fuzzy search on normalized_title.
 -- NOTE: gin_trgm_ops may live in non-public schemas (e.g. extensions).
 DO $$
@@ -62,11 +58,9 @@ BEGIN
     );
   END IF;
 END $$;
-
 -- Composite btree for filtered queries
 CREATE INDEX IF NOT EXISTS idx_rag_entity_locale_year_format
   ON public.rag_entity_index (locale, year, format);
-
 -- RLS: anon can SELECT (public catalog data)
 DO $$ BEGIN
   IF NOT EXISTS (
@@ -78,7 +72,6 @@ DO $$ BEGIN
       FOR SELECT USING (true);
   END IF;
 END $$;
-
 -- updated_at trigger
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'rag_entity_index_set_updated_at') THEN
@@ -87,7 +80,6 @@ DO $$ BEGIN
       FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   END IF;
 END $$;
-
 -- ==========================================================
 -- 2. rag_entity_aliases
 -- ==========================================================
@@ -101,9 +93,7 @@ CREATE TABLE IF NOT EXISTS public.rag_entity_aliases (
   alias_type       text        NOT NULL,
   UNIQUE (entity_id, normalized_alias, locale)
 );
-
 ALTER TABLE public.rag_entity_aliases ENABLE ROW LEVEL SECURITY;
-
 -- Trigram index for fuzzy search on normalized_alias.
 DO $$
 DECLARE
@@ -128,11 +118,9 @@ BEGIN
     );
   END IF;
 END $$;
-
 -- FK index
 CREATE INDEX IF NOT EXISTS idx_rag_entity_aliases_entity_id
   ON public.rag_entity_aliases (entity_id);
-
 -- RLS: anon can SELECT (public catalog data)
 DO $$ BEGIN
   IF NOT EXISTS (
@@ -144,7 +132,6 @@ DO $$ BEGIN
       FOR SELECT USING (true);
   END IF;
 END $$;
-
 -- ==========================================================
 -- 3. rag_entity_tags
 -- ==========================================================
@@ -157,9 +144,7 @@ CREATE TABLE IF NOT EXISTS public.rag_entity_tags (
   tag_group      text        NOT NULL CHECK (tag_group IN ('genre', 'theme', 'demographic', 'mood')),
   UNIQUE (entity_id, normalized_tag, tag_group)
 );
-
 ALTER TABLE public.rag_entity_tags ENABLE ROW LEVEL SECURITY;
-
 -- Trigram index for fuzzy search on normalized_tag.
 DO $$
 DECLARE
@@ -184,11 +169,9 @@ BEGIN
     );
   END IF;
 END $$;
-
 -- FK index
 CREATE INDEX IF NOT EXISTS idx_rag_entity_tags_entity_id
   ON public.rag_entity_tags (entity_id);
-
 -- RLS: anon can SELECT (public catalog data)
 DO $$ BEGIN
   IF NOT EXISTS (
@@ -200,7 +183,6 @@ DO $$ BEGIN
       FOR SELECT USING (true);
   END IF;
 END $$;
-
 -- ==========================================================
 -- 4. rag_retrieval_cache
 -- ==========================================================
@@ -216,13 +198,10 @@ CREATE TABLE IF NOT EXISTS public.rag_retrieval_cache (
   expires_at     timestamptz NOT NULL,
   created_at     timestamptz NOT NULL DEFAULT now()
 );
-
 ALTER TABLE public.rag_retrieval_cache ENABLE ROW LEVEL SECURITY;
-
 -- btree on expires_at for cleanup
 CREATE INDEX IF NOT EXISTS idx_rag_cache_expires
   ON public.rag_retrieval_cache (expires_at);
-
 -- RLS: service_role only (no anon access). Deny all for anon/authenticated.
 -- Edge functions use service_role key to read/write cache.
 -- No policies = deny all by default (RLS enabled, no permissive policies).
@@ -241,9 +220,7 @@ CREATE TABLE IF NOT EXISTS public.rag_retrieval_feedback (
   rejected_reason   text        NULL,
   created_at        timestamptz NOT NULL DEFAULT now()
 );
-
 ALTER TABLE public.rag_retrieval_feedback ENABLE ROW LEVEL SECURITY;
-
 -- RLS: users can INSERT their own feedback, SELECT own rows
 DO $$ BEGIN
   IF NOT EXISTS (
@@ -264,7 +241,6 @@ DO $$ BEGIN
       FOR SELECT USING (user_id = auth.uid()::text);
   END IF;
 END $$;
-
 -- ==========================================================
 -- 6. concierge_events
 -- ==========================================================
@@ -278,13 +254,10 @@ CREATE TABLE IF NOT EXISTS public.concierge_events (
   payload     jsonb       NOT NULL DEFAULT '{}'::jsonb,
   created_at  timestamptz NOT NULL DEFAULT now()
 );
-
 ALTER TABLE public.concierge_events ENABLE ROW LEVEL SECURITY;
-
 -- btree for analytics queries
 CREATE INDEX IF NOT EXISTS idx_concierge_events_name_market_created
   ON public.concierge_events (event_name, market, created_at);
-
 -- RLS: INSERT where user_id matches or is NULL (anonymous events), no SELECT
 DO $$ BEGIN
   IF NOT EXISTS (
@@ -298,7 +271,6 @@ DO $$ BEGIN
       );
   END IF;
 END $$;
-
 -- ==========================================================
 -- 7. Cache cleanup helper function
 -- ==========================================================
@@ -313,5 +285,4 @@ BEGIN
   WHERE expires_at < now();
 END;
 $$;
-
 commit;

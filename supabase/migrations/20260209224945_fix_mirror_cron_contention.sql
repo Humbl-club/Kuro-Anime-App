@@ -90,4 +90,4 @@ SELECT cron.alter_job(
 );
 
 -- Clean up stale lock rows from the old shared key
-DELETE FROM public.import_locks WHERE lock_key = 'mirror-images';
+DELETE FROM public.import_locks WHERE lock_key = 'mirror-images';;

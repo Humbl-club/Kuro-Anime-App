@@ -74,7 +74,7 @@ struct EditorialHeroCard: View {
             .scaleEffect(isPressed ? 0.98 : 1.0)
             .animation(KuroAnimation.editorial, value: isPressed)
         }
-        .onTapGesture {
+        .kuroDeliberateTap {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
@@ -134,7 +134,7 @@ struct EditorialFeatureCard: View {
         }
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .animation(KuroAnimation.editorial, value: isPressed)
-        .onTapGesture {
+        .kuroDeliberateTap {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
@@ -199,7 +199,7 @@ struct EditorialCompactCard: View {
         }
         .frame(height: 120)
         .contentShape(Rectangle())
-        .onTapGesture {
+        .kuroDeliberateTap {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
@@ -280,7 +280,7 @@ struct EditorialGridCard: View {
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .animation(KuroAnimation.editorial, value: isPressed)
         .contentShape(Rectangle())
-        .onTapGesture {
+        .kuroDeliberateTap {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
@@ -345,7 +345,7 @@ struct EditorialListRow: View {
         }
         .padding(.vertical, 16)
         .contentShape(Rectangle())
-        .onTapGesture {
+        .kuroDeliberateTap {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true

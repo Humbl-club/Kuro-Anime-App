@@ -5,10 +5,8 @@
 -- - Taste profiles for non-LLM personalization
 
 begin;
-
 -- Extensions used for fast fuzzy search.
 create extension if not exists pg_trgm;
-
 -- 1) Profiles (identity metadata)
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -17,9 +15,7 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now(),
   adult_opt_in boolean not null default false
 );
-
 alter table public.profiles enable row level security;
-
 do $$ begin
   if not exists (
     select 1 from pg_policies where schemaname='public' and tablename='profiles' and policyname='profiles_select_own'
@@ -34,7 +30,6 @@ do $$ begin
       for update using (auth.uid() = id) with check (auth.uid() = id);
   end if;
 end $$;
-
 -- Helper: keep updated_at fresh on update.
 create or replace function public.set_updated_at()
 returns trigger language plpgsql as $$
@@ -42,7 +37,6 @@ begin
   new.updated_at = now();
   return new;
 end $$;
-
 do $$ begin
   if not exists (select 1 from pg_trigger where tgname = 'profiles_set_updated_at') then
     create trigger profiles_set_updated_at
@@ -50,13 +44,11 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 -- 2) Title normalization + search index
 create or replace function public.normalize_title(p text)
 returns text language sql immutable as $$
   select trim(regexp_replace(lower(coalesce(p, '')), '[^[:alnum:][:space:]]+', ' ', 'g'));
 $$;
-
 create table if not exists public.title_search (
   id bigserial primary key,
   media_type text not null check (media_type in ('ANIME','MANGA')),
@@ -68,10 +60,8 @@ create table if not exists public.title_search (
   popularity integer,
   created_at timestamptz not null default now()
 );
-
 create index if not exists idx_title_search_media on public.title_search (media_type, media_id);
 create index if not exists idx_title_search_title_norm_trgm on public.title_search using gin (title_norm gin_trgm_ops);
-
 -- Public read (derived from public catalog).
 alter table public.title_search enable row level security;
 do $$ begin
@@ -82,9 +72,7 @@ do $$ begin
       for select using (true);
   end if;
 end $$;
-
 grant select on public.title_search to anon, authenticated;
-
 -- RPC: fast fuzzy search against title_search
 create or replace function public.search_titles(
   p_query text,
@@ -114,9 +102,7 @@ language sql stable as $$
   order by score desc, ts.popularity desc nulls last
   limit greatest(1, least(p_limit, 50));
 $$;
-
 grant execute on function public.search_titles(text, text, integer) to anon, authenticated;
-
 -- 3) Concierge import sessions (staging + undo)
 create table if not exists public.import_sessions (
   id uuid primary key default gen_random_uuid(),
@@ -126,9 +112,7 @@ create table if not exists public.import_sessions (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 create index if not exists idx_import_sessions_user_created on public.import_sessions (user_id, created_at desc);
-
 alter table public.import_sessions enable row level security;
 do $$ begin
   if not exists (
@@ -138,7 +122,6 @@ do $$ begin
       for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
   end if;
 end $$;
-
 do $$ begin
   if not exists (select 1 from pg_trigger where tgname = 'import_sessions_set_updated_at') then
     create trigger import_sessions_set_updated_at
@@ -146,7 +129,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 create table if not exists public.import_session_items (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references public.import_sessions(id) on delete cascade,
@@ -161,9 +143,7 @@ create table if not exists public.import_session_items (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 create index if not exists idx_import_session_items_session on public.import_session_items (session_id, created_at asc);
-
 alter table public.import_session_items enable row level security;
 do $$ begin
   if not exists (
@@ -186,7 +166,6 @@ do $$ begin
       );
   end if;
 end $$;
-
 do $$ begin
   if not exists (select 1 from pg_trigger where tgname = 'import_session_items_set_updated_at') then
     create trigger import_session_items_set_updated_at
@@ -194,7 +173,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 -- 4) Concierge runs (observability)
 create table if not exists public.concierge_runs (
   id bigserial primary key,
@@ -209,9 +187,7 @@ create table if not exists public.concierge_runs (
   error text,
   created_at timestamptz not null default now()
 );
-
 create index if not exists idx_concierge_runs_user_created on public.concierge_runs (user_id, created_at desc);
-
 alter table public.concierge_runs enable row level security;
 -- Default: deny for anon/authenticated. Service role can still write.
 
@@ -240,17 +216,14 @@ begin
   );
 end;
 $$;
-
 revoke all on function public.log_concierge_run(text, text, integer, integer, integer, integer, integer, text) from public;
 grant execute on function public.log_concierge_run(text, text, integer, integer, integer, integer, integer, text) to authenticated;
-
 -- 5) Taste profile
 create table if not exists public.user_taste_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   vector jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
-
 alter table public.user_taste_profiles enable row level security;
 do $$ begin
   if not exists (
@@ -260,5 +233,4 @@ do $$ begin
       for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
   end if;
 end $$;
-
 commit;

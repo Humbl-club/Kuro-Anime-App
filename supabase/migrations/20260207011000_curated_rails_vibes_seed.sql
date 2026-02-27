@@ -1,7 +1,6 @@
 -- Seed additional curated rails for vibe modes (generated).
 -- Safe to re-run: rail upserts + item inserts are ON CONFLICT DO NOTHING.
 begin;
-
 insert into public.curated_rails(id,title,media_type,description) values ('premium_action_anime','Premium Action','ANIME','Pinned premium action picks (high quality, clean).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('premium_action_manga','Premium Action','MANGA','Pinned premium action picks (high quality, clean).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('premium_comedy_grownup_anime','Premium Comedy (grown-up)','ANIME','Pinned premium comedy picks (clean, not kids).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
@@ -12,7 +11,6 @@ insert into public.curated_rails(id,title,media_type,description) values ('dark_
 insert into public.curated_rails(id,title,media_type,description) values ('dark_serious_manga','Dark / Serious','MANGA','Pinned dark/serious picks (psychological/drama/thriller, clean).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('hidden_gems_anime','Hidden Gems','ANIME','Pinned hidden gems (high score, lower popularity, clean).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('hidden_gems_manga','Hidden Gems','MANGA','Pinned hidden gems (high score, lower popularity, clean).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
-
 insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) values
 ('premium_action_anime','ANIME',21,1,null),
 ('premium_action_anime','ANIME',11061,2,null),
@@ -515,7 +513,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('premium_comedy_grownup_manga','MANGA',104973,59,null),
 ('premium_comedy_grownup_manga','MANGA',117460,60,null)
 on conflict (rail_id, media_type, anilist_id) do nothing;
-
 insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) values
 ('premium_comedy_grownup_manga','MANGA',121565,61,null),
 ('premium_comedy_grownup_manga','MANGA',38157,62,null),
@@ -1018,7 +1015,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('dark_serious_manga','MANGA',140475,22,null),
 ('dark_serious_manga','MANGA',85143,23,null)
 on conflict (rail_id, media_type, anilist_id) do nothing;
-
 insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) values
 ('dark_serious_manga','MANGA',46765,24,null),
 ('dark_serious_manga','MANGA',87423,25,null),
@@ -1398,5 +1394,4 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('hidden_gems_manga','MANGA',30214,119,null),
 ('hidden_gems_manga','MANGA',108027,120,null)
 on conflict (rail_id, media_type, anilist_id) do nothing;
-
 commit;

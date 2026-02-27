@@ -2,7 +2,6 @@
 -- Uses tags + join tables to produce "new to you" premium-ish candidates.
 
 begin;
-
 create or replace function public.recommend_ids_by_tag_categories(
   p_media_type text,
   p_categories text[],
@@ -70,7 +69,5 @@ language sql stable as $$
   order by match_count desc, avg_score desc nulls last, pop desc nulls last
   limit greatest(1, least(p_limit, 50));
 $$;
-
 grant execute on function public.recommend_ids_by_tag_categories(text, text[], integer) to authenticated;
-
 commit;

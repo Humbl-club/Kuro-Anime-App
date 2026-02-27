@@ -5,6 +5,8 @@ import SwiftUI
 // must remain scrollable without accidentally switching pages.
 
 struct KuroSwipeExclusionZone: ViewModifier {
+    @State private var markedHorizontalDrag = false
+
     func body(content: Content) -> some View {
         content
             .background(
@@ -16,6 +18,30 @@ struct KuroSwipeExclusionZone: ViewModifier {
                         )
                 }
             )
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 4, coordinateSpace: .local)
+                    .onChanged { value in
+                        let dx = abs(value.translation.width)
+                        let dy = abs(value.translation.height)
+                        guard dx > max(4, dy * 1.1) else { return }
+                        if !markedHorizontalDrag {
+                            markedHorizontalDrag = true
+                            KuroGestureCoordinator.shared.beginHorizontalRailDrag()
+                        }
+                    }
+                    .onEnded { _ in
+                        if markedHorizontalDrag {
+                            KuroGestureCoordinator.shared.endHorizontalRailDrag(afterMs: 140)
+                            markedHorizontalDrag = false
+                        }
+                    }
+            )
+            .onDisappear {
+                if markedHorizontalDrag {
+                    KuroGestureCoordinator.shared.endHorizontalRailDrag(afterMs: 0)
+                    markedHorizontalDrag = false
+                }
+            }
     }
 }
 
@@ -32,4 +58,3 @@ struct KuroSwipeExclusionPreferenceKey: PreferenceKey {
         value.append(contentsOf: nextValue())
     }
 }
-

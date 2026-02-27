@@ -3,7 +3,6 @@
 -- while still keeping everything searchable and accessible.
 
 begin;
-
 create table if not exists public.editorial_boosts (
   media_type text not null check (media_type in ('ANIME','MANGA')),
   media_id integer not null,
@@ -12,14 +11,12 @@ create table if not exists public.editorial_boosts (
   created_at timestamptz not null default now(),
   primary key (media_type, media_id)
 );
-
 create table if not exists public.editorial_penalty_tags (
   tag_id integer primary key references public.tags(id) on delete cascade,
   penalty integer not null default 0,
   reason text,
   created_at timestamptz not null default now()
 );
-
 -- Seed: core classics/masterpieces (internal ids, not AniList ids).
 insert into public.editorial_boosts (media_type, media_id, weight, label) values
   ('MANGA', 14, 25, 'classic'),   -- Vagabond
@@ -39,7 +36,6 @@ insert into public.editorial_boosts (media_type, media_id, weight, label) values
   ('ANIME', 1072, 14, 'classic')  -- Legend of the Galactic Heroes
 on conflict (media_type, media_id) do update
   set weight = excluded.weight, label = excluded.label;
-
 -- Seed: de-emphasize gimmick clusters by default (not a ban).
 insert into public.editorial_penalty_tags (tag_id, penalty, reason) values
   (350, -12, 'Isekai'),
@@ -49,7 +45,6 @@ insert into public.editorial_penalty_tags (tag_id, penalty, reason) values
   (18064, -6, 'Mixed Gender Harem')
 on conflict (tag_id) do update
   set penalty = excluded.penalty, reason = excluded.reason;
-
 create or replace function public.recommend_ids_premium(
   p_media_type text,
   p_categories text[] default null,
@@ -191,7 +186,5 @@ as $$
   order by score desc
   limit (select lim from req);
 $$;
-
 grant execute on function public.recommend_ids_premium(text, text[], integer, boolean) to authenticated;
-
 commit;

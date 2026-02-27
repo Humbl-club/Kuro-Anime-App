@@ -16,7 +16,6 @@
 -- ============================================================
 
 begin;
-
 -- ==========================================================
 -- 0. HELPER: generate_invite_code()
 --    8-char case-sensitive alphanumeric (a-zA-Z0-9 = 62 chars)
@@ -38,7 +37,6 @@ BEGIN
   RETURN _code;
 END;
 $$;
-
 -- ==========================================================
 -- 1. clubs
 -- ==========================================================
@@ -59,11 +57,9 @@ CREATE TABLE IF NOT EXISTS public.clubs (
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
-
 -- Indexes (spec 2.1)
 CREATE INDEX IF NOT EXISTS idx_clubs_invite_code ON public.clubs(invite_code);
 CREATE INDEX IF NOT EXISTS idx_clubs_created_by  ON public.clubs(created_by);
-
 -- ==========================================================
 -- 2. club_members
 -- ==========================================================
@@ -81,11 +77,9 @@ CREATE TABLE IF NOT EXISTS public.club_members (
   updated_at    timestamptz NOT NULL DEFAULT now(),
   UNIQUE (club_id, user_id)
 );
-
 -- Indexes (spec 2.2)
 CREATE INDEX IF NOT EXISTS idx_club_members_user ON public.club_members(user_id);
 CREATE INDEX IF NOT EXISTS idx_club_members_club ON public.club_members(club_id);
-
 -- ==========================================================
 -- 3. club_rails
 -- ==========================================================
@@ -101,10 +95,8 @@ CREATE TABLE IF NOT EXISTS public.club_rails (
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
-
 -- Index (spec 2.3)
 CREATE INDEX IF NOT EXISTS idx_club_rails_club_sort ON public.club_rails(club_id, sort_order);
-
 -- ==========================================================
 -- 4. club_rail_items
 -- ==========================================================
@@ -122,10 +114,8 @@ CREATE TABLE IF NOT EXISTS public.club_rail_items (
   updated_at    timestamptz NOT NULL DEFAULT now(),
   UNIQUE (rail_id, media_type, media_id)
 );
-
 -- Index (spec 2.4)
 CREATE INDEX IF NOT EXISTS idx_club_rail_items_rail_sort ON public.club_rail_items(rail_id, sort_order);
-
 -- ==========================================================
 -- 5. club_polls
 --    NOTE: No is_active column. Use closes_at + is_closed for
@@ -142,10 +132,8 @@ CREATE TABLE IF NOT EXISTS public.club_polls (
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
-
 -- Index (spec 2.5)
 CREATE INDEX IF NOT EXISTS idx_club_polls_club_created ON public.club_polls(club_id, created_at DESC);
-
 -- ==========================================================
 -- 6. club_poll_options
 -- ==========================================================
@@ -159,10 +147,8 @@ CREATE TABLE IF NOT EXISTS public.club_poll_options (
   sort_order    int         NOT NULL DEFAULT 0,
   created_at    timestamptz NOT NULL DEFAULT now()
 );
-
 -- Index on FK
 CREATE INDEX IF NOT EXISTS idx_club_poll_options_poll ON public.club_poll_options(poll_id);
-
 -- ==========================================================
 -- 7. club_votes
 -- ==========================================================
@@ -176,12 +162,10 @@ CREATE TABLE IF NOT EXISTS public.club_votes (
   created_at    timestamptz NOT NULL DEFAULT now(),
   UNIQUE (poll_id, user_id)
 );
-
 -- Indexes on FKs
 CREATE INDEX IF NOT EXISTS idx_club_votes_option  ON public.club_votes(option_id);
 CREATE INDEX IF NOT EXISTS idx_club_votes_poll    ON public.club_votes(poll_id);
 CREATE INDEX IF NOT EXISTS idx_club_votes_user    ON public.club_votes(user_id);
-
 -- ==========================================================
 -- 8. UPDATED_AT TRIGGERS
 --    Reuses public.set_updated_at() created in concierge_core migration.
@@ -194,7 +178,6 @@ DO $$ BEGIN
       FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   END IF;
 END $$;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'club_members_set_updated_at') THEN
     CREATE TRIGGER club_members_set_updated_at
@@ -202,7 +185,6 @@ DO $$ BEGIN
       FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   END IF;
 END $$;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'club_rails_set_updated_at') THEN
     CREATE TRIGGER club_rails_set_updated_at
@@ -210,7 +192,6 @@ DO $$ BEGIN
       FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   END IF;
 END $$;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'club_rail_items_set_updated_at') THEN
     CREATE TRIGGER club_rail_items_set_updated_at
@@ -218,7 +199,6 @@ DO $$ BEGIN
       FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   END IF;
 END $$;
-
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'club_polls_set_updated_at') THEN
     CREATE TRIGGER club_polls_set_updated_at
@@ -226,7 +206,6 @@ DO $$ BEGIN
       FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
   END IF;
 END $$;
-
 -- club_poll_options has no updated_at (append-only per spec)
 -- club_votes has no updated_at (append-only per spec)
 
@@ -242,5 +221,4 @@ ALTER TABLE public.club_rail_items   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.club_polls        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.club_poll_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.club_votes        ENABLE ROW LEVEL SECURITY;
-
 commit;

@@ -399,4 +399,4 @@ WHERE rail_id = 'movie_night_anime' AND media_type = 'ANIME'
 AND anilist_id IN (
   11981,   -- Madoka recap movie
   15335    -- Gintama: Final Chapter movie
-);
+);;

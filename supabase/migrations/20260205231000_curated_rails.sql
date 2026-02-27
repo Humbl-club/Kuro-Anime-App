@@ -4,7 +4,6 @@
 -- - RPC to fetch cards by rail_id with optional "exclude already in my list"
 
 begin;
-
 create table if not exists public.curated_rails (
   id text primary key,
   title text not null,
@@ -13,9 +12,7 @@ create table if not exists public.curated_rails (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 alter table public.curated_rails enable row level security;
-
 do $$ begin
   if not exists (select 1 from pg_trigger where tgname = 'curated_rails_set_updated_at') then
     create trigger curated_rails_set_updated_at
@@ -23,7 +20,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 -- Public read: rails are editorial, not user-private.
 do $$ begin
   if not exists (
@@ -33,9 +29,7 @@ do $$ begin
       for select using (true);
   end if;
 end $$;
-
 grant select on public.curated_rails to anon, authenticated;
-
 create table if not exists public.curated_rail_items (
   rail_id text not null references public.curated_rails(id) on delete cascade,
   media_type text not null check (media_type in ('ANIME','MANGA')),
@@ -46,11 +40,8 @@ create table if not exists public.curated_rail_items (
   updated_at timestamptz not null default now(),
   primary key (rail_id, media_type, anilist_id)
 );
-
 create index if not exists idx_curated_rail_items_rail_rank on public.curated_rail_items (rail_id, media_type, rank);
-
 alter table public.curated_rail_items enable row level security;
-
 do $$ begin
   if not exists (select 1 from pg_trigger where tgname = 'curated_rail_items_set_updated_at') then
     create trigger curated_rail_items_set_updated_at
@@ -58,7 +49,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 -- Public read: items are editorial, not user-private.
 do $$ begin
   if not exists (
@@ -68,9 +58,7 @@ do $$ begin
       for select using (true);
   end if;
 end $$;
-
 grant select on public.curated_rail_items to anon, authenticated;
-
 -- Fetch curated rail cards with stable ordering.
 -- Uses AniList IDs for linkage to catalog rows (anime.anilist_id / manga.anilist_id).
 create or replace function public.curated_rail_cards(
@@ -198,8 +186,5 @@ as $$
   order by x.r asc, x.media_id asc
   limit (select lim from params);
 $$;
-
 grant execute on function public.curated_rail_cards(text, integer, boolean) to anon, authenticated;
-
 commit;
-

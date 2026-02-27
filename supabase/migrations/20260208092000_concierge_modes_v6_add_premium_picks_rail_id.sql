@@ -2,7 +2,6 @@
 -- Rails are seeded by: 20260208091500_curated_rails_premium_picks_seed.sql
 
 begin;
-
 update public.concierge_config
 set config = jsonb_set(
   config,
@@ -20,6 +19,4 @@ set config = jsonb_set(
   true
 )
 where id = true;
-
 commit;
-

@@ -16,11 +16,9 @@ CREATE INDEX IF NOT EXISTS idx_mode_analytics_created ON public.concierge_mode_a
 ALTER TABLE public.concierge_mode_analytics ENABLE ROW LEVEL SECURITY;
 
 -- Only service_role can insert (from edge function)
-DO $$ BEGIN
-  CREATE POLICY mode_analytics_insert ON public.concierge_mode_analytics
-    FOR INSERT TO authenticated WITH CHECK (false);
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE POLICY mode_analytics_insert ON public.concierge_mode_analytics
+  FOR INSERT TO authenticated WITH CHECK (false);
 
 -- Allow service_role full access (edge functions use service_role)
 GRANT ALL ON public.concierge_mode_analytics TO service_role;
-GRANT USAGE ON SEQUENCE concierge_mode_analytics_id_seq TO service_role;
+GRANT USAGE ON SEQUENCE concierge_mode_analytics_id_seq TO service_role;;

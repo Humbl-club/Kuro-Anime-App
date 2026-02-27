@@ -4,7 +4,6 @@
 -- deterministically (fast/cheap) before any optional LLM narration.
 
 begin;
-
 -- Store modes inside the existing single-row concierge_config JSON so we can tune without redeploy.
 -- Modes are intentionally small + declarative.
 update public.concierge_config
@@ -73,6 +72,4 @@ set config = jsonb_set(
   true
 )
 where id = true;
-
 commit;
-

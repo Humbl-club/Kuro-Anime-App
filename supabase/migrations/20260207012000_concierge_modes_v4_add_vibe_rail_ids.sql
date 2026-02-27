@@ -3,7 +3,6 @@
 -- serving from curated_rail_cards() when rail_id is present (with algorithmic fallback if empty).
 
 begin;
-
 update public.concierge_config
 set config = jsonb_set(
   config,
@@ -29,6 +28,4 @@ set config = jsonb_set(
   true
 )
 where id = true;
-
 commit;
-

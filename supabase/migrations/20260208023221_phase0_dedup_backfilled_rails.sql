@@ -126,3 +126,4 @@ WHERE cri.rail_id = ranked.rail_id
   AND cri.media_type = ranked.media_type
   AND cri.anilist_id = ranked.anilist_id
   AND cri.rank IS DISTINCT FROM ranked.new_rank;
+;

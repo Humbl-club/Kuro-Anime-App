@@ -86,6 +86,7 @@ struct KuroPortraitCard: View {
     
     @State private var showDetail = false
     @State private var showAddToList = false
+    @State private var showAddToClub = false
     @State private var isPressed = false
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
@@ -125,82 +126,95 @@ struct KuroPortraitCard: View {
     }
     
     var body: some View {
-        Button(action: {
+        VStack(alignment: .leading, spacing: 0) {
+            // Image Container
+            ZStack(alignment: .top) {
+                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 520) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: cardWidth, height: imageHeight)
+                            .clipped()
+                    case .failure, .empty:
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: cardWidth, height: imageHeight)
+                            .overlay(
+                                ProgressView()
+                                    .scaleEffect(0.6)
+                                    .tint(.kuroTextTertiary)
+                            )
+                    @unknown default:
+                        EmptyView()
+                    }
+                }
+                .frame(width: cardWidth, height: imageHeight)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                
+                HStack(alignment: .top) {
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 6) {
+                        if let rating = media.rating, rating > 0 {
+                            KuroScoreBadge(score: rating)
+                        }
+
+                        if isInCollection {
+                            KuroStatusIndicator(isInCollection: true)
+                        }
+                    }
+                }
+                .padding(8)
+            }
+            
+            // Text Block
+            VStack(alignment: .leading, spacing: 4) {
+                Text(KuroCardText.sanitizeTitleForCard(media.title))
+                    .font(.system(size: 13, weight: .light, design: .serif))
+                    .textCase(.uppercase)
+                    .tracking(media.title.count >= 26 ? 0.3 : 0.6)
+                    .foregroundColor(.black.opacity(0.9))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.92)
+                    .allowsTightening(true)
+                    .truncationMode(.tail)
+                    .frame(height: 38, alignment: .top)
+
+                if let metaLine {
+                    Text(metaLine)
+                        .font(.system(size: 9, weight: .light))
+                        .foregroundColor(.black.opacity(0.5))
+                        .lineLimit(1)
+                }
+
+                if FeatureFlags.shared.isSocialActivityV1Enabled {
+                    let count = supabaseService.friendCount(mediaId: media.id, mediaType: mediaType.uppercased())
+                    if count > 0 {
+                        HStack(spacing: 3) {
+                            Image(systemName: "person.2")
+                                .font(.system(size: 8, weight: .regular))
+                            Text("\(count) friend\(count == 1 ? "" : "s")")
+                                .font(.system(size: 9, weight: .light))
+                        }
+                        .foregroundColor(.black.opacity(0.40))
+                    }
+                }
+            }
+            .frame(width: cardWidth, alignment: .topLeading)
+            .padding(.top, 10)
+        }
+        .frame(width: cardWidth, height: cardHeight, alignment: .top)
+        .contentShape(Rectangle())
+        .kuroDeliberateTap {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             showDetail = true
-        }) {
-            VStack(alignment: .leading, spacing: 0) {
-                // Image Container
-                ZStack(alignment: .top) {
-                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 520) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: cardWidth, height: imageHeight)
-                                .clipped()
-                        case .failure, .empty:
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(Color.black.opacity(0.06))
-                                .frame(width: cardWidth, height: imageHeight)
-                                .overlay(
-                                    ProgressView()
-                                        .scaleEffect(0.6)
-                                        .tint(.kuroTextTertiary)
-                                )
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                    .frame(width: cardWidth, height: imageHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    
-                    HStack(alignment: .top) {
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 6) {
-                            if let rating = media.rating, rating > 0 {
-                                KuroScoreBadge(score: rating)
-                            }
-
-                            if isInCollection {
-                                KuroStatusIndicator(isInCollection: true)
-                            }
-                        }
-                    }
-                    .padding(8)
-                }
-                
-                // Text Block
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(KuroCardText.sanitizeTitleForCard(media.title))
-                        .font(.system(size: 13, weight: .light, design: .serif))
-                        .textCase(.uppercase)
-                        .tracking(media.title.count >= 26 ? 0.3 : 0.6)
-                        .foregroundColor(.black.opacity(0.9))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.92)
-                        .allowsTightening(true)
-                        .truncationMode(.tail)
-                        .frame(height: 38, alignment: .top)
-
-                    if let metaLine {
-                        Text(metaLine)
-                            .font(.system(size: 9, weight: .light))
-                            .foregroundColor(.black.opacity(0.5))
-                            .lineLimit(1)
-                    }
-                }
-                .frame(width: cardWidth, alignment: .topLeading)
-                .padding(.top, 10)
-            }
-            .frame(width: cardWidth, height: cardHeight, alignment: .top)
-            .scaleEffect(isPressed ? 0.98 : 1.0)
-            .opacity(isPressed ? 0.95 : 1.0)
         }
-        .buttonStyle(.plain)
+        .scaleEffect(isPressed ? 0.98 : 1.0)
+        .opacity(isPressed ? 0.95 : 1.0)
+        .accessibilityAddTraits(.isButton)
         .pressable($isPressed)
         .contextMenu {
             Button(action: {
@@ -222,12 +236,24 @@ struct KuroPortraitCard: View {
                     systemImage: "slider.horizontal.3"
                 )
             }
+
+            if !supabaseService.myClubs.isEmpty {
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    showAddToClub = true
+                }) {
+                    Label("Add to Club\u{2026}", systemImage: "person.2.circle")
+                }
+            }
         }
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
         }
         .sheet(isPresented: $showAddToList) {
             AddToListSheet(media: media)
+        }
+        .sheet(isPresented: $showAddToClub) {
+            AddToClubRailSheet(mediaId: media.id, mediaType: mediaType.uppercased())
         }
     }
 }
@@ -239,8 +265,8 @@ struct KuroCompactCard: View {
 
     @State private var showDetail = false
     @State private var showAddToList = false
+    @State private var showAddToClub = false
     @State private var isPressed = false
-    @State private var didDrag = false
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
@@ -327,30 +353,29 @@ struct KuroCompactCard: View {
                         .foregroundColor(.black.opacity(0.5))
                         .lineLimit(1)
                 }
+
+                if FeatureFlags.shared.isSocialActivityV1Enabled {
+                    let count = supabaseService.friendCount(mediaId: media.id, mediaType: mediaType.uppercased())
+                    if count > 0 {
+                        HStack(spacing: 3) {
+                            Image(systemName: "person.2")
+                                .font(.system(size: 8, weight: .regular))
+                            Text("\(count) friend\(count == 1 ? "" : "s")")
+                                .font(.system(size: 9, weight: .light))
+                        }
+                        .foregroundColor(.black.opacity(0.40))
+                    }
+                }
             }
             .frame(width: width, alignment: .topLeading)
             .padding(.top, 10)
         }
         .contentShape(Rectangle())
-        // Intentional tap: ignore tap when the user is swiping the horizontal carousel.
-        // Use simultaneousGesture so the parent ScrollView keeps smooth horizontal scrolling.
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0, coordinateSpace: .local)
-                .onChanged { value in
-                    if abs(value.translation.width) > 10 || abs(value.translation.height) > 10 {
-                        didDrag = true
-                    }
-                }
-                .onEnded { value in
-                    defer { didDrag = false }
-                    guard !suppressCardTaps else { return }
-                    guard !didDrag else { return }
-                    if abs(value.translation.width) < 10 && abs(value.translation.height) < 10 {
-                        KuroAccessibility.impactHaptic(.light)
-                        showDetail = true
-                    }
-                }
-        )
+        .kuroDeliberateTap {
+            guard !suppressCardTaps else { return }
+            KuroAccessibility.impactHaptic(.light)
+            showDetail = true
+        }
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .opacity(isPressed ? 0.95 : 1.0)
         .accessibilityAddTraits(.isButton)
@@ -375,12 +400,24 @@ struct KuroCompactCard: View {
                     systemImage: "slider.horizontal.3"
                 )
             }
+
+            if !supabaseService.myClubs.isEmpty {
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    showAddToClub = true
+                }) {
+                    Label("Add to Club\u{2026}", systemImage: "person.2.circle")
+                }
+            }
         }
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
         }
         .sheet(isPresented: $showAddToList) {
             AddToListSheet(media: media)
+        }
+        .sheet(isPresented: $showAddToClub) {
+            AddToClubRailSheet(mediaId: media.id, mediaType: mediaType.uppercased())
         }
     }
 }
@@ -392,6 +429,7 @@ struct KuroHeroCard: View {
 
     @State private var showDetail = false
     @State private var showAddToList = false
+    @State private var showAddToClub = false
     @State private var isPressed = false
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
@@ -409,82 +447,95 @@ struct KuroHeroCard: View {
     }
     
     var body: some View {
-        Button(action: {
+        ZStack(alignment: .bottomLeading) {
+            KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 700) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: width, height: height)
+                        .clipped()
+                default:
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.black.opacity(0.08))
+                        .frame(width: width, height: height)
+                }
+            }
+            .frame(width: width, height: height)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            
+            // Gradient overlay
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.0),
+                    Color.black.opacity(0.3),
+                    Color.black.opacity(0.7)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            
+            // Content
+            VStack(alignment: .leading, spacing: 6) {
+                Text("FEATURED")
+                    .font(.system(size: 9, weight: .semibold))
+                    .tracking(1.5)
+                    .foregroundColor(.white.opacity(0.8))
+                
+                Text(media.title)
+                    .font(.system(size: 20, weight: .semibold, design: .serif))
+                    .foregroundColor(.white)
+                    .lineLimit(2)
+                
+                HStack(spacing: 8) {
+                    Text(media.year)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.white.opacity(0.85))
+                    
+                    if let rating = media.rating, rating > 0 {
+                        HStack(spacing: 3) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 8))
+                            Text(String(format: "%.1f", rating))
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                    }
+                    
+                    if let episodes = media.episodes, episodes > 0 {
+                        Text("· \(episodes) episodes")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(.white.opacity(0.85))
+                    }
+
+                    if FeatureFlags.shared.isSocialActivityV1Enabled {
+                        let count = supabaseService.friendCount(mediaId: media.id, mediaType: mediaType.uppercased())
+                        if count > 0 {
+                            HStack(spacing: 3) {
+                                Image(systemName: "person.2")
+                                    .font(.system(size: 8, weight: .regular))
+                                Text("\(count) friend\(count == 1 ? "" : "s")")
+                                    .font(.system(size: 9, weight: .light))
+                            }
+                            .foregroundColor(.white.opacity(0.65))
+                        }
+                    }
+                }
+            }
+            .padding(16)
+            .allowsHitTesting(false)
+        }
+        .contentShape(Rectangle())
+        .kuroDeliberateTap {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.medium)
             showDetail = true
-        }) {
-            ZStack(alignment: .bottomLeading) {
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 700) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: width, height: height)
-                            .clipped()
-                    default:
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.black.opacity(0.08))
-                            .frame(width: width, height: height)
-                    }
-                }
-                .frame(width: width, height: height)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                
-                // Gradient overlay
-                LinearGradient(
-                    colors: [
-                        Color.black.opacity(0.0),
-                        Color.black.opacity(0.3),
-                        Color.black.opacity(0.7)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                
-                // Content
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("FEATURED")
-                        .font(.system(size: 9, weight: .semibold))
-                        .tracking(1.5)
-                        .foregroundColor(.white.opacity(0.8))
-                    
-                    Text(media.title)
-                        .font(.system(size: 20, weight: .semibold, design: .serif))
-                        .foregroundColor(.white)
-                        .lineLimit(2)
-                    
-                    HStack(spacing: 8) {
-                        Text(media.year)
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.white.opacity(0.85))
-                        
-                        if let rating = media.rating, rating > 0 {
-                            HStack(spacing: 3) {
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 8))
-                                Text(String(format: "%.1f", rating))
-                                    .font(.system(size: 11, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                        }
-                        
-                        if let episodes = media.episodes, episodes > 0 {
-                            Text("· \(episodes) episodes")
-                                .font(.system(size: 11, weight: .regular))
-                                .foregroundColor(.white.opacity(0.85))
-                        }
-                    }
-                }
-                .padding(16)
-                .allowsHitTesting(false)
-            }
-            .scaleEffect(isPressed ? 0.99 : 1.0)
-            .opacity(isPressed ? 0.95 : 1.0)
         }
-        .buttonStyle(.plain)
+        .scaleEffect(isPressed ? 0.99 : 1.0)
+        .opacity(isPressed ? 0.95 : 1.0)
+        .accessibilityAddTraits(.isButton)
         .pressable($isPressed, duration: 0.15)
         .contextMenu {
             Button(action: {
@@ -506,12 +557,24 @@ struct KuroHeroCard: View {
                     systemImage: "slider.horizontal.3"
                 )
             }
+
+            if !supabaseService.myClubs.isEmpty {
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    showAddToClub = true
+                }) {
+                    Label("Add to Club\u{2026}", systemImage: "person.2.circle")
+                }
+            }
         }
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
         }
         .sheet(isPresented: $showAddToList) {
             AddToListSheet(media: media)
+        }
+        .sheet(isPresented: $showAddToClub) {
+            AddToClubRailSheet(mediaId: media.id, mediaType: mediaType.uppercased())
         }
     }
 }

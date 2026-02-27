@@ -1,5 +1,4 @@
 begin;
-
 -- Collection paging (keyset) so large libraries stay snappy.
 -- Uses list tables' updated_at + id for stable ordering.
 
@@ -7,7 +6,6 @@ create index if not exists idx_anime_user_lists_user_updated_id
   on public.anime_user_lists (user_id, updated_at desc, id desc);
 create index if not exists idx_manga_user_lists_user_updated_id
   on public.manga_user_lists (user_id, updated_at desc, id desc);
-
 drop function if exists public.collection_anime_page(integer, timestamptz, integer, text);
 create function public.collection_anime_page(
   p_limit integer default 80,
@@ -82,7 +80,6 @@ as $$
   order by l.updated_at desc, l.id desc
   limit (select lim from params);
 $$;
-
 drop function if exists public.collection_manga_page(integer, timestamptz, integer, text);
 create function public.collection_manga_page(
   p_limit integer default 80,
@@ -153,9 +150,6 @@ as $$
   order by l.updated_at desc, l.id desc
   limit (select lim from params);
 $$;
-
 grant execute on function public.collection_anime_page(integer, timestamptz, integer, text) to anon, authenticated;
 grant execute on function public.collection_manga_page(integer, timestamptz, integer, text) to anon, authenticated;
-
 commit;
-

@@ -1469,6 +1469,9 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const text: string = String(body?.text ?? "");
+    if (text.length > 5000) {
+      return json({ error: "Text too long (max 5000 chars)" }, { status: 400 });
+    }
     const scope: string = String(body?.scope ?? "both");
     const limit = Math.max(3, Math.min(20, Number(body?.limit ?? 8)));
     let narrate: boolean = Boolean(body?.narrate ?? false);

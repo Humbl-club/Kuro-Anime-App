@@ -3,7 +3,6 @@
 -- Move to incremental triggers later if needed.
 
 begin;
-
 create or replace function public.rebuild_title_search()
 returns void
 language plpgsql
@@ -53,8 +52,5 @@ begin
   where m.title_native is not null and length(m.title_native) > 0;
 end;
 $$;
-
 revoke all on function public.rebuild_title_search() from public;
-
 commit;
-

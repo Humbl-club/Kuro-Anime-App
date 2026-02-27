@@ -1,0 +1,26 @@
+name: Local CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_supabase_lint:
+        description: "Run Supabase lint (1/0)"
+        required: true
+        default: "1"
+      run_ios_build:
+        description: "Run iOS build (1/0)"
+        required: true
+        default: "1"
+
+jobs:
+  local-ci:
+    runs-on: [self-hosted, macOS]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run local CI script
+        env:
+          RUN_SUPABASE_LINT: ${{ github.event.inputs.run_supabase_lint }}
+          RUN_IOS_BUILD: ${{ github.event.inputs.run_ios_build }}
+        run: ./scripts/run_local_ci_logged.sh

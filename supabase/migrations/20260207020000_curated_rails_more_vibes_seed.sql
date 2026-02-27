@@ -1,7 +1,6 @@
 -- Seed additional curated rails for newer vibe modes (generated).
 -- Safe to re-run: rail upserts + item inserts are ON CONFLICT DO NOTHING.
 begin;
-
 insert into public.curated_rails(id,title,media_type,description) values ('romcom_anime','Romcom','ANIME','Pinned romcom picks (romance + comedy).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('romcom_manga','Romcom','MANGA','Pinned romcom picks (romance + comedy).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('romance_serious_anime','Romance (serious)','ANIME','Pinned serious romance picks (romance + drama, not comedy).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
@@ -13,7 +12,6 @@ insert into public.curated_rails(id,title,media_type,description) values ('iseka
 insert into public.curated_rails(id,title,media_type,description) values ('isekai_manga','Isekai','MANGA','Pinned isekai picks (tag-based).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('fantasy_non_isekai_anime','Fantasy (no isekai)','ANIME','Pinned fantasy picks excluding isekai (tag-based).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
 insert into public.curated_rails(id,title,media_type,description) values ('fantasy_non_isekai_manga','Fantasy (no isekai)','MANGA','Pinned fantasy picks excluding isekai (tag-based).') on conflict (id) do update set title = excluded.title, media_type = excluded.media_type, description = excluded.description;
-
 insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) values
 ('romcom_anime','ANIME',101291,1,null),
 ('romcom_anime','ANIME',124080,2,null),
@@ -516,7 +514,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('short_one_season_anime','ANIME',104578,19,null),
 ('short_one_season_anime','ANIME',101921,20,null)
 on conflict (rail_id, media_type, anilist_id) do nothing;
-
 insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) values
 ('short_one_season_anime','ANIME',140960,21,null),
 ('short_one_season_anime','ANIME',21459,22,null),
@@ -1019,7 +1016,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('isekai_manga','MANGA',113981,45,null),
 ('isekai_manga','MANGA',112197,46,null)
 on conflict (rail_id, media_type, anilist_id) do nothing;
-
 insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) values
 ('isekai_manga','MANGA',165287,47,null),
 ('isekai_manga','MANGA',145551,48,null),
@@ -1336,5 +1332,4 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('fantasy_non_isekai_manga','MANGA',150836,119,null),
 ('fantasy_non_isekai_manga','MANGA',136331,120,null)
 on conflict (rail_id, media_type, anilist_id) do nothing;
-
 commit;

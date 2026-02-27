@@ -2,9 +2,7 @@
 -- Without this, client-side bootstrap can't insert on first login.
 
 begin;
-
 alter table public.profiles enable row level security;
-
 do $$ begin
   if not exists (
     select 1 from pg_policies
@@ -17,6 +15,4 @@ do $$ begin
       with check (auth.uid() = id);
   end if;
 end $$;
-
 commit;
-

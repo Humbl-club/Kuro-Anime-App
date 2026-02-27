@@ -3,6 +3,7 @@
 // Shows joined clubs, create/join flows, and empty state.
 
 import SwiftUI
+import PostgREST
 
 struct ClubsView: View {
     @Environment(SupabaseService.self) private var supabaseService
@@ -466,9 +467,15 @@ private struct CreateClubSheet: View {
                 onCreated(resp)
                 dismiss()
             } catch {
-                let msg = "\(error)"
-                if msg.contains("INVALID_NAME") {
+                let code = errorCode(from: error)
+                if code == .invalidName {
                     errorText = "Name must be 1-80 characters."
+                } else if code == .descriptionTooLong {
+                    errorText = "Description must be 500 characters or fewer."
+                } else if code == .rateLimited {
+                    errorText = "Too many create attempts. Please wait a moment."
+                } else if code == .tooManyClubs {
+                    errorText = "You've reached the club limit."
                 } else {
                     errorText = "Failed to create club. Please try again."
                 }
@@ -476,6 +483,27 @@ private struct CreateClubSheet: View {
             }
             isSubmitting = false
         }
+    }
+
+    private enum CreateClubErrorCode: String {
+        case invalidName = "INVALID_NAME"
+        case descriptionTooLong = "DESCRIPTION_TOO_LONG"
+        case rateLimited = "RATE_LIMITED"
+        case tooManyClubs = "TOO_MANY_CLUBS"
+    }
+
+    private func errorCode(from error: Error) -> CreateClubErrorCode? {
+        guard let pgError = error as? PostgrestError else { return nil }
+        let candidates = [pgError.detail, pgError.hint, pgError.message]
+        for raw in candidates {
+            guard let raw else { continue }
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let token = trimmed.split(separator: ":", maxSplits: 1).first.map(String.init) ?? trimmed
+            let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            if let code = CreateClubErrorCode(rawValue: normalized) { return code }
+        }
+        return nil
     }
 }
 
@@ -577,23 +605,51 @@ private struct JoinClubSheet: View {
                 onJoined(resp)
                 dismiss()
             } catch {
-                let msg = "\(error)"
-                if msg.contains("INVALID_CODE") {
+                switch errorCode(from: error) {
+                case .invalidCode:
                     errorText = "Invalid invite code."
-                } else if msg.contains("CODE_EXPIRED") {
+                case .codeExpired:
                     errorText = "This invite code has expired."
-                } else if msg.contains("CODE_EXHAUSTED") {
+                case .codeExhausted:
                     errorText = "This invite code has reached its usage limit."
-                } else if msg.contains("CLUB_FULL") {
+                case .clubArchived:
+                    errorText = "This club is no longer active."
+                case .clubFull:
                     errorText = "This club is full."
-                } else if msg.contains("ALREADY_MEMBER") {
+                case .alreadyMember:
                     errorText = "You're already a member of this club."
-                } else {
+                case .rateLimited:
+                    errorText = "Too many attempts. Please wait a moment and try again."
+                case .none:
                     errorText = "Failed to join. Please check the code and try again."
                 }
                 KuroAccessibility.errorHaptic()
             }
             isSubmitting = false
         }
+    }
+
+    private enum JoinClubErrorCode: String {
+        case invalidCode = "INVALID_CODE"
+        case codeExpired = "CODE_EXPIRED"
+        case codeExhausted = "CODE_EXHAUSTED"
+        case clubArchived = "CLUB_ARCHIVED"
+        case clubFull = "CLUB_FULL"
+        case alreadyMember = "ALREADY_MEMBER"
+        case rateLimited = "RATE_LIMITED"
+    }
+
+    private func errorCode(from error: Error) -> JoinClubErrorCode? {
+        guard let pgError = error as? PostgrestError else { return nil }
+        let candidates = [pgError.detail, pgError.hint, pgError.message]
+        for raw in candidates {
+            guard let raw else { continue }
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let token = trimmed.split(separator: ":", maxSplits: 1).first.map(String.init) ?? trimmed
+            let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            if let mapped = JoinClubErrorCode(rawValue: normalized) { return mapped }
+        }
+        return nil
     }
 }

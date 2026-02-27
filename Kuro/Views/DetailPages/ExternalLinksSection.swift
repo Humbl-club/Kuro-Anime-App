@@ -1,7 +1,7 @@
 import SwiftUI
 
 // MARK: - External Links Section for Media Detail Views
-// Shows "View on AniList" and "View on MyAnimeList" links.
+// Shows optional reference links (AniList/MAL), separate from legal watch/read actions.
 
 struct ExternalLinksSection: View {
     let anilistId: Int
@@ -23,7 +23,7 @@ struct ExternalLinksSection: View {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
                 EditorialLayout.divider()
 
-                Text("VIEW ON")
+                Text("REFERENCE")
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.6)
                     .foregroundColor(.black.opacity(0.3))
@@ -66,6 +66,6 @@ private struct ExternalLinkButton: View {
                     )
             )
         }
-        .accessibilityLabel("View on \(title)")
+        .accessibilityLabel("Reference link: \(title)")
     }
 }

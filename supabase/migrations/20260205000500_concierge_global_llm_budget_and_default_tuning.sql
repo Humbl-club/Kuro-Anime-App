@@ -2,7 +2,6 @@
 -- Goal: prevent LLM spend abuse even with many users.
 
 begin;
-
 -- 1) Global daily usage table.
 create table if not exists public.llm_global_daily_usage (
   day date primary key,
@@ -12,7 +11,6 @@ create table if not exists public.llm_global_daily_usage (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 alter table public.llm_global_daily_usage enable row level security;
 -- No policies: clients cannot read/write global usage directly.
 
@@ -23,7 +21,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 create or replace function public.llm_global_budget_reserve(
   p_reserved_tokens integer,
   p_max_daily_tokens integer,
@@ -86,7 +83,6 @@ begin
     'max_daily_calls', p_max_daily_calls
   );
 end $$;
-
 create or replace function public.llm_global_budget_finalize(
   p_reserved_tokens integer,
   p_actual_tokens integer
@@ -135,10 +131,8 @@ begin
     'calls', coalesce(calls_total, 0)
   );
 end $$;
-
 grant execute on function public.llm_global_budget_reserve(integer, integer, integer) to authenticated;
 grant execute on function public.llm_global_budget_finalize(integer, integer) to authenticated;
-
 -- 2) Patch default config with "natural usage" limits + global budget.
 update public.concierge_config
 set config =
@@ -165,6 +159,4 @@ set config =
     true
   )
 where id = true;
-
 commit;
-

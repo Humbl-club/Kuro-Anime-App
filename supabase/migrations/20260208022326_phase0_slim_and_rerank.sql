@@ -263,4 +263,4 @@ FROM ranked r
 WHERE cri.rail_id = r.rail_id
   AND cri.media_type = r.media_type
   AND cri.anilist_id = r.anilist_id
-  AND cri.rank != r.new_rank;
+  AND cri.rank != r.new_rank;;

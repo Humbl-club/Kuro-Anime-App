@@ -3,7 +3,6 @@
 -- - LLM daily budget + global kill-switch flag
 
 begin;
-
 -- 1) Kill switch / flags (readable via SECURITY DEFINER function).
 create table if not exists public.system_flags (
   key text primary key,
@@ -11,9 +10,7 @@ create table if not exists public.system_flags (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 alter table public.system_flags enable row level security;
-
 -- No policies: clients cannot read flags directly.
 
 do $$ begin
@@ -23,11 +20,9 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 insert into public.system_flags(key, enabled)
 values ('llm_enabled', true)
 on conflict (key) do nothing;
-
 create or replace function public.is_flag_enabled(p_key text)
 returns boolean
 language plpgsql
@@ -40,9 +35,7 @@ begin
   select enabled into v from public.system_flags where key = p_key;
   return coalesce(v, true);
 end $$;
-
 grant execute on function public.is_flag_enabled(text) to anon, authenticated;
-
 -- 2) Rate limit buckets (atomic upsert increments).
 create table if not exists public.rate_limit_buckets (
   bucket_key text not null,
@@ -52,9 +45,7 @@ create table if not exists public.rate_limit_buckets (
   updated_at timestamptz not null default now(),
   primary key (bucket_key, window_start)
 );
-
 create index if not exists idx_rate_limit_buckets_window_start on public.rate_limit_buckets (window_start desc);
-
 alter table public.rate_limit_buckets enable row level security;
 -- No policies: users cannot read/write buckets directly.
 
@@ -65,7 +56,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 create or replace function public.rate_limit_hit(
   p_bucket_key text,
   p_window_seconds integer
@@ -96,9 +86,7 @@ begin
 
   return v;
 end $$;
-
 grant execute on function public.rate_limit_hit(text, integer) to anon, authenticated;
-
 create or replace function public.check_concierge_rate_limit(
   p_kind text,
   p_ip text,
@@ -143,9 +131,7 @@ begin
     'retry_after_s', retry_after
   );
 end $$;
-
 grant execute on function public.check_concierge_rate_limit(text, text, integer, integer, integer) to anon, authenticated;
-
 -- 3) LLM daily budget (reserve + finalize to keep budgets accurate and concurrency-safe).
 create table if not exists public.llm_daily_usage (
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -158,7 +144,6 @@ create table if not exists public.llm_daily_usage (
   updated_at timestamptz not null default now(),
   primary key (user_id, day)
 );
-
 alter table public.llm_daily_usage enable row level security;
 -- No policies: users cannot read/write usage directly.
 
@@ -169,7 +154,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 create or replace function public.llm_budget_reserve(
   p_reserved_tokens integer,
   p_max_daily_tokens integer default 20000,
@@ -239,7 +223,6 @@ begin
     'max_daily_calls', p_max_daily_calls
   );
 end $$;
-
 create or replace function public.llm_budget_finalize(
   p_reserved_tokens integer,
   p_actual_tokens integer,
@@ -300,8 +283,6 @@ begin
     'calls', coalesce(calls_total, 0)
   );
 end $$;
-
 grant execute on function public.llm_budget_reserve(integer, integer, integer, text) to authenticated;
 grant execute on function public.llm_budget_finalize(integer, integer, text) to authenticated;
-
 commit;

@@ -9,33 +9,27 @@ ALTER TABLE public.editorial_penalty_tags ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.editorial_tag_boosts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.import_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mirror_runs ENABLE ROW LEVEL SECURITY;
-
 -- Read-only policies for service_role (these tables are backend-managed, not user-facing)
 DO $$ BEGIN
   CREATE POLICY "service_role_read" ON public.editorial_boosts
     FOR SELECT TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "service_role_read" ON public.editorial_penalty_tags
     FOR SELECT TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "service_role_read" ON public.editorial_tag_boosts
     FOR SELECT TO service_role USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "service_role_all" ON public.import_state
     FOR ALL TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 DO $$ BEGIN
   CREATE POLICY "service_role_all" ON public.mirror_runs
     FOR ALL TO service_role USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- 2) Switch 5 views from SECURITY DEFINER to SECURITY INVOKER
 -- ═══════════════════════════════════════════════════════════════════════════════

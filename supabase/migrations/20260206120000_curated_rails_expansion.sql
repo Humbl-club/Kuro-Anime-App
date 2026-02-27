@@ -9,7 +9,6 @@
 --   gateway_manga:   50 → 154  (+104 standalone, ecchi excluded)
 
 begin;
-
 -- ═══════════════════════════════════════════════════════════════════════
 -- CLASSICS ANIME: +90 (ranks 121–210)
 -- Culturally significant, influential, or essential pre-2020 anime.
@@ -118,8 +117,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('classics_anime','ANIME',20595,209,null),  -- Mushishi Next Passage
 ('classics_anime','ANIME',20751,210,null)   -- Mushishi Next Passage 2
 on conflict (rail_id, media_type, anilist_id) do nothing;
-
-
 -- ═══════════════════════════════════════════════════════════════════════
 -- CLASSICS MANGA: +97 (ranks 81–177)
 -- Essential pre-2020 manga spanning shonen pillars, seinen masterworks,
@@ -238,8 +235,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('classics_manga','MANGA',57231,176,null),  -- Daytime Shooting Star
 ('classics_manga','MANGA',85395,177,null)   -- Cheeky Brat
 on conflict (rail_id, media_type, anilist_id) do nothing;
-
-
 -- ═══════════════════════════════════════════════════════════════════════
 -- GATEWAY ANIME: +75 (ranks 61–135)
 -- "Start Here" for newcomers — standalone first seasons & movies only.
@@ -323,8 +318,6 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('gateway_anime','ANIME',10165,134,null),   -- Nichijou - My Ordinary Life
 ('gateway_anime','ANIME',13601,135,null)    -- PSYCHO-PASS
 on conflict (rail_id, media_type, anilist_id) do nothing;
-
-
 -- ═══════════════════════════════════════════════════════════════════════
 -- GATEWAY MANGA: +104 (ranks 51–154)
 -- "Start Here" for newcomers — standalone first entries only.
@@ -437,5 +430,4 @@ insert into public.curated_rail_items(rail_id,media_type,anilist_id,rank,note) v
 ('gateway_manga','MANGA',30145,153,null),   -- BECK
 ('gateway_manga','MANGA',85143,154,null)    -- Tower of God
 on conflict (rail_id, media_type, anilist_id) do nothing;
-
 commit;

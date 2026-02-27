@@ -5,12 +5,10 @@
 -- ============================================================
 
 begin;
-
 -- Function return shape changed (adds entity_id). Drop old signature first
 -- to avoid "cannot change return type of existing function" on projects that
 -- already have the previous version.
 drop function if exists public.rag_retrieve_candidates(text, text, int, int, text, text[], int);
-
 CREATE OR REPLACE FUNCTION public.rag_retrieve_candidates(
   p_query text,
   p_media_type text DEFAULT NULL,
@@ -129,11 +127,8 @@ FROM scored s
 ORDER BY s.weighted DESC, s.popularity DESC NULLS LAST
 LIMIT (SELECT lim FROM q);
 $$;
-
 GRANT EXECUTE ON FUNCTION public.rag_retrieve_candidates(text, text, int, int, text, text[], int)
   TO anon, authenticated, service_role;
-
 comment on function public.rag_retrieve_candidates(text, text, int, int, text, text[], int)
   is 'Lexical retrieval for concierge RAG assist using title/alias/tag trigram similarity.';
-
 commit;

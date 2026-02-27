@@ -1,17 +1,14 @@
 begin;
-
 -- Improve Search performance:
 -- - Trigram index for partial title matches (fast incremental typing)
 -- - Keyset-paged RPCs returning lightweight cards with a stable rank cursor
 
 create extension if not exists pg_trgm;
-
 -- Trigram indexes for partial matching on titles (english/romaji/native combined).
 create index if not exists idx_anime_title_trgm on public.anime
   using gin (lower(coalesce(title_english,'') || ' ' || coalesce(title_romaji,'') || ' ' || coalesce(title_native,'')) gin_trgm_ops);
 create index if not exists idx_manga_title_trgm on public.manga
   using gin (lower(coalesce(title_english,'') || ' ' || coalesce(title_romaji,'') || ' ' || coalesce(title_native,'')) gin_trgm_ops);
-
 -- Search RPCs
 drop function if exists public.search_anime_page(
   text, integer, double precision, integer, integer, boolean, boolean, boolean, boolean, boolean, text, integer
@@ -181,7 +178,6 @@ as $$
   order by rank desc, popularity_sort desc, id desc
   limit (select lim from params);
 $$;
-
 drop function if exists public.search_manga_page(text, integer, double precision, integer, integer, boolean, boolean, boolean, boolean);
 create function public.search_manga_page(
   p_query text,
@@ -334,13 +330,10 @@ as $$
   order by rank desc, popularity_sort desc, id desc
   limit (select lim from params);
 $$;
-
 grant execute on function public.search_anime_page(
   text, integer, double precision, integer, integer, boolean, boolean, boolean, boolean, boolean, text, integer
 ) to anon, authenticated;
 grant execute on function public.search_manga_page(
   text, integer, double precision, integer, integer, boolean, boolean, boolean, boolean
 ) to anon, authenticated;
-
 commit;
-

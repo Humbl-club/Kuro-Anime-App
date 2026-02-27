@@ -248,7 +248,16 @@ struct BrowseView: View {
                 await reload(mode: .initial)
             }
         }
-        .onChange(of: showAnime) { _, _ in
+        .onChange(of: showAnime) { _, isAnime in
+            if isAnime {
+                if selectedLengthFilter == .manga200 {
+                    selectedLengthFilter = nil
+                    return
+                }
+            } else if let selectedLengthFilter, selectedLengthFilter != .manga200 {
+                self.selectedLengthFilter = nil
+                return
+            }
             scheduleReload()
         }
         .onChange(of: selectedGenre) { _, _ in
@@ -261,6 +270,12 @@ struct BrowseView: View {
             scheduleReload()
         }
         .onChange(of: selectedSort) { _, _ in
+            scheduleReload()
+        }
+        .onChange(of: selectedDecade) { _, _ in
+            scheduleReload()
+        }
+        .onChange(of: selectedFormat) { _, _ in
             scheduleReload()
         }
     }
@@ -322,6 +337,10 @@ struct BrowseView: View {
 
             let urls = page0.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
+
+            if FeatureFlags.shared.isSocialActivityV1Enabled, !page0.isEmpty {
+                supabaseService.prefetchFriendCounts(items: page0.map { (mediaType: "ANIME", mediaId: $0.id) })
+            }
         } else {
             mangaCursorInt = nil
             mangaCursorDate = nil
@@ -345,6 +364,10 @@ struct BrowseView: View {
 
             let urls = page0.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
+
+            if FeatureFlags.shared.isSocialActivityV1Enabled, !page0.isEmpty {
+                supabaseService.prefetchFriendCounts(items: page0.map { (mediaType: "MANGA", mediaId: $0.id) })
+            }
         }
     }
 
@@ -382,6 +405,7 @@ struct BrowseView: View {
 
     private func fetchAnimePage(cursorInt: Int?, cursorDate: Date?, cursorId: Int?) async -> [AnimeCard] {
         let range = selectedLengthFilter?.episodeRange
+        let yearRange = selectedDecade?.yearRange
         return await supabaseService.fetchBrowseAnimePageKeyset(
             genre: selectedGenre,
             status: selectedStatusFilter?.statusValue,
@@ -391,12 +415,16 @@ struct BrowseView: View {
             cursorInt: cursorInt,
             cursorDate: cursorDate,
             cursorId: cursorId,
+            minYear: yearRange?.min,
+            maxYear: yearRange?.max,
+            format: selectedFormat?.rawValue,
             limit: pageSize
         )
     }
 
     private func fetchMangaPage(cursorInt: Int?, cursorDate: Date?, cursorId: Int?) async -> [MangaCard] {
         let range = selectedLengthFilter?.chapterRange
+        let yearRange = selectedDecade?.yearRange
         return await supabaseService.fetchBrowseMangaPageKeyset(
             genre: selectedGenre,
             status: selectedStatusFilter?.statusValue,
@@ -406,6 +434,9 @@ struct BrowseView: View {
             cursorInt: cursorInt,
             cursorDate: cursorDate,
             cursorId: cursorId,
+            minYear: yearRange?.min,
+            maxYear: yearRange?.max,
+            format: selectedFormat?.rawValue,
             limit: pageSize
         )
     }
@@ -1093,10 +1124,10 @@ struct BrowseGrid: View {
         ]
 
         LazyVGrid(columns: columns, spacing: 16) {
-            ForEach(Array(items.enumerated()), id: \.offset) { index, media in
+            ForEach(items, id: \.id) { media in
                 GridAnimeCard(media: media, cardWidth: cardWidth, cardHeight: totalCardHeight)
                     .onAppear {
-                        if index == items.count - 1 {
+                        if media.id == items.last?.id {
                             Task { await loadMore() }
                         }
                     }

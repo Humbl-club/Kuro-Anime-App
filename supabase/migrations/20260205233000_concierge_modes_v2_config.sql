@@ -4,7 +4,6 @@
 -- - Add router_llm tuning knobs
 
 begin;
-
 update public.concierge_config
 set config =
   jsonb_set(
@@ -99,6 +98,4 @@ set config =
     true
   )
 where id = true;
-
 commit;
-
