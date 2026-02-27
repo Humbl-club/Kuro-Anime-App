@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-02-25
+**Last updated:** 2026-02-27
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -408,6 +408,7 @@ node scripts/generate_app_state_inventory.js
 - **Text normalization**: `Kuro/Services/TextNormalization.swift` (search/parsing text utilities)
 - **Synopsis condenser**: `AnimeDetailView.swift`, `MangaDetailView.swift` call `fmService.condenseSynopsis()` for descriptions > 200 chars
 - **Next Up picks**: `NextUpSection` (in `AnimeDetailView.swift`), `MangaNextUpSection` (in `MangaDetailView.swift`) — personalized next episode/chapter recommendations
+- **Gesture system**: `Kuro/Views/KuroDeliberateTap.swift` (`.kuroDeliberateTap {}` modifier — simple `.onTapGesture` + `suppressCardTaps` environment check), `Kuro/Views/KuroGestureCoordinator.swift` (pager gesture coordination), `Kuro/Views/KuroGesturePolicy.swift` (pager timing constants: `postSwipeTapCooldownMs`, `fastFlingPredictedDxPt`, `fastFlingDirectionRatio`), `Kuro/Views/KuroPagingGesture.swift` (root pager DragGesture + exclusion zones)
 - **Deep linking**: `Kuro/Services/DeepLinkRouter.swift` (URL parsing), `KuroApp.swift` (`.onOpenURL` handler), `ContentView.swift` (navigation + sheet presentation for deep link targets)
 - **External links**: `Kuro/Views/DetailPages/ExternalLinksSection.swift` (streaming/source links on detail pages)
 - **Design utilities**: `Kuro/Design/Color+Hex.swift` (hex color conversion)
@@ -479,7 +480,7 @@ node scripts/generate_app_state_inventory.js
   - Inline editorial rails for recommendations
   - Toast + undo for completion
 - Empty state:
-  - Concierge glass intro card
+  - Concierge glass intro card with **first-time contextual hint**: expanded two-row layout (import + recommendations with concrete examples) for new users, collapses to slim text after first interaction. One-way UserDefaults flag (`kuro_concierge_used`), set in `send()` after first message.
   - Curated entry actions:
     - Import list
     - See curated example prompts
@@ -499,7 +500,11 @@ node scripts/generate_app_state_inventory.js
 - **Accessibility** (P2): Message bubbles ("You said: ..." / "Concierge: ..."), recommendation rail headers `.isHeader`, clarification cards with combined labels. `ConciergeRecommendationRails`: `.accessibilityAddTraits(.isHeader)` on rail title. `ConciergeComponents`: combined accessibility labels on clarification cards.
 
 ### Discover
-- Editorial layout with sections (Essentials, Classics, New to You, Trending, etc.)
+- Editorial layout with **progressive disclosure**: 6 primary sections always visible, 7 secondary sections behind a "Show More" button.
+- **Primary sections** (reordered by user value): New to You → Airing Today → Essential Anime → New to You (Manga) → Trending → Essential Manga.
+- **Secondary sections** (behind "Show More"): Classics → Current Season → Top Rated → Just Added → Manga Classics → Trending Manga → Top Rated Manga.
+- "Show More" button: monochrome editorial style (stroked rounded rect, chevron down, "N MORE SECTIONS" label). One-way UserDefaults flag (`kuro_discover_show_more`) — once expanded, stays expanded across launches.
+- Data fetching unchanged — all 14 arrays still load via `fetchDiscoverBundle()`. This is UI-only progressive disclosure.
 - Cards are two-column + compact horizontal rails
 - Cards show rating pill + metadata line (YEAR · EPS/CH)
 - **Per-rail error state** (P2): `@State loadError` with inline retry view when `fetchDiscoverBundle()` fails on first load. Accessibility label on error state.
@@ -515,7 +520,7 @@ node scripts/generate_app_state_inventory.js
 ### Clubs
 - 5th page in the swipe pager (rightmost).
 - `ClubsView`: joined club list, empty state with create/join prompts, pull-to-refresh. No `NavigationStack` wrapper (bare view inside pager); club detail opens as a sheet. **Accessibility**: `.accessibilityLabel` on empty state ("No clubs yet...") and club cards (name + member count).
-- `ClubDetailView`: 3-tab layout (Rails / This Week / Polls), settings sheet for owner/admin. Chat tab removed in favor of social activity layer. Each rail has a "+" button (for unlocked rails or owner/admin on locked rails) that opens `AddItemToRailSheet` — server-side search via `search_anime_page`/`search_manga_page` RPCs with debounced input, compact result rows, typed `PostgrestError` handling for duplicates/lock/membership errors.
+- `ClubDetailView`: 3-tab layout (Rails / This Week / Polls), settings sheet for owner/admin. Chat tab removed in favor of social activity layer. Each rail has a "+" button (for unlocked rails or owner/admin on locked rails) that opens `AddItemToRailSheet` — server-side search via `search_anime_page`/`search_manga_page` RPCs with debounced input, compact result rows, typed `PostgrestError` handling for duplicates/lock/membership errors. **Reaction rows**: items with existing reactions show full `ClubReactionRow` (4 emoji capsules); items with no reactions show `ClubReactionRowCompact` (single smiley icon that expands to full row on tap).
 - `ClubActivitySection`: embedded on `AnimeDetailView` and `MangaDetailView` — shows which clubs have this title in a rail, aggregate member status counts, and (if sharing level allows) per-member details. Member identity uses stable 6-char UUID hex prefix (not positional "Member N"). `AddToClubRailSheet` is public (used by card context menus for "Add to Club..." action).
 - `ClubActivitySection`: now renders explicit member watch/read progress language (tracking, completed, planning, paused, dropped, not-started) and does not use placeholder status labels when per-member detail is unavailable.
 - `FriendsActivitySection`: embedded on `AnimeDetailView` and `MangaDetailView` (after ClubActivitySection). Shows friend tracking count pills, title comments with thumbs up/down reactions, and a comment input field. Gated by `social_activity_v1` feature flag. "Friends" are users who share at least one club with the viewer.
@@ -1416,6 +1421,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - **Browse** is a first-class page (3rd position), no longer a sheet modal.
 - **Search** remains a global sheet accessible from the header magnifying-glass icon on any page.
 - **Performance**: distance-based page mounting (current ± 1 neighbors mounted, distant pages use placeholder). `.snappy(duration: 0.22)` pager animation. 120fps ProMotion enabled via `CADisableMinimumFrameDurationOnPhone`. Exclusion zone filtering limited to viewport.
+- **Gesture system**: Card taps use `.kuroDeliberateTap {}` modifier (simple `.onTapGesture` + `suppressCardTaps` environment check). The pager sets `suppressCardTaps = true` during swipes to prevent accidental taps; the `.kuroDeliberateTap` modifier reads this flag and ignores taps when suppressed. No custom `DragGesture` on card taps — avoids competing with ScrollView vertical/horizontal drags. Pager constants in `KuroGesturePolicy.swift` (`postSwipeTapCooldownMs`, `fastFlingPredictedDxPt`, `fastFlingDirectionRatio`). The `swipe_tap_guard_v1` feature flag (100%) gates the pager's `suppressCardTaps` logic, not the tap recognizer itself.
 - **Detail views** (AnimeDetailView, MangaDetailView):
   - **Synopsis condenser**: descriptions > 200 chars are condensed to 2-sentence hooks via `fmService.condenseSynopsis()` on supported devices; falls back to full description on non-FM devices.
   - **Next Up picks**: `NextUpSection` (anime) and `MangaNextUpSection` (manga) show personalized next episode/chapter recommendations based on user progress.
@@ -1502,6 +1508,18 @@ This single command:
 ---
 
 ## 14) Change Log (append-only)
+
+### 2026-02-26 — Simplify KuroDeliberateTap Gesture (Fix Scroll + Tap Reliability)
+
+Replaced the over-aggressive `DragGesture(minimumDistance: 0)` tap recognizer in `KuroDeliberateTap.swift` with a simple `.onTapGesture` + single `suppressCardTaps` environment check. The old gesture had 5 sequential guards (6pt movement, 80ms dwell, 220ms post-rail cooldown, suppressCardTaps, didCancelTap) that: (a) competed with ScrollView for vertical drags, (b) rejected ~30% of legitimate taps, (c) interfered with horizontal rail scrolling via a competing drag recognizer.
+
+Files changed:
+- `KuroDeliberateTap.swift`: `DragGesture(minimumDistance: 0)` + 5 guards replaced with `.onTapGesture` + `suppressCardTaps` check. API unchanged (`.kuroDeliberateTap {}`).
+- `KuroGesturePolicy.swift`: removed 3 unused constants (`deliberateTapMinDwellMs`, `deliberateTapMaxMovementPt`, `dragCancelMovementPt`). Kept pager constants.
+- No changes to `KuroGestureCoordinator.swift`, `KuroPagingGesture.swift`, `ContentView.swift`, or card call sites.
+- `swipe_tap_guard_v1` stays at 100% — gates the pager's `suppressCardTaps` logic (correct), not the tap recognizer.
+
+Totals: 0 new files, 2 modified Swift files, 0 new migrations. 64 Swift files, 143 migrations.
 
 ### 2026-02-24 — Social Activity Layer + Add to Club Context Menu
 
@@ -15549,4 +15567,48 @@ Dashboard steps reduced:
 - Previous: 3 manual Supabase Dashboard steps (redirect URLs, email templates, SMTP config).
 - Now: 1 step — disable email confirmations in Auth settings. Redirect URLs, email templates, and SMTP config are no longer launch blockers.
 
+### 2026-02-27 — UX Density + Clarity Improvements
+
+4 changes across 4 files to reduce cognitive overload and improve first-time clarity.
+
+**EditorialDiscoverView.swift — Section reduction + "Show More" expansion:**
+- Reordered and split 13 sections into 6 primary (always visible) + 7 secondary (behind "Show More" button).
+- Primary sections (by user value): New to You → Airing Today → Essential Anime → New to You (Manga) → Trending → Essential Manga.
+- Secondary sections: Classics → Current Season → Top Rated → Just Added → Manga Classics → Trending Manga → Top Rated Manga.
+- "Show More" button: monochrome editorial style, shows "N MORE SECTIONS" with chevron, expands with `KuroAnimation.editorial`, persists to UserDefaults (`kuro_discover_show_more`) as one-way flag.
+- Data loading unchanged — all arrays still fetched. This is UI-only progressive disclosure.
+
+**ConciergeComponents.swift — First-time contextual hint:**
+- `ConciergeIntroCard` now reads `UserDefaults.standard.bool(forKey: "kuro_concierge_used")`.
+- First-time users see expanded two-row hint: "Import a list" (with concrete description) + "Get recommendations" (with example "dark, short, no gore").
+- Returning users see slim text: "Import your list, or describe a mood."
+- Subtitle updated to "Imports + recommendations" / "Imports + Empfehlungen".
+- New `hintRow(icon:title:detail:)` private helper.
+
+**ConciergeView.swift — First-use flag + error dedup:**
+- Added 3 lines in `send()` to set `kuro_concierge_used` UserDefaults flag after first message.
+- Fixed `handleError()` double error display: guardrail errors → inline text only (persistent); network/server errors → toast only (transient, auto-dismiss 3s). Never both simultaneously.
+
+**ClubDetailView.swift — Compact reaction row:**
+- Items with zero reactions now show `ClubReactionRowCompact` (single smiley icon) instead of full 4-emoji `ClubReactionRow`.
+- Tapping the compact icon expands to full reaction row with `KuroAnimation.fast`.
+- Items with existing reactions show full row immediately.
+- New `ClubReactionRowCompact` private struct.
+
 Totals: 0 new Swift files, 2 modified Swift files, 1 new migration. 64 Swift files, 143 migrations.
+
+### 2026-02-26 — Simplify KuroDeliberateTap Gesture (Fix Scroll + Tap Reliability)
+
+Replaced the over-aggressive `DragGesture(minimumDistance: 0)` tap recognizer in `KuroDeliberateTap.swift` with a simple `.onTapGesture` + single `suppressCardTaps` environment check.
+
+**Root cause**: The `swipe_tap_guard_v1` feature flag at 100% rollout enabled a custom gesture system where card taps used a `DragGesture(minimumDistance: 0)` with 5 sequential guards (6pt movement threshold, 80ms minimum dwell, 220ms post-rail cooldown, `suppressCardTaps` check, `didCancelTap` check). This caused three problems: (a) the DragGesture competed with ScrollView for vertical drags, breaking vertical scrolling; (b) the over-strict thresholds rejected ~30% of legitimate taps; (c) the competing drag recognizer interfered with horizontal rail scrolling.
+
+**KuroDeliberateTap.swift**: Replaced `DragGesture(minimumDistance: 0)` + 5 guards with `.onTapGesture` + single `suppressCardTaps` environment check. The `.kuroDeliberateTap {}` API is unchanged — no call-site changes needed.
+
+**KuroGesturePolicy.swift**: Removed 3 unused tap-related constants (`deliberateTapMinDwellMs`, `deliberateTapMaxMovementPt`, `dragCancelMovementPt`). Kept pager constants (`postSwipeTapCooldownMs`, `fastFlingPredictedDxPt`, `fastFlingDirectionRatio`) which are still used by the swipe pager.
+
+**No changes** to `KuroGestureCoordinator.swift`, `KuroPagingGesture.swift`, `ContentView.swift`, or any card call sites.
+
+**Feature flag**: `swipe_tap_guard_v1` stays at 100% — it gates the pager's `suppressCardTaps` logic (correct and still needed), not the tap recognizer itself.
+
+Totals: 0 new files, 2 modified Swift files, 0 new migrations. 64 Swift files, 143 migrations.

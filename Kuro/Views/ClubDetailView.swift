@@ -1,5 +1,6 @@
 // MARK: - CLUB DETAIL VIEW
 // Three-tab detail view for a club: Rails, This Week, Polls.
+// Chat tab removed — replaced by title-level social activity (FriendsActivitySection).
 // Uses segmented picker, @Observable pattern, KuroDesignSystem tokens throughout.
 
 import SwiftUI
@@ -15,14 +16,9 @@ struct ClubDetailView: View {
         case rails = "RAILS"
         case thisWeek = "THIS WEEK"
         case polls = "POLLS"
-        case chat = "CHAT"
 
         static var visibleCases: [Tab] {
-            var tabs: [Tab] = [.rails, .thisWeek, .polls]
-            if FeatureFlags.shared.isClubsChatV1Enabled {
-                tabs.append(.chat)
-            }
-            return tabs
+            [.rails, .thisWeek, .polls]
         }
     }
 
@@ -190,24 +186,18 @@ struct ClubDetailView: View {
             }
 
             // Tab content
-            if selectedTab == .chat {
-                ClubChatTab(clubId: clubId, bundle: bundle)
-            } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    switch selectedTab {
-                    case .rails:
-                        railsTab(bundle)
-                    case .thisWeek:
-                        thisWeekTab(bundle)
-                    case .polls:
-                        pollsTab(bundle)
-                    case .chat:
-                        EmptyView()
-                    }
+            ScrollView(.vertical, showsIndicators: false) {
+                switch selectedTab {
+                case .rails:
+                    railsTab(bundle)
+                case .thisWeek:
+                    thisWeekTab(bundle)
+                case .polls:
+                    pollsTab(bundle)
                 }
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 24)
-                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 24)
             }
         }
     }
@@ -345,7 +335,10 @@ struct ClubDetailView: View {
                             memberCount: bundle.member_count,
                             onAddItem: canAddToRail(rail, role: bundle.my_role) ? {
                                 addToRailId = rail.id
-                            } : nil
+                            } : nil,
+                            onError: { message in
+                                showToast(.error, title: message, subtitle: nil)
+                            }
                         )
                     }
                 }
@@ -528,10 +521,12 @@ struct ClubDetailView: View {
             optimisticVoteByPollId.removeAll()
             optimisticVoteCountsByPollId.removeAll()
         } catch {
-            let msg = "\(error)"
-            if msg.contains("NOT_A_MEMBER") {
+            switch rpcErrorCode(from: error) {
+            case .notAMember:
                 handleMembershipLoss()
-            } else {
+            case .clubNotFound:
+                errorText = "This club no longer exists."
+            default:
                 errorText = "Could not load club data."
             }
         }
@@ -583,10 +578,12 @@ struct ClubDetailView: View {
         } catch {
             optimisticVoteByPollId[poll.id] = nil
             optimisticVoteCountsByPollId[poll.id] = nil
-            let msg = "\(error)"
-            if msg.contains("NOT_A_MEMBER") {
+            switch rpcErrorCode(from: error) {
+            case .notAMember:
                 handleMembershipLoss()
-            } else {
+            case .pollClosed:
+                showToast(.error, title: "Poll closed", subtitle: "This poll is no longer accepting votes.")
+            default:
                 showToast(.error, title: "Vote failed", subtitle: "Please try again.")
             }
             supabaseService.trackInteractionEvent(
@@ -612,6 +609,26 @@ struct ClubDetailView: View {
         }
     }
 
+    private enum ClubRPCErrorCode: String {
+        case notAMember = "NOT_A_MEMBER"
+        case clubNotFound = "CLUB_NOT_FOUND"
+        case pollClosed = "POLL_CLOSED"
+    }
+
+    private func rpcErrorCode(from error: Error) -> ClubRPCErrorCode? {
+        guard let pgError = error as? PostgrestError else { return nil }
+        let candidates = [pgError.detail, pgError.hint, pgError.message]
+        for raw in candidates {
+            guard let raw else { continue }
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let token = trimmed.split(separator: ":", maxSplits: 1).first.map(String.init) ?? trimmed
+            let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            if let mapped = ClubRPCErrorCode(rawValue: normalized) { return mapped }
+        }
+        return nil
+    }
+
     private func canAddToRail(_ rail: SupabaseService.ClubRail, role: String) -> Bool {
         if !rail.is_locked { return true }
         return ["owner", "admin"].contains(role)
@@ -634,6 +651,7 @@ private struct ClubRailSection: View {
     let rail: SupabaseService.ClubRail
     let memberCount: Int
     var onAddItem: (() -> Void)? = nil
+    var onError: ((String) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
@@ -689,7 +707,16 @@ private struct ClubRailSection: View {
                             VStack(spacing: 6) {
                                 ClubRailItemCard(item: item, memberCount: memberCount)
                                 if FeatureFlags.shared.isClubsReactionsV1Enabled {
-                                    ClubReactionRow(item: item)
+                                    let hasAnyReaction: Bool = {
+                                        let counts = item.reactions ?? [:]
+                                        let mine = item.my_reactions ?? []
+                                        return counts.values.contains(where: { $0 > 0 }) || !mine.isEmpty
+                                    }()
+                                    if hasAnyReaction {
+                                        ClubReactionRow(item: item, onError: onError)
+                                    } else {
+                                        ClubReactionRowCompact(item: item, onError: onError)
+                                    }
                                 }
                             }
                         }
@@ -983,257 +1010,6 @@ private struct ThisWeekRow: View {
     }
 }
 
-// MARK: - Club Chat Tab
-
-private struct ClubChatTab: View {
-    let clubId: String
-    let bundle: SupabaseService.ClubBundle
-
-    @Environment(SupabaseService.self) private var supabaseService
-    @State private var messages: [SupabaseService.ClubMessage] = []
-    @State private var messageText = ""
-    @State private var isLoading = true
-    @State private var isSending = false
-    @State private var hasMorePages = true
-    @FocusState private var isInputFocused: Bool
-
-    private var currentUserId: String? {
-        supabaseService.currentUserId
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Messages area
-            ScrollViewReader { proxy in
-                ScrollView(.vertical, showsIndicators: false) {
-                    LazyVStack(spacing: KuroDesignSpacing.sm) {
-                        if hasMorePages && !isLoading {
-                            Button("Load earlier messages") {
-                                Task { await loadMore() }
-                            }
-                            .font(.kuroCaption(weight: .light))
-                            .foregroundColor(.black.opacity(0.45))
-                            .padding(.vertical, KuroDesignSpacing.sm)
-                        }
-
-                        if isLoading && messages.isEmpty {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                                .tint(.black.opacity(0.45))
-                                .padding(.vertical, KuroDesignSpacing.xl)
-                        }
-
-                        ForEach(messages) { msg in
-                            ClubChatBubble(
-                                message: msg,
-                                isOwnMessage: msg.user_id == currentUserId,
-                                members: bundle.members
-                            )
-                            .id(msg.id)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, KuroDesignSpacing.md)
-                    .padding(.bottom, KuroDesignSpacing.sm)
-                }
-                .onChange(of: messages.count) { _, _ in
-                    if let last = messages.last {
-                        withAnimation(.easeOut(duration: 0.2)) {
-                            proxy.scrollTo(last.id, anchor: .bottom)
-                        }
-                    }
-                }
-            }
-
-            EditorialLayout.divider()
-
-            // Input bar
-            HStack(spacing: KuroDesignSpacing.sm) {
-                TextField("Message...", text: $messageText, axis: .vertical)
-                    .font(.kuroBody(weight: .light))
-                    .lineLimit(1...4)
-                    .focused($isInputFocused)
-                    .onChange(of: messageText) { _, newValue in
-                        if newValue.count > 280 {
-                            messageText = String(newValue.prefix(280))
-                        }
-                    }
-
-                Button {
-                    sendMessage()
-                } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 28, weight: .regular))
-                        .foregroundColor(
-                            canSend ? .black.opacity(0.80) : .black.opacity(0.20)
-                        )
-                }
-                .buttonStyle(.plain)
-                .disabled(!canSend)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 10)
-            .background(Color.kuroBackground)
-        }
-        .task {
-            await loadMessages()
-        }
-    }
-
-    private var canSend: Bool {
-        !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending
-    }
-
-    private func loadMessages() async {
-        isLoading = true
-        do {
-            messages = try await supabaseService.fetchClubMessages(clubId: clubId)
-            hasMorePages = messages.count >= 50
-        } catch {
-            #if DEBUG
-            print("❌ loadMessages: \(error)")
-            #endif
-        }
-        isLoading = false
-    }
-
-    private func loadMore() async {
-        guard let oldest = messages.first else { return }
-        do {
-            let older = try await supabaseService.fetchClubMessages(
-                clubId: clubId, limit: 50, before: oldest.created_at
-            )
-            if older.isEmpty {
-                hasMorePages = false
-            } else {
-                messages.insert(contentsOf: older, at: 0)
-                hasMorePages = older.count >= 50
-            }
-        } catch {
-            #if DEBUG
-            print("❌ loadMore: \(error)")
-            #endif
-        }
-    }
-
-    private func sendMessage() {
-        let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        isSending = true
-        messageText = ""
-
-        // Optimistic local message
-        let optimisticMsg = SupabaseService.ClubMessage(
-            id: UUID().uuidString,
-            user_id: currentUserId ?? "",
-            display_name: nil,
-            text: text,
-            created_at: ISO8601DateFormatter().string(from: Date())
-        )
-        messages.append(optimisticMsg)
-
-        Task {
-            do {
-                let resp = try await supabaseService.sendClubMessage(clubId: clubId, text: text)
-                // Replace optimistic message with server response
-                if let idx = messages.firstIndex(where: { $0.id == optimisticMsg.id }) {
-                    messages[idx] = SupabaseService.ClubMessage(
-                        id: resp.message_id,
-                        user_id: currentUserId ?? "",
-                        display_name: nil,
-                        text: text,
-                        created_at: resp.created_at
-                    )
-                }
-            } catch {
-                // Remove optimistic message on failure
-                messages.removeAll { $0.id == optimisticMsg.id }
-                KuroAccessibility.errorHaptic()
-            }
-            isSending = false
-        }
-    }
-}
-
-// MARK: - Club Chat Bubble
-
-private struct ClubChatBubble: View {
-    let message: SupabaseService.ClubMessage
-    let isOwnMessage: Bool
-    let members: [SupabaseService.ClubMember]
-
-    private var displayName: String {
-        if let name = message.display_name, !name.isEmpty { return name }
-        if let member = members.first(where: { $0.user_id == message.user_id }),
-           let name = member.display_name, !name.isEmpty {
-            return name
-        }
-        return String(message.user_id.prefix(8))
-    }
-
-    private var initial: String {
-        String(displayName.prefix(1)).uppercased()
-    }
-
-    private var relativeTime: String {
-        guard let date = SupabaseService.parseISO8601(message.created_at) else { return "" }
-        let seconds = Date().timeIntervalSince(date)
-        if seconds < 60 { return "now" }
-        if seconds < 3600 { return "\(Int(seconds / 60))m" }
-        if seconds < 86400 { return "\(Int(seconds / 3600))h" }
-        return "\(Int(seconds / 86400))d"
-    }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            if !isOwnMessage {
-                Circle()
-                    .fill(Color.black.opacity(0.06))
-                    .frame(width: 24, height: 24)
-                    .overlay(
-                        Text(initial)
-                            .font(.kuroMicro(weight: .medium))
-                            .foregroundColor(.black.opacity(0.55))
-                    )
-            }
-
-            VStack(alignment: isOwnMessage ? .trailing : .leading, spacing: 2) {
-                if !isOwnMessage {
-                    HStack(spacing: 4) {
-                        Text(displayName)
-                            .font(.kuroMicro(weight: .medium))
-                            .foregroundColor(.black.opacity(0.50))
-                        Text(relativeTime)
-                            .font(.kuroMicro())
-                            .foregroundColor(.black.opacity(0.30))
-                    }
-                }
-
-                Text(message.text)
-                    .font(.kuroBody(weight: .light))
-                    .foregroundColor(.black.opacity(0.85))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.black.opacity(isOwnMessage ? 0.08 : 0.04))
-                    )
-
-                if isOwnMessage {
-                    Text(relativeTime)
-                        .font(.kuroMicro())
-                        .foregroundColor(.black.opacity(0.30))
-                }
-            }
-
-            if isOwnMessage {
-                Spacer(minLength: 40)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: isOwnMessage ? .trailing : .leading)
-    }
-}
-
 // MARK: - Club Milestone Card
 
 private struct ClubMilestoneCard: View {
@@ -1411,6 +1187,7 @@ private struct ClubPollOptionRow: View {
 
 private struct ClubReactionRow: View {
     let item: SupabaseService.ClubRailItem
+    var onError: ((String) -> Void)? = nil
 
     @Environment(SupabaseService.self) private var supabaseService
     @State private var optimisticReactions: [String: Int]?
@@ -1484,7 +1261,37 @@ private struct ClubReactionRow: View {
             } catch {
                 optimisticReactions = nil
                 optimisticMyReactions = nil
+                UINotificationFeedbackGenerator().notificationOccurred(.error)
+                onError?("Couldn't update reaction")
             }
+        }
+    }
+}
+
+// MARK: - Club Reaction Row Compact (collapsed trigger for unreacted items)
+
+private struct ClubReactionRowCompact: View {
+    let item: SupabaseService.ClubRailItem
+    var onError: ((String) -> Void)? = nil
+    @State private var expanded = false
+
+    var body: some View {
+        if expanded {
+            ClubReactionRow(item: item, onError: onError)
+        } else {
+            Button {
+                KuroAccessibility.impactHaptic(.light)
+                withAnimation(KuroAnimation.fast) { expanded = true }
+            } label: {
+                Image(systemName: "face.smiling")
+                    .font(.system(size: 12, weight: .light))
+                    .foregroundColor(.black.opacity(0.30))
+                    .padding(6)
+                    .background(Capsule().fill(Color.black.opacity(0.04)))
+            }
+            .buttonStyle(.plain)
+            .frame(width: 110, alignment: .leading)
+            .accessibilityLabel("Add a reaction")
         }
     }
 }
@@ -1842,6 +1649,7 @@ private struct ClubSettingsSheet: View {
     @State private var isLeaving = false
     @State private var showLeaveConfirm = false
     @State private var leaveConfirmMessage = ""
+    @State private var leaveErrorText: String? = nil
 
     private static let isoWithFractional: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
@@ -2026,6 +1834,12 @@ private struct ClubSettingsSheet: View {
                     EditorialLayout.divider()
 
                     // Leave Club
+                    if let leaveErrorText {
+                        Text(leaveErrorText)
+                            .font(.kuroCaption())
+                            .foregroundColor(.red.opacity(0.85))
+                    }
+
                     Button {
                         leaveConfirmMessage = computeLeaveMessage()
                         showLeaveConfirm = true
@@ -2113,16 +1927,40 @@ private struct ClubSettingsSheet: View {
 
     private func leaveClub() {
         isLeaving = true
+        leaveErrorText = nil
         Task {
             do {
                 try await supabaseService.leaveClub(clubId: clubId)
                 KuroAccessibility.successHaptic()
                 dismiss()
             } catch {
+                if leaveErrorCode(from: error) == .notAMember {
+                    leaveErrorText = "You're no longer a member of this club."
+                } else {
+                    leaveErrorText = "Could not leave club. Please try again."
+                }
                 KuroAccessibility.errorHaptic()
             }
             isLeaving = false
         }
+    }
+
+    private enum LeaveErrorCode: String {
+        case notAMember = "NOT_A_MEMBER"
+    }
+
+    private func leaveErrorCode(from error: Error) -> LeaveErrorCode? {
+        guard let pgError = error as? PostgrestError else { return nil }
+        let candidates = [pgError.detail, pgError.hint, pgError.message]
+        for raw in candidates {
+            guard let raw else { continue }
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let token = trimmed.split(separator: ":", maxSplits: 1).first.map(String.init) ?? trimmed
+            let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            if let mapped = LeaveErrorCode(rawValue: normalized) { return mapped }
+        }
+        return nil
     }
 
     private func memberDisplayName(_ member: SupabaseService.ClubMember, index: Int) -> String {
@@ -2131,7 +1969,7 @@ private struct ClubSettingsSheet: View {
         // Stable short identifier from UUID (consistent across sessions)
         let compact = member.user_id.replacingOccurrences(of: "-", with: "")
         let short = String(compact.prefix(6))
-        return short.isEmpty ? "Member" : short
+        return short.isEmpty ? "Unknown" : short
     }
 
     private func joinedLabel(_ raw: String) -> String {

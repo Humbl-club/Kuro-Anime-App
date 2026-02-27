@@ -27,6 +27,20 @@ struct EditorialDiscoverView: View {
     @State private var showFullAiringToday = false
     @State private var showFullCurrentSeason = false
 
+    @State private var showMoreSections = UserDefaults.standard.bool(forKey: "kuro_discover_show_more")
+
+    private var secondarySectionCount: Int {
+        var count = 0
+        if !vm.classics.isEmpty { count += 1 }
+        if !vm.currentSeason.isEmpty { count += 1 }
+        if !vm.topRated.isEmpty { count += 1 }
+        if !vm.newlyAdded.isEmpty { count += 1 }
+        if !vm.classicsManga.isEmpty { count += 1 }
+        if !vm.trendingManga.isEmpty { count += 1 }
+        if !vm.topRatedManga.isEmpty { count += 1 }
+        return count
+    }
+
     private var hasAnyContent: Bool {
         !vm.essentials.isEmpty ||
         !vm.classics.isEmpty ||
@@ -85,26 +99,7 @@ struct EditorialDiscoverView: View {
                     })
                 } else {
                     VStack(spacing: 24) {
-                    // Premium discovery rails
-                    if !vm.essentials.isEmpty {
-                        CompactHorizontalSection(
-                            title: "ESSENTIAL ANIME",
-                            subtitle: "Gateway picks (high confidence)",
-                            items: Array(vm.essentials.prefix(10)),
-                            containerWidth: currentWidth,
-                            onSeeAll: { showFullEssentials = true }
-                        )
-                    }
-
-                    if !vm.classics.isEmpty {
-                        Dense2ColumnSectionFixed(
-                            title: "CLASSICS",
-                            subtitle: "Proven greats",
-                            items: Array(vm.classics.prefix(8)),
-                            screenWidth: currentWidth,
-                            onSeeAll: { showFullClassics = true }
-                        )
-                    }
+                    // MARK: Primary sections (always visible, ordered by user value)
 
                     if !vm.newToYou.isEmpty {
                         Dense2ColumnSectionFixed(
@@ -116,7 +111,6 @@ struct EditorialDiscoverView: View {
                         )
                     }
 
-                    // Airing Today - What's on now
                     if !vm.airingToday.isEmpty {
                         CompactHorizontalSection(
                             title: "AIRING TODAY",
@@ -127,70 +121,13 @@ struct EditorialDiscoverView: View {
                         )
                     }
 
-                    // Current Season - Horizontal Scroll (TOP PRIORITY)
-                    if !vm.currentSeason.isEmpty {
+                    if !vm.essentials.isEmpty {
                         CompactHorizontalSection(
-                            title: "CURRENT SEASON",
-                            subtitle: "Airing now",
-                            items: Array(vm.currentSeason.prefix(10)),
+                            title: "ESSENTIAL ANIME",
+                            subtitle: "Gateway picks (high confidence)",
+                            items: Array(vm.essentials.prefix(10)),
                             containerWidth: currentWidth,
-                            onSeeAll: { showFullCurrentSeason = true }
-                        )
-                    }
-
-                    // Trending - Horizontal Scroll
-                    if !vm.trending.isEmpty {
-                        CompactHorizontalSection(
-                            title: "TRENDING",
-                            subtitle: "Popular right now",
-                            items: vm.trending,
-                            containerWidth: currentWidth,
-                            onSeeAll: { showFullTrending = true },
-                            showFilters: true
-                        )
-                    }
-
-                    // Top Rated - Dense 2-Column Grid
-                    if !vm.topRated.isEmpty {
-                        Dense2ColumnSectionFixed(
-                            title: "TOP RATED",
-                            subtitle: "Highest scores",
-                            items: vm.topRated,
-                            screenWidth: currentWidth,
-                            onSeeAll: { showFullTopRated = true },
-                            showFilters: true
-                        )
-                    }
-
-                    // Newly Added - Dense 2-Column Grid
-                    if !vm.newlyAdded.isEmpty {
-                        Dense2ColumnSectionFixed(
-                            title: "JUST ADDED",
-                            subtitle: "Fresh arrivals",
-                            items: Array(vm.newlyAdded.prefix(8)),
-                            screenWidth: currentWidth,
-                            onSeeAll: { showFullNewlyAdded = true }
-                        )
-                    }
-
-                    // Manga Sections
-                    if !vm.essentialsManga.isEmpty {
-                        CompactHorizontalMangaSection(
-                            title: "ESSENTIAL MANGA",
-                            subtitle: "Foundational reads",
-                            items: Array(vm.essentialsManga.prefix(10)),
-                            containerWidth: currentWidth,
-                            onSeeAll: { showFullEssentialsManga = true }
-                        )
-                    }
-
-                    if !vm.classicsManga.isEmpty {
-                        Dense2ColumnMangaSectionFixed(
-                            title: "MANGA CLASSICS",
-                            subtitle: "Proven greats",
-                            items: Array(vm.classicsManga.prefix(8)),
-                            screenWidth: currentWidth,
-                            onSeeAll: { showFullClassicsManga = true }
+                            onSeeAll: { showFullEssentials = true }
                         )
                     }
 
@@ -204,22 +141,126 @@ struct EditorialDiscoverView: View {
                         )
                     }
 
-                    if !vm.trendingManga.isEmpty {
-                        CompactHorizontalMangaSection(
-                            title: "TRENDING MANGA",
-                            subtitle: "Popular manga",
-                            items: Array(vm.trendingManga.prefix(10)),
-                            containerWidth: currentWidth
+                    if !vm.trending.isEmpty {
+                        CompactHorizontalSection(
+                            title: "TRENDING",
+                            subtitle: "Popular right now",
+                            items: vm.trending,
+                            containerWidth: currentWidth,
+                            onSeeAll: { showFullTrending = true },
+                            showFilters: true
                         )
                     }
 
-                    if !vm.topRatedManga.isEmpty {
-                        Dense2ColumnMangaSectionFixed(
-                            title: "TOP RATED MANGA",
-                            subtitle: "Highest scores",
-                            items: Array(vm.topRatedManga.prefix(8)),
-                            screenWidth: currentWidth
+                    if !vm.essentialsManga.isEmpty {
+                        CompactHorizontalMangaSection(
+                            title: "ESSENTIAL MANGA",
+                            subtitle: "Foundational reads",
+                            items: Array(vm.essentialsManga.prefix(10)),
+                            containerWidth: currentWidth,
+                            onSeeAll: { showFullEssentialsManga = true }
                         )
+                    }
+
+                    // MARK: "Show More" expansion
+
+                    if !showMoreSections && secondarySectionCount > 0 {
+                        Button {
+                            withAnimation(KuroAnimation.editorial) {
+                                showMoreSections = true
+                            }
+                            UserDefaults.standard.set(true, forKey: "kuro_discover_show_more")
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text("\(secondarySectionCount) MORE SECTIONS")
+                                    .font(.kuroCaption(weight: .medium))
+                                    .tracking(1.6)
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundColor(.black.opacity(0.55))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
+                                    .stroke(Color.black.opacity(0.10), lineWidth: 0.8)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 20)
+                    }
+
+                    // MARK: Secondary sections (behind "Show More")
+
+                    if showMoreSections {
+                        if !vm.classics.isEmpty {
+                            Dense2ColumnSectionFixed(
+                                title: "CLASSICS",
+                                subtitle: "Proven greats",
+                                items: Array(vm.classics.prefix(8)),
+                                screenWidth: currentWidth,
+                                onSeeAll: { showFullClassics = true }
+                            )
+                        }
+
+                        if !vm.currentSeason.isEmpty {
+                            CompactHorizontalSection(
+                                title: "CURRENT SEASON",
+                                subtitle: "Airing now",
+                                items: Array(vm.currentSeason.prefix(10)),
+                                containerWidth: currentWidth,
+                                onSeeAll: { showFullCurrentSeason = true }
+                            )
+                        }
+
+                        if !vm.topRated.isEmpty {
+                            Dense2ColumnSectionFixed(
+                                title: "TOP RATED",
+                                subtitle: "Highest scores",
+                                items: vm.topRated,
+                                screenWidth: currentWidth,
+                                onSeeAll: { showFullTopRated = true },
+                                showFilters: true
+                            )
+                        }
+
+                        if !vm.newlyAdded.isEmpty {
+                            Dense2ColumnSectionFixed(
+                                title: "JUST ADDED",
+                                subtitle: "Fresh arrivals",
+                                items: Array(vm.newlyAdded.prefix(8)),
+                                screenWidth: currentWidth,
+                                onSeeAll: { showFullNewlyAdded = true }
+                            )
+                        }
+
+                        if !vm.classicsManga.isEmpty {
+                            Dense2ColumnMangaSectionFixed(
+                                title: "MANGA CLASSICS",
+                                subtitle: "Proven greats",
+                                items: Array(vm.classicsManga.prefix(8)),
+                                screenWidth: currentWidth,
+                                onSeeAll: { showFullClassicsManga = true }
+                            )
+                        }
+
+                        if !vm.trendingManga.isEmpty {
+                            CompactHorizontalMangaSection(
+                                title: "TRENDING MANGA",
+                                subtitle: "Popular manga",
+                                items: Array(vm.trendingManga.prefix(10)),
+                                containerWidth: currentWidth
+                            )
+                        }
+
+                        if !vm.topRatedManga.isEmpty {
+                            Dense2ColumnMangaSectionFixed(
+                                title: "TOP RATED MANGA",
+                                subtitle: "Highest scores",
+                                items: Array(vm.topRatedManga.prefix(8)),
+                                screenWidth: currentWidth
+                            )
+                        }
                     }
                 }
                 .padding(.top, 12)
@@ -353,6 +394,20 @@ struct EditorialDiscoverView: View {
         }
 
         KuroPerf.end(perf, message: gotAnyNew ? "ok" : "no new data")
+
+        // Prefetch friend tracking counts for card indicators
+        if FeatureFlags.shared.isSocialActivityV1Enabled {
+            let items: [(mediaType: String, mediaId: Int)] = await MainActor.run {
+                let anime = (vm.essentials + vm.trending + vm.topRated + vm.newToYou + vm.newlyAdded + vm.currentSeason)
+                    .map { (mediaType: "ANIME", mediaId: $0.id) }
+                let manga = (vm.essentialsManga + vm.trendingManga + vm.topRatedManga + vm.newToYouManga + vm.newlyAddedManga)
+                    .map { (mediaType: "MANGA", mediaId: $0.id) }
+                return Array((anime + manga).prefix(100))
+            }
+            if !items.isEmpty {
+                supabaseService.prefetchFriendCounts(items: items)
+            }
+        }
 
         // Prefetch covers so the next scroll feels instant.
         let urls: [URL] = await MainActor.run {
@@ -568,12 +623,7 @@ struct CompactAnimeCard: View {
         let innerSpacingTitleToMeta: CGFloat = 4
         let totalHeight = imageHeight + innerSpacingImageToText + titleHeight + innerSpacingTitleToMeta + metaHeight
 
-        Button(action: {
-            guard !suppressCardTaps else { return }
-            KuroAccessibility.impactHaptic(.light)
-            showDetail = true
-        }) {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
                 // Image with score badge
                 ZStack(alignment: .topTrailing) {
                     KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 420) { phase in
@@ -643,13 +693,18 @@ struct CompactAnimeCard: View {
                     .frame(height: metaHeight, alignment: .topLeading)
                 }
                 .frame(width: cardWidth)
-            }
-            .frame(width: cardWidth, height: totalHeight, alignment: .topLeading)
         }
-        .buttonStyle(.plain)
+        .frame(width: cardWidth, height: totalHeight, alignment: .topLeading)
+        .contentShape(Rectangle())
+        .kuroDeliberateTap {
+            guard !suppressCardTaps else { return }
+            KuroAccessibility.impactHaptic(.light)
+            showDetail = true
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityHint("Opens details")
+        .accessibilityAddTraits(.isButton)
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
         }
@@ -719,12 +774,7 @@ struct GridAnimeCard: View {
     }
 
     var body: some View {
-        Button(action: {
-            guard !suppressCardTaps else { return }
-            KuroAccessibility.impactHaptic(.light)
-            showDetail = true
-        }) {
-            VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
                 // Image with score - FIXED HEIGHT
                 let imageHeight = max(100, floor(cardWidth / 0.7))
 
@@ -793,13 +843,18 @@ struct GridAnimeCard: View {
 
                 }
                 .frame(width: cardWidth, alignment: .topLeading)
-            }
-            .frame(width: cardWidth, height: cardHeight, alignment: .top)
         }
-        .buttonStyle(.plain)
+        .frame(width: cardWidth, height: cardHeight, alignment: .top)
+        .contentShape(Rectangle())
+        .kuroDeliberateTap {
+            guard !suppressCardTaps else { return }
+            KuroAccessibility.impactHaptic(.light)
+            showDetail = true
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityHint("Opens details")
+        .accessibilityAddTraits(.isButton)
         .contextMenu {
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)

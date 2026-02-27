@@ -33,9 +33,11 @@ struct ConciergeView: View {
     @Environment(SupabaseService.self) private var supabaseService
 
     let assistantEnabled: Bool
+    var initialPrompt: String? = nil
 
     // MARK: Input & Core State
     @State private var input: String = ""
+    @State private var didConsumeInitialPrompt = false
     @State private var focusRequest: Bool = false
     @State private var messages: [ConciergeMessage] = []
     @State private var isWorking = false
@@ -112,8 +114,9 @@ struct ConciergeView: View {
         return isGermanLocale ? "Importiere direkt aus deiner Bibliothek — oder lass mich zwei Rails kuratieren." : "Import from your list — or let me curate two rails."
     }
 
-    init(assistantEnabled: Bool = true) {
+    init(assistantEnabled: Bool = true, initialPrompt: String? = nil) {
         self.assistantEnabled = assistantEnabled
+        self.initialPrompt = initialPrompt
     }
 
     // MARK: Body
@@ -148,6 +151,13 @@ struct ConciergeView: View {
             // Warm up the edge function isolate on view appear (fire-and-forget)
             warmupTask = Task.detached(priority: .background) {
                 await supabaseService.conciergeWarmup()
+            }
+
+            // Pre-fill input from deep link prompt (consumed once)
+            if !didConsumeInitialPrompt, let prompt = initialPrompt?.trimmingCharacters(in: .whitespacesAndNewlines), !prompt.isEmpty {
+                didConsumeInitialPrompt = true
+                input = prompt
+                focusRequest = true
             }
         }
         .onDisappear {
@@ -611,6 +621,11 @@ struct ConciergeView: View {
         let userMsg = ConciergeMessage(role: .user, text: text, items: nil)
         withAnimation(KuroAnimation.editorial) {
             messages.append(userMsg)
+        }
+
+        // Mark first use (collapses intro hint on next visit)
+        if !UserDefaults.standard.bool(forKey: "kuro_concierge_used") {
+            UserDefaults.standard.set(true, forKey: "kuro_concierge_used")
         }
 
         #if DEBUG
@@ -1298,6 +1313,7 @@ struct ConciergeView: View {
             if let v = p.caughtUp           { payload["caughtUp"] = v }
             if let v = p.lastEpisode        { payload["lastEpisode"] = v }
             if let v = p.completed          { payload["completed"] = v }
+            if let v = p.rating             { payload["rating"] = v }
 
             // TOCTOU protection: send expected existing state for updates
             if action == .update, let existing = item.existing_entry {
@@ -1390,10 +1406,11 @@ struct ConciergeView: View {
     // MARK: Helpers
     private func handleError(_ error: Error) {
         if let guardrail = error as? SupabaseService.ConciergeGuardrailsError {
+            // Persistent: rate limit / guardrail errors stay inline until next action
             errorText = guardrail.localizedDescription
-            showToast(.init(kind: .error, title: "Slow down", subtitle: guardrail.localizedDescription, actionTitle: nil, onAction: nil), autoDismissSeconds: 3.0)
         } else {
-            errorText = error.localizedDescription
+            // Transient: network / server errors as auto-dismissing toast only
+            errorText = nil
             showToast(.init(kind: .error, title: "Error", subtitle: error.localizedDescription, actionTitle: nil, onAction: nil), autoDismissSeconds: 3.0)
         }
     }

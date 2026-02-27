@@ -499,6 +499,10 @@ struct ConciergeTypingIndicator: View {
 // MARK: - Intro Card
 
 struct ConciergeIntroCard: View {
+    private var hasUsedConcierge: Bool {
+        UserDefaults.standard.bool(forKey: "kuro_concierge_used")
+    }
+
     var body: some View {
         KuroGlassCard(cornerRadius: KuroRadius.lg) {
             VStack(alignment: .leading, spacing: 10) {
@@ -510,7 +514,7 @@ struct ConciergeIntroCard: View {
                             .font(.kuroCaption(weight: .medium))
                             .tracking(2.4)
                             .foregroundColor(.black.opacity(0.80))
-                        Text("Imports + recommendations")
+                        Text(isGerman ? "Imports + Empfehlungen" : "Imports + recommendations")
                             .font(.kuroCaption())
                             .foregroundColor(.black.opacity(0.55))
                     }
@@ -522,13 +526,32 @@ struct ConciergeIntroCard: View {
                     .fill(Color.black.opacity(0.06))
                     .frame(height: 0.5)
 
-                Text(isGerman
-                    ? "Importe deine Liste — oder beschreibe kurz die Stimmung.\nSauber gefiltert."
-                    : "Import your library, or describe the mood.\nCleanly filtered."
-                )
-                    .font(.kuroBody(weight: .light))
-                    .foregroundColor(.black.opacity(0.62))
-                    .lineSpacing(3)
+                if hasUsedConcierge {
+                    Text(isGerman
+                        ? "Importe deine Liste — oder beschreibe kurz die Stimmung."
+                        : "Import your list, or describe a mood."
+                    )
+                        .font(.kuroBody(weight: .light))
+                        .foregroundColor(.black.opacity(0.62))
+                        .lineSpacing(3)
+                } else {
+                    VStack(alignment: .leading, spacing: 12) {
+                        hintRow(
+                            icon: "square.and.arrow.down",
+                            title: isGerman ? "Liste importieren" : "Import a list",
+                            detail: isGerman
+                                ? "Füge deine Anime-/Manga-Liste ein — Kuro erkennt Titel, Status und Fortschritt automatisch."
+                                : "Paste your anime or manga list — Kuro recognizes titles, status, and progress automatically."
+                        )
+                        hintRow(
+                            icon: "sparkles",
+                            title: isGerman ? "Empfehlungen erhalten" : "Get recommendations",
+                            detail: isGerman
+                                ? "Beschreibe eine Stimmung wie \"düster, kurz, kein Gore\" — und erhalte kuratierte Vorschläge."
+                                : "Describe a mood like \"dark, short, no gore\" — and get curated picks that match."
+                        )
+                    }
+                }
             }
             .padding(KuroDesignSpacing.md)
         }
@@ -537,6 +560,25 @@ struct ConciergeIntroCard: View {
             ? "Concierge. Bibliothek importieren oder Stimmung beschreiben."
             : "Concierge. Import from your list or describe a mood."
         )
+    }
+
+    private func hintRow(icon: String, title: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.black.opacity(0.45))
+                .frame(width: 20, alignment: .center)
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.kuroCaption(weight: .medium))
+                    .foregroundColor(.black.opacity(0.75))
+                Text(detail)
+                    .font(.kuroCaption(weight: .light))
+                    .foregroundColor(.black.opacity(0.55))
+                    .lineSpacing(2)
+            }
+        }
     }
 }
 
