@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-02-27
+**Last updated:** 2026-03-01
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -41,12 +41,12 @@ The app has 5 swipeable pages that follow a natural discovery flow:
 1. **Concierge** (swipe left from Discover): An inline concierge page for importing from your library/clipboard and asking for recommendations. First-time visitors see an expanded hint explaining what you can do (import lists, get mood-based picks with a concrete example). After your first interaction, the hint collapses to a slim one-liner.
 2. **Discover** (main page, opens by default): Shows 6 curated sections on first load (your personalized picks, what's airing today, essentials, trending, and manga counterparts). A "Show More" button reveals 7 additional sections (classics, current season, top rated, just added, etc.). Once you expand, it stays expanded across launches.
 3. **Browse** (swipe right from Discover): Explore the full catalog with filters (genre, status, length, decade, format, sort).
-4. **Collection** (swipe right from Browse): Your personal list of anime/manga.
-5. **Clubs** (rightmost page): Private groups (2–20 members) for watching together. Create a club, invite friends with a code, share curated watchlists (rails), see weekly highlights, vote in polls, and react to items (fire/heart/eyes/100). Club owners control privacy settings. The club list shows member counts, recent activity previews, and unread dots. When sharing is set to "progress", you'll see pace tracking ("3 ep behind the group"). Milestone cards celebrate when all members finish a title. Updates appear in real-time. Club activity also shows up on anime/manga detail pages. You can add anime/manga directly to a club rail from the Rails tab or via the "Add to Club..." context menu on any card. **Social activity**: when you open an anime or manga detail page, you can now see which of your club friends are also tracking that title, read their comments, and react with thumbs up/down. This replaces the old club chat tab with more relevant, title-level conversations.
+4. **Collection** (swipe right from Browse): Your personal list of anime/manga. New filter pills let you narrow by streaming service (e.g., only titles on Crunchyroll) or by language (EN/DE/JA). Each title in the grid shows the best available streaming provider name underneath.
+5. **Clubs** (rightmost page): Private groups (2–20 members) for watching together. Create a club, invite friends with a code, share curated watchlists (rails), see weekly highlights, vote in polls, and react to items (fire/heart/eyes/100). Club owners control privacy settings. The club list shows member counts, recent activity previews, and unread dots. When sharing is set to "progress", you'll see pace tracking ("3 ep behind the group"). Milestone cards celebrate when all members finish a title. Updates appear in real-time. Club activity also shows up on anime/manga detail pages. You can add anime/manga directly to a club rail from the Rails tab or via the "Add to Club..." context menu on any card. **Social activity**: when you open an anime or manga detail page, you can now see which of your club friends are also tracking that title, read their comments, and react with thumbs up/down. This replaces the old club chat tab with more relevant, title-level conversations. **Shared streaming**: a new "SHARED" toggle on club rails shows which titles are available on streaming services that all members share. Coverage text tells you how many members have set up their services.
 
 **Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page. It supports natural language queries like "show me action anime from 2020" using on-device AI.
 
-Profile is a small menu in the top-right corner. Clubs is also accessible from the Profile sheet as a secondary shortcut.
+Profile is a small menu in the top-right corner. You can set your streaming subscriptions here (Crunchyroll, Netflix, Funimation, HIDIVE, etc.) so the app knows where you can watch or read. Clubs is also accessible from the Profile sheet as a secondary shortcut.
 
 **Header today:**
 - Left: KURO wordmark
@@ -258,11 +258,12 @@ Supabase also runs the Concierge server logic and provides secure APIs.
 
 - A **profile** row (your account basics)
 - Your **anime/manga list** entries (status, progress, rating)
+- Your **streaming subscriptions** (which services you use — Crunchyroll, Netflix, etc.)
 - Concierge **import sessions** (so you can undo)
 - Concierge **logs** (for improving the parser and debugging)
 - **Club memberships** and your activity within clubs
 
-No one else can read your private list data because of row‑level security. Club data is shared only with club members, and the club owner controls exactly what is visible.
+No one else can read your private list data because of row‑level security. Club data is shared only with club members, and the club owner controls exactly what is visible. Your streaming subscription data is deleted when you delete your account (GDPR compliant).
 
 ---
 
@@ -306,6 +307,11 @@ flowchart TB
     U1[profiles]
     U2[anime_user_lists / manga_user_lists]
     U3[import_sessions + items]
+    U4[user_streaming_services]
+  end
+
+  subgraph Streaming["Streaming availability"]
+    S1[streaming_services — 19 legal providers]
   end
 
   subgraph Clubs["Clubs (shared, privacy-controlled)"]
@@ -327,9 +333,12 @@ flowchart TB
   Users --> Catalog
   Users --> Concierge
   Users --> Clubs
+  Users --> Streaming
   Clubs --> Catalog
+  Clubs --> Streaming
   Concierge --> Catalog
   Editorial --> Catalog
+  Streaming --> Catalog
 ```
 
 If you need the full table/column-level definition, use:
@@ -638,3 +647,29 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 
 ### 2026-02-28 — Fix: Concierge import detection
 - Fixed a bug where phrases like "Watched jujutsu kaisen halfway through" were incorrectly treated as recommendation requests instead of imports. The app now recognizes standalone past-tense verbs ("watched", "saw", "seen") and partial-progress markers ("halfway", "midway") as import signals, matching what the server parser already supports. Also added German past-tense detection ("geschaut", "gesehen", "gelesen").
+
+### 2026-03-01 — FM intent classification post-review cleanup
+- **Documentation fix**: The technical snapshot had a stale 260-line code dump of the old `send()` function that didn't reflect the new FM-powered intent routing. Replaced with a concise summary pointing to the real source code.
+- **Flag rollout documented**: The `fm_assist_v1` feature flag (which enables on-device AI intent classification) is now documented as 0% staged rollout with a planned ramp: 0% → 10% canary → 50% → 100%. It stays dormant until on-device testing validates accuracy.
+- **8 more tests added**: Edge cases for empty/whitespace input, case-insensitive matching (e.g., "WATCHED"), German vibe-guard override when staffel/folge is present, and regex boundary conditions (e.g., "s1e1", "1x50"). Test suite now has 22 tests total, all passing.
+- **2 clarifying comments added**: One explains why the "is this input garbage?" check runs before the AI classifier (to save inference cost), another explains why `ConciergeInputField` has its own list-detection function separate from the main import detector.
+- No behavior changes, no new files.
+
+### 2026-03-01 — Offline mode hardening
+- **Detail pages now fall back to cached data** instead of showing an error when the network is unavailable. If the app has previously loaded an anime or manga, it will show the cached version when offline.
+- **Browse shows an offline error screen** with a retry button instead of looking like "no results found".
+- **Collection shows a network-aware error** ("You're Offline" vs "Couldn't Load Collection") with a retry button. When offline but cached data exists, it shows a subtle "Showing Cached Data" label.
+- **Discover shows a "Showing Cached Data" label** when offline but content is still visible.
+- **Detail sheets have a retry button** so users can re-attempt loading without dismissing and reopening.
+- **Write actions are disabled when offline**: Concierge send button, Add to List save, and club create rail/poll buttons are all disabled with appropriate hints.
+- **Pages auto-refresh when you come back online**: Discover reloads its bundle, Collection reloads your lists, Clubs checks for new notifications.
+- No new files, no backend changes. 10 existing files updated.
+
+### 2026-03-01 — Streaming Availability v1 (Where to Watch/Read)
+- **Set your streaming subscriptions in Profile**: You can now tell Kuro which streaming services you use (Crunchyroll, Netflix, Funimation, HIDIVE, and 15 more legal providers — 19 total). This is saved to your account and used to personalize what you see across the app.
+- **Collection gets streaming + language filters**: New filter pills on the Collection page let you narrow your list by streaming service (e.g., "only show titles on Crunchyroll") or by language (EN, DE, JA). Card grids now show the best available streaming provider name below each title.
+- **Clubs get a "SHARED" toggle**: On club rails, a new SHARED toggle highlights titles that are available on services all club members share. Coverage text explains how many members have set up their services (e.g., "3 of 5 members have set up streaming").
+- **New database tables**: `streaming_services` (19 pre-populated legal streaming providers) and `user_streaming_services` (tracks which services each user subscribes to). Both have proper row-level security.
+- **GDPR compliant**: User streaming data is deleted when the user deletes their account.
+- **Behind feature flag**: All streaming features are behind `streaming_availability_v1` at 0% rollout. Test with the launch argument `--ff-on=streaming_availability_v1`.
+- 1 new migration file, 7 modified Swift files, 0 new Swift files.

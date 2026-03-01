@@ -479,6 +479,29 @@ struct RPCCountFriendsTrackingParams: Encodable, Sendable {
     }
 }
 
+// Streaming availability RPCs.
+struct RPCBatchProvidersParams: Encodable, Sendable {
+    let p_items: String
+
+    enum CodingKeys: String, CodingKey { case p_items }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_items, forKey: .p_items)
+    }
+}
+
+struct RPCSaveStreamingServicesParams: Encodable, Sendable {
+    let p_services: [String]
+
+    enum CodingKeys: String, CodingKey { case p_services }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(p_services, forKey: .p_services)
+    }
+}
+
 // Tag-overlap similarity (detail pages / concierge).
 struct RPCRecommendSimilarParams: Encodable, Sendable {
     let p_media_type: String // "ANIME" | "MANGA"

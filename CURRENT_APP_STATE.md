@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-02-28
+**Last updated:** 2026-03-01
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -176,7 +176,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/ProfileView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 143)
+### Supabase migrations (count: 144)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql`
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -320,6 +320,7 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260224101000_catalog_safety_runner_v1.sql`
 - `supabase/migrations/20260224150000_social_activity_layer.sql`
 - `supabase/migrations/20260225100000_check_email_exists_rpc.sql`
+- `supabase/migrations/20260301100000_streaming_availability_v1.sql`
 
 ### Supabase Edge Functions (index.ts) (count: 15)
 - `supabase/functions/auth-callback/index.ts`
@@ -403,7 +404,7 @@ node scripts/generate_app_state_inventory.js
 - **Onboarding**: `Kuro/Views/OnboardingView.swift` (first-launch onboarding flow)
 - **Apple Foundation Models**: `Kuro/Services/AppleFMService.swift` (on-device: mode classification, disambiguation, synopsis condensation, NL collection search intent)
 - **Network monitoring**: `Kuro/Services/NetworkMonitor.swift` (connectivity state, offline banner in `KuroApp.swift`)
-- **Feature flags**: `Kuro/Services/FeatureFlags.swift` (staged rollout definitions for clubs, concierge, realtime, social activity features)
+- **Feature flags**: `Kuro/Services/FeatureFlags.swift` (staged rollout definitions for clubs, concierge, realtime, social activity, FM assist, streaming availability features)
 - **Analytics**: `Kuro/Services/ConciergeAnalytics.swift` (concierge + club interaction telemetry)
 - **Text normalization**: `Kuro/Services/TextNormalization.swift` (search/parsing text utilities)
 - **Synopsis condenser**: `AnimeDetailView.swift`, `MangaDetailView.swift` call `fmService.condenseSynopsis()` for descriptions > 200 chars
@@ -451,7 +452,7 @@ node scripts/generate_app_state_inventory.js
   4. **Collection**
   5. **Clubs**
 - **Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page.
-- **Offline banner**: Monochrome "OFFLINE" text banner (9pt, tracked) appears at top of `RootView` when `networkMonitor.isConnected == false`. Injected as `@Environment` from `KuroApp`.
+- **Offline handling**: Monochrome "OFFLINE" text banner (9pt, tracked) at top of `RootView` when disconnected. Plus: cache-fallback in detail fetches (`fetchAnimeById`/`fetchMangaById` return disk cache on network failure), "SHOWING CACHED DATA" stale indicators (Discover, Collection), offline error states with retry (Browse, Collection, detail sheets), write-action guards (Concierge send, Add to List save, club create rail/poll disabled when offline), auto-refresh on reconnect (Discover/Collection/Clubs via `reconnectionGeneration` observer in `ContentView`).
 - **App lifecycle**: `scenePhase` tracked in `KuroApp.swift` for background/foreground transitions.
 - **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.collection`, `.discover`, `.concierge(prompt:)`, `.authCallback(accessToken:, refreshToken:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links. Auth callbacks are intercepted at `KuroApp` level (before auth gate) and call `handleAuthCallback()` to set session immediately.
 - **Auth flow (signup + sign-in)**:
@@ -490,6 +491,7 @@ node scripts/generate_app_state_inventory.js
   - When FM unavailable (non-iOS 26, flag off): `looksLikeImport()` keyword routing (same as before).
   - `routeByKeywords()` helper shared by fallback and non-FM paths.
   - Analytics: `intent_detected` event with `"source": "fm"` or `"source": "keywords"` to compare routing accuracy.
+  - **`fm_assist_v1` flag rollout**: 0% (staged). Intentionally dormant until on-device testing validates FM accuracy. Planned rollout: 0% → 10% canary → 50% → 100%.
 - Main features:
   - Deterministic parsing of pasted list with import reconciliation (Add/Update/Skip actions)
   - Auto-apply for high-confidence imports (all items score >= 0.85, no ambiguous adaptations)
@@ -610,9 +612,10 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 `NetworkMonitor` is a `@MainActor @Observable` class using `NWPathMonitor` from the Network framework.
 
-- **Published state**: `isConnected` (Bool), `connectionType` (`.wifi`, `.cellular`, `.wired`, `.unknown`)
-- **Injection**: created in `KuroApp.swift`, injected as `@Environment` throughout the app
+- **Published state**: `isConnected` (Bool), `connectionType` (`.wifi`, `.cellular`, `.wired`, `.unknown`), `reconnectionGeneration` (Int, increments on each network reconnection)
+- **Injection**: created in `KuroApp.swift`, injected as `@Environment` throughout the app. Referenced in 10 view files for offline-aware UI.
 - **Offline banner**: `RootView` in `KuroApp.swift` shows a monochrome "OFFLINE" text banner (9pt, tracked 1.2, black 45% opacity) when `isConnected == false`
+- **Reconnection signal**: `reconnectionGeneration` increments in `pathUpdateHandler` when `connected == true`. `ContentView.KuroMainView` observes `.onChange(of: reconnectionGeneration)` to auto-refresh the active page (Discover → force bundle, Collection → user lists + feed, Clubs → notifications).
 - **Lifecycle**: starts monitoring on init, cancels on deinit
 
 ---
@@ -695,6 +698,13 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - `user_lists` (user-specific list metadata)
 - `collection_feed` views (via RPC)
 - `user_airing_next` view + RPCs (airing countdown/next-episode data)
+
+### Streaming availability
+- `streaming_services` (id serial, canonical registry of streaming/reading platforms; 19 seed rows; columns: name, slug, logo_url, media_types, region_codes, is_active)
+- `user_streaming_services` (user_id FK, service_id FK, language preference; UNIQUE(user_id, service_id); RLS scoped to auth.uid())
+- RPCs (3): `batch_providers_for_media`, `club_shared_providers`, `save_user_streaming_services`
+- GDPR: `user_streaming_services` added to `delete_user_concierge_data` cascade
+- Feature flag: `streaming_availability_v1` (0% rollout)
 
 ### Search + discover
 - `title_aliases` (for canonical search)
@@ -900,6 +910,10 @@ Client + edge functions rely on these RPCs:
   - `sharing_level_rank(text)` — IMMUTABLE, returns 0/1/2 for private/status/progress
   - `generate_invite_code(int)` — 8-char alphanumeric (62^8 combinations)
   - `log_club_event(p_event_type, p_club_id, p_metadata)` — SECURITY DEFINER, inserts analytics row
+- **Streaming availability RPCs**:
+  - `batch_providers_for_media(p_media_type, p_media_ids)` — returns streaming/reading providers for a batch of media IDs, joined against user's selected services
+  - `club_shared_providers(p_club_id)` — returns providers shared by all members of a club (intersection)
+  - `save_user_streaming_services(p_service_ids, p_language)` — upserts user's selected streaming services + language preference
 - **Ops functions**:
   - `check_mirror_health()` — returns JSONB with mirror run stats (total runs, successes, failures, consecutive failures, alert boolean). Used for operational health monitoring.
 
@@ -1513,6 +1527,30 @@ This single command:
 ---
 
 ## 14) Change Log (append-only)
+
+### 2026-03-01 — Streaming Availability v1 ("Where to Watch/Read")
+
+New feature: streaming/reading provider availability on cards, collection filters, profile settings, and club shared-provider views. Gated behind `streaming_availability_v1` feature flag at 0% rollout.
+
+Backend (migration `20260301100000_streaming_availability_v1.sql`):
+- 2 new tables: `streaming_services` (canonical registry, 19 seed rows), `user_streaming_services` (per-user selections + language, RLS scoped to `auth.uid()`)
+- 3 new RPCs: `batch_providers_for_media`, `club_shared_providers`, `save_user_streaming_services`
+- GDPR: `user_streaming_services` added to `delete_user_concierge_data` cascade
+
+iOS:
+- `SupabaseService.swift`: provider cache, batch prefetch, CRUD, club shared providers, registry fetch, bootstrap (~120 lines)
+- `SupabaseRPCParams.swift`: 2 new param structs (`RPCBatchProvidersParams`, `RPCSaveStreamingServicesParams`)
+- `FeatureFlags.swift`: `isStreamingAvailabilityV1Enabled` accessor
+- `EditorialCollectionView.swift`: service + language filter pills (tri-state), provider prefetch alongside friend count prefetch
+- `KuroRefinedCard.swift`: provider badge on KuroPortraitCard + KuroCompactCard
+- `ProfileView.swift`: services preview card + `StreamingServicePickerSheet` + `ServiceToggleRow`
+- `ClubDetailView.swift`: shared availability toggle, coverage text, dimmed cards, rail prefetch
+
+Other:
+- `normalizedExternalLanguage` visibility changed from `private` to `internal`
+- Hardcoded allowlist arrays annotated with `TODO` for removal when flag reaches 100%
+
+Totals: 0 new Swift files, 7 modified Swift files, 1 new migration. 64 Swift files, 144 migrations.
 
 ### 2026-02-28 — Concierge Import UX Improvements
 
@@ -10675,267 +10713,12 @@ struct ConciergeView: View {
         }
     }
 
-    private func send() async {
-        let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        errorText = nil
-        input = ""
-        withAnimation(.easeInOut(duration: 0.18)) { isWorking = true }
-        lastApplySessionId = nil
-
-        let userMsg = ConciergeMessage(role: .user, text: text, items: nil)
-        withAnimation(.interactiveSpring(response: 0.30, dampingFraction: 0.86)) {
-            messages.append(userMsg)
-        }
-
-        do {
-            if looksLikeImport(text) {
-                let response = try await supabaseService.conciergeParse(text: text, scope: .both)
-                let auto = autoResolveForApply(items: response.items)
-
-                var remaining = auto.remaining
-                var llmItemsToApply: [[String: Any]] = []
-                var appliedSummaryLines = auto.appliedSummaryLines
-
-                if response.userId != nil, !remaining.isEmpty {
-                    // Use the tiny LLM resolver to reduce taps for messy/typo inputs.
-                    if let resolve = try? await supabaseService.conciergeResolve(items: remaining, maxCandidates: 6),
-                       resolve.success,
-                       let choices = resolve.choices,
-                       !choices.isEmpty {
-                        var appliedIds = Set<String>()
-
-                        for choice in choices {
-                            guard choice.pick >= 0 else { continue }
-                            guard remaining.indices.contains(choice.i) else { continue }
-                            let item = remaining[choice.i]
-                            guard item.candidates.indices.contains(choice.pick) else { continue }
-                            let picked = item.candidates[choice.pick]
-
-                            selectedByItemId[item.id] = picked
-
-                            // Only auto-apply LLM picks when confidence is high.
-                            let titleSafe = isTitleAutoApplySafe(normalized: item.normalized, parsed: item.parsed, candidateTitle: picked.title_raw)
-                            let canAutoApply = choice.confidence >= 0.88 && picked.score >= 0.70 && titleSafe
-                            if !canAutoApply { continue }
-
-                            let status = normalizedStatus(for: item.parsed.status, mediaType: picked.media_type)
-                            var payload: [String: Any] = [
-                                "raw": item.raw,
-                                "mediaType": picked.media_type.uppercased(),
-                                "mediaId": picked.media_id,
-                                "status": status,
-                                "confidence": picked.score,
-                                "candidates": item.candidates.map { cand in
-                                    [
-                                        "media_type": cand.media_type,
-                                        "media_id": cand.media_id,
-                                        "variant_type": cand.variant_type,
-                                        "title_raw": cand.title_raw,
-                                        "score": cand.score,
-                                    ]
-                                },
-                            ]
-
-                            if let p = item.parsed.progressEpisodes { payload["progressEpisodes"] = p }
-                            if let p = item.parsed.progressChapters { payload["progressChapters"] = p }
-                            if let p = item.parsed.progressVolumes { payload["progressVolumes"] = p }
-                            if let s = item.parsed.seasonNumber { payload["seasonNumber"] = s }
-                            if let e = item.parsed.episodeInSeason { payload["episodeInSeason"] = e }
-                            if let b = item.parsed.caughtUp { payload["caughtUp"] = b }
-                            if let b = item.parsed.lastEpisode { payload["lastEpisode"] = b }
-                            if let b = item.parsed.completed { payload["completed"] = b }
-
-                            llmItemsToApply.append(payload)
-                            appliedIds.insert(item.id)
-                            appliedSummaryLines.append(
-                                summaryLineForAppliedItem(title: picked.title_raw, mediaType: picked.media_type, status: status, parsed: item.parsed)
-                            )
-                        }
-
-                        remaining = remaining.filter { !appliedIds.contains($0.id) }
-                    }
-                }
-
-                let combinedToApply = auto.itemsToApply + llmItemsToApply
-
-                if response.userId != nil, !combinedToApply.isEmpty {
-                    let res = try await supabaseService.conciergeApply(items: combinedToApply)
-                    if let sessionId = res.sessionId { lastApplySessionId = sessionId }
-                    await supabaseService.fetchUserLists()
-                    await supabaseService.fetchCollectionItems()
-
-                    if remaining.isEmpty {
-                        let details = appliedSummaryLines.isEmpty ? "" : ("\n" + appliedSummaryLines.prefix(6).map { "• \($0)" }.joined(separator: "\n"))
-                        withAnimation(.interactiveSpring(response: 0.30, dampingFraction: 0.86)) {
-                            messages.append(
-                                ConciergeMessage(
-                                    role: .assistant,
-                                    text: res.success
-                                        ? "Saved.\(details)"
-                                        : "Applied with errors. You can undo and try again.",
-                                    items: nil
-                                )
-                            )
-                        }
-                    } else {
-                        // Preselect the top candidate for the rest so it feels fast.
-                        for item in remaining {
-                            guard let top = item.candidates.first else { continue }
-                            if top.score >= 0.60 {
-                                selectedByItemId[item.id] = top
-                            }
-                        }
-                        let details = appliedSummaryLines.isEmpty ? "" : ("\n" + appliedSummaryLines.prefix(6).map { "• \($0)" }.joined(separator: "\n"))
-                        withAnimation(.interactiveSpring(response: 0.30, dampingFraction: 0.86)) {
-                            messages.append(
-                                ConciergeMessage(
-                                    role: .assistant,
-                                    text: "Saved what I’m confident about.\(details)\n\nA few are still ambiguous — tap the right match, then APPLY.",
-                                    items: remaining
-                                )
-                            )
-                        }
-                    }
-                } else {
-                    // Preselect obvious matches to reduce taps for common cases.
-                    for item in response.items {
-                        guard let top = item.candidates.first else { continue }
-                        if top.score >= 0.60 {
-                            selectedByItemId[item.id] = top
-                        }
-                    }
-                    let missing = response.items.filter { !$0.candidateError.isNilOrEmpty }.count
-                    let summaryText =
-                        response.userId == nil
-                        ? "Sign in to apply changes. I can still help you match titles:"
-                        : (missing > 0
-                            ? "Parsed \(response.items.count) item(s). Some titles didn’t match — tap candidates, then APPLY."
-                            : "Parsed \(response.items.count) item(s). Tap candidates, then APPLY.")
-                    withAnimation(.interactiveSpring(response: 0.30, dampingFraction: 0.86)) {
-                        messages.append(
-                            ConciergeMessage(
-                                role: .assistant,
-                                text: summaryText,
-                                items: response.items
-                            )
-                        )
-                    }
-                }
-            } else {
-                let rec = try await supabaseService.conciergeRecommend(text: text, scope: .both, limit: 8)
-                let sets = (rec.sets ?? []).filter { ($0.items ?? []).isEmpty == false }
-                let flattened = sets.flatMap { $0.items ?? [] }
-                let displayItems = !flattened.isEmpty ? flattened : (rec.items ?? [])
-
-                if rec.success, !displayItems.isEmpty {
-                    // Prefetch covers so the recommendation rail renders instantly.
-                    let urls = displayItems
-                        .compactMap { URL(string: $0.coverImageMedium ?? "") }
-                        .prefix(16)
-                    if !urls.isEmpty {
-                        Task { await ImagePipeline.shared.prefetch(urls: Array(urls), maxPixelSize: 520) }
-                    }
-                    withAnimation(.interactiveSpring(response: 0.30, dampingFraction: 0.86)) {
-                        messages.append(
-                            ConciergeMessage(
-                                role: .assistant,
-                                text: rec.message ?? "Here are a few picks:",
-                                items: nil,
-                                recommendations: displayItems,
-                                recommendationSets: sets.isEmpty ? nil : sets,
-                                recommendationCategories: rec.categories
-                            )
-                        )
-                    }
-                } else {
-                    withAnimation(.interactiveSpring(response: 0.30, dampingFraction: 0.86)) {
-                        messages.append(
-                            ConciergeMessage(
-                                role: .assistant,
-                                text: rec.message ?? "Tell me a vibe (funny, sad, cozy, action) and I’ll recommend something new-to-you.",
-                                items: nil,
-                                recommendations: nil
-                            )
-                        )
-                    }
-                }
-            }
-        } catch {
-            if let guardrail = error as? SupabaseService.ConciergeGuardrailsError {
-                errorText = guardrail.localizedDescription
-                showToast(.init(kind: .error, title: "Slow down", subtitle: guardrail.localizedDescription, actionTitle: nil, onAction: nil), autoDismissSeconds: 3.0)
-            } else {
-                errorText = "Concierge error: \(error.localizedDescription)"
-                showToast(.init(kind: .error, title: "Concierge error", subtitle: error.localizedDescription, actionTitle: nil, onAction: nil), autoDismissSeconds: 3.0)
-            }
-        }
-
-        withAnimation(.easeInOut(duration: 0.18)) { isWorking = false }
-    }
-
-    private func looksLikeImport(_ text: String) -> Bool {
-        // High precision: false positives feel like "wrong responses" because we route to import parsing
-        // instead of recommendations. We prefer a few false negatives over misrouting vibes.
-        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let l = t.lowercased()
-
-        if t.contains("\n") { return true }
-
-        // Explicit import language (EN + DE)
-        if l.contains("watching") || l.contains("reading") || l.contains("completed") || l.contains("finished") || l.contains("dropped") { return true }
-        if l.contains("i watched") || l.contains("i'm watching") || l.contains("im watching") { return true }
-        if l.contains("caught up") || l.contains("up to date") { return true }
-        if l.contains("ich habe") || l.contains("ich schaue") || l.contains("ich gucke") || l.contains("ich sehe") || l.contains("ich lese") { return true }
-        if l.contains("staffel") || l.contains("folge") || l.contains("kapitel") || l.contains("band") { return true }
-
-        // Progress patterns
-        if l.contains(" ep ") || l.contains("episode") || l.contains("chapter") || l.contains(" vol") { return true }
-        if l.range(of: #"s\d{1,2}\s*e\d{1,4}"#, options: .regularExpression) != nil { return true }
-        if l.range(of: #"\b\d{1,2}\s*x\s*\d{1,4}\b"#, options: .regularExpression) != nil { return true }
-
-        // Comma-separated lists are common for vibes ("funny, not childish") so only treat commas
-        // as import if we have multiple title-like segments.
-        if t.contains(",") {
-            let parts = t.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            if parts.count >= 2 {
-                let titleLikeCount = parts.filter { segmentLooksTitleLike($0) }.count
-                if titleLikeCount >= 2 { return true }
-            }
-        }
-
-        // Short prompts like "funny anime" shouldn't be treated as import.
-        if t.count <= 28 { return false }
-        return false
-    }
-
-    private func segmentLooksTitleLike(_ s: String) -> Bool {
-        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard t.count >= 2 else { return false }
-        let l = t.lowercased()
-
-        // Natural language / vibe words are not titles.
-        let vibeMarkers = ["something", "funny", "sad", "cozy", "vibe", "recommend", "suggest", "like", "but", "not", "please", "anime", "manga"]
-        if vibeMarkers.contains(where: { l.contains($0) }) && t.split(separator: " ").count <= 6 {
-            return false
-        }
-
-        // Strong title hints.
-        if t.contains("(") || t.contains(")") { return true }
-        if t.range(of: #"\b(19|20)\d{2}\b"#, options: .regularExpression) != nil { return true }
-        if l.range(of: #"\b(ep|episode|ch|chapter|vol|volume|s\d+e\d+|\d+x\d+)\b"#, options: .regularExpression) != nil { return true }
-
-        // Heuristic: multiple words + some uppercase characters.
-        let words = t.split(separator: " ")
-        if words.count >= 2 && t.range(of: #"[A-Z]"#, options: .regularExpression) != nil {
-            return true
-        }
-
-        // If user pasted lowercased titles, allow "two+ words" as a weak signal.
-        if words.count >= 3 { return true }
-
-        return false
-    }
+    // NOTE: send() uses hybrid FM-primary + keyword-fallback intent routing.
+    // See ConciergeView.swift lines ~620-747 for the actual implementation.
+    // Flow: shouldAskClarifyingQuestion() → FM assistIntent() (if enabled) → routeByKeywords() fallback
+    //       → handleImportFlow() or handleRecommendationFlow()
+    // looksLikeImport() and segmentLooksTitleLike() are now in TextNormalization.swift (static methods).
+    // ConciergeView’s private looksLikeImport() delegates to TextNormalization.looksLikeImport().
 
     private struct AutoResolveResult {
         let itemsToApply: [[String: Any]]
@@ -15685,3 +15468,100 @@ Totals: 0 new files, 2 modified Swift files, 0 new migrations. 64 Swift files, 1
 - **UI test added**: `testConciergeImportRouting` — types "Watched Jujutsu Kaisen halfway through" in Concierge with `--ff-off=fm_assist_v1` (keyword fallback forced), verifies CONFIRM button appears (import flow, not recommendations).
 - **Scheme updated**: KuroTests target added to Kuro.xcscheme test action (was missing — only KuroUITests was wired).
 - **No new Swift files, no backend changes.** 64 Swift files, 143 migrations.
+
+### 2026-03-01 — FM intent classification post-review remediation
+- **P1-a: Stale code snapshot fixed** in `CURRENT_APP_STATE.md` — replaced 260-line embedded `send()` + `looksLikeImport()` + `segmentLooksTitleLike()` code dump (still showing pre-FM keyword routing) with a concise 6-line summary pointing to the actual source. The change log already documents the FM wiring; embedding full code created a maintenance burden and was already stale.
+- **P1-b: `fm_assist_v1` rollout documented** — added `fm_assist_v1 (0%, staged)` to the Concierge intent routing section with planned rollout: 0% → 10% canary → 50% → 100%. The flag was already in `FeatureFlags.swift` and the change log but wasn't called out in the feature description.
+- **8 edge case tests added** to `KuroTests/KuroTests.swift` (`ImportIntentTests` suite, now 22 tests total):
+  - `testEmptyAndWhitespace` — empty string and whitespace-only input
+  - `testGermanVibeWithStaffel` — German vibe marker present but staffel/folge overrides to import
+  - `testCaseInsensitive` — WATCHED/COMPLETED uppercase matching
+  - `testRegexBoundaries` — s1e1, s12e1234, 1x50 regex edge cases
+- **P2 clarity comments added**:
+  - `ConciergeView.swift`: ordering comment above `shouldAskClarifyingQuestion()` explaining it runs before FM classification
+  - `ConciergeInputField.swift`: distinction comment above `looksLikeImportListText()` explaining separation from `TextNormalization.looksLikeImport()`
+- **No logic changes, no new files, no backend changes.** 64 Swift files, 143 migrations. All 22 unit tests pass.
+
+### 2026-03-01 — Offline Mode Hardening (6 gaps fixed)
+
+Backend connectivity audit found 6 offline handling gaps. All fixed across 10 files, no new files, no backend changes.
+
+**SupabaseService.swift — Cache fallback on network failure:**
+- `fetchAnimeById` and `fetchMangaById` now stash disk cache as `diskFallback` before attempting network. On catch: if disk fallback exists, return it (+ populate memory cache); else rethrow. Success path unchanged.
+- KuroPerf records `"disk_fallback"` message when fallback path taken.
+
+**NetworkMonitor.swift — Reconnection signal:**
+- Added `reconnectionGeneration: Int` property, incremented in `pathUpdateHandler` when `connected == true`.
+
+**ContentView.swift — Auto-refresh on reconnect:**
+- `KuroMainView` observes `.onChange(of: networkMonitor.reconnectionGeneration)` to refresh the active page: Discover (force bundle), Collection (user lists + feed), Clubs (notifications). Concierge/Browse skip (user-driven).
+
+**BrowseView.swift — Offline error state:**
+- Added `loadError` state. When search returns empty AND offline, shows `wifi.slash` icon + "COULDN'T LOAD" + retry button. Clears on successful load.
+
+**ConciergeInputField.swift — Send guard:**
+- `canSend` now requires `networkMonitor.isConnected`. Placeholder shows "Offline" when disconnected. Accessibility hint says "You're offline".
+
+**AddToListSheet.swift — Save guard:**
+- Save button `.disabled` when offline. "OFFLINE — SAVE DISABLED" hint text shown.
+
+**ClubDetailView.swift — Create guards:**
+- All 4 create rail/poll buttons `.disabled(!networkMonitor.isConnected)`. Existing vote/reaction error toasts unchanged.
+
+**MediaDetailSheet.swift — Retry button:**
+- Both `AnimeDetailLoaderView` and `MangaDetailLoaderView` get `retryCount` state + RETRY button. `.task(id:)` keyed on `"\(id)-\(retryCount)"` to re-trigger fetch.
+
+**EditorialCollectionView.swift — Network-aware error + stale indicator:**
+- Error block shows `wifi.slash`/"YOU'RE OFFLINE" when disconnected, `exclamationmark.triangle`/"COULDN'T LOAD COLLECTION" when connected. RETRY button calls `fetchUserLists` + `fetchCollectionFeed`.
+- "SHOWING CACHED DATA" label when offline but content is displayed.
+
+**EditorialDiscoverView.swift — Stale indicator:**
+- "SHOWING CACHED DATA" label at top of content when offline and `hasAnyContent`.
+
+Totals: 0 new files, 10 modified files (3 services, 7 views), 0 new migrations. 64 Swift files, 143 migrations.
+
+### 2026-03-01 — Streaming Availability v1 ("Where to Watch/Read")
+
+New feature: streaming/reading provider availability on cards, detail pages, collection filters, and club shared-provider views. Gated behind `streaming_availability_v1` feature flag at 0% rollout.
+
+**Backend (migration `20260301100000_streaming_availability_v1.sql`):**
+- New table `streaming_services`: canonical registry of streaming/reading platforms (19 seed rows covering Crunchyroll, Funimation, Netflix, etc.)
+- New table `user_streaming_services`: per-user service selection + language preference, RLS scoped to `auth.uid()`
+- 3 new RPCs: `batch_providers_for_media` (batch lookup for media IDs against user's services), `club_shared_providers` (intersection of all club members' providers), `save_user_streaming_services` (upsert user selections + language)
+- GDPR: `user_streaming_services` added to `delete_user_concierge_data` cascade
+
+**SupabaseService.swift (~120 lines added):**
+- Provider cache + batch prefetch method for provider data alongside existing friend count prefetch
+- CRUD for user streaming services (save, fetch registry, fetch user selections)
+- Club shared providers fetch
+- Bootstrap: streaming services loaded during auth bootstrap when flag enabled
+
+**SupabaseRPCParams.swift:**
+- 2 new param structs: `RPCBatchProvidersParams`, `RPCSaveStreamingServicesParams`
+
+**FeatureFlags.swift:**
+- New accessor: `isStreamingAvailabilityV1Enabled`
+
+**EditorialCollectionView.swift:**
+- Service + language filter pills (tri-state toggle) in collection filter bar
+- Provider prefetch alongside friend count prefetch on page load
+
+**KuroRefinedCard.swift:**
+- Provider badge overlay on `KuroPortraitCard` + `KuroCompactCard` (shows service icons when available)
+
+**ProfileView.swift:**
+- Services preview card in profile settings
+- New `StreamingServicePickerSheet` for selecting streaming services + language
+- New `ServiceToggleRow` component
+
+**ClubDetailView.swift:**
+- Shared availability toggle on club rails
+- Coverage text showing how many members can access each title
+- Dimmed cards for titles not available on shared providers
+- Rail prefetch for provider data
+
+**Other changes:**
+- `normalizedExternalLanguage` visibility changed from `private` to `internal` (needed by streaming filter logic)
+- Hardcoded allowlist arrays annotated with `TODO` for removal when flag reaches 100%
+
+Totals: 0 new Swift files, 7 modified Swift files, 1 new migration. 64 Swift files, 144 migrations.

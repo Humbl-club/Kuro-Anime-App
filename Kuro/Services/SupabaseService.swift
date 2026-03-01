@@ -200,6 +200,7 @@ class SupabaseService {
     var isLoading = false
     var errorMessage: String?
 
+    // TODO: remove when streaming_availability_v1 reaches 100% — replaced by streaming_services registry
     private let animeProviderRanking: [String] = [
         "crunchyroll",
         "netflix",
@@ -714,6 +715,14 @@ class SupabaseService {
 
         // Feature flags are non-critical; fire without blocking.
         Task { await FeatureFlags.shared.refresh(client: client, userId: currentUserId) }
+
+        // Streaming availability: load registry + user services (non-blocking)
+        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+            Task {
+                await fetchStreamingServiceRegistry()
+                await fetchUserStreamingServices()
+            }
+        }
     }
 
     private func currentUserIdString() async -> String? {
@@ -1258,10 +1267,7 @@ class SupabaseService {
     // MARK: - Detail fetch by id (full models)
     func fetchAnimeById(_ animeId: Int) async throws -> Anime? {
         if let cached = animeDetailCache[animeId] { return cached }
-        if let disk: Anime = await KuroDiskDetailCache.read(kind: .anime, id: animeId, as: Anime.self) {
-            animeDetailCache[animeId] = disk
-            return disk
-        }
+        let diskFallback: Anime? = await KuroDiskDetailCache.read(kind: .anime, id: animeId, as: Anime.self)
         let perf = KuroPerf.begin("db.anime_by_id")
         do {
             let rows: [Anime] = try await client
@@ -1283,6 +1289,14 @@ class SupabaseService {
             KuroPerf.end(perf, message: item == nil ? "missing" : "ok")
             return item
         } catch {
+            if let diskFallback {
+                #if DEBUG
+                print("⚠️ anime_by_id network error, using disk fallback: \(error)")
+                #endif
+                animeDetailCache[animeId] = diskFallback
+                KuroPerf.end(perf, message: "disk_fallback")
+                return diskFallback
+            }
             KuroPerf.end(perf, message: "error")
             throw error
         }
@@ -1290,10 +1304,7 @@ class SupabaseService {
 
     func fetchMangaById(_ mangaId: Int) async throws -> Manga? {
         if let cached = mangaDetailCache[mangaId] { return cached }
-        if let disk: Manga = await KuroDiskDetailCache.read(kind: .manga, id: mangaId, as: Manga.self) {
-            mangaDetailCache[mangaId] = disk
-            return disk
-        }
+        let diskFallback: Manga? = await KuroDiskDetailCache.read(kind: .manga, id: mangaId, as: Manga.self)
         let perf = KuroPerf.begin("db.manga_by_id")
         do {
             let rows: [Manga] = try await client
@@ -1314,6 +1325,14 @@ class SupabaseService {
             KuroPerf.end(perf, message: item == nil ? "missing" : "ok")
             return item
         } catch {
+            if let diskFallback {
+                #if DEBUG
+                print("⚠️ manga_by_id network error, using disk fallback: \(error)")
+                #endif
+                mangaDetailCache[mangaId] = diskFallback
+                KuroPerf.end(perf, message: "disk_fallback")
+                return diskFallback
+            }
             KuroPerf.end(perf, message: "error")
             throw error
         }
@@ -3118,7 +3137,7 @@ class SupabaseService {
         return "en"
     }
 
-    private func normalizedExternalLanguage(_ raw: String?) -> String {
+    func normalizedExternalLanguage(_ raw: String?) -> String {
         let source = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if source.isEmpty { return "unknown" }
         if source.hasPrefix("de") || source.contains("german") || source.contains("deutsch") { return "de" }
@@ -4761,6 +4780,183 @@ class SupabaseService {
                 #endif
             }
         }
+    }
+
+    // MARK: - Streaming Availability
+
+    struct ProviderInfo: Decodable, Sendable {
+        let slug: String
+        let display_name: String
+        let language: String?
+    }
+
+    struct BatchProviderResult: Decodable, Sendable {
+        let media_type: String
+        let media_id: Int
+        let providers: [ProviderInfo]
+    }
+
+    struct StreamingServiceRecord: Decodable, Sendable, Identifiable {
+        let slug: String
+        let display_name: String
+        let media_types: [String]
+        let priority: Int
+        let is_active: Bool
+        var id: String { slug }
+    }
+
+    struct ClubSharedProvidersResponse: Decodable, Sendable {
+        let shared_services: [SharedService]
+        let member_count_total: Int
+        let member_count_with_services: Int
+        let coverage_pct: Int
+
+        struct SharedService: Decodable, Sendable {
+            let slug: String
+            let display_name: String
+        }
+    }
+
+    // Provider cache keyed "ANIME-12345"
+    private var providerCache: [String: [ProviderInfo]] = [:]
+    private var providerPrefetchTask: Task<Void, Never>?
+    // User's selected streaming service slugs
+    var userStreamingServices: [String] = []
+    // Club shared providers cache keyed by club ID
+    private var clubSharedProvidersCache: [String: ClubSharedProvidersResponse] = [:]
+    // Canonical registry loaded once on bootstrap
+    var streamingServiceRegistry: [StreamingServiceRecord] = []
+
+    func providers(mediaId: Int, mediaType: String) -> [ProviderInfo] {
+        providerCache["\(mediaType.uppercased())-\(mediaId)"] ?? []
+    }
+
+    func bestProviderDisplayName(mediaId: Int, mediaType: String) -> String? {
+        providers(mediaId: mediaId, mediaType: mediaType).first?.display_name
+    }
+
+    func collectionItemsAvailableOn(slug: String) -> Set<String> {
+        var result = Set<String>()
+        for (key, providers) in providerCache {
+            if providers.contains(where: { $0.slug == slug }) {
+                result.insert(key)
+            }
+        }
+        return result
+    }
+
+    func collectionItemsWithLanguage(lang: String, includeUnknown: Bool) -> Set<String> {
+        var result = Set<String>()
+        for (key, providers) in providerCache {
+            if providers.contains(where: {
+                let normalized = normalizedExternalLanguage($0.language)
+                return normalized == lang || (includeUnknown && normalized == "unknown")
+            }) {
+                result.insert(key)
+            }
+        }
+        return result
+    }
+
+    func prefetchProviders(items: [(mediaType: String, mediaId: Int)]) {
+        providerPrefetchTask?.cancel()
+        providerPrefetchTask = Task { [weak self] in
+            guard let self, !items.isEmpty else { return }
+            let payload = items.map { ["media_type": $0.mediaType, "media_id": "\($0.mediaId)"] }
+            guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+                  let jsonString = String(data: jsonData, encoding: .utf8) else { return }
+            do {
+                let params = RPCBatchProvidersParams(p_items: jsonString)
+                let raw: [BatchProviderResult] = try await client
+                    .rpc("batch_providers_for_media", params: params)
+                    .execute()
+                    .value
+                guard !Task.isCancelled else { return }
+                for item in raw {
+                    self.providerCache["\(item.media_type)-\(item.media_id)"] = item.providers
+                }
+            } catch {
+                #if DEBUG
+                print("[Streaming] prefetchProviders error: \(error.localizedDescription)")
+                #endif
+            }
+        }
+    }
+
+    func fetchStreamingServiceRegistry() async {
+        do {
+            let records: [StreamingServiceRecord] = try await client
+                .from("streaming_services")
+                .select()
+                .eq("is_active", value: true)
+                .order("priority", ascending: true)
+                .execute()
+                .value
+            streamingServiceRegistry = records
+        } catch {
+            #if DEBUG
+            print("[Streaming] fetchStreamingServiceRegistry error: \(error.localizedDescription)")
+            #endif
+        }
+    }
+
+    func fetchUserStreamingServices() async {
+        do {
+            struct Row: Decodable { let service: String }
+            let rows: [Row] = try await client
+                .from("user_streaming_services")
+                .select("service")
+                .execute()
+                .value
+            userStreamingServices = rows.map(\.service)
+        } catch {
+            #if DEBUG
+            print("[Streaming] fetchUserStreamingServices error: \(error.localizedDescription)")
+            #endif
+        }
+    }
+
+    func saveUserStreamingServices(_ slugs: [String]) async {
+        do {
+            let params = RPCSaveStreamingServicesParams(p_services: slugs)
+            let _: AnyJSON = try await client
+                .rpc("save_user_streaming_services", params: params)
+                .execute()
+                .value
+            userStreamingServices = slugs
+        } catch {
+            #if DEBUG
+            print("[Streaming] saveUserStreamingServices error: \(error.localizedDescription)")
+            #endif
+        }
+    }
+
+    func fetchClubSharedProviders(clubId: String) async -> ClubSharedProvidersResponse? {
+        do {
+            struct Params: Encodable, Sendable {
+                let p_club_id: String
+                enum CodingKeys: String, CodingKey { case p_club_id }
+                nonisolated func encode(to encoder: Encoder) throws {
+                    var c = encoder.container(keyedBy: CodingKeys.self)
+                    try c.encode(p_club_id, forKey: .p_club_id)
+                }
+            }
+            let response: ClubSharedProvidersResponse = try await client
+                .rpc("club_shared_providers", params: Params(p_club_id: clubId))
+                .execute()
+                .value
+            clubSharedProvidersCache[clubId] = response
+            return response
+        } catch {
+            #if DEBUG
+            print("[Streaming] fetchClubSharedProviders error: \(error.localizedDescription)")
+            #endif
+            return nil
+        }
+    }
+
+    func cachedClubSharedProviders(clubId: String) -> ClubSharedProvidersResponse? {
+        clubSharedProvidersCache[clubId]
     }
 
     // MARK: - Club Realtime

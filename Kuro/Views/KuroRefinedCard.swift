@@ -201,6 +201,18 @@ struct KuroPortraitCard: View {
                         .foregroundColor(.black.opacity(0.40))
                     }
                 }
+
+                if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                    if let provider = supabaseService.bestProviderDisplayName(mediaId: media.id, mediaType: mediaType.uppercased()) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "play.tv")
+                                .font(.system(size: 8, weight: .regular))
+                            Text(provider)
+                                .font(.system(size: 9, weight: .light))
+                        }
+                        .foregroundColor(.black.opacity(0.40))
+                    }
+                }
             }
             .frame(width: cardWidth, alignment: .topLeading)
             .padding(.top, 10)
@@ -361,6 +373,18 @@ struct KuroCompactCard: View {
                             Image(systemName: "person.2")
                                 .font(.system(size: 8, weight: .regular))
                             Text("\(count) friend\(count == 1 ? "" : "s")")
+                                .font(.system(size: 9, weight: .light))
+                        }
+                        .foregroundColor(.black.opacity(0.40))
+                    }
+                }
+
+                if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                    if let provider = supabaseService.bestProviderDisplayName(mediaId: media.id, mediaType: mediaType.uppercased()) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "play.tv")
+                                .font(.system(size: 8, weight: .regular))
+                            Text(provider)
                                 .font(.system(size: 9, weight: .light))
                         }
                         .foregroundColor(.black.opacity(0.40))

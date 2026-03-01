@@ -10,6 +10,7 @@ struct ProfileView: View {
     @State private var toast: KuroToastState? = nil
     @State private var showDeleteConfirmation: Bool = false
     @State private var isDeleting: Bool = false
+    @State private var showServicePicker: Bool = false
 
     var body: some View {
         ZStack {
@@ -26,6 +27,11 @@ struct ProfileView: View {
 
                     clubsPreview
                         .padding(.horizontal, KuroDesignSpacing.padding)
+
+                    if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                        streamingServicesPreview
+                            .padding(.horizontal, KuroDesignSpacing.padding)
+                    }
 
                     Rectangle()
                         .fill(Color.black.opacity(0.08))
@@ -215,6 +221,69 @@ struct ProfileView: View {
                         .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
                 )
         )
+    }
+
+    private var streamingServicesPreview: some View {
+        let services = supabaseService.userStreamingServices
+        let registry = supabaseService.streamingServiceRegistry
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("SERVICES")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(2.0)
+                    .foregroundColor(.kuroBlack60)
+
+                Spacer(minLength: 0)
+
+                Text("\(services.count)")
+                    .font(.kuroMicro(weight: .medium))
+                    .foregroundColor(.kuroBlack30)
+                    .monospacedDigit()
+            }
+
+            if services.isEmpty {
+                Text("Set your streaming services to filter your collection.")
+                    .font(.kuroCaption(weight: .light))
+                    .foregroundColor(.kuroBlack60)
+            } else {
+                let displayNames = services.compactMap { slug in
+                    registry.first(where: { $0.slug == slug })?.display_name
+                }
+                FlowLayout(spacing: 6) {
+                    ForEach(displayNames, id: \.self) { name in
+                        Text(name.uppercased())
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(0.8)
+                            .foregroundColor(.black.opacity(0.55))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule()
+                                    .fill(Color.black.opacity(0.06))
+                            )
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
+                .fill(Color.kuroSecondaryBackground.opacity(0.90))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
+                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
+                )
+        )
+        .onTapGesture {
+            KuroAccessibility.impactHaptic(.light)
+            showServicePicker = true
+        }
+        .sheet(isPresented: $showServicePicker) {
+            StreamingServicePickerSheet()
+                .environment(supabaseService)
+        }
     }
 
     private var actions: some View {
@@ -486,6 +555,148 @@ private struct ProfileActionRow: View {
                     )
                     .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 10)
             )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Streaming Service Picker Sheet
+
+private struct StreamingServicePickerSheet: View {
+    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedSlugs: Set<String> = []
+    @State private var isSaving: Bool = false
+
+    private var animeServices: [SupabaseService.StreamingServiceRecord] {
+        supabaseService.streamingServiceRegistry.filter { $0.media_types.contains("ANIME") }
+    }
+
+    private var mangaServices: [SupabaseService.StreamingServiceRecord] {
+        supabaseService.streamingServiceRegistry.filter { $0.media_types.contains("MANGA") }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
+                    Text("Select the services you use. This filters your collection and enables shared availability in clubs.")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.kuroBlack60)
+                        .padding(.horizontal, 20)
+
+                    if !animeServices.isEmpty {
+                        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                            Text("ANIME")
+                                .font(.kuroMicro(weight: .medium))
+                                .tracking(2.0)
+                                .foregroundColor(.kuroBlack60)
+                                .padding(.horizontal, 20)
+
+                            ForEach(animeServices) { svc in
+                                ServiceToggleRow(
+                                    name: svc.display_name,
+                                    isSelected: selectedSlugs.contains(svc.slug)
+                                ) {
+                                    if selectedSlugs.contains(svc.slug) {
+                                        selectedSlugs.remove(svc.slug)
+                                    } else {
+                                        selectedSlugs.insert(svc.slug)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if !mangaServices.isEmpty {
+                        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                            Text("MANGA")
+                                .font(.kuroMicro(weight: .medium))
+                                .tracking(2.0)
+                                .foregroundColor(.kuroBlack60)
+                                .padding(.horizontal, 20)
+
+                            ForEach(mangaServices) { svc in
+                                ServiceToggleRow(
+                                    name: svc.display_name,
+                                    isSelected: selectedSlugs.contains(svc.slug)
+                                ) {
+                                    if selectedSlugs.contains(svc.slug) {
+                                        selectedSlugs.remove(svc.slug)
+                                    } else {
+                                        selectedSlugs.insert(svc.slug)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(minLength: 24)
+                }
+                .padding(.top, KuroDesignSpacing.md)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("SERVICES")
+                        .font(.kuroNavigation(weight: .regular))
+                        .tracking(1.5)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task {
+                            isSaving = true
+                            await supabaseService.saveUserStreamingServices(Array(selectedSlugs))
+                            isSaving = false
+                            dismiss()
+                        }
+                    } label: {
+                        if isSaving {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .tint(.kuroBlack60)
+                        } else {
+                            Text("Save")
+                                .font(.kuroBody(weight: .light))
+                        }
+                    }
+                    .disabled(isSaving)
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .font(.kuroBody(weight: .light))
+                }
+            }
+        }
+        .onAppear {
+            selectedSlugs = Set(supabaseService.userStreamingServices)
+        }
+    }
+}
+
+private struct ServiceToggleRow: View {
+    let name: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: {
+            KuroAccessibility.impactHaptic(.light)
+            action()
+        }) {
+            HStack(spacing: 14) {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundColor(isSelected ? .kuroBlack80 : .kuroBlack30)
+
+                Text(name)
+                    .font(.kuroBody(weight: .regular))
+                    .foregroundColor(.kuroBlack80)
+
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
     }

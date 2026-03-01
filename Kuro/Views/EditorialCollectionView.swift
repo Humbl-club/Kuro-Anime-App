@@ -6,6 +6,7 @@ import SwiftUI
 
 struct EditorialCollectionView: View {
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(NetworkMonitor.self) private var networkMonitor
     @State private var selectedFilter: CollectionFilter = .all
     @State private var selectedSort: CollectionSort = .lastUpdated
     @State private var showListView = false
@@ -17,6 +18,9 @@ struct EditorialCollectionView: View {
     @State private var isEditMode = false
     @State private var selectedKeys: Set<String> = []
     @State private var showBatchStatusPicker = false
+    @State private var selectedServiceFilter: String? = nil
+    @State private var selectedLanguageFilter: String? = nil
+    @State private var includeUnknownLanguage: Bool = true
 
     enum CollectionFilter: String, CaseIterable {
         case all = "ALL"
@@ -48,7 +52,20 @@ struct EditorialCollectionView: View {
     private var items: [Media] { supabaseService.collectionFeedItems }
 
     private var displayItems: [Media] {
-        let base = searchResults ?? items
+        var base = searchResults ?? items
+
+        // Streaming service filter
+        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled, let slug = selectedServiceFilter {
+            let available = supabaseService.collectionItemsAvailableOn(slug: slug)
+            base = base.filter { available.contains("\($0.kind == .anime ? "ANIME" : "MANGA")-\($0.id)") }
+        }
+
+        // Language filter
+        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled, let lang = selectedLanguageFilter {
+            let available = supabaseService.collectionItemsWithLanguage(lang: lang, includeUnknown: includeUnknownLanguage)
+            base = base.filter { available.contains("\($0.kind == .anime ? "ANIME" : "MANGA")-\($0.id)") }
+        }
+
         switch selectedSort {
         case .lastUpdated:
             return base
@@ -118,6 +135,59 @@ struct EditorialCollectionView: View {
                             }
                         }
                         .padding(.horizontal, EditorialLayout.marginEditorial)
+                    }
+
+                    // Streaming service filter pill
+                    if FeatureFlags.shared.isStreamingAvailabilityV1Enabled,
+                       !supabaseService.userStreamingServices.isEmpty {
+                        Menu {
+                            Button("ALL SERVICES") {
+                                selectedServiceFilter = nil
+                            }
+                            ForEach(supabaseService.streamingServiceRegistry.filter({
+                                supabaseService.userStreamingServices.contains($0.slug)
+                            })) { svc in
+                                Button(svc.display_name) {
+                                    selectedServiceFilter = svc.slug
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "play.tv")
+                                    .font(.system(size: 9, weight: .regular))
+                                Text(selectedServiceFilter != nil
+                                     ? (supabaseService.streamingServiceRegistry.first(where: { $0.slug == selectedServiceFilter })?.display_name ?? "SERVICE")
+                                     : "SERVICE")
+                                    .font(.system(size: 9, weight: .medium))
+                                    .tracking(0.8)
+                            }
+                            .foregroundColor(selectedServiceFilter != nil ? .black : .black.opacity(0.35))
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    // Language filter pill
+                    if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                        Menu {
+                            Button("ANY LANGUAGE") {
+                                selectedLanguageFilter = nil
+                            }
+                            Button("ENGLISH") { selectedLanguageFilter = "en" }
+                            Button("GERMAN") { selectedLanguageFilter = "de" }
+                            Button("JAPANESE") { selectedLanguageFilter = "ja" }
+                            Divider()
+                            Toggle("Include unlabeled", isOn: $includeUnknownLanguage)
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "globe")
+                                    .font(.system(size: 9, weight: .regular))
+                                Text(selectedLanguageFilter?.uppercased() ?? "LANG")
+                                    .font(.system(size: 9, weight: .medium))
+                                    .tracking(0.8)
+                            }
+                            .foregroundColor(selectedLanguageFilter != nil ? .black : .black.opacity(0.35))
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     Spacer(minLength: 8)
@@ -198,21 +268,46 @@ struct EditorialCollectionView: View {
                             .padding(.top, 80)
                         } else if let msg = supabaseService.collectionErrorMessage, !msg.isEmpty {
                             VStack(spacing: 8) {
-                                Text("COULDN'T LOAD COLLECTION")
-                                    .font(.kuroCaption())
-                                    .tracking(1.5)
-                                    .foregroundColor(.black.opacity(0.5))
-                                Text(msg)
-                                    .font(.kuroMicro(weight: .light))
-                                    .foregroundColor(.black.opacity(0.4))
+                                Image(systemName: networkMonitor.isConnected ? "exclamationmark.triangle" : "wifi.slash")
+                                    .font(.system(size: 32, weight: .light))
+                                    .foregroundColor(.kuroTextTertiary)
+                                Text(networkMonitor.isConnected ? "COULDN'T LOAD COLLECTION" : "YOU'RE OFFLINE")
+                                    .font(.kuroCaption(weight: .medium))
+                                    .tracking(1.6)
+                                    .foregroundColor(.kuroTextSecondary)
+                                Text(networkMonitor.isConnected ? msg : "Your collection will appear when you reconnect.")
+                                    .font(.kuroBody())
+                                    .foregroundColor(.kuroTextTertiary)
                                     .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 24)
+                                Button {
+                                    Task {
+                                        await supabaseService.fetchUserLists()
+                                        await supabaseService.fetchCollectionFeed(status: nil)
+                                    }
+                                } label: {
+                                    Text("RETRY")
+                                        .font(.kuroCaption(weight: .medium))
+                                        .tracking(1.6)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 10)
+                                        .background(Capsule().fill(Color.black))
+                                }
+                                .buttonStyle(.plain)
                             }
-                            .padding(.top, 80)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
                             EditorialCollectionEmpty()
                         }
                     } else {
+                        if !networkMonitor.isConnected {
+                            Text("SHOWING CACHED DATA")
+                                .font(.kuroMicro(weight: .medium))
+                                .tracking(1.2)
+                                .foregroundColor(.kuroTextTertiary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.bottom, 4)
+                        }
                         if showListView {
                             CollectionListView(items: displayItems, isEditMode: isEditMode, selectedKeys: $selectedKeys)
                         } else {
@@ -290,14 +385,17 @@ struct EditorialCollectionView: View {
                     Task { await ImagePipeline.shared.prefetch(urls: urls) }
                 }
 
-                if FeatureFlags.shared.isSocialActivityV1Enabled {
-                    let feedItems: [(mediaType: String, mediaId: Int)] = await MainActor.run {
-                        supabaseService.collectionFeedItems.prefix(80).map {
-                            (mediaType: $0.kind == .anime ? "ANIME" : "MANGA", mediaId: $0.id)
-                        }
+                let feedItems: [(mediaType: String, mediaId: Int)] = await MainActor.run {
+                    supabaseService.collectionFeedItems.prefix(80).map {
+                        (mediaType: $0.kind == .anime ? "ANIME" : "MANGA", mediaId: $0.id)
                     }
-                    if !feedItems.isEmpty {
+                }
+                if !feedItems.isEmpty {
+                    if FeatureFlags.shared.isSocialActivityV1Enabled {
                         supabaseService.prefetchFriendCounts(items: feedItems)
+                    }
+                    if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                        supabaseService.prefetchProviders(items: feedItems)
                     }
                 }
             }

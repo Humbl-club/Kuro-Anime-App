@@ -10,6 +10,7 @@ struct ClubDetailView: View {
     let clubId: String
 
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(\.dismiss) private var dismiss
 
     enum Tab: String, CaseIterable {
@@ -35,6 +36,8 @@ struct ClubDetailView: View {
     @State private var optimisticVoteByPollId: [String: String] = [:]
     @State private var optimisticVoteCountsByPollId: [String: [String: Int]] = [:]
     @State private var addToRailId: String? = nil
+    @State private var sharedProviders: SupabaseService.ClubSharedProvidersResponse? = nil
+    @State private var showSharedAvailability: Bool = false
 
     private var clubsInteractionV2Enabled: Bool {
         FeatureFlags.shared.isClubsInteractionV2Enabled
@@ -108,6 +111,19 @@ struct ClubDetailView: View {
             supabaseService.markClubSeen(clubId: clubId)
             await loadBundle()
             await supabaseService.subscribeToClubUpdates(clubId: clubId)
+
+            // Streaming: fetch shared providers + prefetch rail item providers
+            if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                sharedProviders = await supabaseService.fetchClubSharedProviders(clubId: clubId)
+                if let bundle {
+                    let allItems: [(mediaType: String, mediaId: Int)] = bundle.rails.flatMap { rail in
+                        rail.items.map { (mediaType: $0.media_type, mediaId: $0.media_id) }
+                    }
+                    if !allItems.isEmpty {
+                        supabaseService.prefetchProviders(items: allItems)
+                    }
+                }
+            }
         }
         .onDisappear {
             Task { await supabaseService.unsubscribeFromClubUpdates() }
@@ -241,6 +257,18 @@ struct ClubDetailView: View {
         .padding(.vertical, KuroDesignSpacing.sm)
     }
 
+    // MARK: - Shared availability helpers
+
+    private var sharedServiceSlugs: Set<String> {
+        guard let sp = sharedProviders else { return [] }
+        return Set(sp.shared_services.map(\.slug))
+    }
+
+    private func isAvailableOnSharedServices(mediaId: Int, mediaType: String) -> Bool {
+        let providers = supabaseService.providers(mediaId: mediaId, mediaType: mediaType)
+        return providers.contains(where: { sharedServiceSlugs.contains($0.slug) })
+    }
+
     // MARK: - Rails Tab
 
     @ViewBuilder
@@ -273,15 +301,44 @@ struct ClubDetailView: View {
                                     .stroke(Color.black.opacity(0.20), lineWidth: 0.8)
                             )
                     }
+                    .disabled(!networkMonitor.isConnected)
                     .padding(.top, KuroDesignSpacing.sm)
                 }
             }
             .padding(.top, KuroDesignSpacing.xxl)
         } else {
             VStack(alignment: .leading, spacing: 0) {
-                if ["owner", "admin"].contains(bundle.my_role) {
-                    HStack {
-                        Spacer()
+                HStack {
+                    // Shared availability toggle
+                    if FeatureFlags.shared.isStreamingAvailabilityV1Enabled,
+                       let sp = sharedProviders, !sp.shared_services.isEmpty {
+                        Button {
+                            KuroAccessibility.impactHaptic(.light)
+                            withAnimation(KuroAnimation.fast) {
+                                showSharedAvailability.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "play.tv")
+                                    .font(.system(size: 10, weight: .regular))
+                                Text("SHARED")
+                                    .font(.kuroMicro(weight: .medium))
+                                    .tracking(1.0)
+                            }
+                            .foregroundColor(showSharedAvailability ? .black : .black.opacity(0.40))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule()
+                                    .fill(showSharedAvailability ? Color.black.opacity(0.10) : Color.black.opacity(0.04))
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    Spacer()
+
+                    if ["owner", "admin"].contains(bundle.my_role) {
                         Button {
                             KuroAccessibility.impactHaptic(.light)
                             showCreateRail = true
@@ -301,9 +358,30 @@ struct ClubDetailView: View {
                                     .fill(Color.black.opacity(0.06))
                             )
                         }
+                        .disabled(!networkMonitor.isConnected)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, KuroDesignSpacing.sm)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, KuroDesignSpacing.sm)
+
+                // Coverage explanation
+                if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                    if let sp = sharedProviders {
+                        if sp.coverage_pct < 100 && sp.member_count_with_services > 0 {
+                            Text("\(sp.member_count_with_services) of \(sp.member_count_total) members set up services")
+                                .font(.kuroMicro(weight: .light))
+                                .foregroundColor(.kuroTextTertiary)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 4)
+                        }
+                        if supabaseService.userStreamingServices.isEmpty {
+                            Text("Set your services in Profile to unlock shared availability.")
+                                .font(.kuroMicro(weight: .light))
+                                .foregroundColor(.kuroTextTertiary)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 4)
+                        }
+                    }
                 }
 
                 // Milestone celebrations (all members completed)
@@ -338,7 +416,10 @@ struct ClubDetailView: View {
                             } : nil,
                             onError: { message in
                                 showToast(.error, title: message, subtitle: nil)
-                            }
+                            },
+                            itemOpacity: showSharedAvailability ? { item in
+                                isAvailableOnSharedServices(mediaId: item.media_id, mediaType: item.media_type) ? 1.0 : 0.35
+                            } : nil
                         )
                     }
                 }
@@ -420,6 +501,7 @@ struct ClubDetailView: View {
                                     .stroke(Color.black.opacity(0.20), lineWidth: 0.8)
                             )
                     }
+                    .disabled(!networkMonitor.isConnected)
                     .padding(.top, KuroDesignSpacing.sm)
                 }
             }
@@ -448,6 +530,7 @@ struct ClubDetailView: View {
                                     .fill(Color.black.opacity(0.06))
                             )
                         }
+                        .disabled(!networkMonitor.isConnected)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, KuroDesignSpacing.sm)
@@ -652,6 +735,7 @@ private struct ClubRailSection: View {
     let memberCount: Int
     var onAddItem: (() -> Void)? = nil
     var onError: ((String) -> Void)? = nil
+    var itemOpacity: ((SupabaseService.ClubRailItem) -> Double)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
@@ -719,6 +803,8 @@ private struct ClubRailSection: View {
                                     }
                                 }
                             }
+                            .opacity(itemOpacity?(item) ?? 1.0)
+                            .animation(KuroAnimation.fast, value: itemOpacity?(item) ?? 1.0)
                         }
                     }
                     .padding(.horizontal, 20)
