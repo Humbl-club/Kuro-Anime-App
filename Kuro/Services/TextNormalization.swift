@@ -147,4 +147,78 @@ enum TextNormalization {
         }
         return stemmed.joined(separator: " ")
     }
+
+    // MARK: - Import Intent Detection
+
+    /// Lightweight keyword-based check for whether user text looks like a list import
+    /// (as opposed to a recommendation/vibe request). Used as the primary intent router
+    /// on non-FM devices and as a fallback when FM is unavailable or low-confidence.
+    ///
+    /// The server-side parser (`concierge-parse/index.ts`) is the authoritative classifier;
+    /// this is a fast client-side pre-router to avoid unnecessary network calls.
+    static func looksLikeImport(_ text: String) -> Bool {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let l = t.lowercased()
+
+        if t.contains("\n") { return true }
+
+        // Explicit import language (EN + DE)
+        if l.contains("watching") || l.contains("reading") || l.contains("completed") || l.contains("finished") || l.contains("dropped") { return true }
+        if l.contains("watched") || l.contains("paused") || l.contains("saw ") || l.contains("i've seen") || l.contains("i have seen") { return true }
+        if l.contains("i'm watching") || l.contains("im watching") || l.contains("i'm reading") || l.contains("im reading") { return true }
+        if l.contains("caught up") || l.contains("up to date") { return true }
+        if l.contains("halfway") || l.contains("half way") || l.contains("midway") || l.contains("partway") { return true }
+        if l.contains("ich habe") || l.contains("ich schaue") || l.contains("ich gucke") || l.contains("ich sehe") || l.contains("ich lese") { return true }
+        if l.contains("geschaut") || l.contains("gesehen") || l.contains("gelesen") || l.contains("zur hälfte") || l.contains("zur haelfte") { return true }
+        if l.contains("staffel") || l.contains("folge") || l.contains("kapitel") || l.contains("band") { return true }
+
+        // German vibe markers — these are NOT imports
+        let germanVibeMarkers = ["etwas", "empfiehl", "empfehlung", "zeig mir", "ich möchte", "ich will", "ich suche"]
+        if germanVibeMarkers.contains(where: { l.contains($0) }) && !l.contains("staffel") && !l.contains("folge") {
+            return false
+        }
+
+        // Progress patterns
+        if l.contains(" ep ") || l.contains("episode") || l.contains("chapter") || l.contains(" vol") { return true }
+        if l.range(of: #"s\d{1,2}\s*e\d{1,4}"#, options: .regularExpression) != nil { return true }
+        if l.range(of: #"\b\d{1,2}\s*x\s*\d{1,4}\b"#, options: .regularExpression) != nil { return true }
+
+        // Comma-separated lists
+        if t.contains(",") {
+            let parts = t.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            if parts.count >= 2 {
+                let titleLikeCount = parts.filter { segmentLooksTitleLike($0) }.count
+                if titleLikeCount >= 2 { return true }
+            }
+        }
+
+        if t.count <= 28 { return false }
+        return false
+    }
+
+    /// Heuristic: does a comma-separated segment look like an anime/manga title
+    /// (vs. a vibe descriptor like "something funny")?
+    static func segmentLooksTitleLike(_ s: String) -> Bool {
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard t.count >= 2 else { return false }
+        let l = t.lowercased()
+
+        let vibeMarkers = ["something", "funny", "sad", "cozy", "vibe", "recommend", "suggest", "like", "but", "not", "please", "anime", "manga"]
+        if vibeMarkers.contains(where: { l.contains($0) }) && t.split(separator: " ").count <= 6 {
+            return false
+        }
+
+        if t.contains("(") || t.contains(")") { return true }
+        if t.range(of: #"\b(19|20)\d{2}\b"#, options: .regularExpression) != nil { return true }
+        if l.range(of: #"\b(ep|episode|ch|chapter|vol|volume|s\d+e\d+|\d+x\d+)\b"#, options: .regularExpression) != nil { return true }
+
+        let words = t.split(separator: " ")
+        if words.count >= 2 && t.range(of: #"[A-Z]"#, options: .regularExpression) != nil {
+            return true
+        }
+
+        if words.count >= 3 { return true }
+
+        return false
+    }
 }

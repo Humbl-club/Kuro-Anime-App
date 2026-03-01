@@ -36,6 +36,8 @@ The core plan is fully implemented, expanded, and quality-hardened. All major fe
 
 **Manga matching hardening v2 (2026-02-20)**: `manga-chapter-enrich` now supports runtime matcher mode (`strict`/`fuzzy_v2`), weighted fuzzy title scoring with confidence+margin gates, hard conflict filtering on external IDs, persistent mapping verification memory (`next_verify_at`, `verify_status`, fail counters), and automatic safety degrade to strict mode when 24h wrong-map proxy exceeds threshold. Added migration `20260220103000_manga_fuzzy_matcher_v2.sql` (new verification columns + candidate priority class 4 + quality metrics RPC + daily auto-expire for stale pending review rows). `scripts/check_cron_health.js` now prints a dedicated fuzzy quality scorecard (auto-resolve, wrong-map proxy, unresolved trend, verify deactivation, mode/degraded flag).
 
+**FM intent classification wired (2026-02-28)**: Apple Foundation Models `assistIntent()` (already implemented in AppleFMService.swift) is now the primary intent classifier in ConciergeView.send(). Hybrid architecture: FM-primary with keyword fallback. FM classifies into 6 intents with confidence scoring (threshold 0.65). Falls back to `looksLikeImport()` keywords on FM unavailable/timeout/low-confidence. Analytics distinguish `"source": "fm"` vs `"source": "keywords"`. No new files, no backend changes.
+
 **Additional backend pipeline (2026-02-19)**: Implemented Manga Chapter Enrichment v1 as a separate additive path (no router behavior changes): new edge function `manga-chapter-enrich`, new mapping/review tables (`manga_source_links`, `manga_source_link_review`), candidate + metrics RPCs, and 15-minute cron schedule. Follow-up migration `20260219234000_fix_manga_chapter_enrich_cron_secret.sql` hardens the cron header path so `x-import-secret` is always sent. Added `manga-source-review-action` edge function plus migration `20260219235500_manga_review_approved_mapping_method.sql` so unresolved review rows can be approved/rejected and immediately re-enriched in one call. iOS manga chapter-open behavior now uses strict legal-provider link allowlist and no longer falls back to generic `siteUrl`.
 
 **Add-to-rail + adaptive sizing (2026-02-16)**: "+" button per club rail in ClubDetailView opens AddItemToRailSheet with server-side search and typed PostgrestError handling. Member identity labels stabilized (UUID hex prefix). Adaptive card widths across all surfaces (Discover, GenreHub, detail similar sections) — removed hardcoded 393pt default, cards scale via `floor((screenWidth - 56) / 2.8)` clamped [112, 144].
@@ -392,6 +394,19 @@ Full feature launch across 5 phases:
 - Empty states improved
 - Owner transfer UX context-aware
 - Build verified on iPhone 17 Pro simulator
+
+## Concierge Import UX Improvements (2026-02-28) -- COMPLETED
+
+Redesigned import preview cards and confirmation flow for a premium editorial feel:
+- **Import cards**: larger 80x114pt posters, media type badge, parsed intent row (status + progress), tap-to-preview via MediaDetailSheet, auto-expand candidates when score < 0.80, press feedback animation
+- **Confirm button**: loading state with spinner during apply, disabled while in-flight
+- **Applied state**: persistent summary in bubble ("2 added, 1 updated") with UNDO + VIEW COLLECTION buttons (no longer toast-only)
+- **Auto-apply**: chat message now includes bulleted title list
+- Files changed: ConciergeImportCards.swift, ConciergeComponents.swift, ConciergeView.swift, ContentView.swift
+
+## Bug fix: Concierge import false success toast (2026-02-28) -- COMPLETED
+
+**P0 fix**: `autoApplyImport()` and `confirmImport()` in ConciergeView.swift showed a success toast ("N items added to collection") unconditionally after calling `concierge-apply`, even when the server returned `success: false`. Users saw "added" but items weren't saved. Fixed by adding `guard res.success` check in both functions. On failure: error toast with server error detail. On success: uses `res.applied?.count` for accurate count. Production `user_id` column types confirmed as TEXT (not INTEGER) — no backend migration needed.
 
 ## Bug fix: Progress data forwarding (2026-02-09) -- COMPLETED
 

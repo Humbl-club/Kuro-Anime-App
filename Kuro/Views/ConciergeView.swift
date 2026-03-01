@@ -58,6 +58,8 @@ struct ConciergeView: View {
     @State private var containerSize: CGSize = CGSize(width: 393, height: 852)
     @State private var appliedImportMessageIds: Set<UUID> = []
     @State private var lastAppliedImportMessageId: UUID? = nil
+    @State private var applyingImportMessageId: UUID? = nil
+    @State private var appliedImportSummary: String? = nil
     @State private var lastRecommendQuery: String? = nil
     @State private var lastRecommendWasRagAssist: Bool = false
     @State private var warmupTask: Task<Void, Never>? = nil
@@ -577,7 +579,16 @@ struct ConciergeView: View {
                             onReparse: {
                                 reparse(message: msg)
                             },
+                            onUndoImport: lastApplySessionId != nil ? {
+                                guard let sid = lastApplySessionId else { return }
+                                Task { await undoApply(sessionId: sid) }
+                            } : nil,
+                            onViewCollection: appliedImportMessageIds.contains(msg.id) ? {
+                                navigateToCollection()
+                            } : nil,
                             isImportApplied: appliedImportMessageIds.contains(msg.id),
+                            isImportApplying: applyingImportMessageId == msg.id,
+                            importAppliedSummary: appliedImportMessageIds.contains(msg.id) ? appliedImportSummary : nil,
                             autoReasonByItemId: autoReasonByItemId,
                             itemActions: itemActions,
                             excludedItemIds: $excludedItemIds
@@ -662,21 +673,77 @@ struct ConciergeView: View {
 
         isWorking = true
 
+        if fmAssistEnabled {
+            // FM-primary: use on-device model for intent classification
+            let locale = isGermanLocale ? "de" : "en"
+            let fmResult = await supabaseService.fmService.assistIntent(text: text, locale: locale)
+
+            if let result = fmResult, result.confidence >= 0.65 {
+                let intent = result.selectedIntent
+
+                supabaseService.analytics.track("intent_detected", payload: [
+                    "intent": intent,
+                    "source": "fm",
+                    "confidence": result.confidence,
+                    "input_length": Double(text.count),
+                ])
+
+                #if DEBUG
+                print("[Concierge] FM intent: \(intent) (confidence: \(String(format: "%.2f", result.confidence)), reasoning: \(result.reasoning))")
+                #endif
+
+                switch intent {
+                case "import":
+                    await handleImportFlow(text: text, interactionStartedAt: sendStartedAt)
+                case "unknown":
+                    let clarifyMsg = ConciergeMessage(
+                        role: .assistant,
+                        text: "What would you like to do?",
+                        showClarifyActions: true,
+                        items: nil
+                    )
+                    withAnimation(KuroAnimation.editorial) {
+                        messages.append(clarifyMsg)
+                    }
+                default:
+                    // recommend_vibe, recommend_seed, library_query, club_action
+                    await handleRecommendationFlow(text: text, interactionStartedAt: sendStartedAt)
+                }
+            } else {
+                // FM failed, timed out, or low confidence — fall back to keywords
+                #if DEBUG
+                if let result = fmResult {
+                    print("[Concierge] FM low confidence (\(String(format: "%.2f", result.confidence))), falling back to keywords")
+                } else {
+                    print("[Concierge] FM unavailable, falling back to keywords")
+                }
+                #endif
+                await routeByKeywords(text: text, sendStartedAt: sendStartedAt)
+            }
+        } else {
+            // FM not available — keyword routing (current behavior)
+            await routeByKeywords(text: text, sendStartedAt: sendStartedAt)
+        }
+
+        isWorking = false
+    }
+
+    private func routeByKeywords(text: String, sendStartedAt: CFAbsoluteTime) async {
         if looksLikeImport(text) {
             supabaseService.analytics.track("intent_detected", payload: [
                 "intent": "import",
+                "source": "keywords",
                 "input_length": Double(text.count),
             ])
             await handleImportFlow(text: text, interactionStartedAt: sendStartedAt)
         } else {
             supabaseService.analytics.track("intent_detected", payload: [
                 "intent": "recommend",
+                "source": "keywords",
                 "input_length": Double(text.count),
             ])
             await handleRecommendationFlow(text: text, interactionStartedAt: sendStartedAt)
         }
-
-        isWorking = false
     }
 
     private func reparse(message: ConciergeMessage) {
@@ -1065,6 +1132,13 @@ struct ConciergeView: View {
                 setLastApplySession(sessionId)
             }
 
+            // Check if the apply actually succeeded
+            guard res.success else {
+                let errorDetail = res.errors?.first?.error ?? "Unknown error"
+                showToast(.init(kind: .error, title: "Failed to add items", subtitle: errorDetail, actionTitle: nil, onAction: nil))
+                return
+            }
+
             // Refresh collection in background (don't block toast)
             backgroundRefreshTask = Task.detached {
                 async let _lists: () = supabaseService.fetchUserLists()
@@ -1074,11 +1148,12 @@ struct ConciergeView: View {
             }
 
             // Show success toast with undo
-            let count = chosen.count
+            let appliedCount = res.applied?.count ?? chosen.count
+            let summaryText = "\(appliedCount) item\(appliedCount == 1 ? "" : "s") added to collection"
             let sid = lastApplySessionId
             showToast(.init(
                 kind: .success,
-                title: "\(count) item\(count == 1 ? "" : "s") added to collection",
+                title: summaryText,
                 subtitle: nil,
                 actionTitle: "UNDO",
                 onAction: {
@@ -1089,13 +1164,22 @@ struct ConciergeView: View {
                 }
             ), autoDismissSeconds: 4.0)
 
+            // Build title list for confirmation message
+            let titleNames = response.items.compactMap { item -> String? in
+                guard let c = selectedByItemId[item.id] else { return nil }
+                if excludedItemIds.contains(item.id) { return nil }
+                return c.title_raw
+            }
+            let titleList = titleNames.isEmpty ? "" : "\n" + titleNames.map { "· \($0)" }.joined(separator: "\n")
+
             // Add confirmation message to chat
             let confirmMsg = ConciergeMessage(
                 role: .assistant,
-                text: "\(count) item\(count == 1 ? "" : "s") added to your collection.",
+                text: "\(summaryText).\(titleList)",
                 items: nil
             )
             withAnimation(KuroAnimation.editorial) {
+                appliedImportSummary = summaryText
                 messages.append(confirmMsg)
             }
             if let interactionStartedAt {
@@ -1221,6 +1305,9 @@ struct ConciergeView: View {
     // MARK: Confirm Import (From Inline Bubble)
     private func confirmImport(response: SupabaseService.ConciergeParseResponse, sourceMessageId: UUID? = nil) async {
         isWorking = true
+        if let sourceMessageId {
+            applyingImportMessageId = sourceMessageId
+        }
 
         do {
             let chosen = buildApplyPayload(from: response)
@@ -1228,12 +1315,22 @@ struct ConciergeView: View {
             guard !chosen.isEmpty else {
                 showToast(.init(kind: .error, title: "No items selected", subtitle: nil, actionTitle: nil, onAction: nil))
                 isWorking = false
+                applyingImportMessageId = nil
                 return
             }
 
             let res = try await supabaseService.conciergeApply(items: chosen)
             if let sessionId = res.sessionId {
                 setLastApplySession(sessionId)
+            }
+
+            // Check if the apply actually succeeded
+            guard res.success else {
+                let errorDetail = res.errors?.first?.error ?? "Unknown error"
+                showToast(.init(kind: .error, title: "Failed to apply items", subtitle: errorDetail, actionTitle: nil, onAction: nil))
+                isWorking = false
+                applyingImportMessageId = nil
+                return
             }
 
             // Refresh collection in background
@@ -1244,20 +1341,21 @@ struct ConciergeView: View {
                 _ = await (_lists, _items, _feed)
             }
 
-            // Compute toast text based on action breakdown
-            let addCount = chosen.filter { ($0["action"] as? String) == "add" || ($0["action"] as? String) == nil }.count
-            let updateCount = chosen.filter { ($0["action"] as? String) == "update" }.count
+            // Compute summary text based on actual server response
+            let appliedItems = res.applied ?? []
+            let serverAddCount = appliedItems.filter { $0.action == "add" }.count
+            let serverUpdateCount = appliedItems.filter { $0.action == "update" }.count
             let conflictCount = res.conflicts?.count ?? 0
 
-            var toastParts: [String] = []
-            if addCount > 0 { toastParts.append("\(addCount) added") }
-            if updateCount > 0 { toastParts.append("\(updateCount) updated") }
-            let toastTitle = toastParts.isEmpty ? "\(chosen.count) items applied" : toastParts.joined(separator: ", ")
+            var summaryParts: [String] = []
+            if serverAddCount > 0 { summaryParts.append("\(serverAddCount) added") }
+            if serverUpdateCount > 0 { summaryParts.append("\(serverUpdateCount) updated") }
+            let summaryText = summaryParts.isEmpty ? "\(appliedItems.count) items applied" : summaryParts.joined(separator: ", ")
 
             let sid = lastApplySessionId
             showToast(.init(
                 kind: conflictCount > 0 ? .info : .success,
-                title: toastTitle,
+                title: summaryText,
                 subtitle: conflictCount > 0 ? "\(conflictCount) conflict\(conflictCount == 1 ? "" : "s") -- review needed" : nil,
                 actionTitle: "UNDO",
                 onAction: {
@@ -1268,9 +1366,13 @@ struct ConciergeView: View {
                 }
             ), autoDismissSeconds: 4.0)
 
-            if let sourceMessageId {
-                appliedImportMessageIds.insert(sourceMessageId)
-                lastAppliedImportMessageId = sourceMessageId
+            withAnimation(KuroAnimation.editorial) {
+                appliedImportSummary = summaryText
+                applyingImportMessageId = nil
+                if let sourceMessageId {
+                    appliedImportMessageIds.insert(sourceMessageId)
+                    lastAppliedImportMessageId = sourceMessageId
+                }
             }
 
         } catch {
@@ -1413,6 +1515,14 @@ struct ConciergeView: View {
             errorText = nil
             showToast(.init(kind: .error, title: "Error", subtitle: error.localizedDescription, actionTitle: nil, onAction: nil), autoDismissSeconds: 3.0)
         }
+    }
+
+    private func navigateToCollection() {
+        #if os(iOS)
+        if let url = URL(string: "kuro://collection") {
+            UIApplication.shared.open(url)
+        }
+        #endif
     }
 
     private func normalizedStatus(for raw: String?, mediaType: String?) -> String {
@@ -1580,64 +1690,7 @@ struct ConciergeView: View {
 
     // MARK: Import vs Vibe Detection
     private func looksLikeImport(_ text: String) -> Bool {
-        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let l = t.lowercased()
-
-        if t.contains("\n") { return true }
-
-        // Explicit import language (EN + DE)
-        if l.contains("watching") || l.contains("reading") || l.contains("completed") || l.contains("finished") || l.contains("dropped") { return true }
-        if l.contains("i watched") || l.contains("i'm watching") || l.contains("im watching") { return true }
-        if l.contains("caught up") || l.contains("up to date") { return true }
-        if l.contains("ich habe") || l.contains("ich schaue") || l.contains("ich gucke") || l.contains("ich sehe") || l.contains("ich lese") { return true }
-        if l.contains("staffel") || l.contains("folge") || l.contains("kapitel") || l.contains("band") { return true }
-
-        // German vibe markers — these are NOT imports
-        let germanVibeMarkers = ["etwas", "empfiehl", "empfehlung", "zeig mir", "ich möchte", "ich will", "ich suche"]
-        if germanVibeMarkers.contains(where: { l.contains($0) }) && !l.contains("staffel") && !l.contains("folge") {
-            return false
-        }
-
-        // Progress patterns
-        if l.contains(" ep ") || l.contains("episode") || l.contains("chapter") || l.contains(" vol") { return true }
-        if l.range(of: #"s\d{1,2}\s*e\d{1,4}"#, options: .regularExpression) != nil { return true }
-        if l.range(of: #"\b\d{1,2}\s*x\s*\d{1,4}\b"#, options: .regularExpression) != nil { return true }
-
-        // Comma-separated lists
-        if t.contains(",") {
-            let parts = t.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            if parts.count >= 2 {
-                let titleLikeCount = parts.filter { segmentLooksTitleLike($0) }.count
-                if titleLikeCount >= 2 { return true }
-            }
-        }
-
-        if t.count <= 28 { return false }
-        return false
-    }
-
-    private func segmentLooksTitleLike(_ s: String) -> Bool {
-        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard t.count >= 2 else { return false }
-        let l = t.lowercased()
-
-        let vibeMarkers = ["something", "funny", "sad", "cozy", "vibe", "recommend", "suggest", "like", "but", "not", "please", "anime", "manga"]
-        if vibeMarkers.contains(where: { l.contains($0) }) && t.split(separator: " ").count <= 6 {
-            return false
-        }
-
-        if t.contains("(") || t.contains(")") { return true }
-        if t.range(of: #"\b(19|20)\d{2}\b"#, options: .regularExpression) != nil { return true }
-        if l.range(of: #"\b(ep|episode|ch|chapter|vol|volume|s\d+e\d+|\d+x\d+)\b"#, options: .regularExpression) != nil { return true }
-
-        let words = t.split(separator: " ")
-        if words.count >= 2 && t.range(of: #"[A-Z]"#, options: .regularExpression) != nil {
-            return true
-        }
-
-        if words.count >= 3 { return true }
-
-        return false
+        TextNormalization.looksLikeImport(text)
     }
 }
 

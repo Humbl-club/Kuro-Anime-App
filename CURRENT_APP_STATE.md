@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-02-27
+**Last updated:** 2026-02-28
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -485,6 +485,11 @@ node scripts/generate_app_state_inventory.js
     - Import list
     - See curated example prompts
     - Ask for a mood-based recommendation
+- **Intent routing**: Hybrid FM-primary with keyword fallback.
+  - When Apple FM is available + `fm_assist_v1` flag enabled: `assistIntent()` classifies user text into 6 intents (`import`, `recommend_vibe`, `recommend_seed`, `library_query`, `club_action`, `unknown`) with confidence score. Confidence threshold: 0.65. On FM failure/timeout/low-confidence: falls back to `looksLikeImport()` keywords.
+  - When FM unavailable (non-iOS 26, flag off): `looksLikeImport()` keyword routing (same as before).
+  - `routeByKeywords()` helper shared by fallback and non-FM paths.
+  - Analytics: `intent_detected` event with `"source": "fm"` or `"source": "keywords"` to compare routing accuracy.
 - Main features:
   - Deterministic parsing of pasted list with import reconciliation (Add/Update/Skip actions)
   - Auto-apply for high-confidence imports (all items score >= 0.85, no ambiguous adaptations)
@@ -1508,6 +1513,46 @@ This single command:
 ---
 
 ## 14) Change Log (append-only)
+
+### 2026-02-28 — Concierge Import UX Improvements
+
+Major UX improvements to the concierge import flow across 3 files:
+
+**ConciergeImportCards.swift — Improved import cards:**
+- Poster enlarged: 70x100pt → 80x114pt with sharp edges (matches editorial style)
+- Title typography: `.kuroTitle()` 19pt serif → `.kuroBody(weight: .medium)` 15pt sans-serif
+- New: Media type badge (ANIME/MANGA capsule) on each card
+- New: Parsed intent row showing status + progress (e.g., "WATCHING · Ep 12 of 24")
+- New: Tap poster or title opens `MediaDetailSheet` for preview
+- Removed: Redundant "N% match" text line (ring indicator sufficient)
+- `episodeText` now renders actual progress data from parsed item
+- Auto-expand "Other possibilities" when top match score < 0.80
+- Press feedback: `scaleEffect(0.98)` animation on interaction
+
+**ConciergeComponents.swift — Enhanced confirm bubble:**
+- New: Loading state on CONFIRM button (spinner + "APPLYING" text, button disabled)
+- New: Applied state shows summary text + UNDO button + VIEW COLLECTION button (persistent in bubble, no longer toast-only)
+- New properties: `onUndo`, `onViewCollection`, `isApplying`, `appliedSummary`
+- Confirm button disabled state now more visually distinct
+
+**ConciergeView.swift — Flow improvements:**
+- New state: `applyingImportMessageId` tracks which message is actively applying
+- New state: `appliedImportSummary` stores human-readable summary (e.g., "2 added, 1 updated")
+- `confirmImport()` now sets applying state during network call, builds summary from server response
+- `autoApplyImport()` chat message now includes title list (bulleted)
+- "View Collection" navigation via `kuro://collection` deep link
+
+**ContentView.swift:**
+- No structural changes, ConciergeView init unchanged
+
+Files changed: 4 (ConciergeImportCards.swift, ConciergeComponents.swift, ConciergeView.swift, ContentView.swift)
+New files: 0. New migrations: 0.
+
+### 2026-02-28 — Fix Concierge Import False Success Toast
+- **Bug**: `autoApplyImport()` and `confirmImport()` in ConciergeView.swift showed success toast unconditionally, even when `concierge-apply` returned `success: false`. Items appeared "added" but weren't.
+- **Fix**: Added `guard res.success` check in both functions. On failure: shows error toast with server error detail. On success: uses `res.applied?.count` for accurate counts.
+- **Investigation**: Confirmed production `anime_user_lists.user_id` / `manga_user_lists.user_id` are TEXT (not INTEGER). Type mismatch hypothesis ruled out.
+- Files changed: `ConciergeView.swift` (2 functions modified).
 
 ### 2026-02-26 — Simplify KuroDeliberateTap Gesture (Fix Scroll + Tap Reliability)
 
@@ -15567,6 +15612,21 @@ Dashboard steps reduced:
 - Previous: 3 manual Supabase Dashboard steps (redirect URLs, email templates, SMTP config).
 - Now: 1 step — disable email confirmations in Auth settings. Redirect URLs, email templates, and SMTP config are no longer launch blockers.
 
+### 2026-02-28 — Fix Concierge Import False Success Toast
+
+**Bug**: Both `autoApplyImport()` and `confirmImport()` in `ConciergeView.swift` showed a success toast ("N items added to collection") unconditionally after calling the `concierge-apply` edge function, even when the server returned `success: false`. Users saw "added to collection" but items weren't actually added.
+
+**Root cause**: The `ConciergeApplyResponse.success` field was properly decoded but never checked. The toast fired based on the API call completing without throwing, not on the actual result.
+
+**Fix (ConciergeView.swift)**:
+- `autoApplyImport()`: Added `guard res.success` check before showing success toast. On failure: shows error toast with server's error detail (`res.errors?.first?.error`).
+- `confirmImport()`: Same fix. On success: uses `res.applied?.count` for accurate count and `res.applied` action fields for add/update breakdown, instead of client-side `chosen.count`.
+- Both paths: success toast only shown when `res.success == true`.
+
+**Investigation notes**: Confirmed production `anime_user_lists.user_id` and `manga_user_lists.user_id` are TEXT type (verified via Supabase OpenAPI endpoint), not INTEGER as in the legacy SQL file. The type mismatch hypothesis was ruled out — the schema was already corrected during initial remote setup. The iOS-side fix correctly surfaces whatever server error caused the failure.
+
+Totals: 0 new files, 1 modified Swift file, 0 new migrations. 64 Swift files, 143 migrations.
+
 ### 2026-02-27 — UX Density + Clarity Improvements
 
 4 changes across 4 files to reduce cognitive overload and improve first-time clarity.
@@ -15612,3 +15672,16 @@ Replaced the over-aggressive `DragGesture(minimumDistance: 0)` tap recognizer in
 **Feature flag**: `swipe_tap_guard_v1` stays at 100% — it gates the pager's `suppressCardTaps` logic (correct and still needed), not the tap recognizer itself.
 
 Totals: 0 new files, 2 modified Swift files, 0 new migrations. 64 Swift files, 143 migrations.
+
+### 2026-02-28 — Fix: Concierge import intent detection gaps
+- **ConciergeView.swift** `looksLikeImport()`: Added missing import detection patterns — standalone "watched"/"paused"/"saw"/"seen", soft-partial markers ("halfway"/"midway"/"partway"), "i'm reading"/"im reading", German past tense ("geschaut"/"gesehen"/"gelesen"/"zur hälfte"). Previously "Watched jujutsu kaisen halfway through" was misrouted to recommendations because the client gatekeeper only checked "i watched" (not standalone "watched") and had no soft-partial marker detection. The server-side parser (`concierge-parse`) already handled these correctly — this fix aligns the iOS gatekeeper with the server.
+
+### 2026-02-28 — FM-powered intent classification for Concierge
+- **ConciergeView.swift**: Replaced keyword-only intent routing with hybrid FM-primary + keyword-fallback architecture. When Apple Foundation Models are available and `fm_assist_v1` flag is enabled, `assistIntent()` (already implemented in `AppleFMService.swift`) is now called as the primary intent classifier. It classifies user text into 6 intents (`import`, `recommend_vibe`, `recommend_seed`, `library_query`, `club_action`, `unknown`) with confidence scoring. Confidence threshold: 0.65 — below that, falls back to `looksLikeImport()` keywords. FM failure/timeout also falls back to keywords. Non-FM devices (pre-iOS 26) use keyword routing unchanged.
+- **New helper**: `routeByKeywords(text:sendStartedAt:)` — extracted existing keyword logic into a named function shared by both the FM fallback path and the non-FM path.
+- **Analytics**: `intent_detected` event now includes `"source": "fm"` or `"source": "keywords"` field to compare routing accuracy in production. FM path also logs `confidence` value.
+- **`looksLikeImport()` extracted** to `TextNormalization.looksLikeImport()` (+ `segmentLooksTitleLike()`) for testability. ConciergeView's private `looksLikeImport()` now delegates to it. Logic unchanged.
+- **Unit tests added**: 14 tests in `ImportIntentTests` suite covering keyword detection (status keywords, past tense, I-prefix, soft-partial markers, progress patterns, multi-line, comma-separated, German import/vibe, short input, segment heuristics).
+- **UI test added**: `testConciergeImportRouting` — types "Watched Jujutsu Kaisen halfway through" in Concierge with `--ff-off=fm_assist_v1` (keyword fallback forced), verifies CONFIRM button appears (import flow, not recommendations).
+- **Scheme updated**: KuroTests target added to Kuro.xcscheme test action (was missing — only KuroUITests was wired).
+- **No new Swift files, no backend changes.** 64 Swift files, 143 migrations.
