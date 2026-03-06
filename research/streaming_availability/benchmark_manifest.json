@@ -1,0 +1,507 @@
+{
+  "manifest_version": 1,
+  "generated_at": "2026-03-06",
+  "source": "Kuro public catalog, top 25 non-adult anime and top 25 non-adult manga by popularity",
+  "entries": [
+    {
+      "media_type": "ANIME",
+      "media_id": 2,
+      "title_english": "Attack on Titan",
+      "title_romaji": "Shingeki no Kyojin",
+      "year": 2013,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 957560
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 3,
+      "title_english": "Demon Slayer: Kimetsu no Yaiba",
+      "title_romaji": "Kimetsu no Yaiba",
+      "year": 2019,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 907809
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 4,
+      "title_english": "Death Note",
+      "title_romaji": "DEATH NOTE",
+      "year": 2006,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 872741
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 5,
+      "title_english": "JUJUTSU KAISEN",
+      "title_romaji": "Jujutsu Kaisen",
+      "year": 2020,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 868412
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 6,
+      "title_english": "My Hero Academia",
+      "title_romaji": "Boku no Hero Academia",
+      "year": 2016,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 803217
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 7,
+      "title_english": "Hunter x Hunter (2011)",
+      "title_romaji": "HUNTER\u00d7HUNTER (2011)",
+      "year": 2011,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 768317
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 8,
+      "title_english": "One-Punch Man",
+      "title_romaji": "One Punch Man",
+      "year": 2015,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 710214
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 9,
+      "title_english": "Tokyo Ghoul",
+      "title_romaji": "Tokyo Ghoul",
+      "year": 2014,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 679586
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 10,
+      "title_english": "Attack on Titan Season 2",
+      "title_romaji": "Shingeki no Kyojin Season 2",
+      "year": 2017,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 673156
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 11,
+      "title_english": "ONE PIECE",
+      "title_romaji": "ONE PIECE",
+      "year": 1999,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 666133
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 12,
+      "title_english": "Fullmetal Alchemist: Brotherhood",
+      "title_romaji": "Hagane no Renkinjutsushi: FULLMETAL ALCHEMIST",
+      "year": 2009,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 661817
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 14,
+      "title_english": "Naruto",
+      "title_romaji": "NARUTO",
+      "year": 2002,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 658483
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 13,
+      "title_english": "Sword Art Online",
+      "title_romaji": "Sword Art Online",
+      "year": 2012,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 657106
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 15,
+      "title_english": "Your Name.",
+      "title_romaji": "Kimi no Na wa.",
+      "year": 2016,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 648331
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 16,
+      "title_english": "A Silent Voice",
+      "title_romaji": "Koe no Katachi",
+      "year": 2016,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 641812
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 17,
+      "title_english": "Attack on Titan Season 3",
+      "title_romaji": "Shingeki no Kyojin Season 3",
+      "year": 2018,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 626460
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 18,
+      "title_english": "My Hero Academia Season 2",
+      "title_romaji": "Boku no Hero Academia 2",
+      "year": 2017,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 606538
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 19,
+      "title_english": "The Promised Neverland",
+      "title_romaji": "Yakusoku no Neverland",
+      "year": 2019,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 588810
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 20,
+      "title_english": "Attack on Titan Final Season",
+      "title_romaji": "Shingeki no Kyojin: The Final Season",
+      "year": 2020,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 584940
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 21,
+      "title_english": "Assassination Classroom",
+      "title_romaji": "Ansatsu Kyoushitsu",
+      "year": 2015,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 576695
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 22,
+      "title_english": "Mob Psycho 100",
+      "title_romaji": "Mob Psycho 100",
+      "year": 2016,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 569033
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 25,
+      "title_english": "My Hero Academia Season 3",
+      "title_romaji": "Boku no Hero Academia 3",
+      "year": 2018,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 557325
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 23,
+      "title_english": "Your lie in April",
+      "title_romaji": "Shigatsu wa Kimi no Uso",
+      "year": 2014,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 557091
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 27,
+      "title_english": "Attack on Titan Season 3 Part 2",
+      "title_romaji": "Shingeki no Kyojin Season 3 Part 2",
+      "year": 2019,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 557005
+    },
+    {
+      "media_type": "ANIME",
+      "media_id": 24,
+      "title_english": "ERASED",
+      "title_romaji": "Boku dake ga Inai Machi",
+      "year": 2016,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 556810
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 2,
+      "title_english": "Chainsaw Man",
+      "title_romaji": "Chainsaw Man",
+      "year": 2018,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 308442
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 3,
+      "title_english": "Solo Leveling",
+      "title_romaji": "Na Honjaman Level Up",
+      "year": 2018,
+      "original_language": null,
+      "country_of_origin": "KR",
+      "catalog_popularity": 266578
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 4,
+      "title_english": "Jujutsu Kaisen",
+      "title_romaji": "Jujutsu Kaisen",
+      "year": 2018,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 233909
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 5,
+      "title_english": "Berserk",
+      "title_romaji": "Berserk",
+      "year": 1989,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 227267
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 6,
+      "title_english": "Attack on Titan",
+      "title_romaji": "Shingeki no Kyojin",
+      "year": 2009,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 218082
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 7,
+      "title_english": "One Piece",
+      "title_romaji": "ONE PIECE",
+      "year": 1997,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 216453
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 8,
+      "title_english": "Demon Slayer: Kimetsu no Yaiba",
+      "title_romaji": "Kimetsu no Yaiba",
+      "year": 2016,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 199235
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 9,
+      "title_english": "Tokyo Ghoul",
+      "title_romaji": "Tokyo Ghoul",
+      "year": 2011,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 181818
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 11,
+      "title_english": "Goodnight Punpun",
+      "title_romaji": "Oyasumi Punpun",
+      "year": 2007,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 172837
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 10,
+      "title_english": "My Hero Academia",
+      "title_romaji": "Boku no Hero Academia",
+      "year": 2014,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 171294
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 12,
+      "title_english": "One-Punch Man",
+      "title_romaji": "One Punch-Man",
+      "year": 2012,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 164075
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 13,
+      "title_english": "SPY x FAMILY",
+      "title_romaji": "SPY\u00d7FAMILY",
+      "year": 2019,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 151863
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 14,
+      "title_english": "Vagabond",
+      "title_romaji": "Vagabond",
+      "year": 1998,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 149217
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 16,
+      "title_english": "Vinland Saga",
+      "title_romaji": "Vinland Saga",
+      "year": 2005,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 128650
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 15,
+      "title_english": "The Promised Neverland",
+      "title_romaji": "Yakusoku no Neverland",
+      "year": 2016,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 127700
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 19,
+      "title_english": "Omniscient Reader",
+      "title_romaji": "Jeonjijeok Dokja Sijeom",
+      "year": 2020,
+      "original_language": null,
+      "country_of_origin": "KR",
+      "catalog_popularity": 118451
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 17,
+      "title_english": "Horimiya",
+      "title_romaji": "Horimiya",
+      "year": 2011,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 116925
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 21,
+      "title_english": "Blue Lock",
+      "title_romaji": "Blue Lock",
+      "year": 2018,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 113525
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 18,
+      "title_english": "Tokyo Revengers",
+      "title_romaji": "Tokyo\u534dRevengers",
+      "year": 2017,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 113179
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 20,
+      "title_english": "Kaguya-sama: Love is War",
+      "title_romaji": "Kaguya-sama wa Kokurasetai: Tensaitachi no Renai Zunousen",
+      "year": 2015,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 113127
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 22,
+      "title_english": "Bleach",
+      "title_romaji": "BLEACH",
+      "year": 2001,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 111753
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 23,
+      "title_english": "Dandadan",
+      "title_romaji": "Dandadan",
+      "year": 2021,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 106167
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 24,
+      "title_english": "Komi Can't Communicate",
+      "title_romaji": "Komi-san wa, Komyushou desu.",
+      "year": 2016,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 102274
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 26,
+      "title_english": "Hunter x Hunter",
+      "title_romaji": "HUNTER\u00d7HUNTER",
+      "year": 1998,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 100644
+    },
+    {
+      "media_type": "MANGA",
+      "media_id": 25,
+      "title_english": "Black Clover",
+      "title_romaji": "Black Clover",
+      "year": 2015,
+      "original_language": null,
+      "country_of_origin": "JP",
+      "catalog_popularity": 100374
+    }
+  ]
+}
