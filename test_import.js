@@ -7,8 +7,12 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = 'https://bkdifromsqxkndnllmdj.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const importSecret = process.env.IMPORT_SECRET ?? process.env.SUPABASE_IMPORT_SECRET;
 if (!supabaseKey) {
   throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var.');
+}
+if (!importSecret) {
+  throw new Error('Missing IMPORT_SECRET (or SUPABASE_IMPORT_SECRET) env var.');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -32,6 +36,7 @@ async function testImport() {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${supabaseKey}`,
+        'x-import-secret': importSecret,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(testPayload)

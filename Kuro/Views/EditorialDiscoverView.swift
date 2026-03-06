@@ -775,6 +775,7 @@ struct GridAnimeCard: View {
     let cardHeight: CGFloat
     @State private var showDetail = false
     @State private var showAddToList = false
+    @State private var showAddToClub = false
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
@@ -921,12 +922,24 @@ struct GridAnimeCard: View {
                     systemImage: "slider.horizontal.3"
                 )
             }
+
+            if !supabaseService.myClubs.isEmpty {
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    showAddToClub = true
+                }) {
+                    Label("Add to Club\u{2026}", systemImage: "person.2.circle")
+                }
+            }
         }
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
         }
         .sheet(isPresented: $showAddToList) {
             AddToListSheet(media: media)
+        }
+        .sheet(isPresented: $showAddToClub) {
+            AddToClubRailSheet(mediaId: media.id, mediaType: mediaType.uppercased())
         }
     }
 

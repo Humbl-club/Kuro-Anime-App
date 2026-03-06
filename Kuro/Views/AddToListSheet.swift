@@ -9,6 +9,7 @@ struct AddToListSheet: View {
     let media: any MediaDisplayable
     @State private var selectedStatus: ListStatus = .planning
     @State private var progress: Int = 0
+    @State private var isEditingProgress = false
     @State private var score: Int = 0
     @State private var notes: String = ""
     @State private var isExistingEntry: Bool = false
@@ -37,7 +38,6 @@ struct AddToListSheet: View {
         }
         return status.displayName
     }
-
 
     private var offlineMutationMessage: String {
         "You're offline. Reconnect to update your list."
@@ -96,10 +96,38 @@ struct AddToListSheet: View {
                                     .foregroundColor(.kuroBlack80)
 
                                 HStack {
-                                    Stepper(value: $progress, in: 0...maxProgress) {
-                                        Text("\(progress) / \(maxProgress)")
+                                    if isEditingProgress {
+                                        TextField("", value: $progress, format: .number)
                                             .font(.kuroBody(weight: .light))
                                             .foregroundColor(.kuroBlack80)
+                                            .keyboardType(.numberPad)
+                                            .frame(width: 60)
+                                            .textFieldStyle(.roundedBorder)
+                                            .onSubmit {
+                                                progress = min(max(0, progress), maxProgress)
+                                                isEditingProgress = false
+                                            }
+                                        Text("/ \(maxProgress)")
+                                            .font(.kuroBody(weight: .light))
+                                            .foregroundColor(.kuroBlack80)
+                                        Spacer()
+                                        Button("Done") {
+                                            progress = min(max(0, progress), maxProgress)
+                                            isEditingProgress = false
+                                        }
+                                        .font(.kuroMicro(weight: .medium))
+                                        .foregroundColor(.kuroBlack80)
+                                    } else {
+                                        Stepper(value: $progress, in: 0...maxProgress) {
+                                            Button(action: {
+                                                isEditingProgress = true
+                                            }) {
+                                                Text("\(progress) / \(maxProgress)")
+                                                    .font(.kuroBody(weight: .light))
+                                                    .foregroundColor(.kuroBlack80)
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
                                     }
                                 }
                                 .padding(KuroSpacing.md)
@@ -118,7 +146,11 @@ struct AddToListSheet: View {
                             HStack(spacing: KuroSpacing.sm) {
                                 ForEach(1...10, id: \.self) { star in
                                     Button(action: {
-                                        score = star
+                                        if score == star {
+                                            score = 0
+                                        } else {
+                                            score = star
+                                        }
                                         KuroAccessibility.impactHaptic(.light)
                                     }) {
                                         Image(systemName: star <= score ? "star.fill" : "star")
@@ -234,7 +266,7 @@ struct AddToListSheet: View {
             finalProgress = progress
         }
 
-        let rating: Int? = score > 0 ? score : nil
+        let rating: Int? = score > 0 ? (score * 10) : nil
         let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
         let notesValue: String? = trimmedNotes.isEmpty ? nil : trimmedNotes
 

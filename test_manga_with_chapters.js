@@ -7,8 +7,12 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = 'https://bkdifromsqxkndnllmdj.supabase.co';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const importSecret = process.env.IMPORT_SECRET ?? process.env.SUPABASE_IMPORT_SECRET;
 if (!supabaseKey) {
   throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var.');
+}
+if (!importSecret) {
+  throw new Error('Missing IMPORT_SECRET (or SUPABASE_IMPORT_SECRET) env var.');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -39,12 +43,13 @@ async function testMangaWithChapters() {
     
     for (const funcName of functionNames) {
       try {
-        console.log(`\n🔍 Trying function: \${funcName}\`);
+        console.log(`\n🔍 Trying function: ${funcName}`);
         
-        const response = await fetch(\`\${supabaseUrl}/functions/v1/\${funcName}\`, {
+        const response = await fetch(`${supabaseUrl}/functions/v1/${funcName}`, {
           method: 'POST',
           headers: {
-            'Authorization': \`Bearer \${supabaseKey}\`,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'x-import-secret': importSecret,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify(testPayload)
@@ -52,7 +57,7 @@ async function testMangaWithChapters() {
         
         if (response.ok) {
           const result = await response.json();
-          console.log(\`✅ \${funcName}: SUCCESS!\`);
+          console.log(`✅ ${funcName}: SUCCESS!`);
           console.log('Response:', JSON.stringify(result, null, 2));
           success = true;
           
@@ -61,10 +66,10 @@ async function testMangaWithChapters() {
           break;
         } else {
           const error = await response.json();
-          console.log(\`❌ \${funcName}: \${response.status} - \${error.message}\`);
+          console.log(`❌ ${funcName}: ${response.status} - ${error.message}`);
         }
       } catch (err) {
-        console.log(\`❌ \${funcName}: \${err.message}\`);
+        console.log(`❌ ${funcName}: ${err.message}`);
       }
     }
     
@@ -92,9 +97,9 @@ async function checkImportedMangaWithChapters() {
     .limit(5);
   
   if (!mangaError && manga) {
-    console.log(\`\n📚 MANGA IMPORTED (\${manga.length} records):\`);
+    console.log(`\n📚 MANGA IMPORTED (${manga.length} records):`);
     manga.forEach((m, i) => {
-      console.log(\`  \${i+1}. ID: \${m.id} | \${m.title_english || m.title_romaji} (\${m.chapters} ch, \${m.volumes} vol)\`);
+      console.log(`  ${i+1}. ID: ${m.id} | ${m.title_english || m.title_romaji} (${m.chapters} ch, ${m.volumes} vol)`);
     });
   }
   
@@ -106,7 +111,7 @@ async function checkImportedMangaWithChapters() {
     .limit(20);
   
   if (!chaptersError && chapters) {
-    console.log(\`\n📖 CHAPTERS IMPORTED (\${chapters.length} records):\`);
+    console.log(`\n📖 CHAPTERS IMPORTED (${chapters.length} records):`);
     
     // Group by manga
     const chaptersByManga = {};
@@ -118,19 +123,19 @@ async function checkImportedMangaWithChapters() {
     });
     
     Object.entries(chaptersByManga).forEach(([mangaId, mangaChapters]) => {
-      console.log(\`  Manga ID \${mangaId}: Chapters \${mangaChapters[0].number}-\${mangaChapters[mangaChapters.length-1].number} (\${mangaChapters.length} total)\`);
+      console.log(`  Manga ID ${mangaId}: Chapters ${mangaChapters[0].number}-${mangaChapters[mangaChapters.length-1].number} (${mangaChapters.length} total)`);
     });
   }
   
   // Check volumes
   const { data: volumes, error: volumesError } = await supabase
-    .from('manga_volumes')
+    .from('volumes')
     .select('manga_id, number, title')
     .order('manga_id, number')
     .limit(20);
   
   if (!volumesError && volumes) {
-    console.log(\`\n📚 VOLUMES IMPORTED (\${volumes.length} records):\`);
+    console.log(`\n📚 VOLUMES IMPORTED (${volumes.length} records):`);
     
     // Group by manga
     const volumesByManga = {};
@@ -142,7 +147,7 @@ async function checkImportedMangaWithChapters() {
     });
     
     Object.entries(volumesByManga).forEach(([mangaId, mangaVolumes]) => {
-      console.log(\`  Manga ID \${mangaId}: Volumes \${mangaVolumes[0].number}-\${mangaVolumes[mangaVolumes.length-1].number} (\${mangaVolumes.length} total)\`);
+      console.log(`  Manga ID ${mangaId}: Volumes ${mangaVolumes[0].number}-${mangaVolumes[mangaVolumes.length-1].number} (${mangaVolumes.length} total)`);
     });
   }
   
@@ -153,9 +158,9 @@ async function checkImportedMangaWithChapters() {
     .limit(10);
   
   if (!authorError && authors) {
-    console.log(\`\n✍️ AUTHORS IMPORTED (\${authors.length} records):\`);
+    console.log(`\n✍️ AUTHORS IMPORTED (${authors.length} records):`);
     authors.forEach((a, i) => {
-      console.log(\`  \${i+1}. ID: \${a.id} | AniList: \${a.anilist_id} | \${a.name_full}\`);
+      console.log(`  ${i+1}. ID: ${a.id} | AniList: ${a.anilist_id} | ${a.name_full}`);
     });
   }
   
@@ -166,20 +171,20 @@ async function checkImportedMangaWithChapters() {
     .limit(10);
   
   if (!mangaAuthorError && mangaAuthors) {
-    console.log(\`\n🔗 MANGA-AUTHOR RELATIONSHIPS (\${mangaAuthors.length} records):\`);
+    console.log(`\n🔗 MANGA-AUTHOR RELATIONSHIPS (${mangaAuthors.length} records):`);
     mangaAuthors.forEach((ma, i) => {
-      console.log(\`  \${i+1}. Manga ID: \${ma.manga_id} → Author ID: \${ma.author_id}\`);
+      console.log(`  ${i+1}. Manga ID: ${ma.manga_id} → Author ID: ${ma.author_id}`);
     });
   }
   
   // Summary
   console.log('\n📊 MANGA WITH CHAPTERS IMPORT SUMMARY:');
   console.log('=====================================');
-  console.log(\`✅ Manga: \${manga?.length || 0} records\`);
-  console.log(\`✅ Chapters: \${chapters?.length || 0} records\`);
-  console.log(\`✅ Volumes: \${volumes?.length || 0} records\`);
-  console.log(\`✅ Authors: \${authors?.length || 0} records\`);
-  console.log(\`✅ Manga-Author relationships: \${mangaAuthors?.length || 0} records\`);
+  console.log(`✅ Manga: ${manga?.length || 0} records`);
+  console.log(`✅ Chapters: ${chapters?.length || 0} records`);
+  console.log(`✅ Volumes: ${volumes?.length || 0} records`);
+  console.log(`✅ Authors: ${authors?.length || 0} records`);
+  console.log(`✅ Manga-Author relationships: ${mangaAuthors?.length || 0} records`);
   
   // Verify chapter creation
   if (chapters && chapters.length > 0) {
