@@ -35,15 +35,30 @@ while (($#)); do
       CD_ENABLED=1
       ;;
     --ci-interval)
-      CI_INTERVAL="${2:-21600}"
+      if (($# < 2)) || [[ "$2" == --* ]]; then
+        echo "[local-cicd] ERROR: --ci-interval requires a value" >&2
+        usage
+        exit 1
+      fi
+      CI_INTERVAL="$2"
       shift
       ;;
     --cd-hour)
-      CD_HOUR="${2:-3}"
+      if (($# < 2)) || [[ "$2" == --* ]]; then
+        echo "[local-cicd] ERROR: --cd-hour requires a value" >&2
+        usage
+        exit 1
+      fi
+      CD_HOUR="$2"
       shift
       ;;
     --cd-minute)
-      CD_MINUTE="${2:-30}"
+      if (($# < 2)) || [[ "$2" == --* ]]; then
+        echo "[local-cicd] ERROR: --cd-minute requires a value" >&2
+        usage
+        exit 1
+      fi
+      CD_MINUTE="$2"
       shift
       ;;
     --uninstall)

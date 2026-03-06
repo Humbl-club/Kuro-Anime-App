@@ -44,7 +44,12 @@ while (($#)); do
       DEPLOY_TESTFLIGHT=1
       ;;
     --functions)
-      DEPLOY_FUNCTIONS="${2:-}"
+      if (($# < 2)) || [[ "$2" == --* ]]; then
+        echo "[local-cd] ERROR: --functions requires a value" >&2
+        usage
+        exit 1
+      fi
+      DEPLOY_FUNCTIONS="$2"
       shift
       ;;
     --no-supabase)
@@ -76,17 +81,25 @@ if [[ "$DEPLOY_SUPABASE" == "1" ]]; then
     project_ref="$(tr -d '\n' < "$ROOT_DIR/supabase/.temp/project-ref")"
   fi
 
-  IFS=',' read -r -a functions <<<"$DEPLOY_FUNCTIONS"
-  for fn in "${functions[@]}"; do
-    fn="$(echo "$fn" | xargs)"
-    [[ -z "$fn" ]] && continue
-    log "Deploy function: $fn"
-    if [[ -n "$project_ref" ]]; then
-      supabase functions deploy "$fn" --workdir "$ROOT_DIR" --project-ref "$project_ref" --use-api
-    else
-      supabase functions deploy "$fn" --workdir "$ROOT_DIR" --use-api
-    fi
-  done
+  functions=()
+  if [[ -n "${DEPLOY_FUNCTIONS//[[:space:]]/}" ]]; then
+    IFS=',' read -r -a functions <<<"$DEPLOY_FUNCTIONS"
+  fi
+
+  if ((${#functions[@]} == 0)); then
+    log "Skip function deploy (no functions configured)"
+  else
+    for fn in "${functions[@]}"; do
+      fn="$(echo "$fn" | xargs)"
+      [[ -z "$fn" ]] && continue
+      log "Deploy function: $fn"
+      if [[ -n "$project_ref" ]]; then
+        supabase functions deploy "$fn" --workdir "$ROOT_DIR" --project-ref "$project_ref" --use-api
+      else
+        supabase functions deploy "$fn" --workdir "$ROOT_DIR" --use-api
+      fi
+    done
+  fi
 fi
 
 if [[ "$DEPLOY_TESTFLIGHT" == "1" ]]; then
