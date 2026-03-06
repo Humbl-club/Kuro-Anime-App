@@ -676,7 +676,6 @@ class SupabaseService {
             // Error logged in debug only
         }
         await stopRealtimeSubscriptions()
-        await ConciergeConversationCache.clearAll()
         isAuthenticated = false
         currentUserEmail = nil
         currentUserId = nil
