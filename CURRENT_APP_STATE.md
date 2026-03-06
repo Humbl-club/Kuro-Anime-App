@@ -321,6 +321,7 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260224150000_social_activity_layer.sql`
 - `supabase/migrations/20260225100000_check_email_exists_rpc.sql`
 - `supabase/migrations/20260301100000_streaming_availability_v1.sql`
+- `supabase/migrations/20260301153000_streaming_availability_country_lang_v1.sql`
 
 ### Supabase Edge Functions (index.ts) (count: 15)
 - `supabase/functions/auth-callback/index.ts`
@@ -339,7 +340,7 @@ node scripts/generate_app_state_inventory.js
 - `supabase/functions/manga-source-review-action/index.ts`
 - `supabase/functions/mirror-images/index.ts`
 
-### Repo scripts (count: 33)
+### Repo scripts (count: 37)
 - `scripts/apply_remote_sql.js`
 - `scripts/audit_curated_rails_quality.js`
 - `scripts/catalog_safety_dashboard_server.js`
@@ -370,8 +371,12 @@ node scripts/generate_app_state_inventory.js
 - `scripts/report_airing_window.js`
 - `scripts/run_full_import.js`
 - `scripts/run_manga_chapter_crunch.js`
+- `scripts/run_provider_availability.sh`
 - `scripts/smoke_concierge_recommend.js`
 - `scripts/smoke_magic_parse_apply.js`
+- `scripts/install_provider_availability_launchd.sh`
+- `scripts/provider_availability_dashboard_server.js`
+- `scripts/provider_availability_worker.swift`
 - `scripts/synopsis_dashboard_server.js`
 
 
@@ -1528,20 +1533,103 @@ This single command:
 
 ## 14) Change Log (append-only)
 
-### 2026-03-06 — Local CD/GDPR hardening + detail CTA copy
+### 2026-03-06 — Detail CTA copy fallback cleanup
 
-Changes shipped:
-- `scripts/local_cd.sh`: `--functions` now validates its argument, safely handles an empty function list, and skips function deployment cleanly under `set -u`.
-- `scripts/install_local_cicd_launchd.sh`: `--ci-interval`, `--cd-hour`, and `--cd-minute` now fail fast when missing values instead of misparsing arguments.
-- `20260305151500_fix_delete_user_concierge_data_uuid_compare.sql` + `20260305153000_fix_delete_user_concierge_data_import_sessions_and_coverage.sql`: fixed `uuid = text` mismatches in `delete_user_concierge_data()` and restored full concierge-adjacent GDPR deletion coverage.
-- `20260305162000_cleanup_db_lint_warnings.sql`: removed the remaining PL/pgSQL lint warnings in `batch_providers_for_media` and `generate_invite_code`.
-- `AnimeDetailView.swift` / `MangaDetailView.swift`: CTA fallback copy now reflects actual data confidence. Existing legal links show region/licensing caveats when metadata is absent; missing legal links now show `Link coming soon.` consistently, including manga chapter surfaces.
+Updated detail-page link copy so the CTA note reflects actual data availability instead of pretending we know more than we do.
+
+Files changed:
+- `Kuro/Views/DetailPages/AnimeDetailView.swift`
+- `Kuro/Views/DetailPages/MangaDetailView.swift`
+
+Behavior change:
+- If a legal watch/read link exists but no verified provider-availability metadata is present, anime now shows `Availability, audio, and subtitle options may vary by region.` and manga shows `Reading availability may vary by region and publisher.`
+- If no legal link exists, both detail pages now show `Link coming soon.` in the CTA note slot.
+- Matching no-link toast copy and manga chapter/list empty-state link copy were updated to the same `Link coming soon.` language for consistency.
 
 Validation:
-- `supabase db lint --linked` → `No schema errors found`
-- `./scripts/run_local_ci_logged.sh` → success
-- `./scripts/run_local_cd_logged.sh --supabase-only --functions ""` → success
-- `xcodebuild -scheme Kuro -destination '''generic/platform=iOS''' build` → `BUILD SUCCEEDED`
+- `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build` → `BUILD SUCCEEDED`
+
+### 2026-03-06 — Free streaming availability research spike (non-production)
+
+Added a research-only benchmark harness to test whether free GitHub sources are strong enough for `platform + country + EN/DE audio/subtitle note` before touching the deferred provider-availability rollout.
+
+New files:
+- `research/streaming_availability/free_streaming_availability_spike.py`
+- `research/streaming_availability/benchmark_manifest.json`
+- `research/streaming_availability/provider_mappings.json`
+- `research/streaming_availability/README.md`
+
+Report outputs (local only):
+- `reports/streaming-availability-research/title_by_title.json`
+- `reports/streaming-availability-research/provider_country_aggregate.csv`
+- `reports/streaming-availability-research/precision_review.md`
+- `reports/streaming-availability-research/unresolved_mismatches.md`
+
+Spike rules:
+- No Supabase writes, no migrations, no UI wiring.
+- `simple-justwatch-python-api` is used as the only title-level source (via a local Python 3.9-compatible adapter against the same GraphQL contract because the upstream package requires newer typing syntax than the local interpreter).
+- `justwatch-selenium-api` remains adapter-scoped but unavailable in this environment (missing Selenium stack), and is treated as optional.
+- `anime-streaming` is parsed only as `service_region_hint`, never as title-level truth.
+
+Benchmark result:
+- 50 titles total (`25 anime`, `25 manga`) from Kuro's own catalog.
+
+### 2026-03-06 — Streaming note contract hardening
+
+Tightened streaming/provider note rendering so the app only claims what the backend actually knows.
+
+Files changed:
+- `Kuro/Models/SupabaseModels.swift`
+- `Kuro/Services/SupabaseService.swift`
+- `Kuro/Views/DetailPages/AnimeDetailView.swift`
+- `Kuro/Views/DetailPages/MangaDetailView.swift`
+- `Kuro/Views/DetailPages/EntityDetailSheets.swift`
+- `KuroTests/KuroTests.swift`
+- `supabase/migrations/20260306113000_provider_availability_note_contract.sql`
+
+Behavior change:
+- Provider availability notes now use a typed contract: `dub`, `audio`, `subtitles`, or generic `availability`.
+- `dub` is emitted only when the offered audio language differs from the inferred original language. Unknown originals now fall back to `audio`, never forced `dub`.
+- Subtitle-only evidence now renders as `EN subtitles: ...` / `DE subtitles: ...` instead of being dropped.
+- Manga detail pages intentionally stay on the generic legal-link copy path; Kuro does not currently have trustworthy per-title manga locale metadata.
+- Character works rails now use composite mixed-media identity keys (`anime-123` vs `manga-123`) so anime/manga with the same numeric ID cannot collide in SwiftUI.
+
+Backend/runtime:
+- Added follow-up migration `20260306113000_provider_availability_note_contract.sql` to extend `batch_provider_availability_for_media_v2` with `audio_languages`, `subtitle_languages`, and `countries_by_sub_lang`.
+- Applied remotely via `supabase db push --linked --include-all`.
+- `supabase db lint --linked` remains clean after the migration.
+
+Validation:
+- `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build` → `BUILD SUCCEEDED`
+- `xcodebuild -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' test -only-testing:KuroTests` → `TEST SUCCEEDED`
+- Added targeted tests for EN/DE dub/audio/subtitle note derivation and mixed anime/manga rail identity.
+- Deterministic JustWatch matches: `13/50`.
+- Titles with title-level locale evidence: `12/50`.
+- Anime split: `13/25` matches, `12/25` locale-evidence titles.
+- Manga split: `0/25` matches, `0/25` locale-evidence titles.
+
+Decision:
+- Useful as research for anime provider/country plus locale hints.
+- Not strong enough to productionize as Kuro's source of truth, especially for manga.
+- The deferred paid-source/provider-availability scaffold remains the intended production path; this spike is evidence gathering only.
+
+### 2026-03-02 — Streaming availability parked behind feature flag (deferred rollout)
+
+Decision: pause rollout of the new provider country/language metadata path and keep all related UI/backend behavior behind `streaming_availability_v1` at 0%.
+
+What is implemented and retained (not enabled by default):
+- Pre-production migration scaffold: `20260301153000_streaming_availability_country_lang_v1.sql`
+  - Tables: `provider_source_map`, `provider_availability`, `provider_availability_refresh_state`
+  - RPCs: `batch_provider_availability_for_media_v2`, `get_media_provider_availability_detail`, `enqueue_media_availability_refresh`, `get_media_availability_status`, `get_provider_availability_refresh_candidates`
+- Local operational tooling:
+  - `scripts/provider_availability_worker.swift`
+  - `scripts/run_provider_availability.sh`
+  - `scripts/install_provider_availability_launchd.sh`
+  - `scripts/provider_availability_dashboard_server.js` (`localhost:8789`)
+
+Release posture:
+- Keep current production behavior on existing legal-link paths.
+- Do not enable streaming availability features broadly until provider API source/cost strategy is finalized.
 
 ### 2026-03-01 — Streaming Availability v1 ("Where to Watch/Read")
 
@@ -15580,3 +15668,208 @@ New feature: streaming/reading provider availability on cards, detail pages, col
 - Hardcoded allowlist arrays annotated with `TODO` for removal when flag reaches 100%
 
 Totals: 0 new Swift files, 7 modified Swift files, 1 new migration. 64 Swift files, 144 migrations.
+
+### 2026-03-03 — UX Wave 1: P0 Quick Wins (6 fixes across 5 files)
+
+**EditorialDiscoverView.swift — Featured hero card:**
+- `KuroHeroCard` now renders at the top of the Discover page (before "AIRING TODAY") when `vm.featured != nil`
+- Uses `currentWidth - 40` for width (matching 20pt horizontal padding)
+
+**BrowseView.swift — Empty state with filter guidance:**
+- `BrowseEmptyState` now receives `activeFilterCount`, `activeFilterSummary`, and `onClearFilters` closure
+- When filters are active: shows "NO MATCHES FOR N FILTER(S)" + summary of active filters + "CLEAR FILTERS" black capsule button
+- When no filters active: shows original "NO MATCHES / Try different filters" text
+- Added `activeFilterCount` computed property and `activeFiltersLabel` for human-readable filter summary
+- Clear button resets all 6 filter states with `.easeInOut(duration: 0.2)` animation + haptic
+- Added `loadError` state with offline error screen (wifi.slash + retry)
+
+**EditorialCollectionView.swift — Dropped filter:**
+- Added `case dropped = "DROPPED"` to `CollectionFilter` enum, mapped to `ListStatus.dropped`
+- Auto-renders in filter bar via `CaseIterable`
+
+**EditorialCollectionView.swift — Anime/Manga type filter:**
+- New `MediaTypeFilter` enum (`.all` / `.anime` / `.manga`)
+- `@State private var selectedMediaType` with Menu pill in sort bar
+- `displayItems` filters by `selectedMediaType` before streaming/language filters
+
+**ConciergeComponents.swift — CONFIRM 0 explanation:**
+- New `confirmZeroExplanation` computed property on `ConciergeConfirmBubble`
+- Three contextual messages: "All items already in your library" (all `.skip`), "All items excluded — tap to re-include" (all excluded), "Select matches above to continue" (fallback)
+- Shows below disabled CONFIRM 0 button in `.kuroCaption(weight: .light)` + `.kuroTextTertiary`
+- Added `isApplying` state with spinner + "APPLYING" text on confirm button
+- Added applied state: summary text + UNDO / VIEW COLLECTION buttons
+
+**AnimeDetailView.swift + MangaDetailView.swift — UIScreen.main removal:**
+- `SimilarSection` and `MangaSimilarSection` now accept `containerWidth: CGFloat` parameter
+- Replaced deprecated `UIScreen.main.bounds.width` with `containerWidth` from parent GeometryReader
+- Zero `UIScreen.main` references remaining in detail pages
+
+Totals: 0 new files, 5 modified Swift files, 0 new migrations. 64 Swift files, 144 migrations.
+
+### 2026-03-03 — UX Wave 1 fix: Gate streaming availability calls behind feature flag
+
+**AnimeDetailView.swift + MangaDetailView.swift:**
+- `fetchProviderAvailabilityV2` and `enqueueAvailabilityRefreshIfStale` in `refreshLinks()` now gated behind `FeatureFlags.shared.isStreamingAvailabilityV1Enabled`
+- `bestProviderAvailabilityNote` returns `nil` when flag is off
+- Matches gating pattern used in EditorialCollectionView and SupabaseService bootstrap
+
+Totals: 0 new files, 2 modified Swift files. 64 Swift files, 144 migrations.
+
+### 2026-03-03 — UX Wave 2: Medium-Effort P0s (3 changes across 3 files)
+
+**ConciergeView.swift — Wire empty-state starter actions:**
+- Line 194: `includeStarter: false` → `includeStarter: true` — enables `ConciergeStarterActions` (4 pills: From Library, From Clipboard, Curate, Show Examples) when `messages.isEmpty`
+- Line 184: `showsIntentDeck: messages.isEmpty` → `showsIntentDeck: false` — disables redundant `WhisperEmptyState` moon overlay that would overlap the starter pills
+- All callbacks were already bound to real methods (pasteFromClipboard, importFromLibrary, seedExampleImport, seedExampleVibe)
+
+**EditorialDiscoverView.swift — Anime/manga segmentation toggle:**
+- New `DiscoverMediaTypeFilter` enum (`.all` / `.anime` / `.manga`)
+- `@State private var selectedMediaType` with Menu pill (matching Collection pattern: `rectangle.stack` icon, 9pt medium, 0.8 tracking)
+- All 14 sections wrapped with type guards:
+  - ANIME (9): featured, airingToday, newToYou, essentials, trending, classics, currentSeason, topRated, newlyAdded
+  - MANGA (5): newToYouManga, essentialsManga, classicsManga, trendingManga, topRatedManga
+- "Show More" button and secondary sections also respect the media type filter
+
+**ConciergeComponents.swift + ConciergeView.swift — Conversation persistence:**
+- `ConciergeMessage.Role` now conforms to `String, Codable`
+- New `ConciergeMessagePersisted: Codable` struct — slim text-only wrapper (id, role, text, sourceUserText, timestamp)
+- New `ConciergeConversationCache` enum following `KuroDiskDetailCache` pattern:
+  - Folder: `kuro.concierge.v1`, single file `session.json`, 7-day max age
+  - `save()` / `load()` / `clear()` — all async, best-effort, atomic writes
+- ConciergeView lifecycle wiring:
+  - `.task`: restores last session on first appear (guarded by `hasRestoredSession`)
+  - `.onDisappear`: saves snapshot
+  - `.onChange(of: scenePhase)`: saves on background/inactive
+- "NEW CHAT" capsule button (right-aligned, `plus.message` icon) at top of message list when messages exist
+- `startNewChat()` clears messages with animation, resets all import/recommendation state, calls cache clear
+- Restored messages appear as text-only bubbles (no interactive import cards — expected for v1)
+
+Totals: 0 new files, 3 modified Swift files, 0 new migrations. 64 Swift files, 144 migrations.
+
+### 2026-03-03 — Post-review fixes: cache user-scoping + browse error state
+
+**ConciergeComponents.swift — P1 fix: scope conversation cache by user ID:**
+- `ConciergeConversationCache` now requires `userId: String` on `save()`, `load()`, and `clear()`
+- Cache path changed from `kuro.concierge.v1/session.json` to `kuro.concierge.v1/{userId}/session.json`
+- New `clearAll()` method removes entire cache folder (all users)
+
+**SupabaseService.swift — Clear cache on sign-out:**
+- `signOut()` now calls `ConciergeConversationCache.clearAll()` before resetting user state
+- Prevents cross-account message leaks on shared devices
+
+**ConciergeView.swift — Pass userId to all cache calls:**
+- Load, save (onDisappear + scenePhase), and clear (startNewChat) all pass `supabaseService.currentUserId`
+- Gracefully no-ops when userId is nil (signed-out state)
+
+**BrowseView.swift — P2 fix: explicit error state assignment:**
+- Both anime and manga reload branches changed from conditional set/reset to single assignment: `loadError = page0.isEmpty && !networkMonitor.isConnected`
+- Prevents error state latching when network returns but results are legitimately empty
+
+Totals: 0 new files, 4 modified Swift files. 64 Swift files, 144 migrations.
+
+### 2026-03-03 — UX Wave 3: P1 Quick Wins (13 fixes across 8 files)
+
+**EditorialCollectionView.swift — 5 items (Agent A):**
+- **Live search (Item 10)**: `.onChange(of: searchText)` with 300ms debounced `Task` filters `items` by `localizedCaseInsensitiveContains`. Cancels previous debounce task on each keystroke. Empty text clears filter (shows all). Existing `.onSubmit` FM search path preserved.
+- **MY RATING sort (Item 11)**: New `case myRating = "MY RATING"` in `CollectionSort`. Sorts by `userListEntry().score` descending. Appears in sort menu automatically via `CaseIterable`.
+- **Empty state CTAs (Item 12)**: Wired `onExploreDiscover` closure (was declared but never connected) to `kuro://discover` deep link. Added `onExploreConcierge` parameter opening `kuro://concierge`. Both use `UIApplication.shared.open(url)`.
+- **Status summary row (Item 13)**: `statusCounts` computed property aggregates user list statuses. Rendered as horizontal `HStack` with interpunct separators above the filter bar. Uses `.kuroMicro(weight: .medium)` + `.kuroTextSecondary`.
+- **Batch remove confirmation (Item 14)**: `batchRemove()` now sets `showBatchRemoveConfirm = true` instead of deleting immediately. `.confirmationDialog` shows "Remove N item(s) from collection?" with destructive "Remove" button calling `confirmBatchRemove()`. Follows existing `.confirmationDialog` pattern at line 414.
+
+**AddToListSheet.swift — 2 items (Agent B):**
+- **Score clear toggle + scale fix (Item 15)**: Tapping the already-selected star now clears score to 0 (toggle behavior). **Bug fix**: save now writes `score * 10` instead of raw `score` — DB stores 10-100 scale but UI was saving 1-10, causing scores to appear reset after round-trip (`50 / 10 = 5` on load, save wrote `5`, next load `5 / 10 = 0`).
+- **Progress text field (Item 16)**: New `isEditingProgress` state. Tap the progress label to switch from Stepper to NumberPad TextField + Done button. Clamps to `0...maxProgress` on submit. Reverts to Stepper on Done.
+
+**EditorialDiscoverView.swift — 1 item (Agent C):**
+- **Dense2ColumnSection context menus (Item 19)**: `Dense2ColumnSection`, `Dense2ColumnSectionFixed`, `Dense2ColumnMangaSectionFixed`, and `FullSectionView` card renders now have `.contextMenu` matching `GridAnimeCard` pattern: Quick Add/Remove, Edit List/Add to List, Add to Club (gated by `!supabaseService.myClubs.isEmpty`).
+
+**BrowseView.swift — 1 item (Agent C):**
+- **Result count indicator (Item 20)**: `"N RESULT(S)"` text above browse grid when results loaded. `.kuroMicro(weight: .medium)`, tracking 1.5, `.kuroTextTertiary`. Scrolls with content.
+
+**ClubDetailView.swift — 1 item (Agent D):**
+- **Tab rename (Item 24)**: `case thisWeek = "THIS WEEK"` → `case active = "ACTIVE"`. All `.thisWeek` references updated to `.active`. Function name `thisWeekTab()` preserved (internal only).
+
+**FriendsActivitySection.swift — 1 item (Agent D):**
+- **Delete own comment (Item 25)**: Trash icon button next to edit pencil (gated by `comment.is_own`). Red icon (`.red.opacity(0.65)`) — correct per CLAUDE.md for destructive actions. `.alert("Delete your comment?")` with destructive "Delete" calling `supabaseService.deleteTitleComment()` + `loadActivity()` refresh.
+
+**AnimeDetailView.swift + MangaDetailView.swift — 2 items (Agent D):**
+- **Empty synopsis guard (Item 30)**: `DescriptionSection` now wrapped in `if anime.description != nil || anime.synopsisEnhanced != nil` (and manga equivalent). Prevents empty SYNOPSIS header when no description data exists.
+- **Share deep link (Item 31)**: `ShareLink` added below club/friends activity section. Shares `kuro://anime/{id}` / `kuro://manga/{id}` with title as subject. Editorial capsule style: `square.and.arrow.up` icon + "SHARE" text, `.kuroMicro(weight: .medium)`, tracking 1.2, `.kuroTextSecondary`, rounded rect background.
+
+Totals: 0 new files, 8 modified Swift files, 0 new migrations. 64 Swift files, 144 migrations.
+
+### 2026-03-03 — Post-Wave 3 review fixes (3 bugs across 3 files)
+
+**EditorialCollectionView.swift — P1: Batch remove awaits all removals:**
+- `confirmBatchRemove()` now calls `supabaseService.removeFromList()` directly (awaitable) instead of fire-and-forget `toggleInCollection()`. Checks `isInCollection` before/after each removal to detect per-item failures. Three outcome paths: all succeeded (success haptic + count), partial failure (impact haptic + "N of M, K failed"), total failure (error haptic + connection hint).
+
+**SupabaseService.swift — P1: Favorite toggle writes correct scale:**
+- `toggleFavorite(for:)` line 4206: `newRating` changed from `10` to `100`. DB uses 10-100 scale; `isFavorited()` checks `>= 90`, so setting `10` was never recognized as favorited on next read.
+
+**FriendsActivitySection.swift — P2: Delete comment surfaces errors:**
+- Delete confirmation handler changed from `try?` (silent failure) to `do/catch` with `errorText = "Could not delete comment."` on failure. Uses existing `errorText` state and red error label already rendered in the view.
+
+Totals: 0 new files, 3 modified Swift files. 64 Swift files, 144 migrations.
+
+### 2026-03-03 — Pre-release hardening (2 fixes across 4 files)
+
+**SupabaseService.swift + EditorialCollectionView.swift — Batch remove performance:**
+- `removeFromList()` now accepts `skipRefresh: Bool` parameter. Default `false` preserves existing behavior for single-item removes.
+- `confirmBatchRemove()` passes `skipRefresh: true` for each item, then does a single `fetchUserLists()` + `fetchCollectionFeed()` at the end. Reduces network round-trips from 3N to N+2 for a batch of N items.
+
+**AnimeDetailView.swift + MangaDetailView.swift — Synopsis guard tightened:**
+- Guard changed from `description != nil || synopsisEnhanced != nil` to `!displayDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && displayDescription != "No description available"`. Catches empty-string descriptions (`""`) and the fallback placeholder that the `!= nil` check missed.
+
+Totals: 0 new files, 4 modified Swift files. 64 Swift files, 144 migrations.
+
+### 2026-03-04 — Production audit fixes (2 items across 2 files)
+
+**BrowseView.swift — Task leak on view disappear:**
+- Added `.onDisappear { reloadTask?.cancel() }`. Previously the reload task could complete after sign-out, writing stale catalog data to empty-state arrays.
+
+**SupabaseService.swift — Double-tap guard on toggle operations:**
+- New `togglingMediaKeys: Set<String>` guard set. `toggleInCollection()` inserts key before launching Task, removes on completion — second tap while in-flight is silently ignored. Same guard on `toggleFavorite()` (key prefix `fav-`). Cleared in `resetUserState()` on sign-out.
+
+Totals: 0 new files, 2 modified Swift files. 64 Swift files, 144 migrations.
+
+### 2026-03-04 — Characters, Staff, Studios & Authors on Detail Pages
+
+**New files (3 Swift + 1 migration):**
+- `Kuro/Views/DetailPages/CastSection.swift` — CastSection horizontal portrait rail + CastCircleItem (64pt circles, MAIN badge, sorted MAIN > SUPPORTING, BACKGROUND excluded)
+- `Kuro/Views/DetailPages/CreditsSection.swift` — StudioSection (anime), CreditsSection (anime, curated 5-role text), AuthorsSection (manga "CREATED BY"), AllCreditsSheet
+- `Kuro/Views/DetailPages/EntityDetailSheets.swift` — CharacterDetailSheet, StaffDetailSheet, AuthorDetailSheet, StudioDetailSheet, EntitySortMode, EntityWorksRail, EntityHeroSection, EntityWorkCard
+- `supabase/migrations/20260304100000_credits_cast_v1_flag.sql` — `credits_cast_v1` feature flag at 100%
+
+**SupabaseModels.swift — 4 entity models + join wrappers + DTOs + CreditRole:**
+- `Character`, `Staff`, `Studio`, `Author` structs with explicit CodingKeys
+- 5 forward join wrappers, 2 lightweight DTOs (`AnimeWorkRow`, `MangaWorkRow`), 5 reverse join wrappers
+- `CreditRole` enum (10 cases, `from(raw:)` normalization, priority by rawValue)
+
+**SupabaseService.swift — 5 inline caches + 4 entity-sheet caches + 9 fetch methods:**
+- All sheet fetches filter `isAdult` + genre-based exclusion
+- All caches cleared in `resetUserState()`
+
+**AnimeDetailView.swift / MangaDetailView.swift:**
+- Parallel entity fetches gated by `isCreditsCastV1Enabled`
+- Anime: StudioSection → CreditsSection → CastSection after Tags
+- Manga: AuthorsSection → CastSection after Tags
+
+**FeatureFlags.swift:** `isCreditsCastV1Enabled` accessor
+**AuthView.swift / TextNormalization.swift:** `Swift.Character` qualification to avoid name collision
+**KuroTests.swift:** 12 new CreditRole + cast sorting unit tests
+
+Totals: 3 new Swift files, 7 modified Swift files, 1 new migration. 67 Swift files, 145 migrations.
+
+### 2026-03-04 — Credits/Cast audit fixes (4 items)
+
+**[P1] Migration pushed to remote:**
+- `20260304100000_credits_cast_v1_flag.sql` applied via `supabase db push --linked --include-all`.
+
+**[P2] Flag refresh race in detail pages:**
+- Entity fetches split into separate `.task(id: "\(id)-\(flag)")` keyed on both media ID and `isCreditsCastV1Enabled`. When flag transitions false→true after async refresh, the task re-fires and loads entity data.
+
+**[P2] Server-side adult filtering in entity-sheet queries:**
+- Added `.eq("anime.is_adult", value: false)` / `.eq("manga.is_adult", value: false)` to all 4 entity-sheet fetch methods (`fetchAnimeByStudio`, `fetchAnimeByStaff`, `fetchMangaByAuthor`, `fetchMediaByCharacter`). Client-side filter retained as defense-in-depth.
+
+**[P3] Migration conflict strategy:**
+- `credits_cast_v1_flag.sql` changed from `ON CONFLICT DO NOTHING` to `ON CONFLICT DO UPDATE SET enabled, rollout_percentage, description` to enforce intended state even if row pre-exists.

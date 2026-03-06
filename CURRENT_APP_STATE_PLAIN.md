@@ -674,10 +674,88 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Behind feature flag**: All streaming features are behind `streaming_availability_v1` at 0% rollout. Test with the launch argument `--ff-on=streaming_availability_v1`.
 - 1 new migration file, 7 modified Swift files, 0 new Swift files.
 
-### 2026-03-06 — Local deployment + privacy cleanup
-- **Local CD is safer**: The local deployment scripts now reject missing flag values clearly and handle an empty function list without crashing.
-- **Account deletion cleanup fixed**: The GDPR delete RPC had `uuid` vs `text` mismatches and incomplete coverage. It now deletes the intended concierge-adjacent user data correctly, and database lint is clean again.
+### 2026-03-02 — Streaming rollout deferred (kept behind flag)
+- **Decision**: We are pausing the streaming availability rollout for now. It stays behind `streaming_availability_v1` at 0%, so nothing new is forced on users.
+- **What remains in code (not default-on)**:
+  - Pre-production schema/RPC scaffold in `20260301153000_streaming_availability_country_lang_v1.sql`
+  - Local provider-availability worker + launchd installer + localhost dashboard (`:8789`)
+- **Operational stance**: Keep existing legal watch/read links as the active path until provider API strategy (coverage/cost) is finalized.
+
+### 2026-03-03 — UX Wave 1: P0 Quick Wins (6 improvements)
+- **Discover gets a hero card**: The Discover homepage now opens with a large featured title card at the very top, giving it a proper editorial "moment" instead of jumping straight into grids.
+- **Browse shows active filters on empty results**: When you search Browse and get no results, the app now tells you how many filters are active, lists them, and offers a "CLEAR FILTERS" button to reset everything at once.
+- **Collection gets a "Dropped" filter**: The Collection filter bar now includes a DROPPED option so you can see titles you've dropped. Previously these were hidden.
+- **Collection gets an Anime/Manga toggle**: A new type filter pill on the Collection page lets you show only anime, only manga, or both.
+- **Import CONFIRM 0 now explains itself**: When importing titles and the CONFIRM button shows 0, the app now explains why — either everything's already in your library, you excluded all items, or you need to select matches above.
+- **Detail pages stop using deprecated API**: The "More Like This" section on anime and manga detail pages no longer uses the deprecated `UIScreen.main` API. Width is now passed from the parent layout.
+- **Bug fix**: Detail pages were making streaming availability API calls even though the streaming feature is turned off. These calls are now properly gated behind the feature flag, matching how the rest of the app handles it.
+
+### 2026-03-03 — UX Wave 2: Medium-Effort P0s (3 improvements)
+- **Concierge now shows starter actions on first use**: When you open the Concierge with no messages, you now see 4 quick-action pills — "From your library," "From clipboard," "Curate for me," and "Show examples." Previously this was a blank screen with just a mood subtitle.
+- **Discover gets an Anime/Manga toggle**: A new filter pill on the Discover page lets you show only anime sections, only manga sections, or both. All 14 editorial sections respect this filter.
+- **Concierge conversations persist across sessions**: Your Concierge chat history now survives closing and reopening the app. Messages are saved to disk (text only — interactive import cards don't survive, but you can see what you discussed). Sessions expire after 7 days. A "NEW CHAT" button lets you start fresh.
+
+### 2026-03-03 — Post-review security + bug fixes
+- **Concierge cache is now per-user**: Previously the conversation cache was shared across all accounts on the same device. Now each user's cache is stored separately, and signing out clears all cached conversations. This prevents one user from seeing another's chat history after an account switch.
+- **Browse error state fixed**: The Browse page could get stuck showing an error screen after reconnecting to the internet if the search had no results. Now it correctly distinguishes between "offline error" and "no results found."
+
+### 2026-03-03 — UX Wave 3: P1 Quick Wins (13 improvements)
+- **Collection: live search as you type**: Typing in the Collection search bar now filters results instantly with a 300ms debounce — no need to press Enter. The Enter key still triggers the FM-powered smart search.
+- **Collection: sort by your rating**: A new "MY RATING" sort option in the Collection lets you see your highest-rated titles first.
+- **Collection: empty state now has CTAs**: When your Collection is empty, you now see buttons to "EXPLORE DISCOVER" and "TRY THE CONCIERGE" instead of just a generic message.
+- **Collection: status summary row**: A compact row above the filters shows how many titles you have in each status (e.g., "12 WATCHING · 8 COMPLETED · 3 PLANNED").
+- **Collection: batch remove confirmation**: Removing multiple items from your collection now asks for confirmation first instead of deleting immediately.
+- **Score: tap to clear + bug fix**: Tapping the same star you already selected now clears your rating. Also fixed a bug where scores were being saved at 1/10th their value — if you gave something 5 stars, it would show as 0 next time you opened it.
+- **Progress: tap to type for long series**: For manga with 300+ chapters, you can now tap the progress number to type it directly instead of using the +/- stepper hundreds of times.
+- **Discover: context menus on all grid cards**: All 2-column grid sections on Discover now have long-press context menus (Quick Add, Edit List, Add to Club) — previously only some card types had them.
+- **Browse: result count**: Browse now shows "N RESULTS" above the content grid so you know how many titles matched your filters.
+- **Clubs: "THIS WEEK" tab renamed to "ACTIVE"**: Better reflects the actual content (recently active items, not just this week's).
+- **Friends: delete your own comment**: You can now delete your own comments on titles via a trash icon with confirmation dialog.
+- **Detail pages: empty synopsis hidden**: Titles with no synopsis no longer show a blank "SYNOPSIS" header.
+- **Detail pages: share button**: Anime and manga detail pages now have a "SHARE" button that shares the `kuro://` deep link so friends with the app can open it directly.
+
+### 2026-03-03 — Post-Wave 3 review fixes
+- **Batch remove now waits for each deletion**: Previously the "remove selected items" action in Collection fired off all deletions without waiting, then immediately showed "Removed N items" even if some failed silently. Now it waits for each removal and tells you if any failed.
+- **Favorite toggle fixed**: Marking an anime as a favorite was writing the wrong value to the database (10 instead of 100 on a 10-100 scale), so the favorite status wouldn't stick after reopening.
+- **Delete comment now shows errors**: Deleting your own comment on a title silently swallowed errors. Now it shows "Could not delete comment" if the server request fails.
+
+### 2026-03-03 — Pre-release hardening
+- **Batch remove is faster**: Removing multiple items from your collection now does one refresh at the end instead of a full refresh after each item. If you removed 10 items, it used to do 30 network calls — now it does 12.
+- **Empty synopsis fully hidden**: Titles with a blank or placeholder description no longer show a "SYNOPSIS" section at all. Previously some edge cases (empty string in database) could still show a blank section.
+
+### 2026-03-04 — Production audit fixes
+- **Browse page cleans up on leave**: The Browse page now cancels any in-progress reload when you navigate away. Previously a reload could finish after you signed out and briefly show stale data.
+- **Double-tap protection on add/remove**: Rapidly tapping the add-to-collection or favorite button no longer fires multiple network requests. The second tap is ignored while the first is still in progress.
+
+### 2026-03-04 — Characters, Staff, Studios & Authors on Detail Pages
+- **Anime detail pages now show STUDIO, CREDITS, and CAST**: After genres/tags, you'll see the studio name(s) you can tap to browse their productions, a curated credits section showing director/original creator/series composition/music/character design, and a horizontal scrollable cast rail with circular character portraits.
+- **Manga detail pages now show CREATED BY and CAST**: Author name(s) with role (Story, Art, Story & Art) are displayed as tappable links, plus the same cast portrait rail as anime.
+- **Tapping any person/studio opens a detail sheet**: Each sheet shows a hero section (portrait + name + metadata) and a sortable works rail (by RATING or YEAR). Staff/author sheets show the role per work. All works are adult-content-filtered.
+- **Feature flag**: `credits_cast_v1` at 100% — can be disabled via `--ff-off=credits_cast_v1` or by setting rollout to 0% in the database.
+- **No new backend work needed**: All data already exists in the database (imported hourly from AniList). Only iOS models and UI were added.
+
+### 2026-03-04 — Credits/Cast audit fixes
+- **Migration now applied remotely**: The feature flag was only in local migration files. Now pushed to production database.
+- **Flag refresh race fixed**: If you opened a detail page before the app finished loading feature flags from the server, credits/cast sections would be skipped and never appear until you closed and reopened the page. Now they auto-load when the flag becomes available.
+- **Adult content filtering strengthened**: Previously adult titles were only filtered out on the device after downloading. Now the server also filters them out before sending, reducing bandwidth and adding a safety layer.
+- **Migration conflict strategy hardened**: If the feature flag row somehow pre-existed with different values, the migration now overwrites them instead of silently keeping the old values.
+
+### 2026-03-06 — Free streaming metadata research spike
+- **New local research tool only**: Added a standalone spike under `research/streaming_availability/` that tests whether free GitHub sources are good enough for `platform + country + EN/DE audio/subtitle note`.
+- **What it does**: Runs a fixed 50-title benchmark from Kuro's own catalog (`25 anime`, `25 manga`), normalizes results, and writes local reports only. It does not touch production tables or user-facing UI.
+- **What we learned**: The free JustWatch GraphQL wrapper is somewhat useful for anime, but weak overall. It found deterministic matches for `13/50` benchmark titles and title-level locale data for `12/50`. On manga, it failed completely (`0/25` matches).
+- **Important limit**: `anime-streaming` is only used as a service/region hint list, not as title-level truth. The Selenium JustWatch scraper is not usable on this machine because its Python/browser dependencies are missing.
+- **Decision stays the same**: keep the real streaming availability rollout deferred. This spike is evidence gathering, not a production rollout path.
+
 
 ### 2026-03-06 — Detail page link copy cleanup
-- **More honest fallback text**: If Kuro has a legal watch/read link but no verified region metadata, anime now says audio/subtitle availability may vary by region and manga says reading availability may vary by region and publisher.
-- **Cleaner no-link fallback**: If there is no legal link yet, the app now consistently says `Link coming soon.` including manga chapter surfaces.
+- **More honest link messaging**: Detail pages no longer show vague `Availability unknown` copy. If Kuro has a legal link but no verified region metadata, anime now says availability/audio/subtitles may vary by region, and manga says reading availability may vary by region and publisher.
+- **Cleaner no-link fallback**: If no legal watch/read link exists yet, both anime and manga now simply say `Link coming soon.` This same wording is also used in the manga chapter surfaces so the message is consistent.
+
+### 2026-03-06 — Streaming note hardening
+- **Dub vs audio vs subtitles is now explicit**: Kuro no longer turns every language hint into `EN dub` / `DE dub`. It now distinguishes between dub, plain audio, subtitle-only evidence, and generic availability.
+- **No more overclaiming when source data is thin**: If Kuro does not know the original language well enough, it now says `EN audio` instead of guessing `EN dub`.
+- **Subtitle-only cases are preserved**: If a provider only proves subtitles, the note now says `EN subtitles` / `DE subtitles` instead of pretending there is audio.
+- **Manga stays conservative**: Manga detail pages still use the neutral legal-link disclaimer copy because the current backend does not have strong per-title locale metadata for manga reading sources.
+- **Backend contract updated**: The provider-availability RPC was extended and the follow-up migration was pushed, so iOS and Supabase now agree on the note fields (`audio_languages`, `subtitle_languages`, `countries_by_sub_lang`).
+- **Regression coverage added**: Tests now cover EN/DE dub/audio/subtitle note formatting and mixed anime/manga card identity so same-number IDs do not collide in character sheets.

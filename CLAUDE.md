@@ -1,6 +1,6 @@
 # CLAUDE.md — Kuro Project Rules & Context
 
-**Last synced: 2026-02-24** | **This file is mandatory reading. Every rule is binding.**
+**Last synced: 2026-03-06** | **This file is mandatory reading. Every rule is binding.**
 
 ---
 
@@ -74,6 +74,13 @@ Kuro is a curated anime + manga iOS app. It lets users browse premium editorial 
     - `bulk-import-anime:v20`
     - `bulk-import-manga:v19`
     - `manga-source-review-action:v2`
+
+### Streaming availability status (2026-03-02)
+- Streaming Availability v1 stays intentionally staged behind `streaming_availability_v1` at 0%.
+- Additional country/language metadata scaffolding was added for pre-production validation (`20260301153000_streaming_availability_country_lang_v1.sql` + local provider-availability worker/dashboard scripts), but rollout is deferred.
+- Follow-up migration `20260306113000_provider_availability_note_contract.sql` is applied remotely. `batch_provider_availability_for_media_v2` now returns `audio_languages`, `subtitle_languages`, and `countries_by_sub_lang`, and iOS renders a typed note (`dub` / `audio` / `subtitles` / generic availability) instead of forcing every audio locale into `dub`.
+- Decision lock: keep this work feature-flagged and non-default until provider source/cost strategy is finalized.
+- Free-source research spike now lives under `research/streaming_availability/` with local-only reports in `reports/streaming-availability-research/`. Current evidence is anime-only and partial (`13/50` deterministic matches, `12/50` titles with locale evidence, `0/25` manga matches), so it is not a production source-of-truth path. Repo paths and search-country are CLI-configurable; it remains strictly non-production.
 
 ### Synopsis enrichment runtime (local Mac, continuous)
 - Worker: `scripts/synopsis_enrichment_worker.swift`
@@ -157,7 +164,7 @@ Default page on launch: **Discover** (index 1).
 
 ### Feature Flags (staged rollout)
 Server-controlled via `feature_flags` DB table, cached in UserDefaults, deterministic hash rollout.
-All 13 flags defined in `FeatureFlags.swift`:
+All 15 flags defined in `FeatureFlags.swift`:
 - `rag_assist_v1` — RAG retrieval assist
 - `fm_assist_v1` — Apple Foundation Models assist
 - `clarify_v2` — improved clarification flow
@@ -169,9 +176,10 @@ All 13 flags defined in `FeatureFlags.swift`:
 - `clubs_reactions_v1` (100%) — emoji reactions
 - `clubs_pace_sync_v1` (100%) — pace tracking
 - `clubs_realtime_v1` (100%) — live updates
-- `clubs_chat_v1` (0%, deprecated) — ephemeral chat (removed from UI, replaced by social activity)
 - `social_activity_v1` (0%) — title-level friend comments + reactions
 - `clubs_notifications_v1` (100%) — in-app badges
+- `streaming_availability_v1` (0%) — where-to-watch/read provider filters and shared availability UI
+- `credits_cast_v1` (100%) — characters, staff, studios, authors on detail pages
 - Debug override: `--ff-on=flag_name` / `--ff-off=flag_name` launch args
 
 ### Deep Linking
@@ -219,7 +227,7 @@ All 13 flags defined in `FeatureFlags.swift`:
 
 ## FILE MAP (exact, current as of 2026-02-24)
 
-### iOS app — 64 Swift files in `Kuro/`
+### iOS app — 67 Swift files in `Kuro/`
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
@@ -262,7 +270,7 @@ All 13 flags defined in `FeatureFlags.swift`:
 - `OnboardingView.swift` — First-launch onboarding
 - `ProfileView.swift` — Profile menu (includes Clubs secondary access)
 - `AuthView.swift` — Authentication
-- Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift`, `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `FriendsActivitySection.swift`, `ExternalLinksSection.swift`
+- Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift`, `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `FriendsActivitySection.swift`, `ExternalLinksSection.swift`, `CastSection.swift`, `CreditsSection.swift`, `EntityDetailSheets.swift`
 - UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `EditorialCards.swift`, `Cards.swift`, `UIComponents.swift`, `GenreHubView.swift`, `CountdownTimer.swift`
 - Shared: `AddToListSheet.swift` — add/edit list entry sheet (used by cards + detail pages)
 - Legacy/secondary: `DiscoverViewModel.swift`
@@ -275,7 +283,7 @@ All 13 flags defined in `FeatureFlags.swift`:
 - `SupabaseModels.swift` — all Supabase data models
 - `DiscoverBundle.swift` — discover bundle response model
 
-### Supabase — 143 migration files in repo, 15 deployed edge functions (as of 2026-02-25)
+### Supabase — 145 migration files in repo, 15 deployed edge functions (as of 2026-03-04)
 
 **Edge functions (15):**
 - `concierge-parse` — deterministic NLP parser, title candidate search
