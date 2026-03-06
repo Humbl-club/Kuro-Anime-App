@@ -16,6 +16,7 @@ struct FriendsActivitySection: View {
     @State private var isSubmitting = false
     @State private var isEditing = false
     @State private var errorText: String?
+    @State private var showDeleteConfirm = false
 
     private var hasClubs: Bool {
         !supabaseService.myClubs.isEmpty
@@ -65,6 +66,23 @@ struct FriendsActivitySection: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .alert("Delete your comment?", isPresented: $showDeleteConfirm) {
+                Button("Delete", role: .destructive) {
+                    Task {
+                        do {
+                            try await supabaseService.deleteTitleComment(
+                                mediaType: mediaType,
+                                mediaId: mediaId
+                            )
+                            errorText = nil
+                        } catch {
+                            errorText = "Could not delete comment."
+                        }
+                        await loadActivity()
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
             .task(id: mediaId) {
                 await loadActivity()
             }
@@ -174,6 +192,17 @@ struct FriendsActivitySection: View {
                             .foregroundColor(.black.opacity(0.35))
                     }
                     .buttonStyle(.plain)
+
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        showDeleteConfirm = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 10, weight: .regular))
+                            .foregroundColor(.red.opacity(0.65))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Delete comment")
                 }
             }
 
