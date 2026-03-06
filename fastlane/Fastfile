@@ -29,4 +29,40 @@ platform :ios do
 
     upload_to_testflight(api_key: api_key, skip_waiting_for_build_processing: true)
   end
+
+  desc "Capture App Store screenshots on a prepared local simulator"
+  lane :screenshots do
+    UI.user_error!("Set KURO_ALLOW_NONHERMETIC_SCREENSHOTS=1 after preparing a logged-in simulator session") unless ENV["KURO_ALLOW_NONHERMETIC_SCREENSHOTS"] == "1"
+    capture_screenshots(scheme: "Kuro")
+  end
+
+  desc "Build and upload a new App Store release"
+  lane :release do
+    api_key = app_store_connect_api_key(
+      key_id: "7L84A7P9X7",
+      issuer_id: "bca97a4b-8a3a-4051-9c89-510f10db0b06",
+      key_filepath: File.expand_path("~/.appstoreconnect/private_keys/AuthKey_7L84A7P9X7.p8")
+    )
+
+    increment_build_number(
+      build_number: latest_testflight_build_number(api_key: api_key) + 1
+    )
+
+    build_app(
+      scheme: "Kuro",
+      export_method: "app-store",
+      clean: true,
+      xcargs: "-allowProvisioningUpdates",
+      export_options: {
+        signingStyle: "manual",
+        teamID: "YLG68JL5Y7",
+        provisioningProfiles: {
+          "com.Kuro.app" => "com.Kuro.app AppStore"
+        }
+      }
+    )
+
+    upload_to_testflight(api_key: api_key, skip_waiting_for_build_processing: true)
+    upload_to_app_store(api_key: api_key, skip_screenshots: true, skip_metadata: true)
+  end
 end

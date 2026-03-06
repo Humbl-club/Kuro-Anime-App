@@ -1,0 +1,38 @@
+# Fastlane Snapshot Configuration for Kuro
+
+# Devices for App Store screenshots
+# 6.9" display (required) — iPhone 17 Pro Max
+# 6.3" display — iPhone 17 Pro
+devices([
+  "iPhone 17 Pro Max"
+])
+
+# Languages to capture (en-US first for iteration, add de-DE for final run)
+languages([
+  "en-US"
+])
+
+# Scheme containing UI tests
+scheme("Kuro")
+
+# Output directory for screenshots
+output_directory("./fastlane/screenshots")
+
+# Clear old screenshots before capturing new ones
+clear_previous_screenshots(true)
+
+# Clean status bar (9:41 AM, full battery, full signal)
+override_status_bar(true)
+
+# Launch arguments passed to the app
+launch_arguments(["-FASTLANE_SNAPSHOT YES", "-ui_testing"])
+
+# Local-operator lane only: this intentionally preserves a prepared, logged-in simulator.
+# The release lane does not depend on this state.
+erase_simulator(false)
+
+# Don't stop — capture as many screenshots as possible even if some fail
+stop_after_first_error(false)
+
+# Number of concurrent simulators
+concurrent_simulators(false)
