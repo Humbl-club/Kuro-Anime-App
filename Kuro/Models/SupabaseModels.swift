@@ -57,6 +57,30 @@ extension Anime: MediaDisplayable {
     var title: String { displayTitle }
     var imageURL: String? { displayImage.isEmpty ? nil : displayImage }
     var year: String { displayYear }
+
+    var inferredOriginalLanguageCode: String? {
+        switch countryOfOrigin?.uppercased() {
+        case "JP": return "ja"
+        case "KR": return "ko"
+        case "CN", "TW": return "zh"
+        case "US", "GB", "CA", "AU", "NZ", "IE": return "en"
+        case "DE", "AT": return "de"
+        default: return nil
+        }
+    }
+
+    var hasMeaningfulSynopsis: Bool {
+        if let synopsisEnhanced,
+           (synopsisEnhancedState ?? "ready").lowercased() == "ready",
+           !synopsisEnhanced.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        if let description,
+           !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        return false
+    }
     
     var displayDescription: String {
         if let synopsisEnhanced,
@@ -100,6 +124,21 @@ extension Manga: MediaDisplayable {
             return String(year)
         }
         return "TBA"
+    }
+
+    var inferredOriginalLanguageCode: String? { nil }
+
+    var hasMeaningfulSynopsis: Bool {
+        if let synopsisEnhanced,
+           (synopsisEnhancedState ?? "ready").lowercased() == "ready",
+           !synopsisEnhanced.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        if let description,
+           !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        return false
     }
     
     var displayDescription: String {
@@ -679,5 +718,444 @@ struct ExternalLink: Identifiable, Codable {
         case isDisabled = "is_disabled"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+}
+
+// MARK: - Entity Models (Characters, Staff, Studios, Authors)
+
+struct Character: Identifiable, Codable {
+    let id: Int
+    let anilistId: Int?
+    let nameFull: String?
+    let nameNative: String?
+    let imageLarge: String?
+    let description: String?
+    let gender: String?
+    let age: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case anilistId = "anilist_id"
+        case nameFull = "name_full"
+        case nameNative = "name_native"
+        case imageLarge = "image_large"
+        case description
+        case gender, age
+    }
+}
+
+struct Staff: Identifiable, Codable {
+    let id: Int
+    let anilistId: Int?
+    let nameFull: String?
+    let nameNative: String?
+    let imageLarge: String?
+    let description: String?
+    let primaryOccupations: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case anilistId = "anilist_id"
+        case nameFull = "name_full"
+        case nameNative = "name_native"
+        case imageLarge = "image_large"
+        case description
+        case primaryOccupations = "primary_occupations"
+    }
+}
+
+struct Studio: Identifiable, Codable {
+    let id: Int
+    let anilistId: Int?
+    let name: String?
+    let isAnimationStudio: Bool?
+    let siteUrl: String?
+    let favourites: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case anilistId = "anilist_id"
+        case name
+        case isAnimationStudio = "is_animation_studio"
+        case siteUrl = "site_url"
+        case favourites
+    }
+}
+
+struct Author: Identifiable, Codable {
+    let id: Int
+    let anilistId: Int?
+    let nameFull: String?
+    let nameNative: String?
+    let imageLarge: String?
+    let description: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case anilistId = "anilist_id"
+        case nameFull = "name_full"
+        case nameNative = "name_native"
+        case imageLarge = "image_large"
+        case description
+    }
+}
+
+// MARK: - Forward Join Wrappers (inline sections: join table → entity)
+
+struct AnimeCharacterJoin: Codable {
+    let role: String?
+    let characters: Character
+
+    enum CodingKeys: String, CodingKey {
+        case role, characters
+    }
+}
+
+struct AnimeStaffJoin: Codable {
+    let role: String?
+    let staff: Staff
+
+    enum CodingKeys: String, CodingKey {
+        case role, staff
+    }
+}
+
+struct AnimeStudioJoin: Codable {
+    let studios: Studio
+
+    enum CodingKeys: String, CodingKey {
+        case studios
+    }
+}
+
+struct MangaCharacterJoin: Codable {
+    let role: String?
+    let characters: Character
+
+    enum CodingKeys: String, CodingKey {
+        case role, characters
+    }
+}
+
+struct MangaAuthorJoin: Codable {
+    let role: String?
+    let authors: Author
+
+    enum CodingKeys: String, CodingKey {
+        case role, authors
+    }
+}
+
+// MARK: - Lightweight DTOs for Reverse Joins (entity sheets: join table → media)
+
+/// Lightweight row for reverse-join queries (entity → anime).
+/// Only includes columns we SELECT — avoids decoding failures on required Anime fields.
+struct AnimeWorkRow: Codable, Identifiable {
+    let id: Int
+    let titleEnglish: String?
+    let titleRomaji: String?
+    let coverImageLarge: String?
+    let averageScore: Int?
+    let seasonYear: Int?
+    let format: String?
+    let status: String?
+    let genres: [String]?
+    let isAdult: Bool
+    let episodes: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case titleEnglish = "title_english"
+        case titleRomaji = "title_romaji"
+        case coverImageLarge = "cover_image_large"
+        case averageScore = "average_score"
+        case seasonYear = "season_year"
+        case format, status, genres
+        case isAdult = "is_adult"
+        case episodes
+    }
+
+    func toMedia() -> Media {
+        Media(
+            id: id, kind: .anime,
+            title: titleEnglish ?? titleRomaji ?? "Unknown",
+            imageURL: coverImageLarge,
+            year: seasonYear.map(String.init) ?? "TBA",
+            displayDescription: "",
+            episodes: episodes, chapters: nil,
+            rating: averageScore.map { Double($0) / 10.0 },
+            genres: genres,
+            statusRaw: status, formatRaw: format,
+            popularityValue: nil, trendingValue: nil, createdAtValue: nil
+        )
+    }
+}
+
+/// Lightweight row for reverse-join queries (entity → manga).
+struct MangaWorkRow: Codable, Identifiable {
+    let id: Int
+    let titleEnglish: String?
+    let titleRomaji: String?
+    let coverImageLarge: String?
+    let averageScore: Int?
+    let startDateYear: Int?
+    let format: String?
+    let status: String?
+    let genres: [String]?
+    let isAdult: Bool
+    let chapters: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case titleEnglish = "title_english"
+        case titleRomaji = "title_romaji"
+        case coverImageLarge = "cover_image_large"
+        case averageScore = "average_score"
+        case startDateYear = "start_date_year"
+        case format, status, genres
+        case isAdult = "is_adult"
+        case chapters
+    }
+
+    func toMedia() -> Media {
+        Media(
+            id: id, kind: .manga,
+            title: titleEnglish ?? titleRomaji ?? "Unknown",
+            imageURL: coverImageLarge,
+            year: startDateYear.map(String.init) ?? "TBA",
+            displayDescription: "",
+            episodes: nil, chapters: chapters,
+            rating: averageScore.map { Double($0) / 10.0 },
+            genres: genres,
+            statusRaw: status, formatRaw: format,
+            popularityValue: nil, trendingValue: nil, createdAtValue: nil
+        )
+    }
+}
+
+// MARK: - Reverse Join Wrappers (entity sheets: using DTOs)
+
+struct StudioAnimeJoin: Codable {
+    let anime: AnimeWorkRow
+}
+
+struct StaffAnimeJoin: Codable {
+    let role: String?
+    let anime: AnimeWorkRow
+}
+
+struct AuthorMangaJoin: Codable {
+    let role: String?
+    let manga: MangaWorkRow
+}
+
+struct CharacterAnimeJoin: Codable {
+    let anime: AnimeWorkRow
+}
+
+struct CharacterMangaJoin: Codable {
+    let manga: MangaWorkRow
+}
+
+// MARK: - Credit Role Normalization
+
+enum CreditRole: Int, CaseIterable {
+    case director = 0
+    case originalCreator = 1
+    case seriesComposition = 2
+    case music = 3
+    case characterDesign = 4
+    case script = 5
+    case storyboard = 6
+    case animationDirector = 7
+    case artDirector = 8
+    case soundDirector = 9
+
+    static func from(raw: String) -> CreditRole? {
+        switch raw.trimmingCharacters(in: .whitespaces).lowercased() {
+        case "director": return .director
+        case "original creator", "original story", "original character design": return .originalCreator
+        case "series composition": return .seriesComposition
+        case "music", "theme song composition": return .music
+        case "character design", "chief character design": return .characterDesign
+        case "script", "screenplay": return .script
+        case "storyboard": return .storyboard
+        case "animation director", "chief animation director": return .animationDirector
+        case "art director", "art design": return .artDirector
+        case "sound director": return .soundDirector
+        default: return nil
+        }
+    }
+}
+
+// MARK: - Provider Availability Models
+
+enum ProviderAvailabilityNoteKind: String, Sendable, Equatable {
+    case dub
+    case audio
+    case subtitles
+    case availability
+}
+
+struct ProviderAvailabilityNote: Sendable, Equatable {
+    let kind: ProviderAvailabilityNoteKind
+    let languageCode: String?
+    let countries: [String]
+
+    var displayText: String {
+        let normalizedCountries = countries.sorted()
+        switch kind {
+        case .availability:
+            return "Availability: \(normalizedCountries.joined(separator: ", "))"
+        case .dub:
+            return "\(displayLanguageCode) dub: \(normalizedCountries.joined(separator: ", "))"
+        case .audio:
+            return "\(displayLanguageCode) audio: \(normalizedCountries.joined(separator: ", "))"
+        case .subtitles:
+            return "\(displayLanguageCode) subtitles: \(normalizedCountries.joined(separator: ", "))"
+        }
+    }
+
+    private var displayLanguageCode: String {
+        guard let languageCode, !languageCode.isEmpty else { return "Unknown" }
+        return languageCode.uppercased()
+    }
+}
+
+enum ProviderAvailabilityNoteBuilder {
+    static func normalizedLanguage(_ raw: String?) -> String {
+        let source = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if source.isEmpty { return "unknown" }
+        if source.hasPrefix("de") || source.contains("german") || source.contains("deutsch") { return "de" }
+        if source.hasPrefix("en") || source.contains("english") { return "en" }
+        if source.hasPrefix("ja") || source.contains("japanese") { return "ja" }
+        if source.hasPrefix("ko") || source.contains("korean") { return "ko" }
+        if source.hasPrefix("zh") || source.contains("chinese") || source.contains("mandarin") { return "zh" }
+        return "other"
+    }
+
+    static func bestNote(
+        from providers: [ProviderAvailabilityProvider],
+        preferredAudioLang: String?,
+        preferredSubtitleLang: String? = nil,
+        originalLanguage: String? = nil
+    ) -> ProviderAvailabilityNote? {
+        let preferredAudio = normalizedLanguage(preferredAudioLang)
+        let preferredSubtitle = normalizedLanguage(preferredSubtitleLang ?? preferredAudioLang)
+        let normalizedOriginal = normalizedLanguage(originalLanguage)
+
+        func normalizedCountries(for language: String, in map: [String: [String]]) -> [String] {
+            guard let countries = map[language], !countries.isEmpty else { return [] }
+            return Array(Set(countries)).sorted()
+        }
+
+        func audioKind(for language: String) -> ProviderAvailabilityNoteKind {
+            if normalizedOriginal == "en" || normalizedOriginal == "de" {
+                return normalizedOriginal != language ? .dub : .audio
+            }
+            if normalizedOriginal == "ja" || normalizedOriginal == "ko" || normalizedOriginal == "zh" || normalizedOriginal == "other" {
+                return .dub
+            }
+            return .audio
+        }
+
+        func bestNote(for provider: ProviderAvailabilityProvider) -> ProviderAvailabilityNote? {
+            func audioNote(for language: String) -> ProviderAvailabilityNote? {
+                guard language == "en" || language == "de" else { return nil }
+                let countries = normalizedCountries(for: language, in: provider.countriesByAudioLang)
+                guard !countries.isEmpty else { return nil }
+                return ProviderAvailabilityNote(
+                    kind: audioKind(for: language),
+                    languageCode: language,
+                    countries: countries
+                )
+            }
+
+            func subtitleNote(for language: String) -> ProviderAvailabilityNote? {
+                guard language == "en" || language == "de" else { return nil }
+                let countries = normalizedCountries(for: language, in: provider.countriesBySubtitleLang)
+                guard !countries.isEmpty else { return nil }
+                return ProviderAvailabilityNote(kind: .subtitles, languageCode: language, countries: countries)
+            }
+
+            func availabilityNote() -> ProviderAvailabilityNote? {
+                let audioCountries = provider.countriesByAudioLang.values.flatMap { $0 }
+                let subtitleCountries = provider.countriesBySubtitleLang.values.flatMap { $0 }
+                let countries = Array(Set(audioCountries + subtitleCountries)).sorted()
+                guard !countries.isEmpty else { return nil }
+                return ProviderAvailabilityNote(kind: .availability, languageCode: nil, countries: countries)
+            }
+
+            let noteCandidates: [ProviderAvailabilityNote?] = [
+                audioNote(for: preferredAudio),
+                subtitleNote(for: preferredSubtitle),
+                audioNote(for: "en"),
+                audioNote(for: "de"),
+                subtitleNote(for: "en"),
+                subtitleNote(for: "de"),
+                availabilityNote()
+            ]
+
+            return noteCandidates.compactMap { $0 }.first
+        }
+
+        for provider in providers {
+            if let note = bestNote(for: provider) {
+                return note
+            }
+        }
+        return nil
+    }
+}
+
+struct ProviderAvailabilityProvider: Decodable, Sendable {
+    let slug: String
+    let displayName: String
+    let url: String?
+    let languages: [String]
+    let audioLanguages: [String]
+    let subtitleLanguages: [String]
+    let countriesByAudioLang: [String: [String]]
+    let countriesBySubtitleLang: [String: [String]]
+    let isStale: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case slug
+        case displayName = "display_name"
+        case url
+        case languages
+        case audioLanguages = "audio_languages"
+        case subtitleLanguages = "subtitle_languages"
+        case countriesByAudioLang = "countries_by_audio_lang"
+        case countriesBySubtitleLang = "countries_by_sub_lang"
+        case isStale = "is_stale"
+    }
+}
+
+struct ProviderAvailabilityBatchItem: Decodable, Sendable {
+    let mediaType: String
+    let mediaId: Int
+    let providers: [ProviderAvailabilityProvider]
+
+    enum CodingKeys: String, CodingKey {
+        case mediaType = "media_type"
+        case mediaId = "media_id"
+        case providers
+    }
+}
+
+struct MediaAvailabilityStatus: Decodable, Sendable {
+    let hasRows: Bool
+    let status: String
+    let lastRefreshedAt: Date?
+    let nextRefreshAt: Date?
+    let staleDays: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case hasRows = "has_rows"
+        case status
+        case lastRefreshedAt = "last_refreshed_at"
+        case nextRefreshAt = "next_refresh_at"
+        case staleDays = "stale_days"
     }
 }

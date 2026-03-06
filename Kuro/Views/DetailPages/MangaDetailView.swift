@@ -14,6 +14,8 @@ struct MangaDetailView: View {
     @State private var topTags: [TagFacet] = []
     @State private var similar: [Manga] = []
     @State private var condensedSynopsis: String?
+    @State private var authorItems: [(author: Author, role: String)] = []
+    @State private var castItems: [(character: Character, role: String)] = []
 
     var body: some View {
         GeometryReader { geometry in
@@ -50,11 +52,13 @@ struct MangaDetailView: View {
                         MangaNextUpSection(manga: manga)
                         
                         // Description
-                        DescriptionSection(
-                            description: manga.displayDescription,
-                            showFull: $showFullDescription,
-                            condensedSynopsis: condensedSynopsis
-                        )
+                        if manga.hasMeaningfulSynopsis {
+                            DescriptionSection(
+                                description: manga.displayDescription,
+                                showFull: $showFullDescription,
+                                condensedSynopsis: condensedSynopsis
+                            )
+                        }
                         
                         // Genres
                         if let genres = manga.genreList, !genres.isEmpty {
@@ -64,7 +68,17 @@ struct MangaDetailView: View {
                         if !topTags.isEmpty {
                             TagChipsSection(title: "SUB‑GENRES", tags: topTags.map(\.name))
                         }
-                        
+
+                        if FeatureFlags.shared.isCreditsCastV1Enabled {
+                            if !authorItems.isEmpty {
+                                AuthorsSection(authorItems: authorItems)
+                            }
+
+                            if !castItems.isEmpty {
+                                CastSection(characters: castItems, containerWidth: geometry.size.width)
+                            }
+                        }
+
                         // Chapters Section (rows-first; count is optional)
                         ChaptersSection(manga: manga, chapterCount: manga.chapterCount, onError: showToast)
                         
@@ -82,7 +96,7 @@ struct MangaDetailView: View {
                         }
 
                         if !similar.isEmpty {
-                            MangaSimilarSection(title: "MORE LIKE THIS", items: similar)
+                            MangaSimilarSection(title: "MORE LIKE THIS", items: similar, containerWidth: geometry.size.width)
                         }
 
                         ClubActivitySection(mediaId: manga.id, mediaType: "MANGA")
@@ -90,6 +104,32 @@ struct MangaDetailView: View {
                         if FeatureFlags.shared.isSocialActivityV1Enabled {
                             FriendsActivitySection(mediaId: manga.id, mediaType: "MANGA")
                         }
+
+                        ShareLink(
+                            item: URL(string: "kuro://manga/\(manga.id)")!,
+                            subject: Text(manga.displayTitle)
+                        ) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 11, weight: .medium))
+                                Text("SHARE")
+                                    .font(.kuroMicro(weight: .medium))
+                                    .tracking(1.2)
+                            }
+                            .foregroundColor(.kuroTextSecondary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(Color.black.opacity(0.04))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .simultaneousGesture(TapGesture().onEnded { KuroAccessibility.impactHaptic(.light) })
 
                         ExternalLinksSection(
                             anilistId: manga.id,
@@ -168,6 +208,13 @@ struct MangaDetailView: View {
                     genres: manga.genreList ?? []
                 )
             }
+        }
+        .task(id: "\(manga.id)-\(FeatureFlags.shared.isCreditsCastV1Enabled)") {
+            guard FeatureFlags.shared.isCreditsCastV1Enabled else { return }
+            async let authorFetch = supabaseService.fetchAuthorsForManga(mangaId: manga.id)
+            async let castFetch = supabaseService.fetchCharactersForManga(mangaId: manga.id)
+            authorItems = await authorFetch
+            castItems = await castFetch
         }
     }
 
@@ -266,10 +313,10 @@ struct MangaNextUpSection: View {
 struct MangaSimilarSection: View {
     let title: String
     let items: [Manga]
+    let containerWidth: CGFloat
 
     private var cardWidth: CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
-        let candidate = floor((screenWidth - 56) / 2.8)
+        let candidate = floor((containerWidth - 56) / 2.8)
         return min(144, max(112, candidate))
     }
 
@@ -1126,79 +1173,80 @@ struct MangaActionButtons: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-            Button(action: toggleSaved) {
-                Image(systemName: isSaved ? "heart.fill" : "heart")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.kuroBlack)
-                    .frame(width: 38, height: 38)
-                    .background(Color.kuroBlack08)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isSaved ? "Saved" : "Save")
-
-            Button(action: {
-                KuroAccessibility.impactHaptic(.medium)
-                showAddToList = true
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill")
+                Button(action: toggleSaved) {
+                    Image(systemName: isSaved ? "heart.fill" : "heart")
                         .font(.system(size: 14, weight: .semibold))
-                    Text(isSaved ? "EDIT LIST" : "ADD TO LIST")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.1)
-                }
-                .foregroundColor(.kuroWhite)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.kuroBlack)
-                .cornerRadius(12)
-            }
-            .buttonStyle(.plain)
-            .sheet(isPresented: $showAddToList) {
-                AddToListSheet(media: manga)
-            }
-
-            if let link = readLink, let linkURL = validatedURL(from: link.url) {
-                Button(action: {
-                    if allLinks.count > 1 {
-                        showProviders = true
-                    } else {
-                        KuroAccessibility.impactHaptic(.medium)
-                        openURL(linkURL)
-                    }
-                }) {
-                    Image(systemName: "book.fill")
-                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.kuroBlack)
                         .frame(width: 38, height: 38)
                         .background(Color.kuroBlack08)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(link.label)
-            } else {
+                .accessibilityLabel(isSaved ? "Saved" : "Save")
+
                 Button(action: {
-                    KuroAccessibility.impactHaptic(.light)
-                    onToast(
-                        .init(
-                            kind: .info,
-                            title: "Link coming soon",
-                            subtitle: "We only show verified legal providers.",
-                            actionTitle: nil,
-                            onAction: nil
-                        )
-                    )
+                    KuroAccessibility.impactHaptic(.medium)
+                    showAddToList = true
                 }) {
-                    Image(systemName: "book.closed")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.kuroBlack30)
-                        .frame(width: 38, height: 38)
-                        .background(Color.kuroBlack08)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text(isSaved ? "EDIT LIST" : "ADD TO LIST")
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(1.1)
+                    }
+                    .foregroundColor(.kuroWhite)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.kuroBlack)
+                    .cornerRadius(12)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("No legal read link available")
+                .sheet(isPresented: $showAddToList) {
+                    AddToListSheet(media: manga)
+                }
+
+                if let link = readLink, let linkURL = validatedURL(from: link.url) {
+                    Button(action: {
+                        if allLinks.count > 1 {
+                            showProviders = true
+                        } else {
+                            KuroAccessibility.impactHaptic(.medium)
+                            openURL(linkURL)
+                        }
+                    }) {
+                        Image(systemName: "book.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.kuroBlack)
+                            .frame(width: 38, height: 38)
+                            .background(Color.kuroBlack08)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(link.label)
+                } else {
+                    Button(action: {
+                        KuroAccessibility.impactHaptic(.light)
+                        onToast(
+                            .init(
+                                kind: .info,
+                                title: "Link coming soon",
+                                subtitle: "We only show verified legal providers.",
+                                actionTitle: nil,
+                                onAction: nil
+                            )
+                        )
+                    }) {
+                        Image(systemName: "book.closed")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.kuroBlack30)
+                            .frame(width: 38, height: 38)
+                            .background(Color.kuroBlack08)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("No legal read link available")
+                }
             }
 
             Text(readLink == nil
@@ -1242,6 +1290,19 @@ struct MangaActionButtons: View {
             manga: manga,
             locale: Locale.current.identifier
         )
+        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+            await supabaseService.fetchProviderAvailabilityV2(
+                items: [(mediaType: "MANGA", mediaId: manga.id)],
+                preferredAudioLang: preferredAudio,
+                preferredSubLang: nil,
+                includeUnknown: true
+            )
+            await supabaseService.enqueueAvailabilityRefreshIfStale(
+                mediaType: "MANGA",
+                mediaId: manga.id,
+                reason: "detail_open"
+            )
+        }
         let note = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
             ? supabaseService.bestProviderAvailabilityNote(
                 mediaId: manga.id,
@@ -1252,7 +1313,7 @@ struct MangaActionButtons: View {
         await MainActor.run {
             self.allLinks = links.filter { validatedURL(from: $0.url) != nil }
             self.readLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
-            self.readAvailabilityNote = note
+            self.readAvailabilityNote = note?.displayText
         }
     }
 

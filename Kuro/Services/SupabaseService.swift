@@ -83,6 +83,19 @@ class SupabaseService {
     // Detail caches: cards/grids only carry minimal fields; we fetch full details by id on demand.
     private var animeDetailCache: [Int: Anime] = [:]
     private var mangaDetailCache: [Int: Manga] = [:]
+
+    // Entity inline caches (keyed by media ID, cap 100 each)
+    private var animeCharactersCache: [Int: [(character: Character, role: String)]] = [:]
+    private var animeStaffCache: [Int: [(staff: Staff, role: String)]] = [:]
+    private var animeStudiosCache: [Int: [Studio]] = [:]
+    private var mangaCharactersCache: [Int: [(character: Character, role: String)]] = [:]
+    private var mangaAuthorsCache: [Int: [(author: Author, role: String)]] = [:]
+
+    // Entity sheet caches (keyed by entity ID, TTL 120s)
+    private var studioWorksCache: [String: TimedCache<[Media]>] = [:]
+    private var staffWorksCache: [String: TimedCache<[(media: Media, role: String)]>] = [:]
+    private var authorWorksCache: [String: TimedCache<[(media: Media, role: String)]>] = [:]
+    private var characterWorksCache: [String: TimedCache<[Media]>] = [:]
     // De-dupe frequently called network fetches so multiple screens mounting doesn't fan-out.
     private var userListsFetchInFlight: Task<Void, Never>? = nil
     private var collectionFetchInFlight: Task<Void, Never>? = nil
@@ -663,6 +676,7 @@ class SupabaseService {
             // Error logged in debug only
         }
         await stopRealtimeSubscriptions()
+        await ConciergeConversationCache.clearAll()
         isAuthenticated = false
         currentUserEmail = nil
         currentUserId = nil
@@ -680,6 +694,17 @@ class SupabaseService {
         collectionFeedItems = []
         upcomingAirings = []
         countdownByAnimeId = [:]
+        togglingMediaKeys.removeAll()
+        // Entity caches
+        animeCharactersCache.removeAll()
+        animeStaffCache.removeAll()
+        animeStudiosCache.removeAll()
+        mangaCharactersCache.removeAll()
+        mangaAuthorsCache.removeAll()
+        studioWorksCache.removeAll()
+        staffWorksCache.removeAll()
+        authorWorksCache.removeAll()
+        characterWorksCache.removeAll()
     }
 
     private func ensureProfileRow() async {
@@ -2768,16 +2793,24 @@ class SupabaseService {
         )
     }
 
-    func removeFromList(mediaId: Int, mediaType: String) async {
-        guard let userId = await currentUserIdString() else { return }
+    @discardableResult
+    func removeFromList(mediaId: Int, mediaType: String) async -> Bool {
+        await removeFromList(mediaId: mediaId, mediaType: mediaType, skipRefresh: false)
+    }
+
+    /// Remove with optional refresh skip (for batch operations that refresh once at the end).
+    @discardableResult
+    func removeFromList(mediaId: Int, mediaType: String, skipRefresh: Bool) async -> Bool {
+        guard let userId = await currentUserIdString() else { return false }
         errorMessage = nil
         do {
             let table: String
             let idColumn: String
-            switch mediaType.lowercased() {
+            let normalizedMediaType = mediaType.lowercased()
+            switch normalizedMediaType {
             case "anime": table = "anime_user_lists"; idColumn = "anime_id"
             case "manga": table = "manga_user_lists"; idColumn = "manga_id"
-            default: return
+            default: return false
             }
 
             try await client
@@ -2788,23 +2821,37 @@ class SupabaseService {
                 .execute()
 
             errorMessage = nil
-            await fetchUserLists()
-            await fetchCollectionItems(status: currentCollectionStatusFilter)
-            await fetchCollectionFeed(status: currentCollectionStatusFilter)
+            if skipRefresh {
+                userLists.removeAll { $0.mediaId == mediaId && $0.mediaType.lowercased() == normalizedMediaType }
+                rebuildUserListCaches()
+                if normalizedMediaType == "anime" {
+                    collectionAnimeItems.removeAll { $0.id == mediaId }
+                    collectionFeedItems.removeAll { $0.kind == .anime && $0.id == mediaId }
+                } else {
+                    collectionMangaItems.removeAll { $0.id == mediaId }
+                    collectionFeedItems.removeAll { $0.kind == .manga && $0.id == mediaId }
+                }
+            } else {
+                await fetchUserLists()
+                await fetchCollectionItems(status: currentCollectionStatusFilter)
+                await fetchCollectionFeed(status: currentCollectionStatusFilter)
+            }
             #if DEBUG
             print("✅ Removed from user list")
             #endif
-            if mediaType.lowercased() == "anime" {
+            if normalizedMediaType == "anime" {
                 cancelAiringNotifications(animeId: mediaId)
                 // Remove countdown entry
                 countdownByAnimeId[mediaId] = nil
                 upcomingAirings.removeAll { $0.anime_id == mediaId }
             }
+            return true
         } catch {
             errorMessage = "Failed to remove from list: \(error.localizedDescription)"
             #if DEBUG
             print("❌ Error: \(error)")
             #endif
+            return false
         }
     }
 
@@ -3142,6 +3189,9 @@ class SupabaseService {
         if source.isEmpty { return "unknown" }
         if source.hasPrefix("de") || source.contains("german") || source.contains("deutsch") { return "de" }
         if source.hasPrefix("en") || source.contains("english") { return "en" }
+        if source.hasPrefix("ja") || source.contains("japanese") { return "ja" }
+        if source.hasPrefix("ko") || source.contains("korean") { return "ko" }
+        if source.hasPrefix("zh") || source.contains("chinese") || source.contains("mandarin") { return "zh" }
         return "other"
     }
 
@@ -3950,6 +4000,8 @@ class SupabaseService {
     private var collectionMangaIds: Set<Int> = []
     private var userListByTypeAndId: [String: [Int: UserList]] = [:]
     private var userIdsByTypeAndStatus: [String: [ListStatus: Set<Int>]] = [:]
+    /// Guards against double-tap races on toggle operations.
+    private var togglingMediaKeys: Set<String> = []
 
     private func rebuildUserListCaches() {
         var anime: Set<Int> = []
@@ -4186,10 +4238,19 @@ class SupabaseService {
 
     func toggleInCollection(mediaId: Int, mediaType: String) {
         let type = mediaType.lowercased()
+        let key = "\(type)-\(mediaId)"
+        guard !togglingMediaKeys.contains(key) else { return }
+        togglingMediaKeys.insert(key)
         if isInCollection(mediaId: mediaId, mediaType: type) {
-            Task { await removeFromList(mediaId: mediaId, mediaType: type) }
+            Task {
+                await removeFromList(mediaId: mediaId, mediaType: type)
+                togglingMediaKeys.remove(key)
+            }
         } else {
-            Task { await addToList(mediaId: mediaId, mediaType: type, status: .planning) }
+            Task {
+                await addToList(mediaId: mediaId, mediaType: type, status: .planning)
+                togglingMediaKeys.remove(key)
+            }
         }
     }
 
@@ -4198,11 +4259,14 @@ class SupabaseService {
     }
 
     func toggleFavorite(for animeId: Int) {
-        // Toggle by setting/removing high score
+        let key = "fav-\(animeId)"
+        guard !togglingMediaKeys.contains(key) else { return }
+        togglingMediaKeys.insert(key)
         Task {
+            defer { togglingMediaKeys.remove(key) }
             guard let entry = userLists.first(where: { $0.mediaId == animeId && $0.mediaType.lowercased() == "anime" }) else { return }
             let shouldUnfavorite = (entry.score ?? 0) >= 90
-            let newRating: Int? = shouldUnfavorite ? nil : 10
+            let newRating: Int? = shouldUnfavorite ? nil : 100
             await updateListRating(mediaId: animeId, mediaType: "anime", rating: newRating)
         }
     }
@@ -4670,6 +4734,271 @@ class SupabaseService {
             .value
     }
 
+    // MARK: - Entity Fetches (Characters, Staff, Studios, Authors)
+
+    // -- Inline section fetches (forward joins: media → entity) --
+
+    func fetchCharactersForAnime(animeId: Int) async -> [(character: Character, role: String)] {
+        if let cached = animeCharactersCache[animeId] { return cached }
+        do {
+            let joins: [AnimeCharacterJoin] = try await client
+                .from("anime_characters")
+                .select("role, characters(id, anilist_id, name_full, name_native, image_large, description, gender, age)")
+                .eq("anime_id", value: animeId)
+                .execute()
+                .value
+            let result = joins.map { (character: $0.characters, role: $0.role ?? "SUPPORTING") }
+            if animeCharactersCache.count > 100, let k = animeCharactersCache.keys.first {
+                animeCharactersCache.removeValue(forKey: k)
+            }
+            animeCharactersCache[animeId] = result
+            return result
+        } catch {
+            #if DEBUG
+            print("[EntityFetch] fetchCharactersForAnime error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    func fetchStaffForAnime(animeId: Int) async -> [(staff: Staff, role: String)] {
+        if let cached = animeStaffCache[animeId] { return cached }
+        do {
+            let joins: [AnimeStaffJoin] = try await client
+                .from("anime_staff")
+                .select("role, staff(id, anilist_id, name_full, name_native, image_large, description, primary_occupations)")
+                .eq("anime_id", value: animeId)
+                .execute()
+                .value
+            let result = joins.map { (staff: $0.staff, role: $0.role ?? "") }
+            if animeStaffCache.count > 100, let k = animeStaffCache.keys.first {
+                animeStaffCache.removeValue(forKey: k)
+            }
+            animeStaffCache[animeId] = result
+            return result
+        } catch {
+            #if DEBUG
+            print("[EntityFetch] fetchStaffForAnime error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    func fetchStudiosForAnime(animeId: Int) async -> [Studio] {
+        if let cached = animeStudiosCache[animeId] { return cached }
+        do {
+            let joins: [AnimeStudioJoin] = try await client
+                .from("anime_studios")
+                .select("studios(id, anilist_id, name, is_animation_studio, site_url, favourites)")
+                .eq("anime_id", value: animeId)
+                .execute()
+                .value
+            let result = joins.map(\.studios)
+            if animeStudiosCache.count > 100, let k = animeStudiosCache.keys.first {
+                animeStudiosCache.removeValue(forKey: k)
+            }
+            animeStudiosCache[animeId] = result
+            return result
+        } catch {
+            #if DEBUG
+            print("[EntityFetch] fetchStudiosForAnime error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    func fetchCharactersForManga(mangaId: Int) async -> [(character: Character, role: String)] {
+        if let cached = mangaCharactersCache[mangaId] { return cached }
+        do {
+            let joins: [MangaCharacterJoin] = try await client
+                .from("manga_characters")
+                .select("role, characters(id, anilist_id, name_full, name_native, image_large, description, gender, age)")
+                .eq("manga_id", value: mangaId)
+                .execute()
+                .value
+            let result = joins.map { (character: $0.characters, role: $0.role ?? "SUPPORTING") }
+            if mangaCharactersCache.count > 100, let k = mangaCharactersCache.keys.first {
+                mangaCharactersCache.removeValue(forKey: k)
+            }
+            mangaCharactersCache[mangaId] = result
+            return result
+        } catch {
+            #if DEBUG
+            print("[EntityFetch] fetchCharactersForManga error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    func fetchAuthorsForManga(mangaId: Int) async -> [(author: Author, role: String)] {
+        if let cached = mangaAuthorsCache[mangaId] { return cached }
+        do {
+            let joins: [MangaAuthorJoin] = try await client
+                .from("manga_authors")
+                .select("role, authors(id, anilist_id, name_full, name_native, image_large, description)")
+                .eq("manga_id", value: mangaId)
+                .execute()
+                .value
+            let result = joins.map { (author: $0.authors, role: $0.role ?? "") }
+            if mangaAuthorsCache.count > 100, let k = mangaAuthorsCache.keys.first {
+                mangaAuthorsCache.removeValue(forKey: k)
+            }
+            mangaAuthorsCache[mangaId] = result
+            return result
+        } catch {
+            #if DEBUG
+            print("[EntityFetch] fetchAuthorsForManga error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    // -- Entity sheet fetches (reverse joins: entity → media) --
+
+    private func sanitizeMediaForDiscovery(_ items: [Media]) -> [Media] {
+        items.filter { media in
+            let genres = media.genres ?? []
+            if genres.contains("Hentai") { return false }
+            if genres.contains("Ecchi") { return false }
+            return true
+        }
+    }
+
+    func fetchAnimeByStudio(studioId: Int) async -> [Media] {
+        let key = "studio-\(studioId)"
+        if let cached = studioWorksCache[key], Date().timeIntervalSince(cached.storedAt) < 120 {
+            return cached.value
+        }
+        do {
+            let joins: [StudioAnimeJoin] = try await client
+                .from("anime_studios")
+                .select("anime!inner(id, title_english, title_romaji, cover_image_large, average_score, season_year, format, status, genres, is_adult, episodes)")
+                .eq("studio_id", value: studioId)
+                .eq("anime.is_adult", value: false)
+                .execute()
+                .value
+            // Defense-in-depth: client-side filter in case nested eq is ignored
+            let result = sanitizeMediaForDiscovery(
+                joins.filter { !$0.anime.isAdult }.map { $0.anime.toMedia() }
+            )
+            trimCache(&studioWorksCache, maxEntries: 50)
+            studioWorksCache[key] = TimedCache(value: result, storedAt: Date())
+            return result
+        } catch {
+            #if DEBUG
+            print("[EntityFetch] fetchAnimeByStudio error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    func fetchAnimeByStaff(staffId: Int) async -> [(media: Media, role: String)] {
+        let key = "staff-\(staffId)"
+        if let cached = staffWorksCache[key], Date().timeIntervalSince(cached.storedAt) < 120 {
+            return cached.value
+        }
+        do {
+            let joins: [StaffAnimeJoin] = try await client
+                .from("anime_staff")
+                .select("role, anime!inner(id, title_english, title_romaji, cover_image_large, average_score, season_year, format, status, genres, is_adult, episodes)")
+                .eq("staff_id", value: staffId)
+                .eq("anime.is_adult", value: false)
+                .execute()
+                .value
+            // Defense-in-depth: client-side filter in case nested eq is ignored
+            let result = joins
+                .filter { !$0.anime.isAdult }
+                .compactMap { join -> (media: Media, role: String)? in
+                    let media = join.anime.toMedia()
+                    guard !(media.genres ?? []).contains("Hentai"),
+                          !(media.genres ?? []).contains("Ecchi") else { return nil }
+                    return (media: media, role: join.role ?? "")
+                }
+            trimCache(&staffWorksCache, maxEntries: 50)
+            staffWorksCache[key] = TimedCache(value: result, storedAt: Date())
+            return result
+        } catch {
+            #if DEBUG
+            print("[EntityFetch] fetchAnimeByStaff error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    func fetchMangaByAuthor(authorId: Int) async -> [(media: Media, role: String)] {
+        let key = "author-\(authorId)"
+        if let cached = authorWorksCache[key], Date().timeIntervalSince(cached.storedAt) < 120 {
+            return cached.value
+        }
+        do {
+            let joins: [AuthorMangaJoin] = try await client
+                .from("manga_authors")
+                .select("role, manga!inner(id, title_english, title_romaji, cover_image_large, average_score, start_date_year, format, status, genres, is_adult, chapters)")
+                .eq("author_id", value: authorId)
+                .eq("manga.is_adult", value: false)
+                .execute()
+                .value
+            // Defense-in-depth: client-side filter in case nested eq is ignored
+            let result = joins
+                .filter { !$0.manga.isAdult }
+                .compactMap { join -> (media: Media, role: String)? in
+                    let media = join.manga.toMedia()
+                    guard !(media.genres ?? []).contains("Hentai"),
+                          !(media.genres ?? []).contains("Ecchi") else { return nil }
+                    return (media: media, role: join.role ?? "")
+                }
+            trimCache(&authorWorksCache, maxEntries: 50)
+            authorWorksCache[key] = TimedCache(value: result, storedAt: Date())
+            return result
+        } catch {
+            #if DEBUG
+            print("[EntityFetch] fetchMangaByAuthor error: \(error)")
+            #endif
+            return []
+        }
+    }
+
+    func fetchMediaByCharacter(characterId: Int) async -> [Media] {
+        let key = "char-\(characterId)"
+        if let cached = characterWorksCache[key], Date().timeIntervalSince(cached.storedAt) < 120 {
+            return cached.value
+        }
+        do {
+            async let animeJoins: [CharacterAnimeJoin] = client
+                .from("anime_characters")
+                .select("anime!inner(id, title_english, title_romaji, cover_image_large, average_score, season_year, format, status, genres, is_adult, episodes)")
+                .eq("character_id", value: characterId)
+                .eq("anime.is_adult", value: false)
+                .execute()
+                .value
+            async let mangaJoins: [CharacterMangaJoin] = client
+                .from("manga_characters")
+                .select("manga!inner(id, title_english, title_romaji, cover_image_large, average_score, start_date_year, format, status, genres, is_adult, chapters)")
+                .eq("character_id", value: characterId)
+                .eq("manga.is_adult", value: false)
+                .execute()
+                .value
+
+            // Defense-in-depth: client-side filter in case nested eq is ignored
+            let animeMedia = try await animeJoins
+                .filter { !$0.anime.isAdult }
+                .map { $0.anime.toMedia() }
+            let mangaMedia = try await mangaJoins
+                .filter { !$0.manga.isAdult }
+                .map { $0.manga.toMedia() }
+
+            let result = sanitizeMediaForDiscovery(animeMedia + mangaMedia)
+            trimCache(&characterWorksCache, maxEntries: 50)
+            characterWorksCache[key] = TimedCache(value: result, storedAt: Date())
+            return result
+        } catch {
+            #if DEBUG
+            print("[EntityFetch] fetchMediaByCharacter error: \(error)")
+            #endif
+            return []
+        }
+    }
+
     // MARK: - Social Activity (Friend Comments & Indicators)
 
     struct TitleComment: Decodable, Sendable, Identifiable {
@@ -4820,6 +5149,10 @@ class SupabaseService {
     // Provider cache keyed "ANIME-12345"
     private var providerCache: [String: [ProviderInfo]] = [:]
     private var providerPrefetchTask: Task<Void, Never>?
+    // Provider availability cache keyed "ANIME-12345"
+    private var providerAvailabilityCache: [String: [ProviderAvailabilityProvider]] = [:]
+    private var providerAvailabilityPrefetchTask: Task<Void, Never>?
+    private var availabilityRefreshEnqueueCooldown: [String: Date] = [:]
     // User's selected streaming service slugs
     var userStreamingServices: [String] = []
     // Club shared providers cache keyed by club ID
@@ -4828,16 +5161,60 @@ class SupabaseService {
     var streamingServiceRegistry: [StreamingServiceRecord] = []
 
     func providers(mediaId: Int, mediaType: String) -> [ProviderInfo] {
-        providerCache["\(mediaType.uppercased())-\(mediaId)"] ?? []
+        let key = "\(mediaType.uppercased())-\(mediaId)"
+        if let cached = providerCache[key], !cached.isEmpty {
+            return cached
+        }
+        if let availability = providerAvailabilityCache[key], !availability.isEmpty {
+            return availability.map { provider in
+                ProviderInfo(
+                    slug: provider.slug,
+                    display_name: provider.displayName,
+                    language: provider.languages.first
+                )
+            }
+        }
+        return []
+    }
+
+    func providerAvailability(mediaId: Int, mediaType: String) -> [ProviderAvailabilityProvider] {
+        providerAvailabilityCache["\(mediaType.uppercased())-\(mediaId)"] ?? []
     }
 
     func bestProviderDisplayName(mediaId: Int, mediaType: String) -> String? {
-        providers(mediaId: mediaId, mediaType: mediaType).first?.display_name
+        let key = "\(mediaType.uppercased())-\(mediaId)"
+        if let provider = providerAvailabilityCache[key]?.first {
+            return provider.displayName
+        }
+        return providers(mediaId: mediaId, mediaType: mediaType).first?.display_name
+    }
+
+    func bestProviderAvailabilityNote(
+        mediaId: Int,
+        mediaType: String,
+        preferredAudioLang: String?,
+        preferredSubtitleLang: String? = nil,
+        originalLanguage: String? = nil
+    ) -> ProviderAvailabilityNote? {
+        guard mediaType.uppercased() == "ANIME" else { return nil }
+        let key = "\(mediaType.uppercased())-\(mediaId)"
+        guard let providers = providerAvailabilityCache[key], !providers.isEmpty else { return nil }
+        return ProviderAvailabilityNoteBuilder.bestNote(
+            from: providers,
+            preferredAudioLang: preferredAudioLang,
+            preferredSubtitleLang: preferredSubtitleLang,
+            originalLanguage: originalLanguage
+        )
     }
 
     func collectionItemsAvailableOn(slug: String) -> Set<String> {
         var result = Set<String>()
         for (key, providers) in providerCache {
+            if providers.contains(where: { $0.slug == slug }) {
+                result.insert(key)
+            }
+        }
+        for (key, providers) in providerAvailabilityCache {
             if providers.contains(where: { $0.slug == slug }) {
                 result.insert(key)
             }
@@ -4855,7 +5232,69 @@ class SupabaseService {
                 result.insert(key)
             }
         }
+        for (key, providers) in providerAvailabilityCache {
+            if providers.contains(where: { provider in
+                if provider.languages.contains(lang) { return true }
+                if includeUnknown && provider.languages.contains("unknown") { return true }
+                return false
+            }) {
+                result.insert(key)
+            }
+        }
         return result
+    }
+
+    func fetchProviderAvailabilityV2(
+        items: [(mediaType: String, mediaId: Int)],
+        preferredAudioLang: String? = nil,
+        preferredSubLang: String? = nil,
+        includeUnknown: Bool = true
+    ) async {
+        guard !items.isEmpty else { return }
+        let payload = items.map { ["media_type": $0.mediaType.uppercased(), "media_id": "\($0.mediaId)"] }
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
+              let jsonString = String(data: jsonData, encoding: .utf8) else { return }
+        do {
+            let params = RPCBatchProviderAvailabilityV2Params(
+                p_items: jsonString,
+                p_audio_lang: preferredAudioLang,
+                p_sub_lang: preferredSubLang,
+                p_include_unknown: includeUnknown
+            )
+            let raw: [ProviderAvailabilityBatchItem] = try await client
+                .rpc("batch_provider_availability_for_media_v2", params: params)
+                .execute()
+                .value
+            for item in raw {
+                let key = "\(item.mediaType)-\(item.mediaId)"
+                providerAvailabilityCache[key] = item.providers
+                providerCache[key] = item.providers.map {
+                    ProviderInfo(slug: $0.slug, display_name: $0.displayName, language: $0.languages.first)
+                }
+            }
+        } catch {
+            #if DEBUG
+            print("[Streaming] fetchProviderAvailabilityV2 error: \(error.localizedDescription)")
+            #endif
+        }
+    }
+
+    func prefetchProviderAvailabilityV2(
+        items: [(mediaType: String, mediaId: Int)],
+        preferredAudioLang: String? = nil,
+        preferredSubLang: String? = nil,
+        includeUnknown: Bool = true
+    ) {
+        providerAvailabilityPrefetchTask?.cancel()
+        providerAvailabilityPrefetchTask = Task { [weak self] in
+            guard let self else { return }
+            await self.fetchProviderAvailabilityV2(
+                items: items,
+                preferredAudioLang: preferredAudioLang,
+                preferredSubLang: preferredSubLang,
+                includeUnknown: includeUnknown
+            )
+        }
     }
 
     func prefetchProviders(items: [(mediaType: String, mediaId: Int)]) {
@@ -4880,6 +5319,50 @@ class SupabaseService {
                 print("[Streaming] prefetchProviders error: \(error.localizedDescription)")
                 #endif
             }
+        }
+    }
+
+    func enqueueAvailabilityRefreshIfStale(
+        mediaType: String,
+        mediaId: Int,
+        reason: String = "on_demand_open"
+    ) async {
+        let key = "\(mediaType.uppercased())-\(mediaId)"
+        if let last = availabilityRefreshEnqueueCooldown[key],
+           Date().timeIntervalSince(last) < 10 * 60 {
+            return
+        }
+        do {
+            let params = RPCGetMediaAvailabilityStatusParams(
+                p_media_type: mediaType.uppercased(),
+                p_media_id: mediaId
+            )
+            let rows: [MediaAvailabilityStatus] = try await client
+                .rpc("get_media_availability_status", params: params)
+                .execute()
+                .value
+            let shouldQueue: Bool
+            if let status = rows.first {
+                shouldQueue = (!status.hasRows) || ((status.staleDays ?? 999) >= 30)
+            } else {
+                shouldQueue = true
+            }
+
+            guard shouldQueue else { return }
+            let enqueueParams = RPCEnqueueMediaAvailabilityRefreshParams(
+                p_media_type: mediaType.uppercased(),
+                p_media_id: mediaId,
+                p_reason: reason
+            )
+            let _: AnyJSON = try await client
+                .rpc("enqueue_media_availability_refresh", params: enqueueParams)
+                .execute()
+                .value
+            availabilityRefreshEnqueueCooldown[key] = Date()
+        } catch {
+            #if DEBUG
+            print("[Streaming] enqueueAvailabilityRefreshIfStale error: \(error.localizedDescription)")
+            #endif
         }
     }
 

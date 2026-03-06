@@ -38,6 +38,7 @@ final class FeatureFlags {
     var isClubsNotificationsV1Enabled: Bool { evaluate("clubs_notifications_v1") }
     var isSocialActivityV1Enabled: Bool { evaluate("social_activity_v1") }
     var isStreamingAvailabilityV1Enabled: Bool { evaluate("streaming_availability_v1") }
+    var isCreditsCastV1Enabled: Bool { evaluate("credits_cast_v1") }
 
     // MARK: - Init
 

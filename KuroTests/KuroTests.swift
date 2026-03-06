@@ -141,6 +141,32 @@ struct ImportIntentTests {
         #expect(!TextNormalization.looksLikeImport("help"))
     }
 
+    @Test("Handles empty and whitespace-only input")
+    func testEmptyAndWhitespace() {
+        #expect(!TextNormalization.looksLikeImport(""))
+        #expect(!TextNormalization.looksLikeImport("   "))
+    }
+
+    @Test("German vibe guard yields to staffel/folge")
+    func testGermanVibeWithStaffel() {
+        // Vibe marker present BUT staffel overrides → import
+        #expect(TextNormalization.looksLikeImport("ich möchte Staffel 2 anschauen"))
+        #expect(TextNormalization.looksLikeImport("zeig mir Folge 5"))
+    }
+
+    @Test("Case insensitive matching")
+    func testCaseInsensitive() {
+        #expect(TextNormalization.looksLikeImport("WATCHED Attack on Titan"))
+        #expect(TextNormalization.looksLikeImport("COMPLETED naruto"))
+    }
+
+    @Test("Regex boundary conditions")
+    func testRegexBoundaries() {
+        #expect(TextNormalization.looksLikeImport("s1e1"))
+        #expect(TextNormalization.looksLikeImport("s12e1234"))
+        #expect(TextNormalization.looksLikeImport("1x50"))
+    }
+
     // MARK: - Segment title-like detection
 
     @Test("segmentLooksTitleLike detects title-like segments")
@@ -155,5 +181,233 @@ struct ImportIntentTests {
         #expect(!TextNormalization.segmentLooksTitleLike("something funny"))
         #expect(!TextNormalization.segmentLooksTitleLike("sad anime"))
         #expect(!TextNormalization.segmentLooksTitleLike("recommend me"))
+    }
+}
+
+// MARK: - CreditRole Normalization Tests
+
+@Suite("CreditRole Normalization")
+struct CreditRoleTests {
+
+    @Test("Director exact match")
+    func testDirectorExact() {
+        #expect(CreditRole.from(raw: "Director") == .director)
+    }
+
+    @Test("Director case insensitive")
+    func testDirectorCaseInsensitive() {
+        #expect(CreditRole.from(raw: "director") == .director)
+    }
+
+    @Test("Original Creator alias — Original Story")
+    func testOriginalCreatorAlias() {
+        #expect(CreditRole.from(raw: "Original Story") == .originalCreator)
+    }
+
+    @Test("Series Composition exact")
+    func testSeriesCompositionExact() {
+        #expect(CreditRole.from(raw: "Series Composition") == .seriesComposition)
+    }
+
+    @Test("Music alias — Theme Song Composition")
+    func testMusicAlias() {
+        #expect(CreditRole.from(raw: "Theme Song Composition") == .music)
+    }
+
+    @Test("Character Design — Chief variant")
+    func testCharacterDesignChief() {
+        #expect(CreditRole.from(raw: "Chief Character Design") == .characterDesign)
+    }
+
+    @Test("Unrecognized role returns nil")
+    func testUnrecognizedRole() {
+        #expect(CreditRole.from(raw: "Key Animation") == nil)
+    }
+
+    @Test("Whitespace handling")
+    func testWhitespaceHandling() {
+        #expect(CreditRole.from(raw: "  Director  ") == .director)
+    }
+
+    @Test("Empty string returns nil")
+    func testEmptyString() {
+        #expect(CreditRole.from(raw: "") == nil)
+    }
+
+    @Test("Role priority order")
+    func testRolePriorityOrder() {
+        #expect(CreditRole.director.rawValue < CreditRole.originalCreator.rawValue)
+        #expect(CreditRole.originalCreator.rawValue < CreditRole.seriesComposition.rawValue)
+        #expect(CreditRole.seriesComposition.rawValue < CreditRole.music.rawValue)
+        #expect(CreditRole.music.rawValue < CreditRole.characterDesign.rawValue)
+    }
+
+    @Test("Cast sort — MAIN first, then SUPPORTING alphabetical")
+    func testCastSortMainFirst() {
+        let input: [(name: String, role: String)] = [
+            ("B", "SUPPORTING"),
+            ("A", "MAIN"),
+            ("A", "SUPPORTING")
+        ]
+        let sorted = input
+            .sorted { lhs, rhs in
+                let lhsMain = lhs.role == "MAIN"
+                let rhsMain = rhs.role == "MAIN"
+                if lhsMain != rhsMain { return lhsMain }
+                return lhs.name < rhs.name
+            }
+        #expect(sorted[0].name == "A" && sorted[0].role == "MAIN")
+        #expect(sorted[1].name == "A" && sorted[1].role == "SUPPORTING")
+        #expect(sorted[2].name == "B" && sorted[2].role == "SUPPORTING")
+    }
+
+    @Test("Cast filter — BACKGROUND excluded")
+    func testCastFilterBackground() {
+        let input = ["MAIN", "SUPPORTING", "BACKGROUND", "SUPPORTING"]
+        let filtered = input.filter { $0.lowercased() != "background" }
+        #expect(filtered.count == 3)
+        #expect(!filtered.contains("BACKGROUND"))
+    }
+}
+
+// MARK: - Provider Availability Note Tests
+
+@Suite("Provider Availability Note Derivation")
+struct ProviderAvailabilityNoteTests {
+    private func provider(
+        audio: [String: [String]] = [:],
+        subtitles: [String: [String]] = [:]
+    ) -> ProviderAvailabilityProvider {
+        ProviderAvailabilityProvider(
+            slug: "netflix",
+            displayName: "Netflix",
+            url: "https://example.com",
+            languages: Array(Set(Array(audio.keys) + Array(subtitles.keys))).sorted(),
+            audioLanguages: Array(audio.keys).sorted(),
+            subtitleLanguages: Array(subtitles.keys).sorted(),
+            countriesByAudioLang: audio,
+            countriesBySubtitleLang: subtitles,
+            isStale: false
+        )
+    }
+
+    @Test("EN dub for Japanese original with English audio")
+    func testEnglishDub() {
+        let note = ProviderAvailabilityNoteBuilder.bestNote(
+            from: [provider(audio: ["en": ["US", "CA"]])],
+            preferredAudioLang: "en",
+            originalLanguage: "ja"
+        )
+        #expect(note == ProviderAvailabilityNote(kind: .dub, languageCode: "en", countries: ["CA", "US"]))
+        #expect(note?.displayText == "EN dub: CA, US")
+    }
+
+    @Test("DE dub for English original with German audio")
+    func testGermanDub() {
+        let note = ProviderAvailabilityNoteBuilder.bestNote(
+            from: [provider(audio: ["de": ["DE", "AT"]])],
+            preferredAudioLang: "de",
+            originalLanguage: "en"
+        )
+        #expect(note == ProviderAvailabilityNote(kind: .dub, languageCode: "de", countries: ["AT", "DE"]))
+        #expect(note?.displayText == "DE dub: AT, DE")
+    }
+
+    @Test("EN audio for English original with English audio")
+    func testEnglishAudio() {
+        let note = ProviderAvailabilityNoteBuilder.bestNote(
+            from: [provider(audio: ["en": ["GB", "AU"]])],
+            preferredAudioLang: "en",
+            originalLanguage: "en"
+        )
+        #expect(note == ProviderAvailabilityNote(kind: .audio, languageCode: "en", countries: ["AU", "GB"]))
+        #expect(note?.displayText == "EN audio: AU, GB")
+    }
+
+    @Test("DE audio when original language is unknown")
+    func testGermanAudioWithoutOriginalLanguage() {
+        let note = ProviderAvailabilityNoteBuilder.bestNote(
+            from: [provider(audio: ["de": ["DE"]])],
+            preferredAudioLang: "de",
+            originalLanguage: nil
+        )
+        #expect(note == ProviderAvailabilityNote(kind: .audio, languageCode: "de", countries: ["DE"]))
+        #expect(note?.displayText == "DE audio: DE")
+    }
+
+    @Test("EN subtitles when only subtitle evidence exists")
+    func testEnglishSubtitles() {
+        let note = ProviderAvailabilityNoteBuilder.bestNote(
+            from: [provider(subtitles: ["en": ["GB", "AU"]])],
+            preferredAudioLang: "en",
+            preferredSubtitleLang: "en",
+            originalLanguage: "ja"
+        )
+        #expect(note == ProviderAvailabilityNote(kind: .subtitles, languageCode: "en", countries: ["AU", "GB"]))
+        #expect(note?.displayText == "EN subtitles: AU, GB")
+    }
+
+    @Test("Falls back to provider-country availability when locale metadata is incomplete")
+    func testAvailabilityFallback() {
+        let note = ProviderAvailabilityNoteBuilder.bestNote(
+            from: [provider(audio: ["fr": ["FR"]], subtitles: ["es": ["ES"]])],
+            preferredAudioLang: "de",
+            preferredSubtitleLang: "de",
+            originalLanguage: "ja"
+        )
+        #expect(note == ProviderAvailabilityNote(kind: .availability, languageCode: nil, countries: ["ES", "FR"]))
+        #expect(note?.displayText == "Availability: ES, FR")
+    }
+
+    @Test("Returns nil when no provider metadata exists")
+    func testNoMetadata() {
+        let note = ProviderAvailabilityNoteBuilder.bestNote(
+            from: [provider()],
+            preferredAudioLang: "en",
+            originalLanguage: "ja"
+        )
+        #expect(note == nil)
+    }
+}
+
+// MARK: - Entity Work Identity Tests
+
+@Suite("Entity Work Identity")
+struct EntityWorkIdentityTests {
+    private func media(id: Int, kind: MediaKind) -> Media {
+        Media(
+            id: id,
+            kind: kind,
+            title: "\(kind.rawValue)-\(id)",
+            imageURL: nil,
+            year: "2024",
+            displayDescription: "",
+            episodes: kind == .anime ? 12 : nil,
+            chapters: kind == .manga ? 100 : nil,
+            rating: 8.0,
+            genres: nil,
+            statusRaw: nil,
+            formatRaw: nil,
+            popularityValue: nil,
+            trendingValue: nil,
+            createdAtValue: nil
+        )
+    }
+
+    @Test("Same numeric anime and manga IDs get different rail identities")
+    func testMixedMediaIDsStayDistinct() {
+        let animeID = EntityWorkIdentity.make(media: media(id: 123, kind: .anime), role: nil, index: 0)
+        let mangaID = EntityWorkIdentity.make(media: media(id: 123, kind: .manga), role: nil, index: 0)
+        #expect(animeID != mangaID)
+        #expect(animeID == "anime-123-none-0")
+        #expect(mangaID == "manga-123-none-0")
+    }
+
+    @Test("Duplicate media rows remain distinct when role or position differs")
+    func testDuplicateMediaRowsStayDistinct() {
+        let media = media(id: 321, kind: .anime)
+        let first = EntityWorkIdentity.make(media: media, role: "Director", index: 0)
+        let second = EntityWorkIdentity.make(media: media, role: "Storyboard", index: 1)
+        #expect(first != second)
     }
 }

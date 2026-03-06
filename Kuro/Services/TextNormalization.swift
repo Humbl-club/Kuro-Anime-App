@@ -36,7 +36,7 @@ enum TextNormalization {
         // Protect hyphens between letter characters, then strip punctuation.
         // We iterate through characters to match the TS regex behavior exactly.
         var chars = Array(s)
-        let placeholder: Character = "\u{0000}"
+        let placeholder: Swift.Character = "\u{0000}"
 
         // Protect hyphens between letters.
         // Guard the range explicitly to avoid creating an invalid `1..<0` range on empty/short input.

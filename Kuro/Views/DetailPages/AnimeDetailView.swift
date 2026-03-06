@@ -14,6 +14,9 @@ struct AnimeDetailView: View {
     @State private var topTags: [TagFacet] = []
     @State private var similar: [Anime] = []
     @State private var condensedSynopsis: String?
+    @State private var studios: [Studio] = []
+    @State private var staffItems: [(staff: Staff, role: String)] = []
+    @State private var castItems: [(character: Character, role: String)] = []
 
     var body: some View {
         GeometryReader { geometry in
@@ -50,11 +53,13 @@ struct AnimeDetailView: View {
                         NextUpSection(anime: anime)
                         
                         // Description
-                        DescriptionSection(
-                            description: anime.displayDescription,
-                            showFull: $showFullDescription,
-                            condensedSynopsis: condensedSynopsis
-                        )
+                        if anime.hasMeaningfulSynopsis {
+                            DescriptionSection(
+                                description: anime.displayDescription,
+                                showFull: $showFullDescription,
+                                condensedSynopsis: condensedSynopsis
+                            )
+                        }
                         
                         // Genres
                         if let genres = anime.genreList, !genres.isEmpty {
@@ -64,7 +69,21 @@ struct AnimeDetailView: View {
                         if !topTags.isEmpty {
                             TagChipsSection(title: "SUB‑GENRES", tags: topTags.map(\.name))
                         }
-                        
+
+                        if FeatureFlags.shared.isCreditsCastV1Enabled {
+                            if !studios.isEmpty {
+                                StudioSection(studios: studios)
+                            }
+
+                            if !staffItems.isEmpty {
+                                CreditsSection(staffItems: staffItems)
+                            }
+
+                            if !castItems.isEmpty {
+                                CastSection(characters: castItems, containerWidth: geometry.size.width)
+                            }
+                        }
+
                         // Episodes Section (if available)
                         if let episodeCount = anime.episodeCount ?? anime.nextEpisodeNumber.map({ max(0, $0 - 1) }), episodeCount > 0 {
                             EpisodesSection(
@@ -85,7 +104,7 @@ struct AnimeDetailView: View {
                         }
 
                         if !similar.isEmpty {
-                            SimilarSection(title: "MORE LIKE THIS", items: similar)
+                            SimilarSection(title: "MORE LIKE THIS", items: similar, containerWidth: geometry.size.width)
                         }
 
                         ClubActivitySection(mediaId: anime.id, mediaType: "ANIME")
@@ -93,6 +112,32 @@ struct AnimeDetailView: View {
                         if FeatureFlags.shared.isSocialActivityV1Enabled {
                             FriendsActivitySection(mediaId: anime.id, mediaType: "ANIME")
                         }
+
+                        ShareLink(
+                            item: URL(string: "kuro://anime/\(anime.id)")!,
+                            subject: Text(anime.displayTitle)
+                        ) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 11, weight: .medium))
+                                Text("SHARE")
+                                    .font(.kuroMicro(weight: .medium))
+                                    .tracking(1.2)
+                            }
+                            .foregroundColor(.kuroTextSecondary)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(Color.black.opacity(0.04))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                            .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                                    )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .simultaneousGesture(TapGesture().onEnded { KuroAccessibility.impactHaptic(.light) })
 
                     }
                     .padding(.horizontal, ResponsiveLayout.padding())
@@ -167,6 +212,15 @@ struct AnimeDetailView: View {
                     genres: anime.genreList ?? []
                 )
             }
+        }
+        .task(id: "\(anime.id)-\(FeatureFlags.shared.isCreditsCastV1Enabled)") {
+            guard FeatureFlags.shared.isCreditsCastV1Enabled else { return }
+            async let studioFetch = supabaseService.fetchStudiosForAnime(animeId: anime.id)
+            async let staffFetch = supabaseService.fetchStaffForAnime(animeId: anime.id)
+            async let castFetch = supabaseService.fetchCharactersForAnime(animeId: anime.id)
+            studios = await studioFetch
+            staffItems = await staffFetch
+            castItems = await castFetch
         }
     }
 
@@ -309,10 +363,10 @@ struct TagChipsSection: View {
 struct SimilarSection: View {
     let title: String
     let items: [Anime]
+    let containerWidth: CGFloat
 
     private var cardWidth: CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
-        let candidate = floor((screenWidth - 56) / 2.8)
+        let candidate = floor((containerWidth - 56) / 2.8)
         return min(144, max(112, candidate))
     }
 
@@ -1151,79 +1205,80 @@ struct ActionButtons: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-            Button(action: toggleSaved) {
-                Image(systemName: isSaved ? "heart.fill" : "heart")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.kuroBlack)
-                    .frame(width: 38, height: 38)
-                    .background(Color.kuroBlack08)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isSaved ? "Saved" : "Save")
-
-            Button(action: {
-                KuroAccessibility.impactHaptic(.medium)
-                showAddToList = true
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill")
+                Button(action: toggleSaved) {
+                    Image(systemName: isSaved ? "heart.fill" : "heart")
                         .font(.system(size: 14, weight: .semibold))
-                    Text(isSaved ? "EDIT LIST" : "ADD TO LIST")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.1)
-                }
-                .foregroundColor(.kuroWhite)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Color.kuroBlack)
-                .cornerRadius(12)
-            }
-            .buttonStyle(.plain)
-            .sheet(isPresented: $showAddToList) {
-                AddToListSheet(media: anime)
-            }
-
-            if let link = watchLink, let linkURL = validatedURL(from: link.url) {
-                Button(action: {
-                    if allLinks.count > 1 {
-                        showProviders = true
-                    } else {
-                        KuroAccessibility.impactHaptic(.medium)
-                        openURL(linkURL)
-                    }
-                }) {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.kuroBlack)
                         .frame(width: 38, height: 38)
                         .background(Color.kuroBlack08)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(link.label)
-            } else {
+                .accessibilityLabel(isSaved ? "Saved" : "Save")
+
                 Button(action: {
-                    KuroAccessibility.impactHaptic(.light)
-                    onToast(
-                        .init(
-                            kind: .info,
-                            title: "Link coming soon",
-                            subtitle: "We only show verified legal providers.",
-                            actionTitle: nil,
-                            onAction: nil
-                        )
-                    )
+                    KuroAccessibility.impactHaptic(.medium)
+                    showAddToList = true
                 }) {
-                    Image(systemName: "play.slash")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.kuroBlack30)
-                        .frame(width: 38, height: 38)
-                        .background(Color.kuroBlack08)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text(isSaved ? "EDIT LIST" : "ADD TO LIST")
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(1.1)
+                    }
+                    .foregroundColor(.kuroWhite)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.kuroBlack)
+                    .cornerRadius(12)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("No legal watch link available")
+                .sheet(isPresented: $showAddToList) {
+                    AddToListSheet(media: anime)
+                }
+
+                if let link = watchLink, let linkURL = validatedURL(from: link.url) {
+                    Button(action: {
+                        if allLinks.count > 1 {
+                            showProviders = true
+                        } else {
+                            KuroAccessibility.impactHaptic(.medium)
+                            openURL(linkURL)
+                        }
+                    }) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.kuroBlack)
+                            .frame(width: 38, height: 38)
+                            .background(Color.kuroBlack08)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(link.label)
+                } else {
+                    Button(action: {
+                        KuroAccessibility.impactHaptic(.light)
+                        onToast(
+                            .init(
+                                kind: .info,
+                                title: "Link coming soon",
+                                subtitle: "We only show verified legal providers.",
+                                actionTitle: nil,
+                                onAction: nil
+                            )
+                        )
+                    }) {
+                        Image(systemName: "play.slash")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.kuroBlack30)
+                            .frame(width: 38, height: 38)
+                            .background(Color.kuroBlack08)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("No legal watch link available")
+                }
             }
 
             Text(watchLink == nil
@@ -1269,17 +1324,32 @@ struct ActionButtons: View {
             mediaId: anime.id,
             locale: Locale.current.identifier
         )
+        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+            await supabaseService.fetchProviderAvailabilityV2(
+                items: [(mediaType: "ANIME", mediaId: anime.id)],
+                preferredAudioLang: preferredAudio,
+                preferredSubLang: nil,
+                includeUnknown: true
+            )
+            await supabaseService.enqueueAvailabilityRefreshIfStale(
+                mediaType: "ANIME",
+                mediaId: anime.id,
+                reason: "detail_open"
+            )
+        }
         let note = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
             ? supabaseService.bestProviderAvailabilityNote(
                 mediaId: anime.id,
                 mediaType: "ANIME",
-                preferredAudioLang: preferredAudio
+                preferredAudioLang: preferredAudio,
+                preferredSubtitleLang: preferredAudio,
+                originalLanguage: anime.inferredOriginalLanguageCode
             )
             : nil
         await MainActor.run {
             self.watchLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
             self.allLinks = links.filter { validatedURL(from: $0.url) != nil }
-            self.watchAvailabilityNote = note
+            self.watchAvailabilityNote = note?.displayText
         }
     }
 
