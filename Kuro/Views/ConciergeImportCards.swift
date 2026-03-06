@@ -84,22 +84,19 @@ struct MatchRing: View {
 struct ImportPosterView: View {
     let url: URL?
     let scrollOffset: CGFloat
-    
+
     @State private var imageLoaded: Bool = false
-    
+
     private var parallaxOffset: CGFloat {
-        // Subtle parallax based on scroll position
         scrollOffset * 0.15
     }
-    
+
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // Placeholder
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                Rectangle()
                     .fill(Color.kuroSecondaryBackground)
-                
-                // Async image with crossfade
+
                 KuroCachedAsyncImage(
                     url: url,
                     transaction: Transaction(animation: .easeInOut(duration: 0.2))
@@ -123,12 +120,12 @@ struct ImportPosterView: View {
             }
             .clipped()
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                Rectangle()
                     .stroke(Color.primary.opacity(0.10), lineWidth: 0.5)
             )
         }
-        .frame(width: 70, height: 100)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .frame(width: 80, height: 114)
+        .clipped()
     }
 }
 
@@ -148,6 +145,12 @@ struct ImportConfirmCard: View {
 
     @State private var isExpanded: Bool = false
     @State private var showReasoningTooltip: Bool = false
+    @State private var previewMedia: MediaPreviewTarget? = nil
+
+    private struct MediaPreviewTarget: Identifiable {
+        let id: Int
+        let kind: MediaKind
+    }
 
     private var posterURL: URL? {
         guard let path = selectedCandidate?.cover_image_medium else { return nil }
@@ -161,8 +164,17 @@ struct ImportConfirmCard: View {
     var body: some View {
         cardContent
             .opacity(isExcluded ? 0.55 : section.opacity)
+            .onAppear {
+                // Auto-expand candidates when top match is low confidence
+                if matchPercentage < 0.80 && canExpand && !isExpanded {
+                    isExpanded = true
+                }
+            }
+            .sheet(item: $previewMedia) { target in
+                MediaDetailSheet(kind: target.kind, id: target.id)
+            }
     }
-    
+
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Main row
@@ -182,18 +194,30 @@ struct ImportConfirmCard: View {
                     .accessibilityLabel(isExcluded ? "Include item" : "Exclude item")
                 }
 
-                // Poster
-                ImportPosterView(url: posterURL, scrollOffset: scrollOffset)
+                // Poster — tap opens detail preview
+                Button {
+                    openPreview()
+                } label: {
+                    ImportPosterView(url: posterURL, scrollOffset: scrollOffset)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Preview \(cardTitle)")
 
                 // Content
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .top, spacing: 8) {
-                        // Title
-                        Text(cardTitle)
-                            .font(.kuroTitle(weight: .medium))
-                            .foregroundStyle(.primary.opacity(0.82))
-                            .lineLimit(2)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        // Title — tap opens detail preview
+                        Button {
+                            openPreview()
+                        } label: {
+                            Text(cardTitle)
+                                .font(.kuroBody(weight: .medium))
+                                .foregroundStyle(.primary.opacity(0.82))
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .multilineTextAlignment(.leading)
+                        }
+                        .buttonStyle(.plain)
 
                         Spacer(minLength: 4)
 
@@ -212,24 +236,48 @@ struct ImportConfirmCard: View {
                             }
                         }
                     }
-                    
-                    // Year · Format · Episodes
+
+                    // Media type badge + parsed intent
+                    HStack(spacing: 6) {
+                        // Media type badge
+                        if let mediaType = selectedCandidate?.media_type {
+                            Text(mediaType.uppercased())
+                                .font(.kuroMicro(weight: .medium))
+                                .tracking(0.8)
+                                .foregroundColor(.black.opacity(0.55))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(Color.black.opacity(0.06))
+                                )
+                        }
+
+                        // Parsed intent: status + progress
+                        if let intentText = parsedIntentText {
+                            Text(intentText)
+                                .font(.kuroCaption())
+                                .foregroundStyle(.secondary.opacity(0.75))
+                        }
+                    }
+
+                    // Year · Format
                     HStack(spacing: 4) {
                         if let year = selectedCandidate?.year {
                             Text(String(year))
                                 .foregroundStyle(.secondary.opacity(0.90))
                         }
-                        
+
                         if selectedCandidate?.year != nil && formatText != nil {
                             Text("·")
                                 .foregroundStyle(.secondary.opacity(0.55))
                         }
-                        
+
                         if let format = formatText {
                             Text(format)
                                 .foregroundStyle(.secondary.opacity(0.90))
                         }
-                        
+
                         if let episodes = episodeText {
                             Text("·")
                                 .foregroundStyle(.secondary.opacity(0.55))
@@ -238,26 +286,12 @@ struct ImportConfirmCard: View {
                         }
                     }
                     .font(.kuroCaption())
-                    
+
                     if action == .update, let existing = item.existing_entry {
                         diffSection(existing: existing, parsed: item.parsed)
                             .padding(.top, 2)
                     }
 
-                    // Match% · Studio
-                    HStack(spacing: 4) {
-                        Text("\(Int(matchPercentage * 100))% match")
-                            .foregroundColor(matchColor)
-                        
-                        if let studioText {
-                            Text("·")
-                                .foregroundStyle(.secondary.opacity(0.55))
-                            Text(studioText)
-                                .foregroundStyle(.secondary.opacity(0.90))
-                        }
-                    }
-                    .font(.kuroCaption())
-                    
                     // Section caption (for skip items)
                     if let caption = section.caption {
                         Text(caption)
@@ -267,22 +301,22 @@ struct ImportConfirmCard: View {
                     }
                 }
             }
-            
+
             // Reasoning tooltip (auto-selected only)
             if isAutoSelected && showReasoningTooltip {
                 ReasoningTooltip(reason: autoReason?.isEmpty == false ? autoReason! : "Selected based on your text")
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .padding(.top, 8)
             }
-            
+
             // Candidate expansion
             if canExpand {
                 Button(action: toggleExpansion) {
                     HStack(spacing: 4) {
-                        Text("Other possibilities")
+                        Text(isExpanded ? "Fewer options" : "Other possibilities")
                             .font(.kuroCaption())
                             .foregroundColor(.black.opacity(0.55))
-                        
+
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                             .font(.kuroMicro(weight: .medium))
                             .foregroundColor(.black.opacity(0.4))
@@ -290,7 +324,7 @@ struct ImportConfirmCard: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 10)
-                
+
                 if isExpanded {
                     CandidateList(
                         item: item,
@@ -319,37 +353,68 @@ struct ImportConfirmCard: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
     }
-    
+
     // MARK: - Computed Properties
-    
+
     private var cardTitle: String {
         selectedCandidate?.title_raw ?? item.normalized
     }
-    
+
     private var formatText: String? {
         selectedCandidate?.format?.uppercased()
     }
-    
+
     private var episodeText: String? {
-        // Could derive from parsed data if available
-        nil
+        let p = item.parsed
+        if let total = p.progressTotal, let unit = p.progressUnit {
+            if let progress = p.progressEpisodes ?? p.progressChapters ?? p.progressVolumes {
+                return "\(progress) of \(total) \(unit)"
+            }
+            return "\(total) \(unit)"
+        }
+        return nil
     }
-    
-    private var studioText: String? {
-        // Studio info could be added to candidate
-        nil
+
+    private var parsedIntentText: String? {
+        let p = item.parsed
+        var parts: [String] = []
+
+        if let status = p.status {
+            parts.append(status.uppercased())
+        }
+
+        if let ep = p.progressEpisodes {
+            if let total = p.progressTotal {
+                parts.append("Ep \(ep) of \(total)")
+            } else {
+                parts.append("Ep \(ep)")
+            }
+        } else if let ch = p.progressChapters {
+            parts.append("Ch \(ch)")
+        } else if let vol = p.progressVolumes {
+            parts.append("Vol \(vol)")
+        }
+
+        if let rating = p.rating {
+            parts.append("★ \(rating)")
+        }
+
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
-    
-    private var matchColor: Color {
-        Color.primary.opacity(max(0.25, min(0.72, 0.25 + (matchPercentage * 0.47))))
-    }
-    
+
     private var canExpand: Bool {
         item.candidates.count > 1 && section != .willSkip
     }
-    
+
     // MARK: - Actions
-    
+
+    private func openPreview() {
+        guard let candidate = selectedCandidate else { return }
+        let kind: MediaKind = candidate.media_type.lowercased() == "manga" ? .manga : .anime
+        previewMedia = MediaPreviewTarget(id: candidate.media_id, kind: kind)
+        KuroAccessibility.impactHaptic(.light)
+    }
+
     private func toggleExpansion() {
         withAnimation(KuroAnimation.editorial) {
             isExpanded.toggle()
