@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-01
+**Last updated:** 2026-03-06
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -1527,6 +1527,21 @@ This single command:
 ---
 
 ## 14) Change Log (append-only)
+
+### 2026-03-06 — Local CD/GDPR hardening + detail CTA copy
+
+Changes shipped:
+- `scripts/local_cd.sh`: `--functions` now validates its argument, safely handles an empty function list, and skips function deployment cleanly under `set -u`.
+- `scripts/install_local_cicd_launchd.sh`: `--ci-interval`, `--cd-hour`, and `--cd-minute` now fail fast when missing values instead of misparsing arguments.
+- `20260305151500_fix_delete_user_concierge_data_uuid_compare.sql` + `20260305153000_fix_delete_user_concierge_data_import_sessions_and_coverage.sql`: fixed `uuid = text` mismatches in `delete_user_concierge_data()` and restored full concierge-adjacent GDPR deletion coverage.
+- `20260305162000_cleanup_db_lint_warnings.sql`: removed the remaining PL/pgSQL lint warnings in `batch_providers_for_media` and `generate_invite_code`.
+- `AnimeDetailView.swift` / `MangaDetailView.swift`: CTA fallback copy now reflects actual data confidence. Existing legal links show region/licensing caveats when metadata is absent; missing legal links now show `Link coming soon.` consistently, including manga chapter surfaces.
+
+Validation:
+- `supabase db lint --linked` → `No schema errors found`
+- `./scripts/run_local_ci_logged.sh` → success
+- `./scripts/run_local_cd_logged.sh --supabase-only --functions ""` → success
+- `xcodebuild -scheme Kuro -destination '''generic/platform=iOS''' build` → `BUILD SUCCEEDED`
 
 ### 2026-03-01 — Streaming Availability v1 ("Where to Watch/Read")
 

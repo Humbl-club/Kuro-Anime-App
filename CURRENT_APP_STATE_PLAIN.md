@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-01
+**Last updated:** 2026-03-06
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -673,3 +673,11 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **GDPR compliant**: User streaming data is deleted when the user deletes their account.
 - **Behind feature flag**: All streaming features are behind `streaming_availability_v1` at 0% rollout. Test with the launch argument `--ff-on=streaming_availability_v1`.
 - 1 new migration file, 7 modified Swift files, 0 new Swift files.
+
+### 2026-03-06 — Local deployment + privacy cleanup
+- **Local CD is safer**: The local deployment scripts now reject missing flag values clearly and handle an empty function list without crashing.
+- **Account deletion cleanup fixed**: The GDPR delete RPC had `uuid` vs `text` mismatches and incomplete coverage. It now deletes the intended concierge-adjacent user data correctly, and database lint is clean again.
+
+### 2026-03-06 — Detail page link copy cleanup
+- **More honest fallback text**: If Kuro has a legal watch/read link but no verified region metadata, anime now says audio/subtitle availability may vary by region and manga says reading availability may vary by region and publisher.
+- **Cleaner no-link fallback**: If there is no legal link yet, the app now consistently says `Link coming soon.` including manga chapter surfaces.
