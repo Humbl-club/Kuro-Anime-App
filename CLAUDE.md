@@ -123,6 +123,8 @@ Pages swipe left-to-right in this exact order:
 5. **Clubs** — private groups (2-20 members) with shared rails, polls, reactions, chat
 
 **Search is NOT a page.** It opens as a sheet from the magnifying glass icon in the header.
+- Search now exposes server-backed refinement chips (`TRENDING`, `NEW`, `CLASSICS`, `HIDDEN GEMS`, plus anime-only `AIRING`) on top of query + scope.
+- Discover remains editorial-first: any chip inside a single rail is a local rail refinement, not a global catalog filter.
 
 Default page on launch: **Discover** (index 1).
 

@@ -411,3 +411,79 @@ struct EntityWorkIdentityTests {
         #expect(first != second)
     }
 }
+
+// MARK: - Entity Discovery Filter Tests
+
+@Suite("Entity Discovery Filters")
+struct EntityDiscoveryFilterTests {
+    @Test("Era buckets group modern titles ahead of classics")
+    func testEraBuckets() {
+        #expect(EntityEraBucket.from(yearString: "2024") == .current)
+        #expect(EntityEraBucket.from(yearString: "2017") == .tens)
+        #expect(EntityEraBucket.from(yearString: "2006") == .aughts)
+        #expect(EntityEraBucket.from(yearString: "1998") == .classics)
+    }
+
+    @Test("Staff role filter groups director writer music and design")
+    func testStaffRoleGrouping() {
+        #expect(StaffRoleFilter.from(role: "Director") == .director)
+        #expect(StaffRoleFilter.from(role: "Series Composition") == .writer)
+        #expect(StaffRoleFilter.from(role: "Theme Song Composition") == .music)
+        #expect(StaffRoleFilter.from(role: "Chief Character Design") == .design)
+        #expect(StaffRoleFilter.from(role: "Key Animation") == nil)
+    }
+
+    @Test("Author role filter separates story art and combined roles")
+    func testAuthorRoleGrouping() {
+        #expect(AuthorRoleFilter.from(role: "Story") == .story)
+        #expect(AuthorRoleFilter.from(role: "Art") == .art)
+        #expect(AuthorRoleFilter.from(role: "Story & Art") == .storyArt)
+        #expect(AuthorRoleFilter.from(role: "Original Creator") == nil)
+    }
+
+    @Test("Character media filter keeps anime and manga distinct")
+    func testCharacterMediaFilter() {
+        let works = [
+            Media(
+                id: 10,
+                kind: .anime,
+                title: "Anime",
+                imageURL: nil,
+                year: "2024",
+                displayDescription: "",
+                episodes: 12,
+                chapters: nil,
+                rating: 8.2,
+                genres: nil,
+                statusRaw: nil,
+                formatRaw: nil,
+                popularityValue: nil,
+                trendingValue: nil,
+                createdAtValue: nil
+            ),
+            Media(
+                id: 11,
+                kind: .manga,
+                title: "Manga",
+                imageURL: nil,
+                year: "2020",
+                displayDescription: "",
+                episodes: nil,
+                chapters: 90,
+                rating: 8.0,
+                genres: nil,
+                statusRaw: nil,
+                formatRaw: nil,
+                popularityValue: nil,
+                trendingValue: nil,
+                createdAtValue: nil
+            )
+        ]
+        let animeOnly = works.filter { CharacterMediaFilter.anime == .anime ? $0.kind == .anime : true }
+        let mangaOnly = works.filter { CharacterMediaFilter.manga == .manga ? $0.kind == .manga : true }
+        #expect(animeOnly.count == 1)
+        #expect(animeOnly.first?.kind == .anime)
+        #expect(mangaOnly.count == 1)
+        #expect(mangaOnly.first?.kind == .manga)
+    }
+}

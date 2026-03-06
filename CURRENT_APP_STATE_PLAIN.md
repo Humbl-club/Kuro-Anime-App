@@ -751,6 +751,12 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Concierge no longer pretends to persist**: The partial chat restore path was removed. Leaving and reopening Concierge now starts fresh instead of showing a stripped-down transcript that lost the important cards and actions.
 - **Add to List is consistently online-only**: The sheet already blocked save when offline. It now blocks remove too, and both actions share one clear offline message: `You're offline. Reconnect to update your list.`
 
+### 2026-03-06 — Credits/cast drilldowns + filter wiring audit
+- **Creator and studio sheets are more useful now**: Tapping a studio, staff member, author, or character on a detail page still opens their works sheet, but those sheets now do more than just sort by rating or year. Character sheets can split between anime and manga appearances, staff sheets can filter by craft (director, writer, music, design), author sheets can filter by story vs art, and all of them now support an `ERA` mode to group works more editorially.
+- **Search filters are now actually wired**: The Search sheet now exposes backend-supported refinement chips like `TRENDING`, `CLASSICS`, `HIDDEN GEMS`, and `AIRING`/`NEW SEASON` where appropriate. These are real server-backed filters, not just UI decoration.
+- **Discover rail chips are now labeled honestly**: Some chips on Discover only refine a single already-fetched rail rather than querying the whole catalog. They are now labeled `REFINE THIS RAIL`, and the expanded rail sheets are labeled `EDITORIAL RAIL` so they do not look like full-catalog search tools.
+- **There is now a written audit matrix**: `docs/filter-wiring-audit.md` records which filters are true backend filters, which are intentional local refinements, and which areas needed clarification.
+
 
 ### 2026-03-06 — Detail page link copy cleanup
 - **More honest link messaging**: Detail pages no longer show vague `Availability unknown` copy. If Kuro has a legal link but no verified region metadata, anime now says availability/audio/subtitles may vary by region, and manga says reading availability may vary by region and publisher.

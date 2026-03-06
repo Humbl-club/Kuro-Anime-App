@@ -15887,3 +15887,30 @@ Totals: 3 new Swift files, 7 modified Swift files, 1 new migration. 67 Swift fil
 - `saveToList()` and `removeFromList()` now guard against offline execution before calling Supabase, instead of relying only on button disabled state.
 
 Totals: 0 new files, 4 modified Swift files. 67 Swift files, 145 migrations.
+
+### 2026-03-06 — Credits/cast differentiation + filter wiring audit
+
+**EntityDetailSheets.swift — creator/studio sheets are now editorial discovery surfaces:**
+- `EntitySortMode` adds `ERA` alongside `RATING` and `YEAR`, grouping titles into 2020s / 2010s / 2000s / earlier buckets.
+- `CharacterDetailSheet` adds `ALL / ANIME / MANGA` filtering over the mixed appearance list.
+- `StaffDetailSheet` adds role filters (`ALL ROLES / DIRECTOR / WRITER / MUSIC / DESIGN`) derived from existing free-text credit roles.
+- `AuthorDetailSheet` adds role filters (`ALL / STORY / ART / STORY & ART`) derived from `manga_authors.role`.
+- `EntityWorksRail` gains a short editorial subtitle; sheets now frame the lists as discovery pages rather than raw filmographies.
+
+**EditorialSearchView.swift — latent backend search flags are now exposed:**
+- Search remains a sheet, but now exposes a server-backed refinement strip.
+- New chips map directly to `SupabaseService.SearchFilters` and existing RPC params:
+  - anime: `TRENDING`, `NEW SEASON`, `CLASSICS`, `HIDDEN GEMS`, `AIRING`
+  - manga: `TRENDING`, `NEW`, `CLASSICS`, `HIDDEN GEMS`
+  - combined: shared flags only
+- Search now supports filter-driven results even with an empty text query, using the existing `search_*_page` RPC filter-only mode.
+
+**EditorialDiscoverView.swift — local rail refinements are now explicit:**
+- Rail-level chips inside Discover sections are labeled `REFINE THIS RAIL` to distinguish them from global backend discovery filters.
+- Full-sheet rail views are labeled `EDITORIAL RAIL`, clarifying that `See All` opens the current curated rail, not the full catalog.
+
+**Audit artifact:**
+- Added `docs/filter-wiring-audit.md` with a code-first matrix classifying each visible sort/filter/drilldown surface as `backend_wired`, `client_only_intentional`, `latent_backend_not_exposed`, or `broken_or_misleading`.
+
+**KuroTests.swift:**
+- Added entity discovery tests for era grouping and staff/author role categorization.
