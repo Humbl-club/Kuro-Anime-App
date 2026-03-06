@@ -9,6 +9,7 @@ final class NetworkMonitor {
 
     var isConnected: Bool = true
     var connectionType: ConnectionType = .unknown
+    var reconnectionGeneration: Int = 0
 
     enum ConnectionType: Sendable {
         case wifi, cellular, wired, unknown
@@ -25,6 +26,7 @@ final class NetworkMonitor {
             Task { @MainActor [weak self] in
                 self?.isConnected = connected
                 self?.connectionType = type
+                if connected { self?.reconnectionGeneration += 1 }
             }
         }
         monitor.start(queue: queue)

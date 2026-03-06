@@ -6,6 +6,7 @@ import SwiftUI
 
 struct EditorialDiscoverView: View {
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(NetworkMonitor.self) private var networkMonitor
     @State private var vm = DiscoverViewModel()
     @State private var isLoadingSections = false
     @State private var didInitialLoad = false
@@ -28,6 +29,13 @@ struct EditorialDiscoverView: View {
     @State private var showFullCurrentSeason = false
 
     @State private var showMoreSections = UserDefaults.standard.bool(forKey: "kuro_discover_show_more")
+    @State private var selectedMediaType: DiscoverMediaTypeFilter = .all
+
+    enum DiscoverMediaTypeFilter: String, CaseIterable {
+        case all = "ALL"
+        case anime = "ANIME"
+        case manga = "MANGA"
+    }
 
     private var secondarySectionCount: Int {
         var count = 0
@@ -99,19 +107,47 @@ struct EditorialDiscoverView: View {
                     })
                 } else {
                     VStack(spacing: 24) {
-                    // MARK: Primary sections (always visible, ordered by user value)
-
-                    if !vm.newToYou.isEmpty {
-                        Dense2ColumnSectionFixed(
-                            title: "NEW TO YOU",
-                            subtitle: "High score, not in your list",
-                            items: Array(vm.newToYou.prefix(8)),
-                            screenWidth: currentWidth,
-                            onSeeAll: { showFullNewToYou = true }
-                        )
+                    // Stale data indicator when offline but showing cached content
+                    if !networkMonitor.isConnected && hasAnyContent {
+                        Text("SHOWING CACHED DATA")
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(1.2)
+                            .foregroundColor(.kuroTextTertiary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.bottom, 4)
                     }
 
-                    if !vm.airingToday.isEmpty {
+                    // MARK: Media type filter
+                    HStack {
+                        Spacer()
+                        Menu {
+                            ForEach(DiscoverMediaTypeFilter.allCases, id: \.self) { type in
+                                Button(type.rawValue) {
+                                    selectedMediaType = type
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "rectangle.stack")
+                                    .font(.system(size: 9, weight: .regular))
+                                Text(selectedMediaType == .all ? "TYPE" : selectedMediaType.rawValue)
+                                    .font(.system(size: 9, weight: .medium))
+                                    .tracking(0.8)
+                            }
+                            .foregroundColor(selectedMediaType != .all ? .black : .black.opacity(0.35))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 20)
+
+                    // MARK: Primary sections (always visible, ordered by user value)
+
+                    if let featured = vm.featured, (selectedMediaType == .all || selectedMediaType == .anime) {
+                        KuroHeroCard(media: featured, width: currentWidth - 40)
+                            .padding(.horizontal, 20)
+                    }
+
+                    if !vm.airingToday.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
                         CompactHorizontalSection(
                             title: "AIRING TODAY",
                             subtitle: "Next 24 hours",
@@ -121,7 +157,17 @@ struct EditorialDiscoverView: View {
                         )
                     }
 
-                    if !vm.essentials.isEmpty {
+                    if !vm.newToYou.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
+                        Dense2ColumnSectionFixed(
+                            title: "NEW TO YOU",
+                            subtitle: "High score, not in your list",
+                            items: Array(vm.newToYou.prefix(8)),
+                            screenWidth: currentWidth,
+                            onSeeAll: { showFullNewToYou = true }
+                        )
+                    }
+
+                    if !vm.essentials.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
                         CompactHorizontalSection(
                             title: "ESSENTIAL ANIME",
                             subtitle: "Gateway picks (high confidence)",
@@ -131,7 +177,7 @@ struct EditorialDiscoverView: View {
                         )
                     }
 
-                    if !vm.newToYouManga.isEmpty {
+                    if !vm.newToYouManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
                         Dense2ColumnMangaSectionFixed(
                             title: "NEW TO YOU (MANGA)",
                             subtitle: "High score, not in your list",
@@ -141,7 +187,7 @@ struct EditorialDiscoverView: View {
                         )
                     }
 
-                    if !vm.trending.isEmpty {
+                    if !vm.trending.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
                         CompactHorizontalSection(
                             title: "TRENDING",
                             subtitle: "Popular right now",
@@ -152,7 +198,7 @@ struct EditorialDiscoverView: View {
                         )
                     }
 
-                    if !vm.essentialsManga.isEmpty {
+                    if !vm.essentialsManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
                         CompactHorizontalMangaSection(
                             title: "ESSENTIAL MANGA",
                             subtitle: "Foundational reads",
@@ -193,7 +239,7 @@ struct EditorialDiscoverView: View {
                     // MARK: Secondary sections (behind "Show More")
 
                     if showMoreSections {
-                        if !vm.classics.isEmpty {
+                        if !vm.classics.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
                             Dense2ColumnSectionFixed(
                                 title: "CLASSICS",
                                 subtitle: "Proven greats",
@@ -203,7 +249,7 @@ struct EditorialDiscoverView: View {
                             )
                         }
 
-                        if !vm.currentSeason.isEmpty {
+                        if !vm.currentSeason.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
                             CompactHorizontalSection(
                                 title: "CURRENT SEASON",
                                 subtitle: "Airing now",
@@ -213,7 +259,7 @@ struct EditorialDiscoverView: View {
                             )
                         }
 
-                        if !vm.topRated.isEmpty {
+                        if !vm.topRated.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
                             Dense2ColumnSectionFixed(
                                 title: "TOP RATED",
                                 subtitle: "Highest scores",
@@ -224,7 +270,7 @@ struct EditorialDiscoverView: View {
                             )
                         }
 
-                        if !vm.newlyAdded.isEmpty {
+                        if !vm.newlyAdded.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
                             Dense2ColumnSectionFixed(
                                 title: "JUST ADDED",
                                 subtitle: "Fresh arrivals",
@@ -234,7 +280,7 @@ struct EditorialDiscoverView: View {
                             )
                         }
 
-                        if !vm.classicsManga.isEmpty {
+                        if !vm.classicsManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
                             Dense2ColumnMangaSectionFixed(
                                 title: "MANGA CLASSICS",
                                 subtitle: "Proven greats",
@@ -244,7 +290,7 @@ struct EditorialDiscoverView: View {
                             )
                         }
 
-                        if !vm.trendingManga.isEmpty {
+                        if !vm.trendingManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
                             CompactHorizontalMangaSection(
                                 title: "TRENDING MANGA",
                                 subtitle: "Popular manga",
@@ -253,7 +299,7 @@ struct EditorialDiscoverView: View {
                             )
                         }
 
-                        if !vm.topRatedManga.isEmpty {
+                        if !vm.topRatedManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
                             Dense2ColumnMangaSectionFixed(
                                 title: "TOP RATED MANGA",
                                 subtitle: "Highest scores",

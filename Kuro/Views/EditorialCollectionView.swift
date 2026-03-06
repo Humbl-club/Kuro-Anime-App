@@ -18,9 +18,12 @@ struct EditorialCollectionView: View {
     @State private var isEditMode = false
     @State private var selectedKeys: Set<String> = []
     @State private var showBatchStatusPicker = false
+    @State private var selectedMediaType: MediaTypeFilter = .all
     @State private var selectedServiceFilter: String? = nil
     @State private var selectedLanguageFilter: String? = nil
     @State private var includeUnknownLanguage: Bool = true
+    @State private var searchDebounceTask: Task<Void, Never>?
+    @State private var showBatchRemoveConfirm = false
 
     enum CollectionFilter: String, CaseIterable {
         case all = "ALL"
@@ -28,6 +31,7 @@ struct EditorialCollectionView: View {
         case completed = "COMPLETED"
         case planned = "PLANNED"
         case paused = "PAUSED"
+        case dropped = "DROPPED"
 
         var displayName: String { rawValue }
 
@@ -38,14 +42,22 @@ struct EditorialCollectionView: View {
             case .completed: return .completed
             case .planned: return .planning
             case .paused: return .paused
+            case .dropped: return .dropped
             }
         }
+    }
+
+    enum MediaTypeFilter: String, CaseIterable {
+        case all = "ALL"
+        case anime = "ANIME"
+        case manga = "MANGA"
     }
 
     enum CollectionSort: String, CaseIterable {
         case lastUpdated = "LAST UPDATED"
         case titleAZ = "TITLE A-Z"
         case rating = "RATING"
+        case myRating = "MY RATING"
         case progress = "PROGRESS"
     }
 
@@ -53,6 +65,13 @@ struct EditorialCollectionView: View {
 
     private var displayItems: [Media] {
         var base = searchResults ?? items
+
+        // Media type filter
+        switch selectedMediaType {
+        case .all: break
+        case .anime: base = base.filter { $0.kind == .anime }
+        case .manga: base = base.filter { $0.kind == .manga }
+        }
 
         // Streaming service filter
         if FeatureFlags.shared.isStreamingAvailabilityV1Enabled, let slug = selectedServiceFilter {
@@ -73,6 +92,11 @@ struct EditorialCollectionView: View {
             return base.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
         case .rating:
             return base.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
+        case .myRating:
+            return base.sorted {
+                (supabaseService.userListEntry(mediaType: $0.kind.rawValue, mediaId: $0.id)?.score ?? 0) >
+                (supabaseService.userListEntry(mediaType: $1.kind.rawValue, mediaId: $1.id)?.score ?? 0)
+            }
         case .progress:
             return base.sorted {
                 let p0 = supabaseService.userListProgress(mediaType: $0.kind.rawValue, mediaId: $0.id) ?? 0
@@ -86,9 +110,47 @@ struct EditorialCollectionView: View {
         !displayItems.isEmpty
     }
 
+    private var statusCounts: [(label: String, count: Int)] {
+        var counts: [String: Int] = [:]
+        for media in items {
+            if let entry = supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id) {
+                let label: String
+                switch entry.status {
+                case .current: label = "WATCHING"
+                case .completed: label = "COMPLETED"
+                case .planning: label = "PLANNED"
+                case .paused: label = "PAUSED"
+                case .dropped: label = "DROPPED"
+                case .repeating: label = "REWATCHING"
+                }
+                counts[label, default: 0] += 1
+            }
+        }
+        return counts.sorted { $0.value > $1.value }.map { (label: $0.key, count: $0.value) }
+    }
+
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
+                // Status summary row
+                if !items.isEmpty && !statusCounts.isEmpty {
+                    HStack(spacing: 0) {
+                        ForEach(Array(statusCounts.enumerated()), id: \.element.label) { index, item in
+                            if index > 0 {
+                                Text(" \u{00B7} ")
+                                    .font(.kuroMicro(weight: .medium))
+                                    .foregroundColor(.kuroTextTertiary)
+                            }
+                            Text("\(item.count) \(item.label)")
+                                .font(.kuroMicro(weight: .medium))
+                                .tracking(1.0)
+                                .foregroundColor(.kuroTextSecondary)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                }
+
                 // Editorial Filter Bar + Search Toggle
                 HStack(spacing: 0) {
                     EditorialFilterBar(
@@ -136,6 +198,25 @@ struct EditorialCollectionView: View {
                         }
                         .padding(.horizontal, EditorialLayout.marginEditorial)
                     }
+
+                    // Media type filter pill
+                    Menu {
+                        ForEach(MediaTypeFilter.allCases, id: \.self) { type in
+                            Button(type.rawValue) {
+                                selectedMediaType = type
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: "rectangle.stack")
+                                .font(.system(size: 9, weight: .regular))
+                            Text(selectedMediaType == .all ? "TYPE" : selectedMediaType.rawValue)
+                                .font(.system(size: 9, weight: .medium))
+                                .tracking(0.8)
+                        }
+                        .foregroundColor(selectedMediaType != .all ? .black : .black.opacity(0.35))
+                    }
+                    .buttonStyle(.plain)
 
                     // Streaming service filter pill
                     if FeatureFlags.shared.isStreamingAvailabilityV1Enabled,
@@ -232,6 +313,19 @@ struct EditorialCollectionView: View {
                             .font(.kuroBody())
                             .textFieldStyle(.plain)
                             .onSubmit { Task { await performSearch() } }
+                            .onChange(of: searchText) { _, newValue in
+                                searchDebounceTask?.cancel()
+                                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                                if trimmed.isEmpty {
+                                    searchResults = nil
+                                    return
+                                }
+                                searchDebounceTask = Task {
+                                    try? await Task.sleep(for: .milliseconds(300))
+                                    guard !Task.isCancelled else { return }
+                                    searchResults = items.filter { $0.title.localizedCaseInsensitiveContains(trimmed) }
+                                }
+                            }
 
                         if !searchText.isEmpty {
                             Button {
@@ -297,7 +391,18 @@ struct EditorialCollectionView: View {
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
-                            EditorialCollectionEmpty()
+                            EditorialCollectionEmpty(
+                                onExploreDiscover: {
+                                    if let url = URL(string: "kuro://discover") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                },
+                                onExploreConcierge: {
+                                    if let url = URL(string: "kuro://concierge") {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }
+                            )
                         }
                     } else {
                         if !networkMonitor.isConnected {
@@ -340,6 +445,21 @@ struct EditorialCollectionView: View {
                     if !urls.isEmpty {
                         Task { await ImagePipeline.shared.prefetch(urls: urls) }
                     }
+
+                    let feedItems: [(mediaType: String, mediaId: Int)] = await MainActor.run {
+                        supabaseService.collectionFeedItems.prefix(80).map {
+                            (mediaType: $0.kind == .anime ? "ANIME" : "MANGA", mediaId: $0.id)
+                        }
+                    }
+                    if !feedItems.isEmpty && FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                        let preferredAudio = Locale.current.identifier.lowercased().hasPrefix("de") ? "de" : "en"
+                        supabaseService.prefetchProviderAvailabilityV2(
+                            items: feedItems,
+                            preferredAudioLang: preferredAudio,
+                            preferredSubLang: nil,
+                            includeUnknown: true
+                        )
+                    }
                 }
                 .background(Color.kuroBackground)
                 .overlay(alignment: .top) {
@@ -355,7 +475,7 @@ struct EditorialCollectionView: View {
                     CollectionBatchBar(
                         count: selectedKeys.count,
                         onChangeStatus: { showBatchStatusPicker = true },
-                        onRemove: { Task { await batchRemove() } }
+                        onRemove: { batchRemove() }
                     )
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -370,6 +490,16 @@ struct EditorialCollectionView: View {
             Button("Completed") { Task { await batchChangeStatus(.completed) } }
             Button("Planned") { Task { await batchChangeStatus(.planning) } }
             Button("Paused") { Task { await batchChangeStatus(.paused) } }
+            Button("Cancel", role: .cancel) { }
+        }
+        .confirmationDialog(
+            "Remove \(selectedKeys.count) item\(selectedKeys.count == 1 ? "" : "s") from collection?",
+            isPresented: $showBatchRemoveConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Remove", role: .destructive) {
+                Task { await confirmBatchRemove() }
+            }
             Button("Cancel", role: .cancel) { }
         }
         .task {
@@ -395,6 +525,13 @@ struct EditorialCollectionView: View {
                         supabaseService.prefetchFriendCounts(items: feedItems)
                     }
                     if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                        let preferredAudio = Locale.current.identifier.lowercased().hasPrefix("de") ? "de" : "en"
+                        supabaseService.prefetchProviderAvailabilityV2(
+                            items: feedItems,
+                            preferredAudioLang: preferredAudio,
+                            preferredSubLang: nil,
+                            includeUnknown: true
+                        )
                         supabaseService.prefetchProviders(items: feedItems)
                     }
                 }
@@ -476,15 +613,38 @@ struct EditorialCollectionView: View {
         await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
     }
 
+    private func batchRemove() {
+        showBatchRemoveConfirm = true
+    }
+
     @MainActor
-    private func batchRemove() async {
+    private func confirmBatchRemove() async {
         let selected = selectedMediaItems()
         guard !selected.isEmpty else { return }
+        var removedCount = 0
         for media in selected {
-            supabaseService.toggleInCollection(mediaId: media.id, mediaType: media.kind.rawValue)
+            let type = media.kind.rawValue.lowercased()
+            let removed = await supabaseService.removeFromList(
+                mediaId: media.id,
+                mediaType: type,
+                skipRefresh: true
+            )
+            if removed { removedCount += 1 }
         }
-        KuroAccessibility.successHaptic()
-        showBanner("Removed \(selected.count) item\(selected.count == 1 ? "" : "s")")
+        // Single refresh after all deletes (instead of 3 fetches per item)
+        await supabaseService.fetchUserLists()
+        await supabaseService.fetchCollectionItems(status: selectedFilter.listStatus)
+        await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
+        if removedCount == selected.count {
+            KuroAccessibility.successHaptic()
+            showBanner("Removed \(selected.count) item\(selected.count == 1 ? "" : "s")")
+        } else if removedCount > 0 {
+            KuroAccessibility.impactHaptic(.medium)
+            showBanner("Removed \(removedCount) of \(selected.count) — \(selected.count - removedCount) failed")
+        } else {
+            KuroAccessibility.errorHaptic()
+            showBanner("Couldn't remove items — check your connection")
+        }
         withAnimation(KuroAnimation.fast) {
             selectedKeys.removeAll()
             isEditMode = false
@@ -668,6 +828,7 @@ struct EditorialCollectionLoading: View {
 // MARK: - Editorial Collection Empty
 struct EditorialCollectionEmpty: View {
     var onExploreDiscover: (() -> Void)? = nil
+    var onExploreConcierge: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: 24) {
@@ -691,14 +852,19 @@ struct EditorialCollectionEmpty: View {
                 }
             }
 
-            if let onExploreDiscover {
-                Button {
-                    KuroAccessibility.impactHaptic(.light)
-                    onExploreDiscover()
-                } label: {
-                    Text("EXPLORE DISCOVER")
-                        .font(.system(size: 11, weight: .semibold))
-                        .tracking(1.5)
+            VStack(spacing: 10) {
+                if let onExploreDiscover {
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        onExploreDiscover()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "square.grid.2x2")
+                                .font(.system(size: 11, weight: .medium))
+                            Text("EXPLORE DISCOVER")
+                                .font(.system(size: 11, weight: .semibold))
+                                .tracking(1.5)
+                        }
                         .foregroundColor(.black)
                         .padding(.horizontal, 20)
                         .padding(.vertical, 12)
@@ -710,8 +876,36 @@ struct EditorialCollectionEmpty: View {
                             Capsule()
                                 .stroke(Color.black.opacity(0.12), lineWidth: 0.5)
                         )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+
+                if let onExploreConcierge {
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        onExploreConcierge()
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 11, weight: .medium))
+                            Text("TRY THE CONCIERGE")
+                                .font(.system(size: 11, weight: .semibold))
+                                .tracking(1.5)
+                        }
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(
+                            Capsule()
+                                .fill(Color.black.opacity(0.06))
+                        )
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.black.opacity(0.12), lineWidth: 0.5)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
 
             // Instructions

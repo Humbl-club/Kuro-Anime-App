@@ -88,6 +88,7 @@ struct KuroLaunchView: View {
 struct KuroMainView: View {
     @Binding var pendingDeepLink: DeepLink?
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(NetworkMonitor.self) private var networkMonitor
 
     enum Section: Int, CaseIterable {
         case concierge, discover, browse, collection, clubs
@@ -334,6 +335,22 @@ struct KuroMainView: View {
             }
             .onDisappear {
                 tapSuppressionResetTask?.cancel()
+            }
+            .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
+                guard networkMonitor.isConnected else { return }
+                Task {
+                    switch selection {
+                    case .discover:
+                        _ = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
+                    case .collection:
+                        await supabaseService.fetchUserLists()
+                        await supabaseService.fetchCollectionFeed(status: nil)
+                    case .clubs:
+                        await supabaseService.checkClubNotifications()
+                    case .concierge, .browse:
+                        break
+                    }
+                }
             }
             .onChange(of: pendingDeepLink) { _, link in
                 guard let link else { return }

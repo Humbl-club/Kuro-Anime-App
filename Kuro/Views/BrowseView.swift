@@ -6,6 +6,7 @@ import SwiftUI
 
 struct BrowseView: View {
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(NetworkMonitor.self) private var networkMonitor
     @State private var selectedGenre: String? = nil
     @State private var selectedLengthFilter: LengthFilter? = nil
     @State private var selectedStatusFilter: StatusFilter? = nil
@@ -31,6 +32,7 @@ struct BrowseView: View {
     @State private var didInitialLoad = false
     @State private var reloadGeneration: Int = 0
     @State private var bannerMessage: String? = nil
+    @State private var loadError = false
 
     private let pageSize: Int = 60
     private let allGenres: [String] = [
@@ -132,6 +134,17 @@ struct BrowseView: View {
         || selectedFormat != nil
     }
 
+    private var activeFilterCount: Int {
+        var n = 0
+        if selectedSort != .popular { n += 1 }
+        if selectedStatusFilter != nil { n += 1 }
+        if selectedLengthFilter != nil { n += 1 }
+        if selectedGenre != nil { n += 1 }
+        if selectedDecade != nil { n += 1 }
+        if selectedFormat != nil { n += 1 }
+        return n
+    }
+
     private var activeFiltersLabel: String {
         var parts: [String] = []
         if let s = selectedStatusFilter { parts.append(s.rawValue) }
@@ -178,10 +191,62 @@ struct BrowseView: View {
                     if displayItems.isEmpty {
                         if isLoadingResults {
                             BrowseGridSkeleton(geometry: geometry)
+                        } else if loadError {
+                            VStack(spacing: KuroDesignSpacing.md) {
+                                Image(systemName: "wifi.slash")
+                                    .font(.system(size: 32, weight: .light))
+                                    .foregroundColor(.kuroTextTertiary)
+                                Text("COULDN'T LOAD")
+                                    .font(.kuroCaption(weight: .medium))
+                                    .tracking(1.6)
+                                    .foregroundColor(.kuroTextSecondary)
+                                Text("Check your connection and try again.")
+                                    .font(.kuroBody())
+                                    .foregroundColor(.kuroTextTertiary)
+                                    .multilineTextAlignment(.center)
+                                Button {
+                                    loadError = false
+                                    Task { await reload(mode: .pullToRefresh) }
+                                } label: {
+                                    Text("RETRY")
+                                        .font(.kuroCaption(weight: .medium))
+                                        .tracking(1.6)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 10)
+                                        .background(Capsule().fill(Color.black))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else {
-                            BrowseEmptyState()
+                            BrowseEmptyState(
+                                activeFilterCount: activeFilterCount,
+                                activeFilterSummary: activeFiltersLabel,
+                                onClearFilters: {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        selectedStatusFilter = nil
+                                        selectedLengthFilter = nil
+                                        selectedGenre = nil
+                                        selectedSort = .popular
+                                        selectedDecade = nil
+                                        selectedFormat = nil
+                                    }
+                                }
+                            )
                         }
                     } else {
+                        if !isLoadingResults {
+                            Text("\(displayItems.count) RESULT\(displayItems.count == 1 ? "" : "S")")
+                                .font(.kuroMicro(weight: .medium))
+                                .tracking(1.5)
+                                .foregroundColor(.kuroTextTertiary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 8)
+                                .padding(.bottom, 4)
+                        }
+
                         VStack(spacing: 18) {
                             if let hero {
                                 BrowseHeroCard(media: hero, geometry: geometry)
@@ -246,6 +311,16 @@ struct BrowseView: View {
             if !didInitialLoad {
                 didInitialLoad = true
                 await reload(mode: .initial)
+            }
+        }
+        .onDisappear {
+            reloadTask?.cancel()
+        }
+        .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
+            guard networkMonitor.isConnected, loadError else { return }
+            reloadTask?.cancel()
+            reloadTask = Task {
+                await reload(mode: .pullToRefresh)
             }
         }
         .onChange(of: showAnime) { _, isAnime in
@@ -330,6 +405,8 @@ struct BrowseView: View {
                 animeResults = page0
             }
 
+            loadError = page0.isEmpty && !networkMonitor.isConnected
+
             hasMore = page0.count == pageSize
             if let last = page0.last {
                 updateAnimeCursor(from: last)
@@ -356,6 +433,8 @@ struct BrowseView: View {
             } else {
                 mangaResults = page0
             }
+
+            loadError = page0.isEmpty && !networkMonitor.isConnected
 
             hasMore = page0.count == pageSize
             if let last = page0.last {
@@ -1140,6 +1219,10 @@ struct BrowseGrid: View {
 
 // MARK: - Browse Empty State
 struct BrowseEmptyState: View {
+    let activeFilterCount: Int
+    let activeFilterSummary: String
+    let onClearFilters: () -> Void
+
     var body: some View {
         VStack(spacing: 16) {
             Image(systemName: "slider.horizontal.3")
@@ -1147,14 +1230,46 @@ struct BrowseEmptyState: View {
                 .foregroundColor(.black.opacity(0.15))
 
             VStack(spacing: 8) {
-                Text("NO MATCHES")
-                    .font(.system(size: 14, weight: .semibold))
-                    .tracking(1.0)
-                    .foregroundColor(.black.opacity(0.4))
+                if activeFilterCount > 0 {
+                    Text("NO MATCHES FOR \(activeFilterCount) FILTER\(activeFilterCount == 1 ? "" : "S")")
+                        .font(.kuroCaption(weight: .semibold))
+                        .tracking(1.0)
+                        .foregroundColor(.kuroTextTertiary)
 
-                Text("Try different filters")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(.black.opacity(0.5))
+                    Text(activeFilterSummary)
+                        .font(.kuroMicro(weight: .regular))
+                        .tracking(0.8)
+                        .foregroundColor(.kuroTextSecondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+
+                    Button {
+                        KuroAccessibility.impactHaptic(.light)
+                        onClearFilters()
+                    } label: {
+                        Text("CLEAR FILTERS")
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.6)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(Capsule().fill(Color.black))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, KuroDesignSpacing.sm)
+                    .accessibilityLabel("Clear all filters")
+                } else {
+                    Text("NO MATCHES")
+                        .font(.kuroCaption(weight: .semibold))
+                        .tracking(1.0)
+                        .foregroundColor(.kuroTextTertiary)
+
+                    Text("Try different filters")
+                        .font(.kuroMicro(weight: .regular))
+                        .tracking(0.8)
+                        .foregroundColor(.kuroTextSecondary)
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -1165,4 +1280,5 @@ struct BrowseEmptyState: View {
 #Preview {
     BrowseView()
         .environment(SupabaseService.shared)
+        .environment(NetworkMonitor())
 }

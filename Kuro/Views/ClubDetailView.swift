@@ -1,5 +1,5 @@
 // MARK: - CLUB DETAIL VIEW
-// Three-tab detail view for a club: Rails, This Week, Polls.
+// Three-tab detail view for a club: Rails, Active, Polls.
 // Chat tab removed — replaced by title-level social activity (FriendsActivitySection).
 // Uses segmented picker, @Observable pattern, KuroDesignSystem tokens throughout.
 
@@ -15,11 +15,11 @@ struct ClubDetailView: View {
 
     enum Tab: String, CaseIterable {
         case rails = "RAILS"
-        case thisWeek = "THIS WEEK"
+        case active = "ACTIVE"
         case polls = "POLLS"
 
         static var visibleCases: [Tab] {
-            [.rails, .thisWeek, .polls]
+            [.rails, .active, .polls]
         }
     }
 
@@ -206,7 +206,7 @@ struct ClubDetailView: View {
                 switch selectedTab {
                 case .rails:
                     railsTab(bundle)
-                case .thisWeek:
+                case .active:
                     thisWeekTab(bundle)
                 case .polls:
                     pollsTab(bundle)
