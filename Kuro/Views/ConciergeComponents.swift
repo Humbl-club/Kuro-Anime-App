@@ -1015,7 +1015,11 @@ struct ConciergeBubble: View {
     var onClarifyAmbiguity: ((_ kind: String, _ value: String, _ sourceText: String) -> Void)? = nil
     var onConfirmItems: ((SupabaseService.ConciergeParseResponse) -> Void)? = nil
     var onReparse: (() -> Void)? = nil
+    var onUndoImport: (() -> Void)? = nil
+    var onViewCollection: (() -> Void)? = nil
     var isImportApplied: Bool = false
+    var isImportApplying: Bool = false
+    var importAppliedSummary: String? = nil
     var autoReasonByItemId: [String: String] = [:]
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
@@ -1100,7 +1104,11 @@ struct ConciergeBubble: View {
                         onSelect: onSelect,
                         onConfirm: { onConfirmItems?(parseResponse) },
                         onReparse: onReparse,
+                        onUndo: isImportApplied ? onUndoImport : nil,
+                        onViewCollection: isImportApplied ? onViewCollection : nil,
                         isApplied: isImportApplied,
+                        isApplying: isImportApplying,
+                        appliedSummary: importAppliedSummary,
                         autoReasonByItemId: autoReasonByItemId,
                         itemActions: itemActions,
                         excludedItemIds: $excludedItemIds
@@ -1242,7 +1250,11 @@ struct ConciergeConfirmBubble: View {
     let onSelect: (SupabaseService.ConciergeParseItem, SupabaseService.ConciergeCandidate) -> Void
     let onConfirm: () -> Void
     var onReparse: (() -> Void)? = nil
+    var onUndo: (() -> Void)? = nil
+    var onViewCollection: (() -> Void)? = nil
     var isApplied: Bool = false
+    var isApplying: Bool = false
+    var appliedSummary: String? = nil
     var autoReasonByItemId: [String: String] = [:]
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
@@ -1370,14 +1382,71 @@ struct ConciergeConfirmBubble: View {
                 )
 
                 if isApplied {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.kuroCaption(weight: .medium))
-                        Text("APPLIED TO LIBRARY")
-                            .font(.kuroCaption(weight: .medium))
-                            .tracking(1.6)
+                    // Applied state — summary + actions
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.kuroCaption(weight: .medium))
+                            Text(appliedSummary ?? "APPLIED TO LIBRARY")
+                                .font(.kuroCaption(weight: .medium))
+                                .tracking(appliedSummary != nil ? 0 : 1.6)
+                        }
+                        .foregroundColor(.black.opacity(0.58))
+
+                        HStack(spacing: 12) {
+                            if let onUndo {
+                                Button(action: {
+                                    KuroAccessibility.impactHaptic(.light)
+                                    onUndo()
+                                }) {
+                                    Text("UNDO")
+                                        .font(.kuroMicro(weight: .semibold))
+                                        .tracking(1.4)
+                                        .foregroundColor(.black.opacity(0.55))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 7)
+                                        .background(
+                                            Capsule(style: .continuous)
+                                                .fill(Color.black.opacity(0.04))
+                                                .overlay(
+                                                    Capsule(style: .continuous)
+                                                        .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                                                )
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Undo import")
+                            }
+
+                            if let onViewCollection {
+                                Button(action: {
+                                    KuroAccessibility.impactHaptic(.light)
+                                    onViewCollection()
+                                }) {
+                                    HStack(spacing: 5) {
+                                        Text("VIEW COLLECTION")
+                                            .font(.kuroMicro(weight: .semibold))
+                                            .tracking(1.4)
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 8, weight: .bold))
+                                    }
+                                    .foregroundColor(.black.opacity(0.55))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(
+                                        Capsule(style: .continuous)
+                                            .fill(Color.black.opacity(0.04))
+                                            .overlay(
+                                                Capsule(style: .continuous)
+                                                    .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                                            )
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("View collection")
+                            }
+                        }
                     }
-                    .foregroundColor(.black.opacity(0.58))
                     .padding(.top, 16)
                 } else {
                     HStack(spacing: 10) {
@@ -1411,36 +1480,66 @@ struct ConciergeConfirmBubble: View {
                             onConfirm()
                         }) {
                             HStack(spacing: 8) {
-                                Text("CONFIRM")
-                                    .font(.kuroCaption(weight: .medium))
-                                    .tracking(2.0)
+                                if isApplying {
+                                    ProgressView()
+                                        .scaleEffect(0.7)
+                                        .tint(.white.opacity(0.80))
+                                    Text("APPLYING")
+                                        .font(.kuroCaption(weight: .medium))
+                                        .tracking(2.0)
+                                } else {
+                                    Text("CONFIRM")
+                                        .font(.kuroCaption(weight: .medium))
+                                        .tracking(2.0)
 
-                                Text("\(confirmableCount)")
-                                    .font(.kuroMicro(weight: .semibold))
-                                    .monospacedDigit()
+                                    Text("\(confirmableCount)")
+                                        .font(.kuroMicro(weight: .semibold))
+                                        .monospacedDigit()
+                                }
                             }
                             .foregroundColor(confirmableCount > 0 ? .white : .white.opacity(0.40))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(
                                 Capsule(style: .continuous)
-                                    .fill(confirmableCount > 0 ? Color.black.opacity(0.88) : Color.black.opacity(0.10))
+                                    .fill(isApplying ? Color.black.opacity(0.60) : (confirmableCount > 0 ? Color.black.opacity(0.88) : Color.black.opacity(0.10)))
                             )
                         }
                         .buttonStyle(.plain)
-                        .disabled(confirmableCount == 0)
+                        .disabled(confirmableCount == 0 || isApplying)
                     }
                     .padding(.top, 16)
 
-                    Text("\(confirmableCount) of \(actionableCount) ready to apply")
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.black.opacity(0.46))
-                        .padding(.top, 8)
+                    if !isApplying {
+                        if confirmableCount == 0 {
+                            Text(confirmZeroExplanation)
+                                .font(.kuroCaption(weight: .light))
+                                .foregroundColor(.kuroTextTertiary)
+                                .padding(.top, 8)
+                        } else {
+                            Text("\(confirmableCount) of \(actionableCount) ready to apply")
+                                .font(.kuroCaption(weight: .light))
+                                .foregroundColor(.black.opacity(0.46))
+                                .padding(.top, 8)
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 18)
             .padding(.vertical, 16)
         }
+    }
+
+    private var confirmZeroExplanation: String {
+        let nonSkipItems = items.filter { actionFor($0) != .skip }
+        if nonSkipItems.isEmpty {
+            return "All items already in your library"
+        }
+        let allExcluded = nonSkipItems.allSatisfy { excludedItemIds.contains($0.id) }
+        if allExcluded {
+            return "All items excluded — tap to re-include"
+        }
+        return "Select matches above to continue"
     }
 
     /// Show re-parse when 2+ actionable items have low confidence (< 0.70).

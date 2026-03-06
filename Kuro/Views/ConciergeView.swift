@@ -181,7 +181,7 @@ struct ConciergeView: View {
             title: "Concierge",
             subtitle: editorialSubtitle,
             errorText: errorText,
-            showsIntentDeck: messages.isEmpty
+            showsIntentDeck: false
         ) {
             EmptyView()
         } responseStage: {
@@ -191,7 +191,7 @@ struct ConciergeView: View {
                     topPadding: 20,
                     bottomPadding: 20,
                     messageSpacing: 20,
-                    includeStarter: false
+                    includeStarter: true
                 )
             }
         } composer: {
@@ -550,6 +550,30 @@ struct ConciergeView: View {
                         .frame(maxWidth: .infinity)
                     }
 
+                    if !messages.isEmpty {
+                        HStack {
+                            Spacer()
+                            Button {
+                                startNewChat()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.message")
+                                        .font(.system(size: 10, weight: .medium))
+                                    Text("NEW CHAT")
+                                        .font(.kuroMicro(weight: .semibold))
+                                        .tracking(1.2)
+                                }
+                                .foregroundColor(.kuroTextTertiary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.black.opacity(0.06))
+                                )
+                            }
+                        }
+                    }
+
                     ForEach(messages) { msg in
                         ConciergeBubble(
                             message: msg,
@@ -844,6 +868,8 @@ struct ConciergeView: View {
         isWorking = false
     }
 
+    // NOTE: This runs BEFORE FM intent classification (by design).
+    // Catches garbage/low-signal input without burning FM inference.
     private func shouldAskClarifyingQuestion(_ text: String) -> Bool {
         let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if t.isEmpty { return true }
@@ -1523,6 +1549,27 @@ struct ConciergeView: View {
             UIApplication.shared.open(url)
         }
         #endif
+    }
+
+    private func startNewChat() {
+        withAnimation(KuroAnimation.fast) {
+            messages = []
+        }
+        input = ""
+        focusRequest = true
+        errorText = nil
+        selectedByItemId = [:]
+        itemActions = [:]
+        excludedItemIds = []
+        autoReasonByItemId = [:]
+        appliedImportMessageIds = []
+        lastAppliedImportMessageId = nil
+        applyingImportMessageId = nil
+        appliedImportSummary = nil
+        lastRecommendQuery = nil
+        lastRecommendWasRagAssist = false
+        lastRagSeedEntityId = nil
+        ragFeedbackSentForQuery = []
     }
 
     private func normalizedStatus(for raw: String?, mediaType: String?) -> String {
