@@ -693,10 +693,10 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 ### 2026-03-03 — UX Wave 2: Medium-Effort P0s (3 improvements)
 - **Concierge now shows starter actions on first use**: When you open the Concierge with no messages, you now see 4 quick-action pills — "From your library," "From clipboard," "Curate for me," and "Show examples." Previously this was a blank screen with just a mood subtitle.
 - **Discover gets an Anime/Manga toggle**: A new filter pill on the Discover page lets you show only anime sections, only manga sections, or both. All 14 editorial sections respect this filter.
-- **Concierge conversations persist across sessions**: Your Concierge chat history now survives closing and reopening the app. Messages are saved to disk (text only — interactive import cards don't survive, but you can see what you discussed). Sessions expire after 7 days. A "NEW CHAT" button lets you start fresh.
+- **Concierge is session-local**: The app no longer tries to restore old Concierge chats after you leave and come back. This avoids bringing back misleading text-only transcripts without the import cards or recommendation state that made them useful.
 
 ### 2026-03-03 — Post-review security + bug fixes
-- **Concierge cache is now per-user**: Previously the conversation cache was shared across all accounts on the same device. Now each user's cache is stored separately, and signing out clears all cached conversations. This prevents one user from seeing another's chat history after an account switch.
+- **Historical note**: The old text-only Concierge cache was previously scoped per-user to prevent cross-account leaks. That cache has since been removed entirely because Concierge is now session-local again.
 - **Browse error state fixed**: The Browse page could get stuck showing an error screen after reconnecting to the internet if the search had no results. Now it correctly distinguishes between "offline error" and "no results found."
 
 ### 2026-03-03 — UX Wave 3: P1 Quick Wins (13 improvements)
@@ -747,6 +747,10 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Important limit**: `anime-streaming` is only used as a service/region hint list, not as title-level truth. The Selenium JustWatch scraper is not usable on this machine because its Python/browser dependencies are missing.
 - **Decision stays the same**: keep the real streaming availability rollout deferred. This spike is evidence gathering, not a production rollout path.
 
+### 2026-03-06 — Concierge + Add to List stabilization
+- **Concierge no longer pretends to persist**: The partial chat restore path was removed. Leaving and reopening Concierge now starts fresh instead of showing a stripped-down transcript that lost the important cards and actions.
+- **Add to List is consistently online-only**: The sheet already blocked save when offline. It now blocks remove too, and both actions share one clear offline message: `You're offline. Reconnect to update your list.`
+
 
 ### 2026-03-06 — Detail page link copy cleanup
 - **More honest link messaging**: Detail pages no longer show vague `Availability unknown` copy. If Kuro has a legal link but no verified region metadata, anime now says availability/audio/subtitles may vary by region, and manga says reading availability may vary by region and publisher.
@@ -759,8 +763,3 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Manga stays conservative**: Manga detail pages still use the neutral legal-link disclaimer copy because the current backend does not have strong per-title locale metadata for manga reading sources.
 - **Backend contract updated**: The provider-availability RPC was extended and the follow-up migration was pushed, so iOS and Supabase now agree on the note fields (`audio_languages`, `subtitle_languages`, `countries_by_sub_lang`).
 - **Regression coverage added**: Tests now cover EN/DE dub/audio/subtitle note formatting and mixed anime/manga card identity so same-number IDs do not collide in character sheets.
-
-
-### 2026-03-06 — Concierge + Add to List stabilization
-- **Concierge no longer pretends to persist**: The partial chat restore path was removed. Leaving and reopening Concierge now starts fresh instead of showing a stripped-down transcript that lost the important cards and actions.
-- **Add to List is consistently online-only**: The sheet already blocked save when offline. It now blocks remove too, and both actions share one clear offline message: `You're offline. Reconnect to update your list.`

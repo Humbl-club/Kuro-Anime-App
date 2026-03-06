@@ -15874,7 +15874,6 @@ Totals: 3 new Swift files, 7 modified Swift files, 1 new migration. 67 Swift fil
 **[P3] Migration conflict strategy:**
 - `credits_cast_v1_flag.sql` changed from `ON CONFLICT DO NOTHING` to `ON CONFLICT DO UPDATE SET enabled, rollout_percentage, description` to enforce intended state even if row pre-exists.
 
-
 ### 2026-03-06 — Concierge + Add-to-List stabilization
 
 **ConciergeView.swift + ConciergeComponents.swift + SupabaseService.swift — Concierge is session-local:**

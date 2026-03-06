@@ -515,7 +515,6 @@ scripts/quality-gates/check_migrations.sh
 | Production blockers audit | `docs/production-blockers.md` |
 | Apple FM migration report | `docs/apple-fm-migration-report.md` |
 
-
 ## CURRENT BEHAVIOR NOTE (2026-03-06)
 
 - Concierge is intentionally **session-local**. Do not describe it as cross-session persistent unless a future change reintroduces full, honest persistence.
