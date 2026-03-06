@@ -28,6 +28,7 @@ struct AnimeDetailLoaderView: View {
     @Environment(SupabaseService.self) private var supabaseService
     @State private var anime: Anime? = nil
     @State private var errorMessage: String? = nil
+    @State private var retryCount = 0
 
     var body: some View {
         Group {
@@ -44,6 +45,19 @@ struct AnimeDetailLoaderView: View {
                         .foregroundColor(.black.opacity(0.45))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
+                    Button {
+                        self.errorMessage = nil
+                        retryCount += 1
+                    } label: {
+                        Text("RETRY")
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.6)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(Capsule().fill(Color.black))
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.top, 60)
             } else {
@@ -51,7 +65,7 @@ struct AnimeDetailLoaderView: View {
                     .padding(.top, 80)
             }
         }
-        .task(id: animeId) {
+        .task(id: "\(animeId)-\(retryCount)") {
             errorMessage = nil
             let perf = KuroPerf.begin("detail.anime")
             do {
@@ -75,6 +89,7 @@ struct MangaDetailLoaderView: View {
     @Environment(SupabaseService.self) private var supabaseService
     @State private var manga: Manga? = nil
     @State private var errorMessage: String? = nil
+    @State private var retryCount = 0
 
     var body: some View {
         Group {
@@ -91,6 +106,19 @@ struct MangaDetailLoaderView: View {
                         .foregroundColor(.black.opacity(0.45))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 20)
+                    Button {
+                        self.errorMessage = nil
+                        retryCount += 1
+                    } label: {
+                        Text("RETRY")
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.6)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(Capsule().fill(Color.black))
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.top, 60)
             } else {
@@ -98,7 +126,7 @@ struct MangaDetailLoaderView: View {
                     .padding(.top, 80)
             }
         }
-        .task(id: mangaId) {
+        .task(id: "\(mangaId)-\(retryCount)") {
             errorMessage = nil
             let perf = KuroPerf.begin("detail.manga")
             do {
