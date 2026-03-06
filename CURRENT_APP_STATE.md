@@ -457,7 +457,7 @@ node scripts/generate_app_state_inventory.js
   4. **Collection**
   5. **Clubs**
 - **Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page.
-- **Offline handling**: Monochrome "OFFLINE" text banner (9pt, tracked) at top of `RootView` when disconnected. Plus: cache-fallback in detail fetches (`fetchAnimeById`/`fetchMangaById` return disk cache on network failure), "SHOWING CACHED DATA" stale indicators (Discover, Collection), offline error states with retry (Browse, Collection, detail sheets), write-action guards (Concierge send, Add to List save, club create rail/poll disabled when offline), auto-refresh on reconnect (Discover/Collection/Clubs via `reconnectionGeneration` observer in `ContentView`).
+- **Offline handling**: Monochrome "OFFLINE" text banner (9pt, tracked) at top of `RootView` when disconnected. Plus: cache-fallback in detail fetches (`fetchAnimeById`/`fetchMangaById` return disk cache on network failure), "SHOWING CACHED DATA" stale indicators (Discover, Collection), offline error states with retry (Browse, Collection, detail sheets), write-action guards (Concierge send, Add to List save/remove, club create rail/poll disabled when offline), auto-refresh on reconnect (Discover/Collection/Clubs via `reconnectionGeneration` observer in `ContentView`).
 - **App lifecycle**: `scenePhase` tracked in `KuroApp.swift` for background/foreground transitions.
 - **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.collection`, `.discover`, `.concierge(prompt:)`, `.authCallback(accessToken:, refreshToken:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links. Auth callbacks are intercepted at `KuroApp` level (before auth gate) and call `handleAuthCallback()` to set session immediately.
 - **Auth flow (signup + sign-in)**:
@@ -15873,3 +15873,18 @@ Totals: 3 new Swift files, 7 modified Swift files, 1 new migration. 67 Swift fil
 
 **[P3] Migration conflict strategy:**
 - `credits_cast_v1_flag.sql` changed from `ON CONFLICT DO NOTHING` to `ON CONFLICT DO UPDATE SET enabled, rollout_percentage, description` to enforce intended state even if row pre-exists.
+
+
+### 2026-03-06 — Concierge + Add-to-List stabilization
+
+**ConciergeView.swift + ConciergeComponents.swift + SupabaseService.swift — Concierge is session-local:**
+- Removed the disk-backed `ConciergeConversationCache` path and its persisted DTOs. Concierge no longer restores or saves prior sessions on appear, disappear, or app lifecycle changes.
+- `signOut()` no longer clears concierge session files because cross-session concierge persistence no longer exists.
+- `NEW CHAT` still resets the current in-memory conversation and related import/recommendation UI state.
+
+**AddToListSheet.swift — list mutations are consistently online-only:**
+- Save and remove now share one inline mutation-status slot. When offline, the sheet shows `You're offline. Reconnect to update your list.`
+- `REMOVE FROM LIST` is now disabled offline, matching the existing save-button policy.
+- `saveToList()` and `removeFromList()` now guard against offline execution before calling Supabase, instead of relying only on button disabled state.
+
+Totals: 0 new files, 4 modified Swift files. 67 Swift files, 145 migrations.

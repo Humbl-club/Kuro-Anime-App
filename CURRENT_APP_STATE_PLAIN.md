@@ -661,7 +661,7 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Collection shows a network-aware error** ("You're Offline" vs "Couldn't Load Collection") with a retry button. When offline but cached data exists, it shows a subtle "Showing Cached Data" label.
 - **Discover shows a "Showing Cached Data" label** when offline but content is still visible.
 - **Detail sheets have a retry button** so users can re-attempt loading without dismissing and reopening.
-- **Write actions are disabled when offline**: Concierge send button, Add to List save, and club create rail/poll buttons are all disabled with appropriate hints.
+- **Write actions are disabled when offline**: Concierge send button, Add to List save/remove actions, and club create rail/poll buttons are all disabled with appropriate hints.
 - **Pages auto-refresh when you come back online**: Discover reloads its bundle, Collection reloads your lists, Clubs checks for new notifications.
 - No new files, no backend changes. 10 existing files updated.
 
@@ -759,3 +759,8 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Manga stays conservative**: Manga detail pages still use the neutral legal-link disclaimer copy because the current backend does not have strong per-title locale metadata for manga reading sources.
 - **Backend contract updated**: The provider-availability RPC was extended and the follow-up migration was pushed, so iOS and Supabase now agree on the note fields (`audio_languages`, `subtitle_languages`, `countries_by_sub_lang`).
 - **Regression coverage added**: Tests now cover EN/DE dub/audio/subtitle note formatting and mixed anime/manga card identity so same-number IDs do not collide in character sheets.
+
+
+### 2026-03-06 — Concierge + Add to List stabilization
+- **Concierge no longer pretends to persist**: The partial chat restore path was removed. Leaving and reopening Concierge now starts fresh instead of showing a stripped-down transcript that lost the important cards and actions.
+- **Add to List is consistently online-only**: The sheet already blocked save when offline. It now blocks remove too, and both actions share one clear offline message: `You're offline. Reconnect to update your list.`
