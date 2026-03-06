@@ -1142,13 +1142,15 @@ struct ActionButtons: View {
     @State private var showProviders = false
     @State private var watchLink: (url: String, site: String, label: String)? = nil
     @State private var allLinks: [ExternalLink] = []
+    @State private var watchAvailabilityNote: String? = nil
 
     private var isSaved: Bool {
         supabaseService.isInCollection(mediaId: anime.id, mediaType: "anime")
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
             Button(action: toggleSaved) {
                 Image(systemName: isSaved ? "heart.fill" : "heart")
                     .font(.system(size: 14, weight: .semibold))
@@ -1206,7 +1208,7 @@ struct ActionButtons: View {
                     onToast(
                         .init(
                             kind: .info,
-                            title: "No legal watch link yet",
+                            title: "Link coming soon",
                             subtitle: "We only show verified legal providers.",
                             actionTitle: nil,
                             onAction: nil
@@ -1223,6 +1225,13 @@ struct ActionButtons: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("No legal watch link available")
             }
+
+            Text(watchLink == nil
+                ? "Link coming soon."
+                : (watchAvailabilityNote ?? "Availability, audio, and subtitle options may vary by region."))
+                .font(.kuroMicro(weight: .light))
+                .foregroundColor(.kuroTextTertiary)
+                .lineLimit(2)
         }
         .padding(10)
         .background(
@@ -1250,6 +1259,7 @@ struct ActionButtons: View {
 
     private func refreshLinks() async {
         let progress = supabaseService.getProgress(for: anime.id)
+        let preferredAudio = Locale.current.identifier.lowercased().hasPrefix("de") ? "de" : "en"
         let best = await supabaseService.getBestLegalWatchLink(
             anime: anime,
             userProgress: progress,
@@ -1259,9 +1269,17 @@ struct ActionButtons: View {
             mediaId: anime.id,
             locale: Locale.current.identifier
         )
+        let note = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
+            ? supabaseService.bestProviderAvailabilityNote(
+                mediaId: anime.id,
+                mediaType: "ANIME",
+                preferredAudioLang: preferredAudio
+            )
+            : nil
         await MainActor.run {
             self.watchLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
             self.allLinks = links.filter { validatedURL(from: $0.url) != nil }
+            self.watchAvailabilityNote = note
         }
     }
 

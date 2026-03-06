@@ -620,7 +620,7 @@ struct ChaptersSection: View {
 
                 if !chapters.isEmpty && legalReadLink == nil {
                     HStack {
-                        Text("No legal read link is available yet.")
+                        Text("Link coming soon.")
                             .font(.kuroMicro(weight: .light))
                             .foregroundColor(.kuroBlack60)
                         Spacer()
@@ -877,7 +877,7 @@ struct ChapterListSheet: View {
                 VStack(spacing: KuroSpacing.sm) {
                     if legalReadLink == nil {
                         HStack {
-                            Text("No legal read provider is available yet.")
+                            Text("Link coming soon.")
                                 .font(.kuroMicro(weight: .light))
                                 .foregroundColor(.kuroBlack60)
                             Spacer()
@@ -1117,13 +1117,15 @@ struct MangaActionButtons: View {
     @State private var showProviders = false
     @State private var readLink: (url: String, site: String, label: String)? = nil
     @State private var allLinks: [ExternalLink] = []
+    @State private var readAvailabilityNote: String? = nil
 
     private var isSaved: Bool {
         supabaseService.isInCollection(mediaId: manga.id, mediaType: "manga")
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
             Button(action: toggleSaved) {
                 Image(systemName: isSaved ? "heart.fill" : "heart")
                     .font(.system(size: 14, weight: .semibold))
@@ -1181,7 +1183,7 @@ struct MangaActionButtons: View {
                     onToast(
                         .init(
                             kind: .info,
-                            title: "No legal read link yet",
+                            title: "Link coming soon",
                             subtitle: "We only show verified legal providers.",
                             actionTitle: nil,
                             onAction: nil
@@ -1198,6 +1200,13 @@ struct MangaActionButtons: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("No legal read link available")
             }
+
+            Text(readLink == nil
+                ? "Link coming soon."
+                : (readAvailabilityNote ?? "Reading availability may vary by region and publisher."))
+                .font(.kuroMicro(weight: .light))
+                .foregroundColor(.kuroTextTertiary)
+                .lineLimit(2)
         }
         .padding(10)
         .background(
@@ -1224,6 +1233,7 @@ struct MangaActionButtons: View {
     }
 
     private func refreshLinks() async {
+        let preferredAudio = Locale.current.identifier.lowercased().hasPrefix("de") ? "de" : "en"
         let links = await supabaseService.fetchLegalReadLinks(
             mediaId: manga.id,
             locale: Locale.current.identifier
@@ -1232,9 +1242,17 @@ struct MangaActionButtons: View {
             manga: manga,
             locale: Locale.current.identifier
         )
+        let note = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
+            ? supabaseService.bestProviderAvailabilityNote(
+                mediaId: manga.id,
+                mediaType: "MANGA",
+                preferredAudioLang: preferredAudio
+            )
+            : nil
         await MainActor.run {
             self.allLinks = links.filter { validatedURL(from: $0.url) != nil }
             self.readLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
+            self.readAvailabilityNote = note
         }
     }
 
