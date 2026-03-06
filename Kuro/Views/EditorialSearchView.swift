@@ -14,11 +14,56 @@ struct EditorialSearchView: View {
     @State private var searchText = ""
     @State private var searchTask: Task<Void, Never>? = nil
     @State private var scope: SearchScope = .all
+    @State private var selectedRefinements: Set<SearchRefinement> = []
 
     enum SearchScope: String, CaseIterable {
         case all = "ALL"
         case anime = "ANIME"
         case manga = "MANGA"
+    }
+
+    enum SearchRefinement: String, CaseIterable, Hashable {
+        case trending = "TRENDING"
+        case new = "NEW"
+        case newSeason = "NEW SEASON"
+        case classics = "CLASSICS"
+        case hiddenGems = "HIDDEN GEMS"
+        case airing = "AIRING"
+    }
+
+    private var availableRefinements: [SearchRefinement] {
+        switch scope {
+        case .all:
+            return [.trending, .new, .classics, .hiddenGems]
+        case .anime:
+            return [.trending, .newSeason, .classics, .hiddenGems, .airing]
+        case .manga:
+            return [.trending, .new, .classics, .hiddenGems]
+        }
+    }
+
+    private var activeSearchFilters: SupabaseService.SearchFilters? {
+        var filters = SupabaseService.SearchFilters()
+        if selectedRefinements.contains(.trending) { filters.trending = true }
+        if selectedRefinements.contains(.classics) { filters.classics = true }
+        if selectedRefinements.contains(.hiddenGems) { filters.hiddenGems = true }
+
+        switch scope {
+        case .all:
+            if selectedRefinements.contains(.new) { filters.newSeason = true }
+        case .anime:
+            if selectedRefinements.contains(.newSeason) { filters.newSeason = true }
+            if selectedRefinements.contains(.airing) { filters.airingOnly = true }
+        case .manga:
+            if selectedRefinements.contains(.new) { filters.newSeason = true }
+        }
+
+        let hasFilters = filters.trending || filters.newSeason || filters.classics || filters.hiddenGems || filters.airingOnly
+        return hasFilters ? filters : nil
+    }
+
+    private var showsSearchContent: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || activeSearchFilters != nil
     }
 
     private var serverResults: [EditorialSearchResultItem] {
@@ -38,13 +83,21 @@ struct EditorialSearchView: View {
 
                 EditorialScopeToggle(scope: $scope)
                     .padding(.horizontal, EditorialLayout.marginEditorial)
+                    .padding(.bottom, EditorialLayout.gutterSmall)
+
+                if !availableRefinements.isEmpty {
+                    EditorialSearchFilterStrip(
+                        refinements: availableRefinements,
+                        selectedRefinements: $selectedRefinements
+                    )
                     .padding(.bottom, EditorialLayout.gutterMedium)
+                }
 
                 // Search Results
                 ScrollView(.vertical, showsIndicators: false) {
-                    if !searchText.isEmpty {
+                    if showsSearchContent {
                         if serverResults.isEmpty && !supabaseService.isSearching {
-                            EditorialSearchEmpty(searchText: searchText) { suggestion in
+                            EditorialSearchEmpty(searchText: emptyStateQueryText) { suggestion in
                                 searchText = suggestion
                             }
                         } else {
@@ -76,11 +129,24 @@ struct EditorialSearchView: View {
             debounceSearch()
         }
         .onChange(of: scope) { _, _ in
+            selectedRefinements = selectedRefinements.intersection(Set(availableRefinements))
+            debounceSearch()
+        }
+        .onChange(of: selectedRefinements) { _, _ in
             debounceSearch()
         }
         .onAppear {
             // No prefetch required: search and filter results are server-driven + paged.
         }
+    }
+
+    private var emptyStateQueryText: String {
+        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty { return trimmed }
+        return availableRefinements
+            .filter { selectedRefinements.contains($0) }
+            .map(\.rawValue)
+            .joined(separator: " · ")
     }
 
     private func debounceSearch() {
@@ -96,10 +162,10 @@ struct EditorialSearchView: View {
     private func runSearch(reset: Bool) async {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        supabaseService.setSearchFilters(nil)
+        supabaseService.setSearchFilters(activeSearchFilters)
 
         // Avoid blanking the UI for very short queries; wait until the user has typed enough.
-        if trimmed.count < 2 {
+        if trimmed.count < 2 && activeSearchFilters == nil {
             return
         }
 
@@ -155,6 +221,43 @@ struct EditorialScopeToggle: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 2)
+    }
+}
+
+struct EditorialSearchFilterStrip: View {
+    let refinements: [EditorialSearchView.SearchRefinement]
+    @Binding var selectedRefinements: Set<EditorialSearchView.SearchRefinement>
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("DISCOVERY REFINEMENTS")
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.4)
+                .foregroundColor(.kuroTextTertiary)
+                .padding(.horizontal, EditorialLayout.marginEditorial)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(refinements, id: \.self) { refinement in
+                        EditorialCategoryPill(
+                            title: refinement.rawValue,
+                            isSelected: selectedRefinements.contains(refinement)
+                        ) {
+                            withAnimation(KuroAnimation.editorialBounce) {
+                                if selectedRefinements.contains(refinement) {
+                                    selectedRefinements.remove(refinement)
+                                } else {
+                                    selectedRefinements.insert(refinement)
+                                }
+                            }
+                            KuroAccessibility.impactHaptic(.light)
+                        }
+                    }
+                }
+                .padding(.horizontal, EditorialLayout.marginEditorial)
+            }
+            .kuroSwipeExclusionZone()
+        }
     }
 }
 

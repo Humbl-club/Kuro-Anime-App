@@ -5,11 +5,106 @@ import SwiftUI
 enum EntitySortMode: String, CaseIterable {
     case rating = "RATING"
     case year = "YEAR"
+    case era = "ERA"
 }
 
 enum EntityWorkIdentity {
     static func make(media: Media, role: String?, index: Int) -> String {
         "\(media.stableKey)-\(role ?? "none")-\(index)"
+    }
+}
+
+enum EntityEraBucket: Int, CaseIterable {
+    case current = 4
+    case tens = 3
+    case aughts = 2
+    case classics = 1
+
+    static func from(yearString: String) -> EntityEraBucket {
+        let year = Int(yearString) ?? 0
+        switch year {
+        case 2020...:
+            return .current
+        case 2010...2019:
+            return .tens
+        case 2000...2009:
+            return .aughts
+        default:
+            return .classics
+        }
+    }
+}
+
+enum CharacterMediaFilter: String, CaseIterable {
+    case all = "ALL"
+    case anime = "ANIME"
+    case manga = "MANGA"
+}
+
+enum StaffRoleFilter: String, CaseIterable {
+    case all = "ALL ROLES"
+    case director = "DIRECTOR"
+    case writer = "WRITER"
+    case music = "MUSIC"
+    case design = "DESIGN"
+
+    static func from(role: String) -> StaffRoleFilter? {
+        let normalized = role.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized.contains("director") {
+            if normalized.contains("sound") || normalized.contains("music") {
+                return .music
+            }
+            if normalized.contains("art") || normalized.contains("animation") || normalized.contains("character") {
+                return .design
+            }
+            return .director
+        }
+        if normalized.contains("writer")
+            || normalized.contains("script")
+            || normalized.contains("screenplay")
+            || normalized.contains("series composition")
+            || normalized.contains("original creator")
+            || normalized.contains("original story")
+            || normalized.contains("story")
+            || normalized.contains("scenario") {
+            return .writer
+        }
+        if normalized.contains("music")
+            || normalized.contains("sound")
+            || normalized.contains("theme song")
+            || normalized.contains("composer") {
+            return .music
+        }
+        if normalized.contains("design")
+            || normalized.contains("animation director")
+            || normalized.contains("art director")
+            || normalized.contains("art design") {
+            return .design
+        }
+        return nil
+    }
+}
+
+enum AuthorRoleFilter: String, CaseIterable {
+    case all = "ALL"
+    case story = "STORY"
+    case art = "ART"
+    case storyArt = "STORY & ART"
+
+    static func from(role: String) -> AuthorRoleFilter? {
+        let normalized = role.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let hasStory = normalized.contains("story")
+        let hasArt = normalized.contains("art")
+        if hasStory && hasArt {
+            return .storyArt
+        }
+        if hasStory {
+            return .story
+        }
+        if hasArt {
+            return .art
+        }
+        return nil
     }
 }
 
@@ -22,14 +117,40 @@ struct CharacterDetailSheet: View {
     @State private var works: [Media] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
+    @State private var mediaFilter: CharacterMediaFilter = .all
+
+    private var availableMediaFilters: [CharacterMediaFilter] {
+        var filters: [CharacterMediaFilter] = [.all]
+        if works.contains(where: { $0.kind == .anime }) { filters.append(.anime) }
+        if works.contains(where: { $0.kind == .manga }) { filters.append(.manga) }
+        return filters
+    }
+
+    private var filteredWorks: [Media] {
+        switch mediaFilter {
+        case .all:
+            return works
+        case .anime:
+            return works.filter { $0.kind == .anime }
+        case .manga:
+            return works.filter { $0.kind == .manga }
+        }
+    }
 
     private var sortedWorks: [Media] {
         switch sortMode {
         case .rating:
-            return works.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
+            return filteredWorks.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
         case .year:
             let yearVal: (Media) -> Int = { Int($0.year) ?? 0 }
-            return works.sorted { yearVal($0) > yearVal($1) }
+            return filteredWorks.sorted { yearVal($0) > yearVal($1) }
+        case .era:
+            return filteredWorks.sorted {
+                let lhsEra = EntityEraBucket.from(yearString: $0.year).rawValue
+                let rhsEra = EntityEraBucket.from(yearString: $1.year).rawValue
+                if lhsEra != rhsEra { return lhsEra > rhsEra }
+                return (Int($0.year) ?? 0) > (Int($1.year) ?? 0)
+            }
         }
     }
 
@@ -45,8 +166,20 @@ struct CharacterDetailSheet: View {
                         metadataLines: characterMetadata
                     )
 
+                    EntitySectionLead(text: "Browse appearances by medium, rating, year, or era.")
+
+                    if availableMediaFilters.count > 1 {
+                        EntityFilterBar(
+                            options: availableMediaFilters,
+                            selected: mediaFilter
+                        ) { option in
+                            mediaFilter = option
+                        }
+                    }
+
                     EntityWorksRail(
                         title: "APPEARS IN",
+                        subtitle: mediaFilter == .all ? "Across anime and manga" : "Filtered by medium",
                         items: sortedWorks.map { (media: $0, role: nil as String?) },
                         isLoading: isLoading,
                         sortMode: $sortMode
@@ -92,14 +225,32 @@ struct StaffDetailSheet: View {
     @State private var works: [(media: Media, role: String)] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
+    @State private var roleFilter: StaffRoleFilter = .all
+
+    private var availableRoleFilters: [StaffRoleFilter] {
+        let categories = Set(works.compactMap { StaffRoleFilter.from(role: $0.role) })
+        return [.all] + StaffRoleFilter.allCases.filter { $0 != .all && categories.contains($0) }
+    }
+
+    private var filteredWorks: [(media: Media, role: String)] {
+        guard roleFilter != .all else { return works }
+        return works.filter { StaffRoleFilter.from(role: $0.role) == roleFilter }
+    }
 
     private var sortedWorks: [(media: Media, role: String)] {
         switch sortMode {
         case .rating:
-            return works.sorted { ($0.media.rating ?? 0) > ($1.media.rating ?? 0) }
+            return filteredWorks.sorted { ($0.media.rating ?? 0) > ($1.media.rating ?? 0) }
         case .year:
             let yearVal: ((media: Media, role: String)) -> Int = { Int($0.media.year) ?? 0 }
-            return works.sorted { yearVal($0) > yearVal($1) }
+            return filteredWorks.sorted { yearVal($0) > yearVal($1) }
+        case .era:
+            return filteredWorks.sorted {
+                let lhsEra = EntityEraBucket.from(yearString: $0.media.year).rawValue
+                let rhsEra = EntityEraBucket.from(yearString: $1.media.year).rawValue
+                if lhsEra != rhsEra { return lhsEra > rhsEra }
+                return (Int($0.media.year) ?? 0) > (Int($1.media.year) ?? 0)
+            }
         }
     }
 
@@ -116,8 +267,20 @@ struct StaffDetailSheet: View {
                         occupations: staff.primaryOccupations
                     )
 
+                    EntitySectionLead(text: "Filter this filmography by craft, rating, year, or era.")
+
+                    if availableRoleFilters.count > 1 {
+                        EntityFilterBar(
+                            options: availableRoleFilters,
+                            selected: roleFilter
+                        ) { option in
+                            roleFilter = option
+                        }
+                    }
+
                     EntityWorksRail(
                         title: "FILMOGRAPHY",
+                        subtitle: roleFilter == .all ? "All credited anime work" : "Filtered by role",
                         items: sortedWorks.map { (media: $0.media, role: $0.role as String?) },
                         isLoading: isLoading,
                         sortMode: $sortMode
@@ -152,14 +315,32 @@ struct AuthorDetailSheet: View {
     @State private var works: [(media: Media, role: String)] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
+    @State private var roleFilter: AuthorRoleFilter = .all
+
+    private var availableRoleFilters: [AuthorRoleFilter] {
+        let categories = Set(works.compactMap { AuthorRoleFilter.from(role: $0.role) })
+        return [.all] + AuthorRoleFilter.allCases.filter { $0 != .all && categories.contains($0) }
+    }
+
+    private var filteredWorks: [(media: Media, role: String)] {
+        guard roleFilter != .all else { return works }
+        return works.filter { AuthorRoleFilter.from(role: $0.role) == roleFilter }
+    }
 
     private var sortedWorks: [(media: Media, role: String)] {
         switch sortMode {
         case .rating:
-            return works.sorted { ($0.media.rating ?? 0) > ($1.media.rating ?? 0) }
+            return filteredWorks.sorted { ($0.media.rating ?? 0) > ($1.media.rating ?? 0) }
         case .year:
             let yearVal: ((media: Media, role: String)) -> Int = { Int($0.media.year) ?? 0 }
-            return works.sorted { yearVal($0) > yearVal($1) }
+            return filteredWorks.sorted { yearVal($0) > yearVal($1) }
+        case .era:
+            return filteredWorks.sorted {
+                let lhsEra = EntityEraBucket.from(yearString: $0.media.year).rawValue
+                let rhsEra = EntityEraBucket.from(yearString: $1.media.year).rawValue
+                if lhsEra != rhsEra { return lhsEra > rhsEra }
+                return (Int($0.media.year) ?? 0) > (Int($1.media.year) ?? 0)
+            }
         }
     }
 
@@ -175,8 +356,20 @@ struct AuthorDetailSheet: View {
                         metadataLines: []
                     )
 
+                    EntitySectionLead(text: "Browse works by role, rating, year, or era.")
+
+                    if availableRoleFilters.count > 1 {
+                        EntityFilterBar(
+                            options: availableRoleFilters,
+                            selected: roleFilter
+                        ) { option in
+                            roleFilter = option
+                        }
+                    }
+
                     EntityWorksRail(
                         title: "WORKS",
+                        subtitle: roleFilter == .all ? "Story, art, and complete works" : "Filtered by author role",
                         items: sortedWorks.map { (media: $0.media, role: $0.role as String?) },
                         isLoading: isLoading,
                         sortMode: $sortMode
@@ -219,6 +412,13 @@ struct StudioDetailSheet: View {
         case .year:
             let yearVal: (Media) -> Int = { Int($0.year) ?? 0 }
             return works.sorted { yearVal($0) > yearVal($1) }
+        case .era:
+            return works.sorted {
+                let lhsEra = EntityEraBucket.from(yearString: $0.year).rawValue
+                let rhsEra = EntityEraBucket.from(yearString: $1.year).rawValue
+                if lhsEra != rhsEra { return lhsEra > rhsEra }
+                return (Int($0.year) ?? 0) > (Int($1.year) ?? 0)
+            }
         }
     }
 
@@ -247,8 +447,11 @@ struct StudioDetailSheet: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, KuroSpacing.lg)
 
+                    EntitySectionLead(text: "A studio page sorted by impact, year, or era.")
+
                     EntityWorksRail(
                         title: "PRODUCTIONS",
+                        subtitle: "Best-known productions",
                         items: sortedWorks.map { (media: $0, role: nil as String?) },
                         isLoading: isLoading,
                         sortMode: $sortMode
@@ -360,6 +563,7 @@ struct EntityHeroSection: View {
 
 struct EntityWorksRail: View {
     let title: String
+    var subtitle: String? = nil
     let items: [(media: Media, role: String?)]
     let isLoading: Bool
     @Binding var sortMode: EntitySortMode
@@ -378,10 +582,19 @@ struct EntityWorksRail: View {
     var body: some View {
         VStack(alignment: .leading, spacing: KuroSpacing.md) {
             HStack {
-                Text(title)
-                    .font(.kuroCaption(weight: .semibold))
-                    .tracking(1.6)
-                    .foregroundColor(.kuroBlack80)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.kuroCaption(weight: .semibold))
+                        .tracking(1.6)
+                        .foregroundColor(.kuroBlack80)
+
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.kuroMicro(weight: .regular))
+                            .tracking(0.8)
+                            .foregroundColor(.kuroTextTertiary)
+                    }
+                }
 
                 Spacer()
 
@@ -432,6 +645,48 @@ struct EntityWorksRail: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct EntitySectionLead: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.kuroMicro(weight: .regular))
+            .tracking(0.8)
+            .foregroundColor(.kuroTextTertiary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct EntityFilterBar<Option: Hashable & RawRepresentable>: View where Option.RawValue == String {
+    let options: [Option]
+    let selected: Option
+    let onSelect: (Option) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(options, id: \.self) { option in
+                    Button {
+                        onSelect(option)
+                    } label: {
+                        Text(option.rawValue)
+                            .font(.kuroMicro(weight: selected == option ? .semibold : .regular))
+                            .tracking(0.9)
+                            .foregroundColor(selected == option ? .white : .kuroBlack80)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(
+                                Capsule()
+                                    .fill(selected == option ? Color.black : Color.black.opacity(0.04))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
     }
 }
 

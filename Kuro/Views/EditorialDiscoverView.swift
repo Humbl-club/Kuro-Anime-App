@@ -563,19 +563,27 @@ struct CompactHorizontalSection<Item: MediaDisplayable>: View {
 
             // Filter chips
             if showFilters {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(AnimeFilter.allCases, id: \.self) { filter in
-                            FilterChip(
-                                title: filter.rawValue,
-                                isSelected: selectedFilter == filter,
-                                action: { selectedFilter = filter }
-                            )
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("REFINE THIS RAIL")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(1.2)
+                        .foregroundColor(.kuroTextTertiary)
+                        .padding(.horizontal, 20)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(AnimeFilter.allCases, id: \.self) { filter in
+                                FilterChip(
+                                    title: filter.rawValue,
+                                    isSelected: selectedFilter == filter,
+                                    action: { selectedFilter = filter }
+                                )
+                            }
                         }
+                        .padding(.horizontal, 20)
                     }
-                    .padding(.horizontal, 20)
+                    .kuroSwipeExclusionZone()
                 }
-                .kuroSwipeExclusionZone()
             }
 
             // Horizontal scroll with compact cards
@@ -1217,19 +1225,27 @@ struct Dense2ColumnSectionFixed<Item: MediaDisplayable>: View {
 
             // Filter chips
             if showFilters {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(AnimeFilter.allCases, id: \.self) { filter in
-                            FilterChip(
-                                title: filter.rawValue,
-                                isSelected: selectedFilter == filter,
-                                action: { selectedFilter = filter }
-                            )
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("REFINE THIS RAIL")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(1.2)
+                        .foregroundColor(.kuroTextTertiary)
+                        .padding(.horizontal, 20)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(AnimeFilter.allCases, id: \.self) { filter in
+                                FilterChip(
+                                    title: filter.rawValue,
+                                    isSelected: selectedFilter == filter,
+                                    action: { selectedFilter = filter }
+                                )
+                            }
                         }
+                        .padding(.horizontal, 20)
                     }
-                    .padding(.horizontal, 20)
+                    .kuroSwipeExclusionZone()
                 }
-                .kuroSwipeExclusionZone()
             }
 
             let horizontalPadding: CGFloat = 20
@@ -1343,6 +1359,14 @@ struct FullSectionView<Item: MediaDisplayable>: View {
                 let metrics = KuroCardMetrics.grid(for: geo.size.width, columns: 2)
 
                 ScrollView(.vertical, showsIndicators: false) {
+                    Text("EDITORIAL RAIL")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(1.4)
+                        .foregroundColor(.kuroTextTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+                        .padding(.top, 12)
+
                     // Search bar
                     HStack {
                         Image(systemName: "magnifyingglass")
@@ -1418,6 +1442,14 @@ struct FullMangaSectionView<Item: MediaDisplayable>: View {
                 let metrics = KuroCardMetrics.grid(for: geo.size.width, columns: 2)
 
                 ScrollView(.vertical, showsIndicators: false) {
+                    Text("EDITORIAL RAIL")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(1.4)
+                        .foregroundColor(.kuroTextTertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+                        .padding(.top, 12)
+
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.kuroTextTertiary)
