@@ -349,9 +349,13 @@ struct IntentIndicator: View {
 
 /// The magical Concierge input field with dynamic behaviors
 struct ConciergeInputField: View {
-    
+
+    // MARK: - Environment
+
+    @Environment(NetworkMonitor.self) private var networkMonitor
+
     // MARK: - Bindings
-    
+
     @Binding var text: String
     var isSending: Bool = false
     var focusRequest: Binding<Bool>? = nil
@@ -407,7 +411,7 @@ struct ConciergeInputField: View {
     }
     
     private var canSend: Bool {
-        !isEmpty && !isSending
+        !isEmpty && !isSending && networkMonitor.isConnected
     }
 
     private var isImportIntent: Bool {
@@ -456,6 +460,7 @@ struct ConciergeInputField: View {
                     textColor: UIColor.black.withAlphaComponent(0.85),
                     maxHeight: inputMaxHeight
                 )
+                .accessibilityIdentifier("concierge_text_input")
                 .frame(height: min(inputMaxHeight, max(Constants.lineHeight, measuredTextHeight)))
                 .onChange(of: text) { oldValue, newValue in
                     handleTextChange(from: oldValue, to: newValue)
@@ -480,7 +485,7 @@ struct ConciergeInputField: View {
     // MARK: - Subviews
     
     private var placeholderView: some View {
-        Text("Ask Whisper...")
+        Text(networkMonitor.isConnected ? "Ask Whisper..." : "Offline")
             .font(.system(size: 17, weight: .regular, design: .serif))
             .italic()
             .foregroundStyle(Color.black.opacity(0.35))
@@ -501,7 +506,7 @@ struct ConciergeInputField: View {
         .disabled(!canSend)
         .buttonStyle(.plain)
         .accessibilityLabel("Send message")
-        .accessibilityHint(canSend ? "Sends your message to Concierge" : "Type a message first")
+        .accessibilityHint(!networkMonitor.isConnected ? "You're offline" : canSend ? "Sends your message to Concierge" : "Type a message first")
     }
     
     // MARK: - Actions
@@ -569,6 +574,9 @@ struct ConciergeInputField: View {
         return commaItems.count
     }
 
+    // NOTE: This is intentionally separate from TextNormalization.looksLikeImport().
+    // This function detects multi-item paste lists (2+ segments) for auto-send.
+    // TextNormalization.looksLikeImport() handles general intent routing (including single-item imports).
     private func looksLikeImportListText(_ text: String) -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return false }
