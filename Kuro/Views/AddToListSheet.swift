@@ -5,6 +5,7 @@ import SwiftUI
 struct AddToListSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(SupabaseService.self) private var supabaseService
+    @Environment(NetworkMonitor.self) private var networkMonitor
     let media: any MediaDisplayable
     @State private var selectedStatus: ListStatus = .planning
     @State private var progress: Int = 0
@@ -35,6 +36,20 @@ struct AddToListSheet: View {
             }
         }
         return status.displayName
+    }
+
+
+    private var offlineMutationMessage: String {
+        "You're offline. Reconnect to update your list."
+    }
+
+    private var mutationStatusMessage: String? {
+        if !networkMonitor.isConnected { return offlineMutationMessage }
+        return saveError
+    }
+
+    private var mutationStatusColor: Color {
+        networkMonitor.isConnected ? .red : .kuroTextTertiary
     }
 
     var body: some View {
@@ -141,7 +156,7 @@ struct AddToListSheet: View {
                                 .background(Color.kuroBlack)
                                 .cornerRadius(KuroRadius.sm)
                         }
-                        .disabled(isSaving)
+                        .disabled(isSaving || !networkMonitor.isConnected)
 
                         if isExistingEntry {
                             Button(role: .destructive, action: removeFromList) {
@@ -152,13 +167,14 @@ struct AddToListSheet: View {
                                     .padding(.vertical, KuroSpacing.lg)
                             }
                             .buttonStyle(.bordered)
-                            .disabled(isSaving)
+                            .disabled(isSaving || !networkMonitor.isConnected)
                         }
 
-                        if let saveError {
-                            Text(saveError)
-                                .font(.kuroMicro(weight: .light))
-                                .foregroundColor(.red)
+                        if let mutationStatusMessage {
+                            Text(mutationStatusMessage)
+                                .font(.kuroMicro(weight: networkMonitor.isConnected ? .light : .medium))
+                                .tracking(networkMonitor.isConnected ? 0 : 1.0)
+                                .foregroundColor(mutationStatusColor)
                                 .multilineTextAlignment(.center)
                                 .padding(.top, KuroSpacing.sm)
                         }
@@ -195,9 +211,18 @@ struct AddToListSheet: View {
                 notes = ""
             }
         }
+        .onChange(of: networkMonitor.isConnected) { _, isConnected in
+            if isConnected, saveError == offlineMutationMessage {
+                saveError = nil
+            }
+        }
     }
 
     private func saveToList() {
+        guard networkMonitor.isConnected else {
+            saveError = offlineMutationMessage
+            return
+        }
         saveError = nil
         isSaving = true
 
@@ -235,6 +260,10 @@ struct AddToListSheet: View {
     }
 
     private func removeFromList() {
+        guard networkMonitor.isConnected else {
+            saveError = offlineMutationMessage
+            return
+        }
         saveError = nil
         isSaving = true
         Task {
