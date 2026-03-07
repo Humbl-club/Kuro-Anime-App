@@ -4,6 +4,10 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
+**Current repo inventory:** 68 app Swift files in `/Kuro`; 153 SQL migrations in `/supabase/migrations`.
+**Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
+Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
+
 For a non‑technical version, see: `CURRENT_APP_STATE_PLAIN.md`.
 
 ---
@@ -26,6 +30,7 @@ This file is a **contract**. It must be updated **after every single change** to
    node scripts/generate_app_state_maps.js
    node scripts/generate_app_state_sources.js
    node scripts/generate_app_state_codebase_bundle.js
+   python3 scripts/quality-gates/check_docs_current_state.py
    # Optional (requires SUPABASE_SERVICE_ROLE_KEY + deployed admin_schema_snapshot RPC):
    node scripts/generate_app_state_live_snapshot.js
    ```
@@ -16047,3 +16052,24 @@ Totals: 0 new Swift files, 8 modified Swift files, 3 new scripts, 1 new migratio
 - `bash -n scripts/install_unified_dashboard_launchd.sh` → pass
 - `launchctl print gui/$(id -u)/com.kuro.unified-dashboard` shows the agent registered
 - `curl http://127.0.0.1:8791/api/status` returns the unified aggregated payload
+
+### 2026-03-07 — Search refinements + public script config + docs truth cleanup
+
+**Search behavior correction:**
+- `EditorialSearchView.swift` now treats active refinement chips as a valid server-backed search mode even when the text field is empty.
+- Empty-query search is still blocked only when both the query and refinement chips are empty.
+- Added `EditorialSearchTests` coverage so filter-only anime/manga/combined search stays intentional.
+
+**Script/tooling config decoupling:**
+- Added committed non-secret public config at `scripts/project_public.env` (`SUPABASE_URL` + `SUPABASE_ANON_KEY` only).
+- Added shared loaders:
+  - `scripts/lib/project_config.js`
+  - `scripts/lib/load_project_public_env.sh`
+- Public-read scripts now prefer env vars first, then `project_public.env`, and no longer scrape `Kuro/Services/SupabaseService.swift` for project config.
+- Sensitive credentials remain env-only (`SUPABASE_SERVICE_ROLE_KEY`, `IMPORT_SECRET`, provider/API keys).
+
+**Docs truth + guardrail:**
+- Refreshed current-state markers in `CURRENT_APP_STATE.md`, `CURRENT_APP_STATE_PLAIN.md`, and `CLAUDE.md` to match actual repo inventory (`68` app Swift files, `153` SQL migrations).
+- Marked `SQL_COMPATIBILITY_REPORT.md` as a historical point-in-time report instead of a whole-repo authority surface.
+- Added `scripts/quality-gates/check_docs_current_state.py` (+ shell wrapper) and wired it into `scripts/quality-gates/run_all.sh` so stale file-count/current-state drift fails the quality gate.
+- Current-state docs now explicitly state that provider availability remains staged behind `streaming_availability_v1` and that live watch/read links still come from `external_links`.

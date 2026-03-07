@@ -4,6 +4,10 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
+**Current inventory:** 68 app Swift files and 153 SQL migrations are in the repo today.
+**Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
+Historical notes below describe what changed at the time; they are not current inventory counts.
+
 ---
 
 ## 1) Rule: Always keep this file updated
@@ -41,7 +45,7 @@ The app has 5 swipeable pages that follow a natural discovery flow:
 1. **Concierge** (swipe left from Discover): An inline concierge page for importing from your library/clipboard and asking for recommendations. First-time visitors see an expanded hint explaining what you can do (import lists, get mood-based picks with a concrete example). After your first interaction, the hint collapses to a slim one-liner.
 2. **Discover** (main page, opens by default): Shows 6 curated sections on first load (your personalized picks, what's airing today, essentials, trending, and manga counterparts). A "Show More" button reveals 7 additional sections (classics, current season, top rated, just added, etc.). Once you expand, it stays expanded across launches.
 3. **Browse** (swipe right from Discover): Explore the full catalog with filters (genre, status, length, decade, format, sort).
-4. **Collection** (swipe right from Browse): Your personal list of anime/manga. New filter pills let you narrow by streaming service (e.g., only titles on Crunchyroll) or by language (EN/DE/JA). Each title in the grid shows the best available streaming provider name underneath.
+4. **Collection** (swipe right from Browse): Your personal list of anime/manga. The live app uses status filters, type filters, search, and sorting. The newer provider/language availability filtering work remains staged behind `streaming_availability_v1` at 0% and is not part of the default-on production path.
 5. **Clubs** (rightmost page): Private groups (2–20 members) for watching together. Create a club, invite friends with a code, share curated watchlists (rails), see weekly highlights, vote in polls, and react to items (fire/heart/eyes/100). Club owners control privacy settings. The club list shows member counts, recent activity previews, and unread dots. When sharing is set to "progress", you'll see pace tracking ("3 ep behind the group"). Milestone cards celebrate when all members finish a title. Updates appear in real-time. Club activity also shows up on anime/manga detail pages. You can add anime/manga directly to a club rail from the Rails tab or via the "Add to Club..." context menu on any card. **Social activity**: when you open an anime or manga detail page, you can now see which of your club friends are also tracking that title, read their comments, and react with thumbs up/down. This replaces the old club chat tab with more relevant, title-level conversations. **Shared streaming**: a new "SHARED" toggle on club rails shows which titles are available on streaming services that all members share. Coverage text tells you how many members have set up their services.
 
 **Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page. It supports natural language queries like "show me action anime from 2020" using on-device AI.
@@ -791,3 +795,9 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Manga stays conservative**: Manga detail pages still use the neutral legal-link disclaimer copy because the current backend does not have strong per-title locale metadata for manga reading sources.
 - **Backend contract updated**: The provider-availability RPC was extended and the follow-up migration was pushed, so iOS and Supabase now agree on the note fields (`audio_languages`, `subtitle_languages`, `countries_by_sub_lang`).
 - **Regression coverage added**: Tests now cover EN/DE dub/audio/subtitle note formatting and mixed anime/manga card identity so same-number IDs do not collide in character sheets.
+
+### 2026-03-07 — Search chips + script config cleanup + truthful docs
+- **Search chips now work without typed text**: If you tap refinements like `TRENDING`, `CLASSICS`, or `HIDDEN GEMS`, Kuro now runs the real backend search even when the search box is empty. It only stays idle when both the query and chips are empty.
+- **Scripts no longer read app source for project config**: Public-read scripts now load the Supabase URL + anon key from `scripts/project_public.env` (or real env vars) instead of scraping `SupabaseService.swift`. Private credentials still stay env-only.
+- **Current-state docs are now anchored to the real repo**: The technical and plain-English state docs now state the actual live inventory (`68` app Swift files, `153` SQL migrations), clearly mark historical notes as historical, and say explicitly that provider availability is still staged behind `streaming_availability_v1` while live watch/read links come from `external_links`.
+- **There is now a docs consistency gate**: `scripts/quality-gates/check_docs_current_state.py` fails if the current-state docs drift away from the real Swift/migration counts or keep overclaiming stale status.

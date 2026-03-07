@@ -11,6 +11,7 @@ declare -a GATES=(
   "concierge-corpora:test_concierge_corpora.sh:1"
   "router-tests:test_router_offline.sh:1"
   "rails-audit:audit_rails.sh:1"
+  "docs-current-state:check_docs_current_state.sh:1"
   "ios-build:build_ios.sh:1"
 )
 

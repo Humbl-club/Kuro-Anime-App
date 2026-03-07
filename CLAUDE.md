@@ -229,9 +229,9 @@ All 15 flags defined in `FeatureFlags.swift`:
 
 ---
 
-## FILE MAP (exact, current as of 2026-02-24)
+## FILE MAP (exact, current as of 2026-03-07)
 
-### iOS app — 67 Swift files in `Kuro/`
+### iOS app — 68 Swift files in `Kuro/`
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
