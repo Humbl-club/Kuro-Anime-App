@@ -780,6 +780,8 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 ### 2026-03-07 — Unified local dashboard
 - **There is now one page for all local background systems**: A new localhost dashboard combines the status of catalog safety, synopsis enrichment, provider availability, media relations, and local CI/CD into one page instead of making you open several separate dashboards or logs.
 - **It uses the real local status files**: The page reads the same JSON reports, log files, launchd state, and running-process state that the scripts already produce. It does not invent a second layer of status tracking.
+- **It now has direct drilldowns**: Each panel exposes the underlying status JSON, run JSON, and live log tail directly from the unified page, so you can inspect the real underlying worker output without leaving localhost.
+- **Ladder coverage gets its own panel**: The dashboard now highlights Adaptation Ladder coverage specifically — relation rows, covered titles, strong vs partial ladders, backfill progress, and the top missing high-popularity titles.
 - **It stays available on this machine**: A new launchd installer keeps the unified dashboard running locally at `http://127.0.0.1:8791`.
 
 ### 2026-03-06 — Streaming note hardening

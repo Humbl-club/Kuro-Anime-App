@@ -16021,9 +16021,15 @@ Totals: 0 new Swift files, 8 modified Swift files, 3 new scripts, 1 new migratio
 **Presentation contract:**
 - One Swiss-minimal page with:
   - overview counts (`Running now`, `Healthy recent`, `Stale`, `Quiet`)
-  - per-service cards (metrics + launchd + process state + report file path)
+  - a dedicated Adaptation Ladder coverage panel (relation rows, distinct titles, strong/partial mix, current backfill progress, top missing high-popularity titles)
+  - per-service cards (metrics + launchd + process state + direct actions)
   - integrated log tails
   - links to dedicated sub-dashboards where they already exist (`8787`, `8788`, `8789`)
+- Each service card now exposes read-only drilldowns directly from the unified page:
+  - `Status JSON`
+  - `Run JSON` (where available)
+  - `Log tail`
+  - ladder-specific `Coverage report`
 - Statuses are classified from the current machine state:
   - `Running now`
   - `Healthy recent run`
