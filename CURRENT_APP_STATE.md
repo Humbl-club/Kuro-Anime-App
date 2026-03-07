@@ -15915,15 +15915,15 @@ Totals: 0 new files, 4 modified Swift files. 67 Swift files, 145 migrations.
 **KuroTests.swift:**
 - Added entity discovery tests for era grouping and staff/author role categorization.
 
-### 2026-03-07 — Adaptation ladder v1 (code complete, deployment pending)
+### 2026-03-07 — Adaptation ladder v1 (live)
 
-**New schema contract (local migration added):**
+**New schema contract:**
 - Added `supabase/migrations/20260307120000_media_relations_ladder_v1.sql`.
 - New table: `public.media_relations` with directional anime↔manga relation edges (`SOURCE`, `ADAPTATION`, `PREQUEL`, `SEQUEL`, `SIDE_STORY`, `SPIN_OFF`).
 - New read RPC: `public.get_media_ladder(p_media_type text, p_media_id int)` returning grouped ladder buckets (`source_material`, `adaptations`, `prequels`, `sequels`, `side_stories`, `spin_offs`).
 - Safety contract is enforced in SQL: adult rows and `Hentai` / `Ecchi` genre rows are omitted before the ladder payload reaches iOS.
 
-**AniList import pipeline (edge functions, local code updated):**
+**AniList import pipeline:**
 - `supabase/functions/bulk-import-anime/index.ts` now requests AniList `relations`, resolves target AniList IDs to local anime/manga rows, and rewrites source-owned `media_relations` edges on each relation-heavy refresh.
 - `supabase/functions/bulk-import-manga/index.ts` does the same for manga imports.
 - Import remains directional and non-heuristic: only supported AniList relation types are stored, and only targets already present in Kuro as anime/manga are materialized.
@@ -15940,7 +15940,9 @@ Totals: 0 new files, 4 modified Swift files. 67 Swift files, 145 migrations.
 - `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build` → `BUILD SUCCEEDED`
 - `xcodebuild -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' test -only-testing:KuroTests` → `TEST SUCCEEDED`
 - `supabase db lint --linked` → `No schema errors found`
-- `supabase db push --linked --dry-run --include-all` reports only the new ladder migration pending remote apply.
+- `supabase migration list --linked` shows `20260307120000` present both locally and remotely.
+- `supabase functions list --project-ref bkdifromsqxkndnllmdj` shows deployed versions `bulk-import-anime:v33` and `bulk-import-manga:v32`.
+- Controlled post-deploy relation backfill seeded the first live ladder coverage pass; `public.media_relations` now contains live rows and `get_media_ladder(...)` returns grouped payloads for known titles such as Attack on Titan, Chainsaw Man, and Kaguya-sama.
 - Deno type-check could not be run on this machine because `deno` is not installed in PATH.
 
 Totals: 1 new Swift file, 8 modified code files, 1 new migration. 68 Swift files, 146 migrations.

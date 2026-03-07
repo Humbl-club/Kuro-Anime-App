@@ -36,7 +36,7 @@ This codebase has established patterns. Match them. Don't introduce new paradigm
 
 Kuro is a curated anime + manga iOS app. It lets users browse premium editorial picks, maintain personal watchlists, create private clubs with friends, and use a "Concierge" AI assistant to import lists and get mood-based recommendations. The app runs on SwiftUI with a Supabase backend.
 
-Latest notable local-only addition: Adaptation Ladder v1 is implemented in code (`media_relations` migration + AniList relation import + detail-page `ADAPTATION PATH` section) but is not live until the new migration is pushed and the anime/manga import functions are redeployed.
+Latest notable shipped addition: Adaptation Ladder v1 is live (`media_relations` migration applied, AniList relation import deployed in `bulk-import-anime`/`bulk-import-manga`, and detail-page `ADAPTATION PATH` UI shipped). Initial production coverage was seeded with a controlled relation backfill and will expand as normal imports continue.
 
 **Tech stack (exact):**
 - **Frontend**: iOS SwiftUI, `@Observable` pattern (NOT Combine — never use `ObservableObject`, `@Published`, `sink`, `assign`)
