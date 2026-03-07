@@ -67,3 +67,11 @@ fastlane/README.md
 /kuro_*.html
 /sumi_*.png
 /sumi_*.html
+
+# Local dashboards, reports, and one-off docs
+/docs/kuro_overview_swiss.html
+/reports/catalog-safety/
+/reports/local-cicd/
+/reports/local-dashboard/
+/reports/media-relations/
+/reports/synopsis-enrichment/
