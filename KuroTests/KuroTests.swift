@@ -15,7 +15,7 @@ struct KuroTests {
     @Test("App Launch Test")
     func testAppLaunch() async throws {
         // Test that the app can initialize without crashing
-        #expect(true, "App should launch successfully")
+        #expect(Bool(true), "App should launch successfully")
         print("✅ App Launch: PASSED")
     }
     
@@ -273,6 +273,7 @@ struct CreditRoleTests {
 
 // MARK: - Provider Availability Note Tests
 
+@MainActor
 @Suite("Provider Availability Note Derivation")
 struct ProviderAvailabilityNoteTests {
     private func provider(
@@ -489,6 +490,7 @@ struct EntityDiscoveryFilterTests {
     }
 }
 
+@MainActor
 @Suite("Adaptation Ladder")
 struct AdaptationLadderTests {
 
@@ -626,5 +628,27 @@ struct AdaptationLadderTests {
         #expect(decoded.coverageStatus == .strong)
         #expect(decoded.entryPoint?.reasonLabel == "Best starting point")
         #expect(decoded.franchiseNote == "Start with the source, then follow the main adaptation path.")
+    }
+}
+
+@Suite("Editorial Search")
+struct EditorialSearchTests {
+    @Test("Runs search with empty query when filters are active")
+    func testFilterOnlySearchAllowed() {
+        #expect(EditorialSearchView.shouldRunSearch(query: "", hasFilters: true))
+        #expect(EditorialSearchView.shouldRunSearch(query: " ", hasFilters: true))
+    }
+
+    @Test("Blocks empty query when no filters are active")
+    func testEmptyQueryWithoutFiltersBlocked() {
+        #expect(!EditorialSearchView.shouldRunSearch(query: "", hasFilters: false))
+        #expect(!EditorialSearchView.shouldRunSearch(query: " ", hasFilters: false))
+    }
+
+    @Test("Allows typed query once minimum length is met")
+    func testTypedQueryStillRequiresMinimumLength() {
+        #expect(!EditorialSearchView.shouldRunSearch(query: "a", hasFilters: false))
+        #expect(EditorialSearchView.shouldRunSearch(query: "ab", hasFilters: false))
+        #expect(EditorialSearchView.shouldRunSearch(query: "naruto", hasFilters: false))
     }
 }

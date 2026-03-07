@@ -161,11 +161,12 @@ struct EditorialSearchView: View {
 
     private func runSearch(reset: Bool) async {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hasFilters = activeSearchFilters != nil
 
         supabaseService.setSearchFilters(activeSearchFilters)
 
         // Avoid blanking the UI for very short queries; wait until the user has typed enough.
-        if trimmed.count < 2 && activeSearchFilters == nil {
+        if !Self.shouldRunSearch(query: trimmed, hasFilters: hasFilters) {
             return
         }
 
@@ -180,12 +181,17 @@ struct EditorialSearchView: View {
             }
         }
 
-        if trimmed.isEmpty { return }
         if scope == .all {
             await supabaseService.fetchNextCombinedSearchPage()
         } else {
             await supabaseService.fetchNextSearchPage()
         }
+    }
+
+    static func shouldRunSearch(query: String, hasFilters: Bool) -> Bool {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hasFilters { return true }
+        return trimmed.count >= 2
     }
 }
 
@@ -457,9 +463,10 @@ struct SearchResultRow: View {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return Text(title) }
         guard let r = title.range(of: q, options: [.caseInsensitive, .diacriticInsensitive]) else { return Text(title) }
-        return Text(title[..<r.lowerBound])
-        + Text(title[r]).fontWeight(.semibold)
-        + Text(title[r.upperBound...])
+        let prefix = String(title[..<r.lowerBound])
+        let match = String(title[r])
+        let suffix = String(title[r.upperBound...])
+        return Text("\(prefix)\(Text(match).fontWeight(.semibold))\(suffix)")
     }
 
     var body: some View {

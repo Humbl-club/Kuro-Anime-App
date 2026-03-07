@@ -28,7 +28,7 @@ final class KuroGestureCoordinator {
         }
     }
 
-    func recentlyDraggedRail(withinMs: Double = KuroGesturePolicy.postSwipeTapCooldownMs) -> Bool {
+    func recentlyDraggedRail(withinMs: Double = 220) -> Bool {
         guard let lastHorizontalRailDragAt else { return false }
         return Date().timeIntervalSince(lastHorizontalRailDragAt) * 1_000 < withinMs
     }
