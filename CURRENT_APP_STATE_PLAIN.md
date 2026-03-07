@@ -777,6 +777,11 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **There is now a dedicated relation worker**: A new local worker and launchd agent process the ladder refresh queue, run top-catalog backfills, and write coverage reports under `reports/media-relations/`.
 - **Backfill strategy is focused, not global**: Instead of trying to map the whole catalog at once, Kuro now targets the top catalog first (top anime + manga by popularity), then lets normal imports and queued refreshes fill in the rest.
 
+### 2026-03-07 — Unified local dashboard
+- **There is now one page for all local background systems**: A new localhost dashboard combines the status of catalog safety, synopsis enrichment, provider availability, media relations, and local CI/CD into one page instead of making you open several separate dashboards or logs.
+- **It uses the real local status files**: The page reads the same JSON reports, log files, launchd state, and running-process state that the scripts already produce. It does not invent a second layer of status tracking.
+- **It stays available on this machine**: A new launchd installer keeps the unified dashboard running locally at `http://127.0.0.1:8791`.
+
 ### 2026-03-06 — Streaming note hardening
 - **Dub vs audio vs subtitles is now explicit**: Kuro no longer turns every language hint into `EN dub` / `DE dub`. It now distinguishes between dub, plain audio, subtitle-only evidence, and generic availability.
 - **No more overclaiming when source data is thin**: If Kuro does not know the original language well enough, it now says `EN audio` instead of guessing `EN dub`.

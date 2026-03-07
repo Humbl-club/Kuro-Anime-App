@@ -15998,3 +15998,46 @@ Totals: 1 new Swift file, 8 modified code files, 1 new migration. 68 Swift files
   - `get_media_ladder('ANIME', 2)` (`Attack on Titan`) now returns `coverage_status = strong`, `entry_point`, `next_step`, `primary_source`, and a franchise note
 
 Totals: 0 new Swift files, 8 modified Swift files, 3 new scripts, 1 new migration. 68 Swift files, 147 migrations.
+
+### 2026-03-07 — Unified local operations dashboard
+
+**New local dashboard server:**
+- Added `scripts/unified_local_dashboard_server.js`.
+- Serves a single localhost dashboard at `http://127.0.0.1:8791`.
+- Aggregates the existing local worker/report surfaces instead of inventing a new status system:
+  - catalog safety
+  - synopsis enrichment
+  - provider availability
+  - media relations
+  - local CI
+  - local CD
+
+**What it reads:**
+- Each service's existing `latest-status.json` or CI/CD status file
+- Existing `worker.log` / local CI/CD log tails
+- launchd state via `launchctl print`
+- active local process state via `ps`
+
+**Presentation contract:**
+- One Swiss-minimal page with:
+  - overview counts (`Running now`, `Healthy recent`, `Stale`, `Quiet`)
+  - per-service cards (metrics + launchd + process state + report file path)
+  - integrated log tails
+  - links to dedicated sub-dashboards where they already exist (`8787`, `8788`, `8789`)
+- Statuses are classified from the current machine state:
+  - `Running now`
+  - `Healthy recent run`
+  - `Stale status`
+  - `No status yet`
+
+**Launchd install path:**
+- Added `scripts/install_unified_dashboard_launchd.sh`
+- Installs `com.kuro.unified-dashboard`
+- Keeps the dashboard alive on the machine using `/usr/local/bin/node`
+- Logs to `reports/local-dashboard/dashboard.out.log` and `dashboard.err.log`
+
+**Verification:**
+- `node --check scripts/unified_local_dashboard_server.js` → pass
+- `bash -n scripts/install_unified_dashboard_launchd.sh` → pass
+- `launchctl print gui/$(id -u)/com.kuro.unified-dashboard` shows the agent registered
+- `curl http://127.0.0.1:8791/api/status` returns the unified aggregated payload
