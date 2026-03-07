@@ -6,6 +6,7 @@
 //
 
 import Testing
+import Foundation
 @testable import Kuro
 
 @Suite("Kuro App Tests")
@@ -505,7 +506,8 @@ struct AdaptationLadderTests {
             coverImage: nil,
             year: 2018,
             format: "MANGA",
-            rating: 8.6
+            rating: 8.6,
+            reasonLabel: nil
         )
         let ladder = MediaLadderResponse(
             sourceMaterial: [item],
@@ -513,7 +515,42 @@ struct AdaptationLadderTests {
             prequels: [],
             sequels: [],
             sideStories: [],
-            spinOffs: []
+            spinOffs: [],
+            entryPoint: nil,
+            nextStep: nil,
+            primarySource: nil,
+            primaryAdaptation: nil,
+            franchiseNote: nil,
+            coverageStatus: nil
+        )
+        #expect(ladder.hasContent)
+    }
+
+    @Test("Curated ladder fields count as content")
+    func testCuratedLadderHasContent() {
+        let item = MediaLadderItem(
+            mediaType: "ANIME",
+            mediaId: 7,
+            title: "Best Start",
+            coverImage: nil,
+            year: 2020,
+            format: "TV",
+            rating: 9.1,
+            reasonLabel: "Best starting point"
+        )
+        let ladder = MediaLadderResponse(
+            sourceMaterial: [],
+            adaptations: [],
+            prequels: [],
+            sequels: [],
+            sideStories: [],
+            spinOffs: [],
+            entryPoint: item,
+            nextStep: nil,
+            primarySource: nil,
+            primaryAdaptation: nil,
+            franchiseNote: "Start here.",
+            coverageStatus: .strong
         )
         #expect(ladder.hasContent)
     }
@@ -527,7 +564,8 @@ struct AdaptationLadderTests {
             coverImage: "https://example.com/poster.jpg",
             year: 2024,
             format: "TV",
-            rating: 8.9
+            rating: 8.9,
+            reasonLabel: "Most relevant adaptation"
         )
         let media = item.toMedia()
         #expect(media.kind == .anime)
@@ -546,12 +584,47 @@ struct AdaptationLadderTests {
             coverImage: nil,
             year: nil,
             format: "NOVEL",
-            rating: nil
+            rating: nil,
+            reasonLabel: "Original source"
         )
         let media = item.toMedia()
         #expect(media.kind == .manga)
         #expect(media.id == 42)
         #expect(media.year == "TBA")
         #expect(media.formatRaw == "NOVEL")
+    }
+
+    @Test("Ladder response decodes editorial fields")
+    func testLadderResponseDecodesEditorialFields() throws {
+        let json = """
+        {
+          "source_material": [],
+          "adaptations": [],
+          "prequels": [],
+          "sequels": [],
+          "side_stories": [],
+          "spin_offs": [],
+          "entry_point": {
+            "media_type": "MANGA",
+            "media_id": 5,
+            "title": "Original Work",
+            "cover_image": null,
+            "year": 2019,
+            "format": "MANGA",
+            "rating": 8.4,
+            "reason_label": "Best starting point"
+          },
+          "next_step": null,
+          "primary_source": null,
+          "primary_adaptation": null,
+          "franchise_note": "Start with the source, then follow the main adaptation path.",
+          "coverage_status": "strong"
+        }
+        """
+        let data = try #require(json.data(using: .utf8))
+        let decoded = try JSONDecoder().decode(MediaLadderResponse.self, from: data)
+        #expect(decoded.coverageStatus == .strong)
+        #expect(decoded.entryPoint?.reasonLabel == "Best starting point")
+        #expect(decoded.franchiseNote == "Start with the source, then follow the main adaptation path.")
     }
 }

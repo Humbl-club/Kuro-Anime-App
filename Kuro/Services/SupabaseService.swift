@@ -97,6 +97,7 @@ class SupabaseService {
     private var authorWorksCache: [String: TimedCache<[(media: Media, role: String)]>] = [:]
     private var characterWorksCache: [String: TimedCache<[Media]>] = [:]
     private var mediaLadderCache: [String: TimedCache<MediaLadderResponse>] = [:]
+    private var mediaLadderRefreshEnqueueCooldown: [String: Date] = [:]
     // De-dupe frequently called network fetches so multiple screens mounting doesn't fan-out.
     private var userListsFetchInFlight: Task<Void, Never>? = nil
     private var collectionFetchInFlight: Task<Void, Never>? = nil
@@ -706,6 +707,7 @@ class SupabaseService {
         authorWorksCache.removeAll()
         characterWorksCache.removeAll()
         mediaLadderCache.removeAll()
+        mediaLadderRefreshEnqueueCooldown.removeAll()
     }
 
     private func ensureProfileRow() async {
@@ -5023,6 +5025,69 @@ class SupabaseService {
             print("[Ladder] fetchMediaLadder error: \(error)")
             #endif
             return .empty
+        }
+    }
+
+    func enqueueMediaRelationRefresh(
+        mediaType: String,
+        mediaId: Int,
+        reason: String
+    ) async {
+        let key = "\(mediaType.uppercased())-\(mediaId)"
+        if let last = mediaLadderRefreshEnqueueCooldown[key],
+           Date().timeIntervalSince(last) < 12 * 60 * 60 {
+            return
+        }
+
+        do {
+            let params = RPCEnqueueMediaRelationRefreshParams(
+                p_media_type: mediaType.uppercased(),
+                p_media_id: mediaId,
+                p_reason: reason
+            )
+            let _: AnyJSON = try await client
+                .rpc("enqueue_media_relation_refresh", params: params)
+                .execute()
+                .value
+            mediaLadderRefreshEnqueueCooldown[key] = Date()
+        } catch {
+            #if DEBUG
+            print("[Ladder] enqueueMediaRelationRefresh error: \(error)")
+            #endif
+        }
+    }
+
+    func enqueueMediaRelationRefreshIfNeeded(
+        mediaType: String,
+        mediaId: Int,
+        ladder: MediaLadderResponse,
+        reason: String
+    ) async {
+        guard ladder.coverageStatus != .strong else { return }
+        await enqueueMediaRelationRefresh(mediaType: mediaType, mediaId: mediaId, reason: reason)
+    }
+
+    func prefetchMediaRelationRefreshRequests(
+        items: [(mediaType: String, mediaId: Int)],
+        reason: String
+    ) {
+        let uniqueItems = Array(
+            Dictionary(
+                items.map { ("\($0.mediaType.uppercased())-\($0.mediaId)", $0) },
+                uniquingKeysWith: { first, _ in first }
+            ).values
+        )
+
+        guard !uniqueItems.isEmpty else { return }
+
+        Task {
+            for item in uniqueItems.prefix(12) {
+                await enqueueMediaRelationRefresh(
+                    mediaType: item.mediaType,
+                    mediaId: item.mediaId,
+                    reason: reason
+                )
+            }
         }
     }
 

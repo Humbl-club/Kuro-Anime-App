@@ -207,6 +207,12 @@ struct AnimeDetailView: View {
             topTags = await tags
             similar = await sim
             mediaLadder = await ladder
+            await supabaseService.enqueueMediaRelationRefreshIfNeeded(
+                mediaType: "ANIME",
+                mediaId: anime.id,
+                ladder: mediaLadder,
+                reason: "detail_open"
+            )
 
             // Condense long synopses on-device via Apple FM (no-op on unsupported devices)
             let sourceSynopsis = anime.displayDescription

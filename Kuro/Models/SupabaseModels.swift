@@ -1168,6 +1168,7 @@ struct MediaLadderItem: Decodable, Identifiable, Sendable {
     let year: Int?
     let format: String?
     let rating: Double?
+    let reasonLabel: String?
 
     var id: String { "\(mediaType)-\(mediaId)" }
 
@@ -1179,6 +1180,7 @@ struct MediaLadderItem: Decodable, Identifiable, Sendable {
         case year
         case format
         case rating
+        case reasonLabel = "reason_label"
     }
 
     func toMedia() -> Media {
@@ -1202,6 +1204,12 @@ struct MediaLadderItem: Decodable, Identifiable, Sendable {
     }
 }
 
+enum MediaLadderCoverageStatus: String, Decodable, Sendable {
+    case strong
+    case partial
+    case minimal
+}
+
 struct MediaLadderResponse: Decodable, Sendable {
     let sourceMaterial: [MediaLadderItem]
     let adaptations: [MediaLadderItem]
@@ -1209,6 +1217,12 @@ struct MediaLadderResponse: Decodable, Sendable {
     let sequels: [MediaLadderItem]
     let sideStories: [MediaLadderItem]
     let spinOffs: [MediaLadderItem]
+    let entryPoint: MediaLadderItem?
+    let nextStep: MediaLadderItem?
+    let primarySource: MediaLadderItem?
+    let primaryAdaptation: MediaLadderItem?
+    let franchiseNote: String?
+    let coverageStatus: MediaLadderCoverageStatus?
 
     static let empty = MediaLadderResponse(
         sourceMaterial: [],
@@ -1216,11 +1230,21 @@ struct MediaLadderResponse: Decodable, Sendable {
         prequels: [],
         sequels: [],
         sideStories: [],
-        spinOffs: []
+        spinOffs: [],
+        entryPoint: nil,
+        nextStep: nil,
+        primarySource: nil,
+        primaryAdaptation: nil,
+        franchiseNote: nil,
+        coverageStatus: nil
     )
 
     var hasContent: Bool {
-        !sourceMaterial.isEmpty
+        entryPoint != nil
+            || nextStep != nil
+            || primarySource != nil
+            || primaryAdaptation != nil
+            || !sourceMaterial.isEmpty
             || !adaptations.isEmpty
             || !prequels.isEmpty
             || !sequels.isEmpty
@@ -1235,5 +1259,11 @@ struct MediaLadderResponse: Decodable, Sendable {
         case sequels
         case sideStories = "side_stories"
         case spinOffs = "spin_offs"
+        case entryPoint = "entry_point"
+        case nextStep = "next_step"
+        case primarySource = "primary_source"
+        case primaryAdaptation = "primary_adaptation"
+        case franchiseNote = "franchise_note"
+        case coverageStatus = "coverage_status"
     }
 }

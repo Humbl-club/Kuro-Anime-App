@@ -1294,6 +1294,15 @@ struct ConciergeView: View {
                 withAnimation(KuroAnimation.editorial) {
                     messages.append(assistantMsg)
                 }
+                let ladderCandidates: [(mediaType: String, mediaId: Int)] = displayItems
+                    .prefix(8)
+                    .map { item in
+                        (mediaType: item.mediaType.uppercased(), mediaId: item.mediaId)
+                    }
+                supabaseService.prefetchMediaRelationRefreshRequests(
+                    items: ladderCandidates,
+                    reason: "concierge_recommend"
+                )
                 trackFirstResponseIfNeeded("recommend")
                 #if DEBUG
                 print("[Concierge Timing] rec bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - recStart) * 1000))ms total from rec start")

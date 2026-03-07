@@ -455,6 +455,23 @@ struct EditorialDiscoverView: View {
             }
         }
 
+        let ladderCandidates: [(mediaType: String, mediaId: Int)] = await MainActor.run {
+            var items: [(mediaType: String, mediaId: Int)] = []
+            if let featured = vm.featured {
+                items.append((mediaType: "ANIME", mediaId: featured.id))
+            }
+            items += Array(vm.currentSeason.prefix(4)).map { ("ANIME", $0.id) }
+            items += Array(vm.trending.prefix(4)).map { ("ANIME", $0.id) }
+            items += Array(vm.essentialsManga.prefix(4)).map { ("MANGA", $0.id) }
+            return items
+        }
+        if !ladderCandidates.isEmpty {
+            supabaseService.prefetchMediaRelationRefreshRequests(
+                items: ladderCandidates,
+                reason: "discover_primary"
+            )
+        }
+
         // Prefetch covers so the next scroll feels instant.
         let urls: [URL] = await MainActor.run {
             let anime = (vm.essentials.prefix(14) + vm.newToYou.prefix(14) + vm.trending.prefix(14) + vm.topRated.prefix(10))
