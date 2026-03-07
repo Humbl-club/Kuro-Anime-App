@@ -487,3 +487,71 @@ struct EntityDiscoveryFilterTests {
         #expect(mangaOnly.first?.kind == .manga)
     }
 }
+
+@Suite("Adaptation Ladder")
+struct AdaptationLadderTests {
+
+    @Test("Empty ladder reports no content")
+    func testEmptyLadderHasNoContent() {
+        #expect(!MediaLadderResponse.empty.hasContent)
+    }
+
+    @Test("Ladder reports content when a source row exists")
+    func testLadderHasContentWithSource() {
+        let item = MediaLadderItem(
+            mediaType: "MANGA",
+            mediaId: 12,
+            title: "Original Work",
+            coverImage: nil,
+            year: 2018,
+            format: "MANGA",
+            rating: 8.6
+        )
+        let ladder = MediaLadderResponse(
+            sourceMaterial: [item],
+            adaptations: [],
+            prequels: [],
+            sequels: [],
+            sideStories: [],
+            spinOffs: []
+        )
+        #expect(ladder.hasContent)
+    }
+
+    @Test("Ladder item maps anime media correctly")
+    func testMediaLadderItemToAnimeMedia() {
+        let item = MediaLadderItem(
+            mediaType: "ANIME",
+            mediaId: 99,
+            title: "Adaptation",
+            coverImage: "https://example.com/poster.jpg",
+            year: 2024,
+            format: "TV",
+            rating: 8.9
+        )
+        let media = item.toMedia()
+        #expect(media.kind == .anime)
+        #expect(media.id == 99)
+        #expect(media.title == "Adaptation")
+        #expect(media.year == "2024")
+        #expect(media.rating == 8.9)
+    }
+
+    @Test("Ladder item maps manga media correctly")
+    func testMediaLadderItemToMangaMedia() {
+        let item = MediaLadderItem(
+            mediaType: "MANGA",
+            mediaId: 42,
+            title: "Source Material",
+            coverImage: nil,
+            year: nil,
+            format: "NOVEL",
+            rating: nil
+        )
+        let media = item.toMedia()
+        #expect(media.kind == .manga)
+        #expect(media.id == 42)
+        #expect(media.year == "TBA")
+        #expect(media.formatRaw == "NOVEL")
+    }
+}

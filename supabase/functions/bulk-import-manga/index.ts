@@ -11,6 +11,7 @@ const DEFAULT_RETRIES = 3;
 // without exploding row count on long-running series.
 const DEFAULT_MAX_PLACEHOLDER_CHAPTERS = 120;
 const DEFAULT_MAX_PLACEHOLDER_VOLUMES = 24;
+const SUPPORTED_MEDIA_RELATIONS = new Set(['SOURCE', 'ADAPTATION', 'PREQUEL', 'SEQUEL', 'SIDE_STORY', 'SPIN_OFF']);
 
 serve(async (req) => {
   // Secret header auth: pg_cron/pg_net can't send JWTs, so verify a shared secret instead.
@@ -135,6 +136,12 @@ serve(async (req) => {
 
 async function fetchAniListMangaData(page: number, perPage: number, includeRelations: boolean, retries: number) {
   const relationsFragment = includeRelations ? `
+          relations {
+            edges {
+              relationType(version: 2)
+              node { id type format title { romaji english native userPreferred } coverImage { large } }
+            }
+          }
           staff(sort: RELEVANCE, perPage: 10) { edges { role } nodes { id name { full native } image { large } description primaryOccupations } }
           tags { id name description category rank isGeneralSpoiler isMediaSpoiler isAdult }
           characters(sort: ROLE, perPage: 10) { edges { role } nodes { id name { full native } image { large } description gender age } }
@@ -356,6 +363,90 @@ async function processMangaItem(
         await supabase.from('manga_staff').upsert({ manga_id: insertedManga.id, staff_id: stf.id, role: edge?.role });
         results.relationships++; results.staff++;
       }
+    }
+  }
+
+  if (includeRelations) {
+    await replaceMediaRelationsForSource(supabase, 'MANGA', insertedManga.id, manga.relations?.edges, results);
+  }
+}
+
+function normalizeRelationType(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const normalized = raw.trim().toUpperCase();
+  return SUPPORTED_MEDIA_RELATIONS.has(normalized) ? normalized : null;
+}
+
+function normalizeAniListMediaType(raw: unknown): 'ANIME' | 'MANGA' | null {
+  if (typeof raw !== 'string') return null;
+  const normalized = raw.trim().toUpperCase();
+  if (normalized === 'ANIME' || normalized === 'MANGA') return normalized;
+  return null;
+}
+
+async function resolveLocalMediaId(supabase: any, mediaType: 'ANIME' | 'MANGA', anilistId: number): Promise<number | null> {
+  const table = mediaType === 'ANIME' ? 'anime' : 'manga';
+  const { data, error } = await supabase
+    .from(table)
+    .select('id')
+    .eq('anilist_id', anilistId)
+    .maybeSingle();
+  if (error) {
+    console.error('media_relations target lookup failed:', error);
+    return null;
+  }
+  return data?.id ?? null;
+}
+
+async function replaceMediaRelationsForSource(
+  supabase: any,
+  fromMediaType: 'ANIME' | 'MANGA',
+  fromMediaId: number,
+  relationEdges: any[] | undefined,
+  results: any
+) {
+  const { error: deleteError } = await supabase
+    .from('media_relations')
+    .delete()
+    .eq('from_media_type', fromMediaType)
+    .eq('from_media_id', fromMediaId)
+    .eq('source', 'anilist');
+  if (deleteError) throw deleteError;
+
+  if (!Array.isArray(relationEdges) || relationEdges.length == 0) {
+    return;
+  }
+
+  for (const edge of relationEdges) {
+    const relationType = normalizeRelationType(edge?.relationType);
+    const targetType = normalizeAniListMediaType(edge?.node?.type);
+    const targetAniListId = Number(edge?.node?.id);
+    if (!relationType || !targetType || !Number.isFinite(targetAniListId)) {
+      continue;
+    }
+
+    const targetMediaId = await resolveLocalMediaId(supabase, targetType, targetAniListId);
+    if (!targetMediaId) {
+      continue;
+    }
+
+    const { error } = await supabase
+      .from('media_relations')
+      .upsert(
+        {
+          from_media_type: fromMediaType,
+          from_media_id: fromMediaId,
+          relation_type: relationType,
+          to_media_type: targetType,
+          to_media_id: targetMediaId,
+          source: 'anilist',
+        },
+        { onConflict: 'from_media_type,from_media_id,relation_type,to_media_type,to_media_id,source' }
+      );
+    if (!error) {
+      results.relationships++;
+    } else {
+      console.error('media_relations upsert failed:', error);
     }
   }
 }

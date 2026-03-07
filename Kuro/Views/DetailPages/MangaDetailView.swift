@@ -16,6 +16,7 @@ struct MangaDetailView: View {
     @State private var condensedSynopsis: String?
     @State private var authorItems: [(author: Author, role: String)] = []
     @State private var castItems: [(character: Character, role: String)] = []
+    @State private var mediaLadder: MediaLadderResponse = .empty
 
     var body: some View {
         GeometryReader { geometry in
@@ -77,6 +78,10 @@ struct MangaDetailView: View {
                             if !castItems.isEmpty {
                                 CastSection(characters: castItems, containerWidth: geometry.size.width)
                             }
+                        }
+
+                        if mediaLadder.hasContent {
+                            AdaptationPathSection(ladder: mediaLadder)
                         }
 
                         // Chapters Section (rows-first; count is optional)
@@ -194,8 +199,10 @@ struct MangaDetailView: View {
         .task(id: manga.id) {
             async let tags = supabaseService.fetchTopTagsForManga(mangaId: manga.id, limit: 12)
             async let sim = supabaseService.fetchSimilarManga(seed: manga, limit: 14)
+            async let ladder = supabaseService.fetchMediaLadder(mediaType: "MANGA", mediaId: manga.id)
             topTags = await tags
             similar = await sim
+            mediaLadder = await ladder
 
             // Condense long synopses on-device via Apple FM (no-op on unsupported devices)
             let sourceSynopsis = manga.displayDescription

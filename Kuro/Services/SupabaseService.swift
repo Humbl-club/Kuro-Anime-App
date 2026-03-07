@@ -96,6 +96,7 @@ class SupabaseService {
     private var staffWorksCache: [String: TimedCache<[(media: Media, role: String)]>] = [:]
     private var authorWorksCache: [String: TimedCache<[(media: Media, role: String)]>] = [:]
     private var characterWorksCache: [String: TimedCache<[Media]>] = [:]
+    private var mediaLadderCache: [String: TimedCache<MediaLadderResponse>] = [:]
     // De-dupe frequently called network fetches so multiple screens mounting doesn't fan-out.
     private var userListsFetchInFlight: Task<Void, Never>? = nil
     private var collectionFetchInFlight: Task<Void, Never>? = nil
@@ -704,6 +705,7 @@ class SupabaseService {
         staffWorksCache.removeAll()
         authorWorksCache.removeAll()
         characterWorksCache.removeAll()
+        mediaLadderCache.removeAll()
     }
 
     private func ensureProfileRow() async {
@@ -4995,6 +4997,32 @@ class SupabaseService {
             print("[EntityFetch] fetchMediaByCharacter error: \(error)")
             #endif
             return []
+        }
+    }
+
+    func fetchMediaLadder(mediaType: String, mediaId: Int) async -> MediaLadderResponse {
+        let key = "\(mediaType.uppercased())-\(mediaId)"
+        if let cached = mediaLadderCache[key], Date().timeIntervalSince(cached.storedAt) < 120 {
+            return cached.value
+        }
+
+        do {
+            let params = RPCGetMediaLadderParams(
+                p_media_type: mediaType.uppercased(),
+                p_media_id: mediaId
+            )
+            let response: MediaLadderResponse = try await client
+                .rpc("get_media_ladder", params: params)
+                .execute()
+                .value
+            trimCache(&mediaLadderCache, maxEntries: 80)
+            mediaLadderCache[key] = TimedCache(value: response, storedAt: Date())
+            return response
+        } catch {
+            #if DEBUG
+            print("[Ladder] fetchMediaLadder error: \(error)")
+            #endif
+            return .empty
         }
     }
 

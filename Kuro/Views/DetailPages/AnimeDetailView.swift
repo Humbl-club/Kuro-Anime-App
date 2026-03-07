@@ -17,6 +17,7 @@ struct AnimeDetailView: View {
     @State private var studios: [Studio] = []
     @State private var staffItems: [(staff: Staff, role: String)] = []
     @State private var castItems: [(character: Character, role: String)] = []
+    @State private var mediaLadder: MediaLadderResponse = .empty
 
     var body: some View {
         GeometryReader { geometry in
@@ -82,6 +83,10 @@ struct AnimeDetailView: View {
                             if !castItems.isEmpty {
                                 CastSection(characters: castItems, containerWidth: geometry.size.width)
                             }
+                        }
+
+                        if mediaLadder.hasContent {
+                            AdaptationPathSection(ladder: mediaLadder)
                         }
 
                         // Episodes Section (if available)
@@ -198,8 +203,10 @@ struct AnimeDetailView: View {
         .task(id: anime.id) {
             async let tags = supabaseService.fetchTopTagsForAnime(animeId: anime.id, limit: 12)
             async let sim = supabaseService.fetchSimilarAnime(seed: anime, limit: 14)
+            async let ladder = supabaseService.fetchMediaLadder(mediaType: "ANIME", mediaId: anime.id)
             topTags = await tags
             similar = await sim
+            mediaLadder = await ladder
 
             // Condense long synopses on-device via Apple FM (no-op on unsupported devices)
             let sourceSynopsis = anime.displayDescription
