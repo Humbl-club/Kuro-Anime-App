@@ -12,13 +12,14 @@
 */
 
 const { createClient } = require('@supabase/supabase-js');
+const { getProjectUrl } = require('./lib/project_config');
 
 // Allow piping to `head` without crashing on EPIPE.
 process.stdout.on('error', (err) => {
   if (err && err.code === 'EPIPE') process.exit(0);
 });
 
-const SUPABASE_URL = 'https://bkdifromsqxkndnllmdj.supabase.co';
+const SUPABASE_URL = getProjectUrl();
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SERVICE_ROLE_KEY) {
   throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var.');

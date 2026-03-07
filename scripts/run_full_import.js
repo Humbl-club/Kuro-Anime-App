@@ -7,8 +7,9 @@
 */
 
 const { createClient } = require('@supabase/supabase-js');
+const { getProjectUrl } = require('./lib/project_config');
 
-const SUPABASE_URL = 'https://bkdifromsqxkndnllmdj.supabase.co';
+const SUPABASE_URL = getProjectUrl();
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const IMPORT_SECRET = process.env.IMPORT_SECRET ?? process.env.SUPABASE_IMPORT_SECRET;
 if (!SERVICE_ROLE_KEY) {

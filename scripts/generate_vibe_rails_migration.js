@@ -6,7 +6,7 @@
   - If that mode has rail_id configured, concierge-recommend can return pinned items via curated_rail_cards()
     for consistent, premium-quality output (still excludes "seen" titles per-user).
 
-  This script uses the app's existing Supabase fallback URL + anon key so it can run without service role.
+  This script uses Supabase URL + anon key from env or `scripts/project_public.env`.
   (Catalog tables are readable to anon; rails are editorial.)
 
   Usage:
@@ -16,21 +16,10 @@
 const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
+const { getPublicProjectConfig } = require("./lib/project_config");
 
 function extractSupabaseConfigFromSwift() {
-  const swiftPath = path.join(__dirname, "..", "Kuro", "Services", "SupabaseService.swift");
-  const text = fs.readFileSync(swiftPath, "utf8");
-
-  const urlMatch = text.match(/fallbackURL\\s*=\\s*URL\\(string:\\s*\"([^\"]+)\"\\)/);
-  const keyMatch = text.match(/fallbackKey\\s*=\\s*\"([^\"]+)\"/);
-
-  const urlFallback = text.match(new RegExp("https://[a-z0-9]+\\.supabase\\.co", "i"));
-  const keyFallback = text.match(new RegExp("eyJhbGci[0-9A-Za-z._-]+"));
-
-  const url = urlMatch?.[1] ?? (urlFallback ? urlFallback[0] : null);
-  const anonKey = keyMatch?.[1] ?? (keyFallback ? keyFallback[0] : null);
-  if (!url || !anonKey) throw new Error("Could not extract `fallbackURL` / `fallbackKey` from SupabaseService.swift");
-  return { url, anonKey };
+  return getPublicProjectConfig();
 }
 
 function formatSQLString(s) {

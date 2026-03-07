@@ -4,6 +4,8 @@ set -euo pipefail
 ROOT="/Applications/Kuro"
 REPORT_DIR="${MEDIA_RELATIONS_REPORTS_DIR:-$ROOT/reports/media-relations}"
 mkdir -p "$REPORT_DIR"
+source "$ROOT/scripts/lib/load_project_public_env.sh"
+load_project_public_env || true
 
 read_existing_env() {
   local key="$1"

@@ -10,12 +10,13 @@
 */
 
 const { createClient } = require("@supabase/supabase-js");
+const { getProjectUrl } = require("./lib/project_config");
 
 process.stdout.on("error", (err) => {
   if (err && err.code === "EPIPE") process.exit(0);
 });
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "https://bkdifromsqxkndnllmdj.supabase.co";
+const SUPABASE_URL = process.env.SUPABASE_URL ?? getProjectUrl();
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const IMPORT_SECRET = process.env.IMPORT_SECRET ?? process.env.SUPABASE_IMPORT_SECRET;
 if (!SERVICE_ROLE_KEY) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY env var.");

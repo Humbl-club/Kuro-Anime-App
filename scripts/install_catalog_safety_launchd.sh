@@ -6,6 +6,8 @@ ROOT="/Applications/Kuro"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 REPORT_DIR="$ROOT/reports/catalog-safety"
 mkdir -p "$HOME/Library/LaunchAgents" "$REPORT_DIR"
+source "$ROOT/scripts/lib/load_project_public_env.sh"
+load_project_public_env || true
 
 read_existing_env() {
   local key="$1"

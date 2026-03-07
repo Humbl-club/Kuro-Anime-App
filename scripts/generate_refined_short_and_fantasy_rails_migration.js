@@ -4,8 +4,8 @@
   - short_one_season_*: should feel genuinely short and complete
   - fantasy_non_isekai_*: should avoid huge long-runners and ongoing titles
 
-  This script uses the app's Supabase fallback URL + anon key extracted from
-  `Kuro/Services/SupabaseService.swift`. Catalog + curated tables are readable
+  This script uses the public Supabase URL + anon key loaded from
+  `scripts/project_public.env`. Catalog + curated tables are readable
   to anon in this project.
 
   Usage:
@@ -16,21 +16,10 @@
 const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
+const { getPublicProjectConfig } = require("./lib/project_config");
 
 function extractSupabaseConfigFromSwift() {
-  const swiftPath = path.join(__dirname, "..", "Kuro", "Services", "SupabaseService.swift");
-  const text = fs.readFileSync(swiftPath, "utf8");
-
-  const urlMatch = text.match(/fallbackURL\s*=\s*URL\(string:\s*"([^"]+)"\)/);
-  const keyMatch = text.match(/fallbackKey\s*=\s*"([^"]+)"/);
-
-  const urlFallback = text.match(new RegExp("https://[a-z0-9]+\\.supabase\\.co", "i"));
-  const keyFallback = text.match(new RegExp("eyJhbGci[0-9A-Za-z._-]+"));
-
-  const url = (urlMatch && urlMatch[1]) || (urlFallback ? urlFallback[0] : null);
-  const anonKey = (keyMatch && keyMatch[1]) || (keyFallback ? keyFallback[0] : null);
-  if (!url || !anonKey) throw new Error("Could not extract Supabase URL/key from SupabaseService.swift");
-  return { url, anonKey };
+  return getPublicProjectConfig();
 }
 
 function formatSQLString(s) {
@@ -334,4 +323,3 @@ main().catch((e) => {
   console.error(e?.message || String(e));
   process.exit(1);
 });
-

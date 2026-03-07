@@ -3,9 +3,10 @@
 const fs = require('fs');
 const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
+const { getProjectUrl } = require('./lib/project_config');
 
 const ROOT = '/Applications/Kuro';
-const PROJECT_URL = process.env.SUPABASE_URL || 'https://bkdifromsqxkndnllmdj.supabase.co';
+const PROJECT_URL = process.env.SUPABASE_URL || getProjectUrl();
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const REPORT_DIR = process.env.MEDIA_RELATIONS_REPORTS_DIR || path.join(ROOT, 'reports/media-relations');
 const MODE = (process.env.MEDIA_RELATIONS_MODE || 'queue').trim().toLowerCase();

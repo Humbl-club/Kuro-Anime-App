@@ -9,16 +9,10 @@
 const fs = require("fs");
 const path = require("path");
 const { createClient } = require("@supabase/supabase-js");
+const { getPublicProjectConfig } = require("./lib/project_config");
 
 function extractSupabaseConfigFromSwift() {
-  const swiftPath = path.join(__dirname, "..", "Kuro", "Services", "SupabaseService.swift");
-  const text = fs.readFileSync(swiftPath, "utf8");
-  const urlMatch = text.match(/fallbackURL\s*=\s*URL\(string:\s*"([^"]+)"\)/);
-  const keyMatch = text.match(/fallbackKey\s*=\s*"([^"]+)"/);
-  const url = urlMatch?.[1];
-  const anonKey = keyMatch?.[1];
-  if (!url || !anonKey) throw new Error("Could not extract Supabase URL/key from SupabaseService.swift");
-  return { url, anonKey };
+  return getPublicProjectConfig();
 }
 
 async function callFn(url, anonKey, accessToken, name, payload) {

@@ -6,6 +6,8 @@ ROOT="/Applications/Kuro"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 REPORT_DIR="$ROOT/reports/media-relations"
 mkdir -p "$HOME/Library/LaunchAgents" "$REPORT_DIR"
+source "$ROOT/scripts/lib/load_project_public_env.sh"
+load_project_public_env || true
 
 read_existing_env() {
   local key="$1"
@@ -42,7 +44,6 @@ read_existing_start_interval() {
 }
 
 SUPABASE_URL_VALUE="${SUPABASE_URL:-$(read_existing_env SUPABASE_URL)}"
-SUPABASE_URL_VALUE="${SUPABASE_URL_VALUE:-https://bkdifromsqxkndnllmdj.supabase.co}"
 SUPABASE_SERVICE_ROLE_KEY_VALUE="${SUPABASE_SERVICE_ROLE_KEY:-$(read_existing_env SUPABASE_SERVICE_ROLE_KEY)}"
 MEDIA_RELATIONS_MODE_VALUE="${MEDIA_RELATIONS_MODE:-$(read_existing_env MEDIA_RELATIONS_MODE)}"
 MEDIA_RELATIONS_MODE_VALUE="${MEDIA_RELATIONS_MODE_VALUE:-queue}"
