@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-06
+**Last updated:** 2026-03-07
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -761,6 +761,14 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 ### 2026-03-06 — Detail page link copy cleanup
 - **More honest link messaging**: Detail pages no longer show vague `Availability unknown` copy. If Kuro has a legal link but no verified region metadata, anime now says availability/audio/subtitles may vary by region, and manga says reading availability may vary by region and publisher.
 - **Cleaner no-link fallback**: If no legal watch/read link exists yet, both anime and manga now simply say `Link coming soon.` This same wording is also used in the manga chapter surfaces so the message is consistent.
+
+### 2026-03-07 — Adaptation Path (implemented in code, not deployed yet)
+- **Detail pages can now show an editorial franchise ladder**: Anime and manga detail pages now have code for an `ADAPTATION PATH` section that can show things like `READ THE SOURCE`, `WATCH THE ADAPTATION`, `START WITH`, and `CONTINUE TO`.
+- **This is built on real relation data, not guessed titles**: A new `media_relations` table and `get_media_ladder(...)` RPC were added locally so Kuro can store explicit links between anime and manga instead of guessing from matching names.
+- **Importers were extended too**: The AniList anime and manga import functions now fetch relation edges and write them into the new table when the related title already exists in Kuro.
+- **The ladder stays compact and editorial**: It does not dump every franchise edge. It picks the strongest path first — source material, adaptations, then chronology.
+- **Safety rules still apply**: adult titles and hentai/ecchi-only branches are filtered out before the ladder reaches the app.
+- **Important current status**: this work is implemented in the codebase and passed local build/tests, but the new migration still needs to be pushed to the remote Supabase project before the ladder can appear against production data.
 
 ### 2026-03-06 — Streaming note hardening
 - **Dub vs audio vs subtitles is now explicit**: Kuro no longer turns every language hint into `EN dub` / `DE dub`. It now distinguishes between dub, plain audio, subtitle-only evidence, and generic availability.

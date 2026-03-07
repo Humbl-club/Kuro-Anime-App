@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-06
+**Last updated:** 2026-03-07
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -15914,3 +15914,33 @@ Totals: 0 new files, 4 modified Swift files. 67 Swift files, 145 migrations.
 
 **KuroTests.swift:**
 - Added entity discovery tests for era grouping and staff/author role categorization.
+
+### 2026-03-07 — Adaptation ladder v1 (code complete, deployment pending)
+
+**New schema contract (local migration added):**
+- Added `supabase/migrations/20260307120000_media_relations_ladder_v1.sql`.
+- New table: `public.media_relations` with directional anime↔manga relation edges (`SOURCE`, `ADAPTATION`, `PREQUEL`, `SEQUEL`, `SIDE_STORY`, `SPIN_OFF`).
+- New read RPC: `public.get_media_ladder(p_media_type text, p_media_id int)` returning grouped ladder buckets (`source_material`, `adaptations`, `prequels`, `sequels`, `side_stories`, `spin_offs`).
+- Safety contract is enforced in SQL: adult rows and `Hentai` / `Ecchi` genre rows are omitted before the ladder payload reaches iOS.
+
+**AniList import pipeline (edge functions, local code updated):**
+- `supabase/functions/bulk-import-anime/index.ts` now requests AniList `relations`, resolves target AniList IDs to local anime/manga rows, and rewrites source-owned `media_relations` edges on each relation-heavy refresh.
+- `supabase/functions/bulk-import-manga/index.ts` does the same for manga imports.
+- Import remains directional and non-heuristic: only supported AniList relation types are stored, and only targets already present in Kuro as anime/manga are materialized.
+
+**iOS models/service/UI:**
+- New typed ladder models in `Kuro/Models/SupabaseModels.swift`: `MediaLadderItem` and `MediaLadderResponse`.
+- New RPC params in `Kuro/Services/SupabaseRPCParams.swift`: `RPCGetMediaLadderParams`.
+- New service path in `Kuro/Services/SupabaseService.swift`: `fetchMediaLadder(mediaType:mediaId:)` with a short-lived response cache.
+- New shared UI section in `Kuro/Views/DetailPages/AdaptationPathSection.swift`.
+- `AnimeDetailView.swift` and `MangaDetailView.swift` now fetch ladder data and render `ADAPTATION PATH` below the creator/studio block when qualifying relations exist.
+- The ladder is intentionally editorial, not exhaustive: it prioritizes `READ THE SOURCE`, `WATCH THE ADAPTATION`, `START WITH`, `CONTINUE TO`, then side-story/spin-off fallback rows.
+
+**Validation:**
+- `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build` → `BUILD SUCCEEDED`
+- `xcodebuild -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' test -only-testing:KuroTests` → `TEST SUCCEEDED`
+- `supabase db lint --linked` → `No schema errors found`
+- `supabase db push --linked --dry-run --include-all` reports only the new ladder migration pending remote apply.
+- Deno type-check could not be run on this machine because `deno` is not installed in PATH.
+
+Totals: 1 new Swift file, 8 modified code files, 1 new migration. 68 Swift files, 146 migrations.

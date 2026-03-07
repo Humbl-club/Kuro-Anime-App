@@ -1,6 +1,6 @@
 # CLAUDE.md — Kuro Project Rules & Context
 
-**Last synced: 2026-03-06** | **This file is mandatory reading. Every rule is binding.**
+**Last synced: 2026-03-07** | **This file is mandatory reading. Every rule is binding.**
 
 ---
 
@@ -35,6 +35,8 @@ This codebase has established patterns. Match them. Don't introduce new paradigm
 ## WHAT THIS APP IS (exact description)
 
 Kuro is a curated anime + manga iOS app. It lets users browse premium editorial picks, maintain personal watchlists, create private clubs with friends, and use a "Concierge" AI assistant to import lists and get mood-based recommendations. The app runs on SwiftUI with a Supabase backend.
+
+Latest notable local-only addition: Adaptation Ladder v1 is implemented in code (`media_relations` migration + AniList relation import + detail-page `ADAPTATION PATH` section) but is not live until the new migration is pushed and the anime/manga import functions are redeployed.
 
 **Tech stack (exact):**
 - **Frontend**: iOS SwiftUI, `@Observable` pattern (NOT Combine — never use `ObservableObject`, `@Published`, `sink`, `assign`)
