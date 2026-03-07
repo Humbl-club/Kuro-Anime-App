@@ -49,6 +49,17 @@ LOCK_PID_FILE="$LOCK_DIR/pid"
 LOCK_STARTED_FILE="$LOCK_DIR/started_at_unix"
 LOCK_TTL_SECONDS="${MEDIA_RELATIONS_LOCK_TTL_SECONDS:-21600}"
 WORKER="$ROOT/scripts/media_relations_worker.js"
+RUN_STATE_FILE="$REPORT_DIR/latest-run.json"
+NODE_BIN="${NODE_BIN:-$(command -v node || true)}"
+
+if [[ -z "$NODE_BIN" && -x /usr/local/bin/node ]]; then
+  NODE_BIN="/usr/local/bin/node"
+fi
+
+if [[ -z "$NODE_BIN" ]]; then
+  echo "Missing node runtime. Install Node or set NODE_BIN." >&2
+  exit 1
+fi
 
 log_line() {
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $1" >>"$LOG_FILE" 2>&1
@@ -57,6 +68,48 @@ log_line() {
 write_lock_metadata() {
   printf '%s' "$$" >"$LOCK_PID_FILE"
   date +%s >"$LOCK_STARTED_FILE"
+}
+
+write_run_state() {
+  local state="$1"
+  local detail="${2:-}"
+  python3 - "$RUN_STATE_FILE" "$state" "$MEDIA_RELATIONS_MODE" "$detail" <<'PY'
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+path, state, mode, detail = sys.argv[1:5]
+payload = {}
+if os.path.exists(path):
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            payload = json.load(fh) or {}
+    except Exception:
+        payload = {}
+
+now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+payload["mode"] = mode
+payload["state"] = state
+payload["pid"] = os.getppid()
+if state == "running":
+    payload["started_at"] = now
+    payload.pop("completed_at", None)
+    payload.pop("error", None)
+elif state == "completed":
+    payload["completed_at"] = now
+    payload.pop("error", None)
+elif state == "error":
+    payload["completed_at"] = now
+    if detail:
+        payload["error"] = detail
+elif detail:
+    payload["detail"] = detail
+
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(payload, fh, indent=2)
+    fh.write("\n")
+PY
 }
 
 try_acquire_lock() {
@@ -74,23 +127,45 @@ try_acquire_lock() {
     return 1
   fi
 
-  local lock_started=0
+  if [[ -n "$lock_pid" ]]; then
+    log_line "recovering dead lock from pid=$lock_pid"
+    rm -rf "$LOCK_DIR"
+    if mkdir "$LOCK_DIR" 2>/dev/null; then
+      write_lock_metadata
+      return 0
+    fi
+    log_line "lock acquire retry failed after dead-pid recovery, skipping overlap"
+    return 1
+  fi
+
+  local lock_started=""
   if [[ -f "$LOCK_STARTED_FILE" ]]; then
     lock_started="$(tr -dc '0-9' <"$LOCK_STARTED_FILE" | head -c 20 || true)"
   fi
   if [[ -z "$lock_started" ]]; then
-    lock_started="$(stat -f %m "$LOCK_DIR" 2>/dev/null || echo 0)"
+    lock_started="$(stat -f %m "$LOCK_DIR" 2>/dev/null || true)"
+  fi
+
+  if [[ -z "$lock_started" ]]; then
+    log_line "recovering malformed lock with no pid or start time"
+    rm -rf "$LOCK_DIR"
+    if mkdir "$LOCK_DIR" 2>/dev/null; then
+      write_lock_metadata
+      return 0
+    fi
+    log_line "lock acquire retry failed after malformed-lock recovery, skipping overlap"
+    return 1
   fi
 
   local now_epoch
   now_epoch="$(date +%s)"
   local lock_age=$(( now_epoch - lock_started ))
   if (( lock_age < LOCK_TTL_SECONDS )); then
-    log_line "lock exists without active pid but age=${lock_age}s (< ttl=${LOCK_TTL_SECONDS}s); keeping lock"
-    return 1
+    log_line "recovering malformed lock by ttl fallback (age=${lock_age}s, pid missing)"
+  else
+    log_line "stale lock detected via ttl fallback (age=${lock_age}s), removing and retrying lock acquire"
   fi
 
-  log_line "stale lock detected (age=${lock_age}s), removing and retrying lock acquire"
   rm -rf "$LOCK_DIR"
   if mkdir "$LOCK_DIR" 2>/dev/null; then
     write_lock_metadata
@@ -104,10 +179,21 @@ try_acquire_lock() {
 if ! try_acquire_lock; then
   exit 0
 fi
-trap 'rm -f "$LOCK_PID_FILE" "$LOCK_STARTED_FILE"; rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
+on_exit() {
+  local exit_code=$?
+  if (( exit_code != 0 )); then
+    log_line "media relations worker failed (exit=${exit_code})"
+    write_run_state "error" "worker exited with code ${exit_code}"
+  fi
+  rm -f "$LOCK_PID_FILE" "$LOCK_STARTED_FILE"
+  rmdir "$LOCK_DIR" 2>/dev/null || true
+}
+trap on_exit EXIT
 
 {
+  write_run_state "running"
   log_line "starting media relations worker (mode=${MEDIA_RELATIONS_MODE})"
-  node "$WORKER"
+  "$NODE_BIN" "$WORKER"
   log_line "media relations worker completed"
+  write_run_state "completed"
 } >>"$LOG_FILE" 2>&1

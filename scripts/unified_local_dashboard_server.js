@@ -257,6 +257,12 @@ function serviceHealth(service) {
   if (service.processes.length > 0 || service.launchd?.state === 'running') {
     return { tone: 'live', label: 'Running now' };
   }
+  if (service.key === 'media_relations' && service.run?.state === 'running') {
+    return { tone: 'stale', label: 'Interrupted run' };
+  }
+  if (service.key === 'media_relations' && service.run?.state === 'error') {
+    return { tone: 'stale', label: 'Last run failed' };
+  }
   if (service.status && service.freshness && (Date.now() - new Date(service.freshness).getTime()) < 24 * 60 * 60 * 1000) {
     return { tone: 'steady', label: 'Healthy recent run' };
   }
