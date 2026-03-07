@@ -522,3 +522,4 @@ scripts/quality-gates/check_migrations.sh
 ## CURRENT BEHAVIOR NOTE (2026-03-06)
 
 - Concierge is intentionally **session-local**. Do not describe it as cross-session persistent unless a future change reintroduces full, honest persistence.
+- Adaptation Ladder v2 is live on project `bkdifromsqxkndnllmdj`. Use `get_media_ladder(...)` as the source of truth for editorial ladder data; do not guess adaptation/source paths from titles. Ladder coverage refreshes now flow through `enqueue_media_relation_refresh(...)` and the local `com.kuro.media-relations` worker/launchd pipeline.

@@ -770,6 +770,13 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Safety rules still apply**: adult titles and hentai/ecchi-only branches are filtered out before the ladder reaches the app.
 - **Important current status**: the migration is live, the anime/manga import functions were redeployed, and a controlled backfill seeded the first live relation graph rows in production. The ladder is now structurally live and will expand as more titles refresh through the normal import pipeline.
 
+### 2026-03-07 — Adaptation Path v2
+- **The ladder now explains why a title matters**: Instead of only returning raw relation buckets, Kuro now returns editorial picks like a best entry point, the next step, the main source work, and the most relevant adaptation. The app can show a more decisive path instead of a plain list.
+- **Coverage quality is explicit**: Ladder responses now carry `strong`, `partial`, or `minimal` coverage so the app can be honest about how complete the franchise path really is.
+- **Refreshes now happen where they matter**: If you open a title with weak ladder coverage, or if a title shows up in Discover’s main rails or Concierge recommendations, Kuro queues a strict AniList-only relation refresh for that title.
+- **There is now a dedicated relation worker**: A new local worker and launchd agent process the ladder refresh queue, run top-catalog backfills, and write coverage reports under `reports/media-relations/`.
+- **Backfill strategy is focused, not global**: Instead of trying to map the whole catalog at once, Kuro now targets the top catalog first (top anime + manga by popularity), then lets normal imports and queued refreshes fill in the rest.
+
 ### 2026-03-06 — Streaming note hardening
 - **Dub vs audio vs subtitles is now explicit**: Kuro no longer turns every language hint into `EN dub` / `DE dub`. It now distinguishes between dub, plain audio, subtitle-only evidence, and generic availability.
 - **No more overclaiming when source data is thin**: If Kuro does not know the original language well enough, it now says `EN audio` instead of guessing `EN dub`.

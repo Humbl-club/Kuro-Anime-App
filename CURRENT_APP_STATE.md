@@ -15946,3 +15946,55 @@ Totals: 0 new files, 4 modified Swift files. 67 Swift files, 145 migrations.
 - Deno type-check could not be run on this machine because `deno` is not installed in PATH.
 
 Totals: 1 new Swift file, 8 modified code files, 1 new migration. 68 Swift files, 146 migrations.
+
+### 2026-03-07 — Adaptation ladder v2 (editorial context + targeted coverage)
+
+**New backend contract:**
+- Added `supabase/migrations/20260307150000_adaptation_ladder_v2_editorial_context.sql`.
+- `public.get_media_ladder(text, int)` now returns additive editorial fields on top of the v1 buckets:
+  - `entry_point`
+  - `next_step`
+  - `primary_source`
+  - `primary_adaptation`
+  - `franchise_note`
+  - `coverage_status` (`strong` / `partial` / `minimal`)
+- Added `public.media_relation_refresh_queue` plus `public.enqueue_media_relation_refresh(...)` so iOS can request strict AniList-only refreshes when ladder coverage is weak.
+
+**Editorial selection rules (server-side):**
+- Chronology (`PREQUEL` / `SEQUEL`) stays year-ascending.
+- `SOURCE` and `ADAPTATION` primary picks are deterministic: rating → popularity → year, with anime adaptation picks also preferring stronger formats (`TV`, `MOVIE`) over weaker companions (`SPECIAL`, `MUSIC`).
+- The RPC never guesses from title similarity and never infers reverse edges in SQL.
+- Safety rules remain enforced before editorial selection: adult titles plus `Hentai` / `Ecchi` branches are filtered out in SQL.
+
+**iOS presentation and opportunistic refresh:**
+- `MediaLadderItem` gained `reasonLabel`; `MediaLadderResponse` gained the editorial fields and `coverageStatus`.
+- `AdaptationPathSection.swift` now renders an editorial path:
+  - featured `entry_point`
+  - featured `next_step`
+  - up to 3 compact follow-up rows from `READ THE SOURCE`, `WATCH THE ADAPTATION`, `SIDE STORY`, `SPIN OFF`
+- `AnimeDetailView.swift` and `MangaDetailView.swift` enqueue a ladder refresh on detail open when coverage is not `strong`.
+- `EditorialDiscoverView.swift` enqueues refreshes for hero/current-season/trending/editorial-primary titles.
+- `ConciergeView.swift` enqueues refreshes for the first recommendation set items so ladders improve on recommendation-heavy surfaces too.
+
+**Operational coverage expansion:**
+- Added a dedicated worker path:
+  - `scripts/media_relations_worker.js`
+  - `scripts/run_media_relations_refresh.sh`
+  - `scripts/install_media_relations_launchd.sh`
+- Worker modes:
+  - `queue` — processes `media_relation_refresh_queue`
+  - `top-catalog` — backfills top anime + manga by popularity (default 500 each)
+  - `report` — writes `reports/media-relations/latest-status.json`, `latest-run.json`, and `missing-top-catalog.md`
+- Installed local launchd agent `com.kuro.media-relations` at a 900-second interval so opportunistic ladder refresh requests are consumed continuously.
+- The worker now uses AniList request batching (`ANILIST_BATCH_SIZE`, default `10`) and request timeouts (`ANILIST_TIMEOUT_MS`, default `20000`) to keep the top-catalog backfill and queue processing bounded.
+
+**Validation:**
+- `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build` → `BUILD SUCCEEDED`
+- `xcodebuild -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' test -only-testing:KuroTests` → `TEST SUCCEEDED`
+- `supabase db push --linked --include-all --yes` applied `20260307150000_adaptation_ladder_v2_editorial_context.sql` to project `bkdifromsqxkndnllmdj`
+- `supabase migration list --linked` shows `20260307150000` present locally and remotely
+- `supabase db lint --linked` → `No schema errors found`
+- Live RPC verification on the correct project confirms editorial fields:
+  - `get_media_ladder('ANIME', 2)` (`Attack on Titan`) now returns `coverage_status = strong`, `entry_point`, `next_step`, `primary_source`, and a franchise note
+
+Totals: 0 new Swift files, 8 modified Swift files, 3 new scripts, 1 new migration. 68 Swift files, 147 migrations.
