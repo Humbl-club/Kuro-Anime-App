@@ -586,7 +586,7 @@ class SupabaseService {
 
             // Apple only provides full name on first sign-in; persist it.
             if let fullName, !fullName.isEmpty {
-                try? await client.auth.update(
+                _ = try? await client.auth.update(
                     user: .init(data: ["full_name": .string(fullName)])
                 )
             }
@@ -5571,13 +5571,13 @@ class SupabaseService {
             AnyAction.self,
             schema: "public",
             table: "club_polls",
-            filter: "club_id=eq.\(clubId)"
+            filter: .eq("club_id", value: clubId)
         )
         let messageStream = channel.postgresChange(
             AnyAction.self,
             schema: "public",
             table: "club_messages",
-            filter: "club_id=eq.\(clubId)"
+            filter: .eq("club_id", value: clubId)
         )
 
         clubRealtimeListenTasks = [

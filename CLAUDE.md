@@ -38,6 +38,8 @@ Kuro is a curated anime + manga iOS app. It lets users browse premium editorial 
 
 Latest notable shipped addition: Adaptation Ladder v1 is live (`media_relations` migration applied, AniList relation import deployed in `bulk-import-anime`/`bulk-import-manga`, and detail-page `ADAPTATION PATH` UI shipped). Initial production coverage was seeded with a controlled relation backfill and will expand as normal imports continue.
 
+Current release-build status: Kuro-side archive warnings from `SupabaseService`, `GenreHubView`, `KuroRefinedCard`, and `KuroTests` were cleaned on 2026-03-09; the only remaining build/test warning is Xcode's App Intents metadata tool noting that no `AppIntents.framework` dependency is present.
+
 **Tech stack (exact):**
 - **Frontend**: iOS SwiftUI, `@Observable` pattern (NOT Combine — never use `ObservableObject`, `@Published`, `sink`, `assign`)
 - **Backend**: Supabase — PostgreSQL + Edge Functions (Deno/TypeScript) + Storage + RPC + RLS

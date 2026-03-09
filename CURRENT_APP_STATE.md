@@ -16073,3 +16073,17 @@ Totals: 0 new Swift files, 8 modified Swift files, 3 new scripts, 1 new migratio
 - Marked `SQL_COMPATIBILITY_REPORT.md` as a historical point-in-time report instead of a whole-repo authority surface.
 - Added `scripts/quality-gates/check_docs_current_state.py` (+ shell wrapper) and wired it into `scripts/quality-gates/run_all.sh` so stale file-count/current-state drift fails the quality gate.
 - Current-state docs now explicitly state that provider availability remains staged behind `streaming_availability_v1` and that live watch/read links still come from `external_links`.
+
+### 2026-03-09 — Archive warning cleanup
+
+**Code-level archive warnings removed:**
+- `SupabaseService.swift`: Apple Sign In profile update now explicitly discards the optional auth update result, eliminating the unused `try?` warning.
+- `SupabaseService.swift`: club realtime subscriptions now use typed `RealtimePostgresFilter.eq(...)` instead of deprecated string filters.
+- `GenreHubView.swift`: width now comes from `GeometryReader` instead of `UIScreen.main`, and the media-kind refresh uses the modern two-parameter `onChange` closure.
+- `KuroRefinedCard.swift`: `KuroHorizontalSection` now computes card width from a passed container width instead of `UIScreen.main`.
+- `KuroTests.swift`: provider-availability and ladder decoding suites are `@MainActor`, removing the Swift 6 isolation warnings triggered by the macro-generated equality checks.
+
+**Validation:**
+- `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build` now emits no Kuro code warnings; the only remaining warning is Xcode's `appintentsmetadataprocessor` note that no AppIntents framework dependency exists.
+- `xcodebuild -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' test -only-testing:KuroTests` still passes with the same tool-only AppIntents warning.
+- `fastlane beta` successfully archived and uploaded build `12` to TestFlight; the archive log no longer includes the earlier Kuro code warnings.

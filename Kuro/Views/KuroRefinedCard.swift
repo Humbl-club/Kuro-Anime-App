@@ -670,10 +670,10 @@ struct KuroHorizontalSection: View {
     let subtitle: String
     let items: [any MediaDisplayable]
     var onSeeAll: (() -> Void)? = nil
+    var containerWidth: CGFloat = 393
 
     private var cardWidth: CGFloat {
-        let screenWidth = UIScreen.main.bounds.width
-        let candidate = floor((screenWidth - 56) / 2.8)
+        let candidate = floor((containerWidth - 56) / 2.8)
         return min(144, max(112, candidate))
     }
 

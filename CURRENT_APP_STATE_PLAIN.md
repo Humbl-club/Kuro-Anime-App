@@ -801,3 +801,8 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Scripts no longer read app source for project config**: Public-read scripts now load the Supabase URL + anon key from `scripts/project_public.env` (or real env vars) instead of scraping `SupabaseService.swift`. Private credentials still stay env-only.
 - **Current-state docs are now anchored to the real repo**: The technical and plain-English state docs now state the actual live inventory (`68` app Swift files, `153` SQL migrations), clearly mark historical notes as historical, and say explicitly that provider availability is still staged behind `streaming_availability_v1` while live watch/read links come from `external_links`.
 - **There is now a docs consistency gate**: `scripts/quality-gates/check_docs_current_state.py` fails if the current-state docs drift away from the real Swift/migration counts or keep overclaiming stale status.
+
+### 2026-03-09 — Release-build warning cleanup
+- **The release build is cleaner now**: The remaining Kuro-side archive warnings were removed from auth, realtime subscriptions, Genre Hub sizing, horizontal rail sizing, and the provider-availability/adaptation-ladder test suites.
+- **What still warns is Xcode, not Kuro**: The only warning left during build/test is Xcode's App Intents metadata tool saying the app does not depend on `AppIntents.framework`.
+- **TestFlight build 12 uploaded cleanly**: `fastlane beta` archived and uploaded build `12`, and the earlier Kuro code warnings no longer appeared in the archive log.
