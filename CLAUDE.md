@@ -1,6 +1,6 @@
 # CLAUDE.md — Kuro Project Rules & Context
 
-**Last synced: 2026-03-07** | **This file is mandatory reading. Every rule is binding.**
+**Last synced: 2026-03-10** | **This file is mandatory reading. Every rule is binding.**
 
 ---
 
@@ -24,6 +24,12 @@ After every change, update `~/.claude/projects/-Applications-Kuro/memory/MEMORY.
 
 This is **mandatory, not optional**. The memory file is how future sessions get instant context.
 
+Documentation hierarchy reference:
+- `CURRENT_APP_STATE.md` = technical current-state authority
+- `CURRENT_APP_STATE_PLAIN.md` = plain-English current-state authority
+- `docs/documentation-surface-map.md` = keep/trim/archive map for all major Markdown surfaces
+- `archive/README.md` = historical-doc disclaimer for archived material
+
 ### Rule 3: Read before writing
 Never propose changes to code you haven't read. Always read the file first. Understand existing patterns before modifying.
 
@@ -39,6 +45,8 @@ Kuro is a curated anime + manga iOS app. It lets users browse premium editorial 
 Latest notable shipped addition: Adaptation Ladder v1 is live (`media_relations` migration applied, AniList relation import deployed in `bulk-import-anime`/`bulk-import-manga`, and detail-page `ADAPTATION PATH` UI shipped). Initial production coverage was seeded with a controlled relation backfill and will expand as normal imports continue.
 
 Current release-build status: Kuro-side archive warnings from `SupabaseService`, `GenreHubView`, `KuroRefinedCard`, and `KuroTests` were cleaned on 2026-03-09; the only remaining build/test warning is Xcode's App Intents metadata tool noting that no `AppIntents.framework` dependency is present.
+
+Runtime cleanup status: remaining delayed main-queue UI resets in `ContentView`, `Cards`, and `ConciergeInputField` were moved to cancellable task-based timing on 2026-03-10 so dismissed views no longer keep fire-and-forget `DispatchQueue.main.asyncAfter` callbacks alive.
 
 **Tech stack (exact):**
 - **Frontend**: iOS SwiftUI, `@Observable` pattern (NOT Combine — never use `ObservableObject`, `@Published`, `sink`, `assign`)
@@ -289,7 +297,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `SupabaseModels.swift` — all Supabase data models
 - `DiscoverBundle.swift` — discover bundle response model
 
-### Supabase — 145 migration files in repo, 15 deployed edge functions (as of 2026-03-04)
+### Supabase — 153 migration files in repo, 15 deployed edge functions (as of 2026-03-10)
 
 **Edge functions (15):**
 - `concierge-parse` — deterministic NLP parser, title candidate search

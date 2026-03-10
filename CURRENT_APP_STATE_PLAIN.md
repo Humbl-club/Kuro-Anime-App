@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-07
+**Last updated:** 2026-03-10
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -17,7 +17,7 @@ Every time the app changes (design, features, backend, data, schedules, etc.), t
 For the technical “source of truth” and auto-generated inventories, see `CURRENT_APP_STATE.md`.
 
 If you need the *literal code* in one place for another model to read, see:
-- `CURRENT_APP_STATE_CODEBASE.md` (auto-generated; very large)
+- `archive/CURRENT_APP_STATE_CODEBASE.md` (auto-generated; very large)
 
 ---
 
@@ -347,7 +347,7 @@ flowchart TB
 
 If you need the full table/column-level definition, use:
 - `CURRENT_APP_STATE.md` (schema + object maps)
-- `CURRENT_APP_STATE_CODEBASE.md` (all migrations included)
+- `archive/CURRENT_APP_STATE_CODEBASE.md` (all migrations included)
 
 ---
 
@@ -806,3 +806,14 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **The release build is cleaner now**: The remaining Kuro-side archive warnings were removed from auth, realtime subscriptions, Genre Hub sizing, horizontal rail sizing, and the provider-availability/adaptation-ladder test suites.
 - **What still warns is Xcode, not Kuro**: The only warning left during build/test is Xcode's App Intents metadata tool saying the app does not depend on `AppIntents.framework`.
 - **TestFlight build 12 uploaded cleanly**: `fastlane beta` archived and uploaded build `12`, and the earlier Kuro code warnings no longer appeared in the archive log.
+
+### 2026-03-10 — Runtime cleanup outside release builds
+- **More UI timing code now uses cancellable tasks instead of delayed main-queue callbacks**: Launch dismissal, Concierge deep-link prompt clearing, header title cleanup, quick-action card resets, and Concierge intent-indicator animations now use `Task.sleep(...)`-based cleanup instead of fire-and-forget `DispatchQueue.main.asyncAfter`.
+- **This reduces stale state updates after views disappear**: The affected views now cancel their pending resets on disappear instead of letting delayed closures fire against old UI state.
+- **Build and tests still pass**: The app still builds and the unit tests still pass; the only remaining warning is the same Xcode App Intents tool note.
+
+### 2026-03-10 — Documentation cleanup
+- **17 stale root-level docs archived** into `archive/` — root now has exactly 7 MD files.
+- **Inventory counts fixed**: CLAUDE.md, auto-inventory, and KNOWLEDGE/PART-00 now all agree on 68 Swift files and 153 migrations.
+- **Cross-references updated**: all paths to archived files now point to `archive/`; quality gate script updated.
+- **The doc hierarchy is now explicit**: `docs/documentation-surface-map.md` now says which docs are current authority, which are reference-only, and which are historical; `archive/README.md` explains that archived docs are for context, not current truth.

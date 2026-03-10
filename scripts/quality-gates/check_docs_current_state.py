@@ -10,7 +10,10 @@ MIGRATION_COUNT = len(list((ROOT / "supabase" / "migrations").glob("*.sql")))
 CURRENT_APP_STATE = (ROOT / "CURRENT_APP_STATE.md").read_text()
 CURRENT_APP_STATE_PLAIN = (ROOT / "CURRENT_APP_STATE_PLAIN.md").read_text()
 CLAUDE = (ROOT / "CLAUDE.md").read_text()
-SQL_REPORT = (ROOT / "SQL_COMPATIBILITY_REPORT.md").read_text()
+SQL_REPORT = (ROOT / "archive" / "SQL_COMPATIBILITY_REPORT.md").read_text()
+KNOWLEDGE_INDEX = (ROOT / "KNOWLEDGE" / "INDEX.md").read_text()
+DOC_MAP = ROOT / "docs" / "documentation-surface-map.md"
+ARCHIVE_README = ROOT / "archive" / "README.md"
 
 checks = [
     (
@@ -38,6 +41,11 @@ checks = [
         "**Status:** Historical point-in-time report, not a current whole-repo compatibility guarantee.",
         SQL_REPORT,
     ),
+    (
+        "KNOWLEDGE intentional overlap note",
+        "> **Design note:** This directory is intentionally self-contained for LLM",
+        KNOWLEDGE_INDEX,
+    ),
 ]
 
 failures = []
@@ -47,6 +55,12 @@ for label, needle, haystack in checks:
 
 if re.search(r"### iOS app — 67 Swift files in `Kuro/`", CLAUDE):
     failures.append("CLAUDE still contains stale 67-file count")
+
+if not DOC_MAP.exists():
+    failures.append("docs/documentation-surface-map.md is missing")
+
+if not ARCHIVE_README.exists():
+    failures.append("archive/README.md is missing")
 
 if failures:
     print("FAIL")

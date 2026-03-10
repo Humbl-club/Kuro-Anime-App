@@ -2,7 +2,7 @@ PART-00 File Map (Exhaustive)
 =============================
 
 Scope
-- Lists every repository file path (excluding build/ artifacts) grouped by category, with key file line counts and purposes. For source files, see also APPENDIX_SYMBOL_INDEX.md for type/function anchors.
+- High-level repository file map grouped by category, with key file purposes and the most important surfaces called out explicitly. For source-level anchors, use APPENDIX_SYMBOL_INDEX.md.
 
 Top-Level
 - SQL migrations and functions source
@@ -24,50 +24,120 @@ Top-Level
   - KNOWLEDGE/PART-04_APP_ARCHITECTURE.md
   - KNOWLEDGE/PART-05_API_AND_DATAFLOW.md
   - KNOWLEDGE/PART-06_PRODUCTION_TODO.md
-  - KURO_CLOUD_KNOWLEDGE.md — Prior knowledge doc.
-  - KURO_CLOUD_KNOWLEDGE_ADDENDUM.md — Prior addendum.
-  - COMPLETE_APP_DOCUMENTATION.md — Large prior doc.
-  - DESIGN_UPDATE_OCT_8_2025.md, DISCOVER_SECTIONS_UPDATE.md, DOCUMENTATION_INDEX.md, NAVIGATION_DESIGN_LOCKED.md, SLEEK_REDESIGN_COMPLETE.md, SMART_LAYOUT_REFACTOR.md, SOPHISTICATED_DISCOVER_DESIGN.md — Design docs.
+  - KNOWLEDGE/PART-07_FUNCTIONALITY_DEEP_DIVES.md
   - SCHEDULES.md — Cron payloads for imports/mirroring.
+  - archive/ — 17 historical design docs and superseded knowledge bases (moved 2026-03-10).
 
-- App (Swift)
-  - Kuro/KuroApp.swift (20 lines) — App entry.
-  - Kuro/Design/KuroDesignSystem.swift (512) — Spacing/typography/layout constants.
-  - Kuro/Models/SupabaseModels.swift (403) — Codable models (Anime/Manga/Episode/UserList/etc.).
-  - Kuro/Services/AppConfig.swift (31) — Reads SUPABASE_URL/ANON_KEY from Info.plist/env.
-  - Kuro/Services/SupabaseService.swift (744) — Supabase client/service: paging/search/sections/lists.
-  - Kuro/ContentView.swift (1836) — Root composition and multiple view sections/components.
-  - Kuro/Views/... — Feature views and UI components:
-    - BrowseView.swift (338)
-    - Cards.swift (598)
-    - Collection/CollectionManagementView.swift (586)
-    - CountdownTimer.swift (80)
-    - DetailPages/AnimeDetailView.swift (522); MangaDetailView.swift (408)
-    - DiscoverView.swift (539); DiscoverViewModel.swift (96)
-    - EditorialCards.swift (394)
-    - EditorialCollectionView.swift (547)
-    - EditorialDiscoverView.swift (689)
-    - EditorialSearchView.swift (462)
-    - SearchView.swift (183); SearchViewModel.swift (80)
-    - SettingsView.swift (199); UIComponents.swift (80)
-  - PosterView.swift (101) — Poster renderer.
+- App (Swift) — 68 files in `Kuro/`
+
+  Entry points:
+  - Kuro/KuroApp.swift — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
+  - Kuro/ContentView.swift — 5-page swipe pager, header (KURO wordmark / section title / search + profile), deep link sheet presentation
+
+  Services (11 files):
+  - Kuro/Services/SupabaseService.swift — core data layer, RPC calls, caching, auth bootstrap, `fmService`, `withRetry` helper
+  - Kuro/Services/AppleFMService.swift — on-device FM (4 capabilities, FMProvider protocol, StubFMProvider fallback)
+  - Kuro/Services/AppConfig.swift — reads SUPABASE_URL/ANON_KEY from Info.plist/env
+  - Kuro/Services/NetworkMonitor.swift — NWPathMonitor connectivity, `isConnected`, offline banner
+  - Kuro/Services/FeatureFlags.swift — server-controlled flags, UserDefaults cache, stable hash rollout
+  - Kuro/Services/DeepLinkRouter.swift — `enum DeepLink`, `kuro://` URL parsing
+  - Kuro/Services/ConciergeAnalytics.swift — concierge + club interaction telemetry
+  - Kuro/Services/TextNormalization.swift — search/parsing text utilities
+  - Kuro/Services/ImagePipeline.swift — NSCache (~80MB) + URLCache disk cache, downsampling, request dedup
+  - Kuro/Services/KuroDiskDetailCache.swift — on-disk detail page cache
+  - Kuro/Services/KuroPerf.swift — performance measurement utilities
+  - Kuro/Services/SupabaseRPCParams.swift — RPC parameter structs
+
+  Concierge UI (10 files):
+  - Kuro/Views/ConciergeView.swift — main concierge view controller
+  - Kuro/Views/ConciergeEditorialShell.swift — editorial shell wrapper
+  - Kuro/Views/ConciergeComponents.swift — shared components + curated copy layer (EN/DE mode titles)
+  - Kuro/Views/ConciergeInputField.swift — text input field
+  - Kuro/Views/ConciergeComposerDock.swift — input composer dock
+  - Kuro/Views/ConciergeActionFooter.swift — action footer bar
+  - Kuro/Views/ConciergeIntentDeck.swift — quick-action intent cards
+  - Kuro/Views/ConciergeImportCards.swift — import preview/confirm cards
+  - Kuro/Views/ConciergeRecommendationRails.swift — recommendation rail rendering
+  - Kuro/Views/ConciergeResponseStage.swift — response stage rendering
+
+  Views (remaining):
+  - Kuro/Views/EditorialDiscoverView.swift — Discover page
+  - Kuro/Views/BrowseView.swift — Browse page (full-page, not a sheet)
+  - Kuro/Views/EditorialCollectionView.swift — Collection page
+  - Kuro/Views/ClubsView.swift — Clubs list page (enriched cards, unread dots)
+  - Kuro/Views/ClubDetailView.swift — Club detail (3-tab: Rails/This Week/Polls)
+  - Kuro/Views/ClubCreateSheets.swift — Create/join club sheets
+  - Kuro/Views/EditorialSearchView.swift — Search sheet
+  - Kuro/Views/OnboardingView.swift — First-launch onboarding
+  - Kuro/Views/ProfileView.swift — Profile menu (includes Clubs secondary access)
+  - Kuro/Views/AuthView.swift — Authentication
+  - Kuro/Views/DetailPages/AnimeDetailView.swift — Anime detail page
+  - Kuro/Views/DetailPages/MangaDetailView.swift — Manga detail page
+  - Kuro/Views/DetailPages/MediaDetailSheet.swift — Shared media detail sheet
+  - Kuro/Views/DetailPages/ClubActivitySection.swift — Club activity on detail pages
+  - Kuro/Views/DetailPages/FriendsActivitySection.swift — Friend activity on detail pages
+  - Kuro/Views/DetailPages/ExternalLinksSection.swift — External links section
+  - Kuro/Views/DetailPages/CastSection.swift — Characters section on detail pages
+  - Kuro/Views/DetailPages/CreditsSection.swift — Staff/studios/authors on detail pages
+  - Kuro/Views/DetailPages/EntityDetailSheets.swift — Character/staff/studio/author detail sheets
+  - Kuro/Views/DetailPages/AdaptationPathSection.swift — Adaptation ladder on detail pages
+  - Kuro/Views/KuroRefinedCard.swift — Portrait + Compact card components
+  - Kuro/Views/KuroCardText.swift — Card text rendering
+  - Kuro/Views/KuroGlass.swift — Glass morphism effects
+  - Kuro/Views/KuroCachedAsyncImage.swift — Cached async image loader
+  - Kuro/Views/KuroToast.swift — Toast notifications
+  - Kuro/Views/KuroTransientBanner.swift — Transient banners
+  - Kuro/Views/KuroConciergeMark.swift — Concierge mark/logo
+  - Kuro/Views/KuroInteractionEnvironment.swift — Interaction environment values
+  - Kuro/Views/KuroLoadMoreSentinel.swift — Infinite scroll sentinel
+  - Kuro/Views/KuroPagingGesture.swift — Paging gesture handler
+  - Kuro/Views/KuroDeliberateTap.swift — Deliberate tap gesture
+  - Kuro/Views/KuroGestureCoordinator.swift — Gesture coordination
+  - Kuro/Views/KuroGesturePolicy.swift — Gesture policy constants
+  - Kuro/Views/EditorialCards.swift — Editorial card components
+  - Kuro/Views/Cards.swift — Shared card components
+  - Kuro/Views/UIComponents.swift — Miscellaneous UI components
+  - Kuro/Views/GenreHubView.swift — Genre hub view
+  - Kuro/Views/CountdownTimer.swift — Countdown timer component
+  - Kuro/Views/AddToListSheet.swift — Add/edit list entry sheet
+  - Kuro/Views/DiscoverViewModel.swift — Discover view model (legacy)
+
+  Design (2 files):
+  - Kuro/Design/KuroDesignSystem.swift — colors, typography, spacing, radii, animations
+  - Kuro/Design/Color+Hex.swift — hex color utility
+
+  Models (2 files):
+  - Kuro/Models/SupabaseModels.swift — all Supabase data models
+  - Kuro/Models/DiscoverBundle.swift — discover bundle response model
 
 - Tests
-  - KuroTests/KuroTests.swift (33) — Basic tests (no Firebase usage).
-  - KuroUITests/KuroUITests.swift (41), KuroUITestsLaunchTests.swift (33) — UI tests stubs.
+  - KuroTests/KuroTests.swift — Unit tests (CreditRole, ImportIntent, etc.)
+  - KuroUITests/KuroUITests.swift — UI tests
+  - KuroUITests/KuroUITestsLaunchTests.swift — Launch tests
 
-- Supabase Edge Functions (TypeScript)
-  - supabase/functions/bulk-import-anime/index.ts — Anime importer.
-  - supabase/functions/bulk-import-manga/index.ts — Manga importer.
-  - supabase/functions/mirror-images/index.ts — Image mirroring to Storage.
+- Supabase Edge Functions (15 deployed):
+  - supabase/functions/concierge-parse/index.ts — deterministic NLP parser, title candidate search
+  - supabase/functions/concierge-recommend/index.ts — deterministic recommendations + optional Groq narration (~1800 lines)
+  - supabase/functions/concierge-apply/index.ts — apply parsed items to user lists
+  - supabase/functions/concierge-resolve/index.ts — LLM disambiguation for ambiguous titles
+  - supabase/functions/concierge-undo/index.ts — rollback last import session
+  - supabase/functions/concierge-retrieve-assist/index.ts — RAG retrieval assist
+  - supabase/functions/concierge-retrieve-feedback/index.ts — RAG feedback collection
+  - supabase/functions/concierge-import-anilist/index.ts — AniList import helper
+  - supabase/functions/bulk-import-anime/index.ts — bulk anime catalog import (requires IMPORT_SECRET)
+  - supabase/functions/bulk-import-manga/index.ts — bulk manga catalog import (requires IMPORT_SECRET)
+  - supabase/functions/mirror-images/index.ts — mirror external images to Storage CDN
+  - supabase/functions/manga-chapter-enrich/index.ts — MangaDex chapter enrichment + mapping/match pipeline
+  - supabase/functions/manga-source-review-action/index.ts — approve/reject unresolved mappings and optionally trigger re-enrich
+  - supabase/functions/delete-account/index.ts — GDPR account deletion
+  - supabase/functions/auth-callback/index.ts — email verification fallback redirect page (verify_jwt: false)
 
 - Xcode project
   - Kuro.xcodeproj/project.pbxproj — Build settings.
-  - Kuro.xcodeproj/... — Workspace and scheme files; placeholder Firebase plist.
+  - Kuro.xcodeproj/... — Workspace and scheme files.
 
 - Misc
   - database_export.json — Sample export.
   - node_modules/** — Third-party JS deps for local scripts; not part of iOS runtime.
 
 Note: Build outputs under build/ are excluded from this map (ephemeral artifacts).
-

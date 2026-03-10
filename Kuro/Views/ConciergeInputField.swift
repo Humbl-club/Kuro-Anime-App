@@ -280,6 +280,7 @@ struct IntentIndicator: View {
     
     @State private var rotation: Double = 0
     @State private var scale: CGFloat = 1
+    @State private var transitionResetTask: Task<Void, Never>? = nil
     
     var body: some View {
         Group {
@@ -294,6 +295,10 @@ struct IntentIndicator: View {
         }
         .onChange(of: intent) { _, _ in
             animateTransition()
+        }
+        .onDisappear {
+            transitionResetTask?.cancel()
+            transitionResetTask = nil
         }
     }
     
@@ -337,7 +342,10 @@ struct IntentIndicator: View {
             scale = 1.06
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+        transitionResetTask?.cancel()
+        transitionResetTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 120_000_000)
+            guard !Task.isCancelled else { return }
             withAnimation(.easeIn(duration: 0.12)) {
                 scale = 1.0
             }
@@ -823,7 +831,7 @@ private struct KuroGrowingTextView: UIViewRepresentable {
             uiView.becomeFirstResponder()
         }
 
-        DispatchQueue.main.async {
+        Task { @MainActor in
             context.coordinator.updateHeight(uiView)
         }
     }

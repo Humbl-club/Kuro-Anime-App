@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-07
+**Last updated:** 2026-03-10
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -102,20 +102,20 @@ This file is a **contract**. It must be updated **after every single change** to
 - `Info.plist` — custom URL scheme registration (`kuro://`). Lives at project root (NOT `Kuro/Info.plist` — that causes duplicate resource errors). `GENERATE_INFOPLIST_FILE = YES` + `INFOPLIST_FILE = Info.plist` in both Debug+Release build configs.
 - `.mcp.json` — MCP server config: Supabase (HTTP) + Resend (`@resend/mcp` via npx, API key in env)
 - `CLAUDE.md` — mandatory project rules + full context for new sessions
-- `BROWSE_REFINED_SUMMARY.md`, `MASTER_PLAN.md`, `COMPLETE_APP_DOCUMENTATION.md` — historical docs
+- `MASTER_PLAN.md` — architectural north star (historical docs moved to `archive/`)
 
 <!-- BEGIN AUTO-INVENTORY -->
 
 ## 2.1) Auto-generated inventory (exhaustive file lists)
 
-Generated: **2026-02-24T14:58:21.741Z**  (git: `6cc354a` on `main`)
+Generated: **2026-03-10T11:21:20.038Z**  (git: `f289d03` on `main`)
 
 This section is auto-generated. Rebuild it after any repo change:
 ```bash
 node scripts/generate_app_state_inventory.js
 ```
 
-### iOS (Swift) files (count: 64)
+### iOS (Swift) files (count: 68)
 - `Kuro/ContentView.swift`
 - `Kuro/Design/Color+Hex.swift`
 - `Kuro/Design/KuroDesignSystem.swift`
@@ -152,10 +152,14 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/ConciergeResponseStage.swift`
 - `Kuro/Views/ConciergeView.swift`
 - `Kuro/Views/CountdownTimer.swift`
+- `Kuro/Views/DetailPages/AdaptationPathSection.swift`
 - `Kuro/Views/DetailPages/AnimeDetailView.swift`
+- `Kuro/Views/DetailPages/CastSection.swift`
 - `Kuro/Views/DetailPages/ClubActivitySection.swift`
-- `Kuro/Views/DetailPages/FriendsActivitySection.swift`
+- `Kuro/Views/DetailPages/CreditsSection.swift`
+- `Kuro/Views/DetailPages/EntityDetailSheets.swift`
 - `Kuro/Views/DetailPages/ExternalLinksSection.swift`
+- `Kuro/Views/DetailPages/FriendsActivitySection.swift`
 - `Kuro/Views/DetailPages/MangaDetailView.swift`
 - `Kuro/Views/DetailPages/MediaDetailSheet.swift`
 - `Kuro/Views/DiscoverViewModel.swift`
@@ -181,7 +185,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/ProfileView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 144)
+### Supabase migrations (count: 153)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql`
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -327,6 +331,14 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260225100000_check_email_exists_rpc.sql`
 - `supabase/migrations/20260301100000_streaming_availability_v1.sql`
 - `supabase/migrations/20260301153000_streaming_availability_country_lang_v1.sql`
+- `supabase/migrations/20260304100000_credits_cast_v1_flag.sql`
+- `supabase/migrations/20260305151500_fix_delete_user_concierge_data_uuid_compare.sql`
+- `supabase/migrations/20260305153000_fix_delete_user_concierge_data_import_sessions_and_coverage.sql`
+- `supabase/migrations/20260305162000_cleanup_db_lint_warnings.sql`
+- `supabase/migrations/20260306113000_provider_availability_note_contract.sql`
+- `supabase/migrations/20260307120000_media_relations_ladder_v1.sql`
+- `supabase/migrations/20260307150000_adaptation_ladder_v2_editorial_context.sql`
+- `supabase/migrations/20260307163000_fix_adaptation_ladder_entry_point.sql`
 
 ### Supabase Edge Functions (index.ts) (count: 15)
 - `supabase/functions/auth-callback/index.ts`
@@ -371,18 +383,18 @@ node scripts/generate_app_state_inventory.js
 - `scripts/genre_audit.js`
 - `scripts/import_anilist_fast.js`
 - `scripts/import_anilist_local.js`
+- `scripts/lib/project_config.js`
 - `scripts/load_test_concierge.js`
+- `scripts/media_relations_worker.js`
+- `scripts/provider_availability_dashboard_server.js`
 - `scripts/quality-gates/router_test_cases.js`
 - `scripts/report_airing_window.js`
 - `scripts/run_full_import.js`
 - `scripts/run_manga_chapter_crunch.js`
-- `scripts/run_provider_availability.sh`
 - `scripts/smoke_concierge_recommend.js`
 - `scripts/smoke_magic_parse_apply.js`
-- `scripts/install_provider_availability_launchd.sh`
-- `scripts/provider_availability_dashboard_server.js`
-- `scripts/provider_availability_worker.swift`
 - `scripts/synopsis_dashboard_server.js`
+- `scripts/unified_local_dashboard_server.js`
 
 
 <!-- END AUTO-INVENTORY -->
@@ -5008,7 +5020,7 @@ node scripts/generate_app_state_live_snapshot.js
 
 This appendix inlines the **exact current source** for the most important runtime components so another LLM can reason from ground truth without opening the repo.
 
-For a complete (very large) source bundle, see: `CURRENT_APP_STATE_CODEBASE.md` (auto-generated).
+For a complete (very large) source bundle, see: `archive/CURRENT_APP_STATE_CODEBASE.md` (auto-generated).
 
 Rebuild:
 ```bash
@@ -16087,3 +16099,34 @@ Totals: 0 new Swift files, 8 modified Swift files, 3 new scripts, 1 new migratio
 - `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build` now emits no Kuro code warnings; the only remaining warning is Xcode's `appintentsmetadataprocessor` note that no AppIntents framework dependency exists.
 - `xcodebuild -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' test -only-testing:KuroTests` still passes with the same tool-only AppIntents warning.
 - `fastlane beta` successfully archived and uploaded build `12` to TestFlight; the archive log no longer includes the earlier Kuro code warnings.
+
+### 2026-03-10 — Runtime cleanup outside the release path
+
+**Task-based UI timing cleanup:**
+- `ContentView.swift` now replaces remaining `DispatchQueue.main.asyncAfter` usage with cancellable `Task.sleep(...)` flows for launch dismissal, pending Concierge deep-link prompt clearing, and header title-window cleanup.
+- `Cards.swift` now uses cancellable task-based resets for quick-action animations and long-press action dismissal, avoiding delayed state mutations after the card has already disappeared.
+- `ConciergeInputField.swift` now uses task-based intent-indicator resets and a main-actor task for UITextView height measurement instead of queue hopping.
+
+**Validation:**
+- `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build` still succeeds with only the Xcode AppIntents metadata tool warning.
+- `xcodebuild -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.2' test -only-testing:KuroTests` still succeeds with the same tool-only warning.
+
+### 2026-03-10 — Documentation cleanup: archive stale docs, fix inventory counts
+
+**Archived 17 stale root-level docs:**
+- Moved to `archive/`: DESIGN_UPDATE_OCT_8_2025.md, DISCOVER_SECTIONS_UPDATE.md, SLEEK_REDESIGN_COMPLETE.md, SMART_LAYOUT_REFACTOR.md, SOPHISTICATED_DISCOVER_DESIGN.md, NAVIGATION_DESIGN_LOCKED.md, KURO_CLOUD_KNOWLEDGE.md, KURO_CLOUD_KNOWLEDGE_ADDENDUM.md, COMPLETE_APP_DOCUMENTATION.md, CURRENT_APP_STATE_CODEBASE.md, DOCUMENTATION_INDEX.md, DEPLOY_COUNTDOWN_NOW.md, SESSION_SUMMARY.md, SQL_COMPATIBILITY_REPORT.md, SQL_DEPLOYMENT_GUIDE.md, BROWSE_REFINED_SUMMARY.md, higgs_field_animation_brief.md
+- Root now has exactly 7 MD files: CLAUDE.md, CURRENT_APP_STATE.md, CURRENT_APP_STATE_PLAIN.md, IMPLEMENTATION_PLAN_Variation1.md, MASTER_PLAN.md, REPRODUCE.md, SCHEDULES.md
+
+**Fixed conflicting inventory numbers:**
+- CLAUDE.md line 294: 145 → 153 migrations (as of 2026-03-10)
+- CURRENT_APP_STATE.md auto-inventory block: regenerated via `node scripts/generate_app_state_inventory.js` — now shows 68 Swift files, 153 migrations
+- KNOWLEDGE/PART-00_FILE_MAP.md: fully rewritten with current 68 Swift files (was missing CastSection, CreditsSection, EntityDetailSheets, AdaptationPathSection) and all 15 edge functions (was listing only 3)
+
+**Cross-reference updates:**
+- CURRENT_APP_STATE.md line 105: updated to reference `archive/` for historical docs
+- CURRENT_APP_STATE.md source bundle reference → `archive/CURRENT_APP_STATE_CODEBASE.md`
+- CURRENT_APP_STATE_PLAIN.md: both `CURRENT_APP_STATE_CODEBASE.md` references → `archive/` path
+- `scripts/quality-gates/check_docs_current_state.py` line 13: SQL report path → `archive/`
+- KNOWLEDGE/INDEX.md: added design-note blockquote about intentional overlap with CURRENT_APP_STATE.md
+- Added `/docs/documentation-surface-map.md` to define the keep/trim/archive policy for Markdown surfaces
+- Added `archive/README.md` so archived docs are explicitly marked historical instead of just moved out of the root

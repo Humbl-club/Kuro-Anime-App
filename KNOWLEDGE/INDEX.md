@@ -1,6 +1,10 @@
 Kuro Knowledge Directory
 ========================
 
+> **Design note:** This directory is intentionally self-contained for LLM
+> context loading. It may overlap with `CURRENT_APP_STATE.md` by design so
+> either surface can be loaded independently.
+
 Purpose
 - One-stop, LLM-friendly knowledge base for the entire app: architecture, code map, backend schema/edge functions, dataflows, and production tasks.
 - Updated continuously whenever code changes. See update rules in PART-02.

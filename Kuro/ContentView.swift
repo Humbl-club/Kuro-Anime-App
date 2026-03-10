@@ -33,16 +33,24 @@ struct ContentView: View {
 struct KuroRootView: View {
     @Binding var pendingDeepLink: DeepLink?
     @State private var showLaunch = true
+    @State private var launchDismissTask: Task<Void, Never>? = nil
 
     var body: some View {
         if showLaunch {
             KuroLaunchView()
                 .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    launchDismissTask?.cancel()
+                    launchDismissTask = Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 1_000_000_000)
+                        guard !Task.isCancelled else { return }
                         withAnimation(.easeInOut(duration: 0.6)) {
                             showLaunch = false
                         }
                     }
+                }
+                .onDisappear {
+                    launchDismissTask?.cancel()
+                    launchDismissTask = nil
                 }
         } else {
             KuroMainView(pendingDeepLink: $pendingDeepLink)
@@ -124,6 +132,7 @@ struct KuroMainView: View {
     @State private var deepLinkMangaId: Int? = nil
     @State private var deepLinkClubId: String? = nil
     @State private var pendingConciergePrompt: String? = nil
+    @State private var pendingPromptClearTask: Task<Void, Never>? = nil
 	// Five-page discovery funnel: Concierge ← [Discover] → Browse → Collection → Clubs
     private let swipeOrder: [Section] = [.concierge, .discover, .browse, .collection, .clubs]
     private let swipeThreshold: CGFloat = 40
@@ -411,7 +420,10 @@ struct KuroMainView: View {
             mountedSections.insert(.concierge)
             pendingConciergePrompt = prompt
             // Clear after next runloop so ConciergeView can consume it once
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            pendingPromptClearTask?.cancel()
+            pendingPromptClearTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                guard !Task.isCancelled else { return }
                 pendingConciergePrompt = nil
             }
         case .authCallback:
@@ -499,6 +511,7 @@ struct KuroHeaderNew: View {
     @State private var isForwardTransition = true
     @State private var titleProgress: CGFloat = 1.0
     @State private var titleTextWidth: CGFloat = 92
+    @State private var previousSectionCleanupTask: Task<Void, Never>? = nil
 
     private var currentTitle: String { selection.title }
     private var canSwipeLeft: Bool {
@@ -706,7 +719,10 @@ struct KuroHeaderNew: View {
                 }
 
                 // Clear previous after animation; avoids unnecessary layout work.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                previousSectionCleanupTask?.cancel()
+                previousSectionCleanupTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                    guard !Task.isCancelled else { return }
                     if displayedSection == newValue {
                         previousSection = nil
                         withAnimation(.easeOut(duration: 0.12)) {
@@ -714,6 +730,10 @@ struct KuroHeaderNew: View {
                         }
                     }
                 }
+            }
+            .onDisappear {
+                previousSectionCleanupTask?.cancel()
+                previousSectionCleanupTask = nil
             }
 
             // Subtle divider

@@ -109,6 +109,7 @@ struct QuickActionBar: View {
     let onAdd: () -> Void
     
     @State private var isAnimating = false
+    @State private var animationResetTask: Task<Void, Never>? = nil
     
     var body: some View {
         HStack(spacing: 16) {
@@ -124,7 +125,10 @@ struct QuickActionBar: View {
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                animationResetTask?.cancel()
+                animationResetTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 300_000_000)
+                    guard !Task.isCancelled else { return }
                     isAnimating = false
                 }
             }) {
@@ -167,6 +171,10 @@ struct QuickActionBar: View {
                         .strokeBorder(Color.white.opacity(0.3), lineWidth: 0.5)
                 )
         )
+        .onDisappear {
+            animationResetTask?.cancel()
+            animationResetTask = nil
+        }
     }
 }
 
@@ -395,6 +403,8 @@ struct SharedHorizontalAnimeCard: View {
     @State private var didLongPress = false
     @State private var isFavorited = false
     @State private var isInList = false
+    @State private var hideActionsTask: Task<Void, Never>? = nil
+    @State private var longPressResetTask: Task<Void, Never>? = nil
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     
@@ -571,6 +581,8 @@ struct SharedHorizontalAnimeCard: View {
         }
         .onLongPressGesture(minimumDuration: 0.5, maximumDistance: .infinity, pressing: { pressing in
             if pressing {
+                hideActionsTask?.cancel()
+                longPressResetTask?.cancel()
                 isPressed = true
                 withAnimation(.easeInOut(duration: 0.2)) {
                     showActions = true
@@ -580,13 +592,19 @@ struct SharedHorizontalAnimeCard: View {
                 impactFeedback.impactOccurred()
             } else {
                 isPressed = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                hideActionsTask?.cancel()
+                hideActionsTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    guard !Task.isCancelled else { return }
                     withAnimation(.easeInOut(duration: 0.2)) {
                         showActions = false
                     }
                 }
                 // Release long-press suppression after the interaction settles.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                longPressResetTask?.cancel()
+                longPressResetTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 250_000_000)
+                    guard !Task.isCancelled else { return }
                     didLongPress = false
                 }
             }
@@ -594,6 +612,12 @@ struct SharedHorizontalAnimeCard: View {
         .onAppear {
             isInList = supabaseService.isInCollection(anime.id)
             isFavorited = supabaseService.isFavorited(anime.id)
+        }
+        .onDisappear {
+            hideActionsTask?.cancel()
+            hideActionsTask = nil
+            longPressResetTask?.cancel()
+            longPressResetTask = nil
         }
     }
     
