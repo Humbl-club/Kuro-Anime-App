@@ -986,6 +986,21 @@ enum CreditRole: Int, CaseIterable {
         default: return nil
         }
     }
+
+    var editorialPrefix: String {
+        switch self {
+        case .director: return "Directed by"
+        case .originalCreator: return "Story by"
+        case .seriesComposition: return "Series composition by"
+        case .music: return "Music by"
+        case .characterDesign: return "Character design by"
+        case .script: return "Script by"
+        case .storyboard: return "Storyboard by"
+        case .animationDirector: return "Animation direction by"
+        case .artDirector: return "Art direction by"
+        case .soundDirector: return "Sound direction by"
+        }
+    }
 }
 
 // MARK: - Provider Availability Models
@@ -1169,6 +1184,7 @@ struct MediaLadderItem: Decodable, Identifiable, Sendable {
     let format: String?
     let rating: Double?
     let reasonLabel: String?
+    let sourceAuthorName: String?
 
     var id: String { "\(mediaType)-\(mediaId)" }
 
@@ -1181,6 +1197,7 @@ struct MediaLadderItem: Decodable, Identifiable, Sendable {
         case format
         case rating
         case reasonLabel = "reason_label"
+        case sourceAuthorName = "source_author_name"
     }
 
     func toMedia() -> Media {
@@ -1223,6 +1240,8 @@ struct MediaLadderResponse: Decodable, Sendable {
     let primaryAdaptation: MediaLadderItem?
     let franchiseNote: String?
     let coverageStatus: MediaLadderCoverageStatus?
+    let totalFranchiseCount: Int?
+    let alternateAdaptationSummary: String?
 
     static let empty = MediaLadderResponse(
         sourceMaterial: [],
@@ -1236,7 +1255,9 @@ struct MediaLadderResponse: Decodable, Sendable {
         primarySource: nil,
         primaryAdaptation: nil,
         franchiseNote: nil,
-        coverageStatus: nil
+        coverageStatus: nil,
+        totalFranchiseCount: nil,
+        alternateAdaptationSummary: nil
     )
 
     var hasContent: Bool {
@@ -1265,5 +1286,7 @@ struct MediaLadderResponse: Decodable, Sendable {
         case primaryAdaptation = "primary_adaptation"
         case franchiseNote = "franchise_note"
         case coverageStatus = "coverage_status"
+        case totalFranchiseCount = "total_franchise_count"
+        case alternateAdaptationSummary = "alternate_adaptation_summary"
     }
 }

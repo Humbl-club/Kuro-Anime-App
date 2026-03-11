@@ -1,55 +1,14 @@
 import SwiftUI
 
-// MARK: - Studio Section (anime only)
+// MARK: - Production Section (anime — merged studios + credits)
 
-struct StudioSection: View {
+struct ProductionSection: View {
     let studios: [Studio]
-
-    @State private var selectedStudio: Studio?
-
-    var body: some View {
-        if !studios.isEmpty {
-            VStack(alignment: .leading, spacing: KuroSpacing.sm) {
-                Text("STUDIO")
-                    .font(.kuroCaption(weight: .semibold))
-                    .tracking(1.6)
-                    .foregroundColor(.kuroBlack80)
-
-                ForEach(studios, id: \.id) { studio in
-                    Button {
-                        selectedStudio = studio
-                    } label: {
-                        HStack(spacing: 8) {
-                            Text((studio.name ?? "Unknown").uppercased())
-                                .font(.kuroTitle())
-                                .foregroundColor(.kuroBlack80)
-
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.kuroTextTertiary)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Studio: \(studio.name ?? "Unknown")")
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .sheet(item: $selectedStudio) { studio in
-                StudioDetailSheet(studio: studio)
-            }
-        }
-    }
-}
-
-// MARK: - Credits Section (anime only — curated roles)
-
-struct CreditsSection: View {
     let staffItems: [(staff: Staff, role: String)]
 
-    @State private var showAllCredits = false
+    @State private var selectedStudio: Studio?
     @State private var selectedStaff: Staff?
+    @State private var showAllCredits = false
 
     private var curatedCredits: [(staff: Staff, role: CreditRole, rawRole: String)] {
         var seen = Set<Int>()
@@ -66,34 +25,43 @@ struct CreditsSection: View {
 
     var body: some View {
         let curated = curatedCredits
-        if !curated.isEmpty {
+        let hasContent = !studios.isEmpty || !curated.isEmpty
+        if hasContent {
             VStack(alignment: .leading, spacing: KuroSpacing.md) {
-                Text("CREDITS")
+                Text("PRODUCTION")
                     .font(.kuroCaption(weight: .semibold))
                     .tracking(1.6)
                     .foregroundColor(.kuroBlack80)
+                    .accessibilityAddTraits(.isHeader)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(curated.prefix(5), id: \.staff.id) { item in
-                        Button {
-                            selectedStaff = item.staff
-                        } label: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(item.rawRole.uppercased())
-                                    .font(.kuroMicro(weight: .regular))
-                                    .tracking(1.2)
-                                    .foregroundColor(.kuroTextSecondary)
-
-                                Text((item.staff.nameFull ?? "Unknown"))
-                                    .font(.kuroBody())
-                                    .foregroundColor(.kuroBlack80)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
+                // Studios as inline tappable text with interpuncts
+                if !studios.isEmpty {
+                    ProductionStudiosLine(studios: studios, selectedStudio: $selectedStudio)
                 }
 
-                if staffItems.count > curated.count || curated.count > 5 {
+                // Credits as editorial bylines (show top 2)
+                ForEach(curated.prefix(2), id: \.staff.id) { item in
+                    Button {
+                        selectedStaff = item.staff
+                    } label: {
+                        HStack(spacing: 0) {
+                            Text("\(item.role.editorialPrefix) ")
+                                .font(.kuroCaption(weight: .regular))
+                                .tracking(0.4)
+                                .foregroundColor(.kuroTextSecondary)
+
+                            Text((item.staff.nameFull ?? "Unknown").uppercased())
+                                .font(.kuroBody(weight: .medium))
+                                .tracking(0.3)
+                                .foregroundColor(.kuroBlack80)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("\(item.role.editorialPrefix) \(item.staff.nameFull ?? "Unknown")")
+                }
+
+                // ALL CREDITS capsule
+                if staffItems.count > curated.count || curated.count > 2 {
                     Button {
                         showAllCredits = true
                     } label: {
@@ -111,54 +79,80 @@ struct CreditsSection: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .sheet(isPresented: $showAllCredits) {
-                AllCreditsSheet(staffItems: staffItems)
+            .sheet(item: $selectedStudio) { studio in
+                StudioDetailSheet(studio: studio)
             }
             .sheet(item: $selectedStaff) { staff in
                 StaffDetailSheet(staff: staff)
+            }
+            .sheet(isPresented: $showAllCredits) {
+                AllCreditsSheet(staffItems: staffItems)
             }
         }
     }
 }
 
-// MARK: - Authors Section (manga only — "CREATED BY")
+// MARK: - Inline Studio Names with Interpuncts
 
-struct AuthorsSection: View {
+private struct ProductionStudiosLine: View {
+    let studios: [Studio]
+    @Binding var selectedStudio: Studio?
+
+    var body: some View {
+        FlowLayout(spacing: 0) {
+            ForEach(Array(studios.enumerated()), id: \.element.id) { index, studio in
+                HStack(spacing: 0) {
+                    if index > 0 {
+                        Text(" \u{00B7} ")
+                            .font(.kuroBody(weight: .regular))
+                            .foregroundColor(.kuroTextTertiary)
+                    }
+                    Button {
+                        selectedStudio = studio
+                    } label: {
+                        Text((studio.name ?? "Unknown").uppercased())
+                            .font(.kuroBody(weight: .light))
+                            .foregroundColor(.kuroBlack80)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Manga Production Section (authors as editorial bylines)
+
+struct MangaProductionSection: View {
     let authorItems: [(author: Author, role: String)]
 
     @State private var selectedAuthor: Author?
 
     var body: some View {
         if !authorItems.isEmpty {
-            VStack(alignment: .leading, spacing: KuroSpacing.sm) {
-                Text("CREATED BY")
+            VStack(alignment: .leading, spacing: KuroSpacing.md) {
+                Text("PRODUCTION")
                     .font(.kuroCaption(weight: .semibold))
                     .tracking(1.6)
                     .foregroundColor(.kuroBlack80)
+                    .accessibilityAddTraits(.isHeader)
 
                 ForEach(authorItems, id: \.author.id) { item in
                     Button {
                         selectedAuthor = item.author
                     } label: {
-                        HStack(spacing: 8) {
-                            HStack(spacing: 6) {
-                                Text((item.author.nameFull ?? "Unknown").uppercased())
-                                    .font(.kuroTitle())
-                                    .foregroundColor(.kuroBlack80)
-
-                                if !item.role.isEmpty {
-                                    Text("— \(item.role.uppercased())")
-                                        .font(.kuroMicro(weight: .light))
-                                        .tracking(0.8)
-                                        .foregroundColor(.kuroTextSecondary)
-                                }
+                        HStack(spacing: 0) {
+                            if !item.role.isEmpty {
+                                Text("\(item.role.capitalized) by ")
+                                    .font(.kuroCaption(weight: .regular))
+                                    .tracking(0.4)
+                                    .foregroundColor(.kuroTextSecondary)
                             }
 
-                            Spacer(minLength: 0)
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(.kuroTextTertiary)
+                            Text((item.author.nameFull ?? "Unknown").uppercased())
+                                .font(.kuroBody(weight: .medium))
+                                .tracking(0.3)
+                                .foregroundColor(.kuroBlack80)
                         }
                     }
                     .buttonStyle(.plain)

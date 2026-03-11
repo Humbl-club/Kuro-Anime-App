@@ -72,22 +72,16 @@ struct AnimeDetailView: View {
                         }
 
                         if FeatureFlags.shared.isCreditsCastV1Enabled {
-                            if !studios.isEmpty {
-                                StudioSection(studios: studios)
-                            }
-
-                            if !staffItems.isEmpty {
-                                CreditsSection(staffItems: staffItems)
-                            }
-
                             if !castItems.isEmpty {
                                 CastSection(characters: castItems, containerWidth: geometry.size.width)
                             }
+
+                            if !studios.isEmpty || !staffItems.isEmpty {
+                                ProductionSection(studios: studios, staffItems: staffItems)
+                            }
                         }
 
-                        if mediaLadder.hasContent {
-                            AdaptationPathSection(ladder: mediaLadder)
-                        }
+                        AdaptationPathSection(ladder: mediaLadder, mediaType: .anime)
 
                         // Episodes Section (if available)
                         if let episodeCount = anime.episodeCount ?? anime.nextEpisodeNumber.map({ max(0, $0 - 1) }), episodeCount > 0 {

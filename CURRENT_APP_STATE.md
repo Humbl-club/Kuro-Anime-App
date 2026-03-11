@@ -1,10 +1,10 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-10
+**Last updated:** 2026-03-11
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 68 app Swift files in `/Kuro`; 153 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 68 app Swift files in `/Kuro`; 154 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -185,7 +185,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/ProfileView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 153)
+### Supabase migrations (count: 154)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql`
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -339,6 +339,7 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260307120000_media_relations_ladder_v1.sql`
 - `supabase/migrations/20260307150000_adaptation_ladder_v2_editorial_context.sql`
 - `supabase/migrations/20260307163000_fix_adaptation_ladder_entry_point.sql`
+- `supabase/migrations/20260311100000_ladder_source_author.sql`
 
 ### Supabase Edge Functions (index.ts) (count: 15)
 - `supabase/functions/auth-callback/index.ts`
@@ -549,7 +550,7 @@ node scripts/generate_app_state_inventory.js
 ### Clubs
 - 5th page in the swipe pager (rightmost).
 - `ClubsView`: joined club list, empty state with create/join prompts, pull-to-refresh. No `NavigationStack` wrapper (bare view inside pager); club detail opens as a sheet. **Accessibility**: `.accessibilityLabel` on empty state ("No clubs yet...") and club cards (name + member count).
-- `ClubDetailView`: 3-tab layout (Rails / This Week / Polls), settings sheet for owner/admin. Chat tab removed in favor of social activity layer. Each rail has a "+" button (for unlocked rails or owner/admin on locked rails) that opens `AddItemToRailSheet` — server-side search via `search_anime_page`/`search_manga_page` RPCs with debounced input, compact result rows, typed `PostgrestError` handling for duplicates/lock/membership errors. **Reaction rows**: items with existing reactions show full `ClubReactionRow` (4 emoji capsules); items with no reactions show `ClubReactionRowCompact` (single smiley icon that expands to full row on tap).
+- `ClubDetailView`: **Journal editorial design** — blurred 2x2 poster mosaic hero (220pt) with grain texture overlay, gradient fades, serif italic club name, member avatar row, and sharing-level pill. Custom underline tab bar (RAILS / ACTIVE / POLLS) with `matchedGeometryEffect` animation replaces segmented Picker. Scroll-based status bar transitions from transparent (over hero) to white with club name. **Rails tab**: curator's notes in serif italic above each rail, 120x170pt poster cards with progress text and member-watching labels, editorial dividers between rails. **Activity tab**: journal-style prose entries synthesized from `member_statuses` across all rail items, grouped by date with serif italic day headers, pace banners, pull-quote milestone cards. **Polls tab**: conversational framing ("S ASKED:"), serif italic questions, percentage fill bars with voted-dot indicators. **Glass bottom bar**: `.ultraThinMaterial` capsule pill (48pt) with ADD/INVITE/POLL buttons, role-gated (non-admins see only INVITE). Settings sheet for owner/admin. Each rail has a "+" button (for unlocked rails or owner/admin on locked rails) that opens `AddItemToRailSheet` — server-side search via `search_anime_page`/`search_manga_page` RPCs with debounced input, compact result rows, typed `PostgrestError` handling for duplicates/lock/membership errors. **Reaction rows**: items with existing reactions show full `ClubReactionRow` (4 emoji capsules, width 120); items with no reactions show `ClubReactionRowCompact` (single smiley icon that expands to full row on tap). All business logic (data fetching, voting, reactions, Realtime subscriptions, sheets) preserved from pre-Journal implementation.
 - `ClubActivitySection`: embedded on `AnimeDetailView` and `MangaDetailView` — shows which clubs have this title in a rail, aggregate member status counts, and (if sharing level allows) per-member details. Member identity uses stable 6-char UUID hex prefix (not positional "Member N"). `AddToClubRailSheet` is public (used by card context menus for "Add to Club..." action).
 - `ClubActivitySection`: now renders explicit member watch/read progress language (tracking, completed, planning, paused, dropped, not-started) and does not use placeholder status labels when per-member detail is unavailable.
 - `FriendsActivitySection`: embedded on `AnimeDetailView` and `MangaDetailView` (after ClubActivitySection). Shows friend tracking count pills, title comments with thumbs up/down reactions, and a comment input field. Gated by `social_activity_v1` feature flag. "Friends" are users who share at least one club with the viewer.
@@ -15853,14 +15854,14 @@ Totals: 0 new files, 2 modified Swift files. 64 Swift files, 144 migrations.
 
 **New files (3 Swift + 1 migration):**
 - `Kuro/Views/DetailPages/CastSection.swift` — CastSection horizontal portrait rail + CastCircleItem (64pt circles, MAIN badge, sorted MAIN > SUPPORTING, BACKGROUND excluded)
-- `Kuro/Views/DetailPages/CreditsSection.swift` — StudioSection (anime), CreditsSection (anime, curated 5-role text), AuthorsSection (manga "CREATED BY"), AllCreditsSheet
+- `Kuro/Views/DetailPages/CreditsSection.swift` — ProductionSection (anime: inline tappable studios + editorial credit bylines), MangaProductionSection (manga: editorial author bylines), AllCreditsSheet
 - `Kuro/Views/DetailPages/EntityDetailSheets.swift` — CharacterDetailSheet, StaffDetailSheet, AuthorDetailSheet, StudioDetailSheet, EntitySortMode, EntityWorksRail, EntityHeroSection, EntityWorkCard
 - `supabase/migrations/20260304100000_credits_cast_v1_flag.sql` — `credits_cast_v1` feature flag at 100%
 
 **SupabaseModels.swift — 4 entity models + join wrappers + DTOs + CreditRole:**
 - `Character`, `Staff`, `Studio`, `Author` structs with explicit CodingKeys
 - 5 forward join wrappers, 2 lightweight DTOs (`AnimeWorkRow`, `MangaWorkRow`), 5 reverse join wrappers
-- `CreditRole` enum (10 cases, `from(raw:)` normalization, priority by rawValue)
+- `CreditRole` enum (10 cases, `from(raw:)` normalization, priority by rawValue, `editorialPrefix` computed property for byline rendering)
 
 **SupabaseService.swift — 5 inline caches + 4 entity-sheet caches + 9 fetch methods:**
 - All sheet fetches filter `isAdult` + genre-based exclusion
@@ -15868,8 +15869,8 @@ Totals: 0 new files, 2 modified Swift files. 64 Swift files, 144 migrations.
 
 **AnimeDetailView.swift / MangaDetailView.swift:**
 - Parallel entity fetches gated by `isCreditsCastV1Enabled`
-- Anime: StudioSection → CreditsSection → CastSection after Tags
-- Manga: AuthorsSection → CastSection after Tags
+- Anime: CastSection → ProductionSection (studios as inline tappable interpunct text + editorial credit bylines, top 2 + ALL CREDITS capsule) after Tags
+- Manga: CastSection → MangaProductionSection (editorial author bylines) after Tags
 
 **FeatureFlags.swift:** `isCreditsCastV1Enabled` accessor
 **AuthView.swift / TextNormalization.swift:** `Swift.Character` qualification to avoid name collision
@@ -16130,3 +16131,112 @@ Totals: 0 new Swift files, 8 modified Swift files, 3 new scripts, 1 new migratio
 - KNOWLEDGE/INDEX.md: added design-note blockquote about intentional overlap with CURRENT_APP_STATE.md
 - Added `/docs/documentation-surface-map.md` to define the keep/trim/archive policy for Markdown surfaces
 - Added `archive/README.md` so archived docs are explicitly marked historical instead of just moved out of the root
+
+### 2026-03-10 — Detail page redesign HTML mockup
+
+**New file:** `mockups/detail-page-redesign.html` — self-contained browser mockup (839 lines) for proposed detail page layout changes.
+
+**Mockup contents:**
+- **Page 1 — Anime Detail Page** in a 393×852 iPhone frame: hero, meta line, genre/sub-genre pills, cast circles (64px), **merged PRODUCTION section** (studios as inline tappable interpunct-separated text + credits as editorial bylines e.g. "Directed by HIROSHI KOUJINA", top 2 + ALL CREDITS capsule), **episode breakdown bar** (canon/filler/mixed ratio with legend), synopsis with READ MORE, more-like-this poster rail.
+- **Page 2 — AddToList Sheet** *(superseded by Concept A "The Editorial Spread" — see 2026-03-11 entry)*: originally showed media preview card + 2×3 status grid + star rating. Now redesigned as full-bleed poster hero with gradient overlay, horizontal capsule status pills, 44pt serif score with dot indicators, centered progress with ± buttons, pull-quote notes field, and pinned save dock.
+
+**Design tokens used:** All CSS custom properties match `KuroDesignSystem` exactly (monochrome palette, serif/sans font stack, 8px spacing grid, radius scale, type scale from micro 9px to hero 64px).
+
+Totals: 1 new file (`mockups/detail-page-redesign.html`), 0 modified Swift files, 0 new migrations. 68 Swift files, 153 migrations.
+
+### 2026-03-10 — Detail Page Declutter (PRODUCTION merge + score labels)
+- Merged Studios + Credits into single PRODUCTION section on detail pages (~250px saved)
+- Section order: Cast → PRODUCTION (was: Studios → Credits → Cast)
+- Studios render as inline tappable interpunct-separated text
+- Credits render as editorial bylines (top 2 + ALL CREDITS drill-down)
+- Added `CreditRole.editorialPrefix` computed property
+- Manga: AuthorsSection → MangaProductionSection with same editorial byline format
+- AddToListSheet: curator's shorthand score labels (1=SKIP...10=CANON) below stars
+- Removed score guide table from AddToListSheet
+- Extracted ScoreSection subview to resolve SwiftUI type-checker timeout
+- Updated mockup: `mockups/detail-page-redesign.html` with new PRODUCTION layout + score labels
+
+### 2026-03-10 — Club detail page redesign mockup v2
+- Rewrote `mockups/club-page-redesign.html` with elevated editorial treatment for the club detail page
+- Clubs list page kept unchanged (mosaic cards already good)
+- Club detail page improvements:
+  - Cinematic hero header: blurred darkened poster mosaic (200px), bottom gradient, overlaid serif club name, member avatars, sharing-level pill
+  - Status bar goes transparent/white-text over hero, reverts on scroll past hero
+  - Watchlist tab: larger poster cards (120x170), serif italic titles, episode progress labels, "who's watching" text, reaction bounce animation, "+" add-reaction pill, magazine section dividers with thin rule lines
+  - Activity tab: poster thumbnails (36x52) on each activity entry, editorial group headers with thin rule, glass-morphism pace banner with catch-up CTA, full editorial milestone card with confetti dots, completion badge, serif italic quote, avatar row
+  - Polls tab: pull-quote treatment (40px rule above question), full-width tappable option cards with background fill, voter avatar stacks per option, pulsing active-poll dot
+  - Bottom bar: fixed glass-morphism bar with ADD/INVITE/SETTINGS replacing separate FAB + invite pill, inline search slides up from bar
+  - Tab content fade-in animation on switch
+- No Swift changes, no backend changes. Mockup only.
+
+### 2026-03-11 — AddToList Sheet — Editorial Redesign (Concept A: "The Editorial Spread")
+
+**Files modified**: `Kuro/Views/AddToListSheet.swift` (full body rewrite)
+**Files created**: `mockups/addtolist-concepts.html` (interactive browser mockup with 3 concepts)
+
+**What changed:**
+- Full-bleed poster hero with dark gradient overlay, title + metadata overlaid in white serif
+- Floating circular X dismiss button (replaces NavigationView Cancel toolbar)
+- Status selection: horizontal capsule pills via FlowLayout (replaces 2x3 icon grid, saves ~100px)
+- Score: 44pt serif number + curator label (SKIP->CANON) + 10 dot indicators (replaces 10 star rating)
+- Progress: 34pt serif centered number (tap to type-edit) + 2pt bar + +/- circle buttons (replaces Stepper)
+- Notes: pull-quote style with 2px left bar accent + serif placeholder "What would you tell a friend?" (replaces plain TextEditor with grey background)
+- Pinned save dock via `.safeAreaInset` with semi-transparent background (replaces inline button)
+- Numeric content transition animation on score number
+
+**What did NOT change (all business logic preserved):**
+- `saveToList()`, `removeFromList()` — exact same
+- Score scale: UI 1-10 -> DB 0-100 (`score * 10`)
+- `scoreLabel` computed property (SKIP->CANON)
+- Offline guard + error messaging
+- Pre-fill from existing entry via `.task(id:)`
+- Manga-specific labels (Reading/Rereading)
+- Progress auto-complete on COMPLETED
+
+**Subviews extracted (type-checker safety):**
+- `SpreadHeroSection`, `SpreadStatusRow`, `SpreadProgressSection`, `SpreadScoreSection`, `SpreadNotesSection`, `SpreadSaveDock` (all private)
+- Removed: `MediaPreview`, `StatusCard`, `ScoreSection` (old subviews)
+
+Totals: 1 new file (`mockups/addtolist-concepts.html`), 1 modified Swift file. 68 Swift files, 153 migrations.
+
+### 2026-03-11 — Club detail page stylistic variations (3 mockups)
+- Created 3 self-contained HTML mockups exploring different layout philosophies for the club detail page, all within Kuro's editorial design language:
+  - `mockups/club-redesign-gallery.html` — **Option A: The Gallery** — Maximum white space, full-bleed landscape posters in a vertical lookbook flow, single dramatic hero image, floating FAB, barely-there activity, pull-quote polls
+  - `mockups/club-redesign-broadsheet.html` — **Option B: The Broadsheet** — Dense 2-column portrait grid, typographic-only masthead (no hero image), newspaper-like activity feed with 2px dividers, ballot-style polls with radio circles, text-only toolbar
+  - `mockups/club-redesign-journal.html` — **Option C: The Journal** — Blurred mosaic hero with grain overlay and italic serif name, horizontal rails with curator's notes ("What we're watching right now"), prose-style journal activity entries with date headers, conversational polls ("S asked:"), glass pill bottom bar with WRITE action, invite overlay
+- All 3 share the same clubs list page (3 cards: Shonen Sundays, Studio Ghibli Marathon, Seinen Deep Cuts)
+- All interactive: tab switching with animated underline, screen navigation, toast notifications, press effects
+- Zero emoji, monochrome palette, Cormorant Garamond + system sans, all Kuro design tokens
+- No Swift changes, no backend changes. Mockups only.
+- Totals: 3 new files. 68 Swift files, 153 migrations (unchanged).
+
+### 2026-03-11 — Club detail page: Journal editorial redesign (Swift implementation)
+- Full visual rewrite of `ClubDetailView.swift` implementing Option C ("The Journal") from the HTML mockups.
+- **Hero section**: `JournalHeroSection` — blurred 2x2 poster mosaic from first 4 rail items, `.blur(radius: 20)` + `.scaleEffect(1.15)`, grain texture overlay, dual gradient fades, serif italic club name, member avatar row, sharing-level pill, parallax on scroll.
+- **Status bar**: `JournalStatusBar` — transparent over hero, transitions to white with club name on scroll past hero via `ClubScrollOffsetPreferenceKey` + `.coordinateSpace`.
+- **Tab bar**: `JournalTabBar` — custom HStack with `@Namespace` + `matchedGeometryEffect` underline animation, replaces segmented `Picker`.
+- **Rails tab**: `JournalRailsContent` / `JournalRailSection` / `JournalRailItemCard` — curator's notes in serif italic above each rail, 120x170pt poster cards (was 110x157), progress text ("EP 8 OF 24"), member-watching labels, editorial dividers between rails, dashed add-card.
+- **Activity tab**: `JournalActivityContent` / `JournalActivityEntry` — synthesizes entries from `member_statuses` across all rail items, groups by date with serif italic headers, prose-style text (bold name + action + italic title), `JournalPaceBanner` (behind pace banner), `JournalMilestoneCard` (pull-quote with decorative rules).
+- **Polls tab**: `JournalPollsContent` / `JournalPollCard` / `JournalPollOptionRow` — conversational framing ("S ASKED:"), serif italic questions, percentage fill bars (3pt), voted-dot indicator, dashed create-poll card ("ASK A QUESTION").
+- **Bottom bar**: `JournalBottomBar` — `.ultraThinMaterial` capsule pill (48pt), shadow from `KuroGlassCard` pattern, ADD/INVITE/POLL buttons with dividers, role-gated (non-admin sees only INVITE).
+- **Navigation**: Hidden system nav bar (`.toolbar(.hidden, for: .navigationBar)`), custom back/settings overlay buttons matching `AnimeDetailView` pattern.
+- **Preserved verbatim**: All business logic (`loadBundle`, `voteOnPoll`, `showToast`, `canAddToRail`, `handleMembershipLoss`, Realtime `.task`, `.refreshable`, all `.sheet` modifiers), `ClubReactionRow`/`Compact` (width 110->120), `AddItemToRailSheet`, `RailSearchResultRow`, `ClubSettingsSheet`.
+- **Removed**: `clubHeader()`, `clubContent()`, `railsTab()`, `thisWeekTab()`, `pollsTab()`, `ClubRailSection`, `ClubRailItemCard`, `ClubMilestoneCard`, `ClubPollCard`, `ClubPollOptionRow`, `ThisWeekRow`.
+- All feature flag gates preserved (`clubs_reactions_v1`, `clubs_pace_sync_v1`, `streaming_availability_v1`).
+- 0 new files, 0 backend changes, 0 new migrations. 68 Swift files, 153 migrations (unchanged).
+
+### 2026-03-11 — Adaptation Path: Editorial Footnote redesign
+- Full rewrite of `Kuro/Views/DetailPages/AdaptationPathSection.swift` — replaced card-based ladder UI with an editorial footnote design.
+- **New migration**: `supabase/migrations/20260311100000_ladder_source_author.sql` — modified `get_media_ladder` RPC to include `source_author_name` inside `primary_source` JSON (resolved via `manga_authors` -> `authors` join, prioritizing story roles), added `total_franchise_count` (integer) and `alternate_adaptation_summary` (text) at top level.
+- **Collapsed state (on detail page)**: "ADAPTATION PATH" section header, 26pt serif statement ("Based on the manga by {Author}" or "Adapted as {Title} ({year})"), 9pt micro metadata line (title, year, format, rating separated by interpuncts), thin 1px rule, editorial footnote prose in 14pt serif with tappable underlined inline links.
+- **Template logic**: Anime from manga/novel shows "Based on the {format} by {Author}" (falls back to "Based on {Title}" if no author). Manga with anime adaptation shows "Adapted as {Title} ({year})". Original anime with no source: section hidden entirely.
+- **Footnote prose**: Mentions alternate adaptations ("Also adapted as a 2003 television series") and franchise breadth ("The franchise includes 8 titles — see the full path"). Both are tappable — alternate opens that title's detail sheet, "see the full path" opens the franchise sheet.
+- **Expanded sheet (FranchisePathSheet)**: Full franchise tree grouped by category (Source, Adaptations, Prequels, Sequels, Side Stories, Spin-Offs) with tappable rows showing title, year, format, rating.
+- **Model changes in `SupabaseModels.swift`**: Added `sourceAuthorName: String?` to `MediaLadderItem` (CodingKey `source_author_name`). Added `totalFranchiseCount: Int?` and `alternateAdaptationSummary: String?` to `MediaLadderResponse` (CodingKeys `total_franchise_count`, `alternate_adaptation_summary`). Updated `static let empty` to include new fields as nil.
+- **Call site changes**: `AnimeDetailView.swift` and `MangaDetailView.swift` now pass `mediaType: .anime` / `mediaType: .manga` to `AdaptationPathSection`. The outer `if mediaLadder.hasContent` guard was removed — the section's internal `shouldShow` handles visibility.
+- **Subview extraction**: 8 private subviews (`FootnoteStatement`, `FootnoteMetadataLine`, `FootnoteProse`, `FootnoteProseContent`, `FranchisePathSheet`, `FranchisePathGroup`, `FranchisePathRow`, `WrappedTextFlow`) to avoid SwiftUI type-checker timeouts.
+- **MediaLadderItem**: Added `Hashable` conformance (in `AdaptationPathSection.swift` extension) for `sheet(item:)` presentation.
+- **Old structs removed**: `AdaptationPathRowModel`, `EditorialLadderCard`, `AdaptationPathRow`, `KuroCompactCard` posters.
+- **Mockup**: `mockups/adaptation-path-concepts.html` created during design phase (3 options; user picked Option 3: Editorial Footnote).
+- Build: `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build` -> `BUILD SUCCEEDED`.
+- 0 new Swift files, 1 new migration. 68 Swift files, 154 migrations.

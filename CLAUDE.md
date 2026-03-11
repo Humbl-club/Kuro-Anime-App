@@ -286,7 +286,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `AuthView.swift` — Authentication
 - Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift`, `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `FriendsActivitySection.swift`, `ExternalLinksSection.swift`, `CastSection.swift`, `CreditsSection.swift`, `EntityDetailSheets.swift`
 - UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `EditorialCards.swift`, `Cards.swift`, `UIComponents.swift`, `GenreHubView.swift`, `CountdownTimer.swift`
-- Shared: `AddToListSheet.swift` — add/edit list entry sheet (used by cards + detail pages)
+- Shared: `AddToListSheet.swift` — editorial "spread" list sheet (full-bleed poster hero, capsule status pills, serif score + dots, pull-quote notes, pinned save dock)
 - Legacy/secondary: `DiscoverViewModel.swift`
 
 **Design (2 files):**
@@ -297,7 +297,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `SupabaseModels.swift` — all Supabase data models
 - `DiscoverBundle.swift` — discover bundle response model
 
-### Supabase — 153 migration files in repo, 15 deployed edge functions (as of 2026-03-10)
+### Supabase — 154 migration files in repo, 15 deployed edge functions (as of 2026-03-11)
 
 **Edge functions (15):**
 - `concierge-parse` — deterministic NLP parser, title candidate search

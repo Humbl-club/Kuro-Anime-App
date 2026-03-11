@@ -1,10 +1,10 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-10
+**Last updated:** 2026-03-11
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 68 app Swift files and 153 SQL migrations are in the repo today.
+**Current inventory:** 68 app Swift files and 154 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -709,8 +709,8 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Collection: empty state now has CTAs**: When your Collection is empty, you now see buttons to "EXPLORE DISCOVER" and "TRY THE CONCIERGE" instead of just a generic message.
 - **Collection: status summary row**: A compact row above the filters shows how many titles you have in each status (e.g., "12 WATCHING · 8 COMPLETED · 3 PLANNED").
 - **Collection: batch remove confirmation**: Removing multiple items from your collection now asks for confirmation first instead of deleting immediately.
-- **Score: tap to clear + bug fix**: Tapping the same star you already selected now clears your rating. Also fixed a bug where scores were being saved at 1/10th their value — if you gave something 5 stars, it would show as 0 next time you opened it.
-- **Progress: tap to type for long series**: For manga with 300+ chapters, you can now tap the progress number to type it directly instead of using the +/- stepper hundreds of times.
+- **Score: tap to clear + bug fix + descriptive labels**: Tapping the same score you already selected now clears your rating. Also fixed a bug where scores were being saved at 1/10th their value. The score picker shows a giant 44pt serif number with a curator label (SKIP, WEAK, FLAT, MEH, DECENT, GOOD, STANDOUT, MUST-SEE, BRILLIANT, or CANON) and dot indicators instead of stars. When no score is selected it shows "TAP TO RATE". The old score guide reference table has been removed since the inline label replaces it.
+- **Progress: tap to type for long series**: For manga with 300+ chapters, you can now tap the large centered progress number to type it directly instead of using ± buttons hundreds of times.
 - **Discover: context menus on all grid cards**: All 2-column grid sections on Discover now have long-press context menus (Quick Add, Edit List, Add to Club) — previously only some card types had them.
 - **Browse: result count**: Browse now shows "N RESULTS" above the content grid so you know how many titles matched your filters.
 - **Clubs: "THIS WEEK" tab renamed to "ACTIVE"**: Better reflects the actual content (recently active items, not just this week's).
@@ -732,8 +732,8 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Double-tap protection on add/remove**: Rapidly tapping the add-to-collection or favorite button no longer fires multiple network requests. The second tap is ignored while the first is still in progress.
 
 ### 2026-03-04 — Characters, Staff, Studios & Authors on Detail Pages
-- **Anime detail pages now show STUDIO, CREDITS, and CAST**: After genres/tags, you'll see the studio name(s) you can tap to browse their productions, a curated credits section showing director/original creator/series composition/music/character design, and a horizontal scrollable cast rail with circular character portraits.
-- **Manga detail pages now show CREATED BY and CAST**: Author name(s) with role (Story, Art, Story & Art) are displayed as tappable links, plus the same cast portrait rail as anime.
+- **Anime detail pages now show CAST and PRODUCTION**: After genres/tags, you'll see a horizontal scrollable cast rail with circular character portraits, followed by a single compact PRODUCTION section. Studios appear as an inline text line (e.g., "MADHOUSE · ANIPLEX · DENTSU") and credits appear as editorial bylines (e.g., "Directed by HIROSHI KOUJINA") showing the top 2 roles, with an ALL CREDITS button for the full list. This merged layout saves about 250 pixels of vertical space compared to the original separate Studios and Credits sections.
+- **Manga detail pages now show CAST and CREATED BY**: The same cast portrait rail as anime, plus author name(s) with role (Story, Art, Story & Art) displayed as tappable links.
 - **Tapping any person/studio opens a detail sheet**: Each sheet shows a hero section (portrait + name + metadata) and a sortable works rail (by RATING or YEAR). Staff/author sheets show the role per work. All works are adult-content-filtered.
 - **Feature flag**: `credits_cast_v1` at 100% — can be disabled via `--ff-off=credits_cast_v1` or by setting rollout to 0% in the database.
 - **No new backend work needed**: All data already exists in the database (imported hourly from AniList). Only iOS models and UI were added.
@@ -817,3 +817,62 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Inventory counts fixed**: CLAUDE.md, auto-inventory, and KNOWLEDGE/PART-00 now all agree on 68 Swift files and 153 migrations.
 - **Cross-references updated**: all paths to archived files now point to `archive/`; quality gate script updated.
 - **The doc hierarchy is now explicit**: `docs/documentation-surface-map.md` now says which docs are current authority, which are reference-only, and which are historical; `archive/README.md` explains that archived docs are for context, not current truth.
+
+### 2026-03-10 — Detail page redesign HTML mockup
+- **A browser mockup exists for detail page layout exploration**: `mockups/detail-page-redesign.html` shows two screens in iPhone frames — an anime detail page and an earlier AddToList concept. The mockup was used as a design reference; the implemented changes differ slightly from it (see "Detail Page Declutter" below). A separate side-by-side mockup of all three AddToList design concepts lives at `mockups/addtolist-concepts.html`.
+
+### 2026-03-10 — Detail Page Declutter
+- Merged Studios + Credits into single compact PRODUCTION section on detail pages
+- Studios now show as inline text with dots between names instead of big rows
+- Credits show as editorial bylines (e.g., "Directed by...") — top 2 visible, tap ALL CREDITS for more
+- Cast circles now appear before the production section
+- Score picker in Add to List now shows a giant serif number with curator label (SKIP through CANON) and dot indicators instead of stars
+- Score guide table removed — the inline label replaces it
+- (The Add to List sheet received a full editorial redesign shortly after — see March 11 entry below)
+
+### 2026-03-10 — Club detail page redesign mockup v2
+- Rewrote the club page mockup with a much more editorial, magazine-like detail page
+- Club list page stays the same (it was already good)
+- Detail page now has: cinematic hero banner with blurred poster collage and overlaid club name, larger poster cards in watchlists with serif italic titles and episode progress, activity entries with poster thumbnails, glass-morphism pace banner with catch-up button, dramatic milestone cards with confetti dots, polls with large serif questions and full-width option cards showing voter avatars, and a fixed bottom action bar replacing the old floating button
+- No code changes — mockup only (HTML file)
+
+### 2026-03-11 — AddToList Sheet — Editorial Redesign
+- The "add to list" sheet got a complete visual overhaul. Instead of the old form-like layout (small poster preview, 2-column status grid with icons, stepper for progress, star rating, plain text area), it now looks like a magazine spread:
+- **Big cinematic poster** fills the top of the sheet with the title overlaid in white
+- **Capsule pills** for status selection instead of icon grid cards
+- **Giant score number** (44pt serif) with curator label (SKIP through CANON) and dot indicators instead of stars
+- **Large centered progress number** with a thin bar and +/- buttons instead of a stepper
+- **Pull-quote style notes** with a left accent bar and the prompt "What would you tell a friend?" — because club members can see your comments
+- **Pinned save button** that stays at the bottom as you scroll
+- All the behind-the-scenes logic (saving, score scale conversion, offline handling, pre-filling existing entries) stayed exactly the same.
+- A side-by-side HTML mockup with all 3 design concepts was also created at `mockups/addtolist-concepts.html`.
+
+### 2026-03-11 — Club detail page: 3 stylistic variations (mockups)
+- Created 3 different design directions for the club detail page, all staying within Kuro's editorial language but exploring different layout philosophies:
+  - **Option A: "The Gallery"** (`mockups/club-redesign-gallery.html`) — Think fashion lookbook. One huge poster per title in a vertical scroll. Tons of white space. The activity section is barely there (just 4 lines). A single floating "+" button is the only UI chrome.
+  - **Option B: "The Broadsheet"** (`mockups/club-redesign-broadsheet.html`) — Think newspaper arts section. No hero image at all — just the club name in big serif type with a dateline. Titles in a dense 2-column grid. Activity as a compact newsroom feed. Polls as ballot-style tables with radio circles. A thin text-only toolbar at the bottom.
+  - **Option C: "The Journal"** (`mockups/club-redesign-journal.html`) — Think shared Moleskine. The blurred mosaic hero returns with a subtle film grain texture. Rails have curator's notes in italic ("What we're watching right now"). Activity reads like a diary — full sentences, date headers, personal language. Polls are framed as conversations ("S asked:"). Glass bottom bar adds a WRITE button.
+- All 3 share the same clubs list page and are fully interactive (tab switching, navigation, press effects).
+- No app or backend changes. Mockups only.
+
+### 2026-03-11 — Club detail page: Journal editorial redesign (Swift)
+- Option C ("The Journal") was selected as the best design and implemented in Swift, replacing the previous club detail page layout.
+- **What changed visually**:
+  - The old plain header (member count + sharing pill) is replaced by a **cinematic hero** — a blurred grid of poster images from the club's watchlist with the club name in elegant italic serif text, member avatars, and the privacy setting shown as a small pill.
+  - The old segmented picker tabs are replaced by a **custom tab bar** with an animated sliding underline.
+  - The **Rails tab** now has editorial curator's notes above each rail (italic text like "What we're watching right now"), bigger poster cards (120x170 instead of 110x157), and progress text like "EP 8 OF 24" plus who's watching.
+  - The **Activity tab** is completely redesigned as a **journal/diary**. Instead of simple rows, it shows prose-style entries grouped by date ("Tuesday, March 11") with sentences like "Max reached episode 12 of Attack on Titan". Pace banners and milestone cards appear inline.
+  - The **Polls tab** frames questions as conversations ("S ASKED:") with italic serif questions and fill-bar percentage indicators.
+  - A **floating glass pill** at the bottom replaces the old toolbar — it has ADD, INVITE, and POLL buttons. Regular members only see INVITE.
+  - The navigation bar is hidden, replaced by custom back/settings buttons that transition from white (over the dark hero) to black (when scrolled past the hero).
+- **What stayed the same**: All the behind-the-scenes logic — data loading, voting, reactions, real-time updates, all the popup sheets (settings, create rail, create poll, add item), feature flag gates, offline handling. Zero backend changes.
+
+### 2026-03-11 — Adaptation Path: Editorial Footnote redesign
+- The "Adaptation Path" section on anime and manga detail pages was completely redesigned from a card-based layout to an editorial footnote style.
+- **New migration**: A new migration (`20260311100000_ladder_source_author.sql`) updated the `get_media_ladder` RPC so it can now return the source author's name (resolved from the manga authors table, prioritizing story roles), the total number of titles in the franchise, and a text summary of alternate adaptations.
+- **What it looks like now**: Instead of showing compact poster cards for related titles, it now shows a big serif statement like "Based on the manga by Hiromu Arakawa" (tappable to open that source), a small metadata line underneath (title, year, format, rating), a thin rule, and then a prose footnote sentence like "Also adapted as a 2003 television series. The franchise includes 8 titles — see the full path." The underlined words are tappable links.
+- **For manga pages**: The statement reads "Adapted as {Anime Title} ({year})" instead.
+- **Full franchise sheet**: Tapping "see the full path" opens a sheet showing every title in the franchise grouped by category (Source, Adaptations, Sequels, Side Stories, Spin-Offs). Each row is tappable.
+- **When it's hidden**: If an anime has no source material (it's an original), the section doesn't appear at all.
+- **Old card-based layout removed**: The previous poster card rows (AdaptationPathRowModel, EditorialLadderCard, AdaptationPathRow) are gone, replaced by the footnote design.
+- No new Swift files. 1 new migration (154 total).

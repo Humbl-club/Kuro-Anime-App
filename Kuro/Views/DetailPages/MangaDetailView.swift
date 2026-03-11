@@ -71,18 +71,16 @@ struct MangaDetailView: View {
                         }
 
                         if FeatureFlags.shared.isCreditsCastV1Enabled {
-                            if !authorItems.isEmpty {
-                                AuthorsSection(authorItems: authorItems)
-                            }
-
                             if !castItems.isEmpty {
                                 CastSection(characters: castItems, containerWidth: geometry.size.width)
                             }
+
+                            if !authorItems.isEmpty {
+                                MangaProductionSection(authorItems: authorItems)
+                            }
                         }
 
-                        if mediaLadder.hasContent {
-                            AdaptationPathSection(ladder: mediaLadder)
-                        }
+                        AdaptationPathSection(ladder: mediaLadder, mediaType: .manga)
 
                         // Chapters Section (rows-first; count is optional)
                         ChaptersSection(manga: manga, chapterCount: manga.chapterCount, onError: showToast)
