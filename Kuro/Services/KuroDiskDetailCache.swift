@@ -3,6 +3,8 @@ import Foundation
 enum KuroDiskDetailCache {
     nonisolated private static let folderName = "kuro.detail.v1"
     nonisolated private static let maxFiles = 300
+    nonisolated private static let enforceLimitInterval: TimeInterval = 60
+    private static var lastEnforcedAt: Date?
 
     nonisolated private static func baseDir() -> URL? {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
@@ -38,11 +40,19 @@ enum KuroDiskDetailCache {
                 let data = try encoder.encode(value)
                 try data.write(to: url, options: [.atomic])
 
-                await enforceLimit()
+                await enforceLimitIfNeeded()
             } catch {
                 // Best-effort cache; ignore failures.
             }
         }.value
+    }
+
+    @MainActor private static func enforceLimitIfNeeded() async {
+        if let last = lastEnforcedAt, Date().timeIntervalSince(last) < enforceLimitInterval {
+            return
+        }
+        lastEnforcedAt = Date()
+        await enforceLimit()
     }
 
     nonisolated private static func enforceLimit() async {

@@ -20,6 +20,7 @@ actor ImagePipeline {
     private var inFlight: [URL: Task<UIImage?, Never>] = [:]
     private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Kuro", category: "image")
     private let maxPrefetchFanout = 12
+    private let maxInFlightCap = 40
     private let maxDecodePixelSize = 1200
     private let minDecodePixelSize = 180
 
@@ -35,6 +36,7 @@ actor ImagePipeline {
         let uniqueUrls = urls.filter { seen.insert($0).inserted }
         for url in uniqueUrls {
             if queued >= maxPrefetchFanout { break }
+            if inFlight.count >= maxInFlightCap { break }
             if memory.object(forKey: url as NSURL) != nil { continue }
             if inFlight[url] != nil { continue }
             let task = makeLoadTask(url: url, maxPixelSize: clampedPixelSize)

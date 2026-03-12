@@ -6,6 +6,7 @@ const ANILIST_API = 'https://graphql.anilist.co';
 const DEFAULT_DELAY_MS = 670; // ms
 const DEFAULT_PER_PAGE = 25;
 const DEFAULT_RETRIES = 3;
+const ITEM_BATCH_SIZE = 5;
 const SUPPORTED_MEDIA_RELATIONS = new Set(['SOURCE', 'ADAPTATION', 'PREQUEL', 'SEQUEL', 'SIDE_STORY', 'SPIN_OFF']);
 
 serve(async (req) => {
@@ -91,8 +92,11 @@ serve(async (req) => {
           lastProcessed = (useCursor && p === startPage) ? 0 : (p - 1);
           break outer;
         }
-        for (const item of anime) {
-          try { await processAnimeItem(supabase, item, results, includeRelations, includeEpisodes, forceRefresh); } catch (e) { console.error(e); results.errors++; }
+        for (let bi = 0; bi < anime.length; bi += ITEM_BATCH_SIZE) {
+          const chunk = anime.slice(bi, bi + ITEM_BATCH_SIZE);
+          await Promise.all(chunk.map(async (item: any) => {
+            try { await processAnimeItem(supabase, item, results, includeRelations, includeEpisodes, forceRefresh); } catch (e) { console.error(e); results.errors++; }
+          }));
         }
         lastProcessed = p; processedPages++;
         await sleep(delayMs);

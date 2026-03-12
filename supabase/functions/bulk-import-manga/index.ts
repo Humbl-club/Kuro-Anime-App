@@ -6,6 +6,7 @@ const ANILIST_API = 'https://graphql.anilist.co';
 const DEFAULT_DELAY_MS = 670; // ms
 const DEFAULT_PER_PAGE = 25;
 const DEFAULT_RETRIES = 3;
+const ITEM_BATCH_SIZE = 5;
 // AniList only gives chapter/volume counts for most manga, not per-row data.
 // Use conservative non-zero defaults so imports materialize useful placeholders
 // without exploding row count on long-running series.
@@ -93,23 +94,26 @@ serve(async (req) => {
         if (useCursor && page === startPage) lastProcessed = 0;
         break;
       }
-      for (const item of manga) {
-        try {
-          await processMangaItem(
-            supabase,
-            item,
-            results,
-            includeRelations,
-            includeChapters,
-            includeVolumes,
-            forceRefresh,
-            maxPlaceholderChapters,
-            maxPlaceholderVolumes
-          );
-        } catch (e) {
-          console.error(e);
-          results.errors++;
-        }
+      for (let bi = 0; bi < manga.length; bi += ITEM_BATCH_SIZE) {
+        const chunk = manga.slice(bi, bi + ITEM_BATCH_SIZE);
+        await Promise.all(chunk.map(async (item: any) => {
+          try {
+            await processMangaItem(
+              supabase,
+              item,
+              results,
+              includeRelations,
+              includeChapters,
+              includeVolumes,
+              forceRefresh,
+              maxPlaceholderChapters,
+              maxPlaceholderVolumes
+            );
+          } catch (e) {
+            console.error(e);
+            results.errors++;
+          }
+        }));
       }
       lastProcessed = page;
       processedPages++;

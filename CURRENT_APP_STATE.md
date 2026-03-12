@@ -16240,3 +16240,18 @@ Totals: 1 new file (`mockups/addtolist-concepts.html`), 1 modified Swift file. 6
 - **Mockup**: `mockups/adaptation-path-concepts.html` created during design phase (3 options; user picked Option 3: Editorial Footnote).
 - Build: `xcodebuild -scheme Kuro -destination 'generic/platform=iOS' build` -> `BUILD SUCCEEDED`.
 - 0 new Swift files, 1 new migration. 68 Swift files, 154 migrations.
+
+### 2026-03-12 — Bulk import parallel item processing
+
+Replaced sequential per-item processing in both bulk import edge functions with batched parallel processing (chunks of 5 via `Promise.all`).
+
+Files changed:
+- `supabase/functions/bulk-import-anime/index.ts`
+- `supabase/functions/bulk-import-manga/index.ts`
+
+Behavior change:
+- Previously, each AniList media item within a fetched page was processed sequentially (upsert + relations + episodes/chapters/tags/etc.), leading to 100+ sequential Supabase round-trips per page.
+- Now items are processed in chunks of 5 concurrently using `Promise.all()`. Each item still has its own try/catch so one failure does not affect the batch.
+- Added `ITEM_BATCH_SIZE = 5` constant to both functions.
+- All existing error handling, result counting, auth, response format, and page-level logic unchanged.
+- With `DEFAULT_PER_PAGE = 25`, each page now processes in 5 parallel rounds of 5 items instead of 25 sequential rounds.

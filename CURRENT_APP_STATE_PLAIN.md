@@ -876,3 +876,6 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **When it's hidden**: If an anime has no source material (it's an original), the section doesn't appear at all.
 - **Old card-based layout removed**: The previous poster card rows (AdaptationPathRowModel, EditorialLadderCard, AdaptationPathRow) are gone, replaced by the footnote design.
 - No new Swift files. 1 new migration (154 total).
+
+### 2026-03-12 — Bulk import speed improvement
+- Both the anime and manga bulk import functions now process items in parallel batches of 5 instead of one at a time. Previously, each anime or manga item on a page was imported sequentially (check if exists, upsert, then import studios/tags/characters/staff/relations one by one), causing 100+ back-to-back database calls per page. Now 5 items are processed at the same time, cutting the number of sequential rounds from 25 to 5 per page. If one item fails, it doesn't affect the others in the batch. No changes to what gets imported or how errors are reported.

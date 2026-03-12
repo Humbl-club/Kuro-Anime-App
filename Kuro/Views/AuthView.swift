@@ -262,6 +262,26 @@ struct AuthView: View {
             .foregroundColor(.kuroTextTertiary)
     }
 
+    // MARK: - Error mapping
+
+    private func friendlyAuthError(_ error: Error) -> String {
+        let raw = error.localizedDescription
+        #if DEBUG
+        print("[AuthView] raw auth error: \(raw)")
+        #endif
+        let lower = raw.lowercased()
+        if lower.contains("invalid login credentials") {
+            return "Incorrect email or password. Please try again."
+        } else if lower.contains("user already registered") {
+            return "An account with this email already exists. Try signing in instead."
+        } else if lower.contains("email not confirmed") {
+            return "Please check your email to verify your account."
+        } else if lower.contains("password should be at least") {
+            return "Password must be at least 6 characters."
+        }
+        return "Something went wrong. Please try again."
+    }
+
     // MARK: - Actions
 
     private func submit() async {
@@ -280,7 +300,7 @@ struct AuthView: View {
                 try await supabaseService.signUpWithEmail(email: e, password: p)
             }
         } catch {
-            errorText = supabaseService.authErrorMessage ?? error.localizedDescription
+            errorText = supabaseService.authErrorMessage ?? friendlyAuthError(error)
         }
     }
 
@@ -311,7 +331,7 @@ struct AuthView: View {
             }
             try await supabaseService.signInWithApple(idToken: idToken, rawNonce: rawNonce, fullName: fullName)
         } catch {
-            errorText = error.localizedDescription
+            errorText = friendlyAuthError(error)
         }
     }
 
@@ -344,7 +364,7 @@ struct AuthView: View {
             try await supabaseService.resetPassword(email: e)
             errorText = "Password reset email sent. Check your inbox."
         } catch {
-            errorText = error.localizedDescription
+            errorText = friendlyAuthError(error)
         }
     }
 

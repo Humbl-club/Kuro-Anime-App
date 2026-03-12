@@ -407,17 +407,8 @@ class SupabaseService {
     var hasMoreManga = true
     
     init() {
-        // Initialize Supabase client from configuration; fallback to embedded defaults to avoid breaking the app
-        let fallbackURL = URL(string: "https://bkdifromsqxkndnllmdj.supabase.co")!
-        // NOTE: keeping this hardcoded per current preference; move to Info.plist/env before shipping.
-        let fallbackKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZGlmcm9tc3F4a25kbmxsbWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTg2NjMsImV4cCI6MjA2ODE3NDY2M30.xWtSNgApX5jMZqdWJLjsqNlsXbwubFwW39Hs3x9hOoo"
-        let url = AppConfig.supabaseURL ?? fallbackURL
-        let key = AppConfig.supabaseAnonKey ?? fallbackKey
-
-        if AppConfig.supabaseURL == nil || AppConfig.supabaseAnonKey == nil {
-            #if DEBUG
-            print("⚠️ Using fallback Supabase config from code. Add SUPABASE_URL and SUPABASE_ANON_KEY to Info.plist or env.")
-            #endif
+        guard let url = AppConfig.supabaseURL, let key = AppConfig.supabaseAnonKey else {
+            fatalError("Missing SUPABASE_URL or SUPABASE_ANON_KEY in configuration")
         }
 
         client = SupabaseClient(
