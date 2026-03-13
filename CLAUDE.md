@@ -166,7 +166,7 @@ Default page on launch: **Discover** (index 1).
 - 5 RPCs: `upsert_title_comment`, `delete_title_comment`, `toggle_comment_reaction`, `fetch_friend_activity_for_title`, `count_friends_tracking`
 - Friend count indicators on cards (Portrait, Compact, Hero, SharedVertical, SharedHorizontal)
 - Batch prefetch of friend counts on Discover, Browse, Collection page loads
-- Feature flag: `social_activity_v1` at 0% rollout
+- Feature flag: `social_activity_v1` at 100% rollout
 - Rate limits: 10 comments/5min, 30 reactions/min
 
 ### On-device AI (Apple Foundation Models)
@@ -190,7 +190,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `clubs_reactions_v1` (100%) — emoji reactions
 - `clubs_pace_sync_v1` (100%) — pace tracking
 - `clubs_realtime_v1` (100%) — live updates
-- `social_activity_v1` (0%) — title-level friend comments + reactions
+- `social_activity_v1` (100%) — title-level friend comments + reactions
 - `clubs_notifications_v1` (100%) — in-app badges
 - `streaming_availability_v1` (0%) — where-to-watch/read provider filters and shared availability UI
 - `credits_cast_v1` (100%) — characters, staff, studios, authors on detail pages

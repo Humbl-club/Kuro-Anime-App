@@ -767,7 +767,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - RLS: comments visible only to users sharing a club with the author; reactions gated the same way
 - RPCs (5): `upsert_title_comment`, `delete_title_comment`, `toggle_comment_reaction`, `fetch_friend_activity_for_title`, `count_friends_tracking`
 - Rate limits: 10 comments per 5 minutes, 30 reactions per minute
-- Feature flag: `social_activity_v1` (0% rollout)
+- Feature flag: `social_activity_v1` (100% rollout)
 
 ### Ops / metrics
 - `concierge_metrics_hourly`
@@ -1738,7 +1738,7 @@ Backend (migration `20260224150000_social_activity_layer.sql`):
 - RLS: comments and reactions visible only to users who share a club with the author
 - 5 new RPCs: `upsert_title_comment`, `delete_title_comment`, `toggle_comment_reaction`, `fetch_friend_activity_for_title`, `count_friends_tracking`
 - Rate limits: 10 comments/5min, 30 reactions/min (via `rate_limit_buckets`)
-- Feature flag: `social_activity_v1` at 0% rollout
+- Feature flag: `social_activity_v1` at 100% rollout
 - Chat deprecation: `prune_club_messages` cron unscheduled, `clubs_chat_v1` flag disabled
 
 iOS models + service layer:
@@ -16330,3 +16330,16 @@ Files changed:
 - `scripts/quality-gates/test_ios_unit.sh` — concrete simulator + -only-testing
 - `KuroTests/KuroTests.swift` — ladder fixture sourceAuthorName
 - No new Swift files. 68 Swift files, 155 migrations.
+
+### 2026-03-13 — social_activity_v1 rollout to 100%
+
+Rolled `social_activity_v1` from 0% to 100% via `UPDATE feature_flags SET rollout_percentage = 100 WHERE flag_name = 'social_activity_v1'`.
+
+Code fix: Added `prefetchFriendCounts` calls to `BrowseView.fetchNextPage()` for both anime and manga pagination paths. Previously only the initial page load prefetched friend counts; page 2+ showed 0 until navigating away and back.
+
+Files changed:
+- `Kuro/Views/BrowseView.swift` — friend count prefetch on pagination
+- `CLAUDE.md` — flag 0% → 100%
+- `CURRENT_APP_STATE.md` — flag 0% → 100% (3 locations)
+- `CURRENT_APP_STATE_PLAIN.md` — flag 0% → 100%
+- No new files. 68 Swift files, 155 migrations.

@@ -468,6 +468,10 @@ struct BrowseView: View {
 
             let urls = page.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
+
+            if FeatureFlags.shared.isSocialActivityV1Enabled, !page.isEmpty {
+                supabaseService.prefetchFriendCounts(items: page.map { (mediaType: "ANIME", mediaId: $0.id) })
+            }
         } else {
             let page = await fetchMangaPage(cursorInt: mangaCursorInt, cursorDate: mangaCursorDate, cursorId: mangaCursorId)
             guard gen == reloadGeneration else { return }
@@ -479,6 +483,10 @@ struct BrowseView: View {
 
             let urls = page.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
+
+            if FeatureFlags.shared.isSocialActivityV1Enabled, !page.isEmpty {
+                supabaseService.prefetchFriendCounts(items: page.map { (mediaType: "MANGA", mediaId: $0.id) })
+            }
         }
     }
 
