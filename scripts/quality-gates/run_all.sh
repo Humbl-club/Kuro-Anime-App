@@ -13,11 +13,13 @@ declare -a GATES=(
   "rails-audit:audit_rails.sh:1"
   "docs-current-state:check_docs_current_state.sh:1"
   "ios-build:build_ios.sh:1"
+  "ios-test:test_ios_unit.sh:1"
 )
 
 # Optionally skip slow gates
 SKIP_IOS="${SKIP_IOS_BUILD:-0}"
 SKIP_RAILS="${SKIP_RAILS_AUDIT:-0}"
+SKIP_IOS_TEST="${SKIP_IOS_TEST:-0}"
 
 declare -a RESULTS=()
 TOTAL=0
@@ -44,6 +46,13 @@ for gate_def in "${GATES[@]}"; do
   fi
   if [[ "$name" == "rails-audit" && "$SKIP_RAILS" == "1" ]]; then
     echo "--- [$name] SKIPPED (SKIP_RAILS_AUDIT=1) ---"
+    echo ""
+    RESULTS+=("$name:SKIP")
+    SKIPPED=$((SKIPPED + 1))
+    continue
+  fi
+  if [[ "$name" == "ios-test" && "$SKIP_IOS_TEST" == "1" ]]; then
+    echo "--- [$name] SKIPPED (SKIP_IOS_TEST=1) ---"
     echo ""
     RESULTS+=("$name:SKIP")
     SKIPPED=$((SKIPPED + 1))

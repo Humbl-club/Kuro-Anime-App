@@ -54,25 +54,50 @@ final class FeatureFlags {
         self.userId = userId
         #if canImport(Supabase)
         guard let supabase = client as? SupabaseClient else { return }
-        do {
-            let records: [FlagRecord] = try await supabase
-                .from("feature_flags")
-                .select()
-                .execute()
-                .value
-            var newFlags: [String: FlagRecord] = [:]
-            for r in records { newFlags[r.flagName] = r }
-            flags = newFlags
-            lastFetchDate = Date()
-            saveToCache()
-            #if DEBUG
-            print("[FeatureFlags] refreshed \(records.count) flags")
-            #endif
-        } catch {
-            #if DEBUG
-            print("[FeatureFlags] refresh failed, using cache: \(error.localizedDescription)")
-            #endif
+        let retryDelays: [Duration] = [.seconds(10), .seconds(30), .seconds(60)]
+        var lastError: Error?
+
+        for attempt in 0...retryDelays.count {
+            do {
+                let records: [FlagRecord] = try await supabase
+                    .from("feature_flags")
+                    .select()
+                    .execute()
+                    .value
+                var newFlags: [String: FlagRecord] = [:]
+                for r in records { newFlags[r.flagName] = r }
+                flags = newFlags
+                lastFetchDate = Date()
+                saveToCache()
+                #if DEBUG
+                print("[FeatureFlags] refreshed \(records.count) flags")
+                #endif
+                return
+            } catch let error as URLError {
+                lastError = error
+                if attempt < retryDelays.count {
+                    #if DEBUG
+                    print("[FeatureFlags] retry \(attempt + 1)/\(retryDelays.count) after URLError \(error.code.rawValue)")
+                    #endif
+                    try? await Task.sleep(for: retryDelays[attempt])
+                }
+            } catch {
+                // Non-network error (decode, 4xx) — don't retry
+                #if DEBUG
+                print("[FeatureFlags] refresh failed (non-retryable), using cache: \(error.localizedDescription)")
+                #endif
+                return
+            }
         }
+
+        // All retries exhausted
+        #if DEBUG
+        if flags.isEmpty {
+            print("[FeatureFlags] all retries failed and no cache available")
+        } else {
+            print("[FeatureFlags] all retries failed, using \(flags.count) cached flags")
+        }
+        #endif
         #endif
     }
 

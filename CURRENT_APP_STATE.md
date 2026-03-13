@@ -4,7 +4,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 68 app Swift files in `/Kuro`; 154 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 68 app Swift files in `/Kuro`; 155 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -574,6 +574,8 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 - **Apple FM integration**: `fmService` property (`AppleFMService` instance) provides on-device classification, disambiguation, synopsis condensation, and NL collection search intent parsing.
 - **Retry logic**: `withRetry` static helper (exponential backoff, max 2 retries, URLError-only) wrapping 5 key call sites: `fetchMoreAnime`, `fetchMoreManga`, `fetchDiscoverBundle`, `conciergeParse`, `conciergeRecommend`.
 - **Debug logging**: all 64+ `print()` statements wrapped in `#if DEBUG`.
+- **Config error handling**: `init()` sets `configError` instead of `fatalError` when credentials are missing; UI gate in `KuroApp.RootView` prevents any code path from reaching uninitialized `client`.
+- **Memory pressure**: `trimCachesForMemoryPressure()` sheds all entity, detail, discover, and concierge caches plus `ImagePipeline` memory cache without touching user-facing state.
 
 <!-- BEGIN AUTO-IOS-MAP -->
 
@@ -1489,7 +1491,8 @@ Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in 
 3. **`test_router_offline.sh`** — Runs `router_test_cases.js` which tests `scoreMode()` / `mapStrongGenreToModeId()` logic offline (no network). Hard fail on test failure.
 4. **`audit_rails.sh`** — Wraps `scripts/audit_curated_rails_quality.js` (prefers env vars for Supabase credentials). Hard fail on: adult content, overlap > 40%, rail size > 100 or < 5, score below floor, franchise duplicates. Warning on: overlap > 15%, rail size near limits. Runs in both JSON and human-readable mode.
 5. **`build_ios.sh`** — Runs `xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build`. Hard fail on build error.
-6. **`run_all.sh`** — Orchestrator: runs all 5 gates, prints summary table, exits 1 if any blocking gate fails. Supports `SKIP_IOS_BUILD=1` and `SKIP_RAILS_AUDIT=1` env vars for faster runs.
+6. **`test_ios_unit.sh`** — Runs `xcodebuild test` on the Kuro scheme (iPhone 17 Pro simulator primary, generic fallback). Hard fail on test failure.
+7. **`run_all.sh`** — Orchestrator: runs all gates, prints summary table, exits 1 if any blocking gate fails. Supports `SKIP_IOS_BUILD=1`, `SKIP_RAILS_AUDIT=1`, and `SKIP_IOS_TEST=1` env vars for faster runs.
 
 ### Pre-commit hook
 - File: `.githooks/pre-commit` (install: `git config core.hooksPath .githooks`)
@@ -16255,3 +16258,75 @@ Behavior change:
 - Added `ITEM_BATCH_SIZE = 5` constant to both functions.
 - All existing error handling, result counting, auth, response format, and page-level logic unchanged.
 - With `DEFAULT_PER_PAGE = 25`, each page now processes in 5 parallel rounds of 5 items instead of 25 sequential rounds.
+
+### 2026-03-13 — Feature flags refresh retry logic
+
+Added network-aware retry logic to `FeatureFlags.refresh()` so transient network failures don't leave the app running with stale or empty flags.
+
+Files changed:
+- `Kuro/Services/FeatureFlags.swift`
+
+Behavior change:
+- Previously, a single network failure during flag refresh silently fell through to cached values with no retry.
+- Now the refresh loop retries up to 3 times on `URLError` (network issues) with delays of 10s, 30s, 60s.
+- Non-network errors (decode failures, HTTP 4xx) are not retried — they exit immediately using cached values.
+- If all retries exhaust and a cache exists (from `loadFromCache()`), the app continues with cached flags and logs a warning.
+- If all retries exhaust and the cache is empty, a separate warning is logged.
+- All new `print()` statements are wrapped in `#if DEBUG`.
+- No new files. 68 Swift files, 154 migrations.
+
+### 2026-03-13 — Local CI/CD pipeline improvements
+
+Added iOS unit test quality gate and wired quality gates into Fastlane and local CI.
+
+Files changed:
+- `scripts/quality-gates/test_ios_unit.sh` (new) — runs `xcodebuild test` with iPhone 17 Pro simulator primary, generic fallback
+- `scripts/quality-gates/run_all.sh` — added `ios-test` gate entry + `SKIP_IOS_TEST` env var skip logic
+- `fastlane/Fastfile` — added `scripts/quality-gates/run_all.sh` before `build_app` in both `beta` and `release` lanes
+- `scripts/local_ci.sh` — replaced ad-hoc xcodebuild call with quality gates orchestrator (with xcodebuild fallback)
+
+Behavior change:
+- `run_all.sh` now runs 8 gates (was 7): secrets, migrations, concierge-corpora, router-tests, rails-audit, docs-current-state, ios-build, ios-test.
+- `fastlane beta` and `fastlane release` now run all quality gates before building. If any gate fails, the lane stops before `build_app`.
+- `scripts/local_ci.sh` now delegates to `run_all.sh` when available instead of running a standalone xcodebuild build.
+- No new Swift files. 68 Swift files, 154 migrations.
+
+### 2026-03-13 — Safety pagination limits on fetch_club_bundle RPC
+Added safety LIMIT clauses to `fetch_club_bundle` to prevent runaway result sets on corrupted or abused data. No functional changes — all logic, columns, and joins are identical.
+- Members: `LIMIT 50` on all 3 member SELECT branches (private / H1 / full). Club max is 20; 50 is a generous safety cap.
+- Rail items: `LIMIT 50` per rail on the inner `club_rail_items` subquery.
+- Polls: `LIMIT 20` on the outer polls query (open-first, newest-first ordering preserved).
+- Rails and poll options: kept unbounded (clubs rarely exceed 10 rails; polls typically have 2-6 options).
+- Migration: `20260313100000_slim_club_bundle_limits.sql`
+- No new Swift files. 68 Swift files, 155 migrations.
+
+### 2026-03-13 — Production hardening: graceful config error + memory pressure handler
+Replaced `fatalError` in `SupabaseService.init` with a `configError` property and UI gate so the app shows a configuration error screen instead of crashing if Supabase credentials are missing. Added `trimCachesForMemoryPressure()` to SupabaseService that sheds all entity, detail, discover, and concierge caches plus the ImagePipeline memory cache without touching user-facing state (lists, collection, auth). RootView listens for `UIApplication.didReceiveMemoryWarningNotification` and calls the trim method. ImagePipeline gained a public `clearMemoryCache()` method.
+- `Kuro/Services/SupabaseService.swift` — `client` is now `SupabaseClient!` (IUO), new `configError` property, new `trimCachesForMemoryPressure()` method, 7 closure sites use explicit `client!` for IUO type-inference in generic contexts.
+- `Kuro/KuroApp.swift` — RootView body checks `configError` before auth bootstrapping, `.task` listens for memory warnings.
+- `Kuro/Services/ImagePipeline.swift` — new `clearMemoryCache()` method.
+- All print statements across the codebase were verified to be inside `#if DEBUG` guards already — no changes needed.
+- No new Swift files. 68 Swift files, 155 migrations.
+
+### 2026-03-13 — Production hardening fix pass (audit corrections)
+
+Audit review identified 5 issues in the initial implementation. All corrected:
+
+**[P1] Member LIMIT in club bundle migration**: LIMIT 50 was applied after `jsonb_agg` (ineffective). Fixed by restructuring all 3 member branches to use a subquery pattern: `SELECT jsonb_agg(...) FROM (SELECT ... ORDER BY cm.joined_at, cm.user_id LIMIT 50) member_rows`. LIMIT now applies before aggregation.
+
+**[P1] Rail-item cap nondeterministic**: `LIMIT 50` on rail items had no `ORDER BY`, yielding arbitrary rows. Fixed by adding `ORDER BY cri.sort_order, cri.id` before `LIMIT 50` in the enriched items subquery.
+
+**[P2] fatalError replacement only partial**: `client` as IUO could still crash through auth callback or foreground refresh paths. Fixed by adding `guard let client else { return }` to `restoreSession()`, `startAuthStateListener()`, and other entry points. `KuroApp.swift` now gates `.onOpenURL` and `.onChange(of: scenePhase)` with `configError == nil`.
+
+**[P3] Image pipeline in-flight cap partial**: `maxInFlightCap` (40) only applied in `prefetch()`. Fixed by adding `waitForInFlightSlot(for:)` call in `image(url:)` before creating new load tasks, so normal requests also respect the cap.
+
+**Test fixes**: `KuroTests.swift` ladder test fixtures updated to include `sourceAuthorName` field (added in adaptation footnote redesign). `test_ios_unit.sh` updated to use concrete simulator destination with `-only-testing:KuroTests`.
+
+Files changed:
+- `supabase/migrations/20260313100000_slim_club_bundle_limits.sql` — member subquery restructure + rail-item ORDER BY
+- `Kuro/Services/SupabaseService.swift` — guard-let-client in auth entry points
+- `Kuro/KuroApp.swift` — configError gate on onOpenURL + scenePhase
+- `Kuro/Services/ImagePipeline.swift` — in-flight cap on image(url:)
+- `scripts/quality-gates/test_ios_unit.sh` — concrete simulator + -only-testing
+- `KuroTests/KuroTests.swift` — ladder fixture sourceAuthorName
+- No new Swift files. 68 Swift files, 155 migrations.

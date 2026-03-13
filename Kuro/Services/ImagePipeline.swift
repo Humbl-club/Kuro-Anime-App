@@ -29,6 +29,10 @@ actor ImagePipeline {
         memory.totalCostLimit = 80 * 1024 * 1024
     }
 
+    func clearMemoryCache() {
+        memory.removeAllObjects()
+    }
+
     func prefetch(urls: [URL], maxPixelSize: Int? = nil) {
         let clampedPixelSize = clampPixelSize(maxPixelSize)
         var queued = 0
@@ -52,6 +56,12 @@ actor ImagePipeline {
             return cached
         }
         if let task = inFlight[url] { return await task.value }
+        await waitForInFlightSlot(for: url)
+        if let cached = memory.object(forKey: url as NSURL) {
+            log.debug("mem hit after wait \(url.absoluteString, privacy: .private(mask: .hash))")
+            return cached
+        }
+        if let task = inFlight[url] { return await task.value }
 
         let task = makeLoadTask(url: url, maxPixelSize: clampedPixelSize)
         inFlight[url] = task
@@ -69,6 +79,13 @@ actor ImagePipeline {
 
     private func finishInFlight(url: URL) {
         inFlight[url] = nil
+    }
+
+    private func waitForInFlightSlot(for url: URL) async {
+        while inFlight.count >= maxInFlightCap && inFlight[url] == nil {
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 25_000_000)
+        }
     }
 
     private func load(url: URL, maxPixelSize: Int?) async -> UIImage? {

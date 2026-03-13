@@ -13,6 +13,8 @@ platform :ios do
       build_number: latest_testflight_build_number(api_key: api_key) + 1
     )
 
+    sh("cd .. && scripts/quality-gates/run_all.sh")
+
     build_app(
       scheme: "Kuro",
       export_method: "app-store",
@@ -47,6 +49,8 @@ platform :ios do
     increment_build_number(
       build_number: latest_testflight_build_number(api_key: api_key) + 1
     )
+
+    sh("cd .. && scripts/quality-gates/run_all.sh")
 
     build_app(
       scheme: "Kuro",

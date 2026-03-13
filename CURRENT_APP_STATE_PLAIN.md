@@ -4,7 +4,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 68 app Swift files and 154 SQL migrations are in the repo today.
+**Current inventory:** 68 app Swift files and 155 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -515,6 +515,7 @@ A batch of lower-priority production improvements was completed across the backe
 
 ## 18) Change Log (append-only)
 
+- 2026-03-13: **Safety pagination limits on club bundle**: Added safety limits to the database function that loads all club data (members, rails, polls) in one call. Members capped at 50 rows (club max is 20, so this is just a safety net), rail items capped at 50 per rail, polls capped at 20. Rails and poll options are left unbounded since clubs rarely have more than 10 rails and polls typically have 2-6 options. No visible behavior change — these limits only kick in if the data is somehow corrupted or abused beyond normal use.
 - 2026-02-28: **FM-Powered Intent Classification**: The Concierge now uses Apple's on-device Foundation Models as its primary intent classifier on supported devices (iOS 26+). When you type something like "Watched jujutsu kaisen halfway through", the FM model understands the intent (import) from context instead of relying on keyword matching. This handles nuances that keywords can't — for example, "I watched something great, recommend me more" correctly routes to recommendations even though it contains the word "watched". The FM classifies into 6 intents (import, recommend by vibe, recommend by seed title, library query, club action, unknown) with a confidence score. If the model is unsure (below 65% confidence), unavailable, or times out, it falls back to the existing keyword matching — so there's zero regression risk. On older devices without FM, keyword routing works exactly as before. Analytics now track whether each routing decision came from FM or keywords so we can compare accuracy. The keyword matching logic (`looksLikeImport`) was also extracted from ConciergeView into `TextNormalization` so it can be unit-tested — 14 unit tests now cover keyword detection for status words, past tense, German, progress patterns, and more. A UI test verifies that typing "Watched Jujutsu Kaisen halfway through" in Concierge routes to the import flow (not recommendations). The KuroTests unit test target was also wired into the Xcode scheme so `xcodebuild test` actually runs it.
 - 2026-02-28: **Concierge Import UX Improvements**: Redesigned the import cards and confirmation flow in the Concierge. Import cards are now larger (80x114pt posters with sharp editorial edges), show the media type (ANIME/MANGA badge), display what was parsed from your text (e.g., "WATCHING · Ep 12 of 24"), and you can tap the poster or title to preview the full detail page. The redundant "N% match" text was removed (the ring indicator is enough). Low-confidence matches (below 80%) now auto-expand the "Other possibilities" list. The CONFIRM button now shows a loading spinner while items are being applied, and after success, the bubble permanently shows a summary (e.g., "2 added, 1 updated") with UNDO and VIEW COLLECTION buttons right there in the chat — so you don't have to rely on catching the 4-second toast anymore.
 - 2026-02-28: **Fix Concierge Import False Success Toast**: Fixed a bug where using the Concierge to import anime/manga (e.g., "I watched Jujutsu Kaisen halfway") would show a "added to collection" success toast even when the server-side save actually failed. Both the auto-apply path (high-confidence matches) and the manual confirm path now properly check the server's response before showing the toast. If the save fails, users now see an error toast with the actual reason instead of a false success. Investigation confirmed the database column types are correct (TEXT, not the legacy INTEGER from original SQL) — the fix is purely on the iOS side where the response wasn't being checked.
@@ -879,3 +880,23 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 
 ### 2026-03-12 — Bulk import speed improvement
 - Both the anime and manga bulk import functions now process items in parallel batches of 5 instead of one at a time. Previously, each anime or manga item on a page was imported sequentially (check if exists, upsert, then import studios/tags/characters/staff/relations one by one), causing 100+ back-to-back database calls per page. Now 5 items are processed at the same time, cutting the number of sequential rounds from 25 to 5 per page. If one item fails, it doesn't affect the others in the batch. No changes to what gets imported or how errors are reported.
+
+### 2026-03-13 — Feature flags refresh retry
+- The feature flags refresh (which loads server-controlled flags like rollout percentages on app launch) now retries up to 3 times if the network request fails, waiting 10s, 30s, then 60s between attempts. Previously a single failure would silently fall back to whatever was cached. Non-network errors (like a server returning bad data) still fail immediately without retrying. If all retries fail, the app uses its local cache if one exists; if not, it logs a warning. No user-visible changes unless the network is flaky at launch.
+
+### 2026-03-13 — CI/CD pipeline improvements
+- Added a new quality gate that runs iOS unit tests (`test_ios_unit.sh`) as part of the quality gates suite. It can be skipped with `SKIP_IOS_TEST=1`.
+- The quality gates orchestrator (`run_all.sh`) now runs 8 gates instead of 7.
+- Fastlane's `beta` and `release` lanes now run all quality gates automatically before building the app. If any gate fails, the build stops.
+- The local CI script now uses the quality gates orchestrator instead of running a standalone xcodebuild build.
+
+### 2026-03-13 — Production hardening: graceful config error + memory pressure
+- If the Supabase credentials are missing or misconfigured, the app now shows a "Configuration Error" screen instead of crashing. The error screen uses the same KURO wordmark styling as the loading spinner.
+- When the device is low on memory, the app now automatically clears all non-essential caches (detail pages, discover bundles, concierge responses, entity data, image memory cache) while keeping the user's lists and authentication intact. The data reloads on demand when the user navigates back to it.
+- All debug print statements across the codebase were verified to already be inside `#if DEBUG` guards.
+
+### 2026-03-13 — Audit fix pass
+- The club bundle safety limits were fixed so they actually work — the member cap (50) now applies before grouping results (it was accidentally applied after, making it useless). The rail item cap (50 per rail) now picks items in their correct sort order instead of arbitrary order.
+- The config error crash protection was tightened — previously a misconfigured build could still crash if it received a deep link or came back from the background. Now those code paths are also blocked when config is invalid.
+- The image loading concurrency cap (40 simultaneous requests) now applies to all image loads, not just prefetch batches.
+- Unit test fixtures were updated to match current model shapes, and the test runner script was improved to use specific simulator versions.

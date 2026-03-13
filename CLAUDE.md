@@ -297,7 +297,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `SupabaseModels.swift` — all Supabase data models
 - `DiscoverBundle.swift` — discover bundle response model
 
-### Supabase — 154 migration files in repo, 15 deployed edge functions (as of 2026-03-11)
+### Supabase — 155 migration files in repo, 15 deployed edge functions (as of 2026-03-13)
 
 **Edge functions (15):**
 - `concierge-parse` — deterministic NLP parser, title candidate search

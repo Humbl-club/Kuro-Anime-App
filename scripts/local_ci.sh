@@ -54,8 +54,11 @@ else
 fi
 
 if [[ "$RUN_IOS_BUILD" == "1" ]]; then
-  if command -v xcodebuild >/dev/null 2>&1; then
-    log "Build iOS app"
+  if [[ -x "$ROOT_DIR/scripts/quality-gates/run_all.sh" ]]; then
+    log "Run quality gates (includes iOS build + tests)"
+    "$ROOT_DIR/scripts/quality-gates/run_all.sh"
+  elif command -v xcodebuild >/dev/null 2>&1; then
+    log "Build iOS app (quality gates script not found, falling back)"
     xcodebuild -scheme Kuro -destination "generic/platform=iOS" build
   else
     warn "xcodebuild not found; skipping iOS build"

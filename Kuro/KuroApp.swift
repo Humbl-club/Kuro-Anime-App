@@ -31,6 +31,7 @@ struct KuroApp: App {
                 // Until we have a full dark palette, keep system appearance stable.
                 .preferredColorScheme(.light)
                 .onOpenURL { url in
+                    guard supabaseService.configError == nil else { return }
                     if let link = DeepLink.from(url: url) {
                         // Auth callbacks are handled immediately at the app level
                         // (before auth gate), not passed to ContentView.
@@ -47,7 +48,9 @@ struct KuroApp: App {
                     }
                 }
                 .onChange(of: scenePhase) { _, newPhase in
-                    if newPhase == .active, supabaseService.isAuthenticated {
+                    if newPhase == .active,
+                       supabaseService.configError == nil,
+                       supabaseService.isAuthenticated {
                         Task { await supabaseService.refreshSessionIfNeeded() }
                     }
                 }
@@ -73,7 +76,24 @@ private struct RootView: View {
             }
 
             Group {
-                if supabaseService.isAuthBootstrapping {
+                if let error = supabaseService.configError {
+                    ZStack {
+                        Color(.systemBackground).ignoresSafeArea()
+                        VStack(spacing: 16) {
+                            Text("KURO")
+                                .font(.system(size: 11, weight: .regular))
+                                .tracking(1.5)
+                                .foregroundColor(.secondary)
+                            Text("Configuration Error")
+                                .font(.kuroTitle())
+                            Text(error)
+                                .font(.kuroCaption())
+                                .foregroundColor(.kuroTextSecondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        }
+                    }
+                } else if supabaseService.isAuthBootstrapping {
                     ZStack {
                         Color(.systemBackground).ignoresSafeArea()
                         VStack(spacing: 14) {
@@ -96,6 +116,13 @@ private struct RootView: View {
         .onChange(of: networkMonitor.isConnected) { _, connected in
             if connected {
                 ConciergeAnalytics.shared.flushIfNeeded()
+            }
+        }
+        .task {
+            for await _ in NotificationCenter.default.notifications(
+                named: UIApplication.didReceiveMemoryWarningNotification
+            ).map({ _ in () }) {
+                supabaseService.trimCachesForMemoryPressure()
             }
         }
     }

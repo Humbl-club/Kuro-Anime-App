@@ -509,7 +509,8 @@ struct AdaptationLadderTests {
             year: 2018,
             format: "MANGA",
             rating: 8.6,
-            reasonLabel: nil
+            reasonLabel: nil,
+            sourceAuthorName: nil
         )
         let ladder = MediaLadderResponse(
             sourceMaterial: [item],
@@ -523,7 +524,9 @@ struct AdaptationLadderTests {
             primarySource: nil,
             primaryAdaptation: nil,
             franchiseNote: nil,
-            coverageStatus: nil
+            coverageStatus: nil,
+            totalFranchiseCount: nil,
+            alternateAdaptationSummary: nil
         )
         #expect(ladder.hasContent)
     }
@@ -538,7 +541,8 @@ struct AdaptationLadderTests {
             year: 2020,
             format: "TV",
             rating: 9.1,
-            reasonLabel: "Best starting point"
+            reasonLabel: "Best starting point",
+            sourceAuthorName: nil
         )
         let ladder = MediaLadderResponse(
             sourceMaterial: [],
@@ -552,7 +556,9 @@ struct AdaptationLadderTests {
             primarySource: nil,
             primaryAdaptation: nil,
             franchiseNote: "Start here.",
-            coverageStatus: .strong
+            coverageStatus: .strong,
+            totalFranchiseCount: nil,
+            alternateAdaptationSummary: nil
         )
         #expect(ladder.hasContent)
     }
@@ -567,10 +573,11 @@ struct AdaptationLadderTests {
             year: 2024,
             format: "TV",
             rating: 8.9,
-            reasonLabel: "Most relevant adaptation"
+            reasonLabel: "Most relevant adaptation",
+            sourceAuthorName: nil
         )
         let media = item.toMedia()
-        #expect(media.kind == .anime)
+        #expect(media.kind == MediaKind.anime)
         #expect(media.id == 99)
         #expect(media.title == "Adaptation")
         #expect(media.year == "2024")
@@ -587,10 +594,11 @@ struct AdaptationLadderTests {
             year: nil,
             format: "NOVEL",
             rating: nil,
-            reasonLabel: "Original source"
+            reasonLabel: "Original source",
+            sourceAuthorName: nil
         )
         let media = item.toMedia()
-        #expect(media.kind == .manga)
+        #expect(media.kind == MediaKind.manga)
         #expect(media.id == 42)
         #expect(media.year == "TBA")
         #expect(media.formatRaw == "NOVEL")

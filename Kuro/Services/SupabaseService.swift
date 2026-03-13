@@ -19,8 +19,10 @@ class SupabaseService {
     // Concierge telemetry (fire-and-forget, privacy-safe)
     let analytics = ConciergeAnalytics.shared
 
-    // Supabase client
-    private let client: SupabaseClient
+    // Supabase client (nil only when config is missing)
+    private let client: SupabaseClient!
+    // Surface configuration errors to UI instead of crashing
+    var configError: String? = nil
     // Realtime (user-scoped) subscriptions
     private var realtimeChannel: RealtimeChannelV2? = nil
     private var realtimeListenTasks: [Task<Void, Never>] = []
@@ -408,7 +410,10 @@ class SupabaseService {
     
     init() {
         guard let url = AppConfig.supabaseURL, let key = AppConfig.supabaseAnonKey else {
-            fatalError("Missing SUPABASE_URL or SUPABASE_ANON_KEY in configuration")
+            client = nil
+            configError = "Missing SUPABASE_URL or SUPABASE_ANON_KEY in configuration"
+            isAuthBootstrapping = false
+            return
         }
 
         client = SupabaseClient(
@@ -422,10 +427,26 @@ class SupabaseService {
 
         Task { await restoreSession() }
     }
+
+    private func missingConfigError() -> NSError {
+        NSError(
+            domain: "KuroConfig",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: configError ?? "Missing Supabase configuration."]
+        )
+    }
     
     // MARK: - Authentication
     func restoreSession() async {
         defer { isAuthBootstrapping = false }
+        guard let client else {
+            isAuthenticated = false
+            authErrorMessage = configError
+            currentUserId = nil
+            currentUserEmail = nil
+            analytics.setUserId(nil)
+            return
+        }
 
         do {
             let session = try await client.auth.session
@@ -449,6 +470,7 @@ class SupabaseService {
     }
 
     private func startAuthStateListener() {
+        guard let client else { return }
         authStateTask?.cancel()
         authStateTask = Task { [weak self] in
             guard let self else { return }
@@ -488,6 +510,10 @@ class SupabaseService {
     /// Lightweight session check on foreground — if the token expired while backgrounded,
     /// catch it early rather than waiting for the next API call to fail.
     func refreshSessionIfNeeded() async {
+        guard let client else {
+            authErrorMessage = configError
+            return
+        }
         do {
             _ = try await client.auth.session
         } catch {
@@ -500,6 +526,10 @@ class SupabaseService {
 
     func signInWithEmail(email: String, password: String) async throws {
         authErrorMessage = nil
+        guard let client else {
+            authErrorMessage = configError
+            throw missingConfigError()
+        }
         do {
             _ = try await client.auth.signIn(email: email, password: password)
             let session = try await client.auth.session
@@ -523,6 +553,10 @@ class SupabaseService {
 
     func signUpWithEmail(email: String, password: String) async throws {
         authErrorMessage = nil
+        guard let client else {
+            authErrorMessage = configError
+            throw missingConfigError()
+        }
         do {
             _ = try await client.auth.signUp(email: email, password: password)
             // With email confirmation disabled, the session is immediately available.
@@ -546,6 +580,10 @@ class SupabaseService {
 
     /// Lightweight email existence check for inline sign-up validation.
     func checkEmailExists(email: String) async -> Bool {
+        guard let client else {
+            authErrorMessage = configError
+            return false
+        }
         do {
             let result: Bool = try await client
                 .rpc("check_email_exists", params: ["p_email": email])
@@ -562,6 +600,10 @@ class SupabaseService {
 
     func signInWithApple(idToken: String, rawNonce: String, fullName: String?) async throws {
         authErrorMessage = nil
+        guard let client else {
+            authErrorMessage = configError
+            throw missingConfigError()
+        }
         do {
             let session = try await client.auth.signInWithIdToken(
                 credentials: .init(
@@ -594,11 +636,19 @@ class SupabaseService {
     }
 
     func resetPassword(email: String) async throws {
+        guard let client else {
+            authErrorMessage = configError
+            throw missingConfigError()
+        }
         try await client.auth.resetPasswordForEmail(email, redirectTo: Self.authCallbackURL)
     }
 
     /// Handle auth callback deep link — set session from tokens received via email verification redirect.
     func handleAuthCallback(accessToken: String, refreshToken: String) async {
+        guard let client else {
+            authErrorMessage = configError
+            return
+        }
         do {
             try await client.auth.setSession(accessToken: accessToken, refreshToken: refreshToken)
             let session = try await client.auth.session
@@ -621,12 +671,17 @@ class SupabaseService {
     /// then deletes the auth.users row.
     var isAppleUser: Bool {
         get async {
+            guard let client else { return false }
             guard let user = try? await client.auth.user() else { return false }
             return user.identities?.contains(where: { $0.provider == "apple" }) ?? false
         }
     }
 
     func deleteAccount(appleAuthorizationCode: String? = nil) async throws {
+        guard let client else {
+            authErrorMessage = configError
+            throw missingConfigError()
+        }
         struct DeleteResponse: Decodable {
             let success: Bool?
             let error: String?
@@ -660,6 +715,10 @@ class SupabaseService {
     }
 
     func signOut() async {
+        guard let client else {
+            authErrorMessage = configError
+            return
+        }
         do {
             try await client.auth.signOut()
         } catch {
@@ -701,6 +760,31 @@ class SupabaseService {
         mediaLadderRefreshEnqueueCooldown.removeAll()
     }
 
+    /// Shed non-essential entity caches under memory pressure without
+    /// touching user-facing state (lists, collection, auth).
+    func trimCachesForMemoryPressure() {
+        animeCharactersCache.removeAll()
+        animeStaffCache.removeAll()
+        animeStudiosCache.removeAll()
+        mangaCharactersCache.removeAll()
+        mangaAuthorsCache.removeAll()
+        studioWorksCache.removeAll()
+        staffWorksCache.removeAll()
+        authorWorksCache.removeAll()
+        characterWorksCache.removeAll()
+        mediaLadderCache.removeAll()
+        mediaLadderRefreshEnqueueCooldown.removeAll()
+        discoverBundleCache.removeAll()
+        conciergeRecommendCache.removeAll()
+        conciergeParseCache.removeAll()
+        animeDetailCache.removeAll()
+        mangaDetailCache.removeAll()
+        Task { await ImagePipeline.shared.clearMemoryCache() }
+        #if DEBUG
+        print("[MemoryPressure] Trimmed entity + image caches")
+        #endif
+    }
+
     private func ensureProfileRow() async {
         guard let user = try? await client.auth.session.user else { return }
         struct ProfilePayload: Encodable {
@@ -733,7 +817,9 @@ class SupabaseService {
         subscribeToUpdates()
 
         // Feature flags are non-critical; fire without blocking.
-        Task { await FeatureFlags.shared.refresh(client: client, userId: currentUserId) }
+        if let client {
+            Task { await FeatureFlags.shared.refresh(client: client, userId: currentUserId) }
+        }
 
         // Streaming availability: load registry + user services (non-blocking)
         if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
@@ -3590,7 +3676,7 @@ class SupabaseService {
                     query: [URLQueryItem(name: "warmup", value: "true")],
                     body: data
                 )
-                let _: [String: Bool] = try await client.functions.invoke("concierge-parse", options: options)
+                let _: [String: Bool] = try await client!.functions.invoke("concierge-parse", options: options)
             }.value
         } catch {
             // Best-effort warmup — silently ignore failures
@@ -3628,8 +3714,8 @@ class SupabaseService {
             }
             let data = try JSONSerialization.data(withJSONObject: payload, options: [])
             let options = FunctionInvokeOptions(method: .post, body: data)
-            return try await SupabaseService.withRetry {
-                try await client.functions.invoke("concierge-parse", options: options)
+            return try await SupabaseService.withRetry { [client] in
+                try await client!.functions.invoke("concierge-parse", options: options)
             }
         }
         conciergeParseInFlight[key] = task
@@ -3682,7 +3768,7 @@ class SupabaseService {
             let task = Task<ConciergeApplyResponse, Error>(priority: .userInitiated) {
                 let data = try JSONSerialization.data(withJSONObject: payload, options: [])
                 let options = FunctionInvokeOptions(method: .post, body: data)
-                return try await client.functions.invoke("concierge-apply", options: options)
+                return try await client!.functions.invoke("concierge-apply", options: options)
             }
             return try await task.value
         } catch {
@@ -3714,7 +3800,7 @@ class SupabaseService {
             let task = Task<ConciergeUndoResponse, Error>(priority: .userInitiated) {
                 let data = try JSONSerialization.data(withJSONObject: payload, options: [])
                 let options = FunctionInvokeOptions(method: .post, body: data)
-                return try await client.functions.invoke("concierge-undo", options: options)
+                return try await client!.functions.invoke("concierge-undo", options: options)
             }
             return try await task.value
         } catch {
@@ -3755,7 +3841,7 @@ class SupabaseService {
             let task = Task<ConciergeAniListImportResponse, Error>(priority: .userInitiated) {
                 let data = try JSONSerialization.data(withJSONObject: payload, options: [])
                 let options = FunctionInvokeOptions(method: .post, body: data)
-                return try await client.functions.invoke("concierge-import-anilist", options: options)
+                return try await client!.functions.invoke("concierge-import-anilist", options: options)
             }
             return try await task.value
         } catch {
@@ -3848,8 +3934,8 @@ class SupabaseService {
             ]
             let data = try JSONSerialization.data(withJSONObject: payload, options: [])
             let options = FunctionInvokeOptions(method: .post, body: data)
-            let resp: ConciergeRecommendResponse = try await SupabaseService.withRetry {
-                try await client.functions.invoke("concierge-recommend", options: options)
+            let resp: ConciergeRecommendResponse = try await SupabaseService.withRetry { [client] in
+                try await client!.functions.invoke("concierge-recommend", options: options)
             }
             return resp
         }
@@ -4544,7 +4630,7 @@ class SupabaseService {
         let cid = clubId
         let task = Task<ClubBundle, Error>(priority: .userInitiated) {
             let params = RPCClubIdParams(p_club_id: cid)
-            let bundle: ClubBundle = try await client
+            let bundle: ClubBundle = try await client!
                 .rpc("fetch_club_bundle", params: params)
                 .execute()
                 .value
@@ -5679,6 +5765,12 @@ class SupabaseService {
     // Observable state used by views
     var isLoading = false
     var errorMessage: String?
+    var configError: String? = nil
+    var isAuthBootstrapping: Bool = false
+    var isAuthenticated: Bool = false
+    var authErrorMessage: String? = nil
+    var currentUserEmail: String? = nil
+    var currentUserId: String? = nil
 
     init() {
         #if DEBUG
@@ -5688,6 +5780,11 @@ class SupabaseService {
 
     // Auth
     func signInAnonymously() async throws {}
+    func handleAuthCallback(accessToken: String, refreshToken: String) async {}
+    func refreshSessionIfNeeded() async {}
+
+    // Memory pressure
+    func trimCachesForMemoryPressure() {}
 
     // Data loading no-ops
     func fetchAnime(limit: Int = 50) async {
@@ -5720,6 +5817,5 @@ class SupabaseService {
     func toggleInCollection(_ animeId: Int) {}
     func toggleInCollection(mediaId: Int, mediaType: String) {}
     func toggleFavorite(for animeId: Int) {}
-    func userMediaIds(mediaType: String, status: ListStatus? = nil) -> Set<Int> { [] }
 }
 #endif

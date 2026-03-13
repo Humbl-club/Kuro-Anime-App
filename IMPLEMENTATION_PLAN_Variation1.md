@@ -500,6 +500,8 @@ Three new on-device intelligence features shipped:
 | P1-17 | 64 print() in production | All converted to `#if DEBUG` conditional compilation |
 | P1-18 | No retry logic | `withRetry` helper added (exponential backoff, applied to 5 call sites) |
 | P1-19 | UIScreen.main deprecated | Replaced with `displayScale` / window scene APIs |
+| P1-20 | fatalError in SupabaseService.init | Replaced with `configError` property + UI gate (2026-03-13) |
+| P1-21 | No memory pressure handling | `trimCachesForMemoryPressure()` + `UIApplication.didReceiveMemoryWarningNotification` listener (2026-03-13) |
 
 ### Infrastructure -- COMPLETED
 
