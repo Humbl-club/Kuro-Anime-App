@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-11
+**Last updated:** 2026-03-14
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -66,10 +66,10 @@ This file is a **contract**. It must be updated **after every single change** to
   - `SUPABASE_URL`
   - `SUPABASE_ANON_KEY`
   from **Info.plist** or process env.
-- If missing, `SupabaseService` uses **hardcoded fallback** URL + anon key (see `SupabaseService.init()`).
-- **Info.plist** (project root, NOT `Kuro/Info.plist`): registers `kuro://` URL scheme via `CFBundleURLTypes`. `GENERATE_INFOPLIST_FILE = YES` + `INFOPLIST_FILE = Info.plist` — Xcode merges generated keys with custom ones.
-- **xcconfig files** (for future env-based builds):
-  - `Config/Shared.xcconfig` — shared settings
+- If missing, `SupabaseService` sets `configError` and shows an error screen (no hardcoded fallback).
+- **Info.plist** (project root, NOT `Kuro/Info.plist`): registers `kuro://` URL scheme via `CFBundleURLTypes`, references `$(SUPABASE_URL)` and `$(SUPABASE_ANON_KEY)` build variables (resolved from xcconfig). `GENERATE_INFOPLIST_FILE = YES` + `INFOPLIST_FILE = Info.plist` — Xcode merges generated keys with custom ones.
+- **xcconfig files** (wired into Xcode project as `baseConfigurationReference`):
+  - `Config/Shared.xcconfig` — shared settings including `SUPABASE_URL` and `SUPABASE_ANON_KEY`
   - `Config/Debug.xcconfig` — debug overrides
   - `Config/Release.xcconfig` — release overrides
 
@@ -406,10 +406,10 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Services/DeepLinkRouter.swift` — `enum DeepLink` with cases for anime(id:), manga(id:), club(id:), collection, discover, concierge(prompt:), authCallback(accessToken:, refreshToken:); parses `kuro://` scheme URLs
 - `Kuro/Services/AppleFMService.swift` — Apple Foundation Models integration (on-device LLM: mode classification, disambiguation, synopsis condensation, collection search intent)
 - `Kuro/Services/NetworkMonitor.swift` — `NWPathMonitor` connectivity tracking, `@Environment` injection, offline banner
-- `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching, `fmService` (AppleFMService), `withRetry` helper, `authCallbackURL` (line 420), `handleAuthCallback()` (line 483), `signUpWithEmail`/`resetPassword`, `checkEmailExists(email:)` (debounced uniqueness check via `check_email_exists` RPC)
+- `Kuro/Services/SupabaseService.swift` — core data layer, RPC usage, caching, `fmService` (AppleFMService), `withRetry` helper, `configError` property (graceful config gate), `trimCachesForMemoryPressure()`, `authCallbackURL`, `handleAuthCallback()`, `signUpWithEmail`/`resetPassword`, `checkEmailExists(email:)` (debounced uniqueness check via `check_email_exists` RPC)
 - `Kuro/Views/` — SwiftUI UI components
 - `Kuro/Models/` — data models (Anime, Manga, UserList, etc.)
-- `Config/` — xcconfig files (Shared, Debug, Release) for env-based builds
+- `Config/` — xcconfig files (Shared, Debug, Release) wired as `baseConfigurationReference` in Xcode project
 
 ### Feature-to-file map (frontend)
 - **Concierge UI**: `Kuro/Views/ConciergeView.swift` (inline chat, import, recommend UI, toasts), `ConciergeEditorialShell.swift` (editorial shell wrapper), `ConciergeComponents.swift` (shared components + curated copy), `ConciergeInputField.swift` (text input), `ConciergeComposerDock.swift` (input composer dock), `ConciergeActionFooter.swift` (action footer bar), `ConciergeIntentDeck.swift` (quick-action intent deck), `ConciergeImportCards.swift` (import preview/confirm cards), `ConciergeRecommendationRails.swift` (recommendation rail rendering), `ConciergeResponseStage.swift` (response stage rendering)
@@ -459,7 +459,7 @@ node scripts/generate_app_state_inventory.js
 - `scripts/concierge_eval_parse.js`, `scripts/concierge_corpus_generate.js`, `scripts/load_test_concierge.js` — concierge QA/ops
 - `scripts/check_cron_health.js`, `scripts/collect_db_metrics.js` — ops
 - `scripts/db_state.sql` — DB snapshot queries (row counts, coverage, etc.)
-- `scripts/quality-gates/` — CI quality gate scripts (secrets, migrations, router tests, rails audit, iOS build); see section 13.1
+- `scripts/quality-gates/` — CI quality gate scripts (8 gates: secrets, migrations, concierge-corpora, router tests, rails audit, docs-current-state, iOS build, iOS test); see section 13.1
 
 ---
 
@@ -573,7 +573,7 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 - **Local caches**: `discoverBundleCache`, `conciergeParseCache`, `conciergeRecommendCache` (in-memory, TTL-based).
 - **Apple FM integration**: `fmService` property (`AppleFMService` instance) provides on-device classification, disambiguation, synopsis condensation, and NL collection search intent parsing.
 - **Retry logic**: `withRetry` static helper (exponential backoff, max 2 retries, URLError-only) wrapping 5 key call sites: `fetchMoreAnime`, `fetchMoreManga`, `fetchDiscoverBundle`, `conciergeParse`, `conciergeRecommend`.
-- **Debug logging**: all 64+ `print()` statements wrapped in `#if DEBUG`.
+- **Debug logging**: all 127+ `print()` statements wrapped in `#if DEBUG`.
 - **Config error handling**: `init()` sets `configError` instead of `fatalError` when credentials are missing; UI gate in `KuroApp.RootView` prevents any code path from reaching uninitialized `client`.
 - **Memory pressure**: `trimCachesForMemoryPressure()` sheds all entity, detail, discover, and concierge caches plus `ImagePipeline` memory cache without touching user-facing state.
 
@@ -1485,7 +1485,7 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 
 Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in `.githooks/pre-commit`.
 
-### Gate scripts (5 gates + runner + test data)
+### Gate scripts (8 gates + runner + test data)
 1. **`check_secrets.sh`** — Scans Swift/TypeScript/JavaScript for hardcoded secrets (service_role JWTs, sbp_/sk-/gsk_ keys). No false-positive on publishable anon key (by design: only flags service_role patterns). Whitelists test fixtures and env var references.
 2. **`check_migrations.sh`** — Checks for untracked/modified SQL files in `supabase/migrations/`, generates/verifies SHA-256 checksums (`.checksums` file). Read-only by default; pass `--update` to write checksums. Warning-only (no hard fail on modified migrations).
 3. **`test_router_offline.sh`** — Runs `router_test_cases.js` which tests `scoreMode()` / `mapStrongGenreToModeId()` logic offline (no network). Hard fail on test failure.
@@ -2264,9 +2264,7 @@ Documentation updated in this pass:
 - **User ID type mismatch**: Club tables use `user_id UUID REFERENCES auth.users(id)`, but legacy tables (`anime_user_lists`, `manga_user_lists`) use `user_id TEXT`. All joins between club_members and user-list tables must cast: `cm.user_id::text = aul.user_id`. A future migration may unify them.
 - Materialized view definitions in the foundation migration are inferred from usage (discover_bundle RPC + Swift client). If the remote MV definitions differ (e.g., different LIMIT, extra WHERE clauses), update the foundation to match.
 - v8 modes (23 total) are deployed; if you add new modes later, deploy with `supabase db push --linked` + `supabase functions deploy concierge-recommend --linked`.
-- **Hardcoded Supabase secret key** in `Kuro/Services/SupabaseService.swift:27` — allowed through GitHub push protection temporarily. Must rotate the key and move to env/Info.plist/xcconfig before shipping.
 - **Apple FM availability**: `AppleFMService` gracefully degrades on non-FM devices via `StubFMProvider`. The `condenseSynopsis` cache is in-memory only (lost on app restart); consider persisting to disk if cache hit rates are low.
-- **xcconfig files** (`Config/`) are created but not yet wired into Xcode build configurations. Wiring them is a prerequisite for removing hardcoded keys.
 
 ---
 
@@ -16343,3 +16341,39 @@ Files changed:
 - `CURRENT_APP_STATE.md` — flag 0% → 100% (3 locations)
 - `CURRENT_APP_STATE_PLAIN.md` — flag 0% → 100%
 - No new files. 68 Swift files, 155 migrations.
+
+### 2026-03-14 — Production readiness rollup (Build 16)
+
+Consolidated summary of all production readiness work completed 2026-03-13, verified and shipped as Build 16 to TestFlight with 8/8 quality gates passing.
+
+**Team A — iOS Hardening:**
+- Replaced `fatalError` in `SupabaseService.init` with graceful `configError` property + error UI in `KuroApp.RootView`.
+- `client` changed to `SupabaseClient!` (IUO); 7 closure sites use explicit `client!`; `guard let client` added to `restoreSession()`, `startAuthStateListener()`, and other auth entry points.
+- `KuroApp` gates `.onOpenURL` and `.onChange(of: scenePhase)` with `configError == nil`.
+- Added `trimCachesForMemoryPressure()` to SupabaseService (sheds entity/detail/discover/concierge caches + ImagePipeline memory cache). RootView listens for `UIApplication.didReceiveMemoryWarningNotification`.
+- `ImagePipeline`: new `clearMemoryCache()` method; `maxInFlightCap = 40` now enforced in both `image(url:)` and `prefetch()`.
+- Wrapped 127+ `print()` statements in `#if DEBUG` across all Swift files (verified complete audit).
+
+**Team B — Feature Flags Retry:**
+- `FeatureFlags.refresh()` retries up to 3 times on `URLError` with delays of 10s/30s/60s. Non-network errors exit immediately. Falls back to cache if all retries exhaust.
+
+**Team C — Local CI/CD:**
+- New `scripts/quality-gates/test_ios_unit.sh` — iOS unit test gate (iPhone 17 Pro primary, generic fallback).
+- `run_all.sh` now runs 8 gates (was 7): secrets, migrations, concierge-corpora, router-tests, rails-audit, docs-current-state, ios-build, ios-test.
+- Fastlane `beta` and `release` lanes run all quality gates before `build_app`.
+- `scripts/local_ci.sh` delegates to `run_all.sh` instead of standalone xcodebuild.
+
+**Team D — Backend:**
+- Migration `20260313100000_slim_club_bundle_limits.sql`: LIMIT clauses on `fetch_club_bundle` (members 50, rail items 50, polls 20). Member and rail-item limits use subquery pattern so LIMIT applies before `jsonb_agg`.
+
+**Social Activity v1 Rollout:**
+- `social_activity_v1` rolled from 0% to 100% (migration `20260313120000_social_activity_v1_rollout_100.sql`).
+- Fixed Browse pagination friend count prefetch gap in `BrowseView.fetchNextPage()`.
+
+**Config Fix:**
+- Wired `Config/*.xcconfig` files into Xcode project as `baseConfigurationReference`.
+- `Info.plist` now uses `$(SUPABASE_URL)` and `$(SUPABASE_ANON_KEY)` variable references instead of hardcoded values.
+- Removed hardcoded Supabase key fallback from SupabaseService; missing credentials now surface as `configError`.
+
+**Build:** Build 16 uploaded to TestFlight. 8/8 quality gates passing.
+68 Swift files, 156 migrations.

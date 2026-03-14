@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-11
+**Last updated:** 2026-03-14
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -904,3 +904,14 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 ### 2026-03-13 — Social activity rolled out to all users
 - The social activity feature (`social_activity_v1`) was rolled from 0% to 100%. When you open an anime or manga detail page, you now see which club friends are tracking that title, their comments, and can react with thumbs up/down.
 - Fixed a gap where browsing past the first page of results wouldn't show friend count indicators until you navigated away and back. Now friend counts load for every page of Browse results.
+
+### 2026-03-14 — Production readiness (Build 16 shipped to TestFlight)
+- **No more crash on bad config**: If the Supabase credentials are missing or wrong, the app now shows a styled error screen instead of crashing. All code paths that could reach the uninitialized client (deep links, background resume, auth callbacks) are also blocked.
+- **Memory pressure handling**: When the device is low on memory, the app automatically clears all non-essential caches (detail pages, discover bundles, concierge data, image memory cache) while keeping user lists and login intact. Data reloads on demand.
+- **127+ debug prints wrapped**: Every `print()` statement across all Swift files is now inside `#if DEBUG` guards so they don't appear in release builds.
+- **Feature flag retry**: If loading feature flags fails at launch (e.g., flaky network), the app now retries up to 3 times (10s, 30s, 60s) before falling back to cached values.
+- **Quality gates in CI**: A new iOS unit test gate was added (8 gates total). All quality gates now run automatically before every TestFlight build (Fastlane) and local CI run. If any gate fails, the build stops.
+- **Club data safety limits**: The database function that loads club data now caps members at 50, rail items at 50, and polls at 20 — these only matter if data is somehow corrupted beyond normal use.
+- **Social activity live for everyone**: The social activity feature (friend tracking indicators, title comments, reactions) is now at 100% rollout. Browse pagination now correctly shows friend counts on every page.
+- **Config moved out of code**: Supabase credentials are no longer hardcoded in the app. Info.plist now reads them from build configuration files (xcconfig), which are wired into the Xcode project. This is the proper way to manage environment-specific values.
+- **Build 16** uploaded to TestFlight with all 8 quality gates passing.

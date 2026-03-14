@@ -508,7 +508,7 @@ Three new on-device intelligence features shipped:
 - **6 DB migrations applied** to production
 - **6 edge functions deployed** (concierge-parse, concierge-recommend, concierge-apply, concierge-resolve, concierge-undo, mirror-images)
 - **IMPORT_SECRET** environment variable set in Supabase project + **4 pg_cron jobs** updated to include secret header
-- **xcconfig files created** for environment configuration (Debug.xcconfig, Release.xcconfig)
+- **xcconfig files created and wired** into Xcode project as `baseConfigurationReference`. Info.plist uses `$(SUPABASE_URL)` and `$(SUPABASE_ANON_KEY)` variable references (hardcoded fallback removed).
 - **Mock SupabaseService** cleaned up for testability
 
 ### Production Quality (P2) -- COMPLETED
@@ -581,3 +581,4 @@ These items were evaluated and intentionally deferred:
 | — | Active learning / feedback loop | Next priority after production stabilization |
 | — | Admin UI for modes | Low priority — DB JSON editing sufficient for now |
 | — | Documentation cleanup (2026-03-10) | **Done**: 17 stale docs archived, inventory counts fixed (68 Swift / 153 migrations), cross-refs updated, quality gate patched |
+| — | Production readiness rollup (2026-03-14) | **Done**: graceful config error (no fatalError), memory pressure handler, 127+ prints in #if DEBUG, feature flags retry (3 attempts), 8 quality gates in CI/Fastlane, club bundle LIMIT clauses, social_activity_v1 at 100%, xcconfig wired, Build 16 shipped |
