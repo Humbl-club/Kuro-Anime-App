@@ -4321,16 +4321,32 @@ class SupabaseService {
         let key = "\(type)-\(mediaId)"
         guard !togglingMediaKeys.contains(key) else { return }
         togglingMediaKeys.insert(key)
-        if isInCollection(mediaId: mediaId, mediaType: type) {
-            Task {
-                await removeFromList(mediaId: mediaId, mediaType: type)
-                togglingMediaKeys.remove(key)
-            }
+
+        let wasInCollection = isInCollection(mediaId: mediaId, mediaType: type)
+
+        // Optimistic: flip local set immediately so UI reflects the change
+        if type == "anime" {
+            if wasInCollection { collectionAnimeIds.remove(mediaId) } else { collectionAnimeIds.insert(mediaId) }
         } else {
-            Task {
+            if wasInCollection { collectionMangaIds.remove(mediaId) } else { collectionMangaIds.insert(mediaId) }
+        }
+
+        Task {
+            if wasInCollection {
+                let success = await removeFromList(mediaId: mediaId, mediaType: type)
+                if !success {
+                    // Rollback: re-insert the ID
+                    if type == "anime" { collectionAnimeIds.insert(mediaId) } else { collectionMangaIds.insert(mediaId) }
+                }
+            } else {
+                let priorError = errorMessage
                 await addToList(mediaId: mediaId, mediaType: type, status: .planning)
-                togglingMediaKeys.remove(key)
+                if errorMessage != nil && errorMessage != priorError {
+                    // Rollback: remove the optimistically inserted ID
+                    if type == "anime" { collectionAnimeIds.remove(mediaId) } else { collectionMangaIds.remove(mediaId) }
+                }
             }
+            togglingMediaKeys.remove(key)
         }
     }
 
