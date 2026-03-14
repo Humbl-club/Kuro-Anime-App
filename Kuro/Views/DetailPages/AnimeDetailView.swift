@@ -18,6 +18,8 @@ struct AnimeDetailView: View {
     @State private var staffItems: [(staff: Staff, role: String)] = []
     @State private var castItems: [(character: Character, role: String)] = []
     @State private var mediaLadder: MediaLadderResponse = .empty
+    @State private var didLoadCredits = false
+    @State private var didLoadLadder = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -72,16 +74,24 @@ struct AnimeDetailView: View {
                         }
 
                         if FeatureFlags.shared.isCreditsCastV1Enabled {
-                            if !castItems.isEmpty {
-                                CastSection(characters: castItems, containerWidth: geometry.size.width)
-                            }
+                            if didLoadCredits {
+                                if !castItems.isEmpty {
+                                    CastSection(characters: castItems, containerWidth: geometry.size.width)
+                                }
 
-                            if !studios.isEmpty || !staffItems.isEmpty {
-                                ProductionSection(studios: studios, staffItems: staffItems)
+                                if !studios.isEmpty || !staffItems.isEmpty {
+                                    ProductionSection(studios: studios, staffItems: staffItems)
+                                }
+                            } else {
+                                DetailCreditsSkeleton()
                             }
                         }
 
-                        AdaptationPathSection(ladder: mediaLadder, mediaType: .anime)
+                        if didLoadLadder {
+                            AdaptationPathSection(ladder: mediaLadder, mediaType: .anime)
+                        } else {
+                            DetailLadderSkeleton()
+                        }
 
                         // Episodes Section (if available)
                         if let episodeCount = anime.episodeCount ?? anime.nextEpisodeNumber.map({ max(0, $0 - 1) }), episodeCount > 0 {
@@ -201,6 +211,7 @@ struct AnimeDetailView: View {
             topTags = await tags
             similar = await sim
             mediaLadder = await ladder
+            didLoadLadder = true
             await supabaseService.enqueueMediaRelationRefreshIfNeeded(
                 mediaType: "ANIME",
                 mediaId: anime.id,
@@ -228,6 +239,7 @@ struct AnimeDetailView: View {
             studios = await studioFetch
             staffItems = await staffFetch
             castItems = await castFetch
+            didLoadCredits = true
         }
     }
 
@@ -1573,5 +1585,68 @@ struct FlowLayout: Layout {
             
             self.size = CGSize(width: width, height: y + lineHeight)
         }
+    }
+}
+
+// MARK: - Detail Page Skeleton Placeholders
+
+private struct DetailCreditsSkeleton: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroSpacing.md) {
+            // "CAST" caption placeholder
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.06))
+                .frame(width: 40, height: 10)
+                .kuroShimmer()
+
+            // Circle avatars row
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        Circle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: 64, height: 64)
+                            .kuroShimmer()
+                    }
+                }
+            }
+
+            // "PRODUCTION" caption placeholder
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.06))
+                .frame(width: 80, height: 10)
+                .kuroShimmer()
+
+            // Text line placeholders
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.05))
+                .frame(width: 180, height: 12)
+                .kuroShimmer()
+
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.05))
+                .frame(width: 140, height: 12)
+                .kuroShimmer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct DetailLadderSkeleton: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroSpacing.sm) {
+            // Caption placeholder
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.06))
+                .frame(width: 100, height: 10)
+                .kuroShimmer()
+
+            // Body text placeholder
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.04))
+                .frame(width: 220, height: 14)
+                .kuroShimmer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

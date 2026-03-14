@@ -17,6 +17,8 @@ struct MangaDetailView: View {
     @State private var authorItems: [(author: Author, role: String)] = []
     @State private var castItems: [(character: Character, role: String)] = []
     @State private var mediaLadder: MediaLadderResponse = .empty
+    @State private var didLoadCredits = false
+    @State private var didLoadLadder = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -71,16 +73,24 @@ struct MangaDetailView: View {
                         }
 
                         if FeatureFlags.shared.isCreditsCastV1Enabled {
-                            if !castItems.isEmpty {
-                                CastSection(characters: castItems, containerWidth: geometry.size.width)
-                            }
+                            if didLoadCredits {
+                                if !castItems.isEmpty {
+                                    CastSection(characters: castItems, containerWidth: geometry.size.width)
+                                }
 
-                            if !authorItems.isEmpty {
-                                MangaProductionSection(authorItems: authorItems)
+                                if !authorItems.isEmpty {
+                                    MangaProductionSection(authorItems: authorItems)
+                                }
+                            } else {
+                                DetailCreditsSkeleton()
                             }
                         }
 
-                        AdaptationPathSection(ladder: mediaLadder, mediaType: .manga)
+                        if didLoadLadder {
+                            AdaptationPathSection(ladder: mediaLadder, mediaType: .manga)
+                        } else {
+                            DetailLadderSkeleton()
+                        }
 
                         // Chapters Section (rows-first; count is optional)
                         ChaptersSection(manga: manga, chapterCount: manga.chapterCount, onError: showToast)
@@ -201,6 +211,7 @@ struct MangaDetailView: View {
             topTags = await tags
             similar = await sim
             mediaLadder = await ladder
+            didLoadLadder = true
             await supabaseService.enqueueMediaRelationRefreshIfNeeded(
                 mediaType: "MANGA",
                 mediaId: manga.id,
@@ -226,6 +237,7 @@ struct MangaDetailView: View {
             async let castFetch = supabaseService.fetchCharactersForManga(mangaId: manga.id)
             authorItems = await authorFetch
             castItems = await castFetch
+            didLoadCredits = true
         }
     }
 
@@ -1377,5 +1389,68 @@ struct MangaActionButtons: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Detail Page Skeleton Placeholders
+
+private struct DetailCreditsSkeleton: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroSpacing.md) {
+            // "CAST" caption placeholder
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.06))
+                .frame(width: 40, height: 10)
+                .kuroShimmer()
+
+            // Circle avatars row
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(0..<5, id: \.self) { _ in
+                        Circle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: 64, height: 64)
+                            .kuroShimmer()
+                    }
+                }
+            }
+
+            // "PRODUCTION" caption placeholder
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.06))
+                .frame(width: 80, height: 10)
+                .kuroShimmer()
+
+            // Text line placeholders
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.05))
+                .frame(width: 180, height: 12)
+                .kuroShimmer()
+
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.05))
+                .frame(width: 140, height: 12)
+                .kuroShimmer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct DetailLadderSkeleton: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroSpacing.sm) {
+            // Caption placeholder
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.06))
+                .frame(width: 100, height: 10)
+                .kuroShimmer()
+
+            // Body text placeholder
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(Color.black.opacity(0.04))
+                .frame(width: 220, height: 14)
+                .kuroShimmer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
