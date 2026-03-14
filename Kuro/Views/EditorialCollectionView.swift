@@ -424,7 +424,37 @@ struct EditorialCollectionView: View {
                                 hasMore: supabaseService.hasMoreCollectionFeed,
                                 isLoading: supabaseService.isLoadingMoreCollectionFeed
                             ) {
-                                _ = await supabaseService.fetchNextCollectionFeedPage(limit: 90)
+                                let countBefore = supabaseService.collectionFeedItems.count
+                                let loaded = await supabaseService.fetchNextCollectionFeedPage(limit: 90)
+                                if loaded {
+                                    let newItems = Array(supabaseService.collectionFeedItems.dropFirst(countBefore))
+
+                                    // Image prefetch
+                                    let urls = newItems.prefix(80).compactMap { URL(string: $0.imageURL ?? "") }
+                                    if !urls.isEmpty {
+                                        Task { await ImagePipeline.shared.prefetch(urls: urls) }
+                                    }
+
+                                    // Friend count + streaming availability prefetch
+                                    if !newItems.isEmpty {
+                                        let feedItems = newItems.prefix(80).map {
+                                            (mediaType: $0.kind == .anime ? "ANIME" : "MANGA", mediaId: $0.id)
+                                        }
+                                        if FeatureFlags.shared.isSocialActivityV1Enabled {
+                                            supabaseService.prefetchFriendCounts(items: feedItems)
+                                        }
+                                        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                                            let preferredAudio = Locale.current.identifier.lowercased().hasPrefix("de") ? "de" : "en"
+                                            supabaseService.prefetchProviderAvailabilityV2(
+                                                items: feedItems,
+                                                preferredAudioLang: preferredAudio,
+                                                preferredSubLang: nil,
+                                                includeUnknown: true
+                                            )
+                                            supabaseService.prefetchProviders(items: feedItems)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
