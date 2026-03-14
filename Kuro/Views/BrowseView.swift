@@ -262,9 +262,8 @@ struct BrowseView: View {
                         }
                         .padding(.bottom, 12)
 
-                        if isLoadingResults {
-                            ProgressView()
-                                .padding(.vertical, 16)
+                        if isLoadingResults, !displayItems.isEmpty {
+                            BrowsePaginationSkeleton(geometry: geometry)
                         }
                     }
                 }
@@ -1183,6 +1182,51 @@ struct BrowseGridSkeleton: View {
             }
         }
         .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+    }
+}
+
+private struct BrowsePaginationSkeleton: View {
+    let geometry: GeometryProxy
+
+    var body: some View {
+        let horizontalPadding: CGFloat = 20
+        let spacing: CGFloat = 12
+        let totalHorizontalPadding = horizontalPadding * 2
+        let totalSpacing = spacing
+        let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
+        let cardWidth = floor(availableWidth / 2)
+        let imageHeight = floor(cardWidth / 0.7)
+        let textBlockHeight: CGFloat = 72
+        let cardSpacing: CGFloat = 8
+        let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
+
+        let columns = [
+            GridItem(.fixed(cardWidth), spacing: spacing),
+            GridItem(.fixed(cardWidth), spacing: spacing)
+        ]
+
+        LazyVGrid(columns: columns, spacing: 16) {
+            ForEach(0..<4, id: \.self) { _ in
+                VStack(alignment: .leading, spacing: 8) {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.black.opacity(0.05))
+                        .frame(width: cardWidth, height: imageHeight)
+                    VStack(alignment: .leading, spacing: 6) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.black.opacity(0.06))
+                            .frame(height: 10)
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color.black.opacity(0.04))
+                            .frame(width: cardWidth * 0.6, height: 10)
+                    }
+                    .frame(height: textBlockHeight, alignment: .top)
+                }
+                .frame(width: cardWidth, height: totalCardHeight, alignment: .top)
+                .kuroShimmer()
+            }
+        }
+        .padding(.horizontal, horizontalPadding)
         .padding(.vertical, 16)
     }
 }
