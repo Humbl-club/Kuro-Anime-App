@@ -1,10 +1,10 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-14
+**Last updated:** 2026-03-16
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 68 app Swift files and 156 SQL migrations are in the repo today.
+**Current inventory:** 68 app Swift files and 157 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -915,3 +915,11 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Social activity live for everyone**: The social activity feature (friend tracking indicators, title comments, reactions) is now at 100% rollout. Browse pagination now correctly shows friend counts on every page.
 - **Config moved out of code**: Supabase credentials are no longer hardcoded in the app. Info.plist now reads them from build configuration files (xcconfig), which are wired into the Xcode project. This is the proper way to manage environment-specific values.
 - **Build 16** uploaded to TestFlight with all 8 quality gates passing.
+
+### 2026-03-16 — UX Smoothness + Club Data Fix (Build 17)
+- **Loading skeletons on detail pages**: When you open an anime or manga, the Cast, Production, and Adaptation Path sections now show subtle shimmer placeholders while loading instead of nothing.
+- **Instant collection toggles**: Tapping the bookmark/add button on any card now flips instantly (optimistic UI) instead of waiting for the server. If the server fails, it silently rolls back.
+- **Browse pagination skeletons**: Scrolling to load more results in Browse now shows ghost card placeholders instead of a tiny spinner.
+- **Collection load-more prefetch**: When loading more items in your Collection, images and friend counts are now prefetched so cards appear fully loaded.
+- **Club data fix**: Fixed a bug where loading club data could fail for clubs with items. The database function referenced wrong column names (`episode_count` instead of `episodes`, `chapter_count` instead of `chapters`) and was missing reaction data. Also added diagnostic logging for club data loading errors.
+- **Build 17** uploaded to TestFlight with all 8 quality gates passing.
