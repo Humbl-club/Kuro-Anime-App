@@ -307,6 +307,9 @@ struct ClubDetailView: View {
             optimisticVoteByPollId.removeAll()
             optimisticVoteCountsByPollId.removeAll()
         } catch {
+            #if DEBUG
+            print("[ClubDetail] loadBundle failed: \(type(of: error)) — \(error)")
+            #endif
             switch rpcErrorCode(from: error) {
             case .notAMember:
                 handleMembershipLoss()
