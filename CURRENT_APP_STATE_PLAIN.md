@@ -1,10 +1,10 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-16
+**Last updated:** 2026-03-17
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 68 app Swift files and 157 SQL migrations are in the repo today.
+**Current inventory:** 75 app Swift files and 160 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -923,3 +923,50 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Collection load-more prefetch**: When loading more items in your Collection, images and friend counts are now prefetched so cards appear fully loaded.
 - **Club data fix**: Fixed a bug where loading club data could fail for clubs with items. The database function referenced wrong column names (`episode_count` instead of `episodes`, `chapter_count` instead of `chapters`) and was missing reaction data. Also added diagnostic logging for club data loading errors.
 - **Build 17** uploaded to TestFlight with all 8 quality gates passing.
+
+### 2026-03-16 — Clubs list page editorial redesign
+- The clubs list page now matches the Journal aesthetic used on the club detail page. Club entries use serif typography and thin editorial rule lines instead of glass card wrappers. The empty state is a centered magazine-page opener with decorative rules and a serif tagline. Loading shows shimmer ghost cards. No new files — all changes in ClubsView.swift.
+
+### 2026-03-16 — Foundation refactor wave
+- The big service and screen files are now split into safer slices: Browse data loading moved into `SupabaseService+Browse.swift`, while the club detail, collection, and browse screens each moved their heavy helper views into dedicated companion files.
+- The collection screen was also restructured internally so its main body is smaller and easier to compile and maintain. Its image/friend-count/provider prefetch now runs through one shared helper instead of being duplicated in three places.
+- Validation after the split stayed green: the app still builds, the `KuroTests` suite still passes, and Supabase schema lint still passes.
+- Current repo inventory after this refactor wave is 74 Swift files and 157 SQL migrations.
+
+### 2026-03-16 — Foundation pass
+- Runtime source no longer lives at the repo root: `PosterView.swift` moved into `Kuro/Views/`, legacy importer drafts moved under `scripts/legacy/`, and manual verification scripts were renamed under `scripts/manual/`.
+- The similar-title path was cleaned up structurally and operationally: recommendation code moved into `SupabaseService+Recommendations.swift`, and detail hydration now batches IDs instead of fanning out one request per title.
+- Added two working audit/remediation docs: `docs/foundation-audit-2026-03-16.md` and `docs/foundation-remediation-plan-2026-03-16.md`.
+- Current repo inventory is now 70 Swift files and 157 SQL migrations.
+
+### 2026-03-16 — Design-token cleanup on extracted component files
+- The extracted Collection and Browse component files no longer depend on raw `.black`, `.white`, or ad hoc `.font(.system(...))` calls. They now use the central Kuro design tokens and typography helpers only.
+- The design system gained one generic custom-font helper plus the missing opacity tokens needed to preserve the current look without leaving hard-coded values scattered in the views.
+- The club detail companion file also got a focused cleanup on the most active surfaces — rails, polls, reactions, add-item search, and settings/member badges now rely on the same token layer instead of one-off styling.
+- No file-count or migration-count changes in this pass. Inventory remains 74 Swift files and 157 SQL migrations.
+
+### 2026-03-16 — Concierge/shell cleanup + warning removal
+- The Concierge component file no longer carries static raw `.black`, `.white`, or `.font(.system(...))` styling. It now uses the same token layer as the rest of the refactor wave, so that surface is easier to maintain without changing its look.
+- The app shell in `ContentView.swift` was cleaned up too: launch/header colors and typography now use Kuro tokens, and the repeated header icon chrome was reduced to one small helper.
+- The Adaptation Path footnote no longer uses the deprecated `Text + Text` composition style on iOS 26. The copy and behavior stay the same, but the warning is gone.
+- `FeatureFlags.swift` dropped an unused retry variable (`lastError`) with no behavior change.
+- Validation stayed green: the app build passed and all 8 quality gates passed again. Inventory remains 74 Swift files and 157 SQL migrations.
+
+### 2026-03-16 — Clubs list page mosaic card redesign
+- The clubs list page cards now show a 2x2 image mosaic (up to 4 cover images from the club's rail items) above the club name, member avatars, and last-activity time. This matches the HTML mockup design that was approved earlier.
+- A new database migration enriches the clubs list query to return cover image URLs and member display names, so the app doesn't need extra network calls to show the mosaic and avatar stack.
+- The loading skeleton was updated to match the new card shape (mosaic placeholder + text bars inside a bordered card). Card spacing is now 16pt between cards instead of editorial divider lines.
+- Unread activity is shown as a small 8pt dot overlay on the card corner.
+- 68 Swift files (unchanged), 158 SQL migrations (+1).
+
+### 2026-03-17 — Lean hot-path wave
+- The club detail backend fetch got tighter without changing the app contract. A new migration makes ordering deterministic for rails, items, member-status lists, and polls, and poll option vote counts are now aggregated more efficiently instead of being counted one option at a time.
+- The main Concierge screen shell was cleaned up to match the rest of the tokenized UI work. The AniList import flow, timeline shell, and tutorial overlay no longer depend on raw black/white styling or ad hoc system-font calls.
+- We explicitly skipped the extra Club Detail UI follow-up in this wave because the backend contract stayed stable; there was nothing real to adapt on the Swift side.
+- Validation stayed green on the integrated result: iOS build passed, Supabase schema lint passed, and the repo now contains 74 Swift files and 160 SQL migrations.
+
+### 2026-03-17 — Follow-up hardening
+- The streaming/provider availability code was split out of the main Supabase service into a dedicated companion file, `SupabaseService+Streaming.swift`. The logic did not change, but the main service file is easier to navigate and the provider-specific code is now isolated.
+- The last raw red error text in the Concierge screen was replaced with a proper design-system token (`Color.kuroError`), so that view no longer hard-codes its error color inline.
+- The three pending migrations from the recent clubs/club-bundle work were tracked in git, which removes the last reason the default migration hygiene gate needed an override.
+- After this follow-up, the repo contains 75 Swift files and 160 SQL migrations.

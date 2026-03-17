@@ -239,16 +239,19 @@ All 15 flags defined in `FeatureFlags.swift`:
 
 ---
 
-## FILE MAP (exact, current as of 2026-03-07)
+## FILE MAP (exact, current as of 2026-03-17)
 
-### iOS app — 68 Swift files in `Kuro/`
+### iOS app — 75 Swift files in `Kuro/`
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
 - `ContentView.swift` — 5-page swipe pager, header (KURO wordmark / section title / search + profile), deep link sheet presentation
 
-**Services (11 files):**
-- `SupabaseService.swift` — core data layer, RPC calls, caching, auth bootstrap, `fmService`, `withRetry` helper
+**Services (15 files):**
+- `SupabaseService.swift` — core data layer, auth/bootstrap, collection, clubs/social, detail data, caching, `fmService`, `withRetry` helper
+- `SupabaseService+Browse.swift` — browse page keyset paging + browse query helpers
+- `SupabaseService+Recommendations.swift` — similar-title recommendation hydration and batched ID fetches
+- `SupabaseService+Streaming.swift` — provider registry/availability, user streaming service selection, and club shared-provider helpers
 - `AppleFMService.swift` — on-device FM (4 capabilities, FMProvider protocol, StubFMProvider fallback)
 - `AppConfig.swift` — reads SUPABASE_URL/ANON_KEY from Info.plist/env
 - `NetworkMonitor.swift` — NWPathMonitor connectivity, `isConnected`, offline banner
@@ -275,10 +278,13 @@ All 15 flags defined in `FeatureFlags.swift`:
 
 **Views (remaining):**
 - `EditorialDiscoverView.swift` — Discover page
-- `BrowseView.swift` — Browse page (full-page, not a sheet)
-- `EditorialCollectionView.swift` — Collection page
+- `BrowseView.swift` — Browse page shell/state (full-page, not a sheet)
+- `BrowseComponents.swift` — browse controls, filters sheet, grid, hero card, skeletons
+- `EditorialCollectionView.swift` — Collection page shell/state
+- `EditorialCollectionComponents.swift` — collection filters, grid/list cards, empty/loading states, batch bar
 - `ClubsView.swift` — Clubs list page (enriched cards, unread dots)
-- `ClubDetailView.swift` — Club detail (3-tab: Rails/This Week/Polls)
+- `ClubDetailView.swift` — Club detail shell/state (3-tab: Rails/This Week/Polls)
+- `ClubDetailSections.swift` — club detail journal sections, tabs, rails, polls, activity, bottom bar
 - `ClubCreateSheets.swift` — Create/join club sheets
 - `EditorialSearchView.swift` — Search sheet
 - `OnboardingView.swift` — First-launch onboarding
@@ -297,7 +303,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `SupabaseModels.swift` — all Supabase data models
 - `DiscoverBundle.swift` — discover bundle response model
 
-### Supabase — 157 migration files in repo, 15 deployed edge functions (as of 2026-03-16)
+### Supabase — 160 migration files in repo, 15 deployed edge functions (as of 2026-03-17)
 
 **Edge functions (15):**
 - `concierge-parse` — deterministic NLP parser, title candidate search
@@ -330,7 +336,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - Unscheduled (deprecated): club message pruning (was 30-day, at 03:15 — chat replaced by social activity layer)
 
 ### Scripts & quality gates
-- `scripts/quality-gates/` — 8 scripts: `check_secrets.sh`, `check_migrations.sh`, `test_router_offline.sh`, `router_test_cases.js`, `test_concierge_corpora.sh`, `audit_rails.sh`, `build_ios.sh`, `run_all.sh`
+- `scripts/quality-gates/` — 11 files: 8 gate scripts (`check_secrets.sh`, `check_migrations.sh`, `test_concierge_corpora.sh`, `test_router_offline.sh`, `audit_rails.sh`, `check_docs_current_state.sh`, `build_ios.sh`, `test_ios_unit.sh`), `run_all.sh` orchestrator, `router_test_cases.js` offline router test data, and `check_docs_current_state.py` docs-current-state checker
 - `.githooks/pre-commit` — secrets + migration name checks
 - `scripts/` — 19+ operational scripts (imports, audits, load tests, generators), including `audit_curated_rails_quality.js` (rail quality checks)
 

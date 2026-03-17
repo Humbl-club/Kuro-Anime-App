@@ -13,9 +13,37 @@ extension Color {
 
     // Opacity Variations (8px base unit system)
     static let kuroBlack80 = Color.black.opacity(0.8)   // Primary text
+    static let kuroBlack85 = Color.black.opacity(0.85)  // High-emphasis text
+    static let kuroBlack75 = Color.black.opacity(0.75)  // Strong overlays
+    static let kuroBlack70 = Color.black.opacity(0.7)   // Emphasis text / badges
+    static let kuroBlack65 = Color.black.opacity(0.65)  // Deep gradients / overlays
     static let kuroBlack60 = Color.black.opacity(0.6)   // Secondary text
+    static let kuroBlack45 = Color.black.opacity(0.45)  // Metadata / hints
+    static let kuroBlack40 = Color.black.opacity(0.4)   // Disabled text
+    static let kuroBlack35 = Color.black.opacity(0.35)  // Iconography / subdued affordances
     static let kuroBlack30 = Color.black.opacity(0.3)   // Tertiary text (legacy — prefer kuroBlack45)
+    static let kuroBlack25 = Color.black.opacity(0.25)  // Soft gradient stops
+    static let kuroBlack20 = Color.black.opacity(0.2)   // Dividers / borders
+    static let kuroBlack15 = Color.black.opacity(0.15)  // Empty-state accents
+    static let kuroBlack14 = Color.black.opacity(0.14)  // Floating surface shadow
+    static let kuroBlack12 = Color.black.opacity(0.12)  // Hairline strokes
+    static let kuroBlack10 = Color.black.opacity(0.10)  // Capsule borders / overlays
     static let kuroBlack08 = Color.black.opacity(0.08)  // Subtle backgrounds
+    static let kuroBlack06 = Color.black.opacity(0.06)  // Surface chips / pills
+    static let kuroBlack05 = Color.black.opacity(0.05)  // Loading placeholders
+    static let kuroBlack04 = Color.black.opacity(0.04)  // Quiet surfaces
+    static let kuroBlack02 = Color.black.opacity(0.02)  // Glass overlays
+
+    static let kuroWhite92 = Color.white.opacity(0.92)  // Light capsule overlays
+    static let kuroWhite90 = Color.white.opacity(0.9)   // Strong white text
+    static let kuroWhite85 = Color.white.opacity(0.85)  // Secondary white text
+    static let kuroWhite80 = Color.white.opacity(0.8)   // White strokes / captions
+    static let kuroWhite60 = Color.white.opacity(0.6)   // Tertiary white text
+    static let kuroWhite55 = Color.white.opacity(0.55)  // Sharp highlight shadow
+    static let kuroWhite20 = Color.white.opacity(0.2)   // Soft hero pills
+    static let kuroWhite15 = Color.white.opacity(0.15)  // Glass overlays
+    static let kuroWhite04 = Color.white.opacity(0.04)  // Grain layer
+    static let kuroError = Color.red.opacity(0.85)      // Inline error text / destructive feedback
 
     // WCAG AA contrast-safe text tokens (black on white)
     // 0.55 => ~4.8:1 ratio — passes AA for normal text
@@ -81,6 +109,20 @@ private func kuroScaled(_ baseSize: CGFloat, relativeTo textStyle: Any? = nil) -
 // MARK: - Editorial Typography System (Vogue/Miu Miu Inspired)
 // Fashion-forward, dramatic, refined — now with Dynamic Type support
 extension Font {
+    static func kuroCustom(
+        _ baseSize: CGFloat,
+        weight: Font.Weight = .regular,
+        design: Font.Design = .default,
+        relativeTo textStyle: UIFont.TextStyle = .body
+    ) -> Font {
+        #if os(iOS)
+        let scaled = kuroScaled(baseSize, relativeTo: textStyle)
+        return .system(size: scaled, weight: weight, design: design)
+        #else
+        return .system(size: baseSize, weight: weight, design: design)
+        #endif
+    }
+
     // HERO - Magazine covers, dramatic statements (56-72pt)
     static func kuroHero(weight: Font.Weight = .thin) -> Font {
         #if os(iOS)

@@ -1,10 +1,10 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-16
+**Last updated:** 2026-03-17
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 68 app Swift files in `/Kuro`; 157 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 75 app Swift files in `/Kuro`; 160 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -108,14 +108,14 @@ This file is a **contract**. It must be updated **after every single change** to
 
 ## 2.1) Auto-generated inventory (exhaustive file lists)
 
-Generated: **2026-03-10T11:21:20.038Z**  (git: `f289d03` on `main`)
+Generated: **2026-03-17T05:59:53.419Z**  (git: `d2111e2` on `main`)
 
 This section is auto-generated. Rebuild it after any repo change:
 ```bash
 node scripts/generate_app_state_inventory.js
 ```
 
-### iOS (Swift) files (count: 68)
+### iOS (Swift) files (count: 74)
 - `Kuro/ContentView.swift`
 - `Kuro/Design/Color+Hex.swift`
 - `Kuro/Design/KuroDesignSystem.swift`
@@ -132,13 +132,17 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Services/KuroPerf.swift`
 - `Kuro/Services/NetworkMonitor.swift`
 - `Kuro/Services/SupabaseRPCParams.swift`
+- `Kuro/Services/SupabaseService+Browse.swift`
+- `Kuro/Services/SupabaseService+Recommendations.swift`
 - `Kuro/Services/SupabaseService.swift`
 - `Kuro/Services/TextNormalization.swift`
 - `Kuro/Views/AddToListSheet.swift`
 - `Kuro/Views/AuthView.swift`
+- `Kuro/Views/BrowseComponents.swift`
 - `Kuro/Views/BrowseView.swift`
 - `Kuro/Views/Cards.swift`
 - `Kuro/Views/ClubCreateSheets.swift`
+- `Kuro/Views/ClubDetailSections.swift`
 - `Kuro/Views/ClubDetailView.swift`
 - `Kuro/Views/ClubsView.swift`
 - `Kuro/Views/ConciergeActionFooter.swift`
@@ -164,6 +168,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/DetailPages/MediaDetailSheet.swift`
 - `Kuro/Views/DiscoverViewModel.swift`
 - `Kuro/Views/EditorialCards.swift`
+- `Kuro/Views/EditorialCollectionComponents.swift`
 - `Kuro/Views/EditorialCollectionView.swift`
 - `Kuro/Views/EditorialDiscoverView.swift`
 - `Kuro/Views/EditorialSearchView.swift`
@@ -182,10 +187,11 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/KuroToast.swift`
 - `Kuro/Views/KuroTransientBanner.swift`
 - `Kuro/Views/OnboardingView.swift`
+- `Kuro/Views/PosterView.swift`
 - `Kuro/Views/ProfileView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 154)
+### Supabase migrations (count: 160)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql`
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -340,6 +346,12 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260307150000_adaptation_ladder_v2_editorial_context.sql`
 - `supabase/migrations/20260307163000_fix_adaptation_ladder_entry_point.sql`
 - `supabase/migrations/20260311100000_ladder_source_author.sql`
+- `supabase/migrations/20260313100000_slim_club_bundle_limits.sql`
+- `supabase/migrations/20260313120000_social_activity_v1_rollout_100.sql`
+- `supabase/migrations/20260316100000_fix_club_bundle_columns_and_reactions.sql`
+- `supabase/migrations/20260316220000_clubs_list_cover_images_members.sql`
+- `supabase/migrations/20260317063000_clubs_list_cover_image_large.sql`
+- `supabase/migrations/20260317110000_fetch_club_bundle_ordering_and_poll_counts.sql`
 
 ### Supabase Edge Functions (index.ts) (count: 15)
 - `supabase/functions/auth-callback/index.ts`
@@ -358,7 +370,7 @@ node scripts/generate_app_state_inventory.js
 - `supabase/functions/manga-source-review-action/index.ts`
 - `supabase/functions/mirror-images/index.ts`
 
-### Repo scripts (count: 37)
+### Repo scripts (count: 45)
 - `scripts/apply_remote_sql.js`
 - `scripts/audit_curated_rails_quality.js`
 - `scripts/catalog_safety_dashboard_server.js`
@@ -384,8 +396,16 @@ node scripts/generate_app_state_inventory.js
 - `scripts/genre_audit.js`
 - `scripts/import_anilist_fast.js`
 - `scripts/import_anilist_local.js`
+- `scripts/legacy/03_updated_edge_function.js`
+- `scripts/legacy/04_manga_edge_function.js`
+- `scripts/legacy/06_anime_edge_function_with_episodes.js`
+- `scripts/legacy/07_manga_edge_function_with_chapters.js`
 - `scripts/lib/project_config.js`
 - `scripts/load_test_concierge.js`
+- `scripts/manual/test_bulk_import_anime.js`
+- `scripts/manual/test_bulk_import_manga.js`
+- `scripts/manual/test_bulk_import_manga_with_chapters.js`
+- `scripts/manual/verify_supabase_connection.js`
 - `scripts/media_relations_worker.js`
 - `scripts/provider_availability_dashboard_server.js`
 - `scripts/quality-gates/router_test_cases.js`
@@ -1490,9 +1510,14 @@ Quality gate scripts live in `scripts/quality-gates/` with a pre-commit hook in 
 2. **`check_migrations.sh`** — Checks for untracked/modified SQL files in `supabase/migrations/`, generates/verifies SHA-256 checksums (`.checksums` file). Read-only by default; pass `--update` to write checksums. Warning-only (no hard fail on modified migrations).
 3. **`test_router_offline.sh`** — Runs `router_test_cases.js` which tests `scoreMode()` / `mapStrongGenreToModeId()` logic offline (no network). Hard fail on test failure.
 4. **`audit_rails.sh`** — Wraps `scripts/audit_curated_rails_quality.js` (prefers env vars for Supabase credentials). Hard fail on: adult content, overlap > 40%, rail size > 100 or < 5, score below floor, franchise duplicates. Warning on: overlap > 15%, rail size near limits. Runs in both JSON and human-readable mode.
-5. **`build_ios.sh`** — Runs `xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build`. Hard fail on build error.
-6. **`test_ios_unit.sh`** — Runs `xcodebuild test` on the Kuro scheme (iPhone 17 Pro simulator primary, generic fallback). Hard fail on test failure.
-7. **`run_all.sh`** — Orchestrator: runs all gates, prints summary table, exits 1 if any blocking gate fails. Supports `SKIP_IOS_BUILD=1`, `SKIP_RAILS_AUDIT=1`, and `SKIP_IOS_TEST=1` env vars for faster runs.
+5. **`check_docs_current_state.sh`** — Wrapper around `check_docs_current_state.py`; verifies the top-level repo counts in `CURRENT_APP_STATE.md`, `CURRENT_APP_STATE_PLAIN.md`, and `CLAUDE.md` match the real repo inventory and that required documentation surfaces exist. Hard fail on drift.
+6. **`build_ios.sh`** — Runs `xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build`. Hard fail on build error.
+7. **`test_ios_unit.sh`** — Runs `xcodebuild test` on the Kuro scheme. Primary destination is `iPhone 17 Pro (iOS 26.2)`; fallback picks another available `iPhone 17 Pro` simulator first, then an `iPhone 17` simulator if needed. Hard fail on test failure.
+8. **`run_all.sh`** — Orchestrator: runs all gates, prints summary table, exits 1 if any blocking gate fails. Supports `SKIP_IOS_BUILD=1`, `SKIP_RAILS_AUDIT=1`, and `SKIP_IOS_TEST=1` env vars for faster runs.
+
+### Supporting files (not gates)
+- **`router_test_cases.js`** — Offline router test fixtures/runner used by `test_router_offline.sh`.
+- **`check_docs_current_state.py`** — Python implementation used by `check_docs_current_state.sh`.
 
 ### Pre-commit hook
 - File: `.githooks/pre-commit` (install: `git config core.hooksPath .githooks`)
@@ -5045,7 +5070,7 @@ node scripts/generate_app_state_sources.js
 
 
 ```swift
-// uses PosterView.swift
+// uses Kuro/Views/PosterView.swift
 import SwiftUI
 import UIKit
 
@@ -16393,3 +16418,63 @@ Consolidated summary of all production readiness work completed 2026-03-13, veri
 
 **Build:** Build 17 uploaded to TestFlight. 8/8 quality gates passing.
 68 Swift files, 157 migrations.
+
+### 2026-03-16: Clubs list page editorial redesign ("Journal Foyer")
+
+Replaced KuroGlassCard-based club rows with clean editorial entries (serif typography, rule-line dividers, no card wrappers, no chevrons). New private structs: `JournalEmptyState` (magazine-page opener with decorative rules + serif tagline + full-width CTA buttons), `JournalLoadingSkeleton` (3 ghost cards with shimmer + dividers), `JournalActionRow` (extracted create/join capsule buttons), `JournalClubCard` (19pt serif title, sharing-level capsule, member count, relative time, activity preview). LazyVStack spacing changed from `KuroDesignSpacing.md` to 0 with explicit editorial dividers. No new files — all changes in `ClubsView.swift`.
+
+### 2026-03-16: Foundation refactor wave — extracted view/service slices
+
+- Extracted Browse paging/query code into `Kuro/Services/SupabaseService+Browse.swift`, reducing `SupabaseService.swift` from ~5.8k lines to 5,494 lines and isolating browse RPC/query logic from auth, collection, club, and detail paths.
+- Split the largest SwiftUI surfaces into navigable component files without changing runtime ownership: `Kuro/Views/ClubDetailSections.swift`, `Kuro/Views/EditorialCollectionComponents.swift`, and `Kuro/Views/BrowseComponents.swift`.
+- Refactored `EditorialCollectionView.swift` into smaller view builders (`statusSummarySection`, `collectionHeaderSection`, `collectionContent`) and centralized collection metadata prefetch so the main body is type-checkable and easier to maintain.
+- Build/test validation after the split: iOS build succeeded, `KuroTests` passed, Supabase linked schema lint passed.
+- Current repo inventory after the refactor wave: 74 Swift files, 157 migrations.
+
+### 2026-03-16: Foundation pass — topology cleanup + similar-title batching
+
+- Moved runtime `PosterView.swift` into `Kuro/Views/PosterView.swift` and removed the last compiled Swift source from the repo root.
+- Moved historical/debug source-like files into `scripts/legacy/` and renamed manual importer utilities under `scripts/manual/` for readability.
+- Added `Kuro/Services/SupabaseService+Recommendations.swift` and extracted the similar-title recommendation path out of the `SupabaseService.swift` monolith.
+- Reworked similar-title hydration to use cache-first batched `IN (...)` queries before any per-ID fallback, removing the avoidable detail-fetch fanout on detail pages.
+- Added audit deliverables: `docs/foundation-audit-2026-03-16.md` and `docs/foundation-remediation-plan-2026-03-16.md`.
+- Updated repo inventories after the topology move and service split. 70 Swift files, 157 migrations.
+
+### 2026-03-16: Foundation refactor wave — design-token cleanup on extracted surfaces
+
+- Replaced the remaining raw `.black` / `.white` surface styling in `Kuro/Views/EditorialCollectionComponents.swift` and `Kuro/Views/BrowseComponents.swift`; both extracted files now render through `KuroDesignSystem` color tokens and typography helpers only.
+- Added `Font.kuroCustom(...)` plus a small set of missing black/white opacity tokens in `Kuro/Design/KuroDesignSystem.swift` so the extracted component files can keep exact sizing without falling back to ad hoc `.font(.system(...))` and raw opacity chains.
+- Reduced `Kuro/Views/ClubDetailSections.swift` from a broad mix of raw color/font values to tokenized styling on its high-traffic sections (rails, polls, reactions, add-item sheet, settings/member badges), keeping only deliberate dynamic opacity cases where the value depends on runtime state.
+- No new runtime files or schema changes. Repo inventory remains 74 Swift files, 157 migrations.
+
+### 2026-03-16: Foundation refactor wave — concierge/shell cleanup + warning removal
+
+- Removed the remaining static raw design drift from `Kuro/Views/ConciergeComponents.swift`: raw `.black` / `.white` usage and ad hoc `.font(.system(...))` calls now route through `KuroDesignSystem` tokens plus `Font.kuroCustom(...)`, keeping the existing concierge look while centralizing the styling surface.
+- Cleaned `Kuro/ContentView.swift` so the app shell/header no longer falls back to raw system colors/fonts for the launch wordmark, header icons, title window, or pager placeholder. Added a small in-file `headerIconCircle` helper to reduce repeated glass/icon styling without changing ownership.
+- Removed the iOS 26 `Text + Text` deprecation warnings in `Kuro/Views/DetailPages/AdaptationPathSection.swift` by switching the editorial footnote prose to interpolated `Text(...)` composition while keeping the same copy and tap behavior.
+- Removed the dead `lastError` retry state from `Kuro/Services/FeatureFlags.swift`; retry behavior is unchanged.
+- Validation after this pass: iOS build succeeded (`-derivedDataPath /tmp/KuroNextWaveDD`) and all 8 quality gates passed again. No new runtime files or schema changes. Repo inventory remains 74 Swift files, 157 migrations.
+
+### 2026-03-16: Clubs list page mosaic card redesign (matches HTML mockup)
+
+- New migration `20260316220000_clubs_list_cover_images_members.sql` — enriches `fetch_my_clubs_enriched` RPC with `cover_images` (up to 4 cover URLs from rail items) and `member_names` (up to 4 display names from profiles).
+- `ClubListRow` in `SupabaseService.swift` gained 2 optional fields: `cover_images: [String]?`, `member_names: [String]?`.
+- `JournalClubCard` in `ClubsView.swift` rewritten: 2x2 image mosaic grid (140pt, 1px gaps), card body with serif name + overlapping avatar stack + relative time + chevron, white card wrapper with 12pt corners + border + shadow, 8pt unread dot overlay.
+- `JournalLoadingSkeleton` updated to match card shape (140pt mosaic placeholder + text bars inside bordered card).
+- `LazyVStack(spacing: 16)` replaces divider-based spacing.
+- 68 Swift files (unchanged), 158 migrations (+1).
+
+### 2026-03-17: Lean hot-path wave — club bundle tightening + concierge shell cleanup
+
+- Added migration `20260317110000_fetch_club_bundle_ordering_and_poll_counts.sql` to tighten `fetch_club_bundle` without changing the RPC contract: deterministic tie-break ordering for rails, rail items, member statuses, and polls; poll option vote counts now aggregate once per poll instead of doing per-option scalar `count(*)` subqueries; `my_vote_option_id` lookup now uses a defensive `LIMIT 1`.
+- `supabase db lint --linked` passes after the new club-bundle migration. Existing club-table index coverage remains sufficient; no new index migration was needed for this pass.
+- Cleaned `Kuro/Views/ConciergeView.swift` so the AniList import shell, timeline shell, tutorial overlay, and CTA chrome now route through `KuroDesignSystem` tokens and `Font.kuroCustom(...)` instead of raw `.black` / `.white` or ad hoc `.font(.system(...))` styling.
+- This wave intentionally skipped the conditional ClubDetail consumer follow-up because the backend worker kept the `fetch_club_bundle` contract stable and did not require any Swift-side adaptation.
+- Validation after integration: iOS build succeeded (`-derivedDataPath /tmp/KuroLeanWaveDD`), `supabase db lint --linked` passed, and the repo inventory is now 74 Swift files / 160 migrations.
+
+### 2026-03-17: Follow-up hardening — streaming split + clean migration gate
+
+- Added `Kuro/Services/SupabaseService+Streaming.swift` and moved the streaming-availability domain behavior out of `SupabaseService.swift`: provider registry/user-service fetches, provider-availability RPC calls, club shared-provider fetches, and the provider note/cache helpers now live in the companion file while the shared state remains on `SupabaseService`.
+- Finished the last remaining static error-color drift in `Kuro/Views/ConciergeView.swift` by routing the inline error text through the new `Color.kuroError` token in `Kuro/Design/KuroDesignSystem.swift`.
+- Tracked the previously untracked migrations `20260316220000_clubs_list_cover_images_members.sql`, `20260317063000_clubs_list_cover_image_large.sql`, and `20260317110000_fetch_club_bundle_ordering_and_poll_counts.sql` so the default migration hygiene gate can pass without `MIGRATIONS_ALLOW_UNTRACKED=1`.
+- Validation after this follow-up: iOS build succeeded (`-derivedDataPath /tmp/KuroDo123DD4`), `supabase db lint --linked` passed, and the current repo inventory is now 75 Swift files / 160 migrations.

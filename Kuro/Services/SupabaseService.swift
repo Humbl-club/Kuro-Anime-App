@@ -20,7 +20,7 @@ class SupabaseService {
     let analytics = ConciergeAnalytics.shared
 
     // Supabase client (nil only when config is missing)
-    private let client: SupabaseClient!
+    let client: SupabaseClient!
     // Surface configuration errors to UI instead of crashing
     var configError: String? = nil
     // Realtime (user-scoped) subscriptions
@@ -83,8 +83,8 @@ class SupabaseService {
     var userLists: [UserList] = []
     var episodes: [Episode] = []
     // Detail caches: cards/grids only carry minimal fields; we fetch full details by id on demand.
-    private var animeDetailCache: [Int: Anime] = [:]
-    private var mangaDetailCache: [Int: Manga] = [:]
+    var animeDetailCache: [Int: Anime] = [:]
+    var mangaDetailCache: [Int: Manga] = [:]
 
     // Entity inline caches (keyed by media ID, cap 100 each)
     private var animeCharactersCache: [Int: [(character: Character, role: String)]] = [:]
@@ -311,11 +311,11 @@ class SupabaseService {
         "Thriller"
     ]
 
-    private func sanitizeAnimeForDiscovery(_ items: [Anime]) -> [Anime] {
+    func sanitizeAnimeForDiscovery(_ items: [Anime]) -> [Anime] {
         sanitizeAnimeForDiscovery(items, policy: DiscoveryPolicy(includeAdult: false, excludeEcchi: true))
     }
 
-    private func sanitizeAnimeForDiscovery(_ items: [Anime], policy: DiscoveryPolicy) -> [Anime] {
+    func sanitizeAnimeForDiscovery(_ items: [Anime], policy: DiscoveryPolicy) -> [Anime] {
         items.filter { anime in
             if !policy.includeAdult {
                 if anime.isAdult { return false }
@@ -328,11 +328,11 @@ class SupabaseService {
         }
     }
 
-    private func sanitizeMangaForDiscovery(_ items: [Manga]) -> [Manga] {
+    func sanitizeMangaForDiscovery(_ items: [Manga]) -> [Manga] {
         sanitizeMangaForDiscovery(items, policy: DiscoveryPolicy(includeAdult: false, excludeEcchi: true))
     }
 
-    private func sanitizeMangaForDiscovery(_ items: [Manga], policy: DiscoveryPolicy) -> [Manga] {
+    func sanitizeMangaForDiscovery(_ items: [Manga], policy: DiscoveryPolicy) -> [Manga] {
         items.filter { manga in
             if !policy.includeAdult {
                 if manga.isAdult { return false }
@@ -1861,168 +1861,7 @@ class SupabaseService {
         }
     }
 
-    /// Minimal "More like this" fetcher for detail pages (Swiss minimal: deterministic, no LLM).
-    /// Primary path uses the DB similarity RPC (tag overlap + editorial boosts/penalties).
-    /// Falls back to a lightweight genre anchor if the RPC isn't available.
-    func fetchSimilarAnime(seed: Anime, limit: Int = 14) async -> [Anime] {
-        let rpc = await fetchSimilarIdsViaRPC(mediaType: "ANIME", seedIds: [seed.id], limit: limit, allowGimmicks: false)
-        if !rpc.isEmpty, let items = await fetchAnimeByIdsPreservingOrder(rpc.map(\.mediaId)) {
-            return sanitizeAnimeForDiscovery(items)
-        }
-        return await fetchSimilarAnimeFallbackByGenre(seed: seed, limit: limit)
-    }
-
-    func fetchSimilarManga(seed: Manga, limit: Int = 14) async -> [Manga] {
-        let rpc = await fetchSimilarIdsViaRPC(mediaType: "MANGA", seedIds: [seed.id], limit: limit, allowGimmicks: false)
-        if !rpc.isEmpty, let items = await fetchMangaByIdsPreservingOrder(rpc.map(\.mediaId)) {
-            return sanitizeMangaForDiscovery(items)
-        }
-        return await fetchSimilarMangaFallbackByGenre(seed: seed, limit: limit)
-    }
-
-    private struct _RecommendSimilarRow: Decodable {
-        let mediaId: Int
-        let overlapCount: Int
-        let score: Double
-
-        enum CodingKeys: String, CodingKey {
-            case mediaId = "media_id"
-            case overlapCount = "overlap_count"
-            case score
-        }
-    }
-
-    private func fetchSimilarIdsViaRPC(
-        mediaType: String,
-        seedIds: [Int],
-        limit: Int,
-        allowGimmicks: Bool
-    ) async -> [_RecommendSimilarRow] {
-        // This RPC is a production-grade deterministic similarity engine (tag overlap + editorial weights).
-        // It may be missing in some DBs (or require auth, depending on migration state), so treat failure as "no results".
-        let perf = KuroPerf.begin("rpc.recommend_ids_similar_to_seeds")
-        do {
-            let params = RPCRecommendSimilarParams(
-                p_media_type: mediaType,
-                p_seed_ids: seedIds,
-                p_limit: max(1, min(50, limit)),
-                p_allow_gimmicks: allowGimmicks
-            )
-            let rows: [_RecommendSimilarRow] = try await client
-                .rpc("recommend_ids_similar_to_seeds", params: params)
-                .execute()
-                .value
-            KuroPerf.end(perf, message: "ok \(rows.count)")
-            return rows
-        } catch {
-            KuroPerf.end(perf, message: "error")
-            return []
-        }
-    }
-
-    private func fetchAnimeByIdsPreservingOrder(_ ids: [Int]) async -> [Anime]? {
-        if ids.isEmpty { return [] }
-        // Avoid hammering the API: fetch via cache first, then fill in missing ones concurrently.
-        // Keep ordering identical to the RPC output.
-        var resultsById: [Int: Anime] = [:]
-        resultsById.reserveCapacity(ids.count)
-
-        for id in ids {
-            if let cached = animeDetailCache[id] {
-                resultsById[id] = cached
-            }
-        }
-
-        let missing = ids.filter { resultsById[$0] == nil }
-        if !missing.isEmpty {
-            await withTaskGroup(of: Anime?.self) { group in
-                for id in missing {
-                    group.addTask { [weak self] in
-                        guard let self else { return nil }
-                        return try? await self.fetchAnimeById(id)
-                    }
-                }
-                for await item in group {
-                    if let item { resultsById[item.id] = item }
-                }
-            }
-        }
-
-        let ordered = ids.compactMap { resultsById[$0] }
-        return ordered.isEmpty ? nil : ordered
-    }
-
-    private func fetchMangaByIdsPreservingOrder(_ ids: [Int]) async -> [Manga]? {
-        if ids.isEmpty { return [] }
-        var resultsById: [Int: Manga] = [:]
-        resultsById.reserveCapacity(ids.count)
-
-        for id in ids {
-            if let cached = mangaDetailCache[id] {
-                resultsById[id] = cached
-            }
-        }
-
-        let missing = ids.filter { resultsById[$0] == nil }
-        if !missing.isEmpty {
-            await withTaskGroup(of: Manga?.self) { group in
-                for id in missing {
-                    group.addTask { [weak self] in
-                        guard let self else { return nil }
-                        return try? await self.fetchMangaById(id)
-                    }
-                }
-                for await item in group {
-                    if let item { resultsById[item.id] = item }
-                }
-            }
-        }
-
-        let ordered = ids.compactMap { resultsById[$0] }
-        return ordered.isEmpty ? nil : ordered
-    }
-
-    private func fetchSimilarAnimeFallbackByGenre(seed: Anime, limit: Int) async -> [Anime] {
-        guard let primaryGenre = seed.genreList?.first, !primaryGenre.isEmpty else { return [] }
-        do {
-            let rows: [Anime] = try await client
-                .from("anime")
-                .select()
-                .eq("is_adult", value: false)
-                .contains("genres", value: [primaryGenre])
-                .neq("id", value: seed.id)
-                .order("favourites", ascending: false)
-                .order("average_score", ascending: false)
-                .order("popularity", ascending: false)
-                .range(from: 0, to: max(0, limit - 1))
-                .execute()
-                .value
-            return sanitizeAnimeForDiscovery(rows)
-        } catch {
-            return []
-        }
-    }
-
-    private func fetchSimilarMangaFallbackByGenre(seed: Manga, limit: Int) async -> [Manga] {
-        guard let primaryGenre = seed.genreList?.first, !primaryGenre.isEmpty else { return [] }
-        do {
-            let rows: [Manga] = try await client
-                .from("manga")
-                .select()
-                .eq("is_adult", value: false)
-                .contains("genres", value: [primaryGenre])
-                .neq("id", value: seed.id)
-                .order("favourites", ascending: false)
-                .order("average_score", ascending: false)
-                .order("popularity", ascending: false)
-                .range(from: 0, to: max(0, limit - 1))
-                .execute()
-                .value
-            return sanitizeMangaForDiscovery(rows)
-        } catch {
-            return []
-        }
-    }
+    // MARK: - Similar title recommendations
 
     private struct _MangaTagSampleRow: Decodable {
         let id: Int
@@ -3378,189 +3217,7 @@ class SupabaseService {
     }
 
     // MARK: - Browse (server-driven paging + filters)
-    func fetchBrowseAnimePageKeyset(
-        genre: String?,
-        status: String?,
-        minEpisodes: Int?,
-        maxEpisodes: Int?,
-        sort: BrowseSort = .popular,
-        cursorInt: Int?,
-        cursorDate: Date?,
-        cursorId: Int?,
-        minYear: Int? = nil,
-        maxYear: Int? = nil,
-        format: String? = nil,
-        limit: Int
-    ) async -> [AnimeCard] {
-        do {
-            let perf = KuroPerf.begin("rpc.browse_anime_page")
-            let params = RPCBrowseAnimePageParams(
-                p_genre: genre,
-                p_status: status,
-                p_min_episodes: minEpisodes,
-                p_max_episodes: maxEpisodes,
-                p_sort: sort.rpcKey,
-                p_cursor_int: cursorInt,
-                p_cursor_ts: cursorDate,
-                p_cursor_id: cursorId,
-                p_min_year: minYear,
-                p_max_year: maxYear,
-                p_format: format,
-                p_limit: max(1, min(120, limit))
-            )
-            let rows: [AnimeCard] = try await client.rpc("browse_anime_page", params: params).execute().value
-            KuroPerf.end(perf, message: "ok")
-            return rows
-        } catch {
-            #if DEBUG
-            print("❌ browse_anime_page rpc: \(error)")
-            #endif
-            return []
-        }
-    }
-
-    func fetchBrowseMangaPageKeyset(
-        genre: String?,
-        status: String?,
-        minChapters: Int?,
-        maxChapters: Int?,
-        sort: BrowseSort = .popular,
-        cursorInt: Int?,
-        cursorDate: Date?,
-        cursorId: Int?,
-        minYear: Int? = nil,
-        maxYear: Int? = nil,
-        format: String? = nil,
-        limit: Int
-    ) async -> [MangaCard] {
-        do {
-            let perf = KuroPerf.begin("rpc.browse_manga_page")
-            let params = RPCBrowseMangaPageParams(
-                p_genre: genre,
-                p_status: status,
-                p_min_chapters: minChapters,
-                p_max_chapters: maxChapters,
-                p_sort: sort.rpcKey,
-                p_cursor_int: cursorInt,
-                p_cursor_ts: cursorDate,
-                p_cursor_id: cursorId,
-                p_min_year: minYear,
-                p_max_year: maxYear,
-                p_format: format,
-                p_limit: max(1, min(120, limit))
-            )
-            let rows: [MangaCard] = try await client.rpc("browse_manga_page", params: params).execute().value
-            KuroPerf.end(perf, message: "ok")
-            return rows
-        } catch {
-            #if DEBUG
-            print("❌ browse_manga_page rpc: \(error)")
-            #endif
-            return []
-        }
-    }
-
-    func fetchBrowseAnimePage(
-        genre: String?,
-        status: String?,
-        minEpisodes: Int?,
-        maxEpisodes: Int?,
-        sort: BrowseSort = .popular,
-        page: Int,
-        pageSize: Int
-    ) async -> [Anime] {
-        do {
-            let size = max(1, pageSize)
-            let offset = max(0, page) * size
-            var q = client.from("anime").select()
-
-            if let genre, !genre.isEmpty {
-                q = q.contains("genres", value: [genre])
-            }
-            if let status, !status.isEmpty {
-                q = q.eq("status", value: status)
-            }
-            if let minEpisodes {
-                q = q.gte("episodes", value: minEpisodes)
-            }
-            if let maxEpisodes {
-                q = q.lte("episodes", value: maxEpisodes)
-            }
-
-            let ordered = q.order(sort.orderColumn, ascending: false).order("id", ascending: false)
-            return try await ordered.range(from: offset, to: offset + size - 1).execute().value
-        } catch {
-            #if DEBUG
-            print("❌ browse anime fetch: \(error)")
-            #endif
-            return []
-        }
-    }
-
-    func fetchBrowseMangaPage(
-        genre: String?,
-        status: String?,
-        minChapters: Int?,
-        maxChapters: Int?,
-        sort: BrowseSort = .popular,
-        page: Int,
-        pageSize: Int
-    ) async -> [Manga] {
-        do {
-            let size = max(1, pageSize)
-            let offset = max(0, page) * size
-            var q = client.from("manga").select()
-
-            if let genre, !genre.isEmpty {
-                q = q.contains("genres", value: [genre])
-            }
-            if let status, !status.isEmpty {
-                q = q.eq("status", value: status)
-            }
-            if let minChapters {
-                q = q.gte("chapters", value: minChapters)
-            }
-            if let maxChapters {
-                q = q.lte("chapters", value: maxChapters)
-            }
-
-            let ordered = q.order(sort.orderColumn, ascending: false).order("id", ascending: false)
-            return try await ordered.range(from: offset, to: offset + size - 1).execute().value
-        } catch {
-            #if DEBUG
-            print("❌ browse manga fetch: \(error)")
-            #endif
-            return []
-        }
-    }
-    
-    // MARK: - Filter by Genre (using your genres array)
-    func filterByGenre(_ genre: String) async {
-        isLoading = true
-        
-        do {
-            let response: [Anime] = try await client
-                .from("anime")
-                .select()
-                .contains("genres", value: [genre])
-                .order("average_score", ascending: false)
-                .limit(50)
-                .execute()
-                .value
-            
-            animeItems = response
-            #if DEBUG
-            print("✅ Filtered by genre: \(genre)")
-            #endif
-        } catch {
-            errorMessage = "Filter failed: \(error.localizedDescription)"
-            #if DEBUG
-            print("❌ Error: \(error)")
-            #endif
-        }
-        
-        isLoading = false
-    }
+    // Extracted to SupabaseService+Browse.swift
 
 
     // MARK: - Concierge (Edge Functions)
@@ -4533,6 +4190,8 @@ class SupabaseService {
         let member_count: Int?
         let last_activity_at: String?
         let activity_preview: String?
+        let cover_images: [String]?
+        let member_names: [String]?
     }
 
     // Club bundle cache (5 min TTL per spec)
@@ -5296,336 +4955,17 @@ class SupabaseService {
         }
     }
 
-    // MARK: - Streaming Availability
+    // MARK: - Streaming Availability state
 
-    struct ProviderInfo: Decodable, Sendable {
-        let slug: String
-        let display_name: String
-        let language: String?
-    }
-
-    struct BatchProviderResult: Decodable, Sendable {
-        let media_type: String
-        let media_id: Int
-        let providers: [ProviderInfo]
-    }
-
-    struct StreamingServiceRecord: Decodable, Sendable, Identifiable {
-        let slug: String
-        let display_name: String
-        let media_types: [String]
-        let priority: Int
-        let is_active: Bool
-        var id: String { slug }
-    }
-
-    struct ClubSharedProvidersResponse: Decodable, Sendable {
-        let shared_services: [SharedService]
-        let member_count_total: Int
-        let member_count_with_services: Int
-        let coverage_pct: Int
-
-        struct SharedService: Decodable, Sendable {
-            let slug: String
-            let display_name: String
-        }
-    }
-
-    // Provider cache keyed "ANIME-12345"
-    private var providerCache: [String: [ProviderInfo]] = [:]
-    private var providerPrefetchTask: Task<Void, Never>?
-    // Provider availability cache keyed "ANIME-12345"
-    private var providerAvailabilityCache: [String: [ProviderAvailabilityProvider]] = [:]
-    private var providerAvailabilityPrefetchTask: Task<Void, Never>?
-    private var availabilityRefreshEnqueueCooldown: [String: Date] = [:]
-    // User's selected streaming service slugs
+    // Stored on the main service; behavior lives in SupabaseService+Streaming.swift.
+    var providerCache: [String: [ProviderInfo]] = [:]
+    var providerPrefetchTask: Task<Void, Never>?
+    var providerAvailabilityCache: [String: [ProviderAvailabilityProvider]] = [:]
+    var providerAvailabilityPrefetchTask: Task<Void, Never>?
+    var availabilityRefreshEnqueueCooldown: [String: Date] = [:]
     var userStreamingServices: [String] = []
-    // Club shared providers cache keyed by club ID
-    private var clubSharedProvidersCache: [String: ClubSharedProvidersResponse] = [:]
-    // Canonical registry loaded once on bootstrap
+    var clubSharedProvidersCache: [String: ClubSharedProvidersResponse] = [:]
     var streamingServiceRegistry: [StreamingServiceRecord] = []
-
-    func providers(mediaId: Int, mediaType: String) -> [ProviderInfo] {
-        let key = "\(mediaType.uppercased())-\(mediaId)"
-        if let cached = providerCache[key], !cached.isEmpty {
-            return cached
-        }
-        if let availability = providerAvailabilityCache[key], !availability.isEmpty {
-            return availability.map { provider in
-                ProviderInfo(
-                    slug: provider.slug,
-                    display_name: provider.displayName,
-                    language: provider.languages.first
-                )
-            }
-        }
-        return []
-    }
-
-    func providerAvailability(mediaId: Int, mediaType: String) -> [ProviderAvailabilityProvider] {
-        providerAvailabilityCache["\(mediaType.uppercased())-\(mediaId)"] ?? []
-    }
-
-    func bestProviderDisplayName(mediaId: Int, mediaType: String) -> String? {
-        let key = "\(mediaType.uppercased())-\(mediaId)"
-        if let provider = providerAvailabilityCache[key]?.first {
-            return provider.displayName
-        }
-        return providers(mediaId: mediaId, mediaType: mediaType).first?.display_name
-    }
-
-    func bestProviderAvailabilityNote(
-        mediaId: Int,
-        mediaType: String,
-        preferredAudioLang: String?,
-        preferredSubtitleLang: String? = nil,
-        originalLanguage: String? = nil
-    ) -> ProviderAvailabilityNote? {
-        guard mediaType.uppercased() == "ANIME" else { return nil }
-        let key = "\(mediaType.uppercased())-\(mediaId)"
-        guard let providers = providerAvailabilityCache[key], !providers.isEmpty else { return nil }
-        return ProviderAvailabilityNoteBuilder.bestNote(
-            from: providers,
-            preferredAudioLang: preferredAudioLang,
-            preferredSubtitleLang: preferredSubtitleLang,
-            originalLanguage: originalLanguage
-        )
-    }
-
-    func collectionItemsAvailableOn(slug: String) -> Set<String> {
-        var result = Set<String>()
-        for (key, providers) in providerCache {
-            if providers.contains(where: { $0.slug == slug }) {
-                result.insert(key)
-            }
-        }
-        for (key, providers) in providerAvailabilityCache {
-            if providers.contains(where: { $0.slug == slug }) {
-                result.insert(key)
-            }
-        }
-        return result
-    }
-
-    func collectionItemsWithLanguage(lang: String, includeUnknown: Bool) -> Set<String> {
-        var result = Set<String>()
-        for (key, providers) in providerCache {
-            if providers.contains(where: {
-                let normalized = normalizedExternalLanguage($0.language)
-                return normalized == lang || (includeUnknown && normalized == "unknown")
-            }) {
-                result.insert(key)
-            }
-        }
-        for (key, providers) in providerAvailabilityCache {
-            if providers.contains(where: { provider in
-                if provider.languages.contains(lang) { return true }
-                if includeUnknown && provider.languages.contains("unknown") { return true }
-                return false
-            }) {
-                result.insert(key)
-            }
-        }
-        return result
-    }
-
-    func fetchProviderAvailabilityV2(
-        items: [(mediaType: String, mediaId: Int)],
-        preferredAudioLang: String? = nil,
-        preferredSubLang: String? = nil,
-        includeUnknown: Bool = true
-    ) async {
-        guard !items.isEmpty else { return }
-        let payload = items.map { ["media_type": $0.mediaType.uppercased(), "media_id": "\($0.mediaId)"] }
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
-              let jsonString = String(data: jsonData, encoding: .utf8) else { return }
-        do {
-            let params = RPCBatchProviderAvailabilityV2Params(
-                p_items: jsonString,
-                p_audio_lang: preferredAudioLang,
-                p_sub_lang: preferredSubLang,
-                p_include_unknown: includeUnknown
-            )
-            let raw: [ProviderAvailabilityBatchItem] = try await client
-                .rpc("batch_provider_availability_for_media_v2", params: params)
-                .execute()
-                .value
-            for item in raw {
-                let key = "\(item.mediaType)-\(item.mediaId)"
-                providerAvailabilityCache[key] = item.providers
-                providerCache[key] = item.providers.map {
-                    ProviderInfo(slug: $0.slug, display_name: $0.displayName, language: $0.languages.first)
-                }
-            }
-        } catch {
-            #if DEBUG
-            print("[Streaming] fetchProviderAvailabilityV2 error: \(error.localizedDescription)")
-            #endif
-        }
-    }
-
-    func prefetchProviderAvailabilityV2(
-        items: [(mediaType: String, mediaId: Int)],
-        preferredAudioLang: String? = nil,
-        preferredSubLang: String? = nil,
-        includeUnknown: Bool = true
-    ) {
-        providerAvailabilityPrefetchTask?.cancel()
-        providerAvailabilityPrefetchTask = Task { [weak self] in
-            guard let self else { return }
-            await self.fetchProviderAvailabilityV2(
-                items: items,
-                preferredAudioLang: preferredAudioLang,
-                preferredSubLang: preferredSubLang,
-                includeUnknown: includeUnknown
-            )
-        }
-    }
-
-    func prefetchProviders(items: [(mediaType: String, mediaId: Int)]) {
-        providerPrefetchTask?.cancel()
-        providerPrefetchTask = Task { [weak self] in
-            guard let self, !items.isEmpty else { return }
-            let payload = items.map { ["media_type": $0.mediaType, "media_id": "\($0.mediaId)"] }
-            guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
-                  let jsonString = String(data: jsonData, encoding: .utf8) else { return }
-            do {
-                let params = RPCBatchProvidersParams(p_items: jsonString)
-                let raw: [BatchProviderResult] = try await client
-                    .rpc("batch_providers_for_media", params: params)
-                    .execute()
-                    .value
-                guard !Task.isCancelled else { return }
-                for item in raw {
-                    self.providerCache["\(item.media_type)-\(item.media_id)"] = item.providers
-                }
-            } catch {
-                #if DEBUG
-                print("[Streaming] prefetchProviders error: \(error.localizedDescription)")
-                #endif
-            }
-        }
-    }
-
-    func enqueueAvailabilityRefreshIfStale(
-        mediaType: String,
-        mediaId: Int,
-        reason: String = "on_demand_open"
-    ) async {
-        let key = "\(mediaType.uppercased())-\(mediaId)"
-        if let last = availabilityRefreshEnqueueCooldown[key],
-           Date().timeIntervalSince(last) < 10 * 60 {
-            return
-        }
-        do {
-            let params = RPCGetMediaAvailabilityStatusParams(
-                p_media_type: mediaType.uppercased(),
-                p_media_id: mediaId
-            )
-            let rows: [MediaAvailabilityStatus] = try await client
-                .rpc("get_media_availability_status", params: params)
-                .execute()
-                .value
-            let shouldQueue: Bool
-            if let status = rows.first {
-                shouldQueue = (!status.hasRows) || ((status.staleDays ?? 999) >= 30)
-            } else {
-                shouldQueue = true
-            }
-
-            guard shouldQueue else { return }
-            let enqueueParams = RPCEnqueueMediaAvailabilityRefreshParams(
-                p_media_type: mediaType.uppercased(),
-                p_media_id: mediaId,
-                p_reason: reason
-            )
-            let _: AnyJSON = try await client
-                .rpc("enqueue_media_availability_refresh", params: enqueueParams)
-                .execute()
-                .value
-            availabilityRefreshEnqueueCooldown[key] = Date()
-        } catch {
-            #if DEBUG
-            print("[Streaming] enqueueAvailabilityRefreshIfStale error: \(error.localizedDescription)")
-            #endif
-        }
-    }
-
-    func fetchStreamingServiceRegistry() async {
-        do {
-            let records: [StreamingServiceRecord] = try await client
-                .from("streaming_services")
-                .select()
-                .eq("is_active", value: true)
-                .order("priority", ascending: true)
-                .execute()
-                .value
-            streamingServiceRegistry = records
-        } catch {
-            #if DEBUG
-            print("[Streaming] fetchStreamingServiceRegistry error: \(error.localizedDescription)")
-            #endif
-        }
-    }
-
-    func fetchUserStreamingServices() async {
-        do {
-            struct Row: Decodable { let service: String }
-            let rows: [Row] = try await client
-                .from("user_streaming_services")
-                .select("service")
-                .execute()
-                .value
-            userStreamingServices = rows.map(\.service)
-        } catch {
-            #if DEBUG
-            print("[Streaming] fetchUserStreamingServices error: \(error.localizedDescription)")
-            #endif
-        }
-    }
-
-    func saveUserStreamingServices(_ slugs: [String]) async {
-        do {
-            let params = RPCSaveStreamingServicesParams(p_services: slugs)
-            let _: AnyJSON = try await client
-                .rpc("save_user_streaming_services", params: params)
-                .execute()
-                .value
-            userStreamingServices = slugs
-        } catch {
-            #if DEBUG
-            print("[Streaming] saveUserStreamingServices error: \(error.localizedDescription)")
-            #endif
-        }
-    }
-
-    func fetchClubSharedProviders(clubId: String) async -> ClubSharedProvidersResponse? {
-        do {
-            struct Params: Encodable, Sendable {
-                let p_club_id: String
-                enum CodingKeys: String, CodingKey { case p_club_id }
-                nonisolated func encode(to encoder: Encoder) throws {
-                    var c = encoder.container(keyedBy: CodingKeys.self)
-                    try c.encode(p_club_id, forKey: .p_club_id)
-                }
-            }
-            let response: ClubSharedProvidersResponse = try await client
-                .rpc("club_shared_providers", params: Params(p_club_id: clubId))
-                .execute()
-                .value
-            clubSharedProvidersCache[clubId] = response
-            return response
-        } catch {
-            #if DEBUG
-            print("[Streaming] fetchClubSharedProviders error: \(error.localizedDescription)")
-            #endif
-            return nil
-        }
-    }
-
-    func cachedClubSharedProviders(clubId: String) -> ClubSharedProvidersResponse? {
-        clubSharedProvidersCache[clubId]
-    }
 
     // MARK: - Club Realtime
 

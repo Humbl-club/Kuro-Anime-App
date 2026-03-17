@@ -225,15 +225,15 @@ struct ConciergeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(isGermanLocale ? "AniList importieren" : "Import AniList")
-                        .font(.system(size: 26, weight: .ultraLight, design: .serif))
-                        .foregroundStyle(.black.opacity(0.84))
+                        .font(.kuroCustom(26, weight: .ultraLight, design: .serif, relativeTo: .title2))
+                        .foregroundStyle(Color.kuroBlack.opacity(0.84))
 
                     Text(isGermanLocale
                         ? "Gib deinen AniList-Namen ein. Wir importieren deine öffentlichen Listen und gleichen sie mit deiner Kuro-Bibliothek ab."
                         : "Enter your AniList username. We’ll import your public lists and reconcile them into your Kuro library."
                     )
                     .font(.kuroBody(weight: .light))
-                    .foregroundStyle(.black.opacity(0.62))
+                    .foregroundStyle(Color.kuroBlack.opacity(0.62))
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text(isGermanLocale ? "Benutzername" : "Username")
@@ -249,10 +249,10 @@ struct ConciergeView: View {
                             .padding(.vertical, 12)
                             .background(
                                 RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                                    .fill(Color.white.opacity(0.92))
+                                    .fill(Color.kuroWhite92)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                                            .stroke(Color.black.opacity(0.08), lineWidth: 0.7)
+                                            .stroke(Color.kuroBlack08, lineWidth: 0.7)
                                     )
                             )
                     }
@@ -314,18 +314,18 @@ struct ConciergeView: View {
                         HStack(spacing: 10) {
                             if aniListIsImporting {
                                 ProgressView()
-                                    .tint(.white)
+                                    .tint(Color.kuroWhite)
                             }
                             Text(isGermanLocale ? "IMPORTIEREN" : "IMPORT")
                                 .font(.kuroCaption(weight: .medium))
                                 .tracking(2.0)
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.kuroWhite)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(
                             Capsule(style: .continuous)
-                                .fill(canRunAniListImport ? Color.black.opacity(0.88) : Color.black.opacity(0.10))
+                                .fill(canRunAniListImport ? Color.kuroBlack.opacity(0.88) : Color.kuroBlack10)
                         )
                     }
                     .buttonStyle(.plain)
@@ -364,15 +364,15 @@ struct ConciergeView: View {
         Button(action: { isOn.wrappedValue.toggle() }) {
             Text(title)
                 .font(.kuroCaption(weight: .medium))
-                .foregroundStyle(isOn.wrappedValue ? .white : .black.opacity(0.68))
+                .foregroundStyle(isOn.wrappedValue ? Color.kuroWhite : Color.kuroBlack.opacity(0.68))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 9)
                 .background(
                     Capsule(style: .continuous)
-                        .fill(isOn.wrappedValue ? Color.black.opacity(0.86) : Color.black.opacity(0.04))
+                        .fill(isOn.wrappedValue ? Color.kuroBlack.opacity(0.86) : Color.kuroBlack04)
                         .overlay(
                             Capsule(style: .continuous)
-                                .stroke(Color.black.opacity(0.10), lineWidth: 0.6)
+                                .stroke(Color.kuroBlack10, lineWidth: 0.6)
                         )
                 )
         }
@@ -478,13 +478,13 @@ struct ConciergeView: View {
             if let errorText {
                 Text(errorText)
                     .font(.kuroCaption())
-                    .foregroundColor(.red.opacity(0.85))
+                    .foregroundColor(.kuroError)
                     .padding(.horizontal, KuroDesignSpacing.padding)
                     .padding(.vertical, 10)
             }
 
             Rectangle()
-                .fill(Color.black.opacity(0.06))
+                .fill(Color.kuroBlack06)
                 .frame(height: 0.5)
 
             ConciergeInputField(
@@ -558,7 +558,7 @@ struct ConciergeView: View {
                             } label: {
                                 HStack(spacing: 4) {
                                     Image(systemName: "plus.message")
-                                        .font(.system(size: 10, weight: .medium))
+                                        .font(.kuroCustom(10, weight: .medium, relativeTo: .caption1))
                                     Text("NEW CHAT")
                                         .font(.kuroMicro(weight: .semibold))
                                         .tracking(1.2)
@@ -568,7 +568,7 @@ struct ConciergeView: View {
                                 .padding(.vertical, 5)
                                 .background(
                                     Capsule()
-                                        .fill(Color.black.opacity(0.06))
+                                        .fill(Color.kuroBlack06)
                                 )
                             }
                         }
@@ -1784,66 +1784,21 @@ private struct ConciergeTutorialOverlay: View {
         ),
     ]
 
+    private var activeStep: (iconEN: String, titleEN: String, bodyEN: String, iconDE: String, titleDE: String, bodyDE: String) {
+        steps[step]
+    }
+
     var body: some View {
         ZStack {
             // Dimmed backdrop
-            Color.black.opacity(0.32)
+            Color.kuroBlack.opacity(0.32)
                 .ignoresSafeArea()
                 .onTapGesture { advance() }
 
             VStack(spacing: 20) {
                 Spacer()
 
-                // Tutorial card
-                VStack(spacing: 18) {
-                    let s = steps[step]
-
-                    Circle()
-                        .fill(Color.white.opacity(0.12))
-                        .frame(width: 56, height: 56)
-                        .overlay(
-                            Image(systemName: isGerman ? s.iconDE : s.iconEN)
-                                .font(.system(size: 22, weight: .light))
-                                .foregroundColor(.white.opacity(0.88))
-                        )
-
-                    Text(isGerman ? s.titleDE : s.titleEN)
-                        .font(.system(size: 22, weight: .ultraLight, design: .serif))
-                        .foregroundColor(.white.opacity(0.92))
-
-                    Text(isGerman ? s.bodyDE : s.bodyEN)
-                        .font(.kuroBody(weight: .light))
-                        .foregroundColor(.white.opacity(0.68))
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(3)
-                        .padding(.horizontal, 24)
-
-                    // Step indicator
-                    HStack(spacing: 6) {
-                        ForEach(0..<steps.count, id: \.self) { i in
-                            Circle()
-                                .fill(Color.white.opacity(step == i ? 0.80 : 0.25))
-                                .frame(width: 5, height: 5)
-                        }
-                    }
-                    .padding(.top, 4)
-
-                    Button(action: { advance() }) {
-                        Text(step < steps.count - 1
-                             ? (isGerman ? "WEITER" : "NEXT")
-                             : (isGerman ? "VERSTANDEN" : "GOT IT"))
-                            .font(.kuroCaption(weight: .medium))
-                            .tracking(1.8)
-                            .foregroundColor(.black.opacity(0.88))
-                            .padding(.horizontal, 28)
-                            .padding(.vertical, 12)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(Color.white.opacity(0.92))
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
+                tutorialCard
                 .padding(.vertical, 28)
                 .padding(.horizontal, 20)
 
@@ -1851,18 +1806,71 @@ private struct ConciergeTutorialOverlay: View {
 
                 // Skip
                 if step < steps.count - 1 {
-                    Button(action: { onDismiss() }) {
-                        Text(isGerman ? "Uberspringen" : "Skip")
-                            .font(.kuroCaption(weight: .medium))
-                            .foregroundColor(.white.opacity(0.42))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, 48)
+                    skipButton
                 }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(isGerman ? "Concierge-Anleitung" : "Concierge tutorial")
+    }
+
+    private var tutorialCard: some View {
+        VStack(spacing: 18) {
+            Circle()
+                .fill(Color.kuroWhite.opacity(0.12))
+                .frame(width: 56, height: 56)
+                .overlay(
+                    Image(systemName: isGerman ? activeStep.iconDE : activeStep.iconEN)
+                        .font(.kuroCustom(22, weight: .light, relativeTo: .title3))
+                        .foregroundColor(Color.kuroWhite.opacity(0.88))
+                )
+
+            Text(isGerman ? activeStep.titleDE : activeStep.titleEN)
+                .font(.kuroCustom(22, weight: .ultraLight, design: .serif, relativeTo: .title3))
+                .foregroundColor(Color.kuroWhite92)
+
+            Text(isGerman ? activeStep.bodyDE : activeStep.bodyEN)
+                .font(.kuroBody(weight: .light))
+                .foregroundColor(Color.kuroWhite.opacity(0.68))
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                .padding(.horizontal, 24)
+
+            HStack(spacing: 6) {
+                ForEach(0..<steps.count, id: \.self) { i in
+                    Circle()
+                        .fill(Color.kuroWhite.opacity(step == i ? 0.80 : 0.25))
+                        .frame(width: 5, height: 5)
+                }
+            }
+            .padding(.top, 4)
+
+            Button(action: { advance() }) {
+                Text(step < steps.count - 1
+                     ? (isGerman ? "WEITER" : "NEXT")
+                     : (isGerman ? "VERSTANDEN" : "GOT IT"))
+                    .font(.kuroCaption(weight: .medium))
+                    .tracking(1.8)
+                    .foregroundColor(Color.kuroBlack.opacity(0.88))
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 12)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.kuroWhite92)
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var skipButton: some View {
+        Button(action: { onDismiss() }) {
+            Text(isGerman ? "Uberspringen" : "Skip")
+                .font(.kuroCaption(weight: .medium))
+                .foregroundColor(Color.kuroWhite.opacity(0.42))
+        }
+        .buttonStyle(.plain)
+        .padding(.bottom, 48)
     }
 
     private func advance() {
