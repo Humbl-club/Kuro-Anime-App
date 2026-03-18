@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-17
+**Last updated:** 2026-03-18
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -16478,3 +16478,21 @@ Replaced KuroGlassCard-based club rows with clean editorial entries (serif typog
 - Finished the last remaining static error-color drift in `Kuro/Views/ConciergeView.swift` by routing the inline error text through the new `Color.kuroError` token in `Kuro/Design/KuroDesignSystem.swift`.
 - Tracked the previously untracked migrations `20260316220000_clubs_list_cover_images_members.sql`, `20260317063000_clubs_list_cover_image_large.sql`, and `20260317110000_fetch_club_bundle_ordering_and_poll_counts.sql` so the default migration hygiene gate can pass without `MIGRATIONS_ALLOW_UNTRACKED=1`.
 - Validation after this follow-up: iOS build succeeded (`-derivedDataPath /tmp/KuroDo123DD4`), `supabase db lint --linked` passed, and the current repo inventory is now 75 Swift files / 160 migrations.
+
+### 2026-03-18: Remediation wave — service + view decomposition
+
+- Major `SupabaseService.swift` decomposition: extracted 6 new companion files — `+Clubs.swift` (club CRUD, bundle, reactions, polls, notifications, entity/ladder fetches), `+ClubRealtime.swift` (Realtime subscriptions), `+Collection.swift` (collection queries, prefetch), `+Concierge.swift` (concierge RPCs), `+Social.swift` (title comments/reactions), `+UserLists.swift` (anime/manga list mutations). State and caches remain on the main class; companion files extend it.
+- `ClubDetailView.swift` decomposed into 3 companion files: `ClubDetailShellComponents.swift` (hero, status bar, tab bar, bottom bar), `ClubDetailTabComponents.swift` (rails/activity/polls tab content), `ClubDetailSheets.swift` (settings, add-item, rail search).
+- `ConciergeView.swift` AniList import flow extracted into `ConciergeView+AniListImport.swift` + `ConciergeAniListImportCoordinator.swift`.
+- `EditorialDiscoverView.swift` routing extracted into `EditorialDiscoverRouting.swift`.
+- `OnboardingView.swift` cleaned.
+- 2 new migrations: `20260318103000_import_track_and_worker_state.sql` (import tracking + worker state), `20260318104000_club_loading_rpcs.sql` (`fetch_my_clubs_loading` + `fetch_club_bundle_loading` lightweight loading RPCs).
+- Commit `4dec33d`. 20 files changed, +5930 / -4346 lines.
+
+### 2026-03-18: Wire club loading RPCs
+
+- `fetchMyClubs()` in `SupabaseService+Clubs.swift` now prefers `fetch_my_clubs_loading` and falls back to `fetch_my_clubs_enriched()`.
+- Added `ClubBundleLoading` model and `fetchClubBundleLoading(clubId:)` for lightweight club-detail loading snapshots.
+- `ClubDetailView.swift` requests the lightweight loading snapshot in parallel with the full bundle, enriching the initial loading state immediately.
+- Commit `926c848`. 2 files changed, +110 / -17 lines.
+- Validation: iOS build passed, unit tests passed. `supabase db lint --linked` not re-verified in this session (requires DB auth). Current repo inventory: 86 Swift files / 162 migrations.

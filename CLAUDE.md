@@ -1,6 +1,6 @@
 # CLAUDE.md — Kuro Project Rules & Context
 
-**Last synced: 2026-03-10** | **This file is mandatory reading. Every rule is binding.**
+**Last synced: 2026-03-18** | **This file is mandatory reading. Every rule is binding.**
 
 ---
 
@@ -247,11 +247,17 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
 - `ContentView.swift` — 5-page swipe pager, header (KURO wordmark / section title / search + profile), deep link sheet presentation
 
-**Services (15 files):**
-- `SupabaseService.swift` — core data layer, auth/bootstrap, collection, clubs/social, detail data, caching, `fmService`, `withRetry` helper
+**Services (21 files):**
+- `SupabaseService.swift` — core data layer, auth/bootstrap, detail data, caching, `fmService`, `withRetry` helper
 - `SupabaseService+Browse.swift` — browse page keyset paging + browse query helpers
+- `SupabaseService+Clubs.swift` — club CRUD, bundle fetch/cache, reactions, polls, notifications, entity fetches, media ladder
+- `SupabaseService+ClubRealtime.swift` — Supabase Realtime subscriptions for live club updates
+- `SupabaseService+Collection.swift` — user collection queries, prefetch helpers
+- `SupabaseService+Concierge.swift` — concierge RPC calls and session management
 - `SupabaseService+Recommendations.swift` — similar-title recommendation hydration and batched ID fetches
+- `SupabaseService+Social.swift` — title comments, reactions, friend activity RPCs
 - `SupabaseService+Streaming.swift` — provider registry/availability, user streaming service selection, and club shared-provider helpers
+- `SupabaseService+UserLists.swift` — anime/manga user list mutations (add, remove, update, toggle, batch)
 - `AppleFMService.swift` — on-device FM (4 capabilities, FMProvider protocol, StubFMProvider fallback)
 - `AppConfig.swift` — reads SUPABASE_URL/ANON_KEY from Info.plist/env
 - `NetworkMonitor.swift` — NWPathMonitor connectivity, `isConnected`, offline banner
@@ -264,8 +270,10 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `KuroPerf.swift` — performance measurement utilities
 - `SupabaseRPCParams.swift` — RPC parameter structs
 
-**Concierge UI (10 files):**
+**Concierge UI (13 files):**
 - `ConciergeView.swift` — main concierge view controller
+- `ConciergeView+AniListImport.swift` — AniList import UI flow (extracted from ConciergeView)
+- `ConciergeAniListImportCoordinator.swift` — AniList import coordination logic
 - `ConciergeEditorialShell.swift` — editorial shell wrapper
 - `ConciergeComponents.swift` — shared components + curated copy layer (EN/DE mode titles)
 - `ConciergeInputField.swift` — text input field
@@ -278,13 +286,16 @@ All 15 flags defined in `FeatureFlags.swift`:
 
 **Views (remaining):**
 - `EditorialDiscoverView.swift` — Discover page
+- `EditorialDiscoverRouting.swift` — Discover page navigation/detail routing
 - `BrowseView.swift` — Browse page shell/state (full-page, not a sheet)
 - `BrowseComponents.swift` — browse controls, filters sheet, grid, hero card, skeletons
 - `EditorialCollectionView.swift` — Collection page shell/state
 - `EditorialCollectionComponents.swift` — collection filters, grid/list cards, empty/loading states, batch bar
 - `ClubsView.swift` — Clubs list page (enriched cards, unread dots)
 - `ClubDetailView.swift` — Club detail shell/state (3-tab: Rails/This Week/Polls)
-- `ClubDetailSections.swift` — club detail journal sections, tabs, rails, polls, activity, bottom bar
+- `ClubDetailShellComponents.swift` — club detail hero, status bar, tab bar, bottom bar
+- `ClubDetailTabComponents.swift` — club detail tab content (rails, activity, polls)
+- `ClubDetailSheets.swift` — club settings sheet, add-item sheet, rail search
 - `ClubCreateSheets.swift` — Create/join club sheets
 - `EditorialSearchView.swift` — Search sheet
 - `OnboardingView.swift` — First-launch onboarding
@@ -293,6 +304,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift`, `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `FriendsActivitySection.swift`, `ExternalLinksSection.swift`, `CastSection.swift`, `CreditsSection.swift`, `EntityDetailSheets.swift`
 - UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `EditorialCards.swift`, `Cards.swift`, `UIComponents.swift`, `GenreHubView.swift`, `CountdownTimer.swift`
 - Shared: `AddToListSheet.swift` — editorial "spread" list sheet (full-bleed poster hero, capsule status pills, serif score + dots, pull-quote notes, pinned save dock)
+- Shared: `PosterView.swift` — reusable poster image view
 - Legacy/secondary: `DiscoverViewModel.swift`
 
 **Design (2 files):**
@@ -303,7 +315,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `SupabaseModels.swift` — all Supabase data models
 - `DiscoverBundle.swift` — discover bundle response model
 
-### Supabase — 160 migration files in repo, 15 deployed edge functions (as of 2026-03-17)
+### Supabase — 162 migration files in repo, 15 deployed edge functions (as of 2026-03-18)
 
 **Edge functions (15):**
 - `concierge-parse` — deterministic NLP parser, title candidate search

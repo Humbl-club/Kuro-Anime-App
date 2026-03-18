@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-17
+**Last updated:** 2026-03-18
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -970,3 +970,15 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - The last raw red error text in the Concierge screen was replaced with a proper design-system token (`Color.kuroError`), so that view no longer hard-codes its error color inline.
 - The three pending migrations from the recent clubs/club-bundle work were tracked in git, which removes the last reason the default migration hygiene gate needed an override.
 - After this follow-up, the repo contains 75 Swift files and 160 SQL migrations.
+
+### 2026-03-18 — Remediation wave: service + view decomposition
+- The main Supabase service file was split into 6 companion files so each domain (clubs, collection, user lists, social, concierge, club realtime) lives in its own file. The main file still owns state and caches; the companions just extend it with methods. This makes the codebase much easier to navigate without changing any behavior.
+- The club detail page was similarly split: the hero/status bar/tab bar/bottom bar shell components, the tab content (rails, activity, polls), and the sheets (settings, add-item, search) each got their own file.
+- The Concierge's AniList import flow was extracted into its own file pair (view + coordinator) to reduce the size of the main ConciergeView.
+- Two new backend migrations add import tracking/worker state tables and lightweight club loading RPCs (`fetch_my_clubs_loading`, `fetch_club_bundle_loading`) that return just enough data for initial loading states.
+- After this wave, the repo contains 86 Swift files and 162 SQL migrations.
+
+### 2026-03-18 — Wire club loading RPCs
+- The clubs list now uses the new lightweight loading RPC for faster initial display, with automatic fallback to the enriched RPC.
+- When opening a club detail page, the app now requests a lightweight loading snapshot in parallel with the full bundle, so the initial loading state shows real club info (name, members, rail/poll counts) instead of generic skeleton placeholders.
+- 86 Swift files (unchanged), 162 SQL migrations (unchanged).
