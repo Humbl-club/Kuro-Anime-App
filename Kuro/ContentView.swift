@@ -32,28 +32,37 @@ struct ContentView: View {
 // MARK: - Root View with Launch
 struct KuroRootView: View {
     @Binding var pendingDeepLink: DeepLink?
-    @State private var showLaunch = true
+    @State private var showLaunchOverlay = true
+    @State private var launchOpacity: Double = 1
     @State private var launchDismissTask: Task<Void, Never>? = nil
 
     var body: some View {
-        if showLaunch {
-            KuroLaunchView()
-                .onAppear {
-                    launchDismissTask?.cancel()
-                    launchDismissTask = Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 1_000_000_000)
-                        guard !Task.isCancelled else { return }
-                        withAnimation(.easeInOut(duration: 0.6)) {
-                            showLaunch = false
+        ZStack {
+            KuroMainView(pendingDeepLink: $pendingDeepLink)
+
+            if showLaunchOverlay {
+                KuroLaunchView()
+                    .opacity(launchOpacity)
+                    .transition(.opacity)
+                    .onAppear {
+                        launchDismissTask?.cancel()
+                        launchOpacity = 1
+                        launchDismissTask = Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 160_000_000)
+                            guard !Task.isCancelled else { return }
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                launchOpacity = 0
+                            }
+                            try? await Task.sleep(nanoseconds: 260_000_000)
+                            guard !Task.isCancelled else { return }
+                            showLaunchOverlay = false
                         }
                     }
-                }
-                .onDisappear {
-                    launchDismissTask?.cancel()
-                    launchDismissTask = nil
-                }
-        } else {
-            KuroMainView(pendingDeepLink: $pendingDeepLink)
+                    .onDisappear {
+                        launchDismissTask?.cancel()
+                        launchDismissTask = nil
+                    }
+            }
         }
     }
 }

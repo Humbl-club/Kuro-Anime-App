@@ -13,20 +13,7 @@ struct EditorialDiscoverView: View {
     @State private var bannerMessage: String? = nil
     @State private var loadError = false
 
-    // Premium rails
-    @State private var showFullEssentials = false
-    @State private var showFullClassics = false
-    @State private var showFullNewToYou = false
-
-    @State private var showFullEssentialsManga = false
-    @State private var showFullClassicsManga = false
-    @State private var showFullNewToYouManga = false
-
-    @State private var showFullTopRated = false
-    @State private var showFullTrending = false
-    @State private var showFullNewlyAdded = false
-    @State private var showFullAiringToday = false
-    @State private var showFullCurrentSeason = false
+    @State private var activeRoute: EditorialDiscoverRoute? = nil
 
     @State private var showMoreSections = UserDefaults.standard.bool(forKey: "kuro_discover_show_more")
     @State private var selectedMediaType: DiscoverMediaTypeFilter = .all
@@ -153,7 +140,7 @@ struct EditorialDiscoverView: View {
                             subtitle: "Next 24 hours",
                             items: Array(vm.airingToday.prefix(10)),
                             containerWidth: currentWidth,
-                            onSeeAll: { showFullAiringToday = true }
+                            onSeeAll: { activeRoute = .animeAiringToday }
                         )
                     }
 
@@ -163,7 +150,7 @@ struct EditorialDiscoverView: View {
                             subtitle: "High score, not in your list",
                             items: Array(vm.newToYou.prefix(8)),
                             screenWidth: currentWidth,
-                            onSeeAll: { showFullNewToYou = true }
+                            onSeeAll: { activeRoute = .animeNewToYou }
                         )
                     }
 
@@ -173,7 +160,7 @@ struct EditorialDiscoverView: View {
                             subtitle: "Gateway picks (high confidence)",
                             items: Array(vm.essentials.prefix(10)),
                             containerWidth: currentWidth,
-                            onSeeAll: { showFullEssentials = true }
+                            onSeeAll: { activeRoute = .animeEssentials }
                         )
                     }
 
@@ -183,7 +170,7 @@ struct EditorialDiscoverView: View {
                             subtitle: "High score, not in your list",
                             items: Array(vm.newToYouManga.prefix(8)),
                             screenWidth: currentWidth,
-                            onSeeAll: { showFullNewToYouManga = true }
+                            onSeeAll: { activeRoute = .mangaNewToYou }
                         )
                     }
 
@@ -193,7 +180,7 @@ struct EditorialDiscoverView: View {
                             subtitle: "Popular right now",
                             items: vm.trending,
                             containerWidth: currentWidth,
-                            onSeeAll: { showFullTrending = true },
+                            onSeeAll: { activeRoute = .animeTrending },
                             showFilters: true
                         )
                     }
@@ -204,7 +191,7 @@ struct EditorialDiscoverView: View {
                             subtitle: "Foundational reads",
                             items: Array(vm.essentialsManga.prefix(10)),
                             containerWidth: currentWidth,
-                            onSeeAll: { showFullEssentialsManga = true }
+                            onSeeAll: { activeRoute = .mangaEssentials }
                         )
                     }
 
@@ -245,7 +232,7 @@ struct EditorialDiscoverView: View {
                                 subtitle: "Proven greats",
                                 items: Array(vm.classics.prefix(8)),
                                 screenWidth: currentWidth,
-                                onSeeAll: { showFullClassics = true }
+                                onSeeAll: { activeRoute = .animeClassics }
                             )
                         }
 
@@ -255,7 +242,7 @@ struct EditorialDiscoverView: View {
                                 subtitle: "Airing now",
                                 items: Array(vm.currentSeason.prefix(10)),
                                 containerWidth: currentWidth,
-                                onSeeAll: { showFullCurrentSeason = true }
+                                onSeeAll: { activeRoute = .animeCurrentSeason }
                             )
                         }
 
@@ -265,7 +252,7 @@ struct EditorialDiscoverView: View {
                                 subtitle: "Highest scores",
                                 items: vm.topRated,
                                 screenWidth: currentWidth,
-                                onSeeAll: { showFullTopRated = true },
+                                onSeeAll: { activeRoute = .animeTopRated },
                                 showFilters: true
                             )
                         }
@@ -276,7 +263,7 @@ struct EditorialDiscoverView: View {
                                 subtitle: "Fresh arrivals",
                                 items: Array(vm.newlyAdded.prefix(8)),
                                 screenWidth: currentWidth,
-                                onSeeAll: { showFullNewlyAdded = true }
+                                onSeeAll: { activeRoute = .animeNewlyAdded }
                             )
                         }
 
@@ -286,7 +273,7 @@ struct EditorialDiscoverView: View {
                                 subtitle: "Proven greats",
                                 items: Array(vm.classicsManga.prefix(8)),
                                 screenWidth: currentWidth,
-                                onSeeAll: { showFullClassicsManga = true }
+                                onSeeAll: { activeRoute = .mangaClassics }
                             )
                         }
 
@@ -334,38 +321,31 @@ struct EditorialDiscoverView: View {
                 }
             }
         }
-        .sheet(isPresented: $showFullEssentials) {
-            FullSectionView(title: "ESSENTIAL ANIME", items: vm.essentials)
-        }
-        .sheet(isPresented: $showFullClassics) {
-            FullSectionView(title: "CLASSICS", items: vm.classics)
-        }
-        .sheet(isPresented: $showFullNewToYou) {
-            FullSectionView(title: "NEW TO YOU", items: vm.newToYou)
-        }
-        .sheet(isPresented: $showFullAiringToday) {
-            FullSectionView(title: "AIRING TODAY", items: vm.airingToday)
-        }
-        .sheet(isPresented: $showFullCurrentSeason) {
-            FullSectionView(title: "CURRENT SEASON", items: vm.currentSeason)
-        }
-        .sheet(isPresented: $showFullTrending) {
-            FullSectionView(title: "TRENDING", items: vm.trending)
-        }
-        .sheet(isPresented: $showFullTopRated) {
-            FullSectionView(title: "TOP RATED", items: vm.topRated)
-        }
-        .sheet(isPresented: $showFullNewlyAdded) {
-            FullSectionView(title: "JUST ADDED", items: vm.newlyAdded)
-        }
-        .sheet(isPresented: $showFullEssentialsManga) {
-            FullMangaSectionView(title: "ESSENTIAL MANGA", items: vm.essentialsManga)
-        }
-        .sheet(isPresented: $showFullClassicsManga) {
-            FullMangaSectionView(title: "MANGA CLASSICS", items: vm.classicsManga)
-        }
-        .sheet(isPresented: $showFullNewToYouManga) {
-            FullMangaSectionView(title: "NEW TO YOU (MANGA)", items: vm.newToYouManga)
+        .sheet(item: $activeRoute) { route in
+            switch route {
+            case .animeEssentials:
+                FullSectionView(title: route.title, items: vm.essentials)
+            case .animeClassics:
+                FullSectionView(title: route.title, items: vm.classics)
+            case .animeNewToYou:
+                FullSectionView(title: route.title, items: vm.newToYou)
+            case .animeAiringToday:
+                FullSectionView(title: route.title, items: vm.airingToday)
+            case .animeCurrentSeason:
+                FullSectionView(title: route.title, items: vm.currentSeason)
+            case .animeTrending:
+                FullSectionView(title: route.title, items: vm.trending)
+            case .animeTopRated:
+                FullSectionView(title: route.title, items: vm.topRated)
+            case .animeNewlyAdded:
+                FullSectionView(title: route.title, items: vm.newlyAdded)
+            case .mangaEssentials:
+                FullMangaSectionView(title: route.title, items: vm.essentialsManga)
+            case .mangaClassics:
+                FullMangaSectionView(title: route.title, items: vm.classicsManga)
+            case .mangaNewToYou:
+                FullMangaSectionView(title: route.title, items: vm.newToYouManga)
+            }
         }
     }
 

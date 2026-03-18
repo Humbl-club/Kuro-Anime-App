@@ -15,11 +15,15 @@ type AniListStatus =
   | "REPEATING";
 
 type RequestBody = {
+  mode?: "preview" | "import";
   username: string;
   types?: AniListMediaType[];
   statuses?: AniListStatus[];
   maxItems?: number;
   perPage?: number;
+  text?: string;
+  cachedText?: string;
+  publicListOnly?: boolean;
 };
 
 type AniListTitle = {
@@ -40,6 +44,18 @@ type AniListEntry = {
     format?: string | null;
     title: AniListTitle;
   };
+};
+
+type PreviewItem = {
+  mediaId: number;
+  type: AniListMediaType;
+  status: AniListStatus;
+  line: string;
+  title: string;
+  year: number | null;
+  progress: number | null;
+  score: number | null;
+  updatedAt: number | null;
 };
 
 function json(res: unknown, init: ResponseInit = {}) {
@@ -155,6 +171,34 @@ async function fetchAniListPage(
   return { entries, hasNextPage };
 }
 
+function dedupeAndJoinLines(lines: string[]): { text: string; itemCount: number } {
+  const seen = new Set<string>();
+  const deduped: string[] = [];
+  for (const line of lines) {
+    const normalized = line.trim();
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(normalized);
+  }
+  return { text: deduped.join("\n"), itemCount: deduped.length };
+}
+
+function buildPreviewItems(lines: string[], entries: Array<{ type: AniListMediaType; entry: AniListEntry }>): PreviewItem[] {
+  return entries.slice(0, 8).map(({ type, entry }, index) => ({
+    mediaId: entry.media.id,
+    type,
+    status: entry.status,
+    line: lines[index] ?? lineForEntry(type, entry),
+    title: pickTitle(entry.media.title) || `AniList ${type} ${entry.media.id}`,
+    year: yearFor(entry),
+    progress: entry.progress,
+    score: entry.score,
+    updatedAt: entry.updatedAt,
+  }));
+}
+
 serve(async (req) => {
   try {
     if (req.method !== "POST") return json({ error: "Method not allowed" }, { status: 405 });
@@ -179,9 +223,14 @@ serve(async (req) => {
     }
 
     const raw = (await req.json().catch(() => ({}))) as Partial<RequestBody>;
+    const mode = raw.mode === "preview" ? "preview" : "import";
+    const cachedText = String(raw.text ?? raw.cachedText ?? "").trim();
+    const hasCachedText = cachedText.length > 0;
     const username = String(raw.username ?? "").trim();
-    if (!username) return json({ success: false, error: "Missing username" }, { status: 400 });
-    if (username.length > 64) return json({ success: false, error: "Username too long" }, { status: 400 });
+    if (mode === "preview" || !hasCachedText) {
+      if (!username) return json({ success: false, error: "Missing username" }, { status: 400 });
+      if (username.length > 64) return json({ success: false, error: "Username too long" }, { status: 400 });
+    }
 
     const types = (Array.isArray(raw.types) ? raw.types : ["ANIME", "MANGA"])
       .map((t) => String(t).toUpperCase())
@@ -197,8 +246,34 @@ serve(async (req) => {
 
     const maxItems = Math.max(25, Math.min(400, Number(raw.maxItems ?? 200)));
     const perPage = Math.max(10, Math.min(50, Number(raw.perPage ?? 50)));
+    const publicListOnly = raw.publicListOnly ?? true;
+
+    if (mode === "import" && hasCachedText) {
+      const { text, itemCount } = dedupeAndJoinLines(cachedText.split(/\r?\n/));
+      return json({
+        success: true,
+        source: "anilist",
+        mode,
+        username: username || null,
+        itemCount,
+        truncated: Boolean(raw.truncated ?? false),
+        text,
+        publicListOnly,
+        cachedTextUsed: true,
+      });
+    }
 
     const lines: string[] = [];
+    const sampledEntries: Array<{ type: AniListMediaType; entry: AniListEntry }> = [];
+    const countsByType: Record<AniListMediaType, number> = { ANIME: 0, MANGA: 0 };
+    const countsByStatus: Record<AniListStatus, number> = {
+      CURRENT: 0,
+      COMPLETED: 0,
+      PLANNING: 0,
+      DROPPED: 0,
+      PAUSED: 0,
+      REPEATING: 0,
+    };
     let total = 0;
     let truncated = false;
 
@@ -213,7 +288,11 @@ serve(async (req) => {
             hasNext = false;
             break;
           }
-          lines.push(lineForEntry(t, e));
+          const line = lineForEntry(t, e);
+          lines.push(line);
+          countsByType[t] += 1;
+          countsByStatus[e.status] += 1;
+          if (sampledEntries.length < 8) sampledEntries.push({ type: t, entry: e });
           total += 1;
         }
         if (!hasNextPage) break;
@@ -227,28 +306,23 @@ serve(async (req) => {
       if (total >= maxItems) break;
     }
 
-    // De-dupe while preserving order (AniList can yield duplicates across lists in edge cases).
-    const seen = new Set<string>();
-    const deduped: string[] = [];
-    for (const l of lines) {
-      const key = l.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      deduped.push(l);
-    }
-
-    const text = deduped.join("\n");
+    const { text, itemCount } = dedupeAndJoinLines(lines);
+    const sampleItems = buildPreviewItems(lines, sampledEntries);
     return json({
       success: true,
       source: "anilist",
+      mode,
       username,
-      itemCount: deduped.length,
+      itemCount,
       truncated,
       text,
+      publicListOnly,
+      countsByType,
+      countsByStatus,
+      sampleItems,
     });
   } catch (e) {
     const msg = (e instanceof Error ? e.message : String(e)).slice(0, 400);
     return json({ success: false, error: msg }, { status: 500 });
   }
 });
-

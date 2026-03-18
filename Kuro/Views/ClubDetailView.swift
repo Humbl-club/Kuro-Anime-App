@@ -34,8 +34,7 @@ struct ClubDetailView: View {
 
     @State private var selectedTab: Tab = .rails
     @State private var bundle: SupabaseService.ClubBundle? = nil
-    @State private var isLoading = true
-    @State private var errorText: String? = nil
+    @State private var loadPhase: ClubDetailLoadPhase = .idle
     @State private var showSettings = false
     @State private var showCreateRail = false
     @State private var showCreatePoll = false
@@ -55,37 +54,78 @@ struct ClubDetailView: View {
 
     private let heroHeight: CGFloat = 220
 
+    fileprivate enum ClubDetailLoadPhase: Equatable {
+        case idle
+        case loadingInitial
+        case loaded
+        case refreshing
+        case failedInitial(message: String)
+        case failedRefresh(message: String)
+
+        var isRefreshing: Bool {
+            if case .refreshing = self { return true }
+            return false
+        }
+
+        var initialFailureMessage: String? {
+            if case let .failedInitial(message) = self { return message }
+            return nil
+        }
+
+        var refreshFailureMessage: String? {
+            if case let .failedRefresh(message) = self { return message }
+            return nil
+        }
+    }
+
+    private func clubDetailErrorMessage(for error: Error) -> String {
+        if !networkMonitor.isConnected {
+            return "You're offline. Reconnect to load this club."
+        }
+
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .timedOut:
+                return "The club request timed out. Please try again."
+            case .networkConnectionLost:
+                return "The connection dropped. Please try again."
+            case .notConnectedToInternet:
+                return "You're offline. Reconnect to load this club."
+            default:
+                break
+            }
+        }
+
+        return "Could not load club data. Please try again."
+    }
+
     var body: some View {
         ZStack {
             Color.kuroBackground.ignoresSafeArea()
 
-            if isLoading && bundle == nil {
-                VStack(spacing: KuroDesignSpacing.md) {
-                    ProgressView()
-                        .scaleEffect(0.9)
-                        .tint(.kuroBlack60)
-                    Text("Loading club...")
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.kuroBlack60)
-                }
-            } else if let errorText {
-                VStack(spacing: KuroDesignSpacing.md) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 24, weight: .light))
-                        .foregroundColor(.kuroBlack30)
-                    Text(errorText)
-                        .font(.kuroCaption())
-                        .foregroundColor(.red.opacity(0.85))
-                        .multilineTextAlignment(.center)
-                    Button("Retry") {
+            if let bundle {
+                journalContent(bundle)
+                    .overlay(alignment: .top) {
+                        if let message = loadPhase.refreshFailureMessage {
+                            ClubDetailRefreshBanner(
+                                message: message,
+                                isConnected: networkMonitor.isConnected,
+                                onRetry: {
+                                    Task { await loadBundle(force: true) }
+                                }
+                            )
+                            .padding(.horizontal, 20)
+                            .padding(.top, 12)
+                        }
+                    }
+            } else {
+                ClubDetailInitialState(
+                    phase: loadPhase,
+                    isConnected: networkMonitor.isConnected,
+                    onRetry: {
                         Task { await loadBundle(force: true) }
                     }
-                    .font(.kuroCaption(weight: .medium))
-                    .foregroundColor(.black.opacity(0.70))
-                }
-                .padding(.horizontal, 20)
-            } else if let bundle {
-                journalContent(bundle)
+                )
             }
 
             if let toast {
@@ -189,7 +229,7 @@ struct ClubDetailView: View {
 
                         JournalTabBar(selectedTab: $selectedTab)
 
-                        if isLoading {
+                        if loadPhase.isRefreshing {
                             HStack(spacing: 8) {
                                 ProgressView()
                                     .scaleEffect(0.75)
@@ -300,12 +340,14 @@ struct ClubDetailView: View {
     // MARK: - Load
 
     private func loadBundle(force: Bool = false) async {
-        isLoading = true
-        errorText = nil
+        let isInitialLoad = bundle == nil
+        loadPhase = isInitialLoad ? .loadingInitial : .refreshing
         do {
-            bundle = try await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: force)
+            let fetched = try await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: force)
+            bundle = fetched
             optimisticVoteByPollId.removeAll()
             optimisticVoteCountsByPollId.removeAll()
+            loadPhase = .loaded
         } catch {
             #if DEBUG
             print("[ClubDetail] loadBundle failed: \(type(of: error)) — \(error)")
@@ -314,12 +356,15 @@ struct ClubDetailView: View {
             case .notAMember:
                 handleMembershipLoss()
             case .clubNotFound:
-                errorText = "This club no longer exists."
+                bundle = nil
+                loadPhase = .failedInitial(message: "This club no longer exists.")
             default:
-                errorText = "Could not load club data."
+                let message = clubDetailErrorMessage(for: error)
+                loadPhase = bundle == nil
+                    ? .failedInitial(message: message)
+                    : .failedRefresh(message: message)
             }
         }
-        isLoading = false
     }
 
     private func voteOnPoll(poll: SupabaseService.ClubPoll, optionId: String) async {
@@ -425,12 +470,228 @@ struct ClubDetailView: View {
 
     private func handleMembershipLoss() {
         bundle = nil
-        errorText = "You're no longer a member of this club."
+        loadPhase = .failedInitial(message: "You're no longer a member of this club.")
         showToast(.error, title: "Access updated", subtitle: "You were removed from this club.")
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 500_000_000)
             dismiss()
         }
+    }
+}
+
+private struct ClubDetailInitialState: View {
+    let phase: ClubDetailView.ClubDetailLoadPhase
+    let isConnected: Bool
+    let onRetry: () -> Void
+
+    var body: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 18) {
+                ClubDetailInitialSkeleton()
+
+                if let message = phase.initialFailureMessage {
+                    ClubDetailStatusCard(
+                        eyebrow: "INITIAL LOAD",
+                        title: "Could not load club",
+                        message: message,
+                        actionTitle: "Retry",
+                        onAction: onRetry
+                    )
+                } else {
+                    ClubDetailStatusCard(
+                        eyebrow: "INITIAL LOAD",
+                        title: "Loading club",
+                        message: isConnected ? "Building the journal surface now." : "You're offline. Reconnect to load this club.",
+                        actionTitle: nil,
+                        onAction: nil
+                    )
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 32)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(phase.initialFailureMessage == nil ? "Loading club" : "Could not load club")
+    }
+}
+
+private struct ClubDetailInitialSkeleton: View {
+    private let cardCount = 3
+
+    var body: some View {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(Color.black.opacity(0.05))
+                    .frame(height: 218)
+                    .overlay(alignment: .bottomLeading) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(Color.black.opacity(0.10))
+                                .frame(width: 116, height: 12)
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(Color.black.opacity(0.08))
+                                .frame(width: 210, height: 26)
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(Color.black.opacity(0.07))
+                                .frame(width: 156, height: 12)
+                        }
+                        .padding(18)
+                    }
+                    .kuroShimmer()
+
+                HStack(spacing: 8) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        Capsule(style: .continuous)
+                            .fill(Color.black.opacity(0.05))
+                            .frame(width: 72, height: 26)
+                            .kuroShimmer()
+                    }
+                }
+            }
+
+            VStack(spacing: 12) {
+                ForEach(0..<cardCount, id: \.self) { index in
+                    ClubDetailSkeletonCard(index: index)
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct ClubDetailSkeletonCard: View {
+    let index: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(Color.black.opacity(0.08))
+                    .frame(width: 92, height: 10)
+                Spacer()
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(Color.black.opacity(0.06))
+                    .frame(width: 36, height: 10)
+            }
+
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(Color.black.opacity(0.10))
+                .frame(width: index == 0 ? 180 : 140, height: 16)
+
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(Color.black.opacity(0.07))
+                .frame(width: index == 2 ? 210 : 170, height: 12)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.88))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
+        .kuroShimmer()
+    }
+}
+
+private struct ClubDetailStatusCard: View {
+    let eyebrow: String
+    let title: String
+    let message: String
+    let actionTitle: String?
+    let onAction: (() -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(eyebrow)
+                .font(.kuroMicro(weight: .medium))
+                .tracking(2.0)
+                .foregroundColor(.kuroBlack40)
+
+            Text(title)
+                .font(.kuroHeadline(weight: .ultraLight))
+                .foregroundColor(.kuroBlack)
+
+            Text(message)
+                .font(.kuroBody(weight: .light))
+                .foregroundColor(.kuroBlack60)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let actionTitle, let onAction {
+                Button(action: onAction) {
+                    Text(actionTitle.uppercased())
+                        .font(.kuroCaption(weight: .medium))
+                        .tracking(1.8)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(
+                            Capsule(style: .continuous)
+                                .fill(Color.black)
+                        )
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.white.opacity(0.90))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.06), radius: 12, x: 0, y: 6)
+    }
+}
+
+private struct ClubDetailRefreshBanner: View {
+    let message: String
+    let isConnected: Bool
+    let onRetry: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Image(systemName: isConnected ? "arrow.clockwise" : "wifi.slash")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.kuroBlack60)
+                .frame(width: 18)
+
+            Text(message)
+                .font(.kuroCaption(weight: .light))
+                .foregroundColor(.kuroBlack70)
+                .lineLimit(2)
+
+            Spacer(minLength: 0)
+
+            Button(action: onRetry) {
+                Text("Retry")
+                    .font(.kuroCaption(weight: .medium))
+                    .tracking(1.2)
+                    .foregroundColor(.kuroBlack)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.92))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 12, x: 0, y: 5)
     }
 }
 

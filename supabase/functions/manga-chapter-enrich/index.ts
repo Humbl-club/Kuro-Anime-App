@@ -249,9 +249,16 @@ serve(async (req) => {
           metrics.unresolved_mappings += 1;
           bumpReasonCount(metrics.unresolved_reason_counts, result.unresolvedReason ?? "unknown");
         }
+        await persistMangaChapterEnrichState(supabase, candidate, result, runId, startedMs);
       } catch (error) {
         metrics.errors += 1;
         console.error(`manga-chapter-enrich candidate ${candidate.id} failed:`, error);
+        await persistMangaChapterEnrichState(supabase, candidate, {
+          unresolved: true,
+          unresolvedReason: "worker_error",
+          insertedCount: 0,
+          fractionalSkipped: 0,
+        }, runId, startedMs, String((error as Error).message ?? error));
       }
     }
 
@@ -452,6 +459,7 @@ async function processCandidate(args: {
   searchCache: Map<string, MangaDexManga[]>;
 }): Promise<{
   mappingMethod?: MappingMethod;
+  providerMediaId?: string | null;
   unresolved: boolean;
   unresolvedReason?: string;
   insertedCount: number;
@@ -460,7 +468,7 @@ async function processCandidate(args: {
   const { supabase, candidate, payload, matcherConfig, metrics, startedMs, searchCache } = args;
   if ((payload.zeroRowOnly || payload.crunchMode) && (candidate.chapter_row_count ?? 0) > 0) {
     // Defensive guard: crunch mode must never mutate already-covered manga.
-    return { unresolved: false, insertedCount: 0, fractionalSkipped: 0 };
+    return { unresolved: false, providerMediaId: null, insertedCount: 0, fractionalSkipped: 0 };
   }
   if (candidate.priority_class === 5) {
     metrics.auto_retry_due_processed += 1;
@@ -483,7 +491,7 @@ async function processCandidate(args: {
       existingMapping = null;
       mangaDexId = null;
     } else if (verification.skipCurrentRun) {
-      return { unresolved: true, unresolvedReason: "mapping_verification_pending", insertedCount: 0, fractionalSkipped: 0 };
+      return { unresolved: true, providerMediaId: mangaDexId, unresolvedReason: "mapping_verification_pending", insertedCount: 0, fractionalSkipped: 0 };
     } else if (verification.mapping) {
       existingMapping = verification.mapping;
       mangaDexId = verification.mapping.provider_media_id;
@@ -511,7 +519,7 @@ async function processCandidate(args: {
         sample: resolution.sample ?? [],
       });
       metrics.auto_retry_enqueued += 1;
-      return { unresolved: true, unresolvedReason: reason, insertedCount: 0, fractionalSkipped: 0 };
+      return { unresolved: true, providerMediaId: null, unresolvedReason: reason, insertedCount: 0, fractionalSkipped: 0 };
     }
 
     const upserted = await upsertMapping(supabase, candidate.id, {
@@ -529,7 +537,7 @@ async function processCandidate(args: {
         sample: resolution.sample ?? [],
       });
       metrics.auto_retry_enqueued += 1;
-      return { unresolved: true, unresolvedReason: "mapping_conflict", insertedCount: 0, fractionalSkipped: 0 };
+      return { unresolved: true, providerMediaId: null, unresolvedReason: "mapping_conflict", insertedCount: 0, fractionalSkipped: 0 };
     }
 
     mappingMethod = resolution.method;
@@ -578,6 +586,7 @@ async function processCandidate(args: {
 
   return {
     mappingMethod,
+    providerMediaId: mangaDexId,
     unresolved: false,
     insertedCount,
     fractionalSkipped: aggregate.fractionalSkipped,
@@ -2023,5 +2032,57 @@ async function finishImportRun(
     }
   } catch (error) {
     console.error("import_runs update exception:", error);
+  }
+}
+
+async function persistMangaChapterEnrichState(
+  supabase: any,
+  candidate: CandidateRow,
+  result: {
+    mappingMethod?: MappingMethod;
+    providerMediaId?: string | null;
+    unresolved: boolean;
+    unresolvedReason?: string;
+    insertedCount: number;
+    fractionalSkipped: number;
+  },
+  runId: number | null,
+  startedMs: number,
+  message: string | null = null,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const state = result.unresolved ? "unresolved" : (result.insertedCount > 0 || result.mappingMethod ? "mapped" : "skipped");
+  const visibility = result.unresolved ? "review" : (result.insertedCount > 0 || result.mappingMethod ? "visible" : "hidden");
+  const details = {
+    unresolved_reason: result.unresolvedReason ?? null,
+    inserted_count: result.insertedCount,
+    fractional_skipped: result.fractionalSkipped,
+    run_id: runId,
+    started_ms: startedMs,
+    message,
+  };
+
+  try {
+    const { error } = await supabase
+      .from("manga_chapter_enrich_state")
+      .upsert({
+        manga_id: candidate.id,
+        state,
+        visibility,
+        mapping_method: result.mappingMethod ?? null,
+        provider_media_id: result.providerMediaId ?? null,
+        chapter_row_count: candidate.chapter_row_count ?? 0,
+        inserted_count: result.insertedCount,
+        fractional_skipped: result.fractionalSkipped,
+        last_run_at: now,
+        last_message: message ?? result.unresolvedReason ?? null,
+        details,
+        updated_at: now,
+      }, { onConflict: "manga_id" });
+    if (error) {
+      console.error("manga_chapter_enrich_state upsert error:", error);
+    }
+  } catch (error) {
+    console.error("manga_chapter_enrich_state upsert exception:", error);
   }
 }

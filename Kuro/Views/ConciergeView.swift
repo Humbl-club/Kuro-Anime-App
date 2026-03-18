@@ -72,15 +72,6 @@ struct ConciergeView: View {
     @State private var lastRagSeedEntityId: String? = nil
     @State private var ragFeedbackSentForQuery: Set<String> = []
     @State private var showAniListImportSheet: Bool = false
-    @State private var aniListUsername: String = ""
-    @State private var aniListIncludeAnime: Bool = true
-    @State private var aniListIncludeManga: Bool = true
-    @State private var aniListIncludeCurrent: Bool = true
-    @State private var aniListIncludeCompleted: Bool = true
-    @State private var aniListIncludePlanning: Bool = true
-    @State private var aniListIncludePaused: Bool = false
-    @State private var aniListIncludeDropped: Bool = false
-    @State private var aniListIsImporting: Bool = false
     private var mascotState: ConciergeMascotState {
         if isWorking { return .thinking }
         if errorText != nil { return .concerned }
@@ -147,7 +138,20 @@ struct ConciergeView: View {
             MangaDetailView(manga: manga)
         }
         .sheet(isPresented: $showAniListImportSheet) {
-            aniListImportSheet
+            aniListImportSheet(
+                supabaseService: supabaseService,
+                isGermanLocale: isGermanLocale
+            ) { response in
+                let count = response.itemCount ?? 0
+                await sendExternalImport(
+                    sourceLabel: "AniList",
+                    displayText: isGermanLocale
+                        ? "AniList-Import — \(count) Titel"
+                        : "AniList import — \(count) items",
+                    sourceText: response.text ?? "",
+                    truncated: response.truncated ?? false
+                )
+            }
         }
         .task {
             // Warm up the edge function isolate on view appear (fire-and-forget)
@@ -217,221 +221,6 @@ struct ConciergeView: View {
                     .onAppear { containerSize = geo.size }
                     .onChange(of: geo.size) { containerSize = geo.size }
             }
-        }
-    }
-
-    private var aniListImportSheet: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(isGermanLocale ? "AniList importieren" : "Import AniList")
-                        .font(.kuroCustom(26, weight: .ultraLight, design: .serif, relativeTo: .title2))
-                        .foregroundStyle(Color.kuroBlack.opacity(0.84))
-
-                    Text(isGermanLocale
-                        ? "Gib deinen AniList-Namen ein. Wir importieren deine öffentlichen Listen und gleichen sie mit deiner Kuro-Bibliothek ab."
-                        : "Enter your AniList username. We’ll import your public lists and reconcile them into your Kuro library."
-                    )
-                    .font(.kuroBody(weight: .light))
-                    .foregroundStyle(Color.kuroBlack.opacity(0.62))
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(isGermanLocale ? "Benutzername" : "Username")
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.8)
-                            .foregroundColor(.kuroTextTertiary)
-
-                        TextField(isGermanLocale ? "z.B. maxmustermann" : "e.g. yourname", text: $aniListUsername)
-                            .textInputAutocapitalization(.never)
-                            .disableAutocorrection(true)
-                            .font(.kuroBody())
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                                    .fill(Color.kuroWhite92)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                                            .stroke(Color.kuroBlack08, lineWidth: 0.7)
-                                    )
-                            )
-                    }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(isGermanLocale ? "Typ" : "Type")
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.8)
-                            .foregroundColor(.kuroTextTertiary)
-
-                        HStack(spacing: 10) {
-                            togglePill(
-                                title: isGermanLocale ? "Anime" : "Anime",
-                                isOn: $aniListIncludeAnime
-                            )
-                            togglePill(
-                                title: isGermanLocale ? "Manga" : "Manga",
-                                isOn: $aniListIncludeManga
-                            )
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(isGermanLocale ? "Status" : "Status")
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.8)
-                            .foregroundColor(.kuroTextTertiary)
-
-                        HStack(spacing: 10) {
-                            togglePill(
-                                title: isGermanLocale ? "Aktuell" : "Current",
-                                isOn: $aniListIncludeCurrent
-                            )
-                            togglePill(
-                                title: isGermanLocale ? "Fertig" : "Completed",
-                                isOn: $aniListIncludeCompleted
-                            )
-                            togglePill(
-                                title: isGermanLocale ? "Plan" : "Planning",
-                                isOn: $aniListIncludePlanning
-                            )
-                        }
-
-                        HStack(spacing: 10) {
-                            togglePill(
-                                title: isGermanLocale ? "Pausiert" : "On hold",
-                                isOn: $aniListIncludePaused
-                            )
-                            togglePill(
-                                title: isGermanLocale ? "Abgebrochen" : "Dropped",
-                                isOn: $aniListIncludeDropped
-                            )
-                        }
-                    }
-
-                    Button(action: {
-                        Task { await runAniListImport() }
-                    }) {
-                        HStack(spacing: 10) {
-                            if aniListIsImporting {
-                                ProgressView()
-                                    .tint(Color.kuroWhite)
-                            }
-                            Text(isGermanLocale ? "IMPORTIEREN" : "IMPORT")
-                                .font(.kuroCaption(weight: .medium))
-                                .tracking(2.0)
-                        }
-                        .foregroundStyle(Color.kuroWhite)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(canRunAniListImport ? Color.kuroBlack.opacity(0.88) : Color.kuroBlack10)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!canRunAniListImport || aniListIsImporting)
-                    .padding(.top, 6)
-
-                    Text(isGermanLocale
-                        ? "Hinweis: Private AniList-Listen brauchen später OAuth. Dieses MVP nutzt öffentliche Listen."
-                        : "Note: private AniList lists will require OAuth later. This MVP uses public lists."
-                    )
-                    .font(.kuroMicro())
-                    .foregroundColor(.kuroTextTertiary)
-                    .padding(.top, 4)
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 18)
-                .padding(.bottom, 24)
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(isGermanLocale ? "Fertig" : "Done") { showAniListImportSheet = false }
-                        .font(.kuroCaption(weight: .medium))
-                }
-            }
-        }
-        .presentationDetents([.large])
-    }
-
-    private var canRunAniListImport: Bool {
-        !aniListUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && (aniListIncludeAnime || aniListIncludeManga)
-            && (aniListIncludeCurrent || aniListIncludeCompleted || aniListIncludePlanning || aniListIncludePaused || aniListIncludeDropped)
-    }
-
-    private func togglePill(title: String, isOn: Binding<Bool>) -> some View {
-        Button(action: { isOn.wrappedValue.toggle() }) {
-            Text(title)
-                .font(.kuroCaption(weight: .medium))
-                .foregroundStyle(isOn.wrappedValue ? Color.kuroWhite : Color.kuroBlack.opacity(0.68))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(
-                    Capsule(style: .continuous)
-                        .fill(isOn.wrappedValue ? Color.kuroBlack.opacity(0.86) : Color.kuroBlack04)
-                        .overlay(
-                            Capsule(style: .continuous)
-                                .stroke(Color.kuroBlack10, lineWidth: 0.6)
-                        )
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(isOn.wrappedValue ? .isSelected : [])
-        .accessibilityHint("Toggles \(title) filter")
-    }
-
-    private func runAniListImport() async {
-        guard canRunAniListImport else { return }
-        if aniListIsImporting { return }
-
-        aniListIsImporting = true
-        defer { aniListIsImporting = false }
-
-        let u = aniListUsername.trimmingCharacters(in: .whitespacesAndNewlines)
-        var types: [String] = []
-        if aniListIncludeAnime { types.append("ANIME") }
-        if aniListIncludeManga { types.append("MANGA") }
-
-        var statuses: [String] = []
-        if aniListIncludeCurrent { statuses.append("CURRENT") }
-        if aniListIncludeCompleted { statuses.append("COMPLETED") }
-        if aniListIncludePlanning { statuses.append("PLANNING") }
-        if aniListIncludePaused { statuses.append("PAUSED") }
-        if aniListIncludeDropped { statuses.append("DROPPED") }
-
-        do {
-            let resp = try await supabaseService.conciergeImportAniList(
-                username: u,
-                types: types,
-                statuses: statuses,
-                maxItems: 200
-            )
-            guard resp.success, let text = resp.text, !text.isEmpty else {
-                showToast(.init(
-                    kind: .error,
-                    title: isGermanLocale ? "Import fehlgeschlagen" : "Import failed",
-                    subtitle: resp.error ?? (isGermanLocale ? "Bitte prüfe den Namen." : "Please check the username."),
-                    actionTitle: nil,
-                    onAction: nil
-                ), autoDismissSeconds: 4.0)
-                return
-            }
-
-            showAniListImportSheet = false
-
-            let count = resp.itemCount ?? 0
-            await sendExternalImport(
-                sourceLabel: "AniList",
-                displayText: isGermanLocale
-                    ? "AniList-Import — \(count) Titel"
-                    : "AniList import — \(count) items",
-                sourceText: text,
-                truncated: resp.truncated ?? false
-            )
-        } catch {
-            handleError(error)
         }
     }
 

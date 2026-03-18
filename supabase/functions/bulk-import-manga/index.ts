@@ -1,4 +1,4 @@
-// Deployed from local patch of 07_manga_edge_function_with_chapters.js
+// Deployed from local patch of scripts/legacy/07_manga_edge_function_with_chapters.js
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -13,6 +13,95 @@ const ITEM_BATCH_SIZE = 5;
 const DEFAULT_MAX_PLACEHOLDER_CHAPTERS = 120;
 const DEFAULT_MAX_PLACEHOLDER_VOLUMES = 24;
 const SUPPORTED_MEDIA_RELATIONS = new Set(['SOURCE', 'ADAPTATION', 'PREQUEL', 'SEQUEL', 'SIDE_STORY', 'SPIN_OFF']);
+type TrackPresetName = 'popularity_core' | 'airing_or_releasing' | 'recent_updates' | 'catalog_backfill';
+
+type TrackPresetDefaults = {
+  useCursor: boolean;
+  runToEnd: boolean;
+  lightweight: boolean;
+  includeRelations: boolean;
+  includeChapters: boolean;
+  includeVolumes: boolean;
+  pagesPerBatch: number;
+  maxPagesPerRun: number;
+  perPage: number;
+  delayMs: number;
+  scheduleSafe: boolean;
+};
+
+function normalizeTrackPreset(raw: unknown): TrackPresetName {
+  const value = String(raw ?? '').trim().toLowerCase();
+  if (value === 'popularity_core' || value === 'airing_or_releasing' || value === 'recent_updates' || value === 'catalog_backfill') {
+    return value;
+  }
+  return 'catalog_backfill';
+}
+
+function trackKeyFor(mediaType: string, preset: TrackPresetName): string {
+  return `${mediaType.toLowerCase()}:${preset}`;
+}
+
+function trackPresetDefaults(preset: TrackPresetName): TrackPresetDefaults {
+  switch (preset) {
+    case 'popularity_core':
+      return {
+        useCursor: true,
+        runToEnd: false,
+        lightweight: true,
+        includeRelations: false,
+        includeChapters: false,
+        includeVolumes: false,
+        pagesPerBatch: 2,
+        maxPagesPerRun: 4,
+        perPage: 25,
+        delayMs: 0,
+        scheduleSafe: true,
+      };
+    case 'airing_or_releasing':
+      return {
+        useCursor: true,
+        runToEnd: false,
+        lightweight: false,
+        includeRelations: true,
+        includeChapters: true,
+        includeVolumes: true,
+        pagesPerBatch: 1,
+        maxPagesPerRun: 6,
+        perPage: 20,
+        delayMs: 120,
+        scheduleSafe: true,
+      };
+    case 'recent_updates':
+      return {
+        useCursor: true,
+        runToEnd: false,
+        lightweight: false,
+        includeRelations: true,
+        includeChapters: false,
+        includeVolumes: false,
+        pagesPerBatch: 2,
+        maxPagesPerRun: 8,
+        perPage: 25,
+        delayMs: 100,
+        scheduleSafe: true,
+      };
+    case 'catalog_backfill':
+    default:
+      return {
+        useCursor: true,
+        runToEnd: true,
+        lightweight: false,
+        includeRelations: true,
+        includeChapters: true,
+        includeVolumes: true,
+        pagesPerBatch: 10,
+        maxPagesPerRun: 200,
+        perPage: 25,
+        delayMs: 250,
+        scheduleSafe: false,
+      };
+  }
+}
 
 serve(async (req) => {
   // Secret header auth: pg_cron/pg_net can't send JWTs, so verify a shared secret instead.
@@ -29,24 +118,29 @@ serve(async (req) => {
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseKey);
   const payload = await req.json().catch(() => ({} as any));
+  const requestedTrackKey = String(payload?.trackKey ?? '').trim();
+  const hasTrackRouting = Boolean(requestedTrackKey || payload?.trackPreset);
+  const trackPreset = normalizeTrackPreset(payload?.trackPreset);
+  const resolvedTrackKey = hasTrackRouting ? (requestedTrackKey || trackKeyFor('MANGA', trackPreset)) : '';
+  const trackDefaults = hasTrackRouting ? trackPresetDefaults(trackPreset) : null;
   let startPage: number | null = payload?.startPage ?? null;
-  let pagesPerBatch: number = payload?.pagesPerBatch ?? 5;
-  const useCursor: boolean = payload?.useCursor ?? true;
-  let runToEnd: boolean = payload?.runToEnd ?? false;
-  let maxPagesPerRun: number = payload?.maxPagesPerRun ?? 200;
-  let perPage: number = payload?.perPage ?? DEFAULT_PER_PAGE;
-  let delayMs: number = payload?.delayMs ?? DEFAULT_DELAY_MS;
+  let pagesPerBatch: number = payload?.pagesPerBatch ?? (trackDefaults?.pagesPerBatch ?? 5);
+  const useCursor: boolean = payload?.useCursor ?? (trackDefaults?.useCursor ?? true);
+  let runToEnd: boolean = payload?.runToEnd ?? (trackDefaults?.runToEnd ?? false);
+  let maxPagesPerRun: number = payload?.maxPagesPerRun ?? (trackDefaults?.maxPagesPerRun ?? 200);
+  let perPage: number = payload?.perPage ?? (trackDefaults?.perPage ?? DEFAULT_PER_PAGE);
+  let delayMs: number = payload?.delayMs ?? (trackDefaults?.delayMs ?? DEFAULT_DELAY_MS);
   const retries: number = payload?.retries ?? DEFAULT_RETRIES;
-  const lightweight: boolean = payload?.lightweight ?? false;
-  const includeRelations: boolean = payload?.includeRelations ?? !lightweight;
+  const lightweight: boolean = payload?.lightweight ?? (trackDefaults?.lightweight ?? false);
+  const includeRelations: boolean = payload?.includeRelations ?? (trackDefaults?.includeRelations ?? !lightweight);
   // Default to non-destructive imports. Placeholder rows must be explicitly requested.
-  const includeChapters: boolean = payload?.includeChapters ?? false;
-  const includeVolumes: boolean = payload?.includeVolumes ?? false;
+  const includeChapters: boolean = payload?.includeChapters ?? (trackDefaults?.includeChapters ?? false);
+  const includeVolumes: boolean = payload?.includeVolumes ?? (trackDefaults?.includeVolumes ?? false);
   const forceRefresh: boolean = payload?.forceRefresh ?? false;
   const lockTtlSeconds: number = payload?.lockTtlSeconds ?? 1800;
   const maxPlaceholderChapters: number = payload?.maxPlaceholderChapters ?? DEFAULT_MAX_PLACEHOLDER_CHAPTERS;
   const maxPlaceholderVolumes: number = payload?.maxPlaceholderVolumes ?? DEFAULT_MAX_PLACEHOLDER_VOLUMES;
-  const scheduleSafe: boolean = payload?.scheduleSafe ?? false;
+  const scheduleSafe: boolean = payload?.scheduleSafe ?? (trackDefaults?.scheduleSafe ?? false);
 
   if (scheduleSafe && !lightweight) {
     perPage = Math.max(1, Math.min(perPage, 10));
@@ -55,8 +149,14 @@ serve(async (req) => {
     if (runToEnd) runToEnd = false;
     delayMs = Math.max(0, Math.min(delayMs, 250));
   }
+  if (useCursor && (!startPage || startPage < 1) && resolvedTrackKey) {
+    const trackedLastPage = await readTrackedCursorPage(supabase, resolvedTrackKey);
+    if (trackedLastPage !== null) {
+      startPage = trackedLastPage + 1;
+    }
+  }
   if (useCursor && (!startPage || startPage < 1)) {
-    const { data } = await supabase.from('import_state').select('last_page').eq('media_type', 'MANGA').single();
+    const { data } = await supabase.from('import_state').select('last_page').eq('media_type', 'MANGA').maybeSingle();
     const last = data?.last_page ?? 0;
     startPage = last + 1;
   }
@@ -70,6 +170,18 @@ serve(async (req) => {
   let lockAcquired = false;
 
   if (!lightweight && !heavyImportsEnabled) {
+    if (useCursor) {
+      await writeTrackedCursorState(supabase, {
+        mediaType: 'MANGA',
+        trackKey: resolvedTrackKey || null,
+        trackPreset,
+        lastPage: Math.max(0, (startPage ?? 1) - 1),
+        status: 'skipped',
+        visibility: 'paused',
+        results,
+        message: 'heavy_disabled',
+      });
+    }
     await finishImportRun(supabase, runId, 'skipped', results, 'heavy_disabled', tRunStart);
     return new Response(
       JSON.stringify({ success: true, skipped: true, reason: 'heavy_disabled', results }),
@@ -80,6 +192,18 @@ serve(async (req) => {
   try {
     lockAcquired = await acquireImportLock(supabase, 'manga', lockTtlSeconds);
     if (!lockAcquired) {
+      if (useCursor) {
+        await writeTrackedCursorState(supabase, {
+          mediaType: 'MANGA',
+          trackKey: resolvedTrackKey || null,
+          trackPreset,
+          lastPage: Math.max(0, (startPage ?? 1) - 1),
+          status: 'skipped',
+          visibility: 'paused',
+          results,
+          message: 'locked',
+        });
+      }
       await finishImportRun(supabase, runId, 'skipped', results, 'locked', tRunStart);
       return new Response(JSON.stringify({ success: true, skipped: true, reason: 'locked', results }), { headers: { 'Content-Type': 'application/json' } });
     }
@@ -122,13 +246,32 @@ serve(async (req) => {
       if (runToEnd && (processedPages >= maxPagesPerRun || (Date.now() - t0) > timeBudgetMs)) break;
     }
     if (useCursor) {
-      await supabase
-        .from('import_state')
-        .upsert({ media_type: 'MANGA', last_page: lastProcessed, updated_at: new Date().toISOString() }, { onConflict: 'media_type' });
+      await writeTrackedCursorState(supabase, {
+        mediaType: 'MANGA',
+        trackKey: resolvedTrackKey || null,
+        trackPreset,
+        lastPage: lastProcessed,
+        status: 'success',
+        visibility: 'active',
+        results,
+        message: null,
+      });
     }
     await finishImportRun(supabase, runId, 'success', results, null, tRunStart);
-    return new Response(JSON.stringify({ success: true, results, nextStartPage: (lastProcessed + 1) }), { headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ success: true, results, nextStartPage: (lastProcessed + 1), trackKey: hasTrackRouting ? resolvedTrackKey : null, trackPreset: hasTrackRouting ? trackPreset : null }), { headers: { 'Content-Type': 'application/json' } });
   } catch (e) {
+    if (useCursor) {
+      await writeTrackedCursorState(supabase, {
+        mediaType: 'MANGA',
+        trackKey: resolvedTrackKey || null,
+        trackPreset,
+        lastPage: Math.max(0, (startPage ?? 1) - 1),
+        status: 'error',
+        visibility: 'paused',
+        results,
+        message: (e as Error).message,
+      });
+    }
     await finishImportRun(supabase, runId, 'error', results, (e as Error).message, tRunStart);
     return new Response(JSON.stringify({ success: false, error: (e as Error).message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   } finally {
@@ -553,5 +696,74 @@ async function finishImportRun(
     if (error) console.error('import_runs update error:', error);
   } catch (e) {
     console.error('import_runs update exception:', e);
+  }
+}
+
+async function readTrackedCursorPage(supabase: any, trackKey: string): Promise<number | null> {
+  try {
+    const { data, error } = await supabase
+      .from('import_track_state')
+      .select('last_page')
+      .eq('track_key', trackKey)
+      .maybeSingle();
+    if (!error && data && typeof data.last_page === 'number') {
+      return data.last_page;
+    }
+  } catch (e) {
+    console.error('import_track_state read error:', e);
+  }
+  return null;
+}
+
+async function writeTrackedCursorState(
+  supabase: any,
+  args: {
+    mediaType: string;
+    trackKey: string | null;
+    trackPreset: TrackPresetName;
+    lastPage: number;
+    status: string;
+    visibility: string;
+    results: unknown;
+    message: string | null;
+  }
+): Promise<void> {
+  const updatedAt = new Date().toISOString();
+  const legacyPayload = {
+    media_type: args.mediaType,
+    last_page: args.lastPage,
+    updated_at: updatedAt,
+  };
+  const trackPayload = args.trackKey ? {
+    track_key: args.trackKey,
+    media_type: args.mediaType,
+    track_preset: args.trackPreset,
+    last_page: args.lastPage,
+    state: args.status,
+    visibility: args.visibility,
+    last_run_at: updatedAt,
+    last_message: args.message,
+    last_results: args.results ?? {},
+    updated_at: updatedAt,
+  } : null;
+
+  if (trackPayload) {
+    try {
+      const { error } = await supabase
+        .from('import_track_state')
+        .upsert(trackPayload, { onConflict: 'track_key' });
+      if (error) console.error('import_track_state upsert error:', error);
+    } catch (e) {
+      console.error('import_track_state upsert exception:', e);
+    }
+  }
+
+  try {
+    const { error } = await supabase
+      .from('import_state')
+      .upsert(legacyPayload, { onConflict: 'media_type' });
+    if (error) console.error('import_state upsert error:', error);
+  } catch (e) {
+    console.error('import_state upsert exception:', e);
   }
 }

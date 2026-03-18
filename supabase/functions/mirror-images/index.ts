@@ -12,6 +12,20 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 type MediaType = 'ANIME' | 'MANGA' | 'CHARACTER' | 'STAFF';
+type MirrorState = 'mirrored' | 'skipped' | 'failed';
+type MirrorVisibility = 'public' | 'remote' | 'hidden';
+
+type MirrorStateInput = {
+  mediaType: MediaType;
+  mediaId: number;
+  assetKey: string;
+  sourceUrl: string | null;
+  mirroredUrl: string | null;
+  state: MirrorState;
+  visibility: MirrorVisibility;
+  message?: string | null;
+  details?: Record<string, unknown>;
+};
 
 serve(async (req) => {
   // Auth gate: require IMPORT_SECRET (same pattern as bulk-import-anime/manga)
@@ -107,20 +121,17 @@ serve(async (req) => {
       const basePath = `anime/${id}`;
       const updates: any = {};
       // cover large
-      if (row.cover_image_large && isRemoteAndNotMirrored(row.cover_image_large)) {
-        const path = await mirrorOne(bucket, `${basePath}/cover_large`, row.cover_image_large);
-        if (path) updates.cover_image_large = getPublicUrl(bucket, path);
-      }
+      await mirrorAsset('ANIME', id, 'cover_image_large', row.cover_image_large ?? null, `${basePath}/cover_large`, (url) => {
+        updates.cover_image_large = url;
+      }, overwrite);
       // cover medium
-      if (row.cover_image_medium && isRemoteAndNotMirrored(row.cover_image_medium)) {
-        const path = await mirrorOne(bucket, `${basePath}/cover_medium`, row.cover_image_medium);
-        if (path) updates.cover_image_medium = getPublicUrl(bucket, path);
-      }
+      await mirrorAsset('ANIME', id, 'cover_image_medium', row.cover_image_medium ?? null, `${basePath}/cover_medium`, (url) => {
+        updates.cover_image_medium = url;
+      }, overwrite);
       // banner
-      if (row.banner_image && isRemoteAndNotMirrored(row.banner_image)) {
-        const path = await mirrorOne(bucket, `${basePath}/banner`, row.banner_image);
-        if (path) updates.banner_image = getPublicUrl(bucket, path);
-      }
+      await mirrorAsset('ANIME', id, 'banner_image', row.banner_image ?? null, `${basePath}/banner`, (url) => {
+        updates.banner_image = url;
+      }, overwrite);
       if (Object.keys(updates).length > 0) {
         const { error: uerr } = await supabase.from('anime').update(updates).eq('id', row.id);
         if (!uerr) updated++;
@@ -143,18 +154,15 @@ serve(async (req) => {
       const id = row.id;
       const basePath = `manga/${id}`;
       const updates: any = {};
-      if (row.cover_image_large && isRemoteAndNotMirrored(row.cover_image_large)) {
-        const path = await mirrorOne(bucket, `${basePath}/cover_large`, row.cover_image_large);
-        if (path) updates.cover_image_large = getPublicUrl(bucket, path);
-      }
-      if (row.cover_image_medium && isRemoteAndNotMirrored(row.cover_image_medium)) {
-        const path = await mirrorOne(bucket, `${basePath}/cover_medium`, row.cover_image_medium);
-        if (path) updates.cover_image_medium = getPublicUrl(bucket, path);
-      }
-      if (row.banner_image && isRemoteAndNotMirrored(row.banner_image)) {
-        const path = await mirrorOne(bucket, `${basePath}/banner`, row.banner_image);
-        if (path) updates.banner_image = getPublicUrl(bucket, path);
-      }
+      await mirrorAsset('MANGA', id, 'cover_image_large', row.cover_image_large ?? null, `${basePath}/cover_large`, (url) => {
+        updates.cover_image_large = url;
+      }, overwrite);
+      await mirrorAsset('MANGA', id, 'cover_image_medium', row.cover_image_medium ?? null, `${basePath}/cover_medium`, (url) => {
+        updates.cover_image_medium = url;
+      }, overwrite);
+      await mirrorAsset('MANGA', id, 'banner_image', row.banner_image ?? null, `${basePath}/banner`, (url) => {
+        updates.banner_image = url;
+      }, overwrite);
       if (Object.keys(updates).length > 0) {
         const { error: uerr } = await supabase.from('manga').update(updates).eq('id', row.id);
         if (!uerr) updated++;
@@ -175,13 +183,13 @@ serve(async (req) => {
     for (const row of (data ?? [])) {
       if (shouldStop()) break;
       const id = row.id;
-      if (row.image_large && isRemoteAndNotMirrored(row.image_large)) {
-        const path = await mirrorOne(bucket, `characters/${id}`, row.image_large);
-        if (path) {
-          const updates = { image_large: getPublicUrl(bucket, path) };
-          const { error: uerr } = await supabase.from('characters').update(updates).eq('id', row.id);
-          if (!uerr) updated++;
-        }
+      const updates: any = {};
+      const mirrored = await mirrorAsset('CHARACTER', id, 'image_large', row.image_large ?? null, `characters/${id}`, (url) => {
+        updates.image_large = url;
+      }, overwrite);
+      if (mirrored) {
+        const { error: uerr } = await supabase.from('characters').update(updates).eq('id', row.id);
+        if (!uerr) updated++;
       }
     }
     return updated;
@@ -199,13 +207,13 @@ serve(async (req) => {
     for (const row of (data ?? [])) {
       if (shouldStop()) break;
       const id = row.id;
-      if (row.image_large && isRemoteAndNotMirrored(row.image_large)) {
-        const path = await mirrorOne(bucket, `staff/${id}`, row.image_large);
-        if (path) {
-          const updates = { image_large: getPublicUrl(bucket, path) };
-          const { error: uerr } = await supabase.from('staff').update(updates).eq('id', row.id);
-          if (!uerr) updated++;
-        }
+      const updates: any = {};
+      const mirrored = await mirrorAsset('STAFF', id, 'image_large', row.image_large ?? null, `staff/${id}`, (url) => {
+        updates.image_large = url;
+      }, overwrite);
+      if (mirrored) {
+        const { error: uerr } = await supabase.from('staff').update(updates).eq('id', row.id);
+        if (!uerr) updated++;
       }
     }
     return updated;
@@ -261,6 +269,98 @@ serve(async (req) => {
   function getPublicUrl(bucket: string, path: string): string {
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;
+  }
+
+  async function recordImageMirrorState(input: MirrorStateInput): Promise<void> {
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase.from('image_mirror_state').upsert({
+        media_type: input.mediaType,
+        media_id: input.mediaId,
+        asset_key: input.assetKey,
+        source_url: input.sourceUrl,
+        mirrored_url: input.mirroredUrl,
+        state: input.state,
+        visibility: input.visibility,
+        last_run_at: now,
+        last_message: input.message ?? null,
+        details: {
+          ...(input.details ?? {}),
+          bucket,
+        },
+        updated_at: now,
+      }, { onConflict: 'media_type,media_id,asset_key' });
+      if (error) console.error('image_mirror_state upsert error:', error);
+    } catch (e) {
+      console.error('image_mirror_state upsert exception:', e);
+    }
+  }
+
+  async function mirrorAsset(
+    mediaType: MediaType,
+    mediaId: number,
+    assetKey: string,
+    sourceUrl: string | null,
+    basePath: string,
+    applyMirroredUrl: (url: string) => void,
+    overwriteFlag: boolean,
+  ): Promise<boolean> {
+    if (!sourceUrl) {
+      await recordImageMirrorState({
+        mediaType,
+        mediaId,
+        assetKey,
+        sourceUrl: null,
+        mirroredUrl: null,
+        state: 'skipped',
+        visibility: 'hidden',
+        details: { overwrite: overwriteFlag, reason: 'missing_source' },
+      });
+      return false;
+    }
+
+    if (!isRemoteAndNotMirrored(sourceUrl)) {
+      await recordImageMirrorState({
+        mediaType,
+        mediaId,
+        assetKey,
+        sourceUrl,
+        mirroredUrl: isStorageUrl(sourceUrl) ? sourceUrl : null,
+        state: 'skipped',
+        visibility: isStorageUrl(sourceUrl) ? 'public' : 'remote',
+        details: { overwrite: overwriteFlag, reason: isStorageUrl(sourceUrl) ? 'already_mirrored' : 'non_remote' },
+      });
+      return false;
+    }
+
+    const path = await mirrorOne(bucket, basePath, sourceUrl);
+    if (!path) {
+      await recordImageMirrorState({
+        mediaType,
+        mediaId,
+        assetKey,
+        sourceUrl,
+        mirroredUrl: null,
+        state: 'failed',
+        visibility: 'remote',
+        details: { overwrite: overwriteFlag, reason: 'mirror_failed' },
+      });
+      return false;
+    }
+
+    const mirroredUrl = getPublicUrl(bucket, path);
+    applyMirroredUrl(mirroredUrl);
+    await recordImageMirrorState({
+      mediaType,
+      mediaId,
+      assetKey,
+      sourceUrl,
+      mirroredUrl,
+      state: 'mirrored',
+      visibility: 'public',
+      details: { overwrite: overwriteFlag, storage_path: path },
+    });
+    return true;
   }
 
   async function acquireImportLock(supabase: any, key: string, ttlSeconds: number): Promise<boolean> {

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - First-Launch Onboarding (3-card horizontal pager)
+// MARK: - First-Launch Onboarding (5-card horizontal pager)
 // Shown once between auth and ContentView. Uses UserDefaults flag.
 
 struct OnboardingView: View {
@@ -124,31 +124,49 @@ private struct OnboardingPage {
 
     static let allPages: [OnboardingPage] = [
         OnboardingPage(
-            systemImage: "hand.draw",
-            titleEN: "Swipe to Navigate",
-            titleDE: "Wische zum Navigieren",
-            subtitleEN: "THREE SECTIONS",
-            subtitleDE: "DREI BEREICHE",
-            bodyEN: "Concierge, Discover, and Collection — all one swipe apart. Search and Browse are a tap away.",
-            bodyDE: "Concierge, Entdecken und Sammlung — alles einen Wisch entfernt. Suche und Stobern sind einen Tipp entfernt."
+            systemImage: "bubble.left.and.bubble.right",
+            titleEN: "Start with Concierge",
+            titleDE: "Starte mit Concierge",
+            subtitleEN: "CONCIERGE",
+            subtitleDE: "CONCIERGE",
+            bodyEN: "Paste a list or describe a mood. Concierge shapes the first pass before you ever leave the shell.",
+            bodyDE: "Fuge eine Liste ein oder beschreibe eine Stimmung. Concierge formt den ersten Vorschlag, noch bevor du die Shell verlässt."
         ),
         OnboardingPage(
-            systemImage: "bubble.left.and.bubble.right",
-            titleEN: "Your Concierge",
-            titleDE: "Dein Concierge",
-            subtitleEN: "IMPORT + CURATE",
-            subtitleDE: "IMPORT + KURATIEREN",
-            bodyEN: "Paste your anime list or describe a mood. The Concierge imports, matches, and curates — cleanly filtered.",
-            bodyDE: "Fuge deine Liste ein oder beschreibe eine Stimmung. Der Concierge importiert, gleicht ab und kuratiert."
+            systemImage: "sparkles",
+            titleEN: "Discover the feed",
+            titleDE: "Entdecke den Feed",
+            subtitleEN: "DISCOVER",
+            subtitleDE: "ENTDECKEN",
+            bodyEN: "Discover brings fresh picks, recommendations, and editorial flow into one quiet stream.",
+            bodyDE: "Discover bringt frische Empfehlungen, Vorschläge und redaktionellen Fluss in einen ruhigen Stream."
+        ),
+        OnboardingPage(
+            systemImage: "rectangle.grid.2x2",
+            titleEN: "Browse by genre",
+            titleDE: "Nach Genre stöbern",
+            subtitleEN: "BROWSE",
+            subtitleDE: "STÖBERN",
+            bodyEN: "Browse opens the wider catalog, letting you move through genres and tags when you know the lane.",
+            bodyDE: "Browse öffnet den größeren Katalog, damit du dich durch Genres und Tags bewegst, wenn du die Richtung schon kennst."
         ),
         OnboardingPage(
             systemImage: "square.stack.3d.up",
-            titleEN: "Build Your Collection",
-            titleDE: "Baue deine Sammlung",
-            subtitleEN: "TRACK EVERYTHING",
-            subtitleDE: "ALLES VERFOLGEN",
-            bodyEN: "Your library stays in sync. Track progress, rate titles, and organize with status filters.",
-            bodyDE: "Deine Bibliothek bleibt synchron. Verfolge Fortschritte, bewerte Titel und organisiere nach Status."
+            titleEN: "Track your collection",
+            titleDE: "Verfolge deine Sammlung",
+            subtitleEN: "COLLECTION",
+            subtitleDE: "SAMMLUNG",
+            bodyEN: "Keep every title in sync with progress, ratings, and status filters that stay out of your way.",
+            bodyDE: "Halte jeden Titel mit Fortschritt, Bewertungen und Statusfiltern synchron, ohne dass sie im Weg sind."
+        ),
+        OnboardingPage(
+            systemImage: "person.3",
+            titleEN: "Join the clubs",
+            titleDE: "Tritt den Clubs bei",
+            subtitleEN: "CLUBS",
+            subtitleDE: "CLUBS",
+            bodyEN: "Create or join clubs to watch together, share rails, and keep the conversation in one place.",
+            bodyDE: "Erstelle oder tritt Clubs bei, um gemeinsam zu schauen, Rails zu teilen und die Unterhaltung an einem Ort zu halten."
         ),
     ]
 }
