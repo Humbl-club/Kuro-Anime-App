@@ -103,6 +103,26 @@ extension SupabaseService {
         let member_count: Int
     }
 
+    struct ClubLoadingState: Decodable, Sendable {
+        let state: String
+        let visibility: String
+    }
+
+    struct ClubBundleLoading: Decodable, Sendable {
+        let club: ClubInfo
+        let members: [ClubMember]
+        let my_role: String
+        let my_sharing_level: String
+        let rails: [ClubRail]
+        let polls: [ClubPoll]
+        let member_count: Int
+        let rail_count: Int?
+        let poll_count: Int?
+        let last_activity_at: String?
+        let activity_preview: String?
+        let loading_state: ClubLoadingState?
+    }
+
     struct CreateClubResponse: Decodable, Sendable {
         let club_id: String
         let invite_code: String
@@ -142,10 +162,13 @@ extension SupabaseService {
         let is_archived: Bool
         let created_at: String
         let member_count: Int?
+        let rail_count: Int?
+        let poll_count: Int?
         let last_activity_at: String?
         let activity_preview: String?
         let cover_images: [String]?
         let member_names: [String]?
+        let loading_state: ClubLoadingState?
     }
 
     // Club bundle cache (5 min TTL per spec)
@@ -164,10 +187,18 @@ extension SupabaseService {
 
     func fetchMyClubs() async {
         do {
-            let clubs: [ClubListRow] = try await client
-                .rpc("fetch_my_clubs_enriched")
-                .execute()
-                .value
+            let clubs: [ClubListRow]
+            do {
+                clubs = try await client
+                    .rpc("fetch_my_clubs_loading")
+                    .execute()
+                    .value
+            } catch {
+                clubs = try await client
+                    .rpc("fetch_my_clubs_enriched")
+                    .execute()
+                    .value
+            }
             myClubs = clubs
         } catch {
             #if DEBUG
@@ -266,6 +297,14 @@ extension SupabaseService {
         let bundle = try await task.value
         clubBundleCache[clubId] = TimedCache(value: bundle, storedAt: now)
         return bundle
+    }
+
+    func fetchClubBundleLoading(clubId: String) async throws -> ClubBundleLoading {
+        let params = RPCClubIdParams(p_club_id: clubId)
+        return try await client
+            .rpc("fetch_club_bundle_loading", params: params)
+            .execute()
+            .value
     }
 
     func refreshClubBundle(clubId: String) async throws -> ClubBundle {

@@ -34,6 +34,7 @@ struct ClubDetailView: View {
 
     @State private var selectedTab: Tab = .rails
     @State private var bundle: SupabaseService.ClubBundle? = nil
+    @State private var loadingBundle: SupabaseService.ClubBundleLoading? = nil
     @State private var loadPhase: ClubDetailLoadPhase = .idle
     @State private var showSettings = false
     @State private var showCreateRail = false
@@ -121,6 +122,7 @@ struct ClubDetailView: View {
             } else {
                 ClubDetailInitialState(
                     phase: loadPhase,
+                    loadingBundle: loadingBundle,
                     isConnected: networkMonitor.isConnected,
                     onRetry: {
                         Task { await loadBundle(force: true) }
@@ -342,9 +344,17 @@ struct ClubDetailView: View {
     private func loadBundle(force: Bool = false) async {
         let isInitialLoad = bundle == nil
         loadPhase = isInitialLoad ? .loadingInitial : .refreshing
+        if isInitialLoad {
+            Task { @MainActor in
+                let snapshot = try? await supabaseService.fetchClubBundleLoading(clubId: clubId)
+                guard bundle == nil else { return }
+                loadingBundle = snapshot
+            }
+        }
         do {
             let fetched = try await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: force)
             bundle = fetched
+            loadingBundle = nil
             optimisticVoteByPollId.removeAll()
             optimisticVoteCountsByPollId.removeAll()
             loadPhase = .loaded
@@ -354,9 +364,11 @@ struct ClubDetailView: View {
             #endif
             switch rpcErrorCode(from: error) {
             case .notAMember:
+                loadingBundle = nil
                 handleMembershipLoss()
             case .clubNotFound:
                 bundle = nil
+                loadingBundle = nil
                 loadPhase = .failedInitial(message: "This club no longer exists.")
             default:
                 let message = clubDetailErrorMessage(for: error)
@@ -481,18 +493,19 @@ struct ClubDetailView: View {
 
 private struct ClubDetailInitialState: View {
     let phase: ClubDetailView.ClubDetailLoadPhase
+    let loadingBundle: SupabaseService.ClubBundleLoading?
     let isConnected: Bool
     let onRetry: () -> Void
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 18) {
-                ClubDetailInitialSkeleton()
+                ClubDetailInitialSkeleton(loadingBundle: loadingBundle)
 
                 if let message = phase.initialFailureMessage {
                     ClubDetailStatusCard(
                         eyebrow: "INITIAL LOAD",
-                        title: "Could not load club",
+                        title: loadingBundle.map { "Could not load \($0.club.name)" } ?? "Could not load club",
                         message: message,
                         actionTitle: "Retry",
                         onAction: onRetry
@@ -500,8 +513,8 @@ private struct ClubDetailInitialState: View {
                 } else {
                     ClubDetailStatusCard(
                         eyebrow: "INITIAL LOAD",
-                        title: "Loading club",
-                        message: isConnected ? "Building the journal surface now." : "You're offline. Reconnect to load this club.",
+                        title: loadingBundle.map { "Loading \($0.club.name)" } ?? "Loading club",
+                        message: loadingMessage(isConnected: isConnected),
                         actionTitle: nil,
                         onAction: nil
                     )
@@ -514,9 +527,20 @@ private struct ClubDetailInitialState: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(phase.initialFailureMessage == nil ? "Loading club" : "Could not load club")
     }
+
+    private func loadingMessage(isConnected: Bool) -> String {
+        if !isConnected {
+            return "You're offline. Reconnect to load this club."
+        }
+        if let preview = loadingBundle?.activity_preview, !preview.isEmpty {
+            return preview
+        }
+        return "Building the journal surface now."
+    }
 }
 
 private struct ClubDetailInitialSkeleton: View {
+    let loadingBundle: SupabaseService.ClubBundleLoading?
     private let cardCount = 3
 
     var body: some View {
@@ -527,15 +551,38 @@ private struct ClubDetailInitialSkeleton: View {
                     .frame(height: 218)
                     .overlay(alignment: .bottomLeading) {
                         VStack(alignment: .leading, spacing: 10) {
-                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .fill(Color.black.opacity(0.10))
-                                .frame(width: 116, height: 12)
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(Color.black.opacity(0.08))
-                                .frame(width: 210, height: 26)
-                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .fill(Color.black.opacity(0.07))
-                                .frame(width: 156, height: 12)
+                            if let loadingBundle {
+                                Text(loadingBundle.club.sharing_level.uppercased())
+                                    .font(.kuroMicro(weight: .medium))
+                                    .tracking(1.4)
+                                    .foregroundColor(.kuroWhite60)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        Capsule(style: .continuous)
+                                            .fill(Color.kuroBlack35)
+                                    )
+
+                                Text(loadingBundle.club.name)
+                                    .font(.kuroFeature(weight: .light))
+                                    .italic()
+                                    .foregroundColor(.kuroWhite)
+                                    .lineLimit(2)
+
+                                Text(heroMetaText(for: loadingBundle))
+                                    .font(.kuroMicro(weight: .medium))
+                                    .foregroundColor(.kuroWhite60)
+                            } else {
+                                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                    .fill(Color.black.opacity(0.10))
+                                    .frame(width: 116, height: 12)
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(Color.black.opacity(0.08))
+                                    .frame(width: 210, height: 26)
+                                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                    .fill(Color.black.opacity(0.07))
+                                    .frame(width: 156, height: 12)
+                            }
                         }
                         .padding(18)
                     }
@@ -558,6 +605,13 @@ private struct ClubDetailInitialSkeleton: View {
             }
         }
         .accessibilityHidden(true)
+    }
+
+    private func heroMetaText(for bundle: SupabaseService.ClubBundleLoading) -> String {
+        let members = bundle.member_count
+        let rails = bundle.rail_count ?? 0
+        let polls = bundle.poll_count ?? 0
+        return "\(members) members • \(rails) rails • \(polls) polls"
     }
 }
 
