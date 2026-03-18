@@ -8,7 +8,10 @@ Runtime Environment
   - Kuro/Services/AppConfig.swift:1
 
 Core Service
-- SupabaseService (Kuro/Services/SupabaseService.swift:1)
+- SupabaseService domain split
+  - Kuro/Services/SupabaseService.swift: auth/bootstrap, collection, clubs/social, detail data, caches
+  - Kuro/Services/SupabaseService+Browse.swift: browse keyset paging + browse query helpers
+  - Kuro/Services/SupabaseService+Recommendations.swift: similar-title recommendation hydration and batched ID fetches
   - Auth: `signInAnonymously()` uses Supabase auth.
   - Paging: `fetchNextAnimePage`, `fetchNextMangaPage`; `prefetchAnime/Manga(total:)` helpers.
   - Search: server-paged text search with filters (trending/newSeason/classics/hiddenGems/airingOnly/season).
@@ -29,9 +32,9 @@ Models
 Views (selected)
 - DiscoverView.swift: server-driven sections + season picker + “Airing Soon”; uses SupabaseService methods above.
 - EditorialDiscoverView.swift: alternative editorial layout using service data.
-- EditorialCollectionView.swift & Collection/CollectionManagementView.swift: user list filtering for anime and manga; grid cards, progress visualization.
+- EditorialCollectionView.swift + EditorialCollectionComponents.swift: collection shell/state plus extracted filters, grid/list cards, empty/loading states, batch actions.
 - EditorialSearchView.swift & SearchView.swift: text search with facets and optional season selector when “SEASON” active.
-- PosterView.swift and EditorialCards.swift: UI components consumed by sections.
+- Kuro/Views/PosterView.swift, EditorialCards.swift, BrowseComponents.swift, and ClubDetailSections.swift: reusable UI components consumed by the main screens.
 
 Key UI Behaviors
 - Discover prefetch on appear, with server queries layered to ensure accurate sections (Trending/Airing-Only toggle, Current Season window).
@@ -41,4 +44,3 @@ Key UI Behaviors
 Config & Secrets
 - Replace fallback service-role key in SupabaseService with anon key via Info.plist/env for production.
 - Consider per-env xcconfig or Info.plist variants and CI secret injection (not committed).
-

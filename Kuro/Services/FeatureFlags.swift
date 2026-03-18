@@ -55,7 +55,6 @@ final class FeatureFlags {
         #if canImport(Supabase)
         guard let supabase = client as? SupabaseClient else { return }
         let retryDelays: [Duration] = [.seconds(10), .seconds(30), .seconds(60)]
-        var lastError: Error?
 
         for attempt in 0...retryDelays.count {
             do {
@@ -74,7 +73,6 @@ final class FeatureFlags {
                 #endif
                 return
             } catch let error as URLError {
-                lastError = error
                 if attempt < retryDelays.count {
                     #if DEBUG
                     print("[FeatureFlags] retry \(attempt + 1)/\(retryDelays.count) after URLError \(error.code.rawValue)")

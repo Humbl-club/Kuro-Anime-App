@@ -54,7 +54,7 @@ struct KuroConciergeMascot: View {
                                 .foregroundStyle(.primary.opacity(0.45))
                                 .frame(width: 34, height: 34)
                                 .background(
-                                    Circle().fill(Color.black.opacity(0.04))
+                                    Circle().fill(Color.kuroBlack04)
                                 )
                         }
                         .buttonStyle(.plain)
@@ -85,8 +85,8 @@ struct KuroConciergeMascot: View {
                         .padding(.vertical, 11)
                         .background(
                             Capsule(style: .continuous)
-                                .fill(Color.black.opacity(0.04))
-                                .overlay(Capsule().stroke(Color.black.opacity(0.08), lineWidth: 0.8))
+                                .fill(Color.kuroBlack04)
+                                .overlay(Capsule().stroke(Color.kuroBlack08, lineWidth: 0.8))
                         )
                     }
                     .buttonStyle(.plain)
@@ -98,9 +98,9 @@ struct KuroConciergeMascot: View {
                         .fill(Color.kuroSecondaryBackground.opacity(0.96))
                         .overlay(
                             RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
-                                .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
+                                .stroke(Color.kuroBlack06, lineWidth: 0.8)
                         )
-                        .shadow(color: Color.black.opacity(0.10), radius: 18, x: 0, y: 10)
+                        .shadow(color: Color.kuroBlack10, radius: 18, x: 0, y: 10)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous))
                 .gesture(
@@ -128,13 +128,13 @@ struct KuroConciergeMascot: View {
                             .fill(Color.kuroSecondaryBackground.opacity(0.96))
                             .overlay(
                                 Circle()
-                                    .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.9)
+                                    .strokeBorder(Color.kuroBlack08, lineWidth: 0.9)
                             )
-                            .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
+                            .shadow(color: Color.kuroBlack08, radius: 12, x: 0, y: 6)
                             .frame(width: 56, height: 56)
 
                         Circle()
-                            .strokeBorder(Color.black.opacity(pulse ? 0.12 : 0.04), lineWidth: 1.1)
+                            .strokeBorder((pulse ? Color.kuroBlack12 : Color.kuroBlack04), lineWidth: 1.1)
                             .frame(width: 56, height: 56)
                             .scaleEffect(pulse ? 1.08 : 0.96)
                             .opacity(pulse ? 1.0 : 0.0)
@@ -421,12 +421,12 @@ struct ConciergeActionBar: View {
                 Text("UNDO")
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.6)
-                    .foregroundColor(canUndo ? .black : .kuroTextTertiary)
+                    .foregroundColor(canUndo ? .kuroBlack : .kuroTextTertiary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(
                         RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                            .fill(Color.black.opacity(canUndo ? 0.04 : 0.02))
+                            .fill((canUndo ? Color.kuroBlack04 : Color.kuroBlack02))
                     )
             }
             .buttonStyle(.plain)
@@ -446,15 +446,15 @@ struct ConciergeActionBar: View {
                         .padding(.vertical, 6)
                         .background(
                             RoundedRectangle(cornerRadius: 999, style: .continuous)
-                                .fill(Color.white.opacity(0.12))
+                                .fill(Color.kuroWhite15)
                         )
                 }
-                .foregroundColor(.white)
+                .foregroundColor(.kuroWhite)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                        .fill(hasAnySelection ? Color.black : Color.black.opacity(0.2))
+                        .fill(hasAnySelection ? Color.kuroBlack : Color.kuroBlack20)
                 )
             }
             .buttonStyle(.plain)
@@ -489,7 +489,7 @@ struct ConciergeTypingIndicator: View {
 
     private func loadingDot(delay: Double) -> some View {
         Circle()
-            .fill(Color.black.opacity(0.35))
+            .fill(Color.kuroBlack35)
             .frame(width: 6, height: 6)
             .scaleEffect(animate ? 1 : 0.55)
             .animation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true).delay(delay), value: animate)
@@ -513,17 +513,17 @@ struct ConciergeIntroCard: View {
                         Text("CONCIERGE")
                             .font(.kuroCaption(weight: .medium))
                             .tracking(2.4)
-                            .foregroundColor(.black.opacity(0.80))
+                            .foregroundColor(.kuroBlack80)
                         Text(isGerman ? "Imports + Empfehlungen" : "Imports + recommendations")
                             .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.55))
+                            .foregroundColor(.kuroTextSecondary)
                     }
 
                     Spacer(minLength: 0)
                 }
 
                 Rectangle()
-                    .fill(Color.black.opacity(0.06))
+                    .fill(Color.kuroBlack06)
                     .frame(height: 0.5)
 
                 if hasUsedConcierge {
@@ -532,7 +532,7 @@ struct ConciergeIntroCard: View {
                         : "Import your list, or describe a mood."
                     )
                         .font(.kuroBody(weight: .light))
-                        .foregroundColor(.black.opacity(0.62))
+                        .foregroundColor(.kuroBlack60)
                         .lineSpacing(3)
                 } else {
                     VStack(alignment: .leading, spacing: 12) {
@@ -565,17 +565,17 @@ struct ConciergeIntroCard: View {
     private func hintRow(icon: String, title: String, detail: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.black.opacity(0.45))
+                .font(.kuroCustom(13, weight: .medium, relativeTo: .caption1))
+                .foregroundColor(.kuroBlack45)
                 .frame(width: 20, alignment: .center)
                 .padding(.top, 2)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
                     .font(.kuroCaption(weight: .medium))
-                    .foregroundColor(.black.opacity(0.75))
+                    .foregroundColor(.kuroBlack75)
                 Text(detail)
                     .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.black.opacity(0.55))
+                    .foregroundColor(.kuroTextSecondary)
                     .lineSpacing(2)
             }
         }
@@ -587,9 +587,9 @@ private struct ConciergeCuratorNote: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 13, weight: .regular, design: .serif))
+            .font(.kuroCustom(13, weight: .regular, design: .serif, relativeTo: .caption1))
             .italic()
-            .foregroundStyle(.black.opacity(0.64))
+            .foregroundStyle(Color.kuroBlack65)
             .lineSpacing(2.5)
             .padding(.horizontal, 1)
     }
@@ -640,9 +640,9 @@ struct ConciergeStarterActions: View {
                 HStack(spacing: 8) {
                     Text(isGerman ? "Beispiele zeigen" : "Show examples")
                         .font(.kuroCaption(weight: .medium))
-                        .foregroundStyle(.black.opacity(0.62))
+                        .foregroundStyle(Color.kuroBlack60)
                     Image(systemName: "sparkles")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.kuroCustom(11, weight: .semibold, relativeTo: .caption1))
                         .foregroundColor(.kuroTextTertiary)
                 }
                 .padding(.horizontal, 10)
@@ -685,11 +685,11 @@ struct ConciergeClarifyCard: View {
                 HStack(spacing: 8) {
                     Image(systemName: "square.and.arrow.down")
                         .font(.kuroCaption(weight: .semibold))
-                        .foregroundColor(.black.opacity(0.45))
+                        .foregroundColor(.kuroBlack45)
                     Text(isGerman ? "IMPORTIEREN" : "IMPORT")
                         .font(.kuroCaption(weight: .medium))
                         .tracking(1.8)
-                        .foregroundColor(.black.opacity(0.55))
+                        .foregroundColor(.kuroTextSecondary)
                 }
 
                 KuroGlassPill(
@@ -719,14 +719,14 @@ struct ConciergeClarifyCard: View {
             // Divider
             HStack(spacing: KuroDesignSpacing.sm) {
                 Rectangle()
-                    .fill(Color.black.opacity(0.06))
+                    .fill(Color.kuroBlack06)
                     .frame(height: 0.5)
                 Text(isGerman ? "ODER" : "OR")
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.4)
                     .foregroundColor(.kuroTextTertiary)
                 Rectangle()
-                    .fill(Color.black.opacity(0.06))
+                    .fill(Color.kuroBlack06)
                     .frame(height: 0.5)
             }
             .padding(.vertical, 14)
@@ -738,11 +738,11 @@ struct ConciergeClarifyCard: View {
                 HStack(spacing: 8) {
                     Image(systemName: "sparkles")
                         .font(.kuroCaption(weight: .semibold))
-                        .foregroundColor(.black.opacity(0.45))
+                        .foregroundColor(.kuroBlack45)
                     Text(isGerman ? "EMPFEHLEN" : "RECOMMEND")
                         .font(.kuroCaption(weight: .medium))
                         .tracking(1.8)
-                        .foregroundColor(.black.opacity(0.55))
+                        .foregroundColor(.kuroTextSecondary)
                 }
 
                 KuroGlassPill(
@@ -778,7 +778,7 @@ struct ConciergeStatusClarifyCard: View {
             // Header
             Text(isGerman ? "Fertig geschaut?" : "Did you finish it?")
                 .font(.kuroBody(weight: .regular))
-                .foregroundColor(.black.opacity(0.82))
+                .foregroundColor(.kuroBlack80)
                 .offset(y: appeared ? 0 : 4)
                 .opacity(appeared ? 1 : 0)
 
@@ -786,7 +786,7 @@ struct ConciergeStatusClarifyCard: View {
             if let title = titleContext, !title.isEmpty {
                 Text(isGerman ? "Für: \(title)" : "For: \(title)")
                     .font(.kuroCaption())
-                    .foregroundColor(.black.opacity(0.55))
+                    .foregroundColor(.kuroTextSecondary)
                     .lineLimit(2)
                     .offset(y: appeared ? 0 : 6)
                     .opacity(appeared ? 1 : 0)
@@ -843,7 +843,7 @@ struct ConciergeUnitClarifyCard: View {
             // Header
             Text(headerText)
                 .font(.kuroBody(weight: .regular))
-                .foregroundColor(.black.opacity(0.82))
+                .foregroundColor(.kuroBlack80)
                 .offset(y: appeared ? 0 : 4)
                 .opacity(appeared ? 1 : 0)
 
@@ -912,14 +912,14 @@ struct ConciergeIntentClarifyCard: View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
             Text(isGerman ? "Was möchtest du tun?" : "What do you want to do?")
                 .font(.kuroBody(weight: .regular))
-                .foregroundColor(.black.opacity(0.82))
+                .foregroundColor(.kuroBlack80)
                 .offset(y: appeared ? 0 : 4)
                 .opacity(appeared ? 1 : 0)
 
             if let title = titleContext, !title.isEmpty {
                 Text(isGerman ? "Für: \(title)" : "For: \(title)")
                     .font(.kuroCaption())
-                    .foregroundColor(.black.opacity(0.55))
+                    .foregroundColor(.kuroTextSecondary)
                     .lineLimit(2)
                     .offset(y: appeared ? 0 : 6)
                     .opacity(appeared ? 1 : 0)
@@ -969,11 +969,11 @@ private struct ClarifyChoicePill: View {
             HStack(spacing: 8) {
                 Image(systemName: systemImage)
                     .font(.kuroCaption(weight: .semibold))
-                    .foregroundColor(.black.opacity(0.55))
+                    .foregroundColor(.kuroTextSecondary)
 
                 Text(label)
                     .font(.kuroCaption(weight: .medium))
-                    .foregroundColor(.black.opacity(0.82))
+                    .foregroundColor(.kuroBlack80)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity)
@@ -991,10 +991,10 @@ private struct ClarifyChoicePill: View {
         )
         .background(
             Capsule(style: .continuous)
-                .fill(Color.black.opacity(0.04))
+                .fill(Color.kuroBlack04)
                 .overlay(
                     Capsule(style: .continuous)
-                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.7)
+                        .strokeBorder(Color.kuroBlack08, lineWidth: 0.7)
                 )
         )
     }
@@ -1029,10 +1029,10 @@ struct ConciergeBubble: View {
         content()
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.white)
+                    .fill(Color.kuroWhite)
                     .overlay(
                         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
+                            .stroke(Color.kuroBlack06, lineWidth: 0.8)
                     )
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
@@ -1059,9 +1059,9 @@ struct ConciergeBubble: View {
 
     private var userContent: some View {
         Text(message.text)
-            .font(.system(size: 18, weight: .regular, design: .serif))
+            .font(.kuroCustom(18, weight: .regular, design: .serif, relativeTo: .title3))
             .lineSpacing(4)
-            .foregroundStyle(.black.opacity(0.55))
+            .foregroundStyle(Color.kuroTextSecondary)
             .multilineTextAlignment(.trailing)
             .frame(maxWidth: 320, alignment: .trailing)
             .accessibilityLabel("You said: \(message.text)")
@@ -1075,9 +1075,9 @@ struct ConciergeBubble: View {
             VStack(alignment: .leading, spacing: 12) {
                 if !message.text.isEmpty {
                     Text(message.text)
-                        .font(.system(size: 18, weight: .regular, design: .serif))
+                        .font(.kuroCustom(18, weight: .regular, design: .serif, relativeTo: .title3))
                         .lineSpacing(4)
-                        .foregroundStyle(.black.opacity(0.85))
+                        .foregroundStyle(Color.kuroBlack85)
                         .frame(maxWidth: 320, alignment: .leading)
                         .accessibilityLabel("Concierge: \(message.text)")
                 }
@@ -1121,11 +1121,11 @@ struct ConciergeBubble: View {
                                 Text("MATCHES")
                                     .font(.kuroCaption(weight: .medium))
                                     .tracking(1.6)
-                                    .foregroundColor(.black.opacity(0.55))
+                                    .foregroundColor(.kuroTextSecondary)
                                 Spacer()
                                 Text("\(items.count)")
                                     .font(.kuroCaption(weight: .medium))
-                                    .foregroundColor(.black.opacity(0.45))
+                                    .foregroundColor(.kuroBlack45)
                             }
 
                             VStack(spacing: 10) {
@@ -1230,10 +1230,10 @@ private struct WhisperMessageMoonIcon: View {
                 path.addCurve(to: CGPoint(x: 10, y: 2), control1: CGPoint(x: 3.5, y: 6), control2: CGPoint(x: 6.5, y: 2))
                 path.closeSubpath()
             }
-            .fill(Color.black.opacity(0.35))
+            .fill(Color.kuroBlack35)
 
             Circle()
-                .fill(Color.black.opacity(0.35))
+                .fill(Color.kuroBlack35)
                 .frame(width: 3, height: 3)
                 .offset(x: 4, y: -4)
         }
@@ -1312,9 +1312,9 @@ struct ConciergeConfirmBubble: View {
                     .fill(Color.kuroSecondaryBackground.opacity(0.96))
                     .overlay(
                         RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                            .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
+                            .stroke(Color.kuroBlack06, lineWidth: 0.8)
                     )
-                    .shadow(color: Color.black.opacity(0.06), radius: 14, x: 0, y: 8)
+                    .shadow(color: Color.kuroBlack06, radius: 14, x: 0, y: 8)
             )
             .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
     }
@@ -1324,7 +1324,7 @@ struct ConciergeConfirmBubble: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top, spacing: 10) {
                     Rectangle()
-                        .fill(Color.black.opacity(0.44))
+                        .fill(Color.kuroBlack45)
                         .frame(width: 1.5, height: 18)
                         .padding(.top, 1)
 
@@ -1335,7 +1335,7 @@ struct ConciergeConfirmBubble: View {
                             .foregroundStyle(.secondary.opacity(0.88))
                         Text("Review matches and confirm changes.")
                             .font(.kuroCaption(weight: .light))
-                            .foregroundColor(.black.opacity(0.52))
+                            .foregroundColor(.kuroTextSecondary)
                     }
 
                     Spacer(minLength: 0)
@@ -1391,7 +1391,7 @@ struct ConciergeConfirmBubble: View {
                                 .font(.kuroCaption(weight: .medium))
                                 .tracking(appliedSummary != nil ? 0 : 1.6)
                         }
-                        .foregroundColor(.black.opacity(0.58))
+                        .foregroundColor(.kuroBlack60)
 
                         HStack(spacing: 12) {
                             if let onUndo {
@@ -1402,15 +1402,15 @@ struct ConciergeConfirmBubble: View {
                                     Text("UNDO")
                                         .font(.kuroMicro(weight: .semibold))
                                         .tracking(1.4)
-                                        .foregroundColor(.black.opacity(0.55))
+                                        .foregroundColor(.kuroTextSecondary)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 7)
                                         .background(
                                             Capsule(style: .continuous)
-                                                .fill(Color.black.opacity(0.04))
+                                                .fill(Color.kuroBlack04)
                                                 .overlay(
                                                     Capsule(style: .continuous)
-                                                        .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                                                        .stroke(Color.kuroBlack08, lineWidth: 0.5)
                                                 )
                                         )
                                 }
@@ -1428,17 +1428,17 @@ struct ConciergeConfirmBubble: View {
                                             .font(.kuroMicro(weight: .semibold))
                                             .tracking(1.4)
                                         Image(systemName: "chevron.right")
-                                            .font(.system(size: 8, weight: .bold))
+                                            .font(.kuroCustom(8, weight: .bold, relativeTo: .caption2))
                                     }
-                                    .foregroundColor(.black.opacity(0.55))
+                                    .foregroundColor(.kuroTextSecondary)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 7)
                                     .background(
                                         Capsule(style: .continuous)
-                                            .fill(Color.black.opacity(0.04))
+                                            .fill(Color.kuroBlack04)
                                             .overlay(
                                                 Capsule(style: .continuous)
-                                                    .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                                                    .stroke(Color.kuroBlack08, lineWidth: 0.5)
                                             )
                                     )
                                 }
@@ -1459,15 +1459,15 @@ struct ConciergeConfirmBubble: View {
                                 Text("RE-PARSE")
                                     .font(.kuroCaption(weight: .medium))
                                     .tracking(1.6)
-                                    .foregroundColor(.black.opacity(0.62))
+                                    .foregroundColor(.kuroBlack60)
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 11)
                                     .background(
                                         RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                                            .fill(Color.black.opacity(0.04))
+                                            .fill(Color.kuroBlack04)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                                                    .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+                                                    .stroke(Color.kuroBlack08, lineWidth: 0.8)
                                             )
                                     )
                             }
@@ -1483,7 +1483,7 @@ struct ConciergeConfirmBubble: View {
                                 if isApplying {
                                     ProgressView()
                                         .scaleEffect(0.7)
-                                        .tint(.white.opacity(0.80))
+                                        .tint(.kuroWhite80)
                                     Text("APPLYING")
                                         .font(.kuroCaption(weight: .medium))
                                         .tracking(2.0)
@@ -1497,12 +1497,12 @@ struct ConciergeConfirmBubble: View {
                                         .monospacedDigit()
                                 }
                             }
-                            .foregroundColor(confirmableCount > 0 ? .white : .white.opacity(0.40))
+                            .foregroundColor(confirmableCount > 0 ? .kuroWhite : Color.kuroWhite.opacity(0.40))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(
                                 Capsule(style: .continuous)
-                                    .fill(isApplying ? Color.black.opacity(0.60) : (confirmableCount > 0 ? Color.black.opacity(0.88) : Color.black.opacity(0.10)))
+                                    .fill(isApplying ? Color.kuroBlack60 : (confirmableCount > 0 ? Color.kuroBlack85 : Color.kuroBlack10))
                             )
                         }
                         .buttonStyle(.plain)
@@ -1519,7 +1519,7 @@ struct ConciergeConfirmBubble: View {
                         } else {
                             Text("\(confirmableCount) of \(actionableCount) ready to apply")
                                 .font(.kuroCaption(weight: .light))
-                                .foregroundColor(.black.opacity(0.46))
+                                .foregroundColor(.kuroBlack45)
                                 .padding(.top, 8)
                         }
                     }
@@ -1571,12 +1571,12 @@ struct ConciergeConfirmBubble: View {
                 .font(.kuroMicro(weight: .medium))
                 .monospacedDigit()
         }
-        .foregroundColor(.black.opacity(0.48))
+        .foregroundColor(.kuroBlack45)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(
             Capsule(style: .continuous)
-                .fill(Color.black.opacity(0.04))
+                .fill(Color.kuroBlack04)
         )
     }
 }
@@ -1596,13 +1596,13 @@ private struct ConciergeMatchRow: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.normalized.isEmpty ? item.raw : item.normalized)
                         .font(.kuroBody(weight: .regular))
-                        .foregroundColor(.black.opacity(0.90))
+                        .foregroundColor(.kuroBlack85)
                         .lineLimit(2)
 
                     if let c = chosen {
                         Text(c.title_raw)
                             .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.55))
+                            .foregroundColor(.kuroTextSecondary)
                             .lineLimit(2)
                     }
                 }
@@ -1613,9 +1613,9 @@ private struct ConciergeMatchRow: View {
                     Button(action: { withAnimation(KuroAnimation.fast) { expanded.toggle() } }) {
                         Image(systemName: expanded ? "chevron.up" : "chevron.down")
                             .font(.kuroCaption(weight: .semibold))
-                            .foregroundColor(.black.opacity(0.4))
+                            .foregroundColor(.kuroBlack40)
                             .frame(width: 28, height: 28)
-                            .background(Circle().fill(Color.black.opacity(0.04)))
+                            .background(Circle().fill(Color.kuroBlack04))
                     }
                     .buttonStyle(.plain)
                 }
@@ -1628,31 +1628,31 @@ private struct ConciergeMatchRow: View {
                             HStack(spacing: 10) {
                                 // Radio dot
                                 Circle()
-                                    .fill(chosen?.media_id == cand.media_id ? Color.black : Color.clear)
+                                    .fill(chosen?.media_id == cand.media_id ? Color.kuroBlack : Color.clear)
                                     .frame(width: 8, height: 8)
                                     .overlay(
-                                        Circle().strokeBorder(Color.black.opacity(0.3), lineWidth: 1)
+                                        Circle().strokeBorder(Color.kuroBlack30, lineWidth: 1)
                                     )
 
                                 Text(cand.title_raw)
                                     .font(.kuroCaption())
-                                    .foregroundColor(.black.opacity(0.82))
+                                    .foregroundColor(.kuroBlack80)
                                     .lineLimit(1)
                                 Spacer(minLength: 0)
                                 if let year = cand.year {
                                     Text(String(year))
                                         .font(.kuroCaption())
-                                        .foregroundColor(.black.opacity(0.45))
+                                        .foregroundColor(.kuroBlack45)
                                 }
                                 Text("\(Int(cand.score * 100))%")
                                     .font(.kuroCaption(weight: .medium))
-                                    .foregroundColor(.black.opacity(0.45))
+                                    .foregroundColor(.kuroBlack45)
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 10)
                             .background(
                                 RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                                    .fill(Color.black.opacity(chosen?.media_id == cand.media_id ? 0.06 : 0.03))
+                                    .fill((chosen?.media_id == cand.media_id ? Color.kuroBlack06 : Color.kuroBlack04))
                             )
                         }
                         .buttonStyle(.plain)

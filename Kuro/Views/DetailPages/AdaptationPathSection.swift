@@ -239,23 +239,18 @@ private struct FootnoteProseContent: View {
 
         if let alt = alternateItem, let count = franchiseCount {
             let altLabel = alternateLabel(alt)
-            (Text("Also adapted as a ")
-                .font(proseFont)
-                .foregroundColor(.kuroTextSecondary)
-            + Text(altLabel)
+            let altLink = Text(altLabel)
                 .font(linkFont)
                 .foregroundColor(.kuroBlack80)
                 .underline()
-            + Text(". The franchise includes \(count) titles \u{2014} ")
-                .font(proseFont)
-                .foregroundColor(.kuroTextSecondary)
-            + Text("see the full path")
+            let fullPathLink = Text("see the full path")
                 .font(linkFont)
                 .foregroundColor(.kuroBlack80)
                 .underline()
-            + Text(".")
+
+            Text("Also adapted as a \(altLink). The franchise includes \(count) titles \u{2014} \(fullPathLink).")
                 .font(proseFont)
-                .foregroundColor(.kuroTextSecondary))
+                .foregroundColor(.kuroTextSecondary)
             .onTapGesture { showFullPath = true }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Also adapted as a \(altLabel). The franchise includes \(count) titles. Tap to see the full path.")
@@ -265,16 +260,13 @@ private struct FootnoteProseContent: View {
             Button {
                 selectedItem = alt
             } label: {
-                (Text("Also adapted as a ")
-                    .font(proseFont)
-                    .foregroundColor(.kuroTextSecondary)
-                + Text(altLabel)
+                let altLink = Text(altLabel)
                     .font(linkFont)
                     .foregroundColor(.kuroBlack80)
                     .underline()
-                + Text(".")
+                Text("Also adapted as a \(altLink).")
                     .font(proseFont)
-                    .foregroundColor(.kuroTextSecondary))
+                    .foregroundColor(.kuroTextSecondary)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Also adapted as a \(altLabel). Tap to view.")
@@ -282,16 +274,13 @@ private struct FootnoteProseContent: View {
             Button {
                 showFullPath = true
             } label: {
-                (Text("The franchise includes \(count) titles \u{2014} ")
-                    .font(proseFont)
-                    .foregroundColor(.kuroTextSecondary)
-                + Text("see the full path")
+                let fullPathLink = Text("see the full path")
                     .font(linkFont)
                     .foregroundColor(.kuroBlack80)
                     .underline()
-                + Text(".")
+                Text("The franchise includes \(count) titles \u{2014} \(fullPathLink).")
                     .font(proseFont)
-                    .foregroundColor(.kuroTextSecondary))
+                    .foregroundColor(.kuroTextSecondary)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("The franchise includes \(count) titles. Tap to see the full path.")

@@ -28,6 +28,7 @@ venv/
 
 # Editor
 .vscode/
+.claude/
 
 # Local artifacts
 *.bak
@@ -38,6 +39,7 @@ mockups/
 
 # Local test artifacts (do not commit)
 supabase/functions/concierge-recommend/test-fixtures.db
+supabase/.temp/
 
 # Fastlane
 fastlane/report.xml

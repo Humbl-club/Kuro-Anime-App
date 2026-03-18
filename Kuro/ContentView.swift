@@ -1,4 +1,4 @@
-// uses PosterView.swift
+// uses Kuro/Views/PosterView.swift
 import SwiftUI
 import UIKit
 
@@ -71,7 +71,7 @@ struct KuroLaunchView: View {
                 Text("KURO")
                     .font(.kuroHeadline(weight: .ultraLight))
                     .tracking(8)
-                    .foregroundColor(.black)
+                    .foregroundColor(.kuroBlack)
                     .opacity(logoOpacity)
 
                 Text("CURATED ANIME")
@@ -196,7 +196,7 @@ struct KuroMainView: View {
     
     var body: some View {
 	        ZStack {
-	            Color(.systemBackground).ignoresSafeArea()
+	            Color.kuroBackground.ignoresSafeArea()
 
 	            VStack(spacing: 0) {
                 if !hidesHeaderForConcierge {
@@ -488,7 +488,7 @@ private struct KuroSectionPager: View {
             }
         } else {
             // Placeholder keeps layout stable without triggering `.task` in heavy pages.
-            Color(.systemBackground)
+            Color.kuroBackground
         }
     }
 }
@@ -544,18 +544,18 @@ struct KuroHeaderNew: View {
             shape
                 .fill(Color.clear)
                 // Tiny fill keeps the shape "present" so the shadow reads, without tinting the interior.
-                .background(shape.fill(Color.white.opacity(0.001)))
+                .background(shape.fill(Color.kuroWhite.opacity(0.001)))
                 .overlay(
                     shape
-                        .stroke(Color.black.opacity(hint ? 0.12 : 0.06), lineWidth: 0.6)
+                        .stroke(hint ? Color.kuroBlack12 : Color.kuroBlack06, lineWidth: 0.6)
                 )
                 // Subtle highlight to sell the "window" edge without changing the interior color.
                 .overlay(
                     shape
-                        .stroke(Color.white.opacity(0.75), lineWidth: 0.6)
+                        .stroke(Color.kuroWhite80, lineWidth: 0.6)
                         .blendMode(.overlay)
                 )
-                .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 6)
+                .shadow(color: Color.kuroBlack06, radius: 10, x: 0, y: 6)
 
             TitleWindowAnimator(
                 current: displayedSection.title,
@@ -576,6 +576,17 @@ struct KuroHeaderNew: View {
         .accessibilityHidden(true)
     }
 
+    @ViewBuilder
+    private func headerIconCircle<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        Circle()
+            .fill(Color.kuroBlack06)
+            .frame(width: 32, height: 32)
+            .overlay { content() }
+            .overlay(
+                Circle().stroke(Color.kuroBlack10, lineWidth: 0.7)
+            )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Three-part layout with proper spacing
@@ -583,7 +594,7 @@ struct KuroHeaderNew: View {
                 // Left: Brand (30% opacity)
                 HStack(spacing: 10) {
                     Text("KURO")
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.kuroNavigation(weight: .regular))
                         .tracking(1.5)
                         .foregroundColor(.kuroTextTertiary)
                 }
@@ -597,12 +608,12 @@ struct KuroHeaderNew: View {
                                 .fill(.ultraThinMaterial)
                                 .frame(width: 30, height: 30)
                                 .overlay(
-                                    Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
+                                    Circle().stroke(Color.kuroBlack10, lineWidth: 0.7)
                                 )
                                 .overlay(
                                     Image(systemName: "bubble.left.and.bubble.right.fill")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(.black.opacity(0.70))
+                                        .font(.kuroCustom(13, weight: .semibold, relativeTo: .caption1))
+                                        .foregroundColor(.kuroBlack70)
                                 )
                                 .accessibilityHidden(true)
                         }
@@ -615,13 +626,13 @@ struct KuroHeaderNew: View {
                         ForEach(swipeOrder, id: \.self) { section in
                             ZStack {
                                 Circle()
-                                    .fill(Color.black.opacity(section == selection ? 0.55 : 0.15))
+                                    .fill(section == selection ? Color.kuroTextSecondary : Color.kuroBlack15)
                                     .frame(width: 4, height: 4)
 
                                 // Badge dot for Clubs when unseen activity exists
                                 if section == .clubs && supabaseService.hasUnseenClubActivity && selection != .clubs {
                                     Circle()
-                                        .fill(Color.black.opacity(0.70))
+                                        .fill(Color.kuroBlack70)
                                         .frame(width: 6, height: 6)
                                         .offset(x: 5, y: -3)
                                 }
@@ -646,17 +657,11 @@ struct KuroHeaderNew: View {
                         KuroAccessibility.impactHaptic(.light)
                         showSearchSheet = true
                     }) {
-                        Circle()
-                            .fill(Color.black.opacity(0.06))
-                            .frame(width: 32, height: 32)
-                            .overlay(
-                                Image(systemName: "magnifyingglass")
-                                    .font(.system(size: 13, weight: .regular))
-                                    .foregroundColor(.black.opacity(0.60))
-                            )
-                            .overlay(
-                                Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
-                            )
+                        headerIconCircle {
+                            Image(systemName: "magnifyingglass")
+                                .font(.kuroCustom(13, weight: .regular, relativeTo: .caption1))
+                                .foregroundColor(.kuroBlack60)
+                        }
                     }
                     .buttonStyle(KuroHeaderIconButtonStyle())
                     .accessibilityLabel("Search")
@@ -670,17 +675,11 @@ struct KuroHeaderNew: View {
                             Task { await supabaseService.signOut() }
                         }
                     } label: {
-                        Circle()
-                            .fill(Color.black.opacity(0.06))
-                            .frame(width: 32, height: 32)
-                            .overlay(
-                                Text(supabaseService.currentUserInitial)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.black.opacity(0.80))
-                            )
-                            .overlay(
-                                Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
-                            )
+                        headerIconCircle {
+                            Text(supabaseService.currentUserInitial)
+                                .font(.kuroCustom(12, weight: .medium, relativeTo: .caption1))
+                                .foregroundColor(.kuroBlack80)
+                        }
                     }
                     .buttonStyle(KuroHeaderIconButtonStyle())
                     .accessibilityLabel("Profile")
@@ -738,12 +737,12 @@ struct KuroHeaderNew: View {
 
             // Subtle divider
             Rectangle()
-                .fill(Color.black.opacity(0.08))
+                .fill(Color.kuroBlack08)
                 .frame(height: 0.5)
         }
         .frame(height: 54)
         .background(Color.kuroBackground)
-        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 6)
+        .shadow(color: Color.kuroBlack08, radius: 10, x: 0, y: 6)
     }
 }
 
@@ -760,17 +759,17 @@ private struct TitleWindowAnimator: View {
         return ZStack {
             if let previous {
                 Text(previous)
-                    .font(.system(size: 11, weight: .regular))
+                    .font(.kuroNavigation(weight: .regular))
                     .tracking(1.5)
-                    .foregroundColor(.black)
+                    .foregroundColor(.kuroBlack)
                     .lineLimit(1)
                     .offset(x: (-progress) * dir * travel)
             }
 
             Text(current)
-                .font(.system(size: 11, weight: .regular))
+                .font(.kuroNavigation(weight: .regular))
                 .tracking(1.5)
-                .foregroundColor(.black)
+                .foregroundColor(.kuroBlack)
                 .lineLimit(1)
                 .offset(x: (1 - progress) * dir * travel)
         }

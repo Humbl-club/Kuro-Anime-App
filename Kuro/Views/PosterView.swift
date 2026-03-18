@@ -29,8 +29,8 @@ struct PosterView: View {
                         .scaledToFill()
                 case .failure:
                     Image(systemName: "photo")
-                        .font(.system(size: 24, weight: .light))
-                        .foregroundStyle(.secondary)
+                        .font(.kuroTitle(weight: .light))
+                        .foregroundColor(.kuroTextTertiary)
                 @unknown default:
                     Color.clear
                 }
@@ -39,8 +39,8 @@ struct PosterView: View {
 
             if let badgeText {
                 Text(badgeText)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.kuroMicro(weight: .medium))
+                    .foregroundColor(.kuroWhite)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
@@ -48,7 +48,7 @@ struct PosterView: View {
                                        startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
                     .clipShape(Capsule())
-                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                    .shadow(color: Color.kuroBlack.opacity(0.15), radius: 6, x: 0, y: 3)
                     .padding(6)
             }
         }
@@ -56,9 +56,9 @@ struct PosterView: View {
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(Color.black.opacity(0.06), lineWidth: 0.5)
+                .stroke(Color.kuroBlack.opacity(0.06), lineWidth: 0.5)
         )
-        .shadow(color: .black.opacity(showsShadow ? 0.08 : 0.0), radius: showsShadow ? 12 : 0, x: 0, y: showsShadow ? 6 : 0)
+        .shadow(color: Color.kuroBlack.opacity(showsShadow ? 0.08 : 0.0), radius: showsShadow ? 12 : 0, x: 0, y: showsShadow ? 6 : 0)
         .contentShape(Rectangle())
     }
 }
@@ -68,9 +68,9 @@ private struct ShimmerPlaceholder: View {
     var body: some View {
         LinearGradient(
             gradient: Gradient(colors: [
-                Color.black.opacity(0.06),
-                Color.black.opacity(0.12),
-                Color.black.opacity(0.06)
+                Color.kuroBlack.opacity(0.06),
+                Color.kuroBlack.opacity(0.12),
+                Color.kuroBlack.opacity(0.06)
             ]),
             startPoint: .leading,
             endPoint: .trailing
@@ -78,7 +78,15 @@ private struct ShimmerPlaceholder: View {
         .mask(
             Rectangle()
                 .fill(
-                    LinearGradient(gradient: Gradient(colors: [.black.opacity(0.4), .black, .black.opacity(0.4)]), startPoint: .leading, endPoint: .trailing)
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.kuroBlack.opacity(0.4),
+                            Color.kuroBlack,
+                            Color.kuroBlack.opacity(0.4),
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
                 )
                 .offset(x: phase)
         )

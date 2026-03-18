@@ -36,7 +36,7 @@ This part explains each major functionality: how it’s implemented, dependencie
   - EditorialDiscoverView.swift:7; EditorialCards.swift:10; EditorialCollectionView.swift:7.
   - Consume `supabaseService.animeItems` prefetch and sort/filter locally for style‑only sections.
 - Dependencies
-  - KuroDesignSystem constants for spacing/typography; PosterView.swift for images.
+  - KuroDesignSystem constants for spacing/typography; Kuro/Views/PosterView.swift for images.
 - Care
   - Don’t mix server sections with editorial placeholders without labeling; keep consistent item limits.
 
@@ -169,4 +169,3 @@ This part explains each major functionality: how it’s implemented, dependencie
 14) Realtime
 - Current approach uses a timer (subscribeToUpdates) to refresh anime and lists.
 - To upgrade: add Supabase Realtime subscriptions on `anime_user_lists`/`manga_user_lists` channels keyed by auth user; debounce UI updates.
-

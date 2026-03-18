@@ -8,11 +8,11 @@ Top-Level
 - SQL migrations and functions source
   - 01_delete_all_tables.sql — Drop helper.
   - 02_comprehensive_table_creation.sql — Full schema, indexes, triggers, RLS, policies.
-  - 03_updated_edge_function.js — Legacy function draft.
-  - 04_manga_edge_function.js — Legacy manga function draft.
+  - scripts/legacy/03_updated_edge_function.js — Legacy function draft.
+  - scripts/legacy/04_manga_edge_function.js — Legacy manga function draft.
   - 05_fix_triggers_and_episodes.sql — Trigger/episode fixes.
-  - 06_anime_edge_function_with_episodes.js — Legacy anime importer (JS).
-  - 07_manga_edge_function_with_chapters.js — Legacy manga importer (JS).
+  - scripts/legacy/06_anime_edge_function_with_episodes.js — Legacy anime importer (JS).
+  - scripts/legacy/07_manga_edge_function_with_chapters.js — Legacy manga importer (JS).
   - 08_create_user_lists_view.sql — Unified `user_lists` view.
   - 09_import_state.sql — Cursor table for scheduled imports.
 
@@ -28,14 +28,16 @@ Top-Level
   - SCHEDULES.md — Cron payloads for imports/mirroring.
   - archive/ — 17 historical design docs and superseded knowledge bases (moved 2026-03-10).
 
-- App (Swift) — 68 files in `Kuro/`
+- App (Swift) — 74 files in `Kuro/`
 
   Entry points:
   - Kuro/KuroApp.swift — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
   - Kuro/ContentView.swift — 5-page swipe pager, header (KURO wordmark / section title / search + profile), deep link sheet presentation
 
-  Services (11 files):
-  - Kuro/Services/SupabaseService.swift — core data layer, RPC calls, caching, auth bootstrap, `fmService`, `withRetry` helper
+  Services (14 files):
+  - Kuro/Services/SupabaseService.swift — core data layer, auth/bootstrap, collection, clubs/social, detail data, caching, `fmService`, `withRetry` helper
+  - Kuro/Services/SupabaseService+Browse.swift — browse page keyset paging + browse query helpers
+  - Kuro/Services/SupabaseService+Recommendations.swift — similar-title recommendation hydration and batched ID fetches
   - Kuro/Services/AppleFMService.swift — on-device FM (4 capabilities, FMProvider protocol, StubFMProvider fallback)
   - Kuro/Services/AppConfig.swift — reads SUPABASE_URL/ANON_KEY from Info.plist/env
   - Kuro/Services/NetworkMonitor.swift — NWPathMonitor connectivity, `isConnected`, offline banner
@@ -62,10 +64,13 @@ Top-Level
 
   Views (remaining):
   - Kuro/Views/EditorialDiscoverView.swift — Discover page
-  - Kuro/Views/BrowseView.swift — Browse page (full-page, not a sheet)
-  - Kuro/Views/EditorialCollectionView.swift — Collection page
+  - Kuro/Views/BrowseView.swift — Browse page shell/state (full-page, not a sheet)
+  - Kuro/Views/BrowseComponents.swift — browse controls, filters sheet, hero/grid cards, pagination skeletons
+  - Kuro/Views/EditorialCollectionView.swift — Collection page shell/state
+  - Kuro/Views/EditorialCollectionComponents.swift — collection filters, grid/list cards, empty/loading states, batch bar
   - Kuro/Views/ClubsView.swift — Clubs list page (enriched cards, unread dots)
-  - Kuro/Views/ClubDetailView.swift — Club detail (3-tab: Rails/This Week/Polls)
+  - Kuro/Views/ClubDetailView.swift — Club detail shell/state (3-tab: Rails/This Week/Polls)
+  - Kuro/Views/ClubDetailSections.swift — club detail journal sections, tabs, rails, polls, activity, bottom bar
   - Kuro/Views/ClubCreateSheets.swift — Create/join club sheets
   - Kuro/Views/EditorialSearchView.swift — Search sheet
   - Kuro/Views/OnboardingView.swift — First-launch onboarding

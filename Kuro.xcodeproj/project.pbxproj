@@ -13,7 +13,6 @@
 		95314FFC2E950C9100BDEE62 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 95314FFB2E950C9100BDEE62 /* Realtime */; };
 		95314FFE2E950C9100BDEE62 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 95314FFD2E950C9100BDEE62 /* Storage */; };
 		953150002E950C9100BDEE62 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 95314FFF2E950C9100BDEE62 /* Supabase */; };
-		957AD8022EB0DCD800A29966 /* PosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 957AD8012EB0DCD800A29966 /* PosterView.swift */; };
 		95CE20642EB2350900BEE61E /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 95CE20632EB2350900BEE61E /* Auth */; };
 		95CE20662EB2350900BEE61E /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 95CE20652EB2350900BEE61E /* Functions */; };
 		95CE20682EB2350900BEE61E /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 95CE20672EB2350900BEE61E /* PostgREST */; };
@@ -43,7 +42,6 @@
 		953474852E8AA6D5004F4AA2 /* Kuro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kuro.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		953474922E8AA6D6004F4AA2 /* KuroTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KuroTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9534749C2E8AA6D6004F4AA2 /* KuroUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KuroUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		957AD8012EB0DCD800A29966 /* PosterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PosterView.swift; sourceTree = "<group>"; };
 		C0C0C001AAAAAAAA00000001 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
 		C0C0C001AAAAAAAA00000002 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		C0C0C001AAAAAAAA00000003 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Shared.xcconfig; sourceTree = "<group>"; };
@@ -112,7 +110,6 @@
 				953474952E8AA6D6004F4AA2 /* KuroTests */,
 				9534749F2E8AA6D6004F4AA2 /* KuroUITests */,
 				953474862E8AA6D5004F4AA2 /* Products */,
-				957AD8012EB0DCD800A29966 /* PosterView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -295,7 +292,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				957AD8022EB0DCD800A29966 /* PosterView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

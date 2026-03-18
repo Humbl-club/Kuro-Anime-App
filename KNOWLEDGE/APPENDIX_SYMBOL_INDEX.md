@@ -244,6 +244,33 @@ Swift Sources
 - KuroUITests/KuroUITestsLaunchTests.swift
   - func testLaunch — 21
 
-- PosterView.swift
-  - struct PosterView — 3
+- Kuro/Services/SupabaseService+Browse.swift
+  - extension SupabaseService — 7
+  - func fetchBrowseAnimePageKeyset — 9
+  - func fetchBrowseMangaPageKeyset — 50
 
+- Kuro/Services/SupabaseService+Recommendations.swift
+  - extension SupabaseService — 7
+  - func fetchSimilarAnime — 11
+  - func fetchSimilarManga — 19
+
+- Kuro/Views/ClubDetailSections.swift
+  - struct JournalStatusBar — 6
+  - struct JournalHeroSection — 104
+  - struct JournalRailsContent — 311
+  - struct JournalPollsContent — 1054
+
+- Kuro/Views/EditorialCollectionComponents.swift
+  - struct EditorialFilterBar — 4
+  - struct EditorialCollectionGrid — 58
+  - struct CollectionGridCard — 343
+  - struct CollectionBatchBar — 818
+
+- Kuro/Views/BrowseComponents.swift
+  - struct BrowseControlBar — 32
+  - struct BrowseHeroCard — 280
+  - struct BrowseFiltersSheet — 379
+  - struct BrowseGrid — 658
+
+- Kuro/Views/PosterView.swift
+  - struct PosterView — 3
