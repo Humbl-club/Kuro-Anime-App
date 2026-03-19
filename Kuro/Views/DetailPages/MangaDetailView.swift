@@ -1188,6 +1188,7 @@ struct MangaActionButtons: View {
     @State private var readLink: ProviderSheetItem? = nil
     @State private var allLinks: [ProviderSheetItem] = []
     @State private var readAvailabilityNote: String? = nil
+    @State private var readAvailabilityStatusCaption: String? = nil
 
     private var isSaved: Bool {
         supabaseService.isInCollection(mediaId: manga.id, mediaType: "manga")
@@ -1253,11 +1254,13 @@ struct MangaActionButtons: View {
             MediaProviderActionCard(
                 sectionTitle: "Read On",
                 systemImage: hasReadLink ? "book.fill" : "book.closed",
+                providerTitle: allLinks.count == 1 ? readLink?.title : nil,
                 primaryTitle: readPrimaryTitle,
                 secondaryTitle: readSecondaryTitle,
                 note: readLink == nil
                     ? "No legal provider link is available yet."
                     : (readAvailabilityNote ?? "Reading availability may vary by region and publisher."),
+                statusCaption: readAvailabilityStatusCaption,
                 badgeText: readBadgeText,
                 isAvailable: hasReadLink,
                 action: handleReadAction
@@ -1276,7 +1279,11 @@ struct MangaActionButtons: View {
             await refreshLinks()
         }
         .sheet(isPresented: $showProviders) {
-            ProviderSelectionSheet(title: "Read On", links: allLinks) { link in
+            ProviderSelectionSheet(
+                title: "Read On",
+                links: allLinks,
+                statusCaption: readAvailabilityStatusCaption
+            ) { link in
                 if let url = validatedURL(from: link.url) {
                     KuroAccessibility.impactHaptic(.light)
                     openURL(url)
@@ -1317,18 +1324,30 @@ struct MangaActionButtons: View {
             mediaId: manga.id,
             locale: locale
         )
+        var availabilityStatus: MediaAvailabilityStatus? = nil
+        var requestedRefresh = false
         if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+            availabilityStatus = await supabaseService.mediaAvailabilityStatus(
+                mediaId: manga.id,
+                mediaType: "MANGA"
+            )
             await supabaseService.fetchProviderAvailabilityV2(
                 items: [(mediaType: "MANGA", mediaId: manga.id)],
                 preferredAudioLang: preferredAudio,
                 preferredSubLang: nil,
                 includeUnknown: true
             )
-            await supabaseService.enqueueAvailabilityRefreshIfStale(
+            requestedRefresh = await supabaseService.enqueueAvailabilityRefreshIfStale(
                 mediaType: "MANGA",
                 mediaId: manga.id,
                 reason: "detail_open"
             )
+            if requestedRefresh {
+                availabilityStatus = await supabaseService.mediaAvailabilityStatus(
+                    mediaId: manga.id,
+                    mediaType: "MANGA"
+                )
+            }
         }
         let availability = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
             ? supabaseService.providerAvailability(mediaId: manga.id, mediaType: "MANGA")
@@ -1364,6 +1383,11 @@ struct MangaActionButtons: View {
             } else {
                 self.readAvailabilityNote = "Reading availability may vary by region and publisher."
             }
+            self.readAvailabilityStatusCaption = providerAvailabilityStatusCaption(
+                status: availabilityStatus,
+                requestedRefresh: requestedRefresh,
+                hasVerifiedProviders: !verifiedItems.isEmpty
+            )
         }
     }
 

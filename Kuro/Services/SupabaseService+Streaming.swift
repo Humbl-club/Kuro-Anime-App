@@ -205,21 +205,17 @@ extension SupabaseService {
         mediaType: String,
         mediaId: Int,
         reason: String = "on_demand_open"
-    ) async {
+    ) async -> Bool {
         let key = "\(mediaType.uppercased())-\(mediaId)"
         if let last = availabilityRefreshEnqueueCooldown[key],
            Date().timeIntervalSince(last) < 10 * 60 {
-            return
+            return false
         }
         do {
-            let params = RPCGetMediaAvailabilityStatusParams(
-                p_media_type: mediaType.uppercased(),
-                p_media_id: mediaId
+            let rows = try await fetchMediaAvailabilityStatusRows(
+                mediaType: mediaType,
+                mediaId: mediaId
             )
-            let rows: [MediaAvailabilityStatus] = try await client
-                .rpc("get_media_availability_status", params: params)
-                .execute()
-                .value
             let shouldQueue: Bool
             if let status = rows.first {
                 shouldQueue = (!status.hasRows) || ((status.staleDays ?? 999) >= 30)
@@ -227,7 +223,7 @@ extension SupabaseService {
                 shouldQueue = true
             }
 
-            guard shouldQueue else { return }
+            guard shouldQueue else { return false }
             let enqueueParams = RPCEnqueueMediaAvailabilityRefreshParams(
                 p_media_type: mediaType.uppercased(),
                 p_media_id: mediaId,
@@ -238,11 +234,44 @@ extension SupabaseService {
                 .execute()
                 .value
             availabilityRefreshEnqueueCooldown[key] = Date()
+            return true
         } catch {
             #if DEBUG
             print("[Streaming] enqueueAvailabilityRefreshIfStale error: \(error.localizedDescription)")
             #endif
+            return false
         }
+    }
+
+    func mediaAvailabilityStatus(
+        mediaId: Int,
+        mediaType: String
+    ) async -> MediaAvailabilityStatus? {
+        do {
+            return try await fetchMediaAvailabilityStatusRows(
+                mediaType: mediaType,
+                mediaId: mediaId
+            ).first
+        } catch {
+            #if DEBUG
+            print("[Streaming] mediaAvailabilityStatus error: \(error.localizedDescription)")
+            #endif
+            return nil
+        }
+    }
+
+    private func fetchMediaAvailabilityStatusRows(
+        mediaType: String,
+        mediaId: Int
+    ) async throws -> [MediaAvailabilityStatus] {
+        let params = RPCGetMediaAvailabilityStatusParams(
+            p_media_type: mediaType.uppercased(),
+            p_media_id: mediaId
+        )
+        return try await client
+            .rpc("get_media_availability_status", params: params)
+            .execute()
+            .value
     }
 
     func fetchStreamingServiceRegistry() async {

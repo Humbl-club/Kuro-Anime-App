@@ -702,6 +702,13 @@ struct DescriptionSection: View {
     @Binding var showFull: Bool
     var condensedSynopsis: String? = nil
 
+    private var expandedParagraphs: [String] {
+        description
+            .components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
     /// When collapsed, prefer the FM-condensed hook over raw truncation.
     private var collapsedText: String {
         condensedSynopsis ?? description
@@ -714,12 +721,26 @@ struct DescriptionSection: View {
                 .tracking(1.5)
                 .foregroundColor(.kuroBlack80)
 
-            Text(showFull ? description : collapsedText)
-                .font(.kuroBody(weight: .light))
-                .tracking(0.5)
-                .foregroundColor(.kuroBlack60)
-                .lineSpacing(6)
-                .lineLimit(showFull ? nil : (condensedSynopsis != nil ? nil : 4))
+            if showFull && expandedParagraphs.count > 1 {
+                VStack(alignment: .leading, spacing: KuroSpacing.md) {
+                    ForEach(Array(expandedParagraphs.enumerated()), id: \.offset) { _, paragraph in
+                        Text(paragraph)
+                            .font(.kuroBody(weight: .regular))
+                            .tracking(0.2)
+                            .foregroundColor(.kuroBlack80)
+                            .lineSpacing(5)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            } else {
+                Text(showFull ? description : collapsedText)
+                    .font(.kuroBody(weight: .regular))
+                    .tracking(0.2)
+                    .foregroundColor(.kuroBlack80)
+                    .lineSpacing(5)
+                    .lineLimit(showFull ? nil : (condensedSynopsis != nil ? nil : 4))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             if description.count > 200 {
                 Button(action: {
@@ -1216,6 +1237,7 @@ struct ActionButtons: View {
     @State private var watchLink: ProviderSheetItem? = nil
     @State private var allLinks: [ProviderSheetItem] = []
     @State private var watchAvailabilityNote: String? = nil
+    @State private var watchAvailabilityStatusCaption: String? = nil
 
     private var isSaved: Bool {
         supabaseService.isInCollection(mediaId: anime.id, mediaType: "anime")
@@ -1280,11 +1302,13 @@ struct ActionButtons: View {
             MediaProviderActionCard(
                 sectionTitle: "Watch On",
                 systemImage: hasWatchLink ? "play.fill" : "play.slash",
+                providerTitle: allLinks.count == 1 ? watchLink?.title : nil,
                 primaryTitle: watchPrimaryTitle,
                 secondaryTitle: watchSecondaryTitle,
                 note: watchLink == nil
                     ? "No legal provider link is available yet."
                     : (watchAvailabilityNote ?? "Availability, audio, and subtitle options may vary by region."),
+                statusCaption: watchAvailabilityStatusCaption,
                 badgeText: watchBadgeText,
                 isAvailable: hasWatchLink,
                 action: handleWatchAction
@@ -1303,7 +1327,11 @@ struct ActionButtons: View {
             await refreshLinks()
         }
         .sheet(isPresented: $showProviders) {
-            ProviderSelectionSheet(title: "Watch On", links: allLinks) { link in
+            ProviderSelectionSheet(
+                title: "Watch On",
+                links: allLinks,
+                statusCaption: watchAvailabilityStatusCaption
+            ) { link in
                 if let url = validatedURL(from: link.url) {
                     KuroAccessibility.impactHaptic(.light)
                     openURL(url)
@@ -1347,18 +1375,30 @@ struct ActionButtons: View {
             mediaId: anime.id,
             locale: locale
         )
+        var availabilityStatus: MediaAvailabilityStatus? = nil
+        var requestedRefresh = false
         if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+            availabilityStatus = await supabaseService.mediaAvailabilityStatus(
+                mediaId: anime.id,
+                mediaType: "ANIME"
+            )
             await supabaseService.fetchProviderAvailabilityV2(
                 items: [(mediaType: "ANIME", mediaId: anime.id)],
                 preferredAudioLang: preferredAudio,
                 preferredSubLang: nil,
                 includeUnknown: true
             )
-            await supabaseService.enqueueAvailabilityRefreshIfStale(
+            requestedRefresh = await supabaseService.enqueueAvailabilityRefreshIfStale(
                 mediaType: "ANIME",
                 mediaId: anime.id,
                 reason: "detail_open"
             )
+            if requestedRefresh {
+                availabilityStatus = await supabaseService.mediaAvailabilityStatus(
+                    mediaId: anime.id,
+                    mediaType: "ANIME"
+                )
+            }
         }
         let availability = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
             ? supabaseService.providerAvailability(mediaId: anime.id, mediaType: "ANIME")
@@ -1400,6 +1440,11 @@ struct ActionButtons: View {
             } else {
                 self.watchAvailabilityNote = "Availability, audio, and subtitle options may vary by region."
             }
+            self.watchAvailabilityStatusCaption = providerAvailabilityStatusCaption(
+                status: availabilityStatus,
+                requestedRefresh: requestedRefresh,
+                hasVerifiedProviders: !verifiedItems.isEmpty
+            )
         }
     }
 
@@ -1459,9 +1504,11 @@ struct ActionButtons: View {
 struct MediaProviderActionCard: View {
     let sectionTitle: String
     let systemImage: String
+    let providerTitle: String?
     let primaryTitle: String
     let secondaryTitle: String
     let note: String
+    let statusCaption: String?
     let badgeText: String
     let isAvailable: Bool
     let action: () -> Void
@@ -1496,14 +1543,12 @@ struct MediaProviderActionCard: View {
                 }
 
                 HStack(spacing: KuroSpacing.md) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(isAvailable ? Color.kuroBlack08 : Color.kuroBlack05)
-                            .frame(width: 42, height: 42)
-                        Image(systemName: systemImage)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(isAvailable ? .kuroBlack : .kuroBlack30)
-                    }
+                    ProviderBrandMark(
+                        providerTitle: providerTitle,
+                        fallbackSystemImage: systemImage,
+                        size: 42,
+                        isAvailable: isAvailable
+                    )
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(primaryTitle)
@@ -1527,6 +1572,17 @@ struct MediaProviderActionCard: View {
                     .font(.kuroMicro(weight: .light))
                     .foregroundColor(.kuroTextTertiary)
                     .multilineTextAlignment(.leading)
+
+                if let statusCaption, !statusCaption.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.kuroBlack30)
+                        Text(statusCaption)
+                            .font(.kuroMicro(weight: .medium))
+                            .foregroundColor(.kuroBlack60)
+                    }
+                }
             }
             .padding(KuroSpacing.md)
             .background(
@@ -1539,6 +1595,71 @@ struct MediaProviderActionCard: View {
             )
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct ProviderBrandPalette {
+    let monogram: String
+    let background: Color
+    let foreground: Color
+}
+
+private struct ProviderBrandMark: View {
+    let providerTitle: String?
+    let fallbackSystemImage: String
+    let size: CGFloat
+    let isAvailable: Bool
+
+    private var palette: ProviderBrandPalette? {
+        providerTitle.map(providerBrandPalette(for:))
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(palette?.background ?? (isAvailable ? Color.kuroBlack08 : Color.kuroBlack05))
+                .frame(width: size, height: size)
+
+            if let palette {
+                Text(palette.monogram)
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(0.6)
+                    .foregroundColor(palette.foreground)
+            } else {
+                Image(systemName: fallbackSystemImage)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(isAvailable ? .kuroBlack : .kuroBlack30)
+            }
+        }
+    }
+}
+
+private func providerBrandPalette(for title: String) -> ProviderBrandPalette {
+    let normalized = normalizedProviderKey(title)
+    switch normalized {
+    case "crunchyroll":
+        return .init(monogram: "CR", background: Color.orange.opacity(0.18), foreground: Color.orange)
+    case "netflix":
+        return .init(monogram: "NF", background: Color.red.opacity(0.16), foreground: Color.red)
+    case "amazon prime video", "prime video":
+        return .init(monogram: "PV", background: Color.blue.opacity(0.16), foreground: Color.blue)
+    case "hulu":
+        return .init(monogram: "HU", background: Color.green.opacity(0.16), foreground: Color.green)
+    case "youtube":
+        return .init(monogram: "YT", background: Color.red.opacity(0.14), foreground: Color.red)
+    case "disney plus", "disneyplus":
+        return .init(monogram: "DP", background: Color.cyan.opacity(0.16), foreground: Color.blue)
+    default:
+        let letters = title
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .prefix(2)
+            .compactMap { $0.first.map { String($0).uppercased() } }
+            .joined()
+        return .init(
+            monogram: letters.isEmpty ? "PL" : letters,
+            background: Color.kuroBlack08,
+            foreground: .kuroBlack80
+        )
     }
 }
 
@@ -1706,9 +1827,33 @@ func normalizedProviderKey(_ raw: String?) -> String {
         .joined(separator: " ")
 }
 
+func providerAvailabilityStatusCaption(
+    status: MediaAvailabilityStatus?,
+    requestedRefresh: Bool,
+    hasVerifiedProviders: Bool
+) -> String? {
+    let formatter = RelativeDateTimeFormatter()
+    formatter.unitsStyle = .short
+
+    if hasVerifiedProviders, let lastRefreshedAt = status?.lastRefreshedAt {
+        return "Verified \(formatter.localizedString(for: lastRefreshedAt, relativeTo: Date()))."
+    }
+    if requestedRefresh || status?.status.lowercased() == "pending" {
+        return "Refreshing verified availability now."
+    }
+    if let lastRefreshedAt = status?.lastRefreshedAt {
+        return "Last checked \(formatter.localizedString(for: lastRefreshedAt, relativeTo: Date()))."
+    }
+    if let nextRefreshAt = status?.nextRefreshAt {
+        return "Next verification \(formatter.localizedString(for: nextRefreshAt, relativeTo: Date()))."
+    }
+    return nil
+}
+
 struct ProviderSelectionSheet: View {
     let title: String
     let links: [ProviderSheetItem]
+    let statusCaption: String?
     let onSelect: (ProviderSheetItem) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -1736,7 +1881,8 @@ struct ProviderSelectionSheet: View {
                         title: explainerTitle,
                         message: explainerBody,
                         linkCount: links.count,
-                        isVerifiedOnly: isVerifiedOnly
+                        isVerifiedOnly: isVerifiedOnly,
+                        statusCaption: statusCaption
                     )
 
                     VStack(spacing: KuroSpacing.sm) {
@@ -1774,6 +1920,7 @@ private struct ProviderSelectionExplainerCard: View {
     let message: String
     let linkCount: Int
     let isVerifiedOnly: Bool
+    let statusCaption: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -1798,6 +1945,17 @@ private struct ProviderSelectionExplainerCard: View {
                 .font(.kuroMicro(weight: .light))
                 .foregroundColor(.kuroBlack60)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if let statusCaption, !statusCaption.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.kuroBlack30)
+                    Text(statusCaption)
+                        .font(.kuroMicro(weight: .medium))
+                        .foregroundColor(.kuroBlack60)
+                }
+            }
         }
         .padding(KuroSpacing.md)
         .background(
@@ -1816,6 +1974,13 @@ private struct ProviderSelectionLinkCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: KuroSpacing.md) {
+            ProviderBrandMark(
+                providerTitle: link.title,
+                fallbackSystemImage: link.isVerified ? "play.fill" : "link",
+                size: 42,
+                isAvailable: true
+            )
+
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     Text(link.title)
