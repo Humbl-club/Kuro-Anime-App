@@ -192,6 +192,8 @@ function appHtml() {
       <div class="card"><div class="k">Countries written</div><div id="countries" class="v">0</div></div>
       <div class="card"><div class="k">Total processed</div><div id="processedTotal" class="v">0</div></div>
       <div class="card"><div class="k">Launchd state</div><div id="launchdState" class="v">unknown</div></div>
+      <div class="card"><div class="k">Urgent pending</div><div id="urgentPending" class="v warn">0</div></div>
+      <div class="card"><div class="k">Oldest pending age</div><div id="oldestPendingAge" class="v">0m</div></div>
     </div>
 
     <div class="twocol section">
@@ -211,6 +213,16 @@ function appHtml() {
     </div>
 
     <div class="card section">
+      <div class="k">Pending request reasons</div>
+      <table>
+        <thead>
+          <tr><th>Reason</th><th>Count</th></tr>
+        </thead>
+        <tbody id="requestReasonMix"></tbody>
+      </table>
+    </div>
+
+    <div class="card section">
       <div class="k">Worker log tail</div>
       <pre id="workerTail"></pre>
     </div>
@@ -220,12 +232,21 @@ function appHtml() {
     const fmt = new Intl.NumberFormat();
 
     function num(v) { return fmt.format(v || 0); }
+    function age(seconds) {
+      const total = Number(seconds) || 0;
+      if (total < 60) return total + 's';
+      if (total < 3600) return Math.floor(total / 60) + 'm';
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      return minutes > 0 ? hours + 'h ' + minutes + 'm' : hours + 'h';
+    }
 
     function render(payload) {
       document.getElementById('stamp').textContent = '(updated ' + new Date().toLocaleTimeString() + ')';
       const status = payload.status || {};
       const run = status.last_run || {};
       const totals = status.totals || {};
+      const queue = status.queue_summary || {};
 
       document.getElementById('processed').textContent = num(run.processed);
       document.getElementById('mappedNew').textContent = num(run.mapped_new);
@@ -235,6 +256,8 @@ function appHtml() {
       document.getElementById('countries').textContent = num(run.countries_written);
       document.getElementById('processedTotal').textContent = num(totals.processed);
       document.getElementById('launchdState').textContent = payload.launchd?.state || 'unknown';
+      document.getElementById('urgentPending').textContent = num(queue.urgent_pending_count);
+      document.getElementById('oldestPendingAge').textContent = age(queue.oldest_pending_request_age_seconds);
 
       const rows = payload.run_history || [];
       document.getElementById('history').innerHTML = rows.map((row) => {
@@ -247,6 +270,12 @@ function appHtml() {
           '<td>' + num(row.api_errors) + '</td>' +
           '</tr>';
       }).join('');
+
+      const reasonMix = Object.entries(queue.request_reason_mix || {})
+        .sort((lhs, rhs) => rhs[1] - lhs[1] || lhs[0].localeCompare(rhs[0]));
+      document.getElementById('requestReasonMix').innerHTML = reasonMix.length
+        ? reasonMix.map(([reason, count]) => '<tr><td>' + reason + '</td><td>' + num(count) + '</td></tr>').join('')
+        : '<tr><td colspan="2" class="muted">No pending requests.</td></tr>';
 
       document.getElementById('unresolvedMarkdown').textContent = payload.unresolved_markdown || '';
       document.getElementById('workerTail').textContent = payload.worker_log_tail || '';

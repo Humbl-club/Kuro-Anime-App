@@ -660,3 +660,64 @@ struct EditorialSearchTests {
         #expect(EditorialSearchView.shouldRunSearch(query: "naruto", hasFilters: false))
     }
 }
+
+@Suite("Detail Truthfulness")
+struct DetailTruthfulnessTests {
+    @Test("Sanitizes media descriptions with HTML and entities")
+    func testSanitizeMediaDescription() {
+        let raw = "Line one<br><br><p>Elf &amp; mage&nbsp;story</p>&#39;quoted&#39;"
+        let cleaned = TextNormalization.sanitizeMediaDescription(raw)
+        #expect(cleaned == "Line one\n\nElf & mage story\n\n'quoted'")
+    }
+
+    @Test("Verified provider items outrank catalog fallback")
+    func testVerifiedProviderItems() {
+        let fallbackLinks = [
+            ExternalLink(
+                id: 1,
+                mediaType: "ANIME",
+                mediaId: 1,
+                site: "Crunchyroll",
+                url: "https://www.crunchyroll.com/series/test",
+                language: "en",
+                color: nil,
+                priority: nil,
+                isDisabled: false,
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+        ]
+        let providers = [
+            ProviderAvailabilityProvider(
+                slug: "crunchyroll",
+                displayName: "Crunchyroll",
+                url: "https://www.crunchyroll.com/series/test",
+                languages: ["ja"],
+                audioLanguages: ["ja"],
+                subtitleLanguages: ["en"],
+                countriesByAudioLang: ["ja": ["DE", "US"]],
+                countriesBySubtitleLang: ["en": ["DE", "US"]],
+                isStale: false
+            )
+        ]
+
+        let verified = makeVerifiedProviderItems(
+            providers: providers.filter { !$0.isStale },
+            fallbackLinks: fallbackLinks,
+            ranking: ["crunchyroll"],
+            preferredAudioLang: "en",
+            preferredSubtitleLang: "en",
+            originalLanguage: "ja"
+        )
+        let catalog = makeCatalogProviderItems(
+            from: fallbackLinks,
+            ranking: ["crunchyroll"],
+            fallbackSubtitle: "Catalog link only. Availability may vary by region."
+        )
+
+        #expect(verified.count == 1)
+        #expect(verified.first?.isVerified == true)
+        #expect(catalog.first?.isVerified == false)
+        #expect(preferredPrimaryProviderItem(from: verified + catalog, preferredSite: "Crunchyroll")?.isVerified == true)
+    }
+}

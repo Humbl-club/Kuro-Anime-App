@@ -148,6 +148,47 @@ enum TextNormalization {
         return stemmed.joined(separator: " ")
     }
 
+    // MARK: - Media Description Sanitization
+
+    /// Clean AniList-style synopsis HTML into readable plain text for UI display.
+    static func sanitizeMediaDescription(_ raw: String?) -> String? {
+        guard var text = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+            return nil
+        }
+
+        text = text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+
+        text = replacing(pattern: "(?i)<br\\s*/?>", in: text, with: "\n\n")
+        text = replacing(pattern: "(?i)</p\\s*>", in: text, with: "\n\n")
+        text = replacing(pattern: "(?i)<p\\b[^>]*>", in: text, with: "")
+        text = replacing(pattern: "(?i)<[^>]+>", in: text, with: "")
+
+        let entities: [String: String] = [
+            "&nbsp;": " ",
+            "&amp;": "&",
+            "&quot;": "\"",
+            "&#39;": "'",
+            "&#x27;": "'",
+            "&lt;": "<",
+            "&gt;": ">",
+            "&rsquo;": "'",
+            "&ldquo;": "\"",
+            "&rdquo;": "\"",
+        ]
+        for (entity, replacement) in entities {
+            text = text.replacingOccurrences(of: entity, with: replacement)
+        }
+
+        text = replacing(pattern: "[ \\t]+\\n", in: text, with: "\n")
+        text = replacing(pattern: "\\n{3,}", in: text, with: "\n\n")
+        text = replacing(pattern: "[ \\t]{2,}", in: text, with: " ")
+
+        let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? nil : cleaned
+    }
+
     // MARK: - Import Intent Detection
 
     /// Lightweight keyword-based check for whether user text looks like a list import
@@ -220,5 +261,11 @@ enum TextNormalization {
         if words.count >= 3 { return true }
 
         return false
+    }
+
+    private static func replacing(pattern: String, in text: String, with template: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return text }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: template)
     }
 }

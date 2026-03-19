@@ -1185,8 +1185,8 @@ struct MangaActionButtons: View {
     @Environment(\.openURL) private var openURL
     @State private var showAddToList = false
     @State private var showProviders = false
-    @State private var readLink: (url: String, site: String, label: String)? = nil
-    @State private var allLinks: [ExternalLink] = []
+    @State private var readLink: ProviderSheetItem? = nil
+    @State private var allLinks: [ProviderSheetItem] = []
     @State private var readAvailabilityNote: String? = nil
 
     private var isSaved: Bool {
@@ -1246,7 +1246,7 @@ struct MangaActionButtons: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(link.label)
+                    .accessibilityLabel(link.accessibilityLabel)
                 } else {
                     Button(action: {
                         KuroAccessibility.impactHaptic(.light)
@@ -1254,7 +1254,7 @@ struct MangaActionButtons: View {
                             .init(
                                 kind: .info,
                                 title: "Link coming soon",
-                                subtitle: "We only show verified legal providers.",
+                                subtitle: "No legal provider link is available yet.",
                                 actionTitle: nil,
                                 onAction: nil
                             )
@@ -1273,7 +1273,7 @@ struct MangaActionButtons: View {
             }
 
             Text(readLink == nil
-                ? "Link coming soon."
+                ? "No legal provider link is available yet."
                 : (readAvailabilityNote ?? "Reading availability may vary by region and publisher."))
                 .font(.kuroMicro(weight: .light))
                 .foregroundColor(.kuroTextTertiary)
@@ -1304,14 +1304,11 @@ struct MangaActionButtons: View {
     }
 
     private func refreshLinks() async {
-        let preferredAudio = Locale.current.identifier.lowercased().hasPrefix("de") ? "de" : "en"
+        let locale = Locale.current.identifier
+        let preferredAudio = locale.lowercased().hasPrefix("de") ? "de" : "en"
         let links = await supabaseService.fetchLegalReadLinks(
             mediaId: manga.id,
-            locale: Locale.current.identifier
-        )
-        let best = await supabaseService.getBestLegalReadLink(
-            manga: manga,
-            locale: Locale.current.identifier
+            locale: locale
         )
         if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
             await supabaseService.fetchProviderAvailabilityV2(
@@ -1326,6 +1323,22 @@ struct MangaActionButtons: View {
                 reason: "detail_open"
             )
         }
+        let availability = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
+            ? supabaseService.providerAvailability(mediaId: manga.id, mediaType: "MANGA")
+            : []
+        let verifiedItems = makeVerifiedProviderItems(
+            providers: availability.filter { !$0.isStale },
+            fallbackLinks: links,
+            ranking: supabaseService.mangaProviderRanking,
+            preferredAudioLang: preferredAudio,
+            preferredSubtitleLang: nil,
+            originalLanguage: nil
+        ).filter { validatedURL(from: $0.url) != nil }
+        let catalogItems = makeCatalogProviderItems(
+            from: links,
+            ranking: supabaseService.mangaProviderRanking,
+            fallbackSubtitle: "Catalog link only. Reading rights may vary by region and publisher."
+        ).filter { validatedURL(from: $0.url) != nil }
         let note = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
             ? supabaseService.bestProviderAvailabilityNote(
                 mediaId: manga.id,
@@ -1333,10 +1346,17 @@ struct MangaActionButtons: View {
                 preferredAudioLang: preferredAudio
             )
             : nil
+        let displayedItems = verifiedItems.isEmpty ? catalogItems : verifiedItems
         await MainActor.run {
-            self.allLinks = links.filter { validatedURL(from: $0.url) != nil }
-            self.readLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
-            self.readAvailabilityNote = note?.displayText
+            self.allLinks = displayedItems
+            self.readLink = displayedItems.first
+            if !verifiedItems.isEmpty {
+                self.readAvailabilityNote = note?.displayText ?? "Verified providers for this title."
+            } else if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                self.readAvailabilityNote = "Catalog links only. Verified availability is still being refreshed."
+            } else {
+                self.readAvailabilityNote = "Reading availability may vary by region and publisher."
+            }
         }
     }
 

@@ -1213,8 +1213,8 @@ struct ActionButtons: View {
     @Environment(\.openURL) private var openURL
     @State private var showAddToList = false
     @State private var showProviders = false
-    @State private var watchLink: (url: String, site: String, label: String)? = nil
-    @State private var allLinks: [ExternalLink] = []
+    @State private var watchLink: ProviderSheetItem? = nil
+    @State private var allLinks: [ProviderSheetItem] = []
     @State private var watchAvailabilityNote: String? = nil
 
     private var isSaved: Bool {
@@ -1274,7 +1274,7 @@ struct ActionButtons: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(link.label)
+                    .accessibilityLabel(link.accessibilityLabel)
                 } else {
                     Button(action: {
                         KuroAccessibility.impactHaptic(.light)
@@ -1282,7 +1282,7 @@ struct ActionButtons: View {
                             .init(
                                 kind: .info,
                                 title: "Link coming soon",
-                                subtitle: "We only show verified legal providers.",
+                                subtitle: "No legal provider link is available yet.",
                                 actionTitle: nil,
                                 onAction: nil
                             )
@@ -1301,7 +1301,7 @@ struct ActionButtons: View {
             }
 
             Text(watchLink == nil
-                ? "Link coming soon."
+                ? "No legal provider link is available yet."
                 : (watchAvailabilityNote ?? "Availability, audio, and subtitle options may vary by region."))
                 .font(.kuroMicro(weight: .light))
                 .foregroundColor(.kuroTextTertiary)
@@ -1333,15 +1333,13 @@ struct ActionButtons: View {
 
     private func refreshLinks() async {
         let progress = supabaseService.getProgress(for: anime.id)
-        let preferredAudio = Locale.current.identifier.lowercased().hasPrefix("de") ? "de" : "en"
-        let best = await supabaseService.getBestLegalWatchLink(
-            anime: anime,
-            userProgress: progress,
-            locale: Locale.current.identifier
-        )
+        let locale = Locale.current.identifier
+        let preferredAudio = locale.lowercased().hasPrefix("de") ? "de" : "en"
+        let nextEpisode = max(1, (progress ?? 0) + 1)
+        let episodeLink = await supabaseService.getStreamLinkForEpisode(animeId: anime.id, episodeNumber: nextEpisode)
         let links = await supabaseService.fetchLegalWatchLinks(
             mediaId: anime.id,
-            locale: Locale.current.identifier
+            locale: locale
         )
         if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
             await supabaseService.fetchProviderAvailabilityV2(
@@ -1356,6 +1354,22 @@ struct ActionButtons: View {
                 reason: "detail_open"
             )
         }
+        let availability = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
+            ? supabaseService.providerAvailability(mediaId: anime.id, mediaType: "ANIME")
+            : []
+        let verifiedItems = makeVerifiedProviderItems(
+            providers: availability.filter { !$0.isStale },
+            fallbackLinks: links,
+            ranking: supabaseService.animeProviderRanking,
+            preferredAudioLang: preferredAudio,
+            preferredSubtitleLang: preferredAudio,
+            originalLanguage: anime.inferredOriginalLanguageCode
+        ).filter { validatedURL(from: $0.url) != nil }
+        let catalogItems = makeCatalogProviderItems(
+            from: links,
+            ranking: supabaseService.animeProviderRanking,
+            fallbackSubtitle: "Catalog link only. Availability may vary by region."
+        ).filter { validatedURL(from: $0.url) != nil }
         let note = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
             ? supabaseService.bestProviderAvailabilityNote(
                 mediaId: anime.id,
@@ -1365,10 +1379,21 @@ struct ActionButtons: View {
                 originalLanguage: anime.inferredOriginalLanguageCode
             )
             : nil
+        let displayedItems = verifiedItems.isEmpty ? catalogItems : verifiedItems
+        let primary = preferredPrimaryProviderItem(
+            from: displayedItems,
+            preferredSite: episodeLink?.site
+        ) ?? displayedItems.first
         await MainActor.run {
-            self.watchLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
-            self.allLinks = links.filter { validatedURL(from: $0.url) != nil }
-            self.watchAvailabilityNote = note?.displayText
+            self.watchLink = primary
+            self.allLinks = displayedItems
+            if !verifiedItems.isEmpty {
+                self.watchAvailabilityNote = note?.displayText ?? "Verified providers for this title."
+            } else if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                self.watchAvailabilityNote = "Catalog links only. Verified availability is still being refreshed."
+            } else {
+                self.watchAvailabilityNote = "Availability, audio, and subtitle options may vary by region."
+            }
         }
     }
 
@@ -1477,30 +1502,193 @@ struct SecondaryShareButton: View {
     }
 }
 
+struct ProviderSheetItem: Identifiable, Equatable {
+    let id: String
+    let title: String
+    let url: String
+    let subtitle: String?
+    let isVerified: Bool
+
+    var badgeText: String { isVerified ? "Verified" : "Catalog" }
+    var accessibilityLabel: String {
+        isVerified ? "Open verified provider \(title)" : "Open catalog link \(title)"
+    }
+}
+
+func makeVerifiedProviderItems(
+    providers: [ProviderAvailabilityProvider],
+    fallbackLinks: [ExternalLink],
+    ranking: [String],
+    preferredAudioLang: String?,
+    preferredSubtitleLang: String?,
+    originalLanguage: String?
+) -> [ProviderSheetItem] {
+    var seen = Set<String>()
+    return providers
+        .sorted { lhs, rhs in
+            let left = providerRankingIndex(for: lhs.displayName, slug: lhs.slug, ranking: ranking)
+            let right = providerRankingIndex(for: rhs.displayName, slug: rhs.slug, ranking: ranking)
+            if left != right { return left < right }
+            return lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName) == .orderedAscending
+        }
+        .compactMap { provider in
+            let resolvedURL = provider.url ?? fallbackLinks.first(where: { providerMatches(site: $0.site, provider: provider) })?.url
+            guard let resolvedURL, !resolvedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            let key = "verified-\(provider.slug)"
+            guard seen.insert(key).inserted else { return nil }
+            let note = ProviderAvailabilityNoteBuilder.bestNote(
+                from: [provider],
+                preferredAudioLang: preferredAudioLang,
+                preferredSubtitleLang: preferredSubtitleLang,
+                originalLanguage: originalLanguage
+            )?.displayText
+            return ProviderSheetItem(
+                id: key,
+                title: provider.displayName,
+                url: resolvedURL,
+                subtitle: note.map { "Verified for this title. \($0)" } ?? "Verified for this title.",
+                isVerified: true
+            )
+        }
+}
+
+func makeCatalogProviderItems(
+    from links: [ExternalLink],
+    ranking: [String],
+    fallbackSubtitle: String
+) -> [ProviderSheetItem] {
+    links
+        .sorted { lhs, rhs in
+            let left = providerRankingIndex(for: lhs.site, slug: nil, ranking: ranking)
+            let right = providerRankingIndex(for: rhs.site, slug: nil, ranking: ranking)
+            if left != right { return left < right }
+            return (lhs.site ?? "").localizedCaseInsensitiveCompare(rhs.site ?? "") == .orderedAscending
+        }
+        .map { link in
+            ProviderSheetItem(
+                id: "catalog-\(link.id)",
+                title: link.site ?? "Provider",
+                url: link.url,
+                subtitle: fallbackSubtitle,
+                isVerified: false
+            )
+        }
+}
+
+func preferredPrimaryProviderItem(
+    from items: [ProviderSheetItem],
+    preferredSite: String?
+) -> ProviderSheetItem? {
+    guard let preferredSite else { return nil }
+    let normalizedSite = normalizedProviderKey(preferredSite)
+    return items.first { normalizedProviderKey($0.title) == normalizedSite }
+}
+
+func providerMatches(site: String?, provider: ProviderAvailabilityProvider) -> Bool {
+    let siteKey = normalizedProviderKey(site)
+    guard !siteKey.isEmpty else { return false }
+    let displayKey = normalizedProviderKey(provider.displayName)
+    let slugKey = normalizedProviderKey(provider.slug)
+    return siteKey == displayKey || siteKey == slugKey || siteKey.contains(displayKey) || displayKey.contains(siteKey) || siteKey.contains(slugKey) || slugKey.contains(siteKey)
+}
+
+func providerRankingIndex(for site: String?, slug: String?, ranking: [String]) -> Int {
+    let siteKey = normalizedProviderKey(site)
+    let slugKey = normalizedProviderKey(slug)
+    return ranking.firstIndex(where: { key in
+        let normalized = normalizedProviderKey(key)
+        return (!siteKey.isEmpty && (siteKey == normalized || siteKey.contains(normalized) || normalized.contains(siteKey)))
+            || (!slugKey.isEmpty && (slugKey == normalized || slugKey.contains(normalized) || normalized.contains(slugKey)))
+    }) ?? 999
+}
+
+func normalizedProviderKey(_ raw: String?) -> String {
+    guard let raw else { return "" }
+    let lowered = raw.lowercased()
+        .replacingOccurrences(of: "&", with: "and")
+        .replacingOccurrences(of: "+", with: "plus")
+    let allowed = lowered.unicodeScalars.map { CharacterSet.alphanumerics.contains($0) ? String($0) : " " }.joined()
+    return allowed
+        .split(separator: " ")
+        .joined(separator: " ")
+}
+
 struct ProviderSelectionSheet: View {
     let title: String
-    let links: [ExternalLink]
-    let onSelect: (ExternalLink) -> Void
+    let links: [ProviderSheetItem]
+    let onSelect: (ProviderSheetItem) -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            List(links) { link in
-                Button(action: {
-                    onSelect(link)
-                    dismiss()
-                }) {
-                    HStack {
-                        Text(link.site ?? "Provider")
-                            .font(.kuroBody(weight: .regular))
-                        Spacer()
-                        Image(systemName: "arrow.up.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.kuroBlack30)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: KuroSpacing.lg) {
+                    Text(links.isEmpty
+                        ? "No legal providers are available yet."
+                        : (links.allSatisfy(\.isVerified)
+                            ? "Only verified providers for this title are shown here."
+                            : "These are legal catalog links. Title availability may still vary by region."))
+                        .font(.kuroMicro(weight: .light))
+                        .foregroundColor(.kuroBlack60)
+
+                    VStack(spacing: KuroSpacing.sm) {
+                        ForEach(links) { link in
+                            Button(action: {
+                                onSelect(link)
+                                dismiss()
+                            }) {
+                                HStack(alignment: .top, spacing: KuroSpacing.md) {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack(spacing: 8) {
+                                            Text(link.title)
+                                                .font(.kuroBody(weight: .regular))
+                                                .foregroundColor(.kuroBlack)
+                                            Text(link.badgeText.uppercased())
+                                                .font(.kuroMicro(weight: .medium))
+                                                .tracking(0.8)
+                                                .foregroundColor(link.isVerified ? .kuroBlack : .kuroBlack60)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(
+                                                    Capsule()
+                                                        .fill(link.isVerified ? Color.kuroBlack08 : Color.kuroBlack05)
+                                                )
+                                        }
+
+                                        if let subtitle = link.subtitle, !subtitle.isEmpty {
+                                            Text(subtitle)
+                                                .font(.kuroMicro(weight: .light))
+                                                .foregroundColor(.kuroBlack60)
+                                                .multilineTextAlignment(.leading)
+                                        }
+                                    }
+
+                                    Spacer(minLength: KuroSpacing.md)
+
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.kuroBlack30)
+                                        .padding(.top, 4)
+                                }
+                                .padding(KuroSpacing.md)
+                                .background(
+                                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                                        .fill(Color.kuroBackground)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                                                .stroke(Color.kuroBlack08, lineWidth: 1)
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .padding(.vertical, KuroSpacing.sm)
                 }
+                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.top, KuroSpacing.md)
+                .padding(.bottom, KuroSpacing.xl)
             }
+            .background(Color.kuroBackground)
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

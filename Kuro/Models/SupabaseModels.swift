@@ -86,9 +86,9 @@ extension Anime: MediaDisplayable {
         if let synopsisEnhanced,
            (synopsisEnhancedState ?? "ready").lowercased() == "ready",
            !synopsisEnhanced.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return synopsisEnhanced
+            return TextNormalization.sanitizeMediaDescription(synopsisEnhanced) ?? "No description available"
         }
-        return description ?? "No description available"
+        return TextNormalization.sanitizeMediaDescription(description) ?? "No description available"
     }
     
     var episodes: Int? {
@@ -145,9 +145,9 @@ extension Manga: MediaDisplayable {
         if let synopsisEnhanced,
            (synopsisEnhancedState ?? "ready").lowercased() == "ready",
            !synopsisEnhanced.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return synopsisEnhanced
+            return TextNormalization.sanitizeMediaDescription(synopsisEnhanced) ?? "No description available"
         }
-        return description ?? "No description available"
+        return TextNormalization.sanitizeMediaDescription(description) ?? "No description available"
     }
     
     var episodes: Int? { nil } // Manga doesn't have episodes

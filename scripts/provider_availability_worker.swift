@@ -39,6 +39,8 @@ struct ProviderSourceMapRow: Decodable {
 
 struct RefreshStateRow: Decodable {
     let retry_count: Int
+    let request_reason: String?
+    let last_requested_at: Date?
 }
 
 struct MediaSeed: Decodable {
@@ -83,6 +85,13 @@ struct WorkerStatus: Codable {
     var updated_at: String
     var last_run: RunMetrics
     var totals: CumulativeTotals
+    var queue_summary: QueueSummary?
+}
+
+struct QueueSummary: Codable {
+    var urgent_pending_count: Int
+    var oldest_pending_request_age_seconds: Int
+    var request_reason_mix: [String: Int]
 }
 
 struct UnresolvedEntry {
@@ -130,6 +139,12 @@ struct RefreshStateUpsert: Encodable {
     let retry_count: Int
     let last_error: String?
     let updated_at: String
+}
+
+struct QueueSummaryPayload: Decodable {
+    let urgent_pending_count: Int?
+    let oldest_pending_request_age_seconds: Int?
+    let request_reason_mix: [String: Int]?
 }
 
 struct AvailabilityKey: Hashable {
@@ -467,6 +482,16 @@ func similarity(_ lhs: String, _ rhs: String) -> Double {
     return max(0, min(1, 0.55 * edit + 0.45 * tokens))
 }
 
+func unresolvedRetryInterval(retryCount: Int, requestReason: String?) -> TimeInterval {
+    let normalizedReason = requestReason?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    let isOnDemand = normalizedReason == "detail_open" || normalizedReason == "user_tap"
+    if isOnDemand && retryCount == 0 {
+        return 30 * 60
+    }
+    let backoffHours = min(24, Int(pow(2.0, Double(min(retryCount, 5)))))
+    return Double(backoffHours) * 3600
+}
+
 func normalizeLanguage(_ raw: String?) -> String? {
     guard let raw else { return nil }
     let cleaned = raw
@@ -622,8 +647,11 @@ struct ProviderAvailabilityWorker {
                     mappedCounter: &metrics.mapped_new,
                     unresolvedCounter: &metrics.mapping_unresolved
                 ) else {
-                    let retry = try await fetchRetryCount(rpc: rpc, mediaType: mediaType, mediaId: mediaId)
-                    let next = Date().addingTimeInterval(6 * 3600)
+                    let refreshState = try await fetchRefreshState(rpc: rpc, mediaType: mediaType, mediaId: mediaId)
+                    let retry = refreshState?.retry_count ?? 0
+                    let next = Date().addingTimeInterval(
+                        unresolvedRetryInterval(retryCount: retry, requestReason: refreshState?.request_reason)
+                    )
                     let refresh = RefreshStateUpsert(
                         media_type: mediaType,
                         media_id: mediaId,
@@ -689,7 +717,7 @@ struct ProviderAvailabilityWorker {
                 metrics.processed += 1
             } catch {
                 metrics.api_errors += 1
-                let retry = (try? await fetchRetryCount(rpc: rpc, mediaType: mediaType, mediaId: mediaId)) ?? 0
+                let retry = (try? await fetchRefreshState(rpc: rpc, mediaType: mediaType, mediaId: mediaId)?.retry_count) ?? 0
                 let backoffHours = min(24, Int(pow(2.0, Double(min(retry, 5)))))
                 let refresh = RefreshStateUpsert(
                     media_type: mediaType,
@@ -745,7 +773,8 @@ struct ProviderAvailabilityWorker {
                 mapping_unresolved: 0,
                 offers_upserted: 0,
                 api_errors: 0
-            )
+            ),
+            queue_summary: nil
         )
         status.updated_at = nowISO8601()
         status.last_run = metrics
@@ -755,6 +784,7 @@ struct ProviderAvailabilityWorker {
         status.totals.mapping_unresolved += metrics.mapping_unresolved
         status.totals.offers_upserted += metrics.offers_upserted
         status.totals.api_errors += metrics.api_errors
+        status.queue_summary = (try? await fetchQueueSummary(rpc: rpc)) ?? status.queue_summary
 
         let statusData = try JSONEncoder.providerWorker.encode(status)
         try writeText(String(decoding: statusData, as: UTF8.self), to: statusPath)
@@ -779,11 +809,11 @@ struct ProviderAvailabilityWorker {
         return first
     }
 
-    static func fetchRetryCount(rpc: RPCClient, mediaType: String, mediaId: Int) async throws -> Int {
+    static func fetchRefreshState(rpc: RPCClient, mediaType: String, mediaId: Int) async throws -> RefreshStateRow? {
         let rows: [RefreshStateRow] = try await rpc.select(
             "provider_availability_refresh_state",
             query: [
-                URLQueryItem(name: "select", value: "retry_count"),
+                URLQueryItem(name: "select", value: "retry_count,request_reason,last_requested_at"),
                 URLQueryItem(name: "media_type", value: "eq.\(mediaType)"),
                 URLQueryItem(name: "media_id", value: "eq.\(mediaId)"),
                 URLQueryItem(name: "source_name", value: "eq.watchmode"),
@@ -791,7 +821,20 @@ struct ProviderAvailabilityWorker {
             ],
             as: RefreshStateRow.self
         )
-        return rows.first?.retry_count ?? 0
+        return rows.first
+    }
+
+    static func fetchQueueSummary(rpc: RPCClient) async throws -> QueueSummary {
+        let payload: QueueSummaryPayload = try await rpc.rpc(
+            "get_provider_availability_refresh_queue_summary",
+            payload: [:],
+            as: QueueSummaryPayload.self
+        )
+        return QueueSummary(
+            urgent_pending_count: payload.urgent_pending_count ?? 0,
+            oldest_pending_request_age_seconds: payload.oldest_pending_request_age_seconds ?? 0,
+            request_reason_mix: payload.request_reason_mix ?? [:]
+        )
     }
 
     static func resolveSourceId(
