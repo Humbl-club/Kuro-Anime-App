@@ -97,149 +97,52 @@ struct ClubsView: View {
     // MARK: - Empty State
 
     private var loadingState: some View {
-        VStack(spacing: KuroDesignSpacing.md) {
-            ForEach(0..<3, id: \.self) { _ in
-                KuroGlassCard(cornerRadius: KuroRadius.lg) {
-                    HStack(spacing: KuroDesignSpacing.md) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                .fill(Color.black.opacity(0.10))
-                                .frame(width: 140, height: 12)
-                            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                .fill(Color.black.opacity(0.06))
-                                .frame(width: 82, height: 8)
-                        }
-                        Spacer(minLength: 0)
-                        RoundedRectangle(cornerRadius: 3, style: .continuous)
-                            .fill(Color.black.opacity(0.06))
-                            .frame(width: 8, height: 12)
-                    }
-                    .padding(.horizontal, KuroDesignSpacing.md)
-                    .padding(.vertical, KuroDesignSpacing.md)
-                }
-            }
-            HStack(spacing: 8) {
-                ProgressView()
-                    .scaleEffect(0.8)
-                    .tint(.black.opacity(0.45))
-                Text("Loading clubs...")
-                    .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.black.opacity(0.50))
-            }
-        }
-        .accessibilityLabel("Loading clubs")
+        JournalLoadingSkeleton()
     }
 
     private var emptyState: some View {
-        KuroGlassCard(cornerRadius: 22) {
-            VStack(spacing: KuroDesignSpacing.md) {
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 28, weight: .light))
-                    .foregroundColor(.black.opacity(0.55))
-                    .padding(.top, KuroDesignSpacing.lg)
-
-                Text("CLUBS")
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(2.4)
-                    .foregroundColor(.black.opacity(0.80))
-
-                Text("Watch together. Private by design.")
-                    .font(.kuroBody(weight: .light))
-                    .foregroundColor(.black.opacity(0.62))
-                    .multilineTextAlignment(.center)
-                    .padding(.bottom, KuroDesignSpacing.xs)
-
-                KuroGlassPill(
-                    title: "Create a club",
-                    subtitle: "Invite friends to watch together",
-                    systemImage: "person.2.badge.gearshape"
-                ) {
-                    KuroAccessibility.impactHaptic(.light)
-                    showCreateSheet = true
-                }
-
-                KuroGlassPill(
-                    title: "Join with code",
-                    subtitle: "Enter an invite code",
-                    systemImage: "ticket"
-                ) {
-                    KuroAccessibility.impactHaptic(.light)
-                    showJoinSheet = true
-                }
+        JournalEmptyState(
+            onCreateTapped: {
+                KuroAccessibility.impactHaptic(.light)
+                showCreateSheet = true
+            },
+            onJoinTapped: {
+                KuroAccessibility.impactHaptic(.light)
+                showJoinSheet = true
             }
-            .padding(.horizontal, KuroDesignSpacing.md)
-            .padding(.bottom, KuroDesignSpacing.lg)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("No clubs yet. Create a club or join with an invite code.")
+        )
     }
 
     // MARK: - Club List
 
     private var clubList: some View {
-        VStack(spacing: KuroDesignSpacing.md) {
-            // Action row
-            HStack(spacing: KuroDesignSpacing.sm) {
-                Button {
+        VStack(spacing: 0) {
+            JournalActionRow(
+                onCreateTapped: {
                     KuroAccessibility.impactHaptic(.light)
                     showCreateSheet = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 11, weight: .semibold))
-                        Text("CREATE")
-                            .font(.kuroCaption(weight: .medium))
-                            .tracking(1.6)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
-                    .background(
-                        Capsule().fill(Color.black)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                Button {
+                },
+                onJoinTapped: {
                     KuroAccessibility.impactHaptic(.light)
                     showJoinSheet = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "ticket")
-                            .font(.system(size: 11, weight: .semibold))
-                        Text("JOIN")
-                            .font(.kuroCaption(weight: .medium))
-                            .tracking(1.6)
-                    }
-                    .foregroundColor(.black.opacity(0.80))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
-                    .background(
-                        Capsule()
-                            .stroke(Color.black.opacity(0.18), lineWidth: 0.8)
-                    )
                 }
-                .buttonStyle(.plain)
+            )
 
-                Spacer()
-            }
-
-            EditorialLayout.divider()
-
-            // Club cards
-            LazyVStack(spacing: KuroDesignSpacing.md) {
+            LazyVStack(spacing: 16) {
                 ForEach(supabaseService.myClubs) { club in
                     Button {
                         KuroAccessibility.impactHaptic(.light)
                         selectedClubId = club.id
                     } label: {
-                        ClubCardRow(club: club, hasUnseen: supabaseService.hasUnseenActivity(club: club))
+                        JournalClubCard(club: club, hasUnseen: supabaseService.hasUnseenActivity(club: club))
                     }
                     .buttonStyle(.plain)
+                    .contentShape(Rectangle())
                     .accessibilityLabel("\(club.name), \(club.member_count ?? 0) member\((club.member_count ?? 0) == 1 ? "" : "s")\(supabaseService.hasUnseenActivity(club: club) ? ", new activity" : "")")
                 }
             }
         }
+        .animation(KuroAnimation.editorial, value: isInitialLoading)
     }
 
     // MARK: - Toast helper
@@ -257,14 +160,194 @@ struct ClubsView: View {
     }
 }
 
-// MARK: - Club Card Row
+// MARK: - Journal Empty State
 
-private struct ClubCardRow: View {
+private struct JournalEmptyState: View {
+    let onCreateTapped: () -> Void
+    let onJoinTapped: () -> Void
+
+    var body: some View {
+        VStack(spacing: KuroDesignSpacing.md) {
+            Rectangle()
+                .fill(Color.kuroBlack80)
+                .frame(width: 40, height: 2)
+
+            Text("CLUBS")
+                .font(.kuroMicro(weight: .medium))
+                .tracking(2.4)
+                .foregroundColor(.kuroBlack80)
+
+            Text("Watch together.\nPrivate by design.")
+                .font(.kuroFeature(weight: .light))
+                .foregroundColor(.kuroBlack80)
+                .multilineTextAlignment(.center)
+                .lineSpacing(6)
+
+            Spacer().frame(height: 24)
+
+            Button(action: onCreateTapped) {
+                VStack(spacing: 4) {
+                    Text("CREATE A CLUB")
+                        .font(.kuroCaption(weight: .medium))
+                        .tracking(1.6)
+                        .foregroundColor(.white)
+                    Text("Invite friends to watch together")
+                        .font(.kuroMicro())
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
+                        .fill(Color.black)
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button(action: onJoinTapped) {
+                VStack(spacing: 4) {
+                    Text("JOIN WITH CODE")
+                        .font(.kuroCaption(weight: .medium))
+                        .tracking(1.6)
+                        .foregroundColor(.kuroBlack80)
+                    Text("Enter an invite code")
+                        .font(.kuroMicro())
+                        .foregroundColor(.kuroTextTertiary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
+                        .stroke(Color.black.opacity(0.18), lineWidth: 0.8)
+                )
+            }
+            .buttonStyle(.plain)
+
+            Rectangle()
+                .fill(Color.kuroBlack80)
+                .frame(width: 40, height: 2)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("No clubs yet. Create a club or join with an invite code.")
+    }
+}
+
+// MARK: - Journal Loading Skeleton
+
+private struct JournalLoadingSkeleton: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            ForEach(0..<3, id: \.self) { _ in
+                VStack(alignment: .leading, spacing: 0) {
+                    RoundedRectangle(cornerRadius: 0)
+                        .fill(Color.black.opacity(0.04))
+                        .frame(height: 140)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: 160, height: 14)
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(Color.black.opacity(0.04))
+                            .frame(width: 100, height: 10)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                }
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+            }
+            .kuroShimmer()
+
+            HStack(spacing: 8) {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .tint(.black.opacity(0.45))
+                Text("Loading clubs...")
+                    .font(.kuroCaption(weight: .light))
+                    .foregroundColor(.black.opacity(0.50))
+            }
+        }
+        .accessibilityLabel("Loading clubs")
+    }
+}
+
+// MARK: - Journal Action Row
+
+private struct JournalActionRow: View {
+    let onCreateTapped: () -> Void
+    let onJoinTapped: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: KuroDesignSpacing.sm) {
+                Button(action: onCreateTapped) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("CREATE")
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.6)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(
+                        Capsule().fill(Color.black)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button(action: onJoinTapped) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "ticket")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text("JOIN")
+                            .font(.kuroCaption(weight: .medium))
+                            .tracking(1.6)
+                    }
+                    .foregroundColor(.kuroBlack80)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(
+                        Capsule()
+                            .stroke(Color.black.opacity(0.18), lineWidth: 0.8)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+            }
+            .padding(.bottom, KuroDesignSpacing.sm)
+
+            EditorialLayout.divider()
+        }
+    }
+}
+
+// MARK: - Journal Club Card
+
+private struct JournalClubCard: View {
     let club: SupabaseService.ClubListRow
     let hasUnseen: Bool
 
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return f
+    }()
+
+    private var coverURL: URL? {
+        (club.cover_images ?? []).first.flatMap(URL.init)
+    }
+
     private var sharingBadge: String {
-        switch club.sharing_level {
+        switch club.sharing_level.lowercased() {
         case "private": return "PRIVATE"
         case "status": return "STATUS"
         case "progress": return "PROGRESS"
@@ -272,63 +355,198 @@ private struct ClubCardRow: View {
         }
     }
 
-    var body: some View {
-        KuroGlassCard(cornerRadius: KuroRadius.lg) {
-            HStack(spacing: KuroDesignSpacing.md) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Text(club.name)
-                            .font(.kuroHeadline(weight: .light))
-                            .foregroundColor(.black.opacity(0.90))
-                            .lineLimit(1)
+    private var initials: [String] {
+        (club.member_names ?? []).map { name in
+            String(name.prefix(1)).uppercased()
+        }
+    }
 
-                        if hasUnseen {
-                            Circle()
-                                .fill(Color.black.opacity(0.70))
-                                .frame(width: 6, height: 6)
-                        }
-                    }
+    private var memberCountText: String {
+        let count = club.member_count ?? 0
+        return "\(count) member\(count == 1 ? "" : "s")"
+    }
+
+    private var activityPreviewText: String? {
+        club.activity_preview?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .nilIfEmpty
+    }
+
+    private var relativeTime: String? {
+        guard let str = club.last_activity_at,
+              let date = SupabaseService.parseISO8601(str) else { return nil }
+        return Self.relativeFormatter.localizedString(for: date, relativeTo: Date()).uppercased()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Cover image
+            coverImage
+
+            // Card body
+            HStack(alignment: .top, spacing: 0) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(club.name)
+                        .font(.kuroTitle(weight: .medium))
+                        .foregroundColor(.kuroBlack80)
+                        .lineLimit(1)
 
                     HStack(spacing: 8) {
                         Text(sharingBadge)
                             .font(.kuroMicro(weight: .medium))
-                            .tracking(1.0)
-                            .foregroundColor(.black.opacity(0.45))
+                            .tracking(1.2)
+                            .foregroundColor(.kuroBlack60)
                             .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
+                            .padding(.vertical, 4)
                             .background(
-                                Capsule()
-                                    .stroke(Color.black.opacity(0.12), lineWidth: 0.6)
+                                Capsule(style: .continuous)
+                                    .fill(Color.kuroBlack04)
                             )
 
-                        if let count = club.member_count, count > 0 {
-                            HStack(spacing: 3) {
-                                Image(systemName: "person.2")
-                                    .font(.system(size: 9, weight: .regular))
-                                Text("\(count)")
-                                    .font(.kuroMicro(weight: .medium))
-                            }
-                            .foregroundColor(.black.opacity(0.40))
+                        Text(memberCountText.uppercased())
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(1.0)
+                            .foregroundColor(.kuroTextSecondary)
+
+                        if let time = relativeTime {
+                            Text(time)
+                                .font(.kuroMicro(weight: .medium))
+                                .tracking(1.0)
+                                .foregroundColor(.kuroTextTertiary)
                         }
                     }
 
-                    if let preview = club.activity_preview, !preview.isEmpty {
-                        Text(preview)
-                            .font(.kuroCaption(weight: .light))
-                            .foregroundColor(.black.opacity(0.45))
-                            .lineLimit(1)
+                    HStack(alignment: .center, spacing: 12) {
+                        avatarStack
+
+                        if let preview = activityPreviewText {
+                            Text(preview)
+                                .font(.kuroCaption(weight: .light))
+                                .foregroundColor(.kuroTextSecondary)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                        }
                     }
                 }
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.kuroTextTertiary)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(.black.opacity(0.30))
+                    .padding(.top, 2)
             }
-            .padding(.horizontal, KuroDesignSpacing.md)
-            .padding(.vertical, KuroDesignSpacing.md)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
         }
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .overlay(alignment: .topTrailing) {
+            if hasUnseen {
+                Circle()
+                    .fill(Color.kuroBlack80)
+                    .frame(width: 8, height: 8)
+                    .padding(14)
+            }
+        }
+    }
+
+    // MARK: - Cover Image
+
+    private var coverImage: some View {
+        Group {
+            if let url = coverURL {
+                KuroCachedAsyncImage(url: url, maxPixelSize: 800) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(minWidth: 0, maxWidth: .infinity)
+                            .frame(height: 140)
+                            .clipped()
+                    default:
+                        Rectangle().fill(Color.black.opacity(0.06))
+                            .frame(height: 140)
+                    }
+                }
+            } else {
+                Rectangle().fill(Color.black.opacity(0.06))
+                    .frame(height: 140)
+            }
+        }
+    }
+
+    // MARK: - Avatar Stack
+
+    private var avatarStack: some View {
+        let displayed = Array(initials.prefix(4))
+        let totalCount = club.member_count ?? displayed.count
+        let overflow = totalCount - displayed.count
+
+        return HStack(spacing: 0) {
+            if displayed.isEmpty {
+                HStack(spacing: 6) {
+                    Image(systemName: "person.2")
+                        .font(.system(size: 11, weight: .medium))
+                    Text(memberCountText)
+                        .font(.kuroMicro(weight: .medium))
+                }
+                .foregroundColor(.kuroTextSecondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.black.opacity(0.05))
+                )
+            } else {
+                ZStack(alignment: .leading) {
+                    ForEach(Array(displayed.enumerated()), id: \.offset) { index, initial in
+                        Circle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: 26, height: 26)
+                            .overlay(
+                                Circle().stroke(Color.white, lineWidth: 2)
+                            )
+                            .overlay(
+                                Text(initial)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.kuroTextSecondary)
+                            )
+                            .offset(x: CGFloat(index) * 18)
+                    }
+                    if overflow > 0 {
+                        Circle()
+                            .fill(Color.black.opacity(0.06))
+                            .frame(width: 26, height: 26)
+                            .overlay(
+                                Circle().stroke(Color.white, lineWidth: 2)
+                            )
+                            .overlay(
+                                Text("+\(overflow)")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.kuroTextTertiary)
+                            )
+                            .offset(x: CGFloat(displayed.count) * 18)
+                    }
+                }
+                .frame(
+                    width: CGFloat(displayed.count + (overflow > 0 ? 1 : 0)) * 18 + 8,
+                    alignment: .leading
+                )
+            }
+        }
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }
 
