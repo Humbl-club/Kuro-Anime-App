@@ -46,7 +46,7 @@ struct MangaDetailView: View {
                         .padding(.bottom, -safeTop)
                     
                     // Content Section
-                    VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)) {
+                    VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width)) {
                         // Title & Quick Info
                         MangaTitleSection(manga: manga)
                         
@@ -659,6 +659,10 @@ struct ChaptersSection: View {
                     .tracking(0.5)
                     .foregroundColor(.kuroBlack60)
             }
+
+            Text("Continue with chapter \(nextChapterNumber).")
+                .font(.kuroMicro(weight: .medium))
+                .foregroundColor(.kuroBlack60)
             
             VStack(spacing: KuroSpacing.sm) {
                 if isLoading && chapters.isEmpty {
@@ -703,21 +707,10 @@ struct ChaptersSection: View {
                         KuroAccessibility.impactHaptic(.light)
                         showAllChapters = true
                     }) {
-                        HStack {
-                            Text("VIEW ALL \(knownChapterTotal) CHAPTERS")
-                                .font(.kuroMicro(weight: .medium))
-                                .tracking(1.0)
-                                .foregroundColor(.kuroBlack80)
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.kuroMicro())
-                                .foregroundColor(.kuroBlack30)
-                        }
-                        .padding(KuroSpacing.md)
-                        .background(Color.kuroBlack08)
-                        .cornerRadius(KuroRadius.sm)
+                        DetailSectionUtilityButton(
+                            title: "VIEW ALL \(knownChapterTotal) CHAPTERS",
+                            subtitle: "Browse the full release list"
+                        )
                     }
                 }
             }
@@ -833,6 +826,19 @@ struct ChapterItemRow: View {
                         .font(.kuroMicro(weight: .light))
                         .foregroundColor(.kuroBlack60)
                         .lineLimit(1)
+                }
+
+                HStack(spacing: 6) {
+                    Text(hasExternalLink ? "READ READY" : "LINK PENDING")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(0.8)
+                        .foregroundColor(hasExternalLink ? .kuroBlack80 : .kuroBlack60)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(hasExternalLink ? Color.kuroBlack08 : Color.kuroBlack05)
+                        )
                 }
             }
 

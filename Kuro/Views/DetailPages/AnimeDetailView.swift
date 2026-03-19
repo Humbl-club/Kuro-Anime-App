@@ -47,7 +47,7 @@ struct AnimeDetailView: View {
                         .padding(.bottom, -safeTop)
                     
                     // Content Section
-                    VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width)) {
+                    VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width)) {
                         // Title & Quick Info
                         TitleSection(anime: anime)
                         
@@ -835,6 +835,10 @@ struct EpisodesSection: View {
                     .tracking(0.5)
                     .foregroundColor(.kuroBlack60)
             }
+
+            Text("Continue with episode \(nextEpisodeNumber).")
+                .font(.kuroMicro(weight: .medium))
+                .foregroundColor(.kuroBlack60)
             
             VStack(spacing: KuroSpacing.sm) {
                 if isLoading && episodes.isEmpty {
@@ -856,6 +860,7 @@ struct EpisodesSection: View {
                         EpisodeItemRow(
                             episode: ep,
                             isWatched: ep.number <= userProgress,
+                            hasOpenLink: validatedEpisodeURL(from: ep.streamUrl) != nil,
                             isMarking: markingEpisode == ep.number,
                             onOpen: { openEpisode(ep) },
                             onMarkWatched: { markWatched(ep) }
@@ -868,21 +873,10 @@ struct EpisodesSection: View {
                         KuroAccessibility.impactHaptic(.light)
                         showAllEpisodes = true
                     }) {
-                        HStack {
-                            Text("VIEW ALL \(episodeCount) EPISODES")
-                                .font(.kuroMicro(weight: .medium))
-                                .tracking(1.0)
-                                .foregroundColor(.kuroBlack80)
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.kuroMicro())
-                                .foregroundColor(.kuroBlack30)
-                        }
-                        .padding(KuroSpacing.md)
-                        .background(Color.kuroBlack08)
-                        .cornerRadius(KuroRadius.sm)
+                        DetailSectionUtilityButton(
+                            title: "VIEW ALL \(episodeCount) EPISODES",
+                            subtitle: "Browse the full release list"
+                        )
                     }
                 }
             }
@@ -956,6 +950,7 @@ struct EpisodesSection: View {
 struct EpisodeItemRow: View {
     let episode: Episode
     let isWatched: Bool
+    let hasOpenLink: Bool
     let isMarking: Bool
     let onOpen: () -> Void
     let onMarkWatched: () -> Void
@@ -978,6 +973,19 @@ struct EpisodeItemRow: View {
                         .font(.kuroMicro(weight: .light))
                         .foregroundColor(.kuroBlack60)
                         .lineLimit(1)
+                }
+
+                HStack(spacing: 6) {
+                    Text(hasOpenLink ? "WATCH READY" : "LINK PENDING")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(0.8)
+                        .foregroundColor(hasOpenLink ? .kuroBlack80 : .kuroBlack60)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(hasOpenLink ? Color.kuroBlack08 : Color.kuroBlack05)
+                        )
                 }
             }
 
@@ -1011,14 +1019,14 @@ struct EpisodeItemRow: View {
         .background(Color.kuroBlack08)
         .cornerRadius(KuroRadius.sm)
         .contentShape(Rectangle())
-        .onTapGesture(perform: onOpen)
+        .onTapGesture { if hasOpenLink { onOpen() } }
         // Make the whole row operable in VoiceOver (plus-button stays visual; action is exposed below).
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityValue(accessibilityValueText())
-        .accessibilityHint("Opens episode")
-        .accessibilityAction { onOpen() }
+        .accessibilityHint(hasOpenLink ? "Opens episode" : "Legal stream link not available yet")
+        .accessibilityAction { if hasOpenLink { onOpen() } }
         .accessibilityAction(named: "Mark watched") {
             if !isWatched && !isMarking { onMarkWatched() }
         }
@@ -1102,6 +1110,7 @@ struct EpisodeListSheet: View {
                         EpisodeItemRow(
                             episode: ep,
                             isWatched: ep.number <= userProgress,
+                            hasOpenLink: validatedEpisodeURL(from: ep.streamUrl) != nil,
                             isMarking: markingEpisode == ep.number,
                             onOpen: { openEpisode(ep) },
                             onMarkWatched: { markWatched(ep) }
@@ -1599,7 +1608,7 @@ struct MediaProviderActionCard: View {
 }
 
 private struct ProviderBrandPalette {
-    let monogram: String
+    let label: String
     let background: Color
     let foreground: Color
 }
@@ -1618,13 +1627,20 @@ private struct ProviderBrandMark: View {
         ZStack {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(palette?.background ?? (isAvailable ? Color.kuroBlack08 : Color.kuroBlack05))
-                .frame(width: size, height: size)
+                .frame(minWidth: palette == nil ? size : 64, minHeight: size)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke((palette?.foreground ?? .kuroBlack30).opacity(0.14), lineWidth: 0.8)
+                )
 
             if let palette {
-                Text(palette.monogram)
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(0.6)
+                Text(palette.label)
+                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .tracking(0.2)
                     .foregroundColor(palette.foreground)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .padding(.horizontal, 8)
             } else {
                 Image(systemName: fallbackSystemImage)
                     .font(.system(size: 14, weight: .semibold))
@@ -1638,17 +1654,17 @@ private func providerBrandPalette(for title: String) -> ProviderBrandPalette {
     let normalized = normalizedProviderKey(title)
     switch normalized {
     case "crunchyroll":
-        return .init(monogram: "CR", background: Color.orange.opacity(0.18), foreground: Color.orange)
+        return .init(label: "Crunchyroll", background: Color.orange.opacity(0.18), foreground: Color.orange)
     case "netflix":
-        return .init(monogram: "NF", background: Color.red.opacity(0.16), foreground: Color.red)
+        return .init(label: "Netflix", background: Color.red.opacity(0.16), foreground: Color.red)
     case "amazon prime video", "prime video":
-        return .init(monogram: "PV", background: Color.blue.opacity(0.16), foreground: Color.blue)
+        return .init(label: "Prime", background: Color.blue.opacity(0.16), foreground: Color.blue)
     case "hulu":
-        return .init(monogram: "HU", background: Color.green.opacity(0.16), foreground: Color.green)
+        return .init(label: "Hulu", background: Color.green.opacity(0.16), foreground: Color.green)
     case "youtube":
-        return .init(monogram: "YT", background: Color.red.opacity(0.14), foreground: Color.red)
+        return .init(label: "YouTube", background: Color.red.opacity(0.14), foreground: Color.red)
     case "disney plus", "disneyplus":
-        return .init(monogram: "DP", background: Color.cyan.opacity(0.16), foreground: Color.blue)
+        return .init(label: "Disney+", background: Color.cyan.opacity(0.16), foreground: Color.blue)
     default:
         let letters = title
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
@@ -1656,7 +1672,7 @@ private func providerBrandPalette(for title: String) -> ProviderBrandPalette {
             .compactMap { $0.first.map { String($0).uppercased() } }
             .joined()
         return .init(
-            monogram: letters.isEmpty ? "PL" : letters,
+            label: letters.isEmpty ? "PL" : letters,
             background: Color.kuroBlack08,
             foreground: .kuroBlack80
         )
@@ -1664,6 +1680,34 @@ private func providerBrandPalette(for title: String) -> ProviderBrandPalette {
 }
 
 // MARK: - Secondary Action Button
+struct DetailSectionUtilityButton: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: KuroSpacing.md) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.0)
+                    .foregroundColor(.kuroBlack80)
+                Text(subtitle)
+                    .font(.kuroMicro(weight: .light))
+                    .foregroundColor(.kuroBlack60)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.kuroMicro())
+                .foregroundColor(.kuroBlack30)
+        }
+        .padding(KuroSpacing.md)
+        .background(Color.kuroBlack08)
+        .cornerRadius(KuroRadius.sm)
+    }
+}
+
 struct SecondaryActionButton: View {
     let icon: String
     let label: String
