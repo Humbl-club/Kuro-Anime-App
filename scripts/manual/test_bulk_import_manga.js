@@ -4,8 +4,9 @@
 // ============================================
 
 const { createClient } = require('@supabase/supabase-js');
+const { getProjectUrl } = require('../lib/project_config');
 
-const supabaseUrl = 'https://bkdifromsqxkndnllmdj.supabase.co';
+const supabaseUrl = getProjectUrl();
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const importSecret = process.env.IMPORT_SECRET ?? process.env.SUPABASE_IMPORT_SECRET;
 if (!supabaseKey) {
@@ -78,7 +79,7 @@ async function testMangaImport() {
       console.log('Please deploy the manga edge function first:');
       console.log('1. Go to Supabase Dashboard > Edge Functions');
       console.log('2. Create new function: bulk-import-manga');
-      console.log('3. Copy code from 04_manga_edge_function.js');
+      console.log('3. Copy code from scripts/legacy/04_manga_edge_function.js');
       console.log('4. Deploy');
     }
     

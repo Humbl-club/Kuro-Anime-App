@@ -36,7 +36,14 @@ while IFS= read -r -d '' file; do
   node --check "$file"
 done < <(find "$ROOT_DIR/scripts" -maxdepth 1 -type f -name "*.js" -print0 | sort -z)
 
-for file in test_import.js test_manga_import.js test_manga_with_chapters.js; do
+manual_scripts=(
+  "scripts/manual/test_bulk_import_anime.js"
+  "scripts/manual/test_bulk_import_manga.js"
+  "scripts/manual/test_bulk_import_manga_with_chapters.js"
+  "scripts/manual/verify_supabase_connection.js"
+)
+
+for file in "${manual_scripts[@]}"; do
   if [[ -f "$ROOT_DIR/$file" ]]; then
     node --check "$ROOT_DIR/$file"
   fi

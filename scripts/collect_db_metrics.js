@@ -1,12 +1,13 @@
 /*
   Collects live database metrics using Supabase PostgREST and prints a Markdown-friendly snapshot.
-  Safe: read-only queries using service role key from test_supabase_connection.js (project constants here to avoid env juggling).
+  Safe: read-only queries using the service role key from env.
+  Project URL resolution stays centralized via scripts/lib/project_config.
 */
 
 const { createClient } = require('@supabase/supabase-js');
 const { getProjectUrl } = require('./lib/project_config');
 
-// Project constants (mirroring test_supabase_connection.js)
+// Project constants shared with the manual verification scripts.
 const SUPABASE_URL = getProjectUrl();
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SERVICE_ROLE_KEY) {

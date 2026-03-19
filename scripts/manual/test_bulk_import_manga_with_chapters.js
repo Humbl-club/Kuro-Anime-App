@@ -4,8 +4,9 @@
 // ============================================
 
 const { createClient } = require('@supabase/supabase-js');
+const { getProjectUrl } = require('../lib/project_config');
 
-const supabaseUrl = 'https://bkdifromsqxkndnllmdj.supabase.co';
+const supabaseUrl = getProjectUrl();
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const importSecret = process.env.IMPORT_SECRET ?? process.env.SUPABASE_IMPORT_SECRET;
 if (!supabaseKey) {
@@ -77,7 +78,7 @@ async function testMangaWithChapters() {
       console.log('\n❌ No working manga function found.');
       console.log('Please deploy the updated manga edge function first:');
       console.log('1. Go to Supabase Dashboard > Edge Functions');
-      console.log('2. Update your manga function with 07_manga_edge_function_with_chapters.js');
+      console.log('2. Update your manga function with scripts/legacy/07_manga_edge_function_with_chapters.js');
       console.log('3. Deploy');
     }
     
