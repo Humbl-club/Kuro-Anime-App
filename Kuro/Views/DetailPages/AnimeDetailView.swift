@@ -1619,17 +1619,32 @@ struct ProviderSelectionSheet: View {
     let onSelect: (ProviderSheetItem) -> Void
     @Environment(\.dismiss) private var dismiss
 
+    private var isVerifiedOnly: Bool {
+        !links.isEmpty && links.allSatisfy(\.isVerified)
+    }
+
+    private var explainerTitle: String {
+        if links.isEmpty { return "No legal links yet" }
+        return isVerifiedOnly ? "Verified for this title" : "Catalog fallback"
+    }
+
+    private var explainerBody: String {
+        if links.isEmpty { return "We do not have a legal provider link for this title yet." }
+        return isVerifiedOnly
+            ? "These providers are matched to this title directly. Language and subtitle options can still vary by region."
+            : "These are legal catalog links from the provider directory. Title-specific availability may still vary by region."
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: KuroSpacing.lg) {
-                    Text(links.isEmpty
-                        ? "No legal providers are available yet."
-                        : (links.allSatisfy(\.isVerified)
-                            ? "Only verified providers for this title are shown here."
-                            : "These are legal catalog links. Title availability may still vary by region."))
-                        .font(.kuroMicro(weight: .light))
-                        .foregroundColor(.kuroBlack60)
+                    ProviderSelectionExplainerCard(
+                        title: explainerTitle,
+                        message: explainerBody,
+                        linkCount: links.count,
+                        isVerifiedOnly: isVerifiedOnly
+                    )
 
                     VStack(spacing: KuroSpacing.sm) {
                         ForEach(links) { link in
@@ -1637,48 +1652,7 @@ struct ProviderSelectionSheet: View {
                                 onSelect(link)
                                 dismiss()
                             }) {
-                                HStack(alignment: .top, spacing: KuroSpacing.md) {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        HStack(spacing: 8) {
-                                            Text(link.title)
-                                                .font(.kuroBody(weight: .regular))
-                                                .foregroundColor(.kuroBlack)
-                                            Text(link.badgeText.uppercased())
-                                                .font(.kuroMicro(weight: .medium))
-                                                .tracking(0.8)
-                                                .foregroundColor(link.isVerified ? .kuroBlack : .kuroBlack60)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(
-                                                    Capsule()
-                                                        .fill(link.isVerified ? Color.kuroBlack08 : Color.kuroBlack05)
-                                                )
-                                        }
-
-                                        if let subtitle = link.subtitle, !subtitle.isEmpty {
-                                            Text(subtitle)
-                                                .font(.kuroMicro(weight: .light))
-                                                .foregroundColor(.kuroBlack60)
-                                                .multilineTextAlignment(.leading)
-                                        }
-                                    }
-
-                                    Spacer(minLength: KuroSpacing.md)
-
-                                    Image(systemName: "arrow.up.right")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(.kuroBlack30)
-                                        .padding(.top, 4)
-                                }
-                                .padding(KuroSpacing.md)
-                                .background(
-                                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                                        .fill(Color.kuroBackground)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
-                                                .stroke(Color.kuroBlack08, lineWidth: 1)
-                                        )
-                                )
+                                ProviderSelectionLinkCard(link: link)
                             }
                             .buttonStyle(.plain)
                         }
@@ -1699,6 +1673,104 @@ struct ProviderSelectionSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+}
+
+private struct ProviderSelectionExplainerCard: View {
+    let title: String
+    let message: String
+    let linkCount: Int
+    let isVerifiedOnly: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: isVerifiedOnly ? "checkmark.seal.fill" : "rectangle.stack.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(isVerifiedOnly ? .kuroBlack : .kuroBlack60)
+                Text(title.uppercased())
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.0)
+                    .foregroundColor(.kuroBlack80)
+                Spacer(minLength: KuroSpacing.md)
+                if linkCount > 0 {
+                    Text("\(linkCount) \(linkCount == 1 ? "LINK" : "LINKS")")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(0.8)
+                        .foregroundColor(.kuroBlack60)
+                }
+            }
+
+            Text(message)
+                .font(.kuroMicro(weight: .light))
+                .foregroundColor(.kuroBlack60)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(KuroSpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                .fill(Color.kuroBlack05)
+                .overlay(
+                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                        .stroke(Color.kuroBlack08, lineWidth: 0.8)
+                )
+        )
+    }
+}
+
+private struct ProviderSelectionLinkCard: View {
+    let link: ProviderSheetItem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: KuroSpacing.md) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Text(link.title)
+                        .font(.kuroBody(weight: .regular))
+                        .foregroundColor(.kuroBlack)
+                    Spacer(minLength: KuroSpacing.sm)
+                    Text(link.badgeText.uppercased())
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(0.8)
+                        .foregroundColor(link.isVerified ? .kuroBlack : .kuroBlack60)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(link.isVerified ? Color.kuroBlack08 : Color.kuroBlack05)
+                        )
+                }
+
+                if let subtitle = link.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.kuroMicro(weight: .light))
+                        .foregroundColor(.kuroBlack60)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+
+            Spacer(minLength: KuroSpacing.md)
+
+            VStack(spacing: 6) {
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.kuroBlack30)
+                Text("OPEN")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(0.8)
+                    .foregroundColor(.kuroBlack60)
+            }
+            .padding(.top, 2)
+        }
+        .padding(KuroSpacing.md)
+        .background(
+            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                .fill(link.isVerified ? Color.kuroBackground : Color.kuroBlack04)
+                .overlay(
+                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                        .stroke(Color.kuroBlack08, lineWidth: 1)
+                )
+        )
     }
 }
 
