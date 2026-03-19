@@ -1193,8 +1193,28 @@ struct MangaActionButtons: View {
         supabaseService.isInCollection(mediaId: manga.id, mediaType: "manga")
     }
 
+    private var hasReadLink: Bool {
+        readLink.flatMap { validatedURL(from: $0.url) } != nil
+    }
+
+    private var readPrimaryTitle: String {
+        guard let readLink else { return "No provider available yet" }
+        return allLinks.count > 1 ? "Choose where to read" : "Open \(readLink.title)"
+    }
+
+    private var readSecondaryTitle: String {
+        if allLinks.count > 1 { return "\(allLinks.count) legal providers available" }
+        if hasReadLink { return "Open legal provider link" }
+        return "We are still checking title-specific reading rights."
+    }
+
+    private var readBadgeText: String {
+        guard let readLink else { return "Unavailable" }
+        return readLink.badgeText
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Button(action: toggleSaved) {
                     Image(systemName: isSaved ? "heart.fill" : "heart")
@@ -1228,56 +1248,20 @@ struct MangaActionButtons: View {
                 .sheet(isPresented: $showAddToList) {
                     AddToListSheet(media: manga)
                 }
-
-                if let link = readLink, let linkURL = validatedURL(from: link.url) {
-                    Button(action: {
-                        if allLinks.count > 1 {
-                            showProviders = true
-                        } else {
-                            KuroAccessibility.impactHaptic(.medium)
-                            openURL(linkURL)
-                        }
-                    }) {
-                        Image(systemName: "book.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.kuroBlack)
-                            .frame(width: 38, height: 38)
-                            .background(Color.kuroBlack08)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(link.accessibilityLabel)
-                } else {
-                    Button(action: {
-                        KuroAccessibility.impactHaptic(.light)
-                        onToast(
-                            .init(
-                                kind: .info,
-                                title: "Link coming soon",
-                                subtitle: "No legal provider link is available yet.",
-                                actionTitle: nil,
-                                onAction: nil
-                            )
-                        )
-                    }) {
-                        Image(systemName: "book.closed")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.kuroBlack30)
-                            .frame(width: 38, height: 38)
-                            .background(Color.kuroBlack08)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("No legal read link available")
-                }
             }
 
-            Text(readLink == nil
-                ? "No legal provider link is available yet."
-                : (readAvailabilityNote ?? "Reading availability may vary by region and publisher."))
-                .font(.kuroMicro(weight: .light))
-                .foregroundColor(.kuroTextTertiary)
-                .lineLimit(2)
+            MediaProviderActionCard(
+                sectionTitle: "Read On",
+                systemImage: hasReadLink ? "book.fill" : "book.closed",
+                primaryTitle: readPrimaryTitle,
+                secondaryTitle: readSecondaryTitle,
+                note: readLink == nil
+                    ? "No legal provider link is available yet."
+                    : (readAvailabilityNote ?? "Reading availability may vary by region and publisher."),
+                badgeText: readBadgeText,
+                isAvailable: hasReadLink,
+                action: handleReadAction
+            )
         }
         .padding(10)
         .background(
@@ -1300,6 +1284,29 @@ struct MangaActionButtons: View {
                     onToast(.init(kind: .error, title: "Couldn’t open link", subtitle: "Try a different provider.", actionTitle: nil, onAction: nil))
                 }
             }
+        }
+    }
+
+    private func handleReadAction() {
+        guard let link = readLink, let linkURL = validatedURL(from: link.url) else {
+            KuroAccessibility.impactHaptic(.light)
+            onToast(
+                .init(
+                    kind: .info,
+                    title: "Link coming soon",
+                    subtitle: "No legal provider link is available yet.",
+                    actionTitle: nil,
+                    onAction: nil
+                )
+            )
+            return
+        }
+
+        KuroAccessibility.impactHaptic(.medium)
+        if allLinks.count > 1 {
+            showProviders = true
+        } else {
+            openURL(linkURL)
         }
     }
 

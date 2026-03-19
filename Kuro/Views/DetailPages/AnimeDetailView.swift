@@ -1221,8 +1221,27 @@ struct ActionButtons: View {
         supabaseService.isInCollection(mediaId: anime.id, mediaType: "anime")
     }
 
+    private var hasWatchLink: Bool {
+        watchLink.flatMap { validatedURL(from: $0.url) } != nil
+    }
+
+    private var watchPrimaryTitle: String {
+        guard let watchLink else { return "No provider available yet" }
+        return allLinks.count > 1 ? "Choose where to watch" : "Open \(watchLink.title)"
+    }
+
+    private var watchSecondaryTitle: String {
+        if allLinks.count > 1 { return "\(allLinks.count) legal providers available" }
+        if hasWatchLink { return "Open legal provider link" }
+        return "We are still checking title-specific availability." }
+
+    private var watchBadgeText: String {
+        guard let watchLink else { return "Unavailable" }
+        return watchLink.badgeText
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Button(action: toggleSaved) {
                     Image(systemName: isSaved ? "heart.fill" : "heart")
@@ -1256,56 +1275,20 @@ struct ActionButtons: View {
                 .sheet(isPresented: $showAddToList) {
                     AddToListSheet(media: anime)
                 }
-
-                if let link = watchLink, let linkURL = validatedURL(from: link.url) {
-                    Button(action: {
-                        if allLinks.count > 1 {
-                            showProviders = true
-                        } else {
-                            KuroAccessibility.impactHaptic(.medium)
-                            openURL(linkURL)
-                        }
-                    }) {
-                        Image(systemName: "play.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.kuroBlack)
-                            .frame(width: 38, height: 38)
-                            .background(Color.kuroBlack08)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(link.accessibilityLabel)
-                } else {
-                    Button(action: {
-                        KuroAccessibility.impactHaptic(.light)
-                        onToast(
-                            .init(
-                                kind: .info,
-                                title: "Link coming soon",
-                                subtitle: "No legal provider link is available yet.",
-                                actionTitle: nil,
-                                onAction: nil
-                            )
-                        )
-                    }) {
-                        Image(systemName: "play.slash")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.kuroBlack30)
-                            .frame(width: 38, height: 38)
-                            .background(Color.kuroBlack08)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("No legal watch link available")
-                }
             }
 
-            Text(watchLink == nil
-                ? "No legal provider link is available yet."
-                : (watchAvailabilityNote ?? "Availability, audio, and subtitle options may vary by region."))
-                .font(.kuroMicro(weight: .light))
-                .foregroundColor(.kuroTextTertiary)
-                .lineLimit(2)
+            MediaProviderActionCard(
+                sectionTitle: "Watch On",
+                systemImage: hasWatchLink ? "play.fill" : "play.slash",
+                primaryTitle: watchPrimaryTitle,
+                secondaryTitle: watchSecondaryTitle,
+                note: watchLink == nil
+                    ? "No legal provider link is available yet."
+                    : (watchAvailabilityNote ?? "Availability, audio, and subtitle options may vary by region."),
+                badgeText: watchBadgeText,
+                isAvailable: hasWatchLink,
+                action: handleWatchAction
+            )
         }
         .padding(10)
         .background(
@@ -1328,6 +1311,29 @@ struct ActionButtons: View {
                     onToast(.init(kind: .error, title: "Couldn’t open link", subtitle: "Try a different provider.", actionTitle: nil, onAction: nil))
                 }
             }
+        }
+    }
+
+    private func handleWatchAction() {
+        guard let link = watchLink, let linkURL = validatedURL(from: link.url) else {
+            KuroAccessibility.impactHaptic(.light)
+            onToast(
+                .init(
+                    kind: .info,
+                    title: "Link coming soon",
+                    subtitle: "No legal provider link is available yet.",
+                    actionTitle: nil,
+                    onAction: nil
+                )
+            )
+            return
+        }
+
+        KuroAccessibility.impactHaptic(.medium)
+        if allLinks.count > 1 {
+            showProviders = true
+        } else {
+            openURL(linkURL)
         }
     }
 
@@ -1446,6 +1452,93 @@ struct ActionButtons: View {
                 }
             }
         }
+    }
+}
+
+
+struct MediaProviderActionCard: View {
+    let sectionTitle: String
+    let systemImage: String
+    let primaryTitle: String
+    let secondaryTitle: String
+    let note: String
+    let badgeText: String
+    let isAvailable: Bool
+    let action: () -> Void
+
+    private var badgeForeground: Color {
+        isAvailable && badgeText == "Verified" ? .kuroBlack : .kuroBlack60
+    }
+
+    private var badgeBackground: Color {
+        isAvailable && badgeText == "Verified" ? .kuroBlack08 : .kuroBlack05
+    }
+
+    var body: some View {
+        Button(action: {
+            KuroAccessibility.impactHaptic(.light)
+            action()
+        }) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .center, spacing: 8) {
+                    Text(sectionTitle.uppercased())
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(1.0)
+                        .foregroundColor(.kuroBlack80)
+                    Spacer(minLength: KuroSpacing.sm)
+                    Text(badgeText.uppercased())
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(0.8)
+                        .foregroundColor(badgeForeground)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(badgeBackground))
+                }
+
+                HStack(spacing: KuroSpacing.md) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(isAvailable ? Color.kuroBlack08 : Color.kuroBlack05)
+                            .frame(width: 42, height: 42)
+                        Image(systemName: systemImage)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(isAvailable ? .kuroBlack : .kuroBlack30)
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(primaryTitle)
+                            .font(.kuroBody(weight: .regular))
+                            .foregroundColor(.kuroBlack)
+                            .multilineTextAlignment(.leading)
+                        Text(secondaryTitle)
+                            .font(.kuroMicro(weight: .medium))
+                            .foregroundColor(.kuroBlack60)
+                            .multilineTextAlignment(.leading)
+                    }
+
+                    Spacer(minLength: KuroSpacing.md)
+
+                    Image(systemName: isAvailable ? "chevron.right" : "clock.arrow.circlepath")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.kuroBlack30)
+                }
+
+                Text(note)
+                    .font(.kuroMicro(weight: .light))
+                    .foregroundColor(.kuroTextTertiary)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(KuroSpacing.md)
+            .background(
+                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                    .fill(isAvailable ? Color.kuroBackground : Color.kuroBlack04)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                            .strokeBorder(Color.kuroBlack08, lineWidth: 0.8)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
