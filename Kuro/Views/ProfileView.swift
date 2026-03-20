@@ -30,10 +30,10 @@ struct ProfileView: View {
                     clubsPreview
                         .padding(.horizontal, KuroDesignSpacing.padding)
 
-                    streamingFreshnessPreview
-                        .padding(.horizontal, KuroDesignSpacing.padding)
-
                     if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                        streamingFreshnessPreview
+                            .padding(.horizontal, KuroDesignSpacing.padding)
+
                         streamingServicesPreview
                             .padding(.horizontal, KuroDesignSpacing.padding)
                     }
@@ -63,7 +63,9 @@ struct ProfileView: View {
         .task(id: supabaseService.currentUserEmail) {
             // Keep the profile "club context" warm so Clubs opens instantly.
             await supabaseService.fetchMyClubs()
-            await refreshStreamingObservability()
+            if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+                await refreshStreamingObservability()
+            }
         }
         .overlay(alignment: .topTrailing) {
             Button(action: {

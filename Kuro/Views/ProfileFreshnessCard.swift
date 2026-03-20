@@ -13,7 +13,7 @@ struct ProfileFreshnessCard: View {
 
     private var cacheSummary: String {
         guard let snapshot else { return "Loading..." }
-        return "\(snapshot.cachedVerifiedTitleCount) verified cached / \(snapshot.cachedCatalogTitleCount) provider rows"
+        return "\(snapshot.cachedVerifiedTitleCount) verified / \(snapshot.cachedCatalogTitleCount) catalog titles in this session"
     }
 
     private var queueSummary: String {
@@ -28,20 +28,30 @@ struct ProfileFreshnessCard: View {
     }
 
     private var statusCaption: String {
-        guard let snapshot else { return "Streaming freshness is syncing..." }
+        guard let snapshot else { return "Streaming status is syncing..." }
         if !snapshot.isStreamingAvailabilityEnabled {
-            return "Streaming availability is off; freshness data is limited to local cache."
+            return "Streaming availability is off."
         }
         if snapshot.queueSummary?.urgentPendingCount ?? 0 > 0 {
-            return "Recent detail opens and manual checks are prioritized first."
+            return "Recent detail opens and manual checks are prioritized first. Counts reflect this app session only."
         }
-        return "Freshness checks are up to date."
+        return "No urgent refresh requests right now. Counts reflect this app session only."
+    }
+
+
+    private func reasonLabel(for key: String) -> String {
+        switch key {
+        case "detail_open": return "detail opens"
+        case "user_tap": return "manual checks"
+        case "scheduled": return "scheduled"
+        default: return key.replacingOccurrences(of: "_", with: " ")
+        }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Text("FRESHNESS")
+                Text("STREAMING STATUS")
                     .font(.kuroMicro(weight: .medium))
                     .tracking(2.0)
                     .foregroundColor(.kuroBlack60)
@@ -76,7 +86,7 @@ struct ProfileFreshnessCard: View {
                 )
 
                 ProfileFreshnessMetricRow(
-                    label: "Availability cache",
+                    label: "Session cache",
                     value: cacheSummary,
                     icon: "checkmark.seal"
                 )
@@ -91,7 +101,7 @@ struct ProfileFreshnessCard: View {
             if let snapshot, let mix = snapshot.queueSummary?.requestReasonMix, !mix.isEmpty {
                 FlowLayout(spacing: 6) {
                     ForEach(mix.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
-                        Text("\(key) \(value)")
+                        Text("\(reasonLabel(for: key)) \(value)")
                             .font(.kuroMicro(weight: .medium))
                             .tracking(0.6)
                             .foregroundColor(.kuroBlack60)
