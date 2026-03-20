@@ -332,7 +332,15 @@ struct KuroMainView: View {
                 await supabaseService.checkClubNotifications()
             }
             .sheet(isPresented: $showProfileSheet) {
-                ProfileView()
+                ProfileView(
+                    onOpenConciergeImportReview: { prompt in
+                        showProfileSheet = false
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 300_000_000)
+                            handleDeepLink(.concierge(prompt: prompt))
+                        }
+                    }
+                )
                     .environment(supabaseService)
             }
             .sheet(isPresented: $showSearchSheet) {

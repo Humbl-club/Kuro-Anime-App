@@ -138,7 +138,7 @@ struct ConciergeView: View {
             MangaDetailView(manga: manga)
         }
         .sheet(isPresented: $showAniListImportSheet) {
-            aniListImportSheet(
+            ConciergeAniListImportSheet(
                 supabaseService: supabaseService,
                 isGermanLocale: isGermanLocale
             ) { response in

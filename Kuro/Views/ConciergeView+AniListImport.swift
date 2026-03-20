@@ -1,19 +1,5 @@
 import SwiftUI
 
-extension View {
-    func aniListImportSheet(
-        supabaseService: SupabaseService,
-        isGermanLocale: Bool,
-        onImportCompleted: @escaping (SupabaseService.ConciergeAniListImportResponse) async -> Void
-    ) -> some View {
-        ConciergeAniListImportSheet(
-            supabaseService: supabaseService,
-            isGermanLocale: isGermanLocale,
-            onImportCompleted: onImportCompleted
-        )
-    }
-}
-
 struct ConciergeAniListImportSheet: View {
     let supabaseService: SupabaseService
     let isGermanLocale: Bool

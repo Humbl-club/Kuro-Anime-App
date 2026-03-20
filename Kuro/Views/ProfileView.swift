@@ -3,15 +3,19 @@ import SwiftUI
 
 // Dedicated profile/settings page (moved out of the header to keep the top bar clean).
 struct ProfileView: View {
+    var onOpenConciergeImportReview: ((String) -> Void)? = nil
+
     @Environment(\.dismiss) private var dismiss
     @Environment(SupabaseService.self) private var supabaseService
     @State private var isSyncing: Bool = false
+    @State private var isProcessingAniListImport: Bool = false
     @State private var showClubs: Bool = false
     @State private var toast: KuroToastState? = nil
     @State private var showDeleteConfirmation: Bool = false
     @State private var isDeleting: Bool = false
     @State private var showServicePicker: Bool = false
     @State private var showAniListImportSheet: Bool = false
+    @State private var importResult: ProfileImportResult? = nil
     @State private var streamingObservability: SupabaseService.StreamingObservabilitySnapshot? = nil
     @State private var isRefreshingStreamingObservability: Bool = false
 
@@ -46,6 +50,11 @@ struct ProfileView: View {
 
                     actions
                         .padding(.horizontal, KuroDesignSpacing.padding)
+
+                    if let importResult {
+                        importResultPreview(importResult)
+                            .padding(.horizontal, KuroDesignSpacing.padding)
+                    }
 
                     footer
                         .padding(.top, 6)
@@ -117,7 +126,7 @@ struct ProfileView: View {
             .environment(supabaseService)
         }
         .sheet(isPresented: $showAniListImportSheet) {
-            aniListImportSheet(
+            ConciergeAniListImportSheet(
                 supabaseService: supabaseService,
                 isGermanLocale: isGermanLocale
             ) { response in
@@ -350,8 +359,10 @@ struct ProfileView: View {
 
             ProfileActionRow(
                 icon: "square.and.arrow.down",
-                title: "Import from AniList",
-                subtitle: "Preview and import your anime or manga lists"
+                title: isGermanLocale ? "Aus AniList importieren" : "Import from AniList",
+                subtitle: isGermanLocale
+                    ? "Vorschau und Import fur Anime- oder Manga-Listen"
+                    : "Preview and import your anime or manga lists"
             ) {
                 showAniListImportSheet = true
             }
@@ -436,6 +447,20 @@ struct ProfileView: View {
                 .padding(.top, 6)
                 .padding(.horizontal, 8)
             }
+
+            if isProcessingAniListImport {
+                HStack(spacing: 10) {
+                    ProgressView()
+                        .scaleEffect(0.9)
+                        .tint(.kuroBlack60)
+                    Text(isGermanLocale ? "AniList wird importiert..." : "Importing from AniList...")
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.kuroBlack60)
+                    Spacer(minLength: 0)
+                }
+                .padding(.top, 6)
+                .padding(.horizontal, 8)
+            }
         }
     }
 
@@ -444,29 +469,300 @@ struct ProfileView: View {
         return language.hasPrefix("de")
     }
 
+    @ViewBuilder
+    private func importResultPreview(_ result: ProfileImportResult) -> some View {
+        ProfileImportResultCard(
+            result: result,
+            isGermanLocale: isGermanLocale,
+            onDismiss: { importResult = nil },
+            onContinueToConcierge: {
+                guard case .needsReview(_, _, _, let importText) = result else { return }
+                importResult = nil
+                onOpenConciergeImportReview?(importText)
+            }
+        )
+    }
+
     @MainActor
     private func handleAniListImportCompleted(_ response: SupabaseService.ConciergeAniListImportResponse) async {
-        isSyncing = true
-        defer { isSyncing = false }
+        let importText = response.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard response.success, !importText.isEmpty else {
+            showToast(
+                .error,
+                title: isGermanLocale ? "AniList-Import fehlgeschlagen" : "AniList import failed",
+                subtitle: response.error ?? (isGermanLocale ? "Es wurden keine importierbaren Titel geliefert." : "AniList did not return importable titles.")
+            )
+            return
+        }
 
+        isProcessingAniListImport = true
+        importResult = nil
+        defer { isProcessingAniListImport = false }
+
+        do {
+            let parseResponse = try await supabaseService.conciergeParse(text: importText, scope: .both)
+            guard parseResponse.success, !parseResponse.items.isEmpty else {
+                showToast(
+                    .error,
+                    title: isGermanLocale ? "AniList-Import fehlgeschlagen" : "AniList import failed",
+                    subtitle: isGermanLocale ? "Kuro konnte die importierten Titel nicht zuordnen." : "Kuro could not match the imported titles."
+                )
+                return
+            }
+
+            switch profileImportDecision(for: parseResponse, importText: importText) {
+            case .apply(let payload):
+                let applyResponse = try await supabaseService.conciergeApply(items: payload)
+                guard applyResponse.success else {
+                    let detail = applyResponse.errors?.first?.error
+                        ?? (isGermanLocale ? "Die Titel konnten nicht ubernommen werden." : "The titles could not be applied.")
+                    showToast(
+                        .error,
+                        title: isGermanLocale ? "Import fehlgeschlagen" : "Import failed",
+                        subtitle: detail
+                    )
+                    return
+                }
+
+                await refreshProfileDataAfterImport()
+                KuroAccessibility.successHaptic()
+                importResult = makeAppliedImportResult(applyResponse: applyResponse, truncated: response.truncated == true)
+            case .needsReview(let reviewText):
+                KuroAccessibility.impactHaptic(.light)
+                importResult = makeNeedsReviewImportResult(importText: reviewText, truncated: response.truncated == true)
+            }
+        } catch {
+            showToast(
+                .error,
+                title: isGermanLocale ? "AniList-Import fehlgeschlagen" : "AniList import failed",
+                subtitle: error.localizedDescription
+            )
+        }
+    }
+
+    private func profileImportDecision(
+        for response: SupabaseService.ConciergeParseResponse,
+        importText: String
+    ) -> ProfileImportDecision {
+        var selectedByItemId: [String: SupabaseService.ConciergeCandidate] = [:]
+        var itemActions: [String: ImportItemAction] = [:]
+
+        for item in response.items {
+            guard item.ambiguity == nil else { return .needsReview(importText: importText) }
+            guard item.existing_entry == nil else { return .needsReview(importText: importText) }
+            guard let top = item.candidates.first else { return .needsReview(importText: importText) }
+            guard top.score >= 0.85 else { return .needsReview(importText: importText) }
+            guard !hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention) else {
+                return .needsReview(importText: importText)
+            }
+
+            selectedByItemId[item.id] = top
+            itemActions[item.id] = computeItemAction(item: item)
+        }
+
+        let payload = buildApplyPayload(
+            from: response,
+            selectedByItemId: selectedByItemId,
+            itemActions: itemActions
+        )
+
+        guard !payload.isEmpty else {
+            return .needsReview(importText: importText)
+        }
+        return .apply(payload: payload)
+    }
+
+    private func buildApplyPayload(
+        from response: SupabaseService.ConciergeParseResponse,
+        selectedByItemId: [String: SupabaseService.ConciergeCandidate],
+        itemActions: [String: ImportItemAction]
+    ) -> [[String: Any]] {
+        response.items.compactMap { item -> [String: Any]? in
+            guard let candidate = selectedByItemId[item.id] else { return nil }
+
+            let action = itemActions[item.id] ?? .add
+            guard action != .skip else { return nil }
+
+            let mediaType = candidate.media_type
+            let status = normalizedStatus(for: item.parsed.status, mediaType: mediaType)
+
+            var payload: [String: Any] = [
+                "raw": item.raw,
+                "mediaType": mediaType.uppercased(),
+                "mediaId": candidate.media_id,
+                "status": status,
+                "confidence": candidate.score,
+                "action": action.rawValue,
+            ]
+
+            let parsed = item.parsed
+            if let value = parsed.progressEpisodes { payload["progressEpisodes"] = value }
+            if let value = parsed.progressChapters { payload["progressChapters"] = value }
+            if let value = parsed.progressVolumes { payload["progressVolumes"] = value }
+            if let value = parsed.seasonNumber { payload["seasonNumber"] = value }
+            if let value = parsed.episodeInSeason { payload["episodeInSeason"] = value }
+            if let value = parsed.caughtUp { payload["caughtUp"] = value }
+            if let value = parsed.lastEpisode { payload["lastEpisode"] = value }
+            if let value = parsed.completed { payload["completed"] = value }
+            if let value = parsed.rating { payload["rating"] = value }
+
+            if action == .update, let existing = item.existing_entry {
+                var expected: [String: Any] = ["status": existing.status]
+                if let episodes = existing.progress_episodes { expected["progress_episodes"] = episodes }
+                if let chapters = existing.progress_chapters { expected["progress_chapters"] = chapters }
+                if let volumes = existing.progress_volumes { expected["progress_volumes"] = volumes }
+                payload["expectedExisting"] = expected
+            }
+
+            return payload
+        }
+    }
+
+    private func computeItemAction(item: SupabaseService.ConciergeParseItem) -> ImportItemAction {
+        guard let existing = item.existing_entry else { return .add }
+        let diff = computeDiff(existing: existing, parsed: item.parsed)
+        if let diff, !diff.isEmpty { return .update }
+        return .skip
+    }
+
+    private func computeDiff(
+        existing: SupabaseService.ConciergeExistingEntry,
+        parsed: SupabaseService.ConciergeParseItemParsed
+    ) -> ImportDiff? {
+        var diff = ImportDiff()
+
+        if let parsedStatus = parsed.status,
+           parsedStatus.uppercased() != existing.status.uppercased() {
+            diff.status = ImportDiff.FieldDiff(from: existing.status, to: parsedStatus.uppercased())
+        }
+        if let episodes = parsed.progressEpisodes,
+           episodes != (existing.progress_episodes ?? 0) {
+            diff.progressEpisodes = ImportDiff.FieldDiff(from: existing.progress_episodes ?? 0, to: episodes)
+        }
+        if let chapters = parsed.progressChapters,
+           chapters != (existing.progress_chapters ?? 0) {
+            diff.progressChapters = ImportDiff.FieldDiff(from: existing.progress_chapters ?? 0, to: chapters)
+        }
+        if let volumes = parsed.progressVolumes,
+           volumes != (existing.progress_volumes ?? 0) {
+            diff.progressVolumes = ImportDiff.FieldDiff(from: existing.progress_volumes ?? 0, to: volumes)
+        }
+
+        return diff.isEmpty ? nil : diff
+    }
+
+    private func normalizedStatus(for raw: String?, mediaType: String?) -> String {
+        let status = (raw ?? "").uppercased()
+        if mediaType == "manga", status == "WATCHING" { return "READING" }
+        if mediaType == "anime", status == "READING" { return "WATCHING" }
+        if status.isEmpty { return "PLANNING" }
+        return status
+    }
+
+    private func strippedBaseTitle(_ raw: String) -> String {
+        var title = raw
+        if let range = title.range(of: #"\s*\([^)]*\)\s*$"#, options: .regularExpression) {
+            title.removeSubrange(range)
+        }
+        if let range = title.range(of: ": ") {
+            title = String(title[title.startIndex..<range.lowerBound])
+        }
+        return title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private func hasAmbiguousAdaptations(
+        candidates: [SupabaseService.ConciergeCandidate],
+        yearMention: Int?
+    ) -> Bool {
+        guard candidates.count >= 2 else { return false }
+
+        let top = candidates[0]
+        let second = candidates[1]
+
+        guard top.media_id != second.media_id else { return false }
+
+        let baseTop = strippedBaseTitle(top.title_raw)
+        let baseSecond = strippedBaseTitle(second.title_raw)
+        guard baseTop == baseSecond else { return false }
+
+        if let mentionedYear = yearMention, let topYear = top.year, topYear == mentionedYear {
+            return false
+        }
+
+        return true
+    }
+
+    @MainActor
+    private func refreshProfileDataAfterImport() async {
         await supabaseService.fetchUserLists()
         await supabaseService.fetchCollectionItems()
         await supabaseService.fetchUpcomingForUser(days: 7)
+    }
 
-        let count = response.itemCount ?? 0
-        let title = isGermanLocale ? "AniList importiert" : "AniList imported"
-        let subtitle: String
-        if count > 0 {
-            subtitle = isGermanLocale
-                ? "\(count) Titel zur Bibliothek hinzugefugt"
-                : "\(count) items added to your library"
-        } else {
-            subtitle = isGermanLocale
-                ? "Deine Bibliothek wurde aktualisiert"
-                : "Your library was updated"
+    private func makeAppliedImportResult(
+        applyResponse: SupabaseService.ConciergeApplyResponse,
+        truncated: Bool
+    ) -> ProfileImportResult {
+        let appliedItems = applyResponse.applied ?? []
+        let addCount = appliedItems.filter { $0.action == "add" }.count
+        let updateCount = appliedItems.filter { $0.action == "update" }.count
+        let conflictCount = applyResponse.conflicts?.count ?? 0
+
+        var summaryParts: [String] = []
+        if addCount > 0 {
+            summaryParts.append(isGermanLocale ? "\(addCount) hinzugefugt" : "\(addCount) added")
         }
-        KuroAccessibility.successHaptic()
-        showToast(.success, title: title, subtitle: subtitle)
+        if updateCount > 0 {
+            summaryParts.append(isGermanLocale ? "\(updateCount) aktualisiert" : "\(updateCount) updated")
+        }
+        if summaryParts.isEmpty {
+            summaryParts.append(
+                isGermanLocale
+                    ? "\(appliedItems.count) Titel ubernommen"
+                    : "\(appliedItems.count) items applied"
+            )
+        }
+
+        var detailParts: [String] = []
+        if conflictCount > 0 {
+            detailParts.append(
+                isGermanLocale
+                    ? "\(conflictCount) Konflikt\(conflictCount == 1 ? "" : "e") erfordern Prufung."
+                    : "\(conflictCount) conflict\(conflictCount == 1 ? "" : "s") still need review."
+            )
+        }
+        if truncated {
+            detailParts.append(
+                isGermanLocale
+                    ? "AniList hat nur die ersten 200 Titel geliefert."
+                    : "AniList only supplied the first 200 items."
+            )
+        }
+
+        return .applied(
+            title: isGermanLocale ? "Import abgeschlossen" : "Import completed",
+            summary: summaryParts.joined(separator: ", "),
+            detail: detailParts.isEmpty ? nil : detailParts.joined(separator: " ")
+        )
+    }
+
+    private func makeNeedsReviewImportResult(importText: String, truncated: Bool) -> ProfileImportResult {
+        let detail = truncated
+            ? (isGermanLocale
+                ? "AniList hat nur die ersten 200 Titel geliefert. Offne Concierge, um den Import zu prufen."
+                : "AniList only supplied the first 200 items. Open Concierge to review this import.")
+            : (isGermanLocale
+                ? "Mindestens ein Titel braucht Bestatigung, bevor Kuro ihn ubernehmen kann."
+                : "At least one title needs confirmation before Kuro can apply it.")
+
+        return .needsReview(
+            title: isGermanLocale ? "Prufung in Concierge erforderlich" : "Review needed in Concierge",
+            summary: isGermanLocale
+                ? "Dieser AniList-Import braucht noch eine kurze Prufung."
+                : "This AniList import still needs a quick review.",
+            detail: detail,
+            importText: importText
+        )
     }
 
     private func obtainAppleAuthorizationCode() async -> String? {
@@ -772,6 +1068,135 @@ private struct ServiceToggleRow: View {
             .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
+    }
+}
+
+private enum ProfileImportDecision {
+    case apply(payload: [[String: Any]])
+    case needsReview(importText: String)
+}
+
+private enum ProfileImportResult: Identifiable {
+    case applied(title: String, summary: String, detail: String?)
+    case needsReview(title: String, summary: String, detail: String?, importText: String)
+
+    var id: String {
+        switch self {
+        case let .applied(title, summary, _):
+            return "applied-\(title)-\(summary)"
+        case let .needsReview(title, summary, _, _):
+            return "review-\(title)-\(summary)"
+        }
+    }
+
+    var titleText: String {
+        switch self {
+        case let .applied(title, _, _), let .needsReview(title, _, _, _):
+            return title
+        }
+    }
+
+    var summaryText: String {
+        switch self {
+        case let .applied(_, summary, _), let .needsReview(_, summary, _, _):
+            return summary
+        }
+    }
+
+    var detailText: String? {
+        switch self {
+        case let .applied(_, _, detail), let .needsReview(_, _, detail, _):
+            return detail
+        }
+    }
+}
+
+private struct ProfileImportResultCard: View {
+    let result: ProfileImportResult
+    let isGermanLocale: Bool
+    let onDismiss: () -> Void
+    let onContinueToConcierge: () -> Void
+
+    private var eyebrow: String {
+        switch result {
+        case .applied:
+            return isGermanLocale ? "IMPORT" : "IMPORT"
+        case .needsReview:
+            return isGermanLocale ? "PRUFUNG" : "REVIEW"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(eyebrow)
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(2.0)
+                        .foregroundColor(.kuroBlack60)
+
+                    Text(result.titleText)
+                        .font(.kuroBody(weight: .regular))
+                        .foregroundColor(.kuroBlack80)
+
+                    Text(result.summaryText)
+                        .font(.kuroCaption(weight: .light))
+                        .foregroundColor(.kuroBlack60)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if let detail = result.detailText {
+                        Text(detail)
+                            .font(.kuroCaption(weight: .light))
+                            .foregroundColor(.kuroTextTertiary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.kuroBlack60)
+                        .frame(width: 24, height: 24)
+                        .background(
+                            Circle()
+                                .fill(Color.kuroBlack05)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+
+            if case .needsReview = result {
+                Button(action: onContinueToConcierge) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles.rectangle.stack")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text(isGermanLocale ? "IN CONCIERGE PRUFEN" : "REVIEW IN CONCIERGE")
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(1.2)
+                    }
+                    .foregroundColor(.kuroWhite)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                            .fill(Color.kuroBlack80)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 14)
+        .background(
+            RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
+                .fill(Color.kuroSecondaryBackground.opacity(0.90))
+                .overlay(
+                    RoundedRectangle(cornerRadius: KuroRadius.lg, style: .continuous)
+                        .stroke(Color.black.opacity(0.06), lineWidth: 0.8)
+                )
+        )
     }
 }
 
