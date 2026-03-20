@@ -1,6 +1,6 @@
 import SwiftUI
 
-extension ConciergeView {
+extension View {
     func aniListImportSheet(
         supabaseService: SupabaseService,
         isGermanLocale: Bool,
@@ -14,7 +14,7 @@ extension ConciergeView {
     }
 }
 
-private struct ConciergeAniListImportSheet: View {
+struct ConciergeAniListImportSheet: View {
     let supabaseService: SupabaseService
     let isGermanLocale: Bool
     let onImportCompleted: (SupabaseService.ConciergeAniListImportResponse) async -> Void

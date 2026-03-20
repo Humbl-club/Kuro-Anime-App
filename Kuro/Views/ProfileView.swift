@@ -11,6 +11,7 @@ struct ProfileView: View {
     @State private var showDeleteConfirmation: Bool = false
     @State private var isDeleting: Bool = false
     @State private var showServicePicker: Bool = false
+    @State private var showAniListImportSheet: Bool = false
     @State private var streamingObservability: SupabaseService.StreamingObservabilitySnapshot? = nil
     @State private var isRefreshingStreamingObservability: Bool = false
 
@@ -114,6 +115,14 @@ struct ProfileView: View {
                     }
             }
             .environment(supabaseService)
+        }
+        .sheet(isPresented: $showAniListImportSheet) {
+            aniListImportSheet(
+                supabaseService: supabaseService,
+                isGermanLocale: isGermanLocale
+            ) { response in
+                await handleAniListImportCompleted(response)
+            }
         }
     }
 
@@ -340,6 +349,14 @@ struct ProfileView: View {
             }
 
             ProfileActionRow(
+                icon: "square.and.arrow.down",
+                title: "Import from AniList",
+                subtitle: "Preview and import your anime or manga lists"
+            ) {
+                showAniListImportSheet = true
+            }
+
+            ProfileActionRow(
                 icon: "trash",
                 title: "Clear Cache",
                 subtitle: "Reset image + detail caches",
@@ -420,6 +437,36 @@ struct ProfileView: View {
                 .padding(.horizontal, 8)
             }
         }
+    }
+
+    private var isGermanLocale: Bool {
+        let language = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
+        return language.hasPrefix("de")
+    }
+
+    @MainActor
+    private func handleAniListImportCompleted(_ response: SupabaseService.ConciergeAniListImportResponse) async {
+        isSyncing = true
+        defer { isSyncing = false }
+
+        await supabaseService.fetchUserLists()
+        await supabaseService.fetchCollectionItems()
+        await supabaseService.fetchUpcomingForUser(days: 7)
+
+        let count = response.itemCount ?? 0
+        let title = isGermanLocale ? "AniList importiert" : "AniList imported"
+        let subtitle: String
+        if count > 0 {
+            subtitle = isGermanLocale
+                ? "\(count) Titel zur Bibliothek hinzugefugt"
+                : "\(count) items added to your library"
+        } else {
+            subtitle = isGermanLocale
+                ? "Deine Bibliothek wurde aktualisiert"
+                : "Your library was updated"
+        }
+        KuroAccessibility.successHaptic()
+        showToast(.success, title: title, subtitle: subtitle)
     }
 
     private func obtainAppleAuthorizationCode() async -> String? {
