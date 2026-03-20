@@ -630,16 +630,17 @@ struct Dense2ColumnSection: View {
             let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
             let cardWidth = floor(availableWidth / 2)
             let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 56
+            let textBlockHeight: CGFloat = 52
             let cardSpacing: CGFloat = 8
             let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
+            let rowSpacing: CGFloat = 14
 
             let columns = [
                 GridItem(.fixed(cardWidth), spacing: spacing),
                 GridItem(.fixed(cardWidth), spacing: spacing)
             ]
 
-            LazyVGrid(columns: columns, spacing: 16) {
+            LazyVGrid(columns: columns, spacing: rowSpacing) {
                 ForEach(items, id: \.id) { anime in
                     GridAnimeCard(media: anime, cardWidth: cardWidth, cardHeight: totalCardHeight)
                         .onAppear {
@@ -668,13 +669,13 @@ struct CompactAnimeCard: View {
     var body: some View {
         let imageHeight: CGFloat = floor(cardWidth / 0.6667)
         // Keep a fixed total height so horizontal rows never "wobble" based on title wrapping.
-        let titleHeight: CGFloat = 34
+        let titleHeight: CGFloat = 32
         let metaHeight: CGFloat = 12
-        let innerSpacingImageToText: CGFloat = 8
-        let innerSpacingTitleToMeta: CGFloat = 4
+        let innerSpacingImageToText: CGFloat = 7
+        let innerSpacingTitleToMeta: CGFloat = 3
         let totalHeight = imageHeight + innerSpacingImageToText + titleHeight + innerSpacingTitleToMeta + metaHeight
 
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 7) {
                 // Image with score badge
                 ZStack(alignment: .topTrailing) {
                     KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 420) { phase in
@@ -694,7 +695,7 @@ struct CompactAnimeCard: View {
                         }
                     }
                     .frame(width: cardWidth, height: imageHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
 
                     if let rating = media.rating, rating > 0 {
                         HStack(spacing: 2) {
@@ -715,9 +716,9 @@ struct CompactAnimeCard: View {
                 }
 
                 // Title and info
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(media.title)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.black)
                         .lineLimit(2)
                         .frame(height: titleHeight, alignment: .top)
@@ -826,7 +827,7 @@ struct GridAnimeCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 7) {
                 // Image with score - FIXED HEIGHT
                 let imageHeight = max(100, floor(cardWidth / 0.7))
 
@@ -848,7 +849,7 @@ struct GridAnimeCard: View {
                         }
                     }
                     .frame(width: cardWidth, height: imageHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
 
                     HStack(alignment: .top) {
                         Spacer()
@@ -876,7 +877,7 @@ struct GridAnimeCard: View {
                 // Title and info
                 VStack(alignment: .leading, spacing: 2) {
                     Text(KuroCardText.sanitizeTitleForCard(media.title))
-                        .font(.system(size: 13, weight: .light, design: .serif))
+                        .font(.system(size: 12, weight: .light, design: .serif))
                         .textCase(.uppercase)
                         .tracking(media.title.count >= 26 ? 0.3 : 0.6)
                         .foregroundColor(.black.opacity(0.9))
@@ -884,7 +885,7 @@ struct GridAnimeCard: View {
                         .minimumScaleFactor(0.92)
                         .allowsTightening(true)
                         .truncationMode(.tail)
-                        .frame(height: 34, alignment: .top)
+                        .frame(height: 32, alignment: .top)
 
                     if let metaLine {
                         Text(metaLine)
@@ -1137,22 +1138,83 @@ struct Dense2ColumnMangaSection<Item: MediaDisplayable>: View {
             let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
             let cardWidth = floor(availableWidth / 2)
             let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 56
+            let textBlockHeight: CGFloat = 52
             let cardSpacing: CGFloat = 8
             let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
+            let rowSpacing: CGFloat = 14
 
             let columns = [
                 GridItem(.fixed(cardWidth), spacing: spacing),
                 GridItem(.fixed(cardWidth), spacing: spacing)
             ]
 
-            LazyVGrid(columns: columns, spacing: 16) {
+            LazyVGrid(columns: columns, spacing: rowSpacing) {
                 ForEach(items, id: \.id) { manga in
                     GridAnimeCard(media: manga, cardWidth: cardWidth, cardHeight: totalCardHeight)
                 }
             }
             .padding(.horizontal, 20)
         }
+    }
+}
+
+// MARK: - Full Section Header
+struct DiscoverFullSectionHeader: View {
+    let title: String
+    let countLabel: String
+    @Binding var searchText: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("EDITORIAL RAIL")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(1.4)
+                        .foregroundColor(.kuroTextTertiary)
+
+                    Text(title)
+                        .font(.system(size: 20, weight: .semibold, design: .serif))
+                        .tracking(0.4)
+                        .foregroundColor(.black)
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: 12)
+
+                Text(countLabel)
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.2)
+                    .foregroundColor(.kuroTextTertiary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(Color.kuroBlack05)
+                    )
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.kuroCaption(weight: .semibold))
+                    .foregroundColor(.kuroTextTertiary)
+                TextField("Search \(title.lowercased())...", text: $searchText)
+                    .font(.kuroBody(weight: .light))
+                    .foregroundColor(.black)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 11)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.black.opacity(0.05))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.black.opacity(0.05), lineWidth: 0.8)
+                    )
+            )
+        }
+        .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+        .padding(.top, 12)
     }
 }
 
@@ -1252,16 +1314,17 @@ struct Dense2ColumnSectionFixed<Item: MediaDisplayable>: View {
             let availableWidth = screenWidth - totalHorizontalPadding - totalSpacing
             let cardWidth = floor(availableWidth / 2)
             let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 56
+            let textBlockHeight: CGFloat = 52
             let cardSpacing: CGFloat = 8
             let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
+            let rowSpacing: CGFloat = 14
 
             let columns = [
                 GridItem(.fixed(cardWidth), spacing: spacing),
                 GridItem(.fixed(cardWidth), spacing: spacing)
             ]
 
-            LazyVGrid(columns: columns, spacing: 16) {
+            LazyVGrid(columns: columns, spacing: rowSpacing) {
                 ForEach(filteredItems, id: \.id) { anime in
                     GridAnimeCard(media: anime, cardWidth: cardWidth, cardHeight: totalCardHeight)
                 }
@@ -1314,16 +1377,17 @@ struct Dense2ColumnMangaSectionFixed<Item: MediaDisplayable>: View {
             let availableWidth = screenWidth - totalHorizontalPadding - totalSpacing
             let cardWidth = floor(availableWidth / 2)
             let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 56
+            let textBlockHeight: CGFloat = 52
             let cardSpacing: CGFloat = 8
             let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
+            let rowSpacing: CGFloat = 14
 
             let columns = [
                 GridItem(.fixed(cardWidth), spacing: spacing),
                 GridItem(.fixed(cardWidth), spacing: spacing)
             ]
 
-            LazyVGrid(columns: columns, spacing: 16) {
+            LazyVGrid(columns: columns, spacing: rowSpacing) {
                 ForEach(items, id: \.id) { manga in
                     GridAnimeCard(media: manga, cardWidth: cardWidth, cardHeight: totalCardHeight)
                 }
@@ -1354,49 +1418,29 @@ struct FullSectionView<Item: MediaDisplayable>: View {
         NavigationView {
             GeometryReader { geo in
                 let metrics = KuroCardMetrics.grid(for: geo.size.width, columns: 2)
+                let compactCardHeight = max(0, metrics.cardHeight - 4)
+                let rowSpacing: CGFloat = 14
 
                 ScrollView(.vertical, showsIndicators: false) {
-                    Text("EDITORIAL RAIL")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.4)
-                        .foregroundColor(.kuroTextTertiary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                        .padding(.top, 12)
-
-                    // Search bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.kuroTextTertiary)
-                        TextField("Search \(title.lowercased())...", text: $searchText)
-                            .font(.system(size: 14))
-                    }
-                    .padding(12)
-                    .background(Color.black.opacity(0.05))
-                    .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                    .padding(.top, 12)
-
-                    // Results count
-                    Text("\(filtered.count) RESULTS")
-                        .font(.system(size: 10, weight: .medium))
-                        .tracking(1.5)
-                        .foregroundColor(.black.opacity(0.5))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                        .padding(.top, 16)
+                    DiscoverFullSectionHeader(
+                        title: title,
+                        countLabel: "\(filtered.count)",
+                        searchText: $searchText
+                    )
 
                     // Grid (no fixed height; allow ScrollView to size content correctly)
                     LazyVGrid(
                         columns: metrics.columns,
                         alignment: .center,
-                        spacing: KuroCardMetrics.rowSpacing
+                        spacing: rowSpacing
                     ) {
                         ForEach(filtered, id: \.id) { anime in
-                            GridAnimeCard(media: anime, cardWidth: metrics.cardWidth, cardHeight: metrics.cardHeight)
-                                .frame(width: metrics.cardWidth, height: metrics.cardHeight, alignment: .top)
+                            GridAnimeCard(media: anime, cardWidth: metrics.cardWidth, cardHeight: compactCardHeight)
+                                .frame(width: metrics.cardWidth, height: compactCardHeight, alignment: .top)
                         }
                     }
                     .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+                    .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
                 // Ensure the last rows can scroll fully above the home indicator / tab chrome.
@@ -1437,46 +1481,28 @@ struct FullMangaSectionView<Item: MediaDisplayable>: View {
         NavigationView {
             GeometryReader { geo in
                 let metrics = KuroCardMetrics.grid(for: geo.size.width, columns: 2)
+                let compactCardHeight = max(0, metrics.cardHeight - 4)
+                let rowSpacing: CGFloat = 14
 
                 ScrollView(.vertical, showsIndicators: false) {
-                    Text("EDITORIAL RAIL")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.4)
-                        .foregroundColor(.kuroTextTertiary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                        .padding(.top, 12)
-
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.kuroTextTertiary)
-                        TextField("Search \(title.lowercased())...", text: $searchText)
-                            .font(.system(size: 14))
-                    }
-                    .padding(12)
-                    .background(Color.black.opacity(0.05))
-                    .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                    .padding(.top, 12)
-
-                    Text("\(filtered.count) RESULTS")
-                        .font(.system(size: 10, weight: .medium))
-                        .tracking(1.5)
-                        .foregroundColor(.black.opacity(0.5))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                        .padding(.top, 16)
+                    DiscoverFullSectionHeader(
+                        title: title,
+                        countLabel: "\(filtered.count)",
+                        searchText: $searchText
+                    )
 
                     LazyVGrid(
                         columns: metrics.columns,
                         alignment: .center,
-                        spacing: KuroCardMetrics.rowSpacing
+                        spacing: rowSpacing
                     ) {
                         ForEach(filtered, id: \.id) { manga in
-                            GridAnimeCard(media: manga, cardWidth: metrics.cardWidth, cardHeight: metrics.cardHeight)
-                                .frame(width: metrics.cardWidth, height: metrics.cardHeight, alignment: .top)
+                            GridAnimeCard(media: manga, cardWidth: metrics.cardWidth, cardHeight: compactCardHeight)
+                                .frame(width: metrics.cardWidth, height: compactCardHeight, alignment: .top)
                         }
                     }
                     .padding(.horizontal, KuroCardMetrics.horizontalPadding)
+                    .padding(.top, 12)
                     .padding(.bottom, 24)
                 }
                 // Ensure the last rows can scroll fully above the home indicator / tab chrome.

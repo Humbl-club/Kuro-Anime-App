@@ -45,7 +45,7 @@ struct BrowseControlBar: View {
     let onClear: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             HStack {
                 BrowseModeToggle(showAnime: $showAnime)
                 Spacer()
@@ -83,7 +83,7 @@ struct BrowseControlBar: View {
                 .accessibilityHint("Opens filter editor")
             }
             .padding(.horizontal, 20)
-            .padding(.top, 14)
+            .padding(.top, 12)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
@@ -277,6 +277,50 @@ struct FilterPill: View {
     }
 }
 
+struct BrowseResultsHeader: View {
+    let title: String
+    let subtitle: String
+    let countLabel: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.6)
+                    .foregroundColor(.kuroTextSecondary)
+                Text(subtitle)
+                    .font(.kuroMicro(weight: .light))
+                    .foregroundColor(.kuroTextTertiary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 12)
+
+            Text(countLabel)
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.2)
+                .foregroundColor(.kuroTextTertiary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(Color.kuroBlack05)
+                )
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.kuroBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.kuroBlack08, lineWidth: 0.8)
+                )
+        )
+    }
+}
+
 struct BrowseHeroCard: View {
     let media: any MediaDisplayable
     let geometry: GeometryProxy
@@ -290,7 +334,7 @@ struct BrowseHeroCard: View {
 
     var body: some View {
         let width = geometry.size.width - 40
-        let height = max(220, floor(width * 0.54))
+        let height = max(204, floor(width * 0.5))
 
         Button(action: {
             guard !suppressCardTaps else { return }
@@ -313,14 +357,14 @@ struct BrowseHeroCard: View {
                     }
                 }
                 .frame(width: width, height: height)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                 LinearGradient(
                     colors: [Color.kuroBlack.opacity(0.0), Color.kuroBlack75],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -574,7 +618,7 @@ struct BrowseGridSkeleton: View {
         let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
         let cardWidth = floor(availableWidth / 2)
         let imageHeight = floor(cardWidth / 0.7)
-        let textBlockHeight: CGFloat = 72
+        let textBlockHeight: CGFloat = 64
         let cardSpacing: CGFloat = 8
         let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
 
@@ -583,7 +627,7 @@ struct BrowseGridSkeleton: View {
             GridItem(.fixed(cardWidth), spacing: spacing)
         ]
 
-        LazyVGrid(columns: columns, spacing: 16) {
+        LazyVGrid(columns: columns, spacing: 14) {
             ForEach(0..<10, id: \.self) { _ in
                 VStack(alignment: .leading, spacing: 8) {
                     RoundedRectangle(cornerRadius: 12)
@@ -605,7 +649,7 @@ struct BrowseGridSkeleton: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.vertical, 14)
     }
 }
 
@@ -620,7 +664,7 @@ struct BrowsePaginationSkeleton: View {
         let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
         let cardWidth = floor(availableWidth / 2)
         let imageHeight = floor(cardWidth / 0.7)
-        let textBlockHeight: CGFloat = 72
+        let textBlockHeight: CGFloat = 64
         let cardSpacing: CGFloat = 8
         let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
 
@@ -629,7 +673,7 @@ struct BrowsePaginationSkeleton: View {
             GridItem(.fixed(cardWidth), spacing: spacing)
         ]
 
-        LazyVGrid(columns: columns, spacing: 16) {
+        LazyVGrid(columns: columns, spacing: 14) {
             ForEach(0..<4, id: \.self) { _ in
                 VStack(alignment: .leading, spacing: 8) {
                     RoundedRectangle(cornerRadius: 12)
@@ -650,7 +694,7 @@ struct BrowsePaginationSkeleton: View {
             }
         }
         .padding(.horizontal, horizontalPadding)
-        .padding(.vertical, 16)
+        .padding(.vertical, 14)
     }
 }
 
@@ -668,7 +712,7 @@ struct BrowseGrid: View {
         let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
         let cardWidth = floor(availableWidth / 2)
         let imageHeight = floor(cardWidth / 0.7)
-        let textBlockHeight: CGFloat = 72
+        let textBlockHeight: CGFloat = 64
         let cardSpacing: CGFloat = 8
         let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
 
@@ -677,7 +721,7 @@ struct BrowseGrid: View {
             GridItem(.fixed(cardWidth), spacing: spacing)
         ]
 
-        LazyVGrid(columns: columns, spacing: 16) {
+        LazyVGrid(columns: columns, spacing: 14) {
             ForEach(items, id: \.id) { media in
                 GridAnimeCard(media: media, cardWidth: cardWidth, cardHeight: totalCardHeight)
                     .onAppear {
@@ -688,7 +732,7 @@ struct BrowseGrid: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.vertical, 14)
     }
 }
 
@@ -699,7 +743,7 @@ struct BrowseEmptyState: View {
     let onClearFilters: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 14) {
             Image(systemName: "slider.horizontal.3")
                 .font(.kuroCustom(40, weight: .ultraLight, relativeTo: .largeTitle))
                 .foregroundColor(.kuroBlack15)
@@ -748,7 +792,7 @@ struct BrowseEmptyState: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 80)
+        .padding(.top, 72)
     }
 }
 

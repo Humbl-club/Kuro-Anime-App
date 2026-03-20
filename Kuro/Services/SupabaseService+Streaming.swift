@@ -39,6 +39,27 @@ extension SupabaseService {
         }
     }
 
+    struct ProviderAvailabilityQueueSummary: Decodable, Sendable {
+        let urgentPendingCount: Int
+        let oldestPendingRequestAgeSeconds: Int
+        let requestReasonMix: [String: Int]
+
+        enum CodingKeys: String, CodingKey {
+            case urgentPendingCount = "urgent_pending_count"
+            case oldestPendingRequestAgeSeconds = "oldest_pending_request_age_seconds"
+            case requestReasonMix = "request_reason_mix"
+        }
+    }
+
+    struct StreamingObservabilitySnapshot: Sendable {
+        let isStreamingAvailabilityEnabled: Bool
+        let configuredServiceCount: Int
+        let registryServiceCount: Int
+        let cachedCatalogTitleCount: Int
+        let cachedVerifiedTitleCount: Int
+        let queueSummary: ProviderAvailabilityQueueSummary?
+    }
+
     func providers(mediaId: Int, mediaType: String) -> [ProviderInfo] {
         let key = "\(mediaType.uppercased())-\(mediaId)"
         if let cached = providerCache[key], !cached.isEmpty {
@@ -258,6 +279,34 @@ extension SupabaseService {
             #endif
             return nil
         }
+    }
+
+    func fetchProviderAvailabilityQueueSummary() async -> ProviderAvailabilityQueueSummary? {
+        do {
+            return try await client
+                .rpc("get_provider_availability_refresh_queue_summary")
+                .execute()
+                .value
+        } catch {
+            #if DEBUG
+            print("[Streaming] fetchProviderAvailabilityQueueSummary error: \(error.localizedDescription)")
+            #endif
+            return nil
+        }
+    }
+
+    func streamingObservabilitySnapshot() async -> StreamingObservabilitySnapshot {
+        let queueSummary = await fetchProviderAvailabilityQueueSummary()
+        let verifiedTitleCount = providerAvailabilityCache.values.filter { !$0.isEmpty }.count
+        let catalogTitleCount = providerCache.values.filter { !$0.isEmpty }.count
+        return StreamingObservabilitySnapshot(
+            isStreamingAvailabilityEnabled: FeatureFlags.shared.isStreamingAvailabilityV1Enabled,
+            configuredServiceCount: userStreamingServices.count,
+            registryServiceCount: streamingServiceRegistry.count,
+            cachedCatalogTitleCount: catalogTitleCount,
+            cachedVerifiedTitleCount: verifiedTitleCount,
+            queueSummary: queueSummary
+        )
     }
 
     private func fetchMediaAvailabilityStatusRows(

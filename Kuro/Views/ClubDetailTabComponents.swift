@@ -48,6 +48,137 @@ struct JournalTabBar: View {
     }
 }
 
+// MARK: - Club Detail Section Helpers
+
+private struct ClubDetailSectionHeader: View {
+    let eyebrow: String
+    let title: String
+    let detail: String?
+    let trailing: AnyView?
+
+    init(
+        eyebrow: String,
+        title: String,
+        detail: String? = nil,
+        trailing: AnyView? = nil
+    ) {
+        self.eyebrow = eyebrow
+        self.title = title
+        self.detail = detail
+        self.trailing = trailing
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(eyebrow.uppercased())
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.7)
+                    .foregroundColor(.kuroBlack40)
+
+                Spacer(minLength: 0)
+
+                trailingView
+            }
+
+            Text(title)
+                .font(.kuroTitle(weight: .regular))
+                .foregroundColor(.kuroBlack80)
+
+            if let detail, !detail.isEmpty {
+                Text(detail)
+                    .font(.kuroCaption(weight: .light))
+                    .foregroundColor(.kuroTextTertiary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var trailingView: some View {
+        if let trailing {
+            trailing
+        }
+    }
+}
+
+private struct ClubDetailEmptyStateCard: View {
+    let icon: String
+    let title: String
+    let message: String
+    let actionTitle: String?
+    let action: (() -> Void)?
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.kuroCustom(22, weight: .light, relativeTo: .title3))
+                .foregroundColor(.kuroBlack30)
+
+            Text(title)
+                .font(.kuroBody(weight: .light))
+                .foregroundColor(.kuroBlack60)
+                .multilineTextAlignment(.center)
+
+            Text(message)
+                .font(.kuroCaption(weight: .light))
+                .foregroundColor(.kuroBlack40)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let actionTitle, let action {
+                Button(action: action) {
+                    Text(actionTitle.uppercased())
+                        .font(.kuroCaption(weight: .medium))
+                        .tracking(1.2)
+                        .foregroundColor(.kuroBlack80)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule(style: .continuous)
+                                .stroke(Color.kuroBlack20, lineWidth: 0.8)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 28)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color.white.opacity(0.88))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        )
+    }
+}
+
+private struct ClubDetailSectionPill: View {
+    let title: String
+    let systemImage: String
+    let isActive: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.system(size: 10, weight: .semibold))
+            Text(title.uppercased())
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.0)
+        }
+        .foregroundColor(isActive ? .kuroBlack80 : .kuroBlack40)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            Capsule(style: .continuous)
+                .fill(isActive ? Color.kuroBlack08 : Color.kuroBlack04)
+        )
+    }
+}
+
 // MARK: - Journal Rails Content
 
 struct JournalRailsContent: View {
@@ -67,43 +198,31 @@ struct JournalRailsContent: View {
         if bundle.rails.isEmpty {
             railsEmptyState
         } else {
-            railsPopulatedContent
+            VStack(alignment: .leading, spacing: 18) {
+                sectionHeader
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
+
+                railsPopulatedContent
+            }
         }
     }
 
     private var railsEmptyState: some View {
-        VStack(spacing: KuroDesignSpacing.md) {
-            Image(systemName: "list.bullet.rectangle")
-                .font(.kuroCustom(24, weight: .light, relativeTo: .title2))
-                .foregroundColor(.kuroBlack30)
-            Text("No rails yet")
-                .font(.kuroBody(weight: .light))
-                .foregroundColor(.kuroBlack30)
-            if ["owner", "admin"].contains(bundle.my_role) {
-                Text("Create a rail to start curating together.")
-                    .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.kuroBlack40)
-
-                Button {
-                    KuroAccessibility.impactHaptic(.light)
-                    onCreateRail()
-                } label: {
-                    Text("CREATE RAIL")
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(1.2)
-                        .foregroundColor(.kuroBlack70)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(
-                            Capsule()
-                                .stroke(Color.kuroBlack20, lineWidth: 0.8)
-                        )
-                }
-                .disabled(!isConnected)
-                .padding(.top, KuroDesignSpacing.sm)
-            }
-        }
-        .padding(.top, KuroDesignSpacing.xxl)
+        ClubDetailEmptyStateCard(
+            icon: "list.bullet.rectangle",
+            title: "No rails yet",
+            message: ["owner", "admin"].contains(bundle.my_role)
+                ? "Create a rail to start curating together."
+                : "Rails appear when the club starts collecting titles.",
+            actionTitle: ["owner", "admin"].contains(bundle.my_role) ? "Create rail" : nil,
+            action: ["owner", "admin"].contains(bundle.my_role) ? {
+                KuroAccessibility.impactHaptic(.light)
+                onCreateRail()
+            } : nil
+        )
+        .padding(.horizontal, 20)
+        .padding(.top, 18)
     }
 
     private var railsPopulatedContent: some View {
@@ -161,52 +280,57 @@ struct JournalRailsContent: View {
         }
     }
 
+    private var sectionHeader: some View {
+        ClubDetailSectionHeader(
+            eyebrow: "Rails",
+            title: "Curated stacks",
+            detail: "Shared availability and reactions stay grouped around each rail.",
+            trailing: AnyView(
+                ClubDetailSectionPill(
+                    title: "\(bundle.rails.count)",
+                    systemImage: "list.bullet.rectangle",
+                    isActive: !bundle.rails.isEmpty
+                )
+            )
+        )
+    }
+
     @ViewBuilder
     private var streamingAvailabilityControls: some View {
         if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     if let sp = sharedProviders, !sp.shared_services.isEmpty {
                         Button {
                             onToggleShared()
                         } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "play.tv")
-                                    .font(.kuroCustom(10, weight: .regular, relativeTo: .caption1))
-                                Text("SHARED")
-                                    .font(.kuroMicro(weight: .medium))
-                                    .tracking(1.0)
-                            }
-                            .foregroundColor(showSharedAvailability ? .kuroBlack : .kuroBlack40)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(
-                                Capsule()
-                                    .fill(showSharedAvailability ? Color.kuroBlack10 : Color.kuroBlack04)
+                            ClubDetailSectionPill(
+                                title: showSharedAvailability ? "Shared on" : "Shared off",
+                                systemImage: "play.tv",
+                                isActive: showSharedAvailability
                             )
                         }
                         .buttonStyle(.plain)
                     }
                     Spacer()
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, KuroDesignSpacing.sm)
 
                 if let sp = sharedProviders {
                     if sp.coverage_pct < 100 && sp.member_count_with_services > 0 {
                         Text("\(sp.member_count_with_services) of \(sp.member_count_total) members set up services")
                             .font(.kuroMicro(weight: .light))
                             .foregroundColor(.kuroTextTertiary)
-                            .padding(.horizontal, 20)
                     }
                     if userStreamingServicesEmpty {
                         Text("Set your services in Profile to unlock shared availability.")
                             .font(.kuroMicro(weight: .light))
                             .foregroundColor(.kuroTextTertiary)
-                            .padding(.horizontal, 20)
                     }
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 6)
+            .padding(.bottom, 4)
         }
     }
 
@@ -570,25 +694,26 @@ struct JournalActivityContent: View {
         if entries.isEmpty {
             emptyState
         } else {
-            activityList
+            VStack(alignment: .leading, spacing: 18) {
+                sectionHeader
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
+
+                activityList
+            }
         }
     }
 
     private var emptyState: some View {
-        VStack(spacing: KuroDesignSpacing.md) {
-            Image(systemName: "book")
-                .font(.kuroCustom(24, weight: .light, relativeTo: .title2))
-                .foregroundColor(.kuroBlack30)
-            Text("No activity yet")
-                .font(.kuroBody(weight: .light))
-                .foregroundColor(.kuroBlack30)
-            Text("Activity appears as members update their progress.")
-                .font(.kuroCaption(weight: .light))
-                .foregroundColor(.kuroBlack40)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.top, KuroDesignSpacing.xxl)
+        ClubDetailEmptyStateCard(
+            icon: "book",
+            title: "No activity yet",
+            message: "Activity appears as members update their progress.",
+            actionTitle: nil,
+            action: nil
+        )
         .padding(.horizontal, 20)
+        .padding(.top, 18)
     }
 
     private var activityList: some View {
@@ -621,6 +746,21 @@ struct JournalActivityContent: View {
             }
         }
         .padding(.bottom, KuroDesignSpacing.xxl)
+    }
+
+    private var sectionHeader: some View {
+        ClubDetailSectionHeader(
+            eyebrow: "Active",
+            title: "Recent activity",
+            detail: "Progress updates appear in time order so the feed stays easy to scan.",
+            trailing: AnyView(
+                ClubDetailSectionPill(
+                    title: "\(entries.count)",
+                    systemImage: "clock.arrow.circlepath",
+                    isActive: !entries.isEmpty
+                )
+            )
+        )
     }
 
     private var paceBehindItems: [SupabaseService.ClubRailItem] {
@@ -711,8 +851,20 @@ struct JournalActivityEntry: View {
                 .font(.kuroMicro())
                 .foregroundColor(.kuroTextTertiary)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.86))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 3)
         .padding(.horizontal, 20)
-        .padding(.vertical, 8)
+        .padding(.vertical, 5)
     }
 }
 
@@ -815,39 +967,30 @@ struct JournalPollsContent: View {
         if bundle.polls.isEmpty {
             pollsEmptyState
         } else {
-            pollsList
+            VStack(alignment: .leading, spacing: 18) {
+                sectionHeader
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
+
+                pollsList
+            }
         }
     }
 
     private var pollsEmptyState: some View {
-        VStack(spacing: KuroDesignSpacing.md) {
-            Image(systemName: "chart.bar")
-                .font(.kuroCustom(24, weight: .light, relativeTo: .title2))
-                .foregroundColor(.kuroBlack30)
-            Text("No polls yet")
-                .font(.kuroBody(weight: .light))
-                .foregroundColor(.kuroBlack30)
-            if ["owner", "admin"].contains(bundle.my_role) {
-                Button {
-                    KuroAccessibility.impactHaptic(.light)
-                    onCreatePoll()
-                } label: {
-                    Text("ASK A QUESTION")
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(1.2)
-                        .foregroundColor(.kuroBlack70)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(
-                            Capsule()
-                                .stroke(Color.kuroBlack20, lineWidth: 0.8)
-                        )
-                }
-                .disabled(!isConnected)
-                .padding(.top, KuroDesignSpacing.sm)
-            }
-        }
-        .padding(.top, KuroDesignSpacing.xxl)
+        ClubDetailEmptyStateCard(
+            icon: "chart.bar",
+            title: "No polls yet",
+            message: "Questions and votes will appear here once the club starts asking them.",
+            actionTitle: ["owner", "admin"].contains(bundle.my_role) ? "Ask a question" : nil,
+            action: ["owner", "admin"].contains(bundle.my_role) ? {
+                KuroAccessibility.impactHaptic(.light)
+                onCreatePoll()
+            } : nil
+        )
+        .disabled(!isConnected)
+        .padding(.horizontal, 20)
+        .padding(.top, 18)
     }
 
     private var pollsList: some View {
@@ -926,6 +1069,21 @@ struct JournalPollsContent: View {
         }
         .padding(.top, KuroDesignSpacing.md)
         .padding(.bottom, KuroDesignSpacing.xxl)
+    }
+
+    private var sectionHeader: some View {
+        ClubDetailSectionHeader(
+            eyebrow: "Polls",
+            title: "Club questions",
+            detail: "Open polls stay up top, closed polls recede, and new questions sit at the end.",
+            trailing: AnyView(
+                ClubDetailSectionPill(
+                    title: "\(openPolls.count)",
+                    systemImage: "chart.bar",
+                    isActive: !bundle.polls.isEmpty
+                )
+            )
+        )
     }
 }
 
@@ -1014,8 +1172,19 @@ struct JournalPollCard: View {
                     .foregroundColor(.kuroTextTertiary)
             }
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.white.opacity(0.86))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.03), radius: 8, x: 0, y: 3)
         .padding(.horizontal, 20)
-        .padding(.top, 20)
+        .padding(.top, 16)
     }
 }
 

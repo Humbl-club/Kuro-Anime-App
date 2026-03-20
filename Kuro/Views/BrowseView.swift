@@ -237,21 +237,19 @@ struct BrowseView: View {
                         }
                     } else {
                         if !isLoadingResults {
-                            Text("\(displayItems.count) RESULT\(displayItems.count == 1 ? "" : "S")")
-                                .font(.kuroMicro(weight: .medium))
-                                .tracking(1.5)
-                                .foregroundColor(.kuroTextTertiary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 20)
-                                .padding(.top, 8)
-                                .padding(.bottom, 4)
+                            BrowseResultsHeader(
+                                title: showAnime ? "ANIME BROWSE" : "MANGA BROWSE",
+                                subtitle: hasActiveFilters ? activeFiltersLabel : "Hero pick first, then a denser grid",
+                                countLabel: "\(displayItems.count)"
+                            )
+                            .padding(.top, 8)
                         }
 
-                        VStack(spacing: 18) {
+                        VStack(spacing: 14) {
                             if let hero {
                                 BrowseHeroCard(media: hero, geometry: geometry)
                                     .padding(.horizontal, 20)
-                                    .padding(.top, 14)
+                                    .padding(.top, 10)
                             }
 
                             if !gridItems.isEmpty {
@@ -260,7 +258,7 @@ struct BrowseView: View {
                                 }
                             }
                         }
-                        .padding(.bottom, 12)
+                        .padding(.bottom, 10)
 
                         if isLoadingResults, !displayItems.isEmpty {
                             BrowsePaginationSkeleton(geometry: geometry)

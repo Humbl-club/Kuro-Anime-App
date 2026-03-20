@@ -232,17 +232,13 @@ struct ClubDetailView: View {
                         JournalTabBar(selectedTab: $selectedTab)
 
                         if loadPhase.isRefreshing {
-                            HStack(spacing: 8) {
-                                ProgressView()
-                                    .scaleEffect(0.75)
-                                    .tint(.black.opacity(0.45))
-                                Text("Refreshing...")
-                                    .font(.kuroCaption(weight: .light))
-                                    .foregroundColor(.black.opacity(0.45))
-                                Spacer(minLength: 0)
-                            }
+                            ClubDetailPendingStrip(
+                                title: pendingRefreshTitle,
+                                message: pendingRefreshMessage,
+                                isConnected: networkMonitor.isConnected
+                            )
                             .padding(.horizontal, 20)
-                            .padding(.vertical, 6)
+                            .padding(.top, 12)
                         }
 
                         switch selectedTab {
@@ -324,6 +320,31 @@ struct ClubDetailView: View {
                     onSettings: { showSettings = true }
                 )
             }
+        }
+    }
+
+    private var pendingRefreshTitle: String {
+        switch selectedTab {
+        case .rails:
+            return "Refreshing rails"
+        case .active:
+            return "Refreshing activity"
+        case .polls:
+            return "Refreshing polls"
+        }
+    }
+
+    private var pendingRefreshMessage: String {
+        if !networkMonitor.isConnected {
+            return "Waiting for a connection before the latest club changes can load."
+        }
+        switch selectedTab {
+        case .rails:
+            return "Pulling the latest rail changes and shared availability."
+        case .active:
+            return "Updating the club feed so progress stays in order."
+        case .polls:
+            return "Checking for new questions, votes, and poll closures."
         }
     }
 
@@ -500,6 +521,12 @@ private struct ClubDetailInitialState: View {
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 18) {
+                ClubDetailInitialHeader(
+                    loadingBundle: loadingBundle,
+                    isConnected: isConnected,
+                    isFailure: phase.initialFailureMessage != nil
+                )
+
                 ClubDetailInitialSkeleton(loadingBundle: loadingBundle)
 
                 if let message = phase.initialFailureMessage {
@@ -507,6 +534,8 @@ private struct ClubDetailInitialState: View {
                         eyebrow: "INITIAL LOAD",
                         title: loadingBundle.map { "Could not load \($0.club.name)" } ?? "Could not load club",
                         message: message,
+                        systemImage: isConnected ? "exclamationmark.triangle" : "wifi.slash",
+                        metadata: metadataPills,
                         actionTitle: "Retry",
                         onAction: onRetry
                     )
@@ -515,6 +544,8 @@ private struct ClubDetailInitialState: View {
                         eyebrow: "INITIAL LOAD",
                         title: loadingBundle.map { "Loading \($0.club.name)" } ?? "Loading club",
                         message: loadingMessage(isConnected: isConnected),
+                        systemImage: isConnected ? "sparkles" : "wifi.slash",
+                        metadata: metadataPills,
                         actionTitle: nil,
                         onAction: nil
                     )
@@ -536,6 +567,77 @@ private struct ClubDetailInitialState: View {
             return preview
         }
         return "Building the journal surface now."
+    }
+
+    private var metadataPills: [String] {
+        guard let loadingBundle else { return [] }
+        var values = ["\(loadingBundle.member_count) members"]
+        if let railCount = loadingBundle.rail_count {
+            values.append("\(railCount) rails")
+        }
+        if let pollCount = loadingBundle.poll_count {
+            values.append("\(pollCount) polls")
+        }
+        return values
+    }
+}
+
+private struct ClubDetailInitialHeader: View {
+    let loadingBundle: SupabaseService.ClubBundleLoading?
+    let isConnected: Bool
+    let isFailure: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("CLUB JOURNAL")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(2.0)
+                    .foregroundColor(.kuroBlack40)
+
+                Capsule(style: .continuous)
+                    .fill(isFailure ? Color.kuroBlack10 : Color.kuroBlack06)
+                    .frame(width: 1, height: 14)
+
+                Text(stateLabel)
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.2)
+                    .foregroundColor(.kuroBlack40)
+            }
+
+            Text(headerTitle)
+                .font(.kuroTitle(weight: .regular))
+                .foregroundColor(.kuroBlack80)
+
+            Text(headerMessage)
+                .font(.kuroCaption(weight: .light))
+                .foregroundColor(.kuroTextTertiary)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var stateLabel: String {
+        if isFailure { return "Needs attention" }
+        return isConnected ? "Preparing surface" : "Waiting for network"
+    }
+
+    private var headerTitle: String {
+        if let loadingBundle {
+            return loadingBundle.club.name
+        }
+        return "Club detail"
+    }
+
+    private var headerMessage: String {
+        if let preview = loadingBundle?.activity_preview, !preview.isEmpty {
+            return preview
+        }
+        if !isConnected {
+            return "The saved shell is ready. The full club surface will continue once the connection returns."
+        }
+        return "Assembling the club overview, rails, recent activity, and poll state."
     }
 }
 
@@ -596,6 +698,24 @@ private struct ClubDetailInitialSkeleton: View {
                             .kuroShimmer()
                     }
                 }
+
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.white.opacity(0.72))
+                    .frame(height: 52)
+                    .overlay {
+                        HStack(spacing: 14) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .fill(Color.black.opacity(0.08))
+                                    .frame(width: 18, height: 18)
+                            }
+                        }
+                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .stroke(Color.black.opacity(0.04), lineWidth: 1)
+                    )
+                    .kuroShimmer()
             }
 
             VStack(spacing: 12) {
@@ -657,15 +777,30 @@ private struct ClubDetailStatusCard: View {
     let eyebrow: String
     let title: String
     let message: String
+    let systemImage: String
+    let metadata: [String]
     let actionTitle: String?
     let onAction: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(eyebrow)
-                .font(.kuroMicro(weight: .medium))
-                .tracking(2.0)
-                .foregroundColor(.kuroBlack40)
+            HStack(spacing: 10) {
+                Text(eyebrow)
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(2.0)
+                    .foregroundColor(.kuroBlack40)
+
+                Spacer(minLength: 0)
+
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.kuroBlack60)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        Circle()
+                            .fill(Color.kuroBlack04)
+                    )
+            }
 
             Text(title)
                 .font(.kuroHeadline(weight: .ultraLight))
@@ -676,6 +811,26 @@ private struct ClubDetailStatusCard: View {
                 .foregroundColor(.kuroBlack60)
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if !metadata.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(metadata, id: \.self) { item in
+                            Text(item.uppercased())
+                                .font(.kuroMicro(weight: .medium))
+                                .tracking(1.0)
+                                .foregroundColor(.kuroBlack60)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(Color.kuroBlack04)
+                                )
+                        }
+                    }
+                }
+                .scrollDisabled(true)
+            }
 
             if let actionTitle, let onAction {
                 Button(action: onAction) {
@@ -714,16 +869,27 @@ private struct ClubDetailRefreshBanner: View {
     let onRetry: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Image(systemName: isConnected ? "arrow.clockwise" : "wifi.slash")
-                .font(.system(size: 12, weight: .semibold))
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: isConnected ? "arrow.clockwise.circle.fill" : "wifi.slash")
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(.kuroBlack60)
-                .frame(width: 18)
+                .frame(width: 28, height: 28)
+                .background(
+                    Circle()
+                        .fill(Color.kuroBlack04)
+                )
 
-            Text(message)
-                .font(.kuroCaption(weight: .light))
-                .foregroundColor(.kuroBlack70)
-                .lineLimit(2)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(isConnected ? "Refresh delayed" : "Offline")
+                    .font(.kuroCaption(weight: .medium))
+                    .tracking(1.2)
+                    .foregroundColor(.kuroBlack80)
+
+                Text(message)
+                    .font(.kuroCaption(weight: .light))
+                    .foregroundColor(.kuroBlack70)
+                    .lineLimit(2)
+            }
 
             Spacer(minLength: 0)
 
@@ -732,6 +898,12 @@ private struct ClubDetailRefreshBanner: View {
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.2)
                     .foregroundColor(.kuroBlack)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.kuroBlack04)
+                    )
             }
             .buttonStyle(.plain)
         }
@@ -746,6 +918,62 @@ private struct ClubDetailRefreshBanner: View {
                 .stroke(Color.black.opacity(0.06), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.05), radius: 12, x: 0, y: 5)
+    }
+}
+
+private struct ClubDetailPendingStrip: View {
+    let title: String
+    let message: String
+    let isConnected: Bool
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            ProgressView()
+                .scaleEffect(0.78)
+                .tint(.kuroBlack60)
+                .frame(width: 28, height: 28)
+                .background(
+                    Circle()
+                        .fill(Color.kuroBlack04)
+                )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title.uppercased())
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.4)
+                    .foregroundColor(.kuroBlack60)
+
+                Text(message)
+                    .font(.kuroCaption(weight: .light))
+                    .foregroundColor(.kuroBlack70)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+
+            Text(isConnected ? "LIVE" : "PAUSED")
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.2)
+                .foregroundColor(.kuroBlack40)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule(style: .continuous)
+                        .fill(Color.kuroBlack04)
+                )
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color.white.opacity(0.88))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.black.opacity(0.05), lineWidth: 1)
+        )
     }
 }
 

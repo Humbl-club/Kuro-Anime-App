@@ -11,6 +11,8 @@ struct ProfileView: View {
     @State private var showDeleteConfirmation: Bool = false
     @State private var isDeleting: Bool = false
     @State private var showServicePicker: Bool = false
+    @State private var streamingObservability: SupabaseService.StreamingObservabilitySnapshot? = nil
+    @State private var isRefreshingStreamingObservability: Bool = false
 
     var body: some View {
         ZStack {
@@ -26,6 +28,9 @@ struct ProfileView: View {
                         .padding(.horizontal, KuroDesignSpacing.padding)
 
                     clubsPreview
+                        .padding(.horizontal, KuroDesignSpacing.padding)
+
+                    streamingFreshnessPreview
                         .padding(.horizontal, KuroDesignSpacing.padding)
 
                     if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
@@ -58,6 +63,7 @@ struct ProfileView: View {
         .task(id: supabaseService.currentUserEmail) {
             // Keep the profile "club context" warm so Clubs opens instantly.
             await supabaseService.fetchMyClubs()
+            await refreshStreamingObservability()
         }
         .overlay(alignment: .topTrailing) {
             Button(action: {
@@ -284,6 +290,24 @@ struct ProfileView: View {
             StreamingServicePickerSheet()
                 .environment(supabaseService)
         }
+    }
+
+    private var streamingFreshnessPreview: some View {
+        ProfileFreshnessCard(
+            snapshot: streamingObservability,
+            isRefreshing: isRefreshingStreamingObservability
+        ) {
+            Task { await refreshStreamingObservability() }
+        }
+    }
+
+    @MainActor
+    private func refreshStreamingObservability() async {
+        isRefreshingStreamingObservability = true
+        defer { isRefreshingStreamingObservability = false }
+        await supabaseService.fetchStreamingServiceRegistry()
+        await supabaseService.fetchUserStreamingServices()
+        streamingObservability = await supabaseService.streamingObservabilitySnapshot()
     }
 
     private var actions: some View {

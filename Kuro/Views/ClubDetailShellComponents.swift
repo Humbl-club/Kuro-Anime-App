@@ -23,6 +23,10 @@ struct JournalStatusBar: View {
         Double(progress) * 0.98
     }
 
+    private var buttonBackgroundOpacity: Double {
+        0.14 + (Double(progress) * 0.78)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Color.kuroWhite.opacity(bgOpacity)
@@ -59,10 +63,7 @@ struct JournalStatusBar: View {
                 .font(.kuroBody(weight: .medium))
                 .foregroundColor(iconColor)
                 .frame(width: 36, height: 36)
-                .background(
-                    Circle()
-                        .fill(Color.kuroBlack.opacity(0.3 * (1 - Double(progress))))
-                )
+                .background(statusButtonBackground)
         }
         .accessibilityLabel("Back")
     }
@@ -88,12 +89,22 @@ struct JournalStatusBar: View {
                 .font(.kuroBody(weight: .medium))
                 .foregroundColor(iconColor)
                 .frame(width: 36, height: 36)
-                .background(
-                    Circle()
-                        .fill(Color.kuroBlack.opacity(0.3 * (1 - Double(progress))))
-                )
+                .background(statusButtonBackground)
         }
         .accessibilityLabel("Settings")
+    }
+
+    private var statusButtonBackground: some View {
+        Circle()
+            .fill(progress > 0.45 ? Color.kuroWhite.opacity(buttonBackgroundOpacity) : Color.kuroBlack.opacity(0.22))
+            .overlay(
+                Circle()
+                    .stroke(
+                        progress > 0.45 ? Color.kuroBlack.opacity(0.05) : Color.kuroWhite.opacity(0.14),
+                        lineWidth: 0.8
+                    )
+            )
+            .shadow(color: .black.opacity(progress > 0.45 ? 0.05 : 0.12), radius: 10, x: 0, y: 4)
     }
 }
 
@@ -116,6 +127,7 @@ struct JournalHeroSection: View {
 
     private var stretch: CGFloat { max(scrollOffset, 0) }
     private var parallax: CGFloat { min(scrollOffset, 0) * 0.32 }
+    private var openPollCount: Int { bundle.polls.filter { !$0.is_closed }.count }
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
@@ -204,29 +216,36 @@ struct JournalHeroSection: View {
     }
 
     private var heroContent: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(bundle.club.name)
-                .font(.kuroFeature(weight: .light))
-                .italic()
-                .foregroundColor(.kuroWhite)
-                .lineLimit(2)
-
-            if let desc = bundle.club.description, !desc.isEmpty {
-                Text(desc)
-                    .font(.kuroBody())
-                    .italic()
-                    .foregroundColor(.kuroWhite60)
-                    .lineLimit(1)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                heroMetaPill(title: bundle.club.sharing_level.uppercased(), systemImage: "person.3.sequence.fill")
+                heroMetaPill(title: "\(bundle.member_count) MEMBERS", systemImage: "person.2.fill")
             }
 
-            HStack(spacing: 8) {
-                // Member avatars
+            VStack(alignment: .leading, spacing: 6) {
+                Text(bundle.club.name)
+                    .font(.kuroFeature(weight: .light))
+                    .italic()
+                    .foregroundColor(.kuroWhite)
+                    .lineLimit(2)
+
+                if let desc = bundle.club.description, !desc.isEmpty {
+                    Text(desc)
+                        .font(.kuroBody())
+                        .italic()
+                        .foregroundColor(.kuroWhite60)
+                        .lineLimit(2)
+                        .lineSpacing(2)
+                }
+            }
+
+            HStack(alignment: .center, spacing: 10) {
                 HStack(spacing: -6) {
                     ForEach(Array(bundle.members.prefix(4).enumerated()), id: \.element.user_id) { _, member in
                         let initial = String((member.display_name ?? "?").prefix(1)).uppercased()
                         Circle()
                             .fill(Color.kuroWhite20)
-                            .frame(width: 22, height: 22)
+                            .frame(width: 24, height: 24)
                             .overlay(
                                 Text(initial)
                                     .font(.kuroMicro(weight: .medium))
@@ -239,23 +258,50 @@ struct JournalHeroSection: View {
                     }
                 }
 
-                Text("\(bundle.member_count) members")
+                Text(heroSummaryText)
                     .font(.kuroMicro(weight: .medium))
-                    .foregroundColor(.kuroWhite55)
-
-                // Sharing level pill
-                Text(bundle.club.sharing_level.uppercased())
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(0.5)
+                    .tracking(0.6)
                     .foregroundColor(.kuroWhite60)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(Color.kuroWhite15)
-                    )
+                    .lineLimit(1)
             }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Color.kuroBlack.opacity(0.18))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .stroke(Color.kuroWhite.opacity(0.10), lineWidth: 1)
+                )
+        )
+    }
+
+    private var heroSummaryText: String {
+        var parts = ["\(bundle.rails.count) rail\(bundle.rails.count == 1 ? "" : "s")"]
+        if openPollCount > 0 {
+            parts.append("\(openPollCount) open poll\(openPollCount == 1 ? "" : "s")")
+        } else if !bundle.polls.isEmpty {
+            parts.append("\(bundle.polls.count) poll\(bundle.polls.count == 1 ? "" : "s")")
+        }
+        return parts.joined(separator: " • ")
+    }
+
+    private func heroMetaPill(title: String, systemImage: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.system(size: 9, weight: .semibold))
+            Text(title)
+                .font(.kuroMicro(weight: .medium))
+                .tracking(1.0)
+        }
+        .foregroundColor(.kuroWhite80)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color.kuroWhite.opacity(0.14))
+        )
     }
 }
 
@@ -300,7 +346,7 @@ struct JournalBottomBar: View {
         )
         .opacity(isConnected ? 1.0 : 0.5)
         .disabled(!isConnected)
-        .frame(maxWidth: 200)
+        .frame(maxWidth: isAdminOrOwner ? 220 : 160)
     }
 
     private func bottomBarButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
