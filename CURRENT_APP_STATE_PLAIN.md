@@ -1,10 +1,10 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-18
+**Last updated:** 2026-03-24
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 86 app Swift files and 162 SQL migrations are in the repo today.
+**Current inventory:** 88 app Swift files and 167 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 

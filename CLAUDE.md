@@ -1,6 +1,6 @@
 # CLAUDE.md — Kuro Project Rules & Context
 
-**Last synced: 2026-03-18** | **This file is mandatory reading. Every rule is binding.**
+**Last synced: 2026-03-24** | **This file is mandatory reading. Every rule is binding.**
 
 ---
 
@@ -239,9 +239,9 @@ All 15 flags defined in `FeatureFlags.swift`:
 
 ---
 
-## FILE MAP (exact, current as of 2026-03-17)
+## FILE MAP (exact, current as of 2026-03-24)
 
-### iOS app — 86 Swift files in `Kuro/`
+### iOS app — 88 Swift files in `Kuro/`
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
@@ -300,9 +300,10 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `EditorialSearchView.swift` — Search sheet
 - `OnboardingView.swift` — First-launch onboarding
 - `ProfileView.swift` — Profile menu (includes Clubs secondary access)
+- `ProfileFreshnessCard.swift` — profile-level provider refresh observability card
 - `AuthView.swift` — Authentication
 - Detail pages: `AnimeDetailView.swift`, `MangaDetailView.swift`, `MediaDetailSheet.swift`, `ClubActivitySection.swift`, `FriendsActivitySection.swift`, `ExternalLinksSection.swift`, `CastSection.swift`, `CreditsSection.swift`, `EntityDetailSheets.swift`
-- UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `EditorialCards.swift`, `Cards.swift`, `UIComponents.swift`, `GenreHubView.swift`, `CountdownTimer.swift`
+- UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `EditorialCards.swift`, `Cards.swift`, `QuickVerdictActionCard.swift`, `UIComponents.swift`, `GenreHubView.swift`, `CountdownTimer.swift`
 - Shared: `AddToListSheet.swift` — editorial "spread" list sheet (full-bleed poster hero, capsule status pills, serif score + dots, pull-quote notes, pinned save dock)
 - Shared: `PosterView.swift` — reusable poster image view
 - Legacy/secondary: `DiscoverViewModel.swift`

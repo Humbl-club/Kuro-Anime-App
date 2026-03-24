@@ -1,10 +1,10 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-18
+**Last updated:** 2026-03-24
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 86 app Swift files in `/Kuro`; 162 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 88 app Swift files in `/Kuro`; 167 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
