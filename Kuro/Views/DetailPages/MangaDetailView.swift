@@ -75,7 +75,7 @@ struct MangaDetailView: View {
                         if FeatureFlags.shared.isCreditsCastV1Enabled {
                             if didLoadCredits {
                                 if !castItems.isEmpty {
-                                    CastSection(characters: castItems, containerWidth: geometry.size.width)
+                                    CastSection(characters: castItems)
                                 }
 
                                 if !authorItems.isEmpty {

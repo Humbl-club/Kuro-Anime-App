@@ -273,6 +273,7 @@ async function fetchAniListAnimeData(page: number, perPage: number, includeRelat
           }
           studios { nodes { id name isAnimationStudio siteUrl favourites } }
           tags { id name description category rank isGeneralSpoiler isMediaSpoiler isAdult }
+          # Keep character ingestion intentionally compact: AniList ROLE sort puts mains first.
           characters(sort: ROLE, perPage: 10) { edges { role } nodes { id name { full native } image { large } description gender age } }
           staff(sort: RELEVANCE, perPage: 10) { edges { role } nodes { id name { full native } image { large } description primaryOccupations } }
   ` : ``;
