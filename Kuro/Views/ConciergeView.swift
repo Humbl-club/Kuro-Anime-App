@@ -1289,7 +1289,8 @@ struct ConciergeView: View {
             status: .planning,
             progress: 0,
             rating: nil,
-            notes: nil
+            notes: nil,
+            verdict: supabaseService.userListEntry(mediaType: mediaType, mediaId: item.mediaId)?.verdict
         )
         recordRagFeedbackIfNeeded(accepted: true)
         showToast(.init(kind: .success, title: "Added to Planning", subtitle: item.title, actionTitle: nil, onAction: nil))

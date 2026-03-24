@@ -31,16 +31,18 @@ extension SupabaseService {
         }
     }
 
-    // MARK: - Upsert user list entry (status/progress/rating/notes)
+    // MARK: - Upsert user list entry (status/progress/rating/notes/verdict)
+    @discardableResult
     func upsertUserListEntry(
         mediaId: Int,
         mediaType: String,
         status: ListStatus,
         progress: Int,
         rating: Int?,
-        notes: String?
-    ) async {
-        guard let userId = await currentUserIdString() else { return }
+        notes: String?,
+        verdict: Verdict?
+    ) async -> Bool {
+        guard let userId = await currentUserIdString() else { return false }
         errorMessage = nil
         do {
             let table: String
@@ -53,6 +55,7 @@ extension SupabaseService {
                 let list_type: String
                 let progress: Int
                 let rating: Int?
+                let verdict: Verdict?
                 let notes: String?
             }
 
@@ -62,6 +65,7 @@ extension SupabaseService {
                 let list_type: String
                 let progress: Int
                 let rating: Int?
+                let verdict: Verdict?
                 let notes: String?
             }
 
@@ -74,6 +78,7 @@ extension SupabaseService {
                     list_type: dbListType(for: status, mediaType: mediaType),
                     progress: max(0, progress),
                     rating: rating,
+                    verdict: verdict,
                     notes: notes
                 )
             } else if mediaType.lowercased() == "manga" {
@@ -85,13 +90,14 @@ extension SupabaseService {
                     list_type: dbListType(for: status, mediaType: mediaType),
                     progress: max(0, progress),
                     rating: rating,
+                    verdict: verdict,
                     notes: notes
                 )
             } else {
                 #if DEBUG
                 print("⚠️ Unknown mediaType: \(mediaType)")
                 #endif
-                return
+                return false
             }
 
             try await client
@@ -108,11 +114,13 @@ extension SupabaseService {
                 await scheduleAiringNotifications(animeId: mediaId)
                 await fetchUpcomingForUser(days: 7)
             }
+            return true
         } catch {
             errorMessage = "Failed to save: \(error.localizedDescription)"
             #if DEBUG
             print("❌ upsert list entry error: \(error)")
             #endif
+            return false
         }
     }
 
@@ -142,6 +150,36 @@ extension SupabaseService {
         }
     }
 
+    func setUserVerdict(mediaId: Int, mediaType: String, verdict: Verdict?) async {
+        guard let userId = await currentUserIdString() else { return }
+        errorMessage = nil
+        do {
+            let table = mediaType.lowercased() == "anime" ? "anime_user_lists" : "manga_user_lists"
+            let idColumn = mediaType.lowercased() == "anime" ? "anime_id" : "manga_id"
+
+            struct UpdateData: Encodable {
+                let verdict: Verdict?
+            }
+
+            try await client
+                .from(table)
+                .update(UpdateData(verdict: verdict))
+                .eq("user_id", value: userId)
+                .eq(idColumn, value: mediaId)
+                .execute()
+
+            errorMessage = nil
+            await fetchUserLists()
+            await fetchCollectionItems(status: currentCollectionStatusFilter)
+            await fetchCollectionFeed(status: currentCollectionStatusFilter)
+        } catch {
+            errorMessage = "Couldn't update verdict: \(error.localizedDescription)"
+            #if DEBUG
+            print("❌ Failed to update verdict: \(error)")
+            #endif
+        }
+    }
+
     func fetchUserLists() async {
         if let t = userListsFetchInFlight {
             await t.value
@@ -166,6 +204,7 @@ extension SupabaseService {
             let list_type: String
             let progress: Int
             let rating: Int?
+            let verdict: Verdict?
             let notes: String?
             let created_at: Date
             let updated_at: Date
@@ -178,6 +217,7 @@ extension SupabaseService {
             let list_type: String
             let progress: Int
             let rating: Int?
+            let verdict: Verdict?
             let notes: String?
             let created_at: Date
             let updated_at: Date
@@ -207,6 +247,7 @@ extension SupabaseService {
                     status: statusFromDB(row.list_type),
                     progress: row.progress,
                     progressVolumes: nil,
+                    verdict: row.verdict,
                     score: row.rating.map { $0 * 10 },
                     notes: row.notes,
                     startedAt: nil,
@@ -226,6 +267,7 @@ extension SupabaseService {
                     status: statusFromDB(row.list_type),
                     progress: row.progress,
                     progressVolumes: nil,
+                    verdict: row.verdict,
                     score: row.rating.map { $0 * 10 },
                     notes: row.notes,
                     startedAt: nil,
@@ -250,14 +292,16 @@ extension SupabaseService {
         }
     }
     // MARK: - Add/Remove in normalized user lists
-    func addToList(mediaId: Int, mediaType: String, status: ListStatus) async {
+    @discardableResult
+    func addToList(mediaId: Int, mediaType: String, status: ListStatus) async -> Bool {
         await upsertUserListEntry(
             mediaId: mediaId,
             mediaType: mediaType,
             status: status,
             progress: 0,
             rating: nil,
-            notes: nil
+            notes: nil,
+            verdict: nil
         )
     }
 
@@ -597,7 +641,8 @@ extension SupabaseService {
                 status: existing.status,
                 progress: progress,
                 rating: (rating ?? 0) > 0 ? rating : nil,
-                notes: existing.notes
+                notes: existing.notes,
+                verdict: existing.verdict
             )
         } else {
             await upsertUserListEntry(
@@ -606,7 +651,8 @@ extension SupabaseService {
                 status: .current,
                 progress: progress,
                 rating: nil,
-                notes: nil
+                notes: nil,
+                verdict: nil
             )
         }
     }

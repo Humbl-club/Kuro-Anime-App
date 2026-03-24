@@ -116,11 +116,10 @@ struct QuickActionBar: View {
             // Add to List
             Button(action: {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                    isInList.toggle()
                     isAnimating = true
                 }
                 onAdd()
-                
+
                 // Haptic feedback
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
@@ -299,15 +298,16 @@ struct SharedVerticalAnimeCard: View {
                 tap()
             },
             onAdd: {
-                if isInList {
-                    Task { await supabaseService.addToList(mediaId: anime.id, mediaType: "anime", status: .planning) }
-                } else {
-                    Task { await supabaseService.removeFromList(mediaId: anime.id, mediaType: "anime") }
-                }
+                toggleCollectionMembership()
             }
         )
         .padding(.top, 8)
         .transition(.scale.combined(with: .opacity))
+    }
+
+    private func toggleCollectionMembership() {
+        supabaseService.toggleInCollection(mediaId: anime.id, mediaType: "anime")
+        isInList = supabaseService.isInCollection(anime.id)
     }
 
     var body: some View {
@@ -386,6 +386,9 @@ struct SharedVerticalAnimeCard: View {
         .onAppear {
             isInList = supabaseService.isInCollection(anime.id)
             isFavorited = supabaseService.isFavorited(anime.id)
+        }
+        .onChange(of: supabaseService.collectionAnimeIds) { _, _ in
+            isInList = supabaseService.isInCollection(anime.id)
         }
     }
 }
@@ -494,12 +497,7 @@ struct SharedHorizontalAnimeCard: View {
     private var horizontalActions: some View {
         HStack(spacing: 12) {
             Button(action: {
-                isInList.toggle()
-                if isInList {
-                    Task { await supabaseService.addToList(mediaId: anime.id, mediaType: "anime", status: .planning) }
-                } else {
-                    Task { await supabaseService.removeFromList(mediaId: anime.id, mediaType: "anime") }
-                }
+                toggleCollectionMembership()
                 KuroAccessibility.impactHaptic(.light)
             }) {
                 Image(systemName: isInList ? "checkmark.circle.fill" : "plus.circle")
@@ -519,6 +517,11 @@ struct SharedHorizontalAnimeCard: View {
         }
         .padding(.top, 4)
         .transition(.scale.combined(with: .opacity))
+    }
+
+    private func toggleCollectionMembership() {
+        supabaseService.toggleInCollection(mediaId: anime.id, mediaType: "anime")
+        isInList = supabaseService.isInCollection(anime.id)
     }
 
     var body: some View {
@@ -612,6 +615,9 @@ struct SharedHorizontalAnimeCard: View {
         .onAppear {
             isInList = supabaseService.isInCollection(anime.id)
             isFavorited = supabaseService.isFavorited(anime.id)
+        }
+        .onChange(of: supabaseService.collectionAnimeIds) { _, _ in
+            isInList = supabaseService.isInCollection(anime.id)
         }
         .onDisappear {
             hideActionsTask?.cancel()

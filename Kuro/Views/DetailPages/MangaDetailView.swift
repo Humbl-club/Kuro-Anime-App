@@ -52,8 +52,6 @@ struct MangaDetailView: View {
                         
                         MangaMetaLineSection(manga: manga)
 
-                        MangaNextUpSection(manga: manga)
-                        
                         // Description
                         if manga.hasMeaningfulSynopsis {
                             DescriptionSection(
@@ -296,40 +294,6 @@ struct MangaMetaLineSection: View {
                 .foregroundColor(.kuroBlack60)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-}
-
-// MARK: - Next up (minimal)
-struct MangaNextUpSection: View {
-    let manga: Manga
-    @Environment(SupabaseService.self) private var supabaseService
-
-    private var progress: Int {
-        supabaseService.userLists.first(where: { $0.mediaType.lowercased() == "manga" && $0.mediaId == manga.id })?.progress ?? 0
-    }
-    private var nextNumber: Int { max(1, progress + 1) }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Text("NEXT UP")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.8)
-                .foregroundColor(.kuroBlack80)
-
-            Spacer(minLength: 0)
-
-            Text("CH \(nextNumber)".uppercased())
-                .font(.kuroMicro(weight: .regular))
-                .tracking(1.2)
-                .foregroundColor(.kuroBlack80)
-        }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
-        )
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -630,12 +594,21 @@ struct ChaptersSection: View {
     @State private var markingChapter: Int? = nil
     @State private var legalReadLink: (url: String, site: String, label: String)? = nil
 
+    private var entry: UserList? {
+        supabaseService.userListEntry(mediaType: "manga", mediaId: manga.id)
+    }
+
     private var userProgress: Int {
-        supabaseService.userLists.first(where: { $0.mediaType.lowercased() == "manga" && $0.mediaId == manga.id })?.progress ?? 0
+        entry?.progress ?? 0
     }
 
     private var nextChapterNumber: Int {
         max(1, userProgress + 1)
+    }
+
+    private var shouldShowContinueLine: Bool {
+        guard let status = entry?.status else { return userProgress > 0 }
+        return userProgress > 0 || status == .current || status == .repeating
     }
 
     private var knownChapterTotal: Int {
@@ -660,9 +633,11 @@ struct ChaptersSection: View {
                     .foregroundColor(.kuroBlack60)
             }
 
-            Text("Continue with chapter \(nextChapterNumber).")
-                .font(.kuroMicro(weight: .medium))
-                .foregroundColor(.kuroBlack60)
+            if shouldShowContinueLine {
+                Text("Continue with chapter \(nextChapterNumber).")
+                    .font(.kuroMicro(weight: .medium))
+                    .foregroundColor(.kuroBlack60)
+            }
             
             VStack(spacing: KuroSpacing.sm) {
                 if isLoading && chapters.isEmpty {
@@ -1190,38 +1165,48 @@ struct MangaActionButtons: View {
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.openURL) private var openURL
     @State private var showAddToList = false
+    @State private var showQuickVerdict = false
     @State private var showProviders = false
     @State private var readLink: ProviderSheetItem? = nil
     @State private var allLinks: [ProviderSheetItem] = []
     @State private var readAvailabilityNote: String? = nil
     @State private var readAvailabilityStatusCaption: String? = nil
 
+    private var isGermanLocale: Bool {
+        Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
+    }
+
     private var isSaved: Bool {
         supabaseService.isInCollection(mediaId: manga.id, mediaType: "manga")
+    }
+
+    private var userEntry: UserList? {
+        supabaseService.userListEntry(mediaType: "manga", mediaId: manga.id)
     }
 
     private var hasReadLink: Bool {
         readLink.flatMap { validatedURL(from: $0.url) } != nil
     }
 
-    private var readPrimaryTitle: String {
-        guard let readLink else { return "No provider available yet" }
-        return allLinks.count > 1 ? "Choose where to read" : "Open \(readLink.title)"
+    private var verdictButtonTitle: String {
+        guard let verdict = userEntry?.verdict else { return isGermanLocale ? "Urteil" : "Verdict" }
+        return isGermanLocale ? verdict.displayNameDE : verdict.displayName
     }
 
-    private var readSecondaryTitle: String {
-        if allLinks.count > 1 { return "\(allLinks.count) legal providers available" }
-        if hasReadLink { return "Open legal provider link" }
-        return "We are still checking title-specific reading rights."
-    }
-
-    private var readBadgeText: String {
-        guard let readLink else { return "Unavailable" }
-        return readLink.badgeText
+    private var readStatusLine: String {
+        if let status = readAvailabilityStatusCaption, !status.isEmpty {
+            return status
+        }
+        if let note = readAvailabilityNote, !note.isEmpty {
+            return note
+        }
+        return hasReadLink
+            ? (isGermanLocale ? "Rechtlich verfuegbaren Link oeffnen." : "Open legal provider link.")
+            : (isGermanLocale ? "Noch kein legaler Link verfuegbar." : "No legal provider link is available yet.")
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Button(action: toggleSaved) {
                     Image(systemName: isSaved ? "heart.fill" : "heart")
@@ -1234,10 +1219,10 @@ struct MangaActionButtons: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(isSaved ? "Saved" : "Save")
 
-                Button(action: {
+                Button {
                     KuroAccessibility.impactHaptic(.medium)
                     showAddToList = true
-                }) {
+                } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 14, weight: .semibold))
@@ -1249,28 +1234,57 @@ struct MangaActionButtons: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(Color.kuroBlack)
-                    .cornerRadius(12)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .sheet(isPresented: $showAddToList) {
-                    AddToListSheet(media: manga)
+
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    showQuickVerdict = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "tag")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(verdictButtonTitle.uppercased())
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(0.9)
+                            .lineLimit(1)
+                    }
+                    .foregroundColor(.kuroBlack70)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.kuroBlack06)
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(Color.kuroBlack12, lineWidth: 0.6)
+                    )
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(userEntry?.verdict == nil ? "Set verdict" : "Edit verdict")
+
+                Button(action: handleReadAction) {
+                    Image(systemName: hasReadLink ? "book.fill" : "book.closed")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(hasReadLink ? .kuroBlack : .kuroBlack30)
+                        .frame(width: 38, height: 38)
+                        .background(Color.kuroBlack08)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    hasReadLink
+                        ? (allLinks.count > 1 ? "Choose reading provider" : "Open reading provider")
+                        : "No legal reading link available"
+                )
             }
 
-            MediaProviderActionCard(
-                sectionTitle: "Read On",
-                systemImage: hasReadLink ? "book.fill" : "book.closed",
-                providerTitle: allLinks.count == 1 ? readLink?.title : nil,
-                primaryTitle: readPrimaryTitle,
-                secondaryTitle: readSecondaryTitle,
-                note: readLink == nil
-                    ? "No legal provider link is available yet."
-                    : (readAvailabilityNote ?? "Reading availability may vary by region and publisher."),
-                statusCaption: readAvailabilityStatusCaption,
-                badgeText: readBadgeText,
-                isAvailable: hasReadLink,
-                action: handleReadAction
-            )
+            Text(readStatusLine)
+                .font(.kuroMicro(weight: .light))
+                .foregroundColor(.kuroTextTertiary)
+                .lineLimit(2)
         }
         .padding(10)
         .background(
@@ -1284,6 +1298,12 @@ struct MangaActionButtons: View {
         .task(id: manga.id) {
             await refreshLinks()
         }
+        .sheet(isPresented: $showAddToList) {
+            AddToListSheet(media: manga)
+        }
+        .sheet(isPresented: $showQuickVerdict) {
+            QuickVerdictPickerSheet(media: manga, onToast: onToast)
+        }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(
                 title: "Read On",
@@ -1295,6 +1315,44 @@ struct MangaActionButtons: View {
                     openURL(url)
                 } else {
                     onToast(.init(kind: .error, title: "Couldn’t open link", subtitle: "Try a different provider.", actionTitle: nil, onAction: nil))
+                }
+            }
+        }
+    }
+
+    private func toggleSaved() {
+        let currentlySaved = isSaved
+        Task {
+            let success: Bool
+            if currentlySaved {
+                success = await supabaseService.removeFromList(mediaId: manga.id, mediaType: "manga")
+            } else {
+                success = await supabaseService.addToList(mediaId: manga.id, mediaType: "manga", status: .planning)
+            }
+
+            await MainActor.run {
+                if success {
+                    KuroAccessibility.successHaptic()
+                    onToast(
+                        .init(
+                            kind: .success,
+                            title: currentlySaved ? "Removed" : "Saved",
+                            subtitle: currentlySaved ? "Removed from your list" : "Added to Planning",
+                            actionTitle: nil,
+                            onAction: nil
+                        )
+                    )
+                } else {
+                    KuroAccessibility.errorHaptic()
+                    onToast(
+                        .init(
+                            kind: .error,
+                            title: "Couldn't save",
+                            subtitle: supabaseService.errorMessage,
+                            actionTitle: nil,
+                            onAction: nil
+                        )
+                    )
                 }
             }
         }
@@ -1418,35 +1476,6 @@ struct MangaActionButtons: View {
         return url
     }
 
-    private func toggleSaved() {
-        let currentlySaved = isSaved
-        Task {
-            if currentlySaved {
-                await supabaseService.removeFromList(mediaId: manga.id, mediaType: "manga")
-            } else {
-                await supabaseService.addToList(mediaId: manga.id, mediaType: "manga", status: .planning)
-            }
-            if let msg = supabaseService.errorMessage, !msg.isEmpty {
-                KuroAccessibility.errorHaptic()
-                await MainActor.run {
-                    onToast(.init(kind: .error, title: "Couldn’t save", subtitle: msg, actionTitle: nil, onAction: nil))
-                }
-            } else {
-                KuroAccessibility.successHaptic()
-                await MainActor.run {
-                    onToast(
-                        .init(
-                            kind: .success,
-                            title: currentlySaved ? "Removed" : "Saved",
-                            subtitle: currentlySaved ? "Removed from your list" : "Added to Planning",
-                            actionTitle: nil,
-                            onAction: nil
-                        )
-                    )
-                }
-            }
-        }
-    }
 }
 
 // MARK: - Detail Page Skeleton Placeholders

@@ -260,6 +260,84 @@ struct AnimeDetailView: View {
     }
 }
 
+private struct AnimeUpcomingEpisodeDisplay {
+    enum Timing {
+        case scheduled(Date)
+        case awaitingSchedule
+    }
+
+    let number: Int
+    let timing: Timing
+
+    var detailLine: String {
+        switch timing {
+        case .scheduled(let date):
+            let formatter = RelativeDateTimeFormatter()
+            formatter.unitsStyle = .short
+            return formatter.localizedString(for: date, relativeTo: Date()).uppercased()
+        case .awaitingSchedule:
+            return "AIR DATE TBA"
+        }
+    }
+
+    var sectionLine: String {
+        switch timing {
+        case .scheduled:
+            return "Next airing episode \(number)."
+        case .awaitingSchedule:
+            return "Next episode \(number) is pending a schedule update."
+        }
+    }
+
+    var fallbackTitle: String {
+        switch timing {
+        case .scheduled:
+            return "Next airing episode"
+        case .awaitingSchedule:
+            return "Next episode"
+        }
+    }
+
+    var fallbackBadge: String {
+        switch timing {
+        case .scheduled:
+            return "SCHEDULED"
+        case .awaitingSchedule:
+            return "UPDATING"
+        }
+    }
+
+    var fallbackSubtitle: String {
+        switch timing {
+        case .scheduled(let date):
+            let formatter = RelativeDateTimeFormatter()
+            formatter.unitsStyle = .full
+            return formatter.localizedString(for: date, relativeTo: Date())
+        case .awaitingSchedule:
+            return "Awaiting the next release time from the feed."
+        }
+    }
+}
+
+private extension Anime {
+    var effectiveUpcomingEpisodeDisplay: AnimeUpcomingEpisodeDisplay? {
+        guard let rawNextEpisode = nextEpisodeNumber, rawNextEpisode > 0 else { return nil }
+
+        let now = Date()
+        if let nextAiringAt, nextAiringAt > now {
+            return AnimeUpcomingEpisodeDisplay(number: rawNextEpisode, timing: .scheduled(nextAiringAt))
+        }
+
+        guard status?.uppercased() == "RELEASING" else { return nil }
+
+        if let totalEpisodes = episodeCount, rawNextEpisode < totalEpisodes {
+            return AnimeUpcomingEpisodeDisplay(number: rawNextEpisode + 1, timing: .awaitingSchedule)
+        }
+
+        return nil
+    }
+}
+
 // MARK: - Swiss-minimal metadata line (replaces grids)
 struct MetaLineSection: View {
     let anime: Anime
@@ -301,48 +379,37 @@ struct MetaLineSection: View {
 // MARK: - Next up (minimal)
 struct NextUpSection: View {
     let anime: Anime
-    @Environment(SupabaseService.self) private var supabaseService
-
-    private var progress: Int { supabaseService.getProgress(for: anime.id) ?? 0 }
-    private var nextNumber: Int { max(1, progress + 1) }
-
-    private var nextAiringLine: String? {
-        guard let date = anime.nextAiringAt else { return nil }
-        let fmt = RelativeDateTimeFormatter()
-        fmt.unitsStyle = .short
-        return fmt.localizedString(for: date, relativeTo: Date())
-    }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Text("NEXT UP")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.8)
-                .foregroundColor(.kuroBlack80)
-
-            Spacer(minLength: 0)
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text("EP \(nextNumber)".uppercased())
-                    .font(.kuroMicro(weight: .regular))
-                    .tracking(1.2)
+        if let nextRelease = anime.effectiveUpcomingEpisodeDisplay {
+            HStack(spacing: 12) {
+                Text("NEXT UP")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.8)
                     .foregroundColor(.kuroBlack80)
 
-                if let nextAiringLine {
-                    Text(nextAiringLine.uppercased())
+                Spacer(minLength: 0)
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("EP \(nextRelease.number)".uppercased())
+                        .font(.kuroMicro(weight: .regular))
+                        .tracking(1.2)
+                        .foregroundColor(.kuroBlack80)
+
+                    Text(nextRelease.detailLine)
                         .font(.kuroMicro(weight: .light))
                         .tracking(1.0)
                         .foregroundColor(.kuroBlack30)
                 }
             }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+            )
+            .accessibilityElement(children: .combine)
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
-        )
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -812,12 +879,47 @@ struct EpisodesSection: View {
     @State private var showAllEpisodes: Bool = false
     @State private var markingEpisode: Int? = nil
 
+    private var entry: UserList? {
+        supabaseService.userListEntry(mediaType: "anime", mediaId: anime.id)
+    }
+
     private var userProgress: Int {
         supabaseService.getProgress(for: anime.id) ?? 0
     }
 
+    private var shouldUseProgress: Bool {
+        guard let status = entry?.status else { return userProgress > 0 }
+        return userProgress > 0 || status == .current || status == .repeating
+    }
+
     private var nextEpisodeNumber: Int {
-        max(1, userProgress + 1)
+        if shouldUseProgress {
+            return max(1, userProgress + 1)
+        }
+        if let releasePreview = anime.effectiveUpcomingEpisodeDisplay {
+            return releasePreview.number
+        }
+        return 1
+    }
+
+    private var hasEpisodePreview: Bool {
+        !episodes.isEmpty
+    }
+
+    private var fallbackPreview: AnimeUpcomingEpisodeDisplay? {
+        guard episodes.isEmpty, !shouldUseProgress else { return nil }
+        return anime.effectiveUpcomingEpisodeDisplay
+    }
+
+    private var progressLine: String? {
+        if shouldUseProgress {
+            guard hasEpisodePreview else { return nil }
+            return "Continue with episode \(nextEpisodeNumber)."
+        }
+        if let releasePreview = anime.effectiveUpcomingEpisodeDisplay {
+            return releasePreview.sectionLine
+        }
+        return nil
     }
     
     var body: some View {
@@ -830,24 +932,30 @@ struct EpisodesSection: View {
                 
                 Spacer()
                 
-                Text("\(episodeCount) \(countLabel)")
-                    .font(.kuroMicro(weight: .light))
-                    .tracking(0.5)
-                    .foregroundColor(.kuroBlack60)
+                if hasEpisodePreview {
+                    Text("\(episodeCount) \(countLabel)")
+                        .font(.kuroMicro(weight: .light))
+                        .tracking(0.5)
+                        .foregroundColor(.kuroBlack60)
+                }
             }
 
-            Text("Continue with episode \(nextEpisodeNumber).")
-                .font(.kuroMicro(weight: .medium))
-                .foregroundColor(.kuroBlack60)
+            if let progressLine {
+                Text(progressLine)
+                    .font(.kuroMicro(weight: .medium))
+                    .foregroundColor(.kuroBlack60)
+            }
             
             VStack(spacing: KuroSpacing.sm) {
                 if isLoading && episodes.isEmpty {
                     ForEach(0..<3, id: \.self) { _ in
                         EpisodeSkeletonRow()
                     }
+                } else if let fallbackPreview {
+                    EpisodePreviewFallbackRow(preview: fallbackPreview)
                 } else if episodes.isEmpty {
                     HStack {
-                        Text("No episode data yet")
+                        Text("Episode data coming soon")
                             .font(.kuroMicro(weight: .light))
                             .foregroundColor(.kuroBlack60)
                         Spacer()
@@ -868,7 +976,7 @@ struct EpisodesSection: View {
                     }
                 }
 
-                if episodeCount > 5 {
+                if hasEpisodePreview && episodeCount > 5 {
                     Button(action: {
                         KuroAccessibility.impactHaptic(.light)
                         showAllEpisodes = true
@@ -1069,6 +1177,51 @@ struct EpisodeSkeletonRow: View {
     }
 }
 
+private struct EpisodePreviewFallbackRow: View {
+    let preview: AnimeUpcomingEpisodeDisplay
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("EP \(preview.number)")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.0)
+                    .foregroundColor(.kuroBlack80)
+
+                Text(preview.fallbackTitle)
+                    .font(.kuroMicro(weight: .light))
+                    .foregroundColor(.kuroBlack60)
+                    .lineLimit(1)
+
+                HStack(spacing: 6) {
+                    Text(preview.fallbackBadge)
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(0.8)
+                        .foregroundColor(.kuroBlack80)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color.kuroBlack05)
+                        )
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            Text(preview.fallbackSubtitle)
+                .font(.kuroMicro(weight: .light))
+                .foregroundColor(.kuroBlack60)
+                .multilineTextAlignment(.trailing)
+                .frame(maxWidth: 120, alignment: .trailing)
+        }
+        .padding(KuroSpacing.md)
+        .background(Color.kuroBlack08)
+        .cornerRadius(KuroRadius.sm)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct EpisodeListSheet: View {
     let anime: Anime
     let episodeCount: Int
@@ -1242,37 +1395,48 @@ struct ActionButtons: View {
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.openURL) private var openURL
     @State private var showAddToList = false
+    @State private var showQuickVerdict = false
     @State private var showProviders = false
     @State private var watchLink: ProviderSheetItem? = nil
     @State private var allLinks: [ProviderSheetItem] = []
     @State private var watchAvailabilityNote: String? = nil
     @State private var watchAvailabilityStatusCaption: String? = nil
 
+    private var isGermanLocale: Bool {
+        Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
+    }
+
     private var isSaved: Bool {
         supabaseService.isInCollection(mediaId: anime.id, mediaType: "anime")
+    }
+
+    private var userEntry: UserList? {
+        supabaseService.userListEntry(mediaType: "anime", mediaId: anime.id)
     }
 
     private var hasWatchLink: Bool {
         watchLink.flatMap { validatedURL(from: $0.url) } != nil
     }
 
-    private var watchPrimaryTitle: String {
-        guard let watchLink else { return "No provider available yet" }
-        return allLinks.count > 1 ? "Choose where to watch" : "Open \(watchLink.title)"
+    private var verdictButtonTitle: String {
+        guard let verdict = userEntry?.verdict else { return isGermanLocale ? "Urteil" : "Verdict" }
+        return isGermanLocale ? verdict.displayNameDE : verdict.displayName
     }
 
-    private var watchSecondaryTitle: String {
-        if allLinks.count > 1 { return "\(allLinks.count) legal providers available" }
-        if hasWatchLink { return "Open legal provider link" }
-        return "We are still checking title-specific availability." }
-
-    private var watchBadgeText: String {
-        guard let watchLink else { return "Unavailable" }
-        return watchLink.badgeText
+    private var watchStatusLine: String {
+        if let status = watchAvailabilityStatusCaption, !status.isEmpty {
+            return status
+        }
+        if let note = watchAvailabilityNote, !note.isEmpty {
+            return note
+        }
+        return hasWatchLink
+            ? (isGermanLocale ? "Rechtlich verfuegbaren Link oeffnen." : "Open legal provider link.")
+            : (isGermanLocale ? "Noch kein legaler Link verfuegbar." : "No legal provider link is available yet.")
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Button(action: toggleSaved) {
                     Image(systemName: isSaved ? "heart.fill" : "heart")
@@ -1285,10 +1449,10 @@ struct ActionButtons: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(isSaved ? "Saved" : "Save")
 
-                Button(action: {
+                Button {
                     KuroAccessibility.impactHaptic(.medium)
                     showAddToList = true
-                }) {
+                } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 14, weight: .semibold))
@@ -1300,28 +1464,57 @@ struct ActionButtons: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(Color.kuroBlack)
-                    .cornerRadius(12)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .sheet(isPresented: $showAddToList) {
-                    AddToListSheet(media: anime)
+
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    showQuickVerdict = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "tag")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(verdictButtonTitle.uppercased())
+                            .font(.kuroMicro(weight: .medium))
+                            .tracking(0.9)
+                            .lineLimit(1)
+                    }
+                    .foregroundColor(.kuroBlack70)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 10)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.kuroBlack06)
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(Color.kuroBlack12, lineWidth: 0.6)
+                    )
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel(userEntry?.verdict == nil ? "Set verdict" : "Edit verdict")
+
+                Button(action: handleWatchAction) {
+                    Image(systemName: hasWatchLink ? "play.fill" : "play.slash")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(hasWatchLink ? .kuroBlack : .kuroBlack30)
+                        .frame(width: 38, height: 38)
+                        .background(Color.kuroBlack08)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    hasWatchLink
+                        ? (allLinks.count > 1 ? "Choose watch provider" : "Open watch provider")
+                        : "No legal watch link available"
+                )
             }
 
-            MediaProviderActionCard(
-                sectionTitle: "Watch On",
-                systemImage: hasWatchLink ? "play.fill" : "play.slash",
-                providerTitle: allLinks.count == 1 ? watchLink?.title : nil,
-                primaryTitle: watchPrimaryTitle,
-                secondaryTitle: watchSecondaryTitle,
-                note: watchLink == nil
-                    ? "No legal provider link is available yet."
-                    : (watchAvailabilityNote ?? "Availability, audio, and subtitle options may vary by region."),
-                statusCaption: watchAvailabilityStatusCaption,
-                badgeText: watchBadgeText,
-                isAvailable: hasWatchLink,
-                action: handleWatchAction
-            )
+            Text(watchStatusLine)
+                .font(.kuroMicro(weight: .light))
+                .foregroundColor(.kuroTextTertiary)
+                .lineLimit(2)
         }
         .padding(10)
         .background(
@@ -1335,6 +1528,12 @@ struct ActionButtons: View {
         .task(id: supabaseService.getProgress(for: anime.id) ?? -1) {
             await refreshLinks()
         }
+        .sheet(isPresented: $showAddToList) {
+            AddToListSheet(media: anime)
+        }
+        .sheet(isPresented: $showQuickVerdict) {
+            QuickVerdictPickerSheet(media: anime, onToast: onToast)
+        }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(
                 title: "Watch On",
@@ -1346,6 +1545,44 @@ struct ActionButtons: View {
                     openURL(url)
                 } else {
                     onToast(.init(kind: .error, title: "Couldn’t open link", subtitle: "Try a different provider.", actionTitle: nil, onAction: nil))
+                }
+            }
+        }
+    }
+
+    private func toggleSaved() {
+        let currentlySaved = isSaved
+        Task {
+            let success: Bool
+            if currentlySaved {
+                success = await supabaseService.removeFromList(mediaId: anime.id, mediaType: "anime")
+            } else {
+                success = await supabaseService.addToList(mediaId: anime.id, mediaType: "anime", status: .planning)
+            }
+
+            await MainActor.run {
+                if success {
+                    KuroAccessibility.successHaptic()
+                    onToast(
+                        .init(
+                            kind: .success,
+                            title: currentlySaved ? "Removed" : "Saved",
+                            subtitle: currentlySaved ? "Removed from your list" : "Added to Planning",
+                            actionTitle: nil,
+                            onAction: nil
+                        )
+                    )
+                } else {
+                    KuroAccessibility.errorHaptic()
+                    onToast(
+                        .init(
+                            kind: .error,
+                            title: "Couldn't save",
+                            subtitle: supabaseService.errorMessage,
+                            actionTitle: nil,
+                            onAction: nil
+                        )
+                    )
                 }
             }
         }
@@ -1478,35 +1715,6 @@ struct ActionButtons: View {
         return url
     }
 
-    private func toggleSaved() {
-        let currentlySaved = isSaved
-        Task {
-            if currentlySaved {
-                await supabaseService.removeFromList(mediaId: anime.id, mediaType: "anime")
-            } else {
-                await supabaseService.addToList(mediaId: anime.id, mediaType: "anime", status: .planning)
-            }
-            if let msg = supabaseService.errorMessage, !msg.isEmpty {
-                KuroAccessibility.errorHaptic()
-                await MainActor.run {
-                    onToast(.init(kind: .error, title: "Couldn’t save", subtitle: msg, actionTitle: nil, onAction: nil))
-                }
-            } else {
-                KuroAccessibility.successHaptic()
-                await MainActor.run {
-                    onToast(
-                        .init(
-                            kind: .success,
-                            title: currentlySaved ? "Removed" : "Saved",
-                            subtitle: currentlySaved ? "Removed from your list" : "Added to Planning",
-                            actionTitle: nil,
-                            onAction: nil
-                        )
-                    )
-                }
-            }
-        }
-    }
 }
 
 

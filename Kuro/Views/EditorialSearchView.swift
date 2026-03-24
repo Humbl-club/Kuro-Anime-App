@@ -7,6 +7,8 @@ import SwiftUI
 struct EditorialSearchResultItem: Identifiable {
     let id: String
     let media: any MediaDisplayable
+    let rank: Double
+    let popularity: Int
 }
 
 struct EditorialSearchView: View {
@@ -67,9 +69,28 @@ struct EditorialSearchView: View {
     }
 
     private var serverResults: [EditorialSearchResultItem] {
-        let anime = supabaseService.searchAnimeItems.map { EditorialSearchResultItem(id: "anime-\($0.id)", media: $0) }
-        let manga = supabaseService.searchMangaItems.map { EditorialSearchResultItem(id: "manga-\($0.id)", media: $0) }
-        return anime + manga
+        let anime = supabaseService.searchAnimeItems.map {
+            EditorialSearchResultItem(
+                id: "anime-\($0.id)",
+                media: $0,
+                rank: $0.rank ?? 0,
+                popularity: $0.popularity ?? 0
+            )
+        }
+        let manga = supabaseService.searchMangaItems.map {
+            EditorialSearchResultItem(
+                id: "manga-\($0.id)",
+                media: $0,
+                rank: $0.rank ?? 0,
+                popularity: $0.popularity ?? 0
+            )
+        }
+
+        return (anime + manga).sorted { lhs, rhs in
+            if lhs.rank != rhs.rank { return lhs.rank > rhs.rank }
+            if lhs.popularity != rhs.popularity { return lhs.popularity > rhs.popularity }
+            return lhs.media.title.localizedCaseInsensitiveCompare(rhs.media.title) == .orderedAscending
+        }
     }
 
     var body: some View {
@@ -91,6 +112,12 @@ struct EditorialSearchView: View {
                         selectedRefinements: $selectedRefinements
                     )
                     .padding(.bottom, EditorialLayout.gutterMedium)
+                }
+
+                if let transientBannerMessage = supabaseService.transientBannerMessage {
+                    KuroTransientBanner(message: transientBannerMessage)
+                        .padding(.horizontal, EditorialLayout.marginEditorial)
+                        .padding(.bottom, EditorialLayout.gutterSmall)
                 }
 
                 // Search Results

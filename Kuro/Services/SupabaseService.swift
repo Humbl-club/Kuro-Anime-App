@@ -80,6 +80,7 @@ class SupabaseService {
     var collectionFeedItems: [Media] = []
     var isCollectionLoading: Bool = false
     var collectionErrorMessage: String? = nil
+    var transientBannerMessage: String? = nil
     var userLists: [UserList] = []
     var episodes: [Episode] = []
     // Detail caches: cards/grids only carry minimal fields; we fetch full details by id on demand.
@@ -239,6 +240,19 @@ class SupabaseService {
     var countdownTimer: Timer?
     var isLoading = false
     var errorMessage: String?
+    private var transientBannerDismissTask: Task<Void, Never>? = nil
+
+    func showTransientBanner(_ message: String, duration: Double = 2.4) {
+        transientBannerDismissTask?.cancel()
+        transientBannerMessage = message
+        transientBannerDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            if transientBannerMessage == message {
+                transientBannerMessage = nil
+            }
+        }
+    }
 
     // TODO: remove when streaming_availability_v1 reaches 100% — replaced by streaming_services registry
     let animeProviderRanking: [String] = [
@@ -2687,7 +2701,8 @@ class SupabaseService {
             status: entry.status,
             progress: newProgress,
             rating: entry.score,
-            notes: entry.notes
+            notes: entry.notes,
+            verdict: entry.verdict
         )
     }
 
@@ -2717,13 +2732,18 @@ class SupabaseService {
                 if !success {
                     // Rollback: re-insert the ID
                     if type == "anime" { collectionAnimeIds.insert(mediaId) } else { collectionMangaIds.insert(mediaId) }
+                    showTransientBanner("Couldn't update list. Try again.")
+                } else {
+                    showTransientBanner("Removed from collection")
                 }
             } else {
-                let priorError = errorMessage
-                await addToList(mediaId: mediaId, mediaType: type, status: .planning)
-                if errorMessage != nil && errorMessage != priorError {
+                let success = await addToList(mediaId: mediaId, mediaType: type, status: .planning)
+                if !success {
                     // Rollback: remove the optimistically inserted ID
                     if type == "anime" { collectionAnimeIds.remove(mediaId) } else { collectionMangaIds.remove(mediaId) }
+                    showTransientBanner("Couldn't update list. Try again.")
+                } else {
+                    showTransientBanner("Added to collection")
                 }
             }
             togglingMediaKeys.remove(key)

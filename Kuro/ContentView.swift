@@ -417,6 +417,16 @@ struct KuroMainView: View {
                     showOnboarding = false
                 }
             }
+            if let transientBannerMessage = supabaseService.transientBannerMessage {
+                VStack {
+                    KuroTransientBanner(message: transientBannerMessage)
+                        .padding(.top, hidesHeaderForConcierge ? 20 : 10)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(10)
+            }
     }
 
     private func handleDeepLink(_ link: DeepLink) {

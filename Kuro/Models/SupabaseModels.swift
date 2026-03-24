@@ -558,6 +558,7 @@ struct UserList: Identifiable, Codable {
     let progressVolumes: Int?
     
     // User ratings
+    let verdict: Verdict?
     let score: Int?                       // 0-100
     let notes: String?
     
@@ -580,12 +581,34 @@ struct UserList: Identifiable, Codable {
         case status
         case progress
         case progressVolumes = "progress_volumes"
-        case score, notes
+        case verdict, score, notes
         case startedAt = "started_at"
         case completedAt = "completed_at"
         case isPrivate = "private"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+}
+
+enum Verdict: String, Codable, CaseIterable {
+    case masterpiece = "MASTERPIECE"
+    case okay = "OKAY"
+    case bad = "BAD"
+
+    var displayName: String {
+        switch self {
+        case .masterpiece: return "Masterpiece"
+        case .okay: return "Okay"
+        case .bad: return "Bad"
+        }
+    }
+
+    var displayNameDE: String {
+        switch self {
+        case .masterpiece: return "Meisterwerk"
+        case .okay: return "Okay"
+        case .bad: return "Schwach"
+        }
     }
 }
 
@@ -605,6 +628,15 @@ enum ListStatus: String, Codable, CaseIterable {
         case .dropped: return "Dropped"
         case .paused: return "Paused"
         case .repeating: return "Rewatching"
+        }
+    }
+
+    func displayName(for mediaType: String) -> String {
+        guard mediaType.lowercased() == "manga" else { return displayName }
+        switch self {
+        case .current: return "Reading"
+        case .repeating: return "Rereading"
+        default: return displayName
         }
     }
 }

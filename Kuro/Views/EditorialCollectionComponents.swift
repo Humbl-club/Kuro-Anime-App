@@ -60,13 +60,15 @@ struct EditorialCollectionGrid: View {
     let geometry: GeometryProxy
     let title: String?
     var isEditMode: Bool = false
+    var onQuickActionMessage: ((String) -> Void)? = nil
     @Binding var selectedKeys: Set<String>
 
-    init(items: [any MediaDisplayable], geometry: GeometryProxy, title: String? = nil, isEditMode: Bool = false, selectedKeys: Binding<Set<String>> = .constant([])) {
+    init(items: [any MediaDisplayable], geometry: GeometryProxy, title: String? = nil, isEditMode: Bool = false, onQuickActionMessage: ((String) -> Void)? = nil, selectedKeys: Binding<Set<String>> = .constant([])) {
         self.items = items
         self.geometry = geometry
         self.title = title
         self.isEditMode = isEditMode
+        self.onQuickActionMessage = onQuickActionMessage
         self._selectedKeys = selectedKeys
     }
 
@@ -105,6 +107,7 @@ struct EditorialCollectionGrid: View {
                         cardWidth: cardWidth,
                         cardHeight: totalCardHeight,
                         isEditMode: isEditMode,
+                        onQuickActionMessage: onQuickActionMessage,
                         isSelected: selectedKeys.contains(media.stableKey)
                     ) {
                         let key = media.stableKey
@@ -345,10 +348,12 @@ struct CollectionGridCard: View {
     let cardWidth: CGFloat
     let cardHeight: CGFloat
     var isEditMode: Bool = false
+    var onQuickActionMessage: ((String) -> Void)? = nil
     var isSelected: Bool = false
     var onToggleSelection: (() -> Void)? = nil
     @State private var showDetail = false
-    @State private var showAddToList = false
+    @State private var showQuickActions = false
+    @State private var showAdvancedListEditor = false
     @Environment(SupabaseService.self) private var supabaseService
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
 
@@ -401,6 +406,7 @@ struct CollectionGridCard: View {
     }
 
     var body: some View {
+        ZStack(alignment: .bottomLeading) {
         Button(action: {
             if isEditMode {
                 KuroAccessibility.impactHaptic(.light)
@@ -596,6 +602,15 @@ struct CollectionGridCard: View {
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityHint("Opens details")
         .contextMenu {
+            if !isEditMode {
+                Button(action: {
+                    KuroAccessibility.impactHaptic(.light)
+                    showQuickActions = true
+                }) {
+                    Label("Quick Classify", systemImage: "tag")
+                }
+            }
+
             if canIncrementProgress {
                 Button(action: {
                     KuroAccessibility.impactHaptic(.light)
@@ -607,7 +622,7 @@ struct CollectionGridCard: View {
 
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
-                showAddToList = true
+                showAdvancedListEditor = true
             }) {
                 Label("Edit List", systemImage: "slider.horizontal.3")
             }
@@ -622,8 +637,17 @@ struct CollectionGridCard: View {
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
         }
-        .sheet(isPresented: $showAddToList) {
+        .sheet(isPresented: $showQuickActions) {
+            QuickVerdictActionSheet(
+                media: media,
+                onToast: onQuickActionMessage.map { onMessage in
+                    { toast in onMessage(toast.title) }
+                }
+            )
+        }
+        .sheet(isPresented: $showAdvancedListEditor) {
             AddToListSheet(media: media)
+        }
         }
     }
 
@@ -647,11 +671,13 @@ struct CollectionGridCard: View {
 struct CollectionListView: View {
     let items: [any MediaDisplayable]
     var isEditMode: Bool = false
+    var onQuickActionMessage: ((String) -> Void)? = nil
     @Binding var selectedKeys: Set<String>
 
-    init(items: [any MediaDisplayable], isEditMode: Bool = false, selectedKeys: Binding<Set<String>> = .constant([])) {
+    init(items: [any MediaDisplayable], isEditMode: Bool = false, onQuickActionMessage: ((String) -> Void)? = nil, selectedKeys: Binding<Set<String>> = .constant([])) {
         self.items = items
         self.isEditMode = isEditMode
+        self.onQuickActionMessage = onQuickActionMessage
         self._selectedKeys = selectedKeys
     }
 
@@ -661,6 +687,7 @@ struct CollectionListView: View {
                 CollectionListRow(
                     media: media,
                     isEditMode: isEditMode,
+                    onQuickActionMessage: onQuickActionMessage,
                     isSelected: selectedKeys.contains(media.stableKey)
                 ) {
                     let key = media.stableKey
@@ -684,10 +711,15 @@ struct CollectionListView: View {
 private struct CollectionListRow: View {
     let media: any MediaDisplayable
     var isEditMode: Bool = false
+    var onQuickActionMessage: ((String) -> Void)? = nil
     var isSelected: Bool = false
     var onToggleSelection: (() -> Void)? = nil
     @State private var showDetail = false
+    @State private var showQuickActions = false
     @Environment(SupabaseService.self) private var supabaseService
+    private var isGermanLocale: Bool {
+        Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
+    }
 
     private var mediaType: String { media.kind.rawValue }
 
@@ -724,6 +756,7 @@ private struct CollectionListRow: View {
     }
 
     var body: some View {
+        HStack(spacing: 8) {
         Button {
             if isEditMode {
                 KuroAccessibility.impactHaptic(.light)
@@ -772,6 +805,12 @@ private struct CollectionListRow: View {
                                 .font(.kuroMicro(weight: .regular))
                                 .foregroundColor(.kuroBlack40)
                         }
+
+                        if let verdict = userEntry?.verdict, userEntry?.status == .completed {
+                            QuickVerdictBadge(verdict: verdict, isGermanLocale: isGermanLocale)
+                        } else if userEntry?.status == .completed {
+                            QuickVerdictBadge(verdict: nil, isGermanLocale: isGermanLocale)
+                        }
                     }
                 }
 
@@ -805,11 +844,26 @@ private struct CollectionListRow: View {
             .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
+        if !isEditMode {
+            QuickVerdictTriggerButton(media: media) {
+                showQuickActions = true
+            }
+            .padding(.trailing, 20)
+        }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(media.title)\(statusLabel.isEmpty ? "" : ", \(statusLabel)")\(progressText.map { ", \($0)" } ?? "")")
         .accessibilityHint("Opens details")
         .sheet(isPresented: $showDetail) {
             MediaDetailSheet(kind: media.kind, id: media.id)
+        }
+        .sheet(isPresented: $showQuickActions) {
+            QuickVerdictActionSheet(
+                media: media,
+                onToast: onQuickActionMessage.map { onMessage in
+                    { toast in onMessage(toast.title) }
+                }
+            )
         }
     }
 }

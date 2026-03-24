@@ -19,6 +19,7 @@ struct EditorialCollectionView: View {
     @State private var selectedKeys: Set<String> = []
     @State private var showBatchStatusPicker = false
     @State private var selectedMediaType: MediaTypeFilter = .all
+    @State private var selectedVerdictFilter: CompletedVerdictFilter = .all
     @State private var selectedServiceFilter: String? = nil
     @State private var selectedLanguageFilter: String? = nil
     @State private var includeUnknownLanguage: Bool = true
@@ -53,6 +54,33 @@ struct EditorialCollectionView: View {
         case manga = "MANGA"
     }
 
+    enum CompletedVerdictFilter: String, CaseIterable {
+        case all = "ALL"
+        case unsorted = "UNSORTED"
+        case masterpiece = "MASTERPIECE"
+        case okay = "OKAY"
+        case bad = "BAD"
+
+        func displayName(isGerman: Bool) -> String {
+            switch self {
+            case .all: return isGerman ? "Alle" : "All"
+            case .unsorted: return isGerman ? "Ohne Urteil" : "Unsorted"
+            case .masterpiece: return isGerman ? "Meisterwerk" : "Masterpiece"
+            case .okay: return "Okay"
+            case .bad: return isGerman ? "Schwach" : "Bad"
+            }
+        }
+
+        var verdict: Verdict? {
+            switch self {
+            case .all, .unsorted: return nil
+            case .masterpiece: return .masterpiece
+            case .okay: return .okay
+            case .bad: return .bad
+            }
+        }
+    }
+
     enum CollectionSort: String, CaseIterable {
         case lastUpdated = "LAST UPDATED"
         case titleAZ = "TITLE A-Z"
@@ -62,6 +90,9 @@ struct EditorialCollectionView: View {
     }
 
     private var items: [Media] { supabaseService.collectionFeedItems }
+    private var isGermanLocale: Bool {
+        Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
+    }
 
     private var displayItems: [Media] {
         var base = searchResults ?? items
@@ -83,6 +114,22 @@ struct EditorialCollectionView: View {
         if FeatureFlags.shared.isStreamingAvailabilityV1Enabled, let lang = selectedLanguageFilter {
             let available = supabaseService.collectionItemsWithLanguage(lang: lang, includeUnknown: includeUnknownLanguage)
             base = base.filter { available.contains("\($0.kind == .anime ? "ANIME" : "MANGA")-\($0.id)") }
+        }
+
+        if selectedFilter == .completed {
+            base = base.filter { media in
+                guard let entry = supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id) else {
+                    return false
+                }
+                switch selectedVerdictFilter {
+                case .all:
+                    return true
+                case .unsorted:
+                    return entry.verdict == nil
+                case .masterpiece, .okay, .bad:
+                    return entry.verdict == selectedVerdictFilter.verdict
+                }
+            }
         }
 
         switch selectedSort {
@@ -171,10 +218,20 @@ struct EditorialCollectionView: View {
         .onChange(of: selectedFilter) { _, _ in
             searchText = ""
             searchResults = nil
+            selectedVerdictFilter = .all
             Task {
                 await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
             }
         }
+    }
+
+    private var completedUnsortedCount: Int {
+        items.filter { media in
+            guard let entry = supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id) else {
+                return false
+            }
+            return entry.status == .completed && entry.verdict == nil
+        }.count
     }
 
     @ViewBuilder
@@ -225,6 +282,46 @@ struct EditorialCollectionView: View {
 
             collectionControlsSection
                 .padding(.bottom, 12)
+
+            if selectedFilter == .completed {
+                completedVerdictFilterSection
+                    .padding(.bottom, 12)
+            }
+        }
+    }
+
+    private var completedVerdictFilterSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(CompletedVerdictFilter.allCases, id: \.self) { filter in
+                        Button {
+                            KuroAccessibility.impactHaptic(.light)
+                            withAnimation(KuroAnimation.fast) {
+                                selectedVerdictFilter = filter
+                            }
+                        } label: {
+                            Text(filter.displayName(isGerman: isGermanLocale).uppercased())
+                                .font(.system(size: 9, weight: .medium))
+                                .tracking(1.0)
+                                .foregroundColor(selectedVerdictFilter == filter ? .black : .black.opacity(0.35))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, EditorialLayout.marginEditorial)
+            }
+
+            if completedUnsortedCount > 0 {
+                Text(
+                    isGermanLocale
+                        ? "\(completedUnsortedCount) fertige Titel haben noch kein Urteil."
+                        : "\(completedUnsortedCount) completed titles still need a verdict."
+                )
+                .font(.kuroMicro(weight: .medium))
+                .foregroundColor(.kuroTextSecondary)
+                .padding(.horizontal, EditorialLayout.marginEditorial)
+            }
         }
     }
 
@@ -517,9 +614,21 @@ struct EditorialCollectionView: View {
         }
 
         if showListView {
-            CollectionListView(items: displayItems, isEditMode: isEditMode, selectedKeys: $selectedKeys)
+            CollectionListView(
+                items: displayItems,
+                isEditMode: isEditMode,
+                onQuickActionMessage: { message in showBanner(message) },
+                selectedKeys: $selectedKeys
+            )
         } else {
-            EditorialCollectionGrid(items: displayItems, geometry: geometry, title: nil, isEditMode: isEditMode, selectedKeys: $selectedKeys)
+            EditorialCollectionGrid(
+                items: displayItems,
+                geometry: geometry,
+                title: nil,
+                isEditMode: isEditMode,
+                onQuickActionMessage: { message in showBanner(message) },
+                selectedKeys: $selectedKeys
+            )
         }
 
         if searchResults == nil {
@@ -648,7 +757,8 @@ struct EditorialCollectionView: View {
                 status: status,
                 progress: supabaseService.userListProgress(mediaType: media.kind.rawValue, mediaId: media.id) ?? 0,
                 rating: nil,
-                notes: nil
+                notes: nil,
+                verdict: supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id)?.verdict
             )
         }
         KuroAccessibility.successHaptic()

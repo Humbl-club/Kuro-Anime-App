@@ -188,7 +188,8 @@ struct AddToListSheet: View {
                 status: selectedStatus,
                 progress: finalProgress,
                 rating: rating,
-                notes: notesValue
+                notes: notesValue,
+                verdict: supabaseService.userListEntry(mediaType: mediaType, mediaId: media.id)?.verdict
             )
             await MainActor.run {
                 isSaving = false
@@ -568,5 +569,34 @@ private struct SpreadSaveDock: View {
                 .fill(Color.kuroBackground.opacity(0.92))
                 .ignoresSafeArea()
         )
+    }
+}
+
+// MARK: - Quick List Actions
+
+struct QuickVerdictBadge: View {
+    let verdict: Verdict?
+    let isGermanLocale: Bool
+
+    private var title: String {
+        guard let verdict else { return isGermanLocale ? "Ohne Urteil" : "Unsorted" }
+        return isGermanLocale ? verdict.displayNameDE : verdict.displayName
+    }
+
+    var body: some View {
+        Text(title.uppercased())
+            .font(.kuroMicro(weight: .medium))
+            .tracking(1.0)
+            .foregroundColor(verdict == nil ? .kuroTextSecondary : .kuroBlack80)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(verdict == nil ? Color.kuroBlack04 : Color.kuroBlack08)
+            )
+            .overlay(
+                Capsule(style: .continuous)
+                    .stroke(verdict == nil ? Color.kuroBlack10 : Color.kuroBlack20, lineWidth: 0.8)
+            )
     }
 }
