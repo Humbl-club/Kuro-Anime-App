@@ -265,21 +265,7 @@ struct AuthView: View {
     // MARK: - Error mapping
 
     private func friendlyAuthError(_ error: Error) -> String {
-        let raw = error.localizedDescription
-        #if DEBUG
-        print("[AuthView] raw auth error: \(raw)")
-        #endif
-        let lower = raw.lowercased()
-        if lower.contains("invalid login credentials") {
-            return "Incorrect email or password. Please try again."
-        } else if lower.contains("user already registered") {
-            return "An account with this email already exists. Try signing in instead."
-        } else if lower.contains("email not confirmed") {
-            return "Please check your email to verify your account."
-        } else if lower.contains("password should be at least") {
-            return "Password must be at least 6 characters."
-        }
-        return "Something went wrong. Please try again."
+        SupabaseService.userFacingAuthErrorMessage(from: error)
     }
 
     // MARK: - Actions

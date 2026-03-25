@@ -44,6 +44,89 @@ class SupabaseService {
         return c.map { String($0).uppercased() } ?? "M"
     }
 
+    nonisolated static func userFacingAuthErrorMessage(from error: Error) -> String {
+        #if DEBUG
+        let chain = authErrorChain(from: error)
+            .map { "\($0.domain)(\($0.code)): \($0.localizedDescription)" }
+            .joined(separator: " -> ")
+        print("[Auth] error chain: \(chain)")
+        #endif
+
+        if let transportMessage = transportAuthErrorMessage(from: error) {
+            return transportMessage
+        }
+
+        let lower = error.localizedDescription.lowercased()
+        if lower.contains("invalid login credentials") {
+            return "Incorrect email or password. Please try again."
+        } else if lower.contains("user already registered") {
+            return "An account with this email already exists. Try signing in instead."
+        } else if lower.contains("email not confirmed") {
+            return "Please check your email to verify your account."
+        } else if lower.contains("password should be at least") {
+            return "Password must be at least 6 characters."
+        }
+        return "Something went wrong. Please try again."
+    }
+
+    nonisolated private static func transportAuthErrorMessage(from error: Error) -> String? {
+        for candidate in authErrorChain(from: error) {
+            guard candidate.domain == NSURLErrorDomain else { continue }
+            let code = URLError.Code(rawValue: candidate.code)
+            switch code {
+            case .notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff:
+                return "No internet connection. Check your connection and try again."
+            case .networkConnectionLost:
+                return "The network connection was lost. Please try again."
+            case .timedOut:
+                return "The request timed out. Please try again."
+            case .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed,
+                 .secureConnectionFailed, .cannotLoadFromNetwork,
+                 .appTransportSecurityRequiresSecureConnection, .badServerResponse:
+                return "Can't reach the server right now. Please try again."
+            default:
+                continue
+            }
+        }
+
+        let lower = error.localizedDescription.lowercased()
+        if lower.contains("internet connection appears to be offline") ||
+            lower.contains("not connected to the internet") {
+            return "No internet connection. Check your connection and try again."
+        } else if lower.contains("network connection was lost") {
+            return "The network connection was lost. Please try again."
+        } else if lower.contains("timed out") {
+            return "The request timed out. Please try again."
+        } else if lower.contains("cannot connect to the server") ||
+                    lower.contains("could not connect to the server") ||
+                    lower.contains("cannot connect to host") {
+            return "Can't reach the server right now. Please try again."
+        }
+        return nil
+    }
+
+    nonisolated private static func authErrorChain(from error: Error) -> [NSError] {
+        var queue: [NSError] = [error as NSError]
+        var seen = Set<String>()
+        var chain: [NSError] = []
+
+        while let current = queue.first {
+            queue.removeFirst()
+            let key = "\(current.domain)#\(current.code)#\(current.localizedDescription)"
+            if !seen.insert(key).inserted {
+                continue
+            }
+            chain.append(current)
+            if let underlying = current.userInfo[NSUnderlyingErrorKey] as? NSError {
+                queue.append(underlying)
+            } else if let underlying = current.userInfo[NSUnderlyingErrorKey] as? Error {
+                queue.append(underlying as NSError)
+            }
+        }
+
+        return chain
+    }
+
     // MARK: - Shared interaction telemetry helpers
 
     typealias InteractionStartedAt = CFAbsoluteTime
@@ -577,7 +660,7 @@ class SupabaseService {
             await ensureProfileRow()
             await bootstrapAfterAuth()
         } catch {
-            authErrorMessage = error.localizedDescription
+            authErrorMessage = Self.userFacingAuthErrorMessage(from: error)
             isAuthenticated = false
             currentUserId = nil
             analytics.setUserId(nil)
@@ -610,7 +693,7 @@ class SupabaseService {
                 analytics.setUserId(nil)
             }
         } catch {
-            authErrorMessage = error.localizedDescription
+            authErrorMessage = Self.userFacingAuthErrorMessage(from: error)
             throw error
         }
     }
@@ -664,7 +747,7 @@ class SupabaseService {
             await ensureProfileRow()
             await bootstrapAfterAuth()
         } catch {
-            authErrorMessage = error.localizedDescription
+            authErrorMessage = Self.userFacingAuthErrorMessage(from: error)
             isAuthenticated = false
             currentUserId = nil
             analytics.setUserId(nil)

@@ -185,6 +185,56 @@ struct ImportIntentTests {
     }
 }
 
+// MARK: - Auth Error Mapping Tests
+
+@Suite("Auth Error Mapping")
+struct AuthErrorMappingTests {
+
+    @Test("Maps offline transport failures to a clear message")
+    func testOfflineTransportMessage() {
+        let error = URLError(.notConnectedToInternet)
+        #expect(
+            SupabaseService.userFacingAuthErrorMessage(from: error) ==
+            "No internet connection. Check your connection and try again."
+        )
+    }
+
+    @Test("Maps timeout transport failures to a clear message")
+    func testTimeoutTransportMessage() {
+        let error = URLError(.timedOut)
+        #expect(
+            SupabaseService.userFacingAuthErrorMessage(from: error) ==
+            "The request timed out. Please try again."
+        )
+    }
+
+    @Test("Maps wrapped cannot-connect transport failures to a clear message")
+    func testWrappedCannotConnectTransportMessage() {
+        let wrapped = NSError(
+            domain: "Supabase",
+            code: 1,
+            userInfo: [NSUnderlyingErrorKey: URLError(.cannotConnectToHost)]
+        )
+        #expect(
+            SupabaseService.userFacingAuthErrorMessage(from: wrapped) ==
+            "Can't reach the server right now. Please try again."
+        )
+    }
+
+    @Test("Keeps credential failures specific")
+    func testInvalidCredentialsMessage() {
+        let error = NSError(
+            domain: "Auth",
+            code: 401,
+            userInfo: [NSLocalizedDescriptionKey: "Invalid login credentials"]
+        )
+        #expect(
+            SupabaseService.userFacingAuthErrorMessage(from: error) ==
+            "Incorrect email or password. Please try again."
+        )
+    }
+}
+
 // MARK: - CreditRole Normalization Tests
 
 @Suite("CreditRole Normalization")
