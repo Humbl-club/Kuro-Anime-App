@@ -1,10 +1,10 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-24
+**Last updated:** 2026-03-26
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 88 app Swift files and 167 SQL migrations are in the repo today.
+**Current inventory:** 88 app Swift files and 169 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -43,12 +43,12 @@ Kuro is a curated anime + manga app. It lets users browse premium picks, keep li
 The app has 5 swipeable pages that follow a natural discovery flow:
 
 1. **Concierge** (swipe left from Discover): An inline concierge page for importing from your library/clipboard and asking for recommendations. First-time visitors see an expanded hint explaining what you can do (import lists, get mood-based picks with a concrete example). After your first interaction, the hint collapses to a slim one-liner.
-2. **Discover** (main page, opens by default): Shows 6 curated sections on first load (your personalized picks, what's airing today, essentials, trending, and manga counterparts). A "Show More" button reveals 7 additional sections (classics, current season, top rated, just added, etc.). Once you expand, it stays expanded across launches.
+2. **Discover** (main page, opens by default): Shows 6 curated sections on first load (your personalized picks, what's airing today, essentials, trending, and manga counterparts). A "Show More" button reveals 7 additional sections (classics, current season, top rated, just added, etc.). Once you expand, it stays expanded across launches. The `New to You` rail now rotates per user on the server, so it stops repeating the same titles all the time. By default, ancillary anime entries like specials, music videos, and TV shorts are hidden from normal discovery.
 3. **Browse** (swipe right from Discover): Explore the full catalog with filters (genre, status, length, decade, format, sort).
 4. **Collection** (swipe right from Browse): Your personal list of anime/manga. The live app uses status filters, type filters, search, and sorting. The newer provider/language availability filtering work remains staged behind `streaming_availability_v1` at 0% and is not part of the default-on production path.
 5. **Clubs** (rightmost page): Private groups (2–20 members) for watching together. Create a club, invite friends with a code, share curated watchlists (rails), see weekly highlights, vote in polls, and react to items (fire/heart/eyes/100). Club owners control privacy settings. The club list shows member counts, recent activity previews, and unread dots. When sharing is set to "progress", you'll see pace tracking ("3 ep behind the group"). Milestone cards celebrate when all members finish a title. Updates appear in real-time. Club activity also shows up on anime/manga detail pages. You can add anime/manga directly to a club rail from the Rails tab or via the "Add to Club..." context menu on any card. **Social activity**: when you open an anime or manga detail page, you can now see which of your club friends are also tracking that title, read their comments, and react with thumbs up/down. This replaces the old club chat tab with more relevant, title-level conversations. **Shared streaming**: a new "SHARED" toggle on club rails shows which titles are available on streaming services that all members share. Coverage text tells you how many members have set up their services.
 
-**Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page. It supports natural language queries like "show me action anime from 2020" using on-device AI.
+**Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page. It supports natural language queries like "show me action anime from 2020" using on-device AI. Default anime search now also hides ancillary formats like specials, music videos, and TV shorts so the mainline results come first.
 
 Profile is a small menu in the top-right corner. You can set your streaming subscriptions here (Crunchyroll, Netflix, Funimation, HIDIVE, etc.) so the app knows where you can watch or read. Clubs is also accessible from the Profile sheet as a secondary shortcut.
 
@@ -982,3 +982,15 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - The clubs list now uses the new lightweight loading RPC for faster initial display, with automatic fallback to the enriched RPC.
 - When opening a club detail page, the app now requests a lightweight loading snapshot in parallel with the full bundle, so the initial loading state shows real club info (name, members, rail/poll counts) instead of generic skeleton placeholders.
 - 86 Swift files (unchanged), 162 SQL migrations (unchanged).
+
+### 2026-03-25 — Clearer sign-in network errors (Build 19)
+- When sign-in fails because the network is down or unstable, the app no longer dumps the vague system message. It now tells the user whether they are offline, timed out, or simply cannot reach the server.
+- This applies consistently across email sign-in, sign-up, and Apple sign-in because the mapping now lives in one shared helper.
+- Automated tests were added for the main error cases, and TestFlight build 19 was uploaded with the fix.
+
+### 2026-03-26 — `New to You` rotation + ancillary anime hidden by default
+- The home-page `New to You` rail now rotates per user on the server. Kuro remembers what each user has already been shown, prefers titles they have never seen in that rail, and only recycles older ones when needed.
+- Inside that fresh pool, titles are still quality-ranked: popularity first, then score, then favourites.
+- Default anime Search, Browse, and Discover now hide ancillary entries like specials, music videos, and TV shorts so the mainline results come first.
+- Browse still lets a user intentionally filter into those formats if they really want them.
+- Example result: `ONE PIECE FAN LETTER` no longer appears in default discovery/search, but still appears if the user explicitly browses `SPECIAL`.

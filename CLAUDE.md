@@ -1,6 +1,6 @@
 # CLAUDE.md — Kuro Project Rules & Context
 
-**Last synced: 2026-03-24** | **This file is mandatory reading. Every rule is binding.**
+**Last synced: 2026-03-26** | **This file is mandatory reading. Every rule is binding.**
 
 ---
 
@@ -42,7 +42,7 @@ This codebase has established patterns. Match them. Don't introduce new paradigm
 
 Kuro is a curated anime + manga iOS app. It lets users browse premium editorial picks, maintain personal watchlists, create private clubs with friends, and use a "Concierge" AI assistant to import lists and get mood-based recommendations. The app runs on SwiftUI with a Supabase backend.
 
-Latest notable shipped addition: Adaptation Ladder v1 is live (`media_relations` migration applied, AniList relation import deployed in `bulk-import-anime`/`bulk-import-manga`, and detail-page `ADAPTATION PATH` UI shipped). Initial production coverage was seeded with a controlled relation backfill and will expand as normal imports continue.
+Latest notable shipped additions: Discover `NEW TO YOU` now rotates server-side per user (unseen titles first, then popularity/score/favourites), default anime Search/Browse/Discover now hide ancillary formats (`SPECIAL`, `MUSIC`, `TV_SHORT`) unless the user explicitly filters into them in Browse, and auth transport failures now surface clear offline/timeout/server messages instead of the generic "Cannot connect to the server."
 
 Current release-build status: Kuro-side archive warnings from `SupabaseService`, `GenreHubView`, `KuroRefinedCard`, and `KuroTests` were cleaned on 2026-03-09; the only remaining build/test warning is Xcode's App Intents metadata tool noting that no `AppIntents.framework` dependency is present.
 

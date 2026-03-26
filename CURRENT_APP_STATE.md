@@ -1,10 +1,10 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-24
+**Last updated:** 2026-03-26
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 88 app Swift files in `/Kuro`; 167 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 88 app Swift files in `/Kuro`; 169 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -57,6 +57,14 @@ This file is a **contract**. It must be updated **after every single change** to
 
 **Primary data source:** AniList (imported via scripts + edge functions).
 
+## 1.0) Current discovery/search policy (2026-03-26)
+
+- `discover_bundle` now rotates `new_to_you` server-side per user via `public.discover_rail_impressions`.
+- `new_to_you` ordering is: unseen-for-that-user first, then `popularity desc`, `average_score desc`, `favourites desc`, `id desc`.
+- Default anime `Discover`, `Search`, and `Browse` now hide ancillary formats `SPECIAL`, `MUSIC`, and `TV_SHORT`.
+- Browse keeps an explicit override: if the user deliberately chooses one of those formats in the format filter, results for that format still appear.
+- Collection/detail navigation are unchanged; saved items are not hidden by this policy.
+
 ---
 
 ## 1.1) Configuration + secrets (where keys live)
@@ -108,14 +116,14 @@ This file is a **contract**. It must be updated **after every single change** to
 
 ## 2.1) Auto-generated inventory (exhaustive file lists)
 
-Generated: **2026-03-17T05:59:53.419Z**  (git: `d2111e2` on `main`)
+Generated: **2026-03-26T16:16:10.625Z**  (git: `a8b9f78` on `main`)
 
 This section is auto-generated. Rebuild it after any repo change:
 ```bash
 node scripts/generate_app_state_inventory.js
 ```
 
-### iOS (Swift) files (count: 74)
+### iOS (Swift) files (count: 88)
 - `Kuro/ContentView.swift`
 - `Kuro/Design/Color+Hex.swift`
 - `Kuro/Design/KuroDesignSystem.swift`
@@ -133,7 +141,14 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Services/NetworkMonitor.swift`
 - `Kuro/Services/SupabaseRPCParams.swift`
 - `Kuro/Services/SupabaseService+Browse.swift`
+- `Kuro/Services/SupabaseService+ClubRealtime.swift`
+- `Kuro/Services/SupabaseService+Clubs.swift`
+- `Kuro/Services/SupabaseService+Collection.swift`
+- `Kuro/Services/SupabaseService+Concierge.swift`
 - `Kuro/Services/SupabaseService+Recommendations.swift`
+- `Kuro/Services/SupabaseService+Social.swift`
+- `Kuro/Services/SupabaseService+Streaming.swift`
+- `Kuro/Services/SupabaseService+UserLists.swift`
 - `Kuro/Services/SupabaseService.swift`
 - `Kuro/Services/TextNormalization.swift`
 - `Kuro/Views/AddToListSheet.swift`
@@ -142,10 +157,13 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/BrowseView.swift`
 - `Kuro/Views/Cards.swift`
 - `Kuro/Views/ClubCreateSheets.swift`
-- `Kuro/Views/ClubDetailSections.swift`
+- `Kuro/Views/ClubDetailSheets.swift`
+- `Kuro/Views/ClubDetailShellComponents.swift`
+- `Kuro/Views/ClubDetailTabComponents.swift`
 - `Kuro/Views/ClubDetailView.swift`
 - `Kuro/Views/ClubsView.swift`
 - `Kuro/Views/ConciergeActionFooter.swift`
+- `Kuro/Views/ConciergeAniListImportCoordinator.swift`
 - `Kuro/Views/ConciergeComponents.swift`
 - `Kuro/Views/ConciergeComposerDock.swift`
 - `Kuro/Views/ConciergeEditorialShell.swift`
@@ -154,6 +172,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/ConciergeIntentDeck.swift`
 - `Kuro/Views/ConciergeRecommendationRails.swift`
 - `Kuro/Views/ConciergeResponseStage.swift`
+- `Kuro/Views/ConciergeView+AniListImport.swift`
 - `Kuro/Views/ConciergeView.swift`
 - `Kuro/Views/CountdownTimer.swift`
 - `Kuro/Views/DetailPages/AdaptationPathSection.swift`
@@ -170,6 +189,7 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/EditorialCards.swift`
 - `Kuro/Views/EditorialCollectionComponents.swift`
 - `Kuro/Views/EditorialCollectionView.swift`
+- `Kuro/Views/EditorialDiscoverRouting.swift`
 - `Kuro/Views/EditorialDiscoverView.swift`
 - `Kuro/Views/EditorialSearchView.swift`
 - `Kuro/Views/GenreHubView.swift`
@@ -188,10 +208,12 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/KuroTransientBanner.swift`
 - `Kuro/Views/OnboardingView.swift`
 - `Kuro/Views/PosterView.swift`
+- `Kuro/Views/ProfileFreshnessCard.swift`
 - `Kuro/Views/ProfileView.swift`
+- `Kuro/Views/QuickVerdictActionCard.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 160)
+### Supabase migrations (count: 169)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql`
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -352,6 +374,15 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260316220000_clubs_list_cover_images_members.sql`
 - `supabase/migrations/20260317063000_clubs_list_cover_image_large.sql`
 - `supabase/migrations/20260317110000_fetch_club_bundle_ordering_and_poll_counts.sql`
+- `supabase/migrations/20260318103000_import_track_and_worker_state.sql`
+- `supabase/migrations/20260318104000_club_loading_rpcs.sql`
+- `supabase/migrations/20260319123000_provider_availability_request_priority.sql`
+- `supabase/migrations/20260322110000_add_list_verdicts.sql`
+- `supabase/migrations/20260324173000_search_title_priority.sql`
+- `supabase/migrations/20260324180000_search_title_popularity_tiebreak.sql`
+- `supabase/migrations/20260324213000_discover_airing_today_berlin_day.sql`
+- `supabase/migrations/20260326221000_discover_new_to_you_rotation.sql`
+- `supabase/migrations/20260326234000_exclude_ancillary_anime_from_default_surfaces.sql`
 
 ### Supabase Edge Functions (index.ts) (count: 15)
 - `supabase/functions/auth-callback/index.ts`
@@ -601,33 +632,60 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 
 ## 3.2) Auto iOS backend usage index
 
-Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
+Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 
-- Swift files scanned: **45** (all `Kuro/**/*.swift`)
+- Swift files scanned: **88** (all `Kuro/**/*.swift`)
 
-### RPCs used by iOS (count: 15)
+### RPCs used by iOS (count: 40)
+- `add_club_rail_item`
+- `batch_provider_availability_for_media_v2`
+- `batch_providers_for_media`
 - `browse_anime_page`
 - `browse_manga_page`
+- `cast_club_vote`
+- `check_club_activity_since`
+- `check_email_exists`
+- `club_shared_providers`
 - `collection_anime_page`
 - `collection_feed_page`
 - `collection_manga_page`
+- `count_friends_tracking`
 - `create_club`
+- `create_club_poll`
+- `create_club_rail`
+- `delete_title_comment`
+- `discover_bundle`
+- `enqueue_media_availability_refresh`
+- `enqueue_media_relation_refresh`
+- `fetch_club_bundle`
+- `fetch_club_bundle_loading`
+- `fetch_club_messages`
+- `fetch_friend_activity_for_title`
+- `fetch_my_clubs_enriched`
+- `fetch_my_clubs_loading`
+- `get_manga_chapter_status`
+- `get_media_availability_status`
+- `get_media_ladder`
+- `get_provider_availability_refresh_queue_summary`
 - `join_club`
 - `leave_club`
-- `fetch_club_bundle`
-- `add_club_rail_item`
-- `cast_club_vote`
-- `discover_bundle`
 - `recommend_ids_similar_to_seeds`
+- `save_user_streaming_services`
 - `search_anime_page`
 - `search_manga_page`
+- `send_club_message`
+- `toggle_club_reaction`
+- `toggle_comment_reaction`
+- `upsert_title_comment`
 
-### Edge Functions invoked by iOS (count: 5)
+### Edge Functions invoked by iOS (count: 7)
 - `concierge-apply`
+- `concierge-import-anilist`
 - `concierge-parse`
 - `concierge-recommend`
-- `concierge-resolve`
+- `concierge-retrieve-feedback`
 - `concierge-undo`
+- `delete-account`
 
 
 <!-- END AUTO-IOS-MAP -->
@@ -966,21 +1024,11 @@ Client + edge functions rely on these RPCs:
 
 ## 7.1) Auto migration map (objects by migration)
 
-Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
+Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 
 Each migration is summarized by the objects it defines. For full SQL, open the file.
 
 ### supabase/migrations/20250109_remote_applied_placeholder.sql
-- Tables (24): `public.anime`, `public.manga`, `public.episodes`, `public.chapters`, `public.volumes`, `public.characters`, `public.studios`, `public.authors`, `public.staff`, `public.tags`, `public.anime_characters`, `public.manga_characters`, `public.anime_studios`, `public.manga_authors`, `public.anime_staff`, `public.manga_staff`, `public.anime_tags`, `public.manga_tags`, `public.anime_user_lists`, `public.manga_user_lists`, `public.anime_comments`, `public.manga_comments`, `public.external_links`, `public.import_state`, `public.import_runs`, `public.import_locks`
-- Functions (5): `public.update_updated_at_column`, `public.normalize_description`, `public.airing_next`, `public.acquire_import_lock`, `public.release_import_lock`
-- Views (2): `public.user_lists`, `public.user_airing_next`
-- Materialized views (7): `public.mv_anime_trending`, `public.mv_anime_top_rated`, `public.mv_anime_current_season`, `public.mv_anime_newly_added`, `public.mv_manga_trending`, `public.mv_manga_top_rated`, `public.mv_manga_newly_added`
-- Cron (1): `kuro-refresh-matviews @ 30 1 * * *` (refreshes all discover matviews; conditional on pg_cron)
-- Indexes (50+): external ID lookups, content search (GIN), relationship FKs, user list indexes, FTS, MV unique indexes
-- Triggers (12): `update_*_updated_at` (10 tables), `set_anime_description_normalized`, `set_manga_description_normalized`
-- RLS + Policies (25 tables enabled; public read on catalog, user-scoped on lists/comments)
-- Defensive fixes: `tags.kitsu_id` ADD COLUMN, `comments.user_id` INTEGER→TEXT migration
-- *Mostly idempotent* — `CREATE TABLE/INDEX IF NOT EXISTS` and policy guards are true no-ops; `CREATE OR REPLACE FUNCTION/VIEW` and `DROP+CREATE TRIGGER` overwrite definitions (safe if identical to existing)
 
 ### supabase/migrations/20250909_remote_applied_placeholder.sql
 
@@ -1087,76 +1135,421 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
 
 ### supabase/migrations/20260205190000_concierge_modes_config.sql
 
+### supabase/migrations/20260205231000_curated_rails.sql
+- Tables (2): `public.curated_rail_items`, `public.curated_rails`
+- Functions (1): `public.curated_rail_cards`
+- Policies (2): `public.curated_rail_items:curated_rail_items_select_all`, `public.curated_rails:curated_rails_select_all`
+- Indexes (1): `idx_curated_rail_items_rail_rank`
+- Triggers (2): `curated_rail_items_set_updated_at`, `curated_rails_set_updated_at`
+
+### supabase/migrations/20260205232000_concierge_mode_cache.sql
+- Tables (1): `public.concierge_mode_cache`
+- Policies (1): `public.concierge_mode_cache:concierge_mode_cache_own_all`
+- Indexes (1): `idx_concierge_mode_cache_user_updated`
+- Triggers (1): `concierge_mode_cache_set_updated_at`
+
+### supabase/migrations/20260205232500_concierge_router_flag_and_retention.sql
+- Functions (1): `public.concierge_housekeeping`
+
+### supabase/migrations/20260205233000_concierge_modes_v2_config.sql
+
+### supabase/migrations/20260205234000_curated_rails_seed.sql
+
+### supabase/migrations/20260205235000_discover_bundle_use_curated_rails.sql
+- Functions (1): `public.discover_bundle`
+
+### supabase/migrations/20260206100000_concierge_modes_v3_expanded.sql
+
+### supabase/migrations/20260206120000_curated_rails_expansion.sql
+
+### supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql
+
+### supabase/migrations/20260206150000_security_hardening_rls_and_views.sql
+- Policies (5): `public.editorial_boosts:service_role_read`, `public.editorial_penalty_tags:service_role_read`, `public.editorial_tag_boosts:service_role_read`, `public.import_state:service_role_all`, `public.mirror_runs:service_role_all`
+
+### supabase/migrations/20260206162329_curated_rails_expansion.sql
+
+### supabase/migrations/20260206164200_security_hardening_rls_and_views.sql
+
+### supabase/migrations/20260207000000_search_titles_enrich_year_format.sql
+- Functions (1): `public.search_titles`
+
+### supabase/migrations/20260207011000_curated_rails_vibes_seed.sql
+
+### supabase/migrations/20260207012000_concierge_modes_v4_add_vibe_rail_ids.sql
+
+### supabase/migrations/20260207020000_curated_rails_more_vibes_seed.sql
+
+### supabase/migrations/20260207021000_concierge_modes_v5_add_more_vibe_rail_ids.sql
+
+### supabase/migrations/20260208022035_phase0_remove_sequels.sql
+
+### supabase/migrations/20260208022043_concierge_mode_analytics.sql
+- Tables (1): `public.concierge_mode_analytics`
+- Policies (1): `public.concierge_mode_analytics:mode_analytics_insert`
+- Indexes (2): `idx_mode_analytics_created`, `idx_mode_analytics_mode_id`
+
+### supabase/migrations/20260208022110_add_sports_mode.sql
+
+### supabase/migrations/20260208022136_phase0_remove_misclassified.sql
+
+### supabase/migrations/20260208022153_add_scifi_mode.sql
+
+### supabase/migrations/20260208022239_add_horror_supernatural_mode.sql
+
+### supabase/migrations/20260208022250_phase0_dedup_rails.sql
+
+### supabase/migrations/20260208022326_phase0_slim_and_rerank.sql
+
+### supabase/migrations/20260208022342_add_demographic_rails.sql
+
+### supabase/migrations/20260208022356_update_concierge_config_new_modes.sql
+
+### supabase/migrations/20260208022404_phase0_fix_classics.sql
+
+### supabase/migrations/20260208023052_phase0_backfill_underpopulated_rails.sql
+
+### supabase/migrations/20260208023221_phase0_dedup_backfilled_rails.sql
+
+### supabase/migrations/20260208023331_phase0_final_backfill.sql
+
+### supabase/migrations/20260208090000_refine_short_and_fantasy_rails.sql
+
+### supabase/migrations/20260208091500_curated_rails_premium_picks_seed.sql
+
+### supabase/migrations/20260208092000_concierge_modes_v6_add_premium_picks_rail_id.sql
+
 ### supabase/migrations/20260209000000_search_titles_add_cover_image.sql
-- Functions (1): `public.search_titles` *(adds cover_image_medium to return set via LEFT JOIN on anime/manga)*
+- Functions (1): `public.search_titles`
 
 ### supabase/migrations/20260209100000_concierge_modes_v7_german_synonyms.sql
-- *(config update: adds German synonyms across all 17 modes + umlaut normalization)*
 
 ### supabase/migrations/20260209110000_concierge_modes_v8_expanded.sql
-- *(config update: adds 6 new modes — mecha, mystery_detective, music_performance, historical, school_coming_of_age, shoujo_josei — total 23 modes)*
 
 ### supabase/migrations/20260209120000_new_vibe_rails.sql
-- *(seeds 12 new curated rails for v8 modes — total 50 rails)*
 
 ### supabase/migrations/20260209135229_import_reconciliation.sql
-- Columns (2): `public.import_session_items.import_action` (text, default 'add', CHECK add/update/skip), `public.import_session_items.previous_values` (jsonb)
 
 ### supabase/migrations/20260209200000_clubs_foundation.sql
-- Tables (7): `public.clubs`, `public.club_members`, `public.club_rails`, `public.club_rail_items`, `public.club_polls`, `public.club_poll_options`, `public.club_votes`
+- Tables (7): `public.club_members`, `public.club_poll_options`, `public.club_polls`, `public.club_rail_items`, `public.club_rails`, `public.club_votes`, `public.clubs`
 - Functions (1): `public.generate_invite_code`
-- Indexes (10): `idx_clubs_invite_code`, `idx_clubs_created_by`, `idx_club_members_user`, `idx_club_members_club`, `idx_club_rails_club_sort`, `idx_club_rail_items_rail_sort`, `idx_club_polls_club_created`, `idx_club_poll_options_poll`, `idx_club_votes_option`, `idx_club_votes_poll`, `idx_club_votes_user`
-- Triggers (5): `clubs_set_updated_at`, `club_members_set_updated_at`, `club_rails_set_updated_at`, `club_rail_items_set_updated_at`, `club_polls_set_updated_at`
-- RLS enabled on all 7 tables
+- Indexes (11): `idx_club_members_club`, `idx_club_members_user`, `idx_club_poll_options_poll`, `idx_club_polls_club_created`, `idx_club_rail_items_rail_sort`, `idx_club_rails_club_sort`, `idx_club_votes_option`, `idx_club_votes_poll`, `idx_club_votes_user`, `idx_clubs_created_by`, `idx_clubs_invite_code`
+- Triggers (5): `club_members_set_updated_at`, `club_polls_set_updated_at`, `club_rail_items_set_updated_at`, `club_rails_set_updated_at`, `clubs_set_updated_at`
 
 ### supabase/migrations/20260209201000_clubs_rls_policies.sql
-- Functions (3): `public.is_club_member`, `public.is_club_admin_or_owner`, `public.is_club_owner` *(all SECURITY DEFINER, SET search_path = public)*
-- Policies (25): 4 on clubs, 4 on club_members, 4 on club_rails, 3 on club_rail_items, 4 on club_polls, 3 on club_poll_options, 3 on club_votes
+- Functions (3): `public.is_club_admin_or_owner`, `public.is_club_member`, `public.is_club_owner`
 
 ### supabase/migrations/20260209202000_clubs_rpcs.sql
-- Functions (9): `public.is_club_member`, `public.is_club_admin_or_owner`, `public.sharing_level_rank`, `public.create_club`, `public.join_club`, `public.leave_club`, `public.fetch_club_bundle`, `public.add_club_rail_item`, `public.cast_club_vote`
+- Functions (9): `public.add_club_rail_item`, `public.cast_club_vote`, `public.create_club`, `public.fetch_club_bundle`, `public.is_club_admin_or_owner`, `public.is_club_member`, `public.join_club`, `public.leave_club`, `public.sharing_level_rank`
 
 ### supabase/migrations/20260209220000_club_analytics.sql
 - Tables (1): `public.club_analytics`
-- Functions (2): `public.log_club_event` (SECURITY DEFINER), `public.concierge_housekeeping` *(extended to prune club_analytics > 90 days)*
-- Policies (2): `club_analytics_insert_own`, `club_analytics_select_service`
-- Indexes (2): `idx_club_analytics_created_at`, `idx_club_analytics_club_id`
-
-### supabase/migrations/20260209222528_fix_p0_p1_database_issues.sql
-- FK NOT NULL constraints added, RLS initplan optimization, anonymous write policies fixed, missing indexes added, duplicate indexes removed *(production-readiness P1-1 through P1-6)*
-
-### supabase/migrations/20260209222542_move_pg_trgm_to_extensions_schema.sql
-- Moves `pg_trgm` extension to extensions schema *(P1-10)*
-
-### supabase/migrations/20260209222659_fix_search_path_include_extensions.sql
-- Adds extensions schema to `search_path` for RPCs that use `pg_trgm` operators
-
-### supabase/migrations/20260209222728_fix_remaining_functions_search_path.sql
-- Fixes `search_path` on remaining functions that reference extensions
+- Functions (2): `public.concierge_housekeeping`, `public.log_club_event`
+- Indexes (2): `idx_club_analytics_club_id`, `idx_club_analytics_created_at`
 
 ### supabase/migrations/20260209224945_fix_mirror_cron_contention.sql
-- Alters 5 mirror cron jobs: 15-min spacing, batch size 200, `lockTtlSeconds:120` in payload *(P1-16)*
 
-### supabase/migrations/20260209225348_add_import_secret_to_cron_jobs.sql
-- Adds `x-import-secret` header to 4 pg_cron bulk import jobs *(P0-4)*
+### supabase/migrations/20260211030140_feature_flags.sql
+- Tables (1): `feature_flags`
+- Functions (1): `update_feature_flags_timestamp`
+- Triggers (1): `trg_feature_flags_updated_at`
 
-*(Migrations 20260211–20260215 omitted — feature flags, RAG tables, privacy/GDPR, club identity, rails overlap, concierge flags, club stubs)*
+### supabase/migrations/20260211100000_rag_tables.sql
+- Extensions (1): `pg_trgm`
+- Tables (6): `public.concierge_events`, `public.rag_entity_aliases`, `public.rag_entity_index`, `public.rag_entity_tags`, `public.rag_retrieval_cache`, `public.rag_retrieval_feedback`
+- Functions (1): `public.rag_cache_cleanup`
+- Policies (6): `public.concierge_events:concierge_events_insert_own`, `public.rag_entity_aliases:rag_entity_aliases_select_anon`, `public.rag_entity_index:rag_entity_index_select_anon`, `public.rag_entity_tags:rag_entity_tags_select_anon`, `public.rag_retrieval_feedback:rag_feedback_insert_own`, `public.rag_retrieval_feedback:rag_feedback_select_own`
+- Indexes (5): `idx_concierge_events_name_market_created`, `idx_rag_cache_expires`, `idx_rag_entity_aliases_entity_id`, `idx_rag_entity_locale_year_format`, `idx_rag_entity_tags_entity_id`
+- Triggers (1): `rag_entity_index_set_updated_at`
+
+### supabase/migrations/20260211110000_privacy_retention_and_gdpr.sql
+- Functions (2): `public.concierge_housekeeping`, `public.delete_user_concierge_data`
+- Policies (3): `public.concierge_events:concierge_events_insert_own`, `public.rag_retrieval_feedback:rag_feedback_insert_own`, `public.rag_retrieval_feedback:rag_feedback_select_own`
+
+### supabase/migrations/20260211113000_rag_retrieve_candidates.sql
+- Functions (1): `public.rag_retrieve_candidates`
+
+### supabase/migrations/20260211154000_fetch_club_bundle_member_identity.sql
+- Functions (1): `public.fetch_club_bundle`
+
+### supabase/migrations/20260211162000_reduce_school_shoujo_overlap.sql
+
+### supabase/migrations/20260211170000_enable_concierge_intelligence_de_canary.sql
+
+### supabase/migrations/20260213130000_clubs_concierge_swipe_flags.sql
+
+### supabase/migrations/20260213143000_concierge_editorial_v1_flag.sql
+
+### supabase/migrations/20260215124919_add_create_rail_and_poll_rpcs.sql
+
+### supabase/migrations/20260215124946_create_club_rail_and_poll_rpcs.sql
+
+### supabase/migrations/20260215125056_fix_invite_code_crypto_and_club_members_insert.sql
+
+### supabase/migrations/20260215125312_club_reactions_and_invite_share.sql
+
+### supabase/migrations/20260215130000_fix_club_fk_housekeeping_gdpr.sql
+- Functions (3): `public.check_club_activity_since`, `public.concierge_housekeeping`, `public.delete_user_concierge_data`
 
 ### supabase/migrations/20260216015514_clubs_list_enrichment.sql
-- Functions (1): `fetch_my_clubs_enriched()` — SECURITY DEFINER, returns caller's clubs with member_count, last_activity_at, activity_preview
+- Functions (1): `public.fetch_my_clubs_enriched`
 
 ### supabase/migrations/20260216015733_club_reactions_in_bundle.sql
-- Updates `fetch_club_bundle()`: adds per-item `reactions` (aggregate counts), `my_reactions` (caller's own), `episode_count`/`chapter_count`, `display_name` from profiles JOIN
+- Functions (1): `public.fetch_club_bundle`
 
 ### supabase/migrations/20260216015921_clubs_realtime_publication.sql
-- Adds `club_rail_items`, `club_polls`, `club_votes`, `club_rail_item_reactions` to `supabase_realtime` publication
 
 ### supabase/migrations/20260216020023_club_messages.sql
-- Tables (1): `club_messages` (text 1-280 chars, FK CASCADE on user delete)
-- Functions (2): `send_club_message()` (SECURITY DEFINER, rate-limited 20/min), `fetch_club_messages()` (SECURITY DEFINER, paginated)
-- Policies (3): member-gated SELECT/INSERT, self-only DELETE
-- Cron (1): `prune_club_messages` — daily 3 AM UTC, deletes messages > 30 days
-- Added `club_messages` to `supabase_realtime` publication
+- Tables (1): `public.club_messages`
+- Functions (2): `public.fetch_club_messages`, `public.send_club_message`
+- Policies (3): `public.club_messages:club_messages_delete_own`, `public.club_messages:club_messages_insert_member`, `public.club_messages:club_messages_select_member`
+- Indexes (1): `idx_club_messages_club_created`
+
+### supabase/migrations/20260216193000_add_club_rail_item_structured_errors.sql
+- Functions (1): `public.add_club_rail_item`
+
+### supabase/migrations/20260216200204_catalog_created_at_not_null.sql
+
+### supabase/migrations/20260216200227_drop_unused_indexes_merge_policies_health_check.sql
+- Functions (1): `check_mirror_health`
+- Policies (1): `club_members:club_members_delete_self_or_admin`
+
+### supabase/migrations/20260216214047_fix_initplan_rls_club_messages_reactions.sql
+- Policies (5): `public.club_messages:club_messages_delete_own`, `public.club_messages:club_messages_insert_member`, `public.club_messages:club_messages_select_member`, `public.club_rail_item_reactions:club_reactions_delete_own`, `public.club_rail_item_reactions:club_reactions_insert_member`
+
+### supabase/migrations/20260216214050_authors_tags_created_at_not_null.sql
+
+### supabase/migrations/20260218131735_fix_join_club_archived_check.sql
+- Functions (1): `public.join_club`
+
+### supabase/migrations/20260218141739_capture_club_message_functions.sql
+- Functions (2): `public.fetch_club_messages`, `public.send_club_message`
+
+### supabase/migrations/20260218141754_update_join_create_club_functions.sql
+- Functions (2): `public.create_club`, `public.join_club`
+
+### supabase/migrations/20260218141757_fix_storage_insert_policy.sql
+- Policies (1): `storage.objects:Authenticated users can upload media`
+
+### supabase/migrations/20260218173617_drop_duplicate_indexes.sql
+
+### supabase/migrations/20260218173619_drop_dead_rag_cache_cleanup.sql
+
+### supabase/migrations/20260219002612_critical_security_drop_and_revoke.sql
+- Policies (1): `public.concierge_mode_analytics:mode_analytics_insert`
+
+### supabase/migrations/20260219002639_drop_start_bulk_import_with_args.sql
+
+### supabase/migrations/20260219002706_revoke_public_from_admin_functions.sql
+
+### supabase/migrations/20260219003105_add_user_lists_to_realtime_publication.sql
+
+### supabase/migrations/20260219003111_anime_is_adult_not_null.sql
+
+### supabase/migrations/20260219003305_drop_ambiguous_overloads.sql
+
+### supabase/migrations/20260219003323_harden_toggle_reaction.sql
+- Functions (1): `public.toggle_club_reaction`
+
+### supabase/migrations/20260219003339_harden_create_club.sql
+- Functions (1): `public.create_club`
+
+### supabase/migrations/20260219003351_tighten_club_write_policies.sql
+- Policies (5): `public.club_members:club_members_delete_self_or_admin`, `public.club_messages:club_messages_delete_own`, `public.club_messages:club_messages_insert_member`, `public.club_rail_item_reactions:club_reactions_delete_own`, `public.club_rail_item_reactions:club_reactions_insert_member`
+
+### supabase/migrations/20260219003357_tighten_storage_update_policy.sql
+- Policies (1): `storage.objects:Authenticated users can update own media`
+
+### supabase/migrations/20260219003402_add_missing_fk_indexes.sql
+- Indexes (2): `idx_club_messages_user_id`, `idx_rag_retrieval_feedback_selected_entity_id`
+
+### supabase/migrations/20260219003703_cron_cleanup_and_mirror_auth.sql
+- Cron (6): `mirror-images-anime-manga-0 @ 0 2 * * *`, `mirror-images-anime-manga-200 @ 15 2 * * *`, `mirror-images-anime-manga-400 @ 30 2 * * *`, `mirror-images-character @ 45 2 * * *`, `mirror-images-staff @ 0 3 * * *`, `prune_club_messages @ 15 3 * * *`
+
+### supabase/migrations/20260219100000_critical_security_drop_and_revoke.sql
+- Policies (1): `public.concierge_mode_analytics:mode_analytics_insert`
+
+### supabase/migrations/20260219100001_drop_start_bulk_import_with_args.sql
+
+### supabase/migrations/20260219100002_revoke_public_from_admin_functions.sql
+
+### supabase/migrations/20260219100003_add_user_lists_to_realtime_publication.sql
+
+### supabase/migrations/20260219100004_anime_manga_is_adult_not_null.sql
+
+### supabase/migrations/20260219100005_drop_ambiguous_overloads.sql
+
+### supabase/migrations/20260219100006_harden_toggle_reaction.sql
+- Functions (1): `public.toggle_club_reaction`
+
+### supabase/migrations/20260219100007_harden_create_club.sql
+- Functions (1): `public.create_club`
+
+### supabase/migrations/20260219100008_tighten_club_write_policies.sql
+- Policies (5): `public.club_members:club_members_delete_self_or_admin`, `public.club_messages:club_messages_delete_own`, `public.club_messages:club_messages_insert_member`, `public.club_rail_item_reactions:club_reactions_delete_own`, `public.club_rail_item_reactions:club_reactions_insert_member`
+
+### supabase/migrations/20260219100009_tighten_storage_update_policy.sql
+- Policies (1): `storage.objects:Authenticated users can update own media`
+
+### supabase/migrations/20260219100010_add_missing_fk_indexes.sql
+- Indexes (2): `idx_club_messages_user_id`, `idx_rag_retrieval_feedback_selected_entity_id`
+
+### supabase/migrations/20260219100011_cron_cleanup_and_mirror_auth.sql
+- Cron (1): `prune_club_messages @ 15 3 * * *`
+
+### supabase/migrations/20260219114953_set_not_null_on_nullable_required_columns.sql
+
+### supabase/migrations/20260219120000_set_not_null_on_nullable_required_columns.sql
+
+### supabase/migrations/20260219153000_manga_chapter_enrichment_v1.sql
+- Tables (2): `public.manga_source_link_review`, `public.manga_source_links`
+- Functions (2): `public.get_manga_chapter_enrich_candidates`, `public.get_manga_chapter_enrich_metrics`
+- Indexes (4): `idx_manga_source_link_review_manga_pending`, `idx_manga_source_link_review_provider_status`, `idx_manga_source_link_review_status_created_at`, `idx_manga_source_links_manga_provider_status`
+- Triggers (2): `manga_source_link_review_set_updated_at`, `manga_source_links_set_updated_at`
+
+### supabase/migrations/20260219234000_fix_manga_chapter_enrich_cron_secret.sql
+
+### supabase/migrations/20260219235500_manga_review_approved_mapping_method.sql
+
+### supabase/migrations/20260220103000_manga_fuzzy_matcher_v2.sql
+- Functions (2): `public.get_manga_chapter_enrich_candidates`, `public.get_manga_match_quality_metrics`
+- Indexes (2): `idx_manga_source_links_manga_provider_status_next_verify`, `idx_manga_source_links_status_next_verify_at`
+
+### supabase/migrations/20260221120000_browse_filters_year_format.sql
+- Functions (2): `public.browse_anime_page`, `public.browse_manga_page`
+
+### supabase/migrations/20260221150000_manga_fuzzy_matcher_method_allow_title_fuzzy.sql
+
+### supabase/migrations/20260221162000_manga_zero_touch_canonical_mapping.sql
+- Tables (1): `public.manga_mapping_alias_memory`
+- Functions (2): `public.get_manga_chapter_enrich_candidates`, `public.get_manga_chapter_status`
+- Indexes (2): `idx_manga_mapping_alias_memory_lookup`, `idx_manga_source_link_review_status_next_retry`
+
+### supabase/migrations/20260221173000_manga_chapter_crunch_mode.sql
+- Functions (1): `public.get_manga_chapter_enrich_candidates`
+
+### supabase/migrations/20260221190000_enable_swipe_tap_guard_v1.sql
+
+### supabase/migrations/20260221191000_synopsis_enhancement_fields.sql
+- Indexes (2): `idx_anime_synopsis_enhanced_queue`, `idx_manga_synopsis_enhanced_queue`
+
+### supabase/migrations/20260221192000_synopsis_enrichment_rpcs.sql
+- Functions (3): `public.get_synopsis_enrichment_candidates`, `public.mark_synopsis_enhanced_failed`, `public.upsert_synopsis_enhanced`
+
+### supabase/migrations/20260223002000_synopsis_retry_backoff_and_resume.sql
+- Functions (4): `public.get_synopsis_enrichment_backlog_count`, `public.get_synopsis_enrichment_candidates`, `public.mark_synopsis_enhanced_failed`, `public.upsert_synopsis_enhanced`
+- Indexes (2): `idx_anime_synopsis_retry_queue`, `idx_manga_synopsis_retry_queue`
+
+### supabase/migrations/20260224101000_catalog_safety_runner_v1.sql
+- Tables (2): `public.catalog_safety_audit`, `public.catalog_safety_terms`
+- Functions (5): `public.get_catalog_safety_backlog_count`, `public.get_catalog_safety_candidates`, `public.get_catalog_safety_open_gaps`, `public.mark_catalog_safety_failed`, `public.upsert_catalog_safety_result`
+- Indexes (6): `idx_anime_safety_blocked`, `idx_anime_safety_queue`, `idx_catalog_safety_audit_lookup`, `idx_catalog_safety_audit_state`, `idx_manga_safety_blocked`, `idx_manga_safety_queue`
+
+### supabase/migrations/20260224150000_social_activity_layer.sql
+- Tables (2): `public.title_comment_reactions`, `public.title_comments`
+- Functions (6): `public.count_friends_tracking`, `public.delete_title_comment`, `public.fetch_friend_activity_for_title`, `public.shares_club_with`, `public.toggle_comment_reaction`, `public.upsert_title_comment`
+- Policies (7): `title_comment_reactions:comment_reactions_delete`, `title_comment_reactions:comment_reactions_insert`, `title_comment_reactions:comment_reactions_select`, `title_comments:title_comments_delete`, `title_comments:title_comments_insert`, `title_comments:title_comments_select`, `title_comments:title_comments_update`
+- Triggers (1): `title_comments_updated_at`
+
+### supabase/migrations/20260225100000_check_email_exists_rpc.sql
+- Functions (1): `public.check_email_exists`
+
+### supabase/migrations/20260301100000_streaming_availability_v1.sql
+- Tables (2): `public.streaming_services`, `public.user_streaming_services`
+- Functions (4): `public.batch_providers_for_media`, `public.club_shared_providers`, `public.delete_user_concierge_data`, `public.save_user_streaming_services`
+- Policies (4): `public.streaming_services:streaming_services_public_read`, `public.user_streaming_services:uss_delete_own`, `public.user_streaming_services:uss_insert_own`, `public.user_streaming_services:uss_select_own`
+- Indexes (1): `idx_external_links_media`
+
+### supabase/migrations/20260301153000_streaming_availability_country_lang_v1.sql
+- Tables (3): `public.provider_availability`, `public.provider_availability_refresh_state`, `public.provider_source_map`
+- Functions (5): `public.batch_provider_availability_for_media_v2`, `public.enqueue_media_availability_refresh`, `public.get_media_availability_status`, `public.get_media_provider_availability_detail`, `public.get_provider_availability_refresh_candidates`
+- Indexes (7): `idx_provider_availability_audio_gin`, `idx_provider_availability_last_seen`, `idx_provider_availability_media`, `idx_provider_availability_provider_country`, `idx_provider_availability_refresh_due`, `idx_provider_availability_subtitle_gin`, `idx_provider_source_map_status`
+
+### supabase/migrations/20260304100000_credits_cast_v1_flag.sql
+
+### supabase/migrations/20260305151500_fix_delete_user_concierge_data_uuid_compare.sql
+- Functions (1): `public.delete_user_concierge_data`
+
+### supabase/migrations/20260305153000_fix_delete_user_concierge_data_import_sessions_and_coverage.sql
+- Functions (1): `public.delete_user_concierge_data`
+
+### supabase/migrations/20260305162000_cleanup_db_lint_warnings.sql
+- Functions (2): `public.batch_providers_for_media`, `public.generate_invite_code`
+
+### supabase/migrations/20260306113000_provider_availability_note_contract.sql
+- Functions (1): `public.batch_provider_availability_for_media_v2`
+
+### supabase/migrations/20260307120000_media_relations_ladder_v1.sql
+- Tables (1): `public.media_relations`
+- Functions (1): `public.get_media_ladder`
+- Indexes (2): `idx_media_relations_from`, `idx_media_relations_to`
+- Triggers (1): `media_relations_set_updated_at`
+
+### supabase/migrations/20260307150000_adaptation_ladder_v2_editorial_context.sql
+- Tables (1): `public.media_relation_refresh_queue`
+- Functions (2): `public.enqueue_media_relation_refresh`, `public.get_media_ladder`
+- Indexes (1): `idx_media_relation_refresh_queue_status_requested`
+- Triggers (1): `media_relation_refresh_queue_set_updated_at`
+
+### supabase/migrations/20260307163000_fix_adaptation_ladder_entry_point.sql
+- Functions (1): `public.get_media_ladder`
+
+### supabase/migrations/20260311100000_ladder_source_author.sql
+- Functions (1): `public.get_media_ladder`
+
+### supabase/migrations/20260313100000_slim_club_bundle_limits.sql
+- Functions (1): `public.fetch_club_bundle`
+
+### supabase/migrations/20260313120000_social_activity_v1_rollout_100.sql
+
+### supabase/migrations/20260316100000_fix_club_bundle_columns_and_reactions.sql
+- Functions (1): `public.fetch_club_bundle`
+
+### supabase/migrations/20260316220000_clubs_list_cover_images_members.sql
+- Functions (1): `public.fetch_my_clubs_enriched`
+
+### supabase/migrations/20260317063000_clubs_list_cover_image_large.sql
+- Functions (1): `public.fetch_my_clubs_enriched`
+
+### supabase/migrations/20260317110000_fetch_club_bundle_ordering_and_poll_counts.sql
+- Functions (1): `public.fetch_club_bundle`
+
+### supabase/migrations/20260318103000_import_track_and_worker_state.sql
+- Tables (3): `public.image_mirror_state`, `public.import_track_state`, `public.manga_chapter_enrich_state`
+- Views (3): `public.image_mirror_state_metrics`, `public.import_track_state_metrics`, `public.manga_chapter_enrich_state_metrics`
+- Policies (3): `public.image_mirror_state:service_role_all`, `public.import_track_state:service_role_all`, `public.manga_chapter_enrich_state:service_role_all`
+- Indexes (6): `idx_image_mirror_state_last_run_at`, `idx_image_mirror_state_state_visibility`, `idx_import_track_state_media_type_updated_at`, `idx_import_track_state_preset_state`, `idx_manga_chapter_enrich_state_last_run_at`, `idx_manga_chapter_enrich_state_state_visibility`
+
+### supabase/migrations/20260318104000_club_loading_rpcs.sql
+- Functions (2): `public.fetch_club_bundle_loading`, `public.fetch_my_clubs_loading`
+
+### supabase/migrations/20260319123000_provider_availability_request_priority.sql
+- Functions (3): `public.enqueue_media_availability_refresh`, `public.get_provider_availability_refresh_candidates`, `public.get_provider_availability_refresh_queue_summary`
+- Indexes (1): `idx_provider_availability_refresh_request_priority`
+
+### supabase/migrations/20260322110000_add_list_verdicts.sql
+
+### supabase/migrations/20260324173000_search_title_priority.sql
+- Extensions (1): `pg_trgm`
+- Functions (2): `public.search_anime_page`, `public.search_manga_page`
+
+### supabase/migrations/20260324180000_search_title_popularity_tiebreak.sql
+- Extensions (1): `pg_trgm`
+- Functions (2): `public.search_anime_page`, `public.search_manga_page`
+
+### supabase/migrations/20260324213000_discover_airing_today_berlin_day.sql
+- Functions (1): `public.discover_bundle`
+
+### supabase/migrations/20260326221000_discover_new_to_you_rotation.sql
+- Tables (1): `public.discover_rail_impressions`
+- Functions (1): `public.discover_bundle`
+- Indexes (1): `discover_rail_impressions_lookup_idx`
+
+### supabase/migrations/20260326234000_exclude_ancillary_anime_from_default_surfaces.sql
+- Extensions (1): `pg_trgm`
+- Tables (1): `public.discover_rail_impressions`
+- Functions (5): `public.browse_anime_page`, `public.browse_manga_page`, `public.discover_bundle`, `public.search_anime_page`, `public.search_manga_page`
+- Indexes (1): `discover_rail_impressions_lookup_idx`
 
 
 <!-- END AUTO-MIGRATION-MAP -->
@@ -1288,21 +1681,22 @@ Response JSON:
 
 ## 8.2) Auto edge-function map (contracts + dependencies)
 
-Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
+Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
+
+### auth-callback
+- Source: `supabase/functions/auth-callback/index.ts`
 
 ### bulk-import-anime
 - Source: `supabase/functions/bulk-import-anime/index.ts`
-- Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `IMPORT_SECRET`
-- **Auth** (P0-4): verifies `x-import-secret` header against `IMPORT_SECRET` env var (pg_cron/pg_net can't send JWTs)
+- Env vars: `IMPORT_HEAVY_ENABLED`, `IMPORT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - RPCs: `acquire_import_lock`, `release_import_lock`
-- Tables touched: `anime`, `anime_characters`, `anime_staff`, `anime_studios`, `anime_tags`, `characters`, `episodes`, `external_links`, `import_runs`, `import_state`, `staff`, `studios`, `tags`
+- Tables touched: `anime`, `anime_characters`, `anime_staff`, `anime_studios`, `anime_tags`, `characters`, `episodes`, `external_links`, `import_runs`, `import_state`, `import_track_state`, `media_relations`, `staff`, `studios`, `tags`
 
 ### bulk-import-manga
 - Source: `supabase/functions/bulk-import-manga/index.ts`
-- Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `IMPORT_SECRET`
-- **Auth** (P0-4): verifies `x-import-secret` header against `IMPORT_SECRET` env var (pg_cron/pg_net can't send JWTs)
+- Env vars: `IMPORT_HEAVY_ENABLED`, `IMPORT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - RPCs: `acquire_import_lock`, `release_import_lock`
-- Tables touched: `authors`, `chapters`, `characters`, `external_links`, `import_runs`, `import_state`, `manga`, `manga_authors`, `manga_characters`, `manga_staff`, `manga_tags`, `staff`, `tags`, `volumes`
+- Tables touched: `authors`, `chapters`, `characters`, `external_links`, `import_runs`, `import_state`, `import_track_state`, `manga`, `manga_authors`, `manga_characters`, `manga_staff`, `manga_tags`, `media_relations`, `staff`, `tags`, `volumes`
 
 ### concierge-apply
 - Source: `supabase/functions/concierge-apply/index.ts`
@@ -1310,38 +1704,68 @@ Generated: **2026-02-05T17:59:23.173Z** (git: `ca671d5`)
 - RPCs: `check_concierge_rate_limit`, `log_concierge_run`
 - Tables touched: `anime`, `anime_user_lists`, `episodes`, `import_session_items`, `import_sessions`, `manga`, `manga_user_lists`, `title_aliases`
 
+### concierge-import-anilist
+- Source: `supabase/functions/concierge-import-anilist/index.ts`
+- Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `check_concierge_rate_limit`
+
 ### concierge-parse
 - Source: `supabase/functions/concierge-parse/index.ts`
 - Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - RPCs: `check_concierge_rate_limit`, `get_concierge_config`, `log_concierge_parse_feedback`, `log_concierge_run`, `search_titles`
-- Tables touched: `title_aliases`
+- Tables touched: `anime_user_lists`, `manga_user_lists`, `title_aliases`
 
 ### concierge-recommend
 - Source: `supabase/functions/concierge-recommend/index.ts`
 - Env vars: `GROQ_API_KEY`, `GROQ_MODEL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
-- RPCs: `check_concierge_rate_limit`, `get_concierge_config`, `is_flag_enabled`, `llm_budget_finalize`, `llm_budget_reserve`, `llm_global_budget_finalize`, `llm_global_budget_reserve`, `log_concierge_run`, `recommend_ids_premium`, `recommend_ids_similar_to_seeds`, `search_titles`
-- Tables touched: `editorial_boosts`, `editorial_tag_boosts`, `tags`
+- RPCs: `check_concierge_rate_limit`, `curated_rail_cards`, `get_concierge_config`, `is_flag_enabled`, `llm_budget_finalize`, `llm_budget_reserve`, `llm_global_budget_finalize`, `llm_global_budget_reserve`, `log_concierge_run`, `recommend_ids_premium`, `recommend_ids_similar_to_seeds`, `search_titles`
+- Tables touched: `anime`, `concierge_mode_cache`, `editorial_boosts`, `editorial_tag_boosts`, `feature_flags`, `manga`, `tags`, `user_lists`
 
 ### concierge-resolve
 - Source: `supabase/functions/concierge-resolve/index.ts`
 - Env vars: `GROQ_API_KEY`, `GROQ_MODEL`, `GROQ_MODEL_RESOLVE`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - RPCs: `check_concierge_rate_limit`, `get_concierge_config`, `is_flag_enabled`, `llm_budget_finalize`, `llm_budget_reserve`, `llm_global_budget_finalize`, `llm_global_budget_reserve`
 
+### concierge-retrieve-assist
+- Source: `supabase/functions/concierge-retrieve-assist/index.ts`
+- Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `check_concierge_rate_limit`, `rag_retrieve_candidates`
+- Tables touched: `rag_retrieval_cache`
+
+### concierge-retrieve-feedback
+- Source: `supabase/functions/concierge-retrieve-feedback/index.ts`
+- Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_URL`
+- RPCs: `check_concierge_rate_limit`
+- Tables touched: `rag_retrieval_feedback`
+
 ### concierge-undo
 - Source: `supabase/functions/concierge-undo/index.ts`
 - Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - RPCs: `check_concierge_rate_limit`, `log_concierge_run`
 - Tables touched: `anime_user_lists`, `import_session_items`, `import_sessions`, `manga_user_lists`
-- Reads `import_action` + `previous_values` columns for reconciliation-aware undo (add=delete, update=restore, skip=no-op)
+
+### delete-account
+- Source: `supabase/functions/delete-account/index.ts`
+- Env vars: `APPLE_CLIENT_ID`, `APPLE_CLIENT_SECRET`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `delete_user_concierge_data`
+- Tables touched: `anime_user_lists`, `club_members`, `clubs`, `manga_user_lists`, `media`, `profiles`
+
+### manga-chapter-enrich
+- Source: `supabase/functions/manga-chapter-enrich/index.ts`
+- Env vars: `IMPORT_SECRET`, `MANGA_MATCHER_MODE`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- RPCs: `acquire_import_lock`, `get_manga_chapter_enrich_candidates`, `get_manga_match_quality_metrics`, `release_import_lock`
+- Tables touched: `chapters`, `import_runs`, `manga`, `manga_chapter_enrich_state`, `manga_mapping_alias_memory`, `manga_source_link_review`, `manga_source_links`
+
+### manga-source-review-action
+- Source: `supabase/functions/manga-source-review-action/index.ts`
+- Env vars: `IMPORT_SECRET`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- Tables touched: `manga_source_link_review`, `manga_source_links`
 
 ### mirror-images
 - Source: `supabase/functions/mirror-images/index.ts`
-- Env vars: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
+- Env vars: `IMPORT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - RPCs: `acquire_import_lock`, `release_import_lock`
-- Tables touched: `anime`, `characters`, `manga`, `mirror_runs`, `staff`
-- **Lock fix** (P1-14/P1-16): lock release in `finally` block (was missing on error paths). Per-batch lock keys derived from `mediaTypes:offset` (e.g. `mirror-images:ANIME,MANGA:0`). Lock TTL reduced from 1800s to 120s. Batch size 200 (was 500). Cron jobs spaced 15 min apart (was 10 min).
-- **AVIF support** (P2): `getExtFromContentType()` now handles `image/avif` → `.avif` extension.
-- **Cache-control** (P2): default changed to `max-age=31536000, immutable` (1 year, immutable) for mirrored images.
+- Tables touched: `anime`, `characters`, `image_mirror_state`, `manga`, `mirror_runs`, `staff`
 
 
 <!-- END AUTO-EDGE-MAP -->
@@ -2306,41 +2730,41 @@ Documentation updated in this pass:
 -- ============================================
 CREATE TABLE anime (
     id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
-    
+
     -- External API References (for sync only)
     anilist_id INTEGER UNIQUE,
     mal_id INTEGER UNIQUE,
     kitsu_id INTEGER UNIQUE,
-    
+
     -- Basic Info
     title_english TEXT,
     title_romaji TEXT,
     title_native TEXT,
     title_synonyms TEXT[],
-    
+
     -- Visual
     cover_image_large TEXT,
     cover_image_medium TEXT,
     cover_image_color TEXT,
     banner_image TEXT,
-    
+
     -- Anime-specific
     format TEXT, -- 'TV', 'MOVIE', 'OVA', 'ONA', 'SPECIAL'
     status TEXT, -- 'FINISHED', 'RELEASING', 'NOT_YET_RELEASED'
     description TEXT,
     description_normalized TEXT,
-    
+
     -- Episodes
     episodes INTEGER,
     duration INTEGER, -- minutes per episode
     total_duration INTEGER, -- total runtime in minutes
     season TEXT, -- 'SPRING', 'SUMMER', 'FALL', 'WINTER'
     season_year INTEGER,
-    
+
     -- Airing schedule
     next_episode_number INTEGER,
     next_airing_at TIMESTAMP WITH TIME ZONE,
-    
+
     -- Dates
     start_date_year INTEGER,
     start_date_month INTEGER,
@@ -2348,24 +2772,24 @@ CREATE TABLE anime (
     end_date_year INTEGER,
     end_date_month INTEGER,
     end_date_day INTEGER,
-    
+
     -- Ratings
     average_score INTEGER,
     mean_score INTEGER,
     popularity INTEGER,
     trending INTEGER,
     favourites INTEGER,
-    
+
     -- Content
     genres TEXT[],
     source TEXT,
     country_of_origin TEXT,
     is_adult BOOLEAN DEFAULT false,
     age_rating TEXT,
-    
+
     -- External links
     site_url TEXT,
-    
+
     -- System
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -2378,38 +2802,38 @@ CREATE TABLE anime (
 -- ============================================
 CREATE TABLE manga (
     id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
-    
+
     -- External API References (for sync only)
     anilist_id INTEGER UNIQUE,
     mal_id INTEGER UNIQUE,
     kitsu_id INTEGER UNIQUE,
-    
+
     -- Basic Info
     title_english TEXT,
     title_romaji TEXT,
     title_native TEXT,
     title_synonyms TEXT[],
-    
+
     -- Visual
     cover_image_large TEXT,
     cover_image_medium TEXT,
     cover_image_color TEXT,
     banner_image TEXT,
-    
+
     -- Manga-specific
     format TEXT, -- 'MANGA', 'NOVEL', 'ONE_SHOT', 'DOUJINSHI', 'MANHWA', 'MANHUA'
     status TEXT, -- 'FINISHED', 'RELEASING', 'NOT_YET_RELEASED', 'HIATUS'
     description TEXT,
     description_normalized TEXT,
-    
+
     -- Chapters/Volumes
     chapters INTEGER,
     volumes INTEGER,
-    
+
     -- Chapter schedule
     next_chapter_number INTEGER,
     next_chapter_at TIMESTAMP WITH TIME ZONE,
-    
+
     -- Dates
     start_date_year INTEGER,
     start_date_month INTEGER,
@@ -2417,24 +2841,24 @@ CREATE TABLE manga (
     end_date_year INTEGER,
     end_date_month INTEGER,
     end_date_day INTEGER,
-    
+
     -- Ratings
     average_score INTEGER,
     mean_score INTEGER,
     popularity INTEGER,
     trending INTEGER,
     favourites INTEGER,
-    
+
     -- Content
     genres TEXT[],
     source TEXT,
     country_of_origin TEXT,
     is_adult BOOLEAN DEFAULT false,
     age_rating TEXT,
-    
+
     -- External links
     site_url TEXT,
-    
+
     -- System
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -2448,29 +2872,29 @@ CREATE TABLE manga (
 CREATE TABLE episodes (
     id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
     anime_id INTEGER REFERENCES anime(id) ON DELETE CASCADE, -- INTERNAL reference
-    
+
     -- External API References (for sync only)
     anilist_id INTEGER UNIQUE,
     mal_id INTEGER UNIQUE,
-    
+
     -- Episode info
     number INTEGER NOT NULL,
     title TEXT,
     title_romaji TEXT,
     description TEXT,
-    
+
     -- Airing info
     air_date DATE,
     air_at TIMESTAMP WITH TIME ZONE,
     thumbnail TEXT,
     duration INTEGER, -- minutes
-    
+
     -- Episode metadata
     is_filler BOOLEAN DEFAULT false,
     is_recap BOOLEAN DEFAULT false,
     is_mixed BOOLEAN DEFAULT false,
     filler_source TEXT,
-    
+
     -- System
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -2482,28 +2906,28 @@ CREATE TABLE episodes (
 CREATE TABLE chapters (
     id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
     manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE, -- INTERNAL reference
-    
+
     -- External API References (for sync only)
     anilist_id INTEGER UNIQUE,
     mal_id INTEGER UNIQUE,
-    
+
     -- Chapter info
     number INTEGER NOT NULL,
     title TEXT,
     title_romaji TEXT,
     description TEXT,
-    
+
     -- Release info
     release_date DATE,
     release_at TIMESTAMP WITH TIME ZONE,
     thumbnail TEXT,
     pages INTEGER,
-    
+
     -- Chapter metadata
     is_side_story BOOLEAN DEFAULT false,
     is_extra BOOLEAN DEFAULT false,
     is_omake BOOLEAN DEFAULT false,
-    
+
     -- System
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -2515,31 +2939,31 @@ CREATE TABLE chapters (
 CREATE TABLE volumes (
     id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
     manga_id INTEGER REFERENCES manga(id) ON DELETE CASCADE, -- INTERNAL reference
-    
+
     -- External API References (for sync only)
     anilist_id INTEGER UNIQUE,
     mal_id INTEGER UNIQUE,
-    
+
     -- Volume info
     number INTEGER NOT NULL,
     title TEXT,
     title_romaji TEXT,
     description TEXT,
-    
+
     -- Visual
     cover_image_large TEXT,
     cover_image_medium TEXT,
-    
+
     -- Release info
     release_date DATE,
     release_at TIMESTAMP WITH TIME ZONE,
     pages INTEGER,
-    
+
     -- Volume metadata
     isbn TEXT,
     price_jpy INTEGER,
     price_usd DECIMAL(10,2),
-    
+
     -- System
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -2550,34 +2974,34 @@ CREATE TABLE volumes (
 -- ============================================
 CREATE TABLE characters (
     id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
-    
+
     -- External API References (for sync only)
     anilist_id INTEGER UNIQUE,
     mal_id INTEGER UNIQUE,
     kitsu_id INTEGER UNIQUE,
-    
+
     -- Character info
     name_full TEXT,
     name_native TEXT,
     name_alternative TEXT[],
-    
+
     -- Visual
     image_large TEXT,
     image_medium TEXT,
-    
+
     -- Character details
     description TEXT,
     gender TEXT, -- 'Male', 'Female', 'Non-binary', 'Unknown'
     age INTEGER,
     birthday DATE,
     blood_type TEXT, -- 'A', 'B', 'AB', 'O', 'Unknown'
-    
+
     -- Physical attributes
     height INTEGER, -- cm
     weight INTEGER, -- kg
     hair_color TEXT,
     eye_color TEXT,
-    
+
     -- System
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -2588,27 +3012,27 @@ CREATE TABLE characters (
 -- ============================================
 CREATE TABLE studios (
     id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
-    
+
     -- External API References (for sync only)
     anilist_id INTEGER UNIQUE,
     mal_id INTEGER UNIQUE,
     kitsu_id INTEGER UNIQUE,
-    
+
     -- Studio info
     name TEXT NOT NULL,
     name_romaji TEXT,
     name_native TEXT,
-    
+
     -- Studio details
     description TEXT,
     is_animation_studio BOOLEAN DEFAULT false,
     is_producer BOOLEAN DEFAULT false,
     is_licensor BOOLEAN DEFAULT false,
-    
+
     -- External
     site_url TEXT,
     favourites INTEGER DEFAULT 0,
-    
+
     -- System
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -2619,28 +3043,28 @@ CREATE TABLE studios (
 -- ============================================
 CREATE TABLE authors (
     id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
-    
+
     -- External API References (for sync only)
     anilist_id INTEGER UNIQUE,
     mal_id INTEGER UNIQUE,
     kitsu_id INTEGER UNIQUE,
-    
+
     -- Author info
     name_full TEXT,
     name_native TEXT,
     name_romaji TEXT,
-    
+
     -- Visual
     image_large TEXT,
     image_medium TEXT,
-    
+
     -- Author details
     description TEXT,
     birth_date DATE,
     death_date DATE,
     hometown TEXT,
     blood_type TEXT,
-    
+
     -- System
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -2651,21 +3075,21 @@ CREATE TABLE authors (
 -- ============================================
 CREATE TABLE staff (
     id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
-    
+
     -- External API References (for sync only)
     anilist_id INTEGER UNIQUE,
     mal_id INTEGER UNIQUE,
     kitsu_id INTEGER UNIQUE,
-    
+
     -- Staff info
     name_full TEXT,
     name_native TEXT,
     name_romaji TEXT,
-    
+
     -- Visual
     image_large TEXT,
     image_medium TEXT,
-    
+
     -- Staff details
     description TEXT,
     primary_occupations TEXT[], -- ['Director', 'Writer', 'Music', 'Character Design']
@@ -2673,7 +3097,7 @@ CREATE TABLE staff (
     death_date DATE,
     hometown TEXT,
     blood_type TEXT,
-    
+
     -- System
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -2684,24 +3108,24 @@ CREATE TABLE staff (
 -- ============================================
 CREATE TABLE tags (
     id SERIAL PRIMARY KEY, -- INTERNAL ID (your control)
-    
+
     -- External API References (for sync only)
     anilist_id INTEGER UNIQUE,
     mal_id INTEGER UNIQUE,
-    
+
     -- Tag info
     name TEXT NOT NULL,
     name_romaji TEXT,
     name_native TEXT,
     description TEXT,
-    
+
     -- Tag metadata
     category TEXT, -- 'Genre', 'Theme', 'Demographic', 'Content'
     is_general_spoiler BOOLEAN DEFAULT false,
     is_media_spoiler BOOLEAN DEFAULT false,
     is_adult BOOLEAN DEFAULT false,
     rank INTEGER DEFAULT 0,
-    
+
     -- System
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -3017,30 +3441,30 @@ CREATE POLICY "Users can manage their own comments" ON manga_comments USING (aut
 -- ============================================
 
 -- Verify all tables were created
-SELECT 
+SELECT
     schemaname,
     tablename,
     tableowner
-FROM pg_tables 
-WHERE schemaname = 'public' 
+FROM pg_tables
+WHERE schemaname = 'public'
 ORDER BY tablename;
 
 -- Verify all indexes were created
-SELECT 
+SELECT
     schemaname,
     tablename,
     indexname
-FROM pg_indexes 
-WHERE schemaname = 'public' 
+FROM pg_indexes
+WHERE schemaname = 'public'
 ORDER BY tablename, indexname;
 
 -- Verify all triggers were created
-SELECT 
+SELECT
     trigger_name,
     event_object_table,
     action_timing,
     event_manipulation
-FROM information_schema.triggers 
+FROM information_schema.triggers
 WHERE trigger_schema = 'public'
 ORDER BY event_object_table, trigger_name;
 
@@ -5057,7 +5481,7 @@ node scripts/generate_app_state_codebase_bundle.js
 
 <!-- BEGIN AUTO-SOURCE-EXCERPTS -->
 
-Generated: **2026-02-05T17:59:23.130Z** (git: `ca671d5`)
+Generated: **2026-03-26T16:16:10.828Z** (git: `a8b9f78`)
 
 This section is auto-generated. Rebuild after any change to the referenced files:
 ```bash
@@ -5092,30 +5516,49 @@ fileprivate func pixelAlign(_ value: CGFloat, scale: CGFloat = 3.0) -> CGFloat {
 
 // MARK: - Content View
 struct ContentView: View {
+    @Binding var pendingDeepLink: DeepLink?
     @Environment(SupabaseService.self) private var supabaseService
-    
+
     var body: some View {
-        KuroRootView()
+        KuroRootView(pendingDeepLink: $pendingDeepLink)
             .environment(supabaseService)
     }
 }
 
 // MARK: - Root View with Launch
 struct KuroRootView: View {
-    @State private var showLaunch = true
-    
+    @Binding var pendingDeepLink: DeepLink?
+    @State private var showLaunchOverlay = true
+    @State private var launchOpacity: Double = 1
+    @State private var launchDismissTask: Task<Void, Never>? = nil
+
     var body: some View {
-        if showLaunch {
-            KuroLaunchView()
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                        withAnimation(.easeInOut(duration: 0.6)) {
-                            showLaunch = false
+        ZStack {
+            KuroMainView(pendingDeepLink: $pendingDeepLink)
+
+            if showLaunchOverlay {
+                KuroLaunchView()
+                    .opacity(launchOpacity)
+                    .transition(.opacity)
+                    .onAppear {
+                        launchDismissTask?.cancel()
+                        launchOpacity = 1
+                        launchDismissTask = Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 160_000_000)
+                            guard !Task.isCancelled else { return }
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                launchOpacity = 0
+                            }
+                            try? await Task.sleep(nanoseconds: 260_000_000)
+                            guard !Task.isCancelled else { return }
+                            showLaunchOverlay = false
                         }
                     }
-                }
-        } else {
-            KuroMainView()
+                    .onDisappear {
+                        launchDismissTask?.cancel()
+                        launchDismissTask = nil
+                    }
+            }
         }
     }
 }
@@ -5124,22 +5567,22 @@ struct KuroRootView: View {
 struct KuroLaunchView: View {
     @State private var logoOpacity: Double = 0
     @State private var subtitleOpacity: Double = 0
-    
+
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
-            
+            Color.kuroBackground.ignoresSafeArea()
+
             VStack(spacing: 8) {
                 Text("KURO")
-                    .font(.system(size: 24, weight: .ultraLight, design: .serif))
+                    .font(.kuroHeadline(weight: .ultraLight))
                     .tracking(8)
-                    .foregroundColor(.black)
+                    .foregroundColor(.kuroBlack)
                     .opacity(logoOpacity)
-                
+
                 Text("CURATED ANIME")
-                    .font(.system(size: 10, weight: .light))
+                    .font(.kuroMicro(weight: .light))
                     .tracking(3)
-                    .foregroundColor(.black.opacity(0.5))
+                    .foregroundColor(.kuroTextTertiary)
                     .opacity(subtitleOpacity)
             }
             .onAppear {
@@ -5156,11 +5599,9 @@ struct KuroLaunchView: View {
 
 // MARK: - Main View
 struct KuroMainView: View {
+    @Binding var pendingDeepLink: DeepLink?
     @Environment(SupabaseService.self) private var supabaseService
-    // Removed: @State private var currentSection = 0
-    // Removed: @State private var selectedMood: String? = nil
-    // Removed: @State private var dragOffset: CGFloat = 0
-    // Removed: let sections = ["DISCOVER", "COLLECTION", "SEARCH"]
+    @Environment(NetworkMonitor.self) private var networkMonitor
 
     enum Section: Int, CaseIterable {
         case concierge, discover, browse, collection, clubs
@@ -5171,63 +5612,179 @@ struct KuroMainView: View {
                 return "CONCIERGE"
             case .discover:
                 return "DISCOVER"
-            case .collection:
-                return "COLLECTION"
             case .browse:
                 return "BROWSE"
-            case .search:
-                return "SEARCH"
+            case .collection:
+                return "COLLECTION"
+            case .clubs:
+                return "CLUBS"
             }
         }
     }
 
 	@State private var selection: Section = .discover
 	@State private var showProfileSheet = false
+	@State private var showSearchSheet = false
 	@State private var mountedSections: Set<Section> = [.discover]
 	@State private var swipeExclusions: [CGRect] = []
-	// Concierge is a first-class page to the LEFT of Discover.
-	private let swipeOrder: [Section] = [.concierge, .discover, .browse, .collection, .clubs]
-	private let swipeThreshold: CGFloat = 40
-	private let swipeEdgeMargin: CGFloat = 24
-    
+    @State private var suppressCardTaps = false
+    @State private var tapSuppressionResetTask: Task<Void, Never>? = nil
+    @State private var didTrackSuppressionThisGesture = false
+    @State private var didApplyStartArgument = false
+    @State private var showOnboarding = !OnboardingView.hasCompletedOnboarding
+    @State private var edgeBounceOffset: CGFloat = 0
+    @State private var deepLinkAnimeId: Int? = nil
+    @State private var deepLinkMangaId: Int? = nil
+    @State private var deepLinkClubId: String? = nil
+    @State private var pendingConciergePrompt: String? = nil
+    @State private var pendingPromptClearTask: Task<Void, Never>? = nil
+	// Five-page discovery funnel: Concierge ← [Discover] → Browse → Collection → Clubs
+    private let swipeOrder: [Section] = [.concierge, .discover, .browse, .collection, .clubs]
+    private let swipeThreshold: CGFloat = 40
+    private let swipeEdgeMargin: CGFloat = 24
+
+    private var conciergeEditorialV1Enabled: Bool {
+        // Concierge has fully migrated to the editorial shell.
+        true
+    }
+
+    private var hidesHeaderForConcierge: Bool {
+        selection == .concierge && conciergeEditorialV1Enabled
+    }
+
+    private func sectionFromLaunchArgument(_ raw: String) -> Section? {
+        switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "concierge": return .concierge
+        case "discover": return .discover
+        case "browse": return .browse
+        case "collection": return .collection
+        case "clubs": return .clubs
+        default: return nil
+        }
+    }
+
+    // MARK: - Swipe conflict helpers (deduplicated from onChanged/onEnded)
+
+    private var rootWidth: CGFloat {
+        #if os(iOS)
+        (UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.screen.bounds.width) ?? 393
+        #else
+        1024
+        #endif
+    }
+
+    /// Returns true when the drag starts inside an exclusion zone and is NOT on a screen edge.
+    private func isSwipeExcluded(start: CGPoint) -> Bool {
+        let edgeAllowed = (start.x <= swipeEdgeMargin) || (start.x >= max(0, rootWidth - swipeEdgeMargin))
+        let expanded = swipeExclusions.map { $0.insetBy(dx: -14, dy: -14) }
+        return expanded.contains(where: { $0.contains(start) }) && !edgeAllowed
+    }
+
+    private func scheduleTapSuppressionReset(delayNs: UInt64 = 120_000_000) {
+        tapSuppressionResetTask?.cancel()
+        tapSuppressionResetTask = Task {
+            try? await Task.sleep(nanoseconds: delayNs)
+            guard !Task.isCancelled else { return }
+            suppressCardTaps = false
+        }
+    }
+
+    private func isFastFlingOverride(_ value: DragGesture.Value) -> Bool {
+        let dx = abs(value.translation.width)
+        let dy = abs(value.translation.height)
+        let predictedDx = abs(value.predictedEndTranslation.width)
+        guard dx > dy * KuroGesturePolicy.fastFlingDirectionRatio else { return false }
+        return predictedDx >= KuroGesturePolicy.fastFlingPredictedDxPt
+    }
+
     var body: some View {
 	        ZStack {
-	            Color.white.ignoresSafeArea()
+	            Color.kuroBackground.ignoresSafeArea()
 
 	            VStack(spacing: 0) {
-                // Fixed Header - Three-part layout
-                KuroHeaderNew(selection: $selection, showProfileSheet: $showProfileSheet)
+                if !hidesHeaderForConcierge {
+                    KuroHeaderNew(selection: $selection, showProfileSheet: $showProfileSheet, showSearchSheet: $showSearchSheet)
+                }
 
                 // Header-driven pager: keeps sections mounted once visited.
 	                KuroSectionPager(
 	                    selection: $selection,
 	                    mountedSections: $mountedSections,
-	                    order: swipeOrder
+	                    order: swipeOrder,
+                        suppressCardTaps: suppressCardTaps,
+                        pendingConciergePrompt: pendingConciergePrompt
 	                )
+	                .offset(x: edgeBounceOffset)
 	                .background(Color.clear)
 	            }
 	        }
 	        .coordinateSpace(name: "kuro_root")
 	        .onPreferenceChange(KuroSwipeExclusionPreferenceKey.self) { v in
-	            swipeExclusions = v
+	            let viewport = CGRect(x: 0, y: 0, width: rootWidth, height: 2000)
+	            let visible = v.filter { $0.intersects(viewport) }
+	            if visible != swipeExclusions {
+	                swipeExclusions = visible
+	            }
 	        }
+            .onAppear {
+                // Debug support: launch directly into Concierge for screenshots or manual QA.
+                // Example: `xcrun simctl launch booted com.kuro.app --args --kuro-start=concierge`
+                guard !didApplyStartArgument else { return }
+                didApplyStartArgument = true
+                let args = ProcessInfo.processInfo.arguments
+                if let kv = args.first(where: { $0.hasPrefix("--kuro-start=") }),
+                   let value = kv.split(separator: "=", maxSplits: 1).last,
+                   let target = sectionFromLaunchArgument(String(value))
+                {
+                    selection = target
+                    mountedSections.insert(target)
+                } else if args.contains("--kuro-start-concierge") {
+                    selection = .concierge
+                    mountedSections.insert(.concierge)
+                }
+            }
 	        .simultaneousGesture(
-	            DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
-	                .onEnded { value in
-	                    let start = value.startLocation
-	                    #if os(iOS)
-	                    let rootWidth = UIScreen.main.bounds.width
-	                    #else
-	                    let rootWidth: CGFloat = 1024
-	                    #endif
-	                    let edgeAllowed = (start.x <= swipeEdgeMargin) || (start.x >= max(0, rootWidth - swipeEdgeMargin))
+            DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
+                    .onChanged { value in
+                        guard FeatureFlags.shared.isSwipeTapGuardEnabled else { return }
+                        guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
+                        let excluded = isSwipeExcluded(start: value.startLocation)
+                        if excluded && !isFastFlingOverride(value) { return }
 
-	                    let expanded = swipeExclusions.map { $0.insetBy(dx: -14, dy: -14) }
-	                    if expanded.contains(where: { $0.contains(start) }) && !edgeAllowed { return }
+                        let dx = abs(value.translation.width)
+                        let dy = abs(value.translation.height)
+                        let predictedDx = abs(value.predictedEndTranslation.width)
+                        let velocityHint = abs(value.predictedEndTranslation.width - value.translation.width)
+                        guard dx > 12, dx > dy * 1.1 else { return }
+                        guard predictedDx > 18 || velocityHint > 20 || dx > 24 else { return }
+                        if !suppressCardTaps {
+                            suppressCardTaps = true
+                        }
+                        if !didTrackSuppressionThisGesture {
+                            didTrackSuppressionThisGesture = true
+                            supabaseService.trackInteractionEvent(
+                                "card_tap_suppressed_during_swipe",
+                                surface: "root_pager",
+                                result: "active"
+                            )
+                        }
+                    }
+	                .onEnded { value in
+                        let shouldManageSuppression = FeatureFlags.shared.isSwipeTapGuardEnabled
+                        defer { didTrackSuppressionThisGesture = false }
+                        if shouldManageSuppression && suppressCardTaps {
+                            scheduleTapSuppressionReset()
+                        }
+                        guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
+                        guard !KuroGestureCoordinator.shared.recentlyDraggedRail(withinMs: KuroGesturePolicy.postSwipeTapCooldownMs) else { return }
+
+                        let excluded = isSwipeExcluded(start: value.startLocation)
+                        if excluded && !isFastFlingOverride(value) { return }
 
 	                    let dx = value.translation.width
 	                    let dy = value.translation.height
-	                    // Be forgiving: people swipe slightly diagonally.
 	                    guard abs(dx) > abs(dy) * 0.85 else { return }
 
 	                    let predictedDx = value.predictedEndTranslation.width
@@ -5236,22 +5793,165 @@ struct KuroMainView: View {
 
 	                    guard let currentIndex = swipeOrder.firstIndex(of: selection) else { return }
 	                    let nextIndex = currentIndex + (effectiveDx < 0 ? 1 : -1)
-	                    guard swipeOrder.indices.contains(nextIndex) else { return }
+	                    guard swipeOrder.indices.contains(nextIndex) else {
+	                        KuroAccessibility.impactHaptic(.rigid)
+	                        let bounceDirection: CGFloat = effectiveDx < 0 ? -1 : 1
+	                        withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) {
+	                            edgeBounceOffset = bounceDirection * 12
+	                        }
+	                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7).delay(0.1)) {
+	                            edgeBounceOffset = 0
+	                        }
+	                        return
+	                    }
 	                    selection = swipeOrder[nextIndex]
 	                    KuroAccessibility.impactHaptic(.light)
+
+                        guard shouldManageSuppression else {
+                            suppressCardTaps = false
+                            return
+                        }
+                        let delayNs: UInt64 = abs(predictedDx) > 220 ? 280_000_000 : 120_000_000
+                        scheduleTapSuppressionReset(delayNs: delayNs)
 	                }
 	        )
 	            .onChange(of: selection) { _, newValue in
 	                mountedSections.insert(newValue)
+                    if newValue == .clubs {
+                        supabaseService.clearClubNotificationBadge()
+                    }
 	            }
 	            .task {
 	                // Warm the Discover bundle so the first Discover render feels instant.
                 _ = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24)
+                // Check club notifications
+                await supabaseService.checkClubNotifications()
             }
             .sheet(isPresented: $showProfileSheet) {
-                ProfileView()
+                ProfileView(
+                    onOpenConciergeImportReview: { prompt in
+                        showProfileSheet = false
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 300_000_000)
+                            handleDeepLink(.concierge(prompt: prompt))
+                        }
+                    }
+                )
                     .environment(supabaseService)
             }
+            .sheet(isPresented: $showSearchSheet) {
+                NavigationStack {
+                    EditorialSearchView()
+                        .environment(supabaseService)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button(action: { showSearchSheet = false }) {
+                                    Image(systemName: "xmark")
+                                        .font(.kuroBody(weight: .light))
+                                        .foregroundColor(.kuroBlack60)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                }
+            }
+            .onDisappear {
+                tapSuppressionResetTask?.cancel()
+            }
+            .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
+                guard networkMonitor.isConnected else { return }
+                Task {
+                    switch selection {
+                    case .discover:
+                        _ = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
+                    case .collection:
+                        await supabaseService.fetchUserLists()
+                        await supabaseService.fetchCollectionFeed(status: nil)
+                    case .clubs:
+                        await supabaseService.checkClubNotifications()
+                    case .concierge, .browse:
+                        break
+                    }
+                }
+            }
+            .onChange(of: pendingDeepLink) { _, link in
+                guard let link else { return }
+                pendingDeepLink = nil
+                handleDeepLink(link)
+            }
+            .sheet(isPresented: Binding(
+                get: { deepLinkAnimeId != nil },
+                set: { if !$0 { deepLinkAnimeId = nil } }
+            )) {
+                if let animeId = deepLinkAnimeId {
+                    MediaDetailSheet(kind: .anime, id: animeId)
+                        .environment(supabaseService)
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { deepLinkMangaId != nil },
+                set: { if !$0 { deepLinkMangaId = nil } }
+            )) {
+                if let mangaId = deepLinkMangaId {
+                    MediaDetailSheet(kind: .manga, id: mangaId)
+                        .environment(supabaseService)
+                }
+            }
+            .sheet(isPresented: Binding(
+                get: { deepLinkClubId != nil },
+                set: { if !$0 { deepLinkClubId = nil } }
+            )) {
+                if let clubId = deepLinkClubId {
+                    NavigationStack {
+                        ClubDetailView(clubId: clubId)
+                            .environment(supabaseService)
+                    }
+                }
+            }
+            .fullScreenCover(isPresented: $showOnboarding) {
+                OnboardingView {
+                    showOnboarding = false
+                }
+            }
+            if let transientBannerMessage = supabaseService.transientBannerMessage {
+                VStack {
+                    KuroTransientBanner(message: transientBannerMessage)
+                        .padding(.top, hidesHeaderForConcierge ? 20 : 10)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(10)
+            }
+    }
+
+    private func handleDeepLink(_ link: DeepLink) {
+        switch link {
+        case .anime(let id):
+            deepLinkAnimeId = id
+        case .manga(let id):
+            deepLinkMangaId = id
+        case .club(let id):
+            deepLinkClubId = id
+        case .collection:
+            selection = .collection
+            mountedSections.insert(.collection)
+        case .discover:
+            selection = .discover
+        case .concierge(let prompt):
+            selection = .concierge
+            mountedSections.insert(.concierge)
+            pendingConciergePrompt = prompt
+            // Clear after next runloop so ConciergeView can consume it once
+            pendingPromptClearTask?.cancel()
+            pendingPromptClearTask = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                guard !Task.isCancelled else { return }
+                pendingConciergePrompt = nil
+            }
+        case .authCallback:
+            break // Handled at app level in KuroApp.swift, never reaches here
+        }
     }
 }
 
@@ -5262,6 +5962,8 @@ private struct KuroSectionPager: View {
     @Binding var selection: Section
     @Binding var mountedSections: Set<Section>
     let order: [Section]
+    let suppressCardTaps: Bool
+    var pendingConciergePrompt: String?
 
     private var selectionIndex: Int {
         order.firstIndex(of: selection) ?? 0
@@ -5278,35 +5980,38 @@ private struct KuroSectionPager: View {
                         .frame(width: width, height: height)
                 }
             }
-            .environment(\.kuroSuppressCardTaps, false)
+            .environment(\.kuroSuppressCardTaps, suppressCardTaps)
             .offset(x: (-CGFloat(selectionIndex) * width))
             .clipped()
             // Animate only when the selection changes (header-driven paging).
             // This avoids gesture conflicts with in-page horizontal carousels.
-            .animation(.interactiveSpring(response: 0.28, dampingFraction: 0.92), value: selectionIndex)
+            .animation(.snappy(duration: 0.22, extraBounce: 0.02), value: selectionIndex)
         }
     }
 
     @ViewBuilder
     private func page(for section: Section) -> some View {
-        let shouldMount = mountedSections.contains(section) || section == selection
+        let sectionIdx = order.firstIndex(of: section) ?? 0
+        let distance = abs(selectionIndex - sectionIdx)
+        // Mount current page + immediate neighbors; unmount distant pages to save memory.
+        let shouldMount = distance <= 1 || mountedSections.contains(section)
 
         if shouldMount {
             switch section {
             case .concierge:
-                ConciergeView(assistantEnabled: false)
+                ConciergeView(assistantEnabled: true, initialPrompt: pendingConciergePrompt)
             case .discover:
                 EditorialDiscoverView()
-            case .collection:
-                EditorialCollectionView()
             case .browse:
                 BrowseView()
-            case .search:
-                EditorialSearchView()
+            case .collection:
+                EditorialCollectionView()
+            case .clubs:
+                ClubsView()
             }
         } else {
             // Placeholder keeps layout stable without triggering `.task` in heavy pages.
-            Color.white
+            Color.kuroBackground
         }
     }
 }
@@ -5315,8 +6020,9 @@ private struct KuroSectionPager: View {
 struct KuroHeaderNew: View {
     @Binding var selection: KuroMainView.Section
     @Binding var showProfileSheet: Bool
+    @Binding var showSearchSheet: Bool
     @Environment(SupabaseService.self) private var supabaseService
-    
+
     private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .browse, .collection, .clubs]
 
     private static let windowTextPaddingX: CGFloat = 14
@@ -5328,6 +6034,7 @@ struct KuroHeaderNew: View {
     @State private var isForwardTransition = true
     @State private var titleProgress: CGFloat = 1.0
     @State private var titleTextWidth: CGFloat = 92
+    @State private var previousSectionCleanupTask: Task<Void, Never>? = nil
 
     private var currentTitle: String { selection.title }
     private var canSwipeLeft: Bool {
@@ -5360,18 +6067,18 @@ struct KuroHeaderNew: View {
             shape
                 .fill(Color.clear)
                 // Tiny fill keeps the shape "present" so the shadow reads, without tinting the interior.
-                .background(shape.fill(Color.white.opacity(0.001)))
+                .background(shape.fill(Color.kuroWhite.opacity(0.001)))
                 .overlay(
                     shape
-                        .stroke(Color.black.opacity(hint ? 0.12 : 0.06), lineWidth: 0.6)
+                        .stroke(hint ? Color.kuroBlack12 : Color.kuroBlack06, lineWidth: 0.6)
                 )
                 // Subtle highlight to sell the "window" edge without changing the interior color.
                 .overlay(
                     shape
-                        .stroke(Color.white.opacity(0.75), lineWidth: 0.6)
+                        .stroke(Color.kuroWhite80, lineWidth: 0.6)
                         .blendMode(.overlay)
                 )
-                .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 6)
+                .shadow(color: Color.kuroBlack06, radius: 10, x: 0, y: 6)
 
             TitleWindowAnimator(
                 current: displayedSection.title,
@@ -5392,6 +6099,17 @@ struct KuroHeaderNew: View {
         .accessibilityHidden(true)
     }
 
+    @ViewBuilder
+    private func headerIconCircle<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        Circle()
+            .fill(Color.kuroBlack06)
+            .frame(width: 32, height: 32)
+            .overlay { content() }
+            .overlay(
+                Circle().stroke(Color.kuroBlack10, lineWidth: 0.7)
+            )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Three-part layout with proper spacing
@@ -5399,9 +6117,9 @@ struct KuroHeaderNew: View {
                 // Left: Brand (30% opacity)
                 HStack(spacing: 10) {
                     Text("KURO")
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.kuroNavigation(weight: .regular))
                         .tracking(1.5)
-                        .foregroundColor(.black.opacity(0.3))
+                        .foregroundColor(.kuroTextTertiary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -5413,18 +6131,39 @@ struct KuroHeaderNew: View {
                                 .fill(.ultraThinMaterial)
                                 .frame(width: 30, height: 30)
                                 .overlay(
-                                    Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
+                                    Circle().stroke(Color.kuroBlack10, lineWidth: 0.7)
                                 )
                                 .overlay(
                                     Image(systemName: "bubble.left.and.bubble.right.fill")
-                                        .font(.system(size: 13, weight: .semibold))
-                                        .foregroundColor(.black.opacity(0.70))
+                                        .font(.kuroCustom(13, weight: .semibold, relativeTo: .caption1))
+                                        .foregroundColor(.kuroBlack70)
                                 )
                                 .accessibilityHidden(true)
                         }
 
                         titleWindow
                     }
+
+                    // Dot indicators for positional context
+                    HStack(spacing: 5) {
+                        ForEach(swipeOrder, id: \.self) { section in
+                            ZStack {
+                                Circle()
+                                    .fill(section == selection ? Color.kuroTextSecondary : Color.kuroBlack15)
+                                    .frame(width: 4, height: 4)
+
+                                // Badge dot for Clubs when unseen activity exists
+                                if section == .clubs && supabaseService.hasUnseenClubActivity && selection != .clubs {
+                                    Circle()
+                                        .fill(Color.kuroBlack70)
+                                        .frame(width: 6, height: 6)
+                                        .offset(x: 5, y: -3)
+                                }
+                            }
+                        }
+                    }
+                    .animation(.easeOut(duration: 0.18), value: selection)
+                    .accessibilityHidden(true)
                 }
                 .contentShape(Rectangle())
                 .accessibilityElement(children: .ignore)
@@ -5433,9 +6172,24 @@ struct KuroHeaderNew: View {
                 .accessibilityHint("Swipe left or right to change sections.")
                 .frame(maxWidth: .infinity, alignment: .center)
 
-                // Right: Action (minimal interaction)
-                HStack {
+                // Right: Actions
+                HStack(spacing: 10) {
                     Spacer()
+
+                    Button(action: {
+                        KuroAccessibility.impactHaptic(.light)
+                        showSearchSheet = true
+                    }) {
+                        headerIconCircle {
+                            Image(systemName: "magnifyingglass")
+                                .font(.kuroCustom(13, weight: .regular, relativeTo: .caption1))
+                                .foregroundColor(.kuroBlack60)
+                        }
+                    }
+                    .buttonStyle(KuroHeaderIconButtonStyle())
+                    .accessibilityLabel("Search")
+                    .accessibilityHint("Opens search")
+
                     Menu {
                         Button("Profile") {
                             showProfileSheet = true
@@ -5444,17 +6198,11 @@ struct KuroHeaderNew: View {
                             Task { await supabaseService.signOut() }
                         }
                     } label: {
-                        Circle()
-                            .fill(Color.black.opacity(0.06))
-                            .frame(width: 32, height: 32)
-                            .overlay(
-                                Text(supabaseService.currentUserInitial)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.black.opacity(0.80))
-                            )
-                            .overlay(
-                                Circle().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
-                            )
+                        headerIconCircle {
+                            Text(supabaseService.currentUserInitial)
+                                .font(.kuroCustom(12, weight: .medium, relativeTo: .caption1))
+                                .foregroundColor(.kuroBlack80)
+                        }
                     }
                     .buttonStyle(KuroHeaderIconButtonStyle())
                     .accessibilityLabel("Profile")
@@ -5493,7 +6241,10 @@ struct KuroHeaderNew: View {
                 }
 
                 // Clear previous after animation; avoids unnecessary layout work.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) {
+                previousSectionCleanupTask?.cancel()
+                previousSectionCleanupTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                    guard !Task.isCancelled else { return }
                     if displayedSection == newValue {
                         previousSection = nil
                         withAnimation(.easeOut(duration: 0.12)) {
@@ -5502,15 +6253,19 @@ struct KuroHeaderNew: View {
                     }
                 }
             }
+            .onDisappear {
+                previousSectionCleanupTask?.cancel()
+                previousSectionCleanupTask = nil
+            }
 
             // Subtle divider
             Rectangle()
-                .fill(Color.black.opacity(0.08))
+                .fill(Color.kuroBlack08)
                 .frame(height: 0.5)
         }
-        .frame(height: 48)
-        .background(Color.white)
-        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 6)
+        .frame(height: 54)
+        .background(Color.kuroBackground)
+        .shadow(color: Color.kuroBlack08, radius: 10, x: 0, y: 6)
     }
 }
 
@@ -5527,17 +6282,17 @@ private struct TitleWindowAnimator: View {
         return ZStack {
             if let previous {
                 Text(previous)
-                    .font(.system(size: 11, weight: .regular))
+                    .font(.kuroNavigation(weight: .regular))
                     .tracking(1.5)
-                    .foregroundColor(.black)
+                    .foregroundColor(.kuroBlack)
                     .lineLimit(1)
                     .offset(x: (-progress) * dir * travel)
             }
 
             Text(current)
-                .font(.system(size: 11, weight: .regular))
+                .font(.kuroNavigation(weight: .regular))
                 .tracking(1.5)
-                .foregroundColor(.black)
+                .foregroundColor(.kuroBlack)
                 .lineLimit(1)
                 .offset(x: (1 - progress) * dir * travel)
         }
@@ -5553,1646 +6308,10 @@ private struct KuroHeaderIconButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - New Discover View (Single Column Sophistication)
-struct DiscoverViewNew: View {
-    @Environment(SupabaseService.self) private var supabaseService
-    
-    var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            if supabaseService.isLoading {
-                LoadingStateViewNew()
-            } else if supabaseService.animeItems.isEmpty {
-                DiscoverEmptyStateView()
-            } else {
-                VStack(spacing: 48) {
-                    // CURRENT SEASON Section
-                    DiscoverSectionNew(
-                        title: "CURRENT SEASON",
-                        subtitle: "Airing now",
-                        items: currentSeasonItems
-                    )
-
-                    // TRENDING NOW Section
-                    DiscoverSectionNew(
-                        title: "TRENDING NOW",
-                        subtitle: "Most popular this week",
-                        items: trendingItems
-                    )
-
-                    // NEWLY ADDED Section
-                    DiscoverSectionNew(
-                        title: "NEWLY ADDED",
-                        subtitle: "Fresh to the collection",
-                        items: newlyAddedItems
-                    )
-
-                    // TOP RATED Section
-                    DiscoverSectionNew(
-                        title: "TOP RATED",
-                        subtitle: "Highest scores",
-                        items: topRatedItems
-                    )
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-                .padding(.bottom, 48)
-            }
-        }
-        .onAppear {
-            Task {
-                supabaseService.setPageSize(50)
-                let total = KuroScreen.isLargeScreen ? 500 : 300
-                await supabaseService.prefetchAnime(total: total)
-            }
-        }
-    }
-
-    // MARK: - Content Filters
-
-    private var currentSeasonItems: [Anime] {
-        // Filter for current season (2024-2025) - Show 3 items for elegance
-        supabaseService.animeItems.filter { anime in
-            (anime.seasonYear ?? 0) >= 2024 && anime.status == "RELEASING"
-        }.prefix(3).map { $0 }
-    }
-
-    private var trendingItems: [Anime] {
-        // Sort by popularity/trending - Show 3 items
-        supabaseService.animeItems.sorted { ($0.trending ?? 0) > ($1.trending ?? 0) }
-            .prefix(3).map { $0 }
-    }
-
-    private var newlyAddedItems: [Anime] {
-        // Sort by created_at (newest first) - Show 3 items
-        supabaseService.animeItems.sorted { $0.createdAt > $1.createdAt }
-            .prefix(3).map { $0 }
-    }
-
-    private var topRatedItems: [Anime] {
-        // Sort by average score - Show 3 items
-        supabaseService.animeItems.filter { ($0.averageScore ?? 0) > 75 }
-            .sorted { ($0.averageScore ?? 0) > ($1.averageScore ?? 0) }
-            .prefix(3).map { $0 }
-    }
-}
-
-// MARK: - New Discover Section (Single Column)
-struct DiscoverSectionNew: View {
-    let title: String
-    let subtitle: String
-    let items: [Anime]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Refined Section Header - More Editorial
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .bottom, spacing: 12) {
-                    Text(title)
-                        .font(.system(size: 18, weight: .light, design: .serif))
-                        .tracking(0.5)
-                        .foregroundColor(.black)
-
-                    Text(subtitle)
-                        .font(.system(size: 10, weight: .light))
-                        .tracking(0.8)
-                        .foregroundColor(.black.opacity(0.35))
-                        .padding(.bottom, 2)
-                }
-
-                Rectangle()
-                    .fill(Color.black)
-                    .frame(height: 0.5)
-                    .frame(maxWidth: 60)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, 24)
-
-            // Section Content - Single column for sophistication
-            VStack(spacing: 32) {
-                ForEach(items, id: \.id) { anime in
-                    SophisticatedAnimeCard(media: anime)
-                }
-            }
-        }
-    }
-}
-
-// MARK: - New Loading State View (Single Column)
-struct LoadingStateViewNew: View {
-    var body: some View {
-        VStack(spacing: 48) {
-            ForEach(0..<3, id: \.self) { _ in
-                VStack(spacing: 0) {
-                    // Section header skeleton
-                    VStack(alignment: .leading, spacing: 6) {
-                        Rectangle()
-                            .fill(Color.black.opacity(0.08))
-                            .frame(width: 120, height: 11)
-
-                        Rectangle()
-                            .fill(Color.black.opacity(0.05))
-                            .frame(width: 80, height: 9)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 16)
-
-                    // Single column skeleton
-                    VStack(spacing: 32) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            SophisticatedCardLoading()
-                        }
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 24)
-        .padding(.bottom, 48)
-    }
-}
-
-// MARK: - Sophisticated Card Loading
-struct SophisticatedCardLoading: View {
-    var body: some View {
-        HStack(spacing: 16) {
-            // Left: Image placeholder
-            Rectangle()
-                .fill(Color.black.opacity(0.04))
-                .frame(width: 100, height: 150)  // Fixed consistent size
-                .overlay(
-                    ProgressView()
-                        .scaleEffect(0.5)
-                        .foregroundColor(.black.opacity(0.2))
-                )
-
-            // Right: Text placeholders
-            VStack(alignment: .leading, spacing: 8) {
-                // Title placeholder
-                Rectangle()
-                    .fill(Color.black.opacity(0.08))
-                    .frame(height: 16)
-                    .frame(maxWidth: .infinity)
-
-                // Metadata placeholder
-                Rectangle()
-                    .fill(Color.black.opacity(0.05))
-                    .frame(height: 10)
-                    .frame(width: 80)
-
-                // Description placeholders
-                VStack(spacing: 4) {
-                    Rectangle()
-                        .fill(Color.black.opacity(0.05))
-                        .frame(height: 11)
-                        .frame(maxWidth: .infinity)
-                    Rectangle()
-                        .fill(Color.black.opacity(0.05))
-                        .frame(height: 11)
-                        .frame(maxWidth: .infinity)
-                    Rectangle()
-                        .fill(Color.black.opacity(0.05))
-                        .frame(height: 11)
-                        .frame(width: 120)
-                }
-
-                Spacer()
-
-                // Genre placeholders
-                HStack(spacing: 6) {
-                    Rectangle()
-                        .fill(Color.black.opacity(0.05))
-                        .frame(width: 50, height: 16)
-                        .cornerRadius(8)
-                    Rectangle()
-                        .fill(Color.black.opacity(0.05))
-                        .frame(width: 40, height: 16)
-                        .cornerRadius(8)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(height: 150)
-    }
-}
-
-// MARK: - Comprehensive Discover View with Sections
-// MARK: - Sophisticated Discover Section Component
-struct DiscoverSection: View {
-    let title: String
-    let subtitle: String
-    let items: [Anime]
-    let geometry: GeometryProxy
-    let columnSpacing: CGFloat
-    let rowSpacing: CGFloat
-    let horizontalPadding: CGFloat
-
-    var body: some View {
-        VStack(spacing: 0) {
-            // Refined Section Header - More Editorial
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .bottom, spacing: 12) {
-                    Text(title)
-                        .font(.system(size: 18, weight: .light, design: .serif))
-                        .tracking(0.5)
-                        .foregroundColor(.black)
-
-                    Text(subtitle)
-                        .font(.system(size: 10, weight: .light))
-                        .tracking(0.8)
-                        .foregroundColor(.black.opacity(0.35))
-                        .padding(.bottom, 2)
-                }
-
-                Rectangle()
-                    .fill(Color.black)
-                    .frame(height: 0.5)
-                    .frame(maxWidth: 60)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, horizontalPadding)
-            .padding(.bottom, max(geometry.size.width * 0.06, 24))
-
-            // Section Content - Single column for sophistication
-            VStack(spacing: max(geometry.size.width * 0.08, 32)) {
-                ForEach(items, id: \.id) { anime in
-                    SophisticatedAnimeCard(media: anime)
-                }
-            }
-            .padding(.horizontal, horizontalPadding)
-        }
-    }
-}
-
-// MARK: - Loading State View
-struct LoadingStateView: View {
-    let geometry: GeometryProxy
-    let columnSpacing: CGFloat
-    let rowSpacing: CGFloat
-    let horizontalPadding: CGFloat
-
-    var body: some View {
-        VStack(spacing: max(geometry.size.width * 0.12, 48)) {
-            ForEach(0..<3, id: \.self) { _ in
-                VStack(spacing: 0) {
-                    // Section header skeleton
-                    VStack(alignment: .leading, spacing: 6) {
-                        Rectangle()
-                            .fill(Color.black.opacity(0.08))
-                            .frame(width: 120, height: 11)
-
-                        Rectangle()
-                            .fill(Color.black.opacity(0.05))
-                            .frame(width: 80, height: 9)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, horizontalPadding)
-                    .padding(.bottom, max(geometry.size.width * 0.04, 16))
-
-                    // Local sizing constants for grid and cards
-                    let padding: CGFloat = 20
-                    let perfectSpacing: CGFloat = 16
-                    let columnsCount: Int = 2
-                    let totalSpacing = CGFloat(columnsCount - 1) * perfectSpacing
-                    let availableWidth = geometry.size.width - (2 * padding) - totalSpacing
-                    let cardWidth = floor(availableWidth / CGFloat(columnsCount))
-                    let textHeight: CGFloat = 72
-                    let imageHeight: CGFloat = cardWidth / 0.7
-                    let cardHeight: CGFloat = floor(imageHeight + 8 + textHeight)
-
-                    LazyVGrid(
-                        columns: [
-                            GridItem(.fixed(cardWidth), spacing: perfectSpacing, alignment: .top),
-                            GridItem(.fixed(cardWidth), spacing: perfectSpacing, alignment: .top)
-                        ],
-                        alignment: .center,
-                        spacing: rowSpacing
-                    ) {
-                        ForEach(0..<6, id: \.self) { _ in
-                            DiscoverCardLoading()
-                                .frame(width: cardWidth, height: cardHeight, alignment: .top)
-                        }
-                    }
-                    .padding(.horizontal, padding)
-                }
-            }
-        }
-        .padding(.top, max(geometry.size.width * 0.06, 24))
-        .padding(.bottom, max(geometry.size.width * 0.12, 48))
-    }
-}
-
-// MARK: - Discover Empty State View
-struct DiscoverEmptyStateView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Text("LOADING YOUR COLLECTION...")
-                .font(.system(size: 14, weight: .light))
-                .tracking(1.0)
-                .foregroundColor(.black.opacity(0.6))
-
-            Text("Connecting to Supabase...")
-                .font(.system(size: 12, weight: .light))
-                .tracking(0.5)
-                .foregroundColor(.black.opacity(0.3))
-
-            ProgressView()
-                .scaleEffect(0.8)
-                .padding(.top, 20)
-        }
-        .padding(.top, 80)
-    }
-}
-
-struct CollectionViewSimple: View {
-    @Environment(SupabaseService.self) private var supabaseService
-    @State private var filter = "ALL"
-    let filters = ["ALL", "WATCHING", "COMPLETED", "PLANNED"]
-    @State private var mediaIsManga = false
-    @State private var displayCount = 60
-    
-    var body: some View {
-        GeometryReader { geometry in
-            VStack(spacing: 0) {
-                // Media toggle + Filter tabs
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 32) {
-                        FilterTabSimple(
-                            title: mediaIsManga ? "MANGA" : "ANIME",
-                            isSelected: true,
-                            action: {
-                                withAnimation(.easeInOut(duration: 0.3)) { mediaIsManga.toggle() }
-                                if mediaIsManga && supabaseService.mangaItems.isEmpty {
-                                    Task { await supabaseService.prefetchManga(total: 300) }
-                                }
-                            }
-                        )
-                        ForEach(filters, id: \.self) { filterOption in
-                            FilterTabSimple(
-                                title: filterOption,
-                                isSelected: filter == filterOption,
-                                action: {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        filter = filterOption
-                                    }
-                                }
-                            )
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                }
-                .padding(.vertical, 20)
-                
-                // Collection grid with PERFECT spacing to match reference
-                ScrollView(.vertical, showsIndicators: false) {
-                    // Collection grid with DESIGN-SYSTEM spacing & fixed card size
-                    let metrics = KuroCardMetrics.grid(for: geometry.size.width, columns: 2)
-                    let columns = metrics.columns
-                    let cardWidth = metrics.cardWidth
-                    let cardHeight = metrics.cardHeight
-                    
-                    // Create grid with PERFECT spacing to match reference
-                    LazyVGrid(
-                        columns: columns,
-                        alignment: .center,
-                        spacing: 16
-                    ) {
-                        if supabaseService.isLoading {
-                            ForEach(0..<9, id: \.self) { _ in
-                                CollectionCardLoading()
-                                    .frame(width: cardWidth, height: cardHeight, alignment: .top)
-                            }
-                        } else if mediaIsManga, !collectionManga.isEmpty {
-                            let items = Array(collectionManga.prefix(displayCount))
-                            ForEach(items, id: \.id) { manga in
-                                CollectionCardReal(media: manga)
-                                    .frame(width: cardWidth, height: cardHeight, alignment: .top)
-                                    .onAppear {
-                                        if manga.id == items.last?.id {
-                                            displayCount = min(displayCount + 60, collectionManga.count)
-                                        }
-                                    }
-                            }
-                        } else if !mediaIsManga, !collectionAnime.isEmpty {
-                            let items = Array(collectionAnime.prefix(displayCount))
-                            ForEach(items, id: \.id) { anime in
-                                CollectionCardReal(media: anime)
-                                    .frame(width: cardWidth, height: cardHeight, alignment: .top)
-                                    .onAppear {
-                                        if anime.id == items.last?.id {
-                                            displayCount = min(displayCount + 60, collectionAnime.count)
-                                        }
-                                    }
-                            }
-                        } else {
-                            // Fallback to general list if user collection is empty
-                            if mediaIsManga {
-                                let items = Array(supabaseService.mangaItems.prefix(displayCount))
-                                ForEach(items, id: \.id) { manga in
-                                    CollectionCardReal(media: manga)
-                                        .frame(width: cardWidth, height: cardHeight, alignment: .top)
-                                        .onAppear {
-                                            if manga.id == items.last?.id {
-                                                displayCount = min(displayCount + 60, supabaseService.mangaItems.count)
-                                                if supabaseService.hasMoreManga {
-                                                    Task { await supabaseService.fetchNextMangaPage() }
-                                                }
-                                            }
-                                        }
-                                }
-                            } else {
-                                let items = Array(supabaseService.animeItems.prefix(displayCount))
-                                ForEach(items, id: \.id) { anime in
-                                    CollectionCardReal(media: anime)
-                                        .frame(width: cardWidth, height: cardHeight, alignment: .top)
-                                        .onAppear {
-                                            if anime.id == items.last?.id {
-                                                displayCount = min(displayCount + 60, supabaseService.animeItems.count)
-                                                if supabaseService.hasMoreAnime {
-                                                    Task { await supabaseService.fetchNextAnimePage() }
-                                                }
-                                            }
-                                        }
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                }
-                .padding(.bottom, 32)
-            }
-        }
-        .onAppear {
-            Task {
-                await supabaseService.fetchUserLists()
-                supabaseService.setPageSize(50)
-                if supabaseService.animeItems.isEmpty { await supabaseService.prefetchAnime(total: 300) }
-                if supabaseService.mangaItems.isEmpty { await supabaseService.prefetchManga(total: 300) }
-            }
-        }
-    }
-
-    // Map filter string to DB list type
-    private var selectedStatus: ListStatus? {
-        switch filter {
-        case "WATCHING": return .current
-        case "COMPLETED": return .completed
-        case "PLANNED": return .planning
-        default: return nil
-        }
-    }
-
-    // Build collection items from user lists and available anime cache
-    private var collectionAnime: [Anime] {
-        let ids: Set<Int> = Set(
-            supabaseService.userLists
-                .filter { $0.mediaType.lowercased() == "anime" }
-                .filter { entry in
-                    guard let s = selectedStatus else { return true }
-                    return entry.status == s
-                }
-                .map { $0.mediaId }
-        )
-        if ids.isEmpty { return [] }
-        let lookup: [Int: Anime] = Dictionary(uniqueKeysWithValues: supabaseService.animeItems.map { ($0.id, $0) })
-        return ids.compactMap { lookup[$0] }
-            .sorted { $0.updatedAt > $1.updatedAt }
-    }
-
-    private var collectionManga: [Manga] {
-        let ids: Set<Int> = Set(
-            supabaseService.userLists
-                .filter { $0.mediaType.lowercased() == "manga" }
-                .filter { entry in
-                    guard let s = selectedStatus else { return true }
-                    return entry.status == s
-                }
-                .map { $0.mediaId }
-        )
-        if ids.isEmpty { return [] }
-        let lookup: [Int: Manga] = Dictionary(uniqueKeysWithValues: supabaseService.mangaItems.map { ($0.id, $0) })
-        return ids.compactMap { lookup[$0] }
-            .sorted { $0.updatedAt > $1.updatedAt }
-    }
-}
-
-// MARK: - New Search View (Single Column)
-#if false
-struct SearchViewNew: View {
-    @Environment(SupabaseService.self) private var supabaseService
-    @State private var searchText: String = ""
-    @State private var selectedCategories: Set<String> = []
-    @State private var searchTask: Task<Void, Never>? = nil
-    @State private var sheetAnime: Anime? = nil
-    @State private var mediaIsManga: Bool = false
-    // Season filter (explicit control)
-    @State private var selectedSeasonNameSearch: String = {
-        let m = Calendar.current.component(.month, from: Date())
-        switch m { case 12,1,2: return "WINTER"; case 3,4,5: return "SPRING"; case 6,7,8: return "SUMMER"; default: return "FALL" }
-    }()
-    @State private var selectedSeasonYearSearch: Int = Calendar.current.component(.year, from: Date())
-
-    // Filter results based on search and categories
-    private var filteredAnimeResults: [Anime] {
-        let base = searchText.isEmpty ? supabaseService.animeItems : supabaseService.searchAnimeItems
-        var results = base
-        
-        // Apply text search
-        if !searchText.isEmpty {
-            results = results.filter { media in
-                media.title.localizedCaseInsensitiveContains(searchText) ||
-                media.displayDescription.localizedCaseInsensitiveContains(searchText) ||
-                media.genres?.contains { $0.localizedCaseInsensitiveContains(searchText) } ?? false
-            }
-        }
-        
-        // Apply category filters
-        if !selectedCategories.isEmpty {
-            results = results.filter { media in
-                selectedCategories.contains { category in
-                    switch category {
-                    case "TRENDING":
-                        return (media.averageScore ?? 0) > 80
-                    case "NEW SEASON":
-                        return Int(media.year) ?? 0 >= 2020
-                    case "CLASSICS":
-                        return Int(media.year) ?? 0 < 2010
-                    case "HIDDEN GEMS":
-                        return (media.averageScore ?? 0) > 85 && Int(media.year) ?? 0 < 2015
-                    default:
-                        return false
-                    }
-                }
-            }
-        }
-        
-        return results
-    }
-    
-    private var filteredMangaResults: [Manga] {
-        let base = searchText.isEmpty ? supabaseService.mangaItems : supabaseService.searchMangaItems
-        var results = base
-        if !searchText.isEmpty {
-            results = results.filter { media in
-                media.title.localizedCaseInsensitiveContains(searchText) ||
-                media.displayDescription.localizedCaseInsensitiveContains(searchText) ||
-                media.genres?.contains { $0.localizedCaseInsensitiveContains(searchText) } ?? false
-            }
-        }
-        if !selectedCategories.isEmpty {
-            results = results.filter { media in
-                selectedCategories.contains { category in
-                    switch category {
-                    case "TRENDING":
-                        return (media.averageScore ?? 0) > 80
-                    case "NEW SEASON":
-                        return (media.startDateYear ?? 0) >= 2020
-                    case "CLASSICS":
-                        return (media.startDateYear ?? 0) < 2010
-                    case "HIDDEN GEMS":
-                        return (media.averageScore ?? 0) > 85 && (media.startDateYear ?? 0) < 2015
-                    default:
-                        return false
-                    }
-                }
-            }
-        }
-        return results
-    }
-    
-    var body: some View {
-        GeometryReader { geometry in
-            let horizontalPadding = max(geometry.size.width * 0.05, 20)
-            
-            VStack(spacing: 0) {
-                // Search field
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.black.opacity(0.3))
-                        .font(.system(size: 16, weight: .light))
-                    
-                    TextField("SEARCH ANIME", text: $searchText)
-                        .font(.system(size: 14, weight: .light))
-                        .tracking(0.5)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
-                .background(Color.black.opacity(0.05))
-                .cornerRadius(0)
-                .padding(.horizontal, horizontalPadding)
-                .padding(.top, 24)
-                
-                // Category pills with selection
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        // Media toggle
-                        CategoryPillSelectable(
-                            title: mediaIsManga ? "MANGA" : "ANIME",
-                            isSelected: true,
-                            action: {
-                                mediaIsManga.toggle()
-                                if mediaIsManga && supabaseService.mangaItems.isEmpty {
-                                    Task { await supabaseService.prefetchManga(total: 300) }
-                                }
-                            }
-                        )
-                        ForEach(["TRENDING", "TRENDING AIRING", "AIRING", "THIS SEASON", "SEASON", "NEW SEASON", "CLASSICS", "HIDDEN GEMS"], id: \.self) { category in
-                            CategoryPillSelectable(
-                                title: category,
-                                isSelected: selectedCategories.contains(category)
-                            ) {
-                                if selectedCategories.contains(category) {
-                                    selectedCategories.remove(category)
-                                } else {
-                                    selectedCategories.insert(category)
-                                }
-                                // Trigger debounced search with new filters
-                                debounceSearch()
-                            }
-                        }
-                    }
-                    .padding(.horizontal, horizontalPadding)
-                }
-                .padding(.vertical, 20)
-
-                // Reset filters
-                HStack {
-                    Button(action: {
-                        KuroAccessibility.impactHaptic(.light)
-                        selectedCategories.removeAll()
-                        // Reset season selector to current
-                        let m = Calendar.current.component(.month, from: Date())
-                        selectedSeasonNameSearch = (m == 12 || m == 1 || m == 2) ? "WINTER" : (m <= 5 ? "SPRING" : (m <= 8 ? "SUMMER" : "FALL"))
-                        selectedSeasonYearSearch = Calendar.current.component(.year, from: Date())
-                        debounceSearch()
-                    }) {
-                        Text("RESET FILTERS")
-                            .font(.system(size: 10, weight: .regular))
-                            .tracking(1.2)
-                            .foregroundColor(.black.opacity(0.8))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.black.opacity(0.2), lineWidth: 0.5)
-                            )
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, horizontalPadding)
-                .padding(.bottom, 8)
-                
-                // Season picker controls (visible when SEASON facet is active)
-                if selectedCategories.contains("SEASON") {
-                    HStack(spacing: 8) {
-                        Button(action: {
-                            KuroAccessibility.impactHaptic(.light)
-                            previousSeasonSearch()
-                            debounceSearch()
-                        }) {
-                            Image(systemName: "chevron.left").foregroundColor(.black.opacity(0.6))
-                        }
-                        Text("\(selectedSeasonNameSearch) \(selectedSeasonYearSearch)")
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(.black)
-                        Button(action: {
-                            KuroAccessibility.impactHaptic(.light)
-                            nextSeasonSearch()
-                            debounceSearch()
-                        }) {
-                            Image(systemName: "chevron.right").foregroundColor(.black.opacity(0.6))
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal, horizontalPadding)
-                }
-                
-                // Search Results with single column layout
-                if !searchText.isEmpty || !selectedCategories.isEmpty {
-                    if supabaseService.isLoading {
-                        ProgressView("Searching...")
-                            .padding(.top, 40)
-                    } else if filteredAnimeResults.isEmpty {
-                        VStack(spacing: 8) {
-                            Text("NO RESULTS FOUND")
-                                .font(.system(size: 11, weight: .regular))
-                                .tracking(1.5)
-                                .foregroundColor(.black.opacity(0.3))
-                            
-                            Text("Try adjusting your search or filters")
-                                .font(.system(size: 10, weight: .light))
-                                .tracking(1.0)
-                                .foregroundColor(.black.opacity(0.2))
-                        }
-                        .padding(.top, 60)
-                    } else {
-                        ScrollView(.vertical, showsIndicators: false) {
-                            // Collection grid with DESIGN-SYSTEM spacing & fixed card size
-                            let metrics = KuroCardMetrics.grid(for: geometry.size.width, columns: 2)
-                            let columns = metrics.columns
-                            let cardWidth = metrics.cardWidth
-                            let cardHeight = metrics.cardHeight
-                            
-                            LazyVGrid(
-                                columns: columns,
-                                alignment: .center,
-                                spacing: 16
-                            ) {
-                                if mediaIsManga {
-                                    ForEach(filteredMangaResults) { manga in
-                                        CollectionCardReal(media: manga)
-                                            .frame(width: cardWidth, height: cardHeight, alignment: .top)
-                                    }
-                                } else {
-                                    ForEach(filteredAnimeResults) { anime in
-                                        CollectionCardReal(media: anime)
-                                            .frame(width: cardWidth, height: cardHeight, alignment: .top)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                            .padding(.bottom, 40)
-                            
-                            // Show More for search base set (API-backed)
-                            if mediaIsManga ? supabaseService.hasMoreManga : supabaseService.hasMoreAnime {
-                                Button(action: {
-                                    KuroAccessibility.impactHaptic(.light)
-                                    Task {
-                                        if !searchText.isEmpty {
-                                            await supabaseService.fetchNextSearchPage()
-                                        } else {
-                                            if mediaIsManga { await supabaseService.fetchNextMangaPage() }
-                                            else { await supabaseService.fetchNextAnimePage() }
-                                        }
-                                    }
-                                }) {
-                                    Text("SHOW MORE")
-                                        .font(.system(size: 11, weight: .regular))
-                                        .tracking(1.5)
-                                        .foregroundColor(.black)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 10)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(Color.black.opacity(0.2), lineWidth: 0.5)
-                                        )
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                                .padding(.top, 8)
-                                .padding(.bottom, 20)
-                            }
-                        }
-                        .sheet(item: $sheetAnime) { anime in
-                            AnimeDetailView(anime: anime)
-                        }
-                    }
-                } else {
-                    Spacer()
-                    
-                    VStack(spacing: 8) {
-                        Text("BEGIN TYPING TO SEARCH")
-                            .font(.system(size: 11, weight: .regular))
-                            .tracking(1.5)
-                            .foregroundColor(.black.opacity(0.3))
-                        
-                        Text("DISCOVER YOUR NEXT OBSESSION")
-                            .font(.system(size: 10, weight: .light))
-                            .tracking(1.0)
-                            .foregroundColor(.black.opacity(0.2))
-                    }
-                    .padding(.top, 80)
-                    
-                    Spacer()
-                }
-            }
-        }
-        .onChange(of: searchText) { _, _ in
-            debounceSearch()
-        }
-        .onAppear {
-            // Load data if not already loaded
-            Task {
-                supabaseService.setPageSize(50)
-                if supabaseService.animeItems.isEmpty { await supabaseService.prefetchAnime(total: 300) }
-                if supabaseService.mangaItems.isEmpty { await supabaseService.prefetchManga(total: 300) }
-            }
-        }
-    }
-    
-    private func performSearch() {
-        Task {
-            supabaseService.resetSearch(query: searchText, isManga: mediaIsManga)
-            var filters = SupabaseService.SearchFilters(
-                trending: selectedCategories.contains("TRENDING") || selectedCategories.contains("TRENDING AIRING"),
-                newSeason: selectedCategories.contains("NEW SEASON"),
-                classics: selectedCategories.contains("CLASSICS"),
-                hiddenGems: selectedCategories.contains("HIDDEN GEMS"),
-                airingOnly: selectedCategories.contains("AIRING") || selectedCategories.contains("TRENDING AIRING")
-            )
-            if selectedCategories.contains("THIS SEASON") {
-                let m = Calendar.current.component(.month, from: Date())
-                let season: String = (m == 12 || m == 1 || m == 2) ? "WINTER" : (m <= 5 ? "SPRING" : (m <= 8 ? "SUMMER" : "FALL"))
-                filters.seasonName = season
-                filters.seasonYear = Calendar.current.component(.year, from: Date())
-            }
-            if selectedCategories.contains("SEASON") {
-                filters.seasonName = selectedSeasonNameSearch
-                filters.seasonYear = selectedSeasonYearSearch
-            }
-            supabaseService.setSearchFilters(filters)
-            await supabaseService.fetchNextSearchPage()
-        }
-    }
-
-    private func previousSeasonSearch() {
-        let order = ["WINTER","SPRING","SUMMER","FALL"]
-        guard let idx = order.firstIndex(of: selectedSeasonNameSearch) else { return }
-        let newIdx = (idx + 3) % 4
-        if newIdx == 3 && idx == 0 { selectedSeasonYearSearch -= 1 }
-        selectedSeasonNameSearch = order[newIdx]
-    }
-
-    private func nextSeasonSearch() {
-        let order = ["WINTER","SPRING","SUMMER","FALL"]
-        guard let idx = order.firstIndex(of: selectedSeasonNameSearch) else { return }
-        let newIdx = (idx + 1) % 4
-        if newIdx == 0 && idx == 3 { selectedSeasonYearSearch += 1 }
-        selectedSeasonNameSearch = order[newIdx]
-    }
-    
-    private func debounceSearch() {
-        searchTask?.cancel()
-        searchTask = Task {
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            if !Task.isCancelled {
-                performSearch()
-            }
-        }
-    }
-}
-#endif
-
-// Legacy search UI is kept for reference; the app uses the RPC-backed `EditorialSearchView`.
-struct SearchViewNew: View {
-    var body: some View { EditorialSearchView() }
-}
-
-// MARK: - Search View with debounce
-// MARK: - Enhanced Components
-
-struct CategoryPillSelectable: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 10, weight: .regular))
-                .tracking(1.0)
-                .foregroundColor(.black.opacity(isSelected ? 1.0 : 0.6))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .stroke(Color.black.opacity(isSelected ? 0.8 : 0.15), lineWidth: 0.5)
-                        .background(
-                            Capsule()
-                                .fill(Color.black.opacity(isSelected ? 0.05 : 0.0))
-                        )
-                )
-        }
-    }
-}
-
-struct SearchResultRowReal: View {
-    let media: any MediaDisplayable
-    @State private var showDetail = false
-    
-    var body: some View {
-        Button(action: {
-            KuroAccessibility.impactHaptic(.light)
-            showDetail = true
-        }) {
-            HStack(alignment: .top, spacing: 16) { // Top alignment for consistent rows
-                // Fixed-size image container
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.black.opacity(0.05))
-                        .overlay(
-                            ProgressView()
-                                .scaleEffect(0.5)
-                                .foregroundColor(.black.opacity(0.3))
-                        )
-                }
-                .frame(width: 50, height: 70, alignment: .center) // Fixed dimensions
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                
-                // Text content with consistent spacing
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(media.title.uppercased())
-                        .font(.system(size: 12, weight: .regular))
-                        .tracking(0.5)
-                        .foregroundColor(.black.opacity(0.8))
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    
-                    Text("\(media.year) · \(media.genres?.first ?? "Unknown")")
-                        .font(.system(size: 10, weight: .light))
-                        .tracking(0.5)
-                        .foregroundColor(.black.opacity(0.5))
-                    
-                    if let episodes = media.episodes {
-                        Text("\(episodes) EPS")
-                            .font(.system(size: 9, weight: .light))
-                            .tracking(0.5)
-                            .foregroundColor(.black.opacity(0.3))
-                    } else if let chapters = media.chapters {
-                        Text("\(chapters) CH")
-                            .font(.system(size: 9, weight: .light))
-                            .tracking(0.5)
-                            .foregroundColor(.black.opacity(0.3))
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading) // Fill available space
-                
-                // Rating and chevron section
-                VStack(alignment: .trailing, spacing: 8) {
-                    if let rating = media.rating {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(String(format: "%.1f", rating))
-                                .font(.system(size: 11, weight: .regular))
-                                .foregroundColor(.black.opacity(0.8))
-                            
-                            Text("★")
-                                .font(.system(size: 8))
-                                .foregroundColor(.black.opacity(0.3))
-                        }
-                    }
-                    
-                    Spacer() // Push chevron to bottom
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .light))
-                        .foregroundColor(.black.opacity(0.2))
-                }
-                .frame(height: 70) // Match image height for consistent alignment
-            }
-            .frame(minHeight: 70) // Ensure consistent row height
-            .padding(.vertical, 12)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .sheet(isPresented: $showDetail) {
-            if let anime = media as? Anime {
-                AnimeDetailView(anime: anime)
-            } else if let manga = media as? Manga {
-                MangaDetailView(manga: manga)
-            }
-        }
-    }
-}
-
-struct CollectionCardLoading: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Rectangle()
-                .fill(Color.black.opacity(0.05))
-                .aspectRatio(0.7, contentMode: .fill)
-                .frame(maxWidth: .infinity, alignment: .center) // Center alignment for loading
-                .overlay(
-                    ProgressView()
-                        .scaleEffect(0.6)
-                        .foregroundColor(.black.opacity(0.3))
-                )
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Rectangle()
-                    .fill(Color.black.opacity(0.1))
-                    .frame(height: 10)
-                    .frame(maxWidth: .infinity)
-                
-                Rectangle()
-                    .fill(Color.black.opacity(0.05))
-                    .frame(height: 9)
-                    .frame(width: 40)
-            }
-            .frame(height: 72)
-            .frame(maxWidth: .infinity, alignment: .leading) // Consistent text width
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.04), radius: 20, x: 0, y: 10)
-                .shadow(color: .black.opacity(0.02), radius: 5, x: 0, y: 2)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.black.opacity(0.05), lineWidth: 1)
-                )
-        )
-    }
-}
-
-struct CollectionCardReal: View {
-    let media: any MediaDisplayable
-    @State private var showDetail = false
-    
-    var body: some View {
-        Button(action: {
-            KuroAccessibility.impactHaptic(.light)
-            showDetail = true
-        }) {
-            VStack(alignment: .leading, spacing: 0) {
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.black.opacity(0.05))
-                        .overlay(
-                            ProgressView()
-                                .scaleEffect(0.6)
-                                .foregroundColor(.black.opacity(0.3))
-                        )
-                }
-                .aspectRatio(0.7, contentMode: .fill)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                
-                // Text content with fixed height container
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(media.title.uppercased())
-                        .font(.system(size: 10, weight: .regular))
-                        .tracking(0.5)
-                        .foregroundColor(.black.opacity(0.8))
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    
-                    Text("\(media.year) · \(episodeText)")
-                        .font(.system(size: 9, weight: .light))
-                        .tracking(0.5)
-                        .foregroundColor(.black.opacity(0.5))
-                    
-                    if let rating = media.rating {
-                        HStack(spacing: 2) {
-                            Text("★")
-                                .font(.system(size: 8))
-                                .foregroundColor(.black.opacity(0.4))
-                            Text(String(format: "%.1f", rating))
-                                .font(.system(size: 8, weight: .light))
-                                .foregroundColor(.black.opacity(0.4))
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading) // Consistent text width
-                .frame(height: 72) // Fixed text area height to enforce uniform card height
-                .padding(.top, 8)
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.white)
-                    .shadow(color: .black.opacity(0.04), radius: 20, x: 0, y: 10)
-                    .shadow(color: .black.opacity(0.02), radius: 5, x: 0, y: 2)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(Color.black.opacity(0.05), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-        .sheet(isPresented: $showDetail) {
-            if let anime = media as? Anime {
-                AnimeDetailView(anime: anime)
-            } else if let manga = media as? Manga {
-                MangaDetailView(manga: manga)
-            }
-        }
-    }
-    
-    private var episodeText: String {
-        if let episodes = media.episodes {
-            return "\(episodes) EPS"
-        } else if let chapters = media.chapters {
-            return "\(chapters) CH"
-        } else {
-            return "Movie"
-        }
-    }
-}
-
-// MARK: - Simple Components
-struct MoodPillSimple: View {
-    let mood: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Text(mood.uppercased())
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(1.5)
-                    .foregroundColor(.black.opacity(isSelected ? 1.0 : 0.3))
-                
-                Rectangle()
-                    .fill(Color.black)
-                    .frame(height: 0.5)
-                    .scaleEffect(x: isSelected ? 1.0 : 0.0, anchor: .center)
-                    .opacity(isSelected ? 1.0 : 0.0)
-                    .animation(.easeOut(duration: 0.3), value: isSelected)
-            }
-        }
-    }
-}
-
-struct FeaturedCardSimple: View {
-    let title: String
-    let year: String
-    let description: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Placeholder image
-            Rectangle()
-                .fill(Color.black.opacity(0.05))
-                .frame(maxWidth: .infinity)
-                .frame(height: 420)
-                .overlay(
-                    Text("IMAGE")
-                        .font(.system(size: 24, weight: .ultraLight))
-                        .foregroundColor(.black.opacity(0.3))
-                )
-            
-            VStack(alignment: .leading, spacing: 12) {
-                Text(title.uppercased())
-                    .font(.system(size: 20, weight: .ultraLight, design: .serif))
-                    .tracking(0.5)
-                    .foregroundColor(.black)
-                
-                Text(year)
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(1.5)
-                    .foregroundColor(.black.opacity(0.5))
-                
-                Text(description)
-                    .font(.system(size: 11, weight: .light))
-                    .tracking(1.0)
-                    .foregroundColor(.black.opacity(0.6))
-                    .lineSpacing(4)
-            }
-            .padding(.vertical, 24)
-        }
-    }
-}
-
-struct CollectionCardSimple: View {
-    let title: String
-    let year: String
-    let episodeText: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Rectangle()
-                .fill(Color.black.opacity(0.05))
-                .aspectRatio(0.7, contentMode: .fill)
-                .overlay(
-                    Text("IMG")
-                        .font(.system(size: 12, weight: .light))
-                        .foregroundColor(.black.opacity(0.3))
-                )
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title.uppercased())
-                    .font(.system(size: 10, weight: .regular))
-                    .tracking(0.5)
-                    .foregroundColor(.black.opacity(0.8))
-                    .lineLimit(2)
-                
-                Text("\(year) · \(episodeText)")
-                    .font(.system(size: 9, weight: .light))
-                    .tracking(0.5)
-                    .foregroundColor(.black.opacity(0.5))
-            }
-            .frame(height: 72)
-            .padding(.top, 8)
-        }
-    }
-}
-
-struct FilterTabSimple: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Text(title)
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(1.5)
-                    .foregroundColor(.black.opacity(isSelected ? 1.0 : 0.3))
-                
-                Rectangle()
-                    .fill(Color.black)
-                    .frame(height: 0.5)
-                    .scaleEffect(x: isSelected ? 1.0 : 0.0, anchor: .center)
-                    .opacity(isSelected ? 1.0 : 0.0)
-            }
-        }
-    }
-}
-
-struct CategoryPillSimple: View {
-    let title: String
-    
-    var body: some View {
-        Text(title)
-            .font(.system(size: 10, weight: .regular))
-            .tracking(1.0)
-            .foregroundColor(.black.opacity(0.6))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .stroke(Color.black.opacity(0.15), lineWidth: 0.5)
-            )
-    }
-}
-
-struct SearchResultRowSimple: View {
-    let title: String
-    let year: String
-    let genre: String
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Rectangle()
-                .fill(Color.black.opacity(0.05))
-                .frame(width: 50, height: 70)
-                .overlay(
-                    Text("IMG")
-                        .font(.system(size: 8, weight: .light))
-                        .foregroundColor(.black.opacity(0.3))
-                )
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title.uppercased())
-                    .font(.system(size: 12, weight: .regular))
-                    .tracking(0.5)
-                    .foregroundColor(.black.opacity(0.8))
-                    .lineLimit(1)
-                
-                Text("\(year) · \(genre)")
-                    .font(.system(size: 10, weight: .light))
-                    .tracking(0.5)
-                    .foregroundColor(.black.opacity(0.5))
-                
-                Text("12 EPS")
-                    .font(.system(size: 9, weight: .light))
-                    .tracking(0.5)
-                    .foregroundColor(.black.opacity(0.3))
-            }
-            
-            Spacer()
-            
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .light))
-                .foregroundColor(.black.opacity(0.2))
-        }
-        .padding(.vertical, 12)
-    }
-}
-
-// MARK: - Sophisticated Single-Column Card (Grown-Up Design)
-struct SophisticatedAnimeCard: View {
-    let media: any MediaDisplayable
-    @State private var showDetail = false
-
-    var body: some View {
-        Button(action: {
-            KuroAccessibility.impactHaptic(.medium)
-            showDetail = true
-        }) {
-            HStack(spacing: 16) {
-                // Left: Portrait Cover Image
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.black.opacity(0.04))
-                        .overlay(
-                            ProgressView()
-                                .scaleEffect(0.5)
-                                .foregroundColor(.black.opacity(0.2))
-                        )
-                }
-                .frame(width: 100, height: 150)  // Fixed consistent size
-                .clipped()
-                .cornerRadius(0)
-
-                // Right: Elegant Info Section
-                VStack(alignment: .leading, spacing: 8) {
-                    // Title - Large Serif
-                    Text(media.title.uppercased())
-                        .font(.system(size: 16, weight: .light, design: .serif))
-                        .tracking(0.3)
-                        .foregroundColor(.black)
-                        .lineLimit(3)
-                        .lineSpacing(2)
-
-                    // Metadata Line
-                    HStack(spacing: 6) {
-                        Text(media.year)
-                            .font(.system(size: 10, weight: .light))
-                            .tracking(1.0)
-                            .foregroundColor(.black.opacity(0.4))
-
-                        if let rating = media.rating {
-                            Text("·")
-                                .foregroundColor(.black.opacity(0.2))
-                            HStack(spacing: 2) {
-                                Text("★")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(.black.opacity(0.4))
-                                Text(String(format: "%.1f", rating))
-                                    .font(.system(size: 10, weight: .medium))
-                                    .tracking(0.5)
-                                    .foregroundColor(.black.opacity(0.6))
-                            }
-                        }
-
-                        if let episodes = media.episodes {
-                            Text("·")
-                                .foregroundColor(.black.opacity(0.2))
-                            Text("\(episodes) EP")
-                                .font(.system(size: 10, weight: .light))
-                                .tracking(0.8)
-                                .foregroundColor(.black.opacity(0.4))
-                        }
-                    }
-
-                    // Description - Sophisticated
-                    if !media.displayDescription.isEmpty {
-                        Text(media.displayDescription)
-                            .font(.system(size: 11, weight: .light))
-                            .tracking(0.2)
-                            .foregroundColor(.black.opacity(0.5))
-                            .lineLimit(3)
-                            .lineSpacing(3)
-                    }
-
-                    Spacer()
-
-                    // Genres - Minimal Pills
-                    if let genres = media.genres?.prefix(3) {
-                        HStack(spacing: 6) {
-                            ForEach(Array(genres), id: \.self) { genre in
-                                Text(genre.uppercased())
-                                    .font(.system(size: 8, weight: .medium))
-                                    .tracking(0.8)
-                                    .foregroundColor(.black.opacity(0.6))
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(
-                                        Capsule()
-                                            .stroke(Color.black.opacity(0.15), lineWidth: 0.5)
-                                    )
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 150)
-        }
-        .buttonStyle(PlainButtonStyle())
-        .sheet(isPresented: $showDetail) {
-            if let anime = media as? Anime {
-                AnimeDetailView(anime: anime)
-            } else if let manga = media as? Manga {
-                MangaDetailView(manga: manga)
-            }
-        }
-    }
-}
-
-// MARK: - Elegant 2-Column Discover Card (Legacy - Kept for Collection/Search)
-struct DiscoverCardElegant: View {
-    let media: any MediaDisplayable
-    @State private var showDetail = false
-
-    var body: some View {
-        Button(action: {
-            KuroAccessibility.impactHaptic(.light)
-            showDetail = true
-        }) {
-            VStack(alignment: .leading, spacing: 0) {
-                // Cover image with elegant portrait aspect ratio
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.black.opacity(0.05))
-                        .overlay(
-                            ProgressView()
-                                .scaleEffect(0.6)
-                                .foregroundColor(.black.opacity(0.3))
-                        )
-                }
-                .aspectRatio(0.7, contentMode: .fill) // Elegant portrait ratio
-                .clipped()
-                .cornerRadius(0) // Sharp corners for minimalism
-
-                // Minimal info section
-                VStack(alignment: .leading, spacing: 6) {
-                    // Title - elegant serif
-                    Text(media.title.uppercased())
-                        .font(.system(size: 13, weight: .light, design: .serif))
-                        .tracking(0.5)
-                        .foregroundColor(.black.opacity(0.9))
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    // Year and type - minimal metadata
-                    HStack(spacing: 4) {
-                        Text(media.year)
-                            .font(.system(size: 9, weight: .light))
-                            .tracking(0.8)
-                            .foregroundColor(.black.opacity(0.5))
-
-                        if let rating = media.rating {
-                            Text("·")
-                                .foregroundColor(.black.opacity(0.3))
-                            Text(String(format: "%.1f", rating))
-                                .font(.system(size: 9, weight: .light))
-                                .tracking(0.8)
-                                .foregroundColor(.black.opacity(0.5))
-                        }
-                    }
-                }
-                .frame(height: 72)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
-            }
-        }
-        .buttonStyle(PlainButtonStyle())
-        .sheet(isPresented: $showDetail) {
-            if let anime = media as? Anime {
-                AnimeDetailView(anime: anime)
-            } else if let manga = media as? Manga {
-                MangaDetailView(manga: manga)
-            }
-        }
-    }
-}
-
-// MARK: - Elegant Loading Card for 2-Column Grid
-struct DiscoverCardLoading: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Image placeholder
-            Rectangle()
-                .fill(Color.black.opacity(0.05))
-                .aspectRatio(0.7, contentMode: .fill)
-                .overlay(
-                    ProgressView()
-                        .scaleEffect(0.6)
-                        .foregroundColor(.black.opacity(0.3))
-                )
-
-            // Info placeholder
-            VStack(alignment: .leading, spacing: 6) {
-                Rectangle()
-                    .fill(Color.black.opacity(0.08))
-                    .frame(height: 13)
-                    .frame(maxWidth: .infinity)
-
-                Rectangle()
-                    .fill(Color.black.opacity(0.05))
-                    .frame(height: 9)
-                    .frame(width: 60)
-            }
-            .frame(height: 72)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-        }
-    }
-}
-
-// MARK: - Real Firebase Data Components (Original Featured Card - kept for reference)
-struct FeaturedCardReal: View {
-    let media: any MediaDisplayable
-    @State private var showDetail = false
-    
-    var body: some View {
-        Button(action: {
-            KuroAccessibility.impactHaptic(.light)
-            showDetail = true
-        }) {
-            VStack(alignment: .leading, spacing: 0) {
-                // Real image or placeholder
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? "")) { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Rectangle()
-                        .fill(Color.black.opacity(0.05))
-                        .overlay(
-                            Text("IMAGE")
-                                .font(.system(size: 24, weight: .ultraLight))
-                                .foregroundColor(.black.opacity(0.3))
-                        )
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 420)
-                .clipped()
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(media.title.uppercased())
-                        .font(.system(size: 20, weight: .ultraLight, design: .serif))
-                        .tracking(0.5)
-                        .foregroundColor(.black)
-                    
-                    Text("\(media.year)")
-                        .font(.system(size: 11, weight: .regular))
-                        .tracking(1.5)
-                        .foregroundColor(.black.opacity(0.5))
-                    
-                    Text(media.displayDescription)
-                        .font(.system(size: 11, weight: .light))
-                        .tracking(1.0)
-                        .foregroundColor(.black.opacity(0.6))
-                        .lineSpacing(4)
-                        .lineLimit(3)
-                }
-                .padding(.vertical, 24)
-            }
-        }
-        .buttonStyle(PlainButtonStyle())
-        .sheet(isPresented: $showDetail) {
-            if let anime = media as? Anime {
-                AnimeDetailView(anime: anime)
-            } else if let manga = media as? Manga {
-                MangaDetailView(manga: manga)
-            }
-        }
-    }
-}
-
-struct FeaturedCardLoading: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Rectangle()
-                .fill(Color.black.opacity(0.05))
-                .frame(maxWidth: .infinity)
-                .frame(height: 420)
-                .overlay(
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .foregroundColor(.black.opacity(0.3))
-                )
-            
-            VStack(alignment: .leading, spacing: 12) {
-                Rectangle()
-                    .fill(Color.black.opacity(0.1))
-                    .frame(height: 20)
-                    .frame(maxWidth: .infinity)
-                
-                Rectangle()
-                    .fill(Color.black.opacity(0.05))
-                    .frame(height: 12)
-                    .frame(width: 60)
-                
-                Rectangle()
-                    .fill(Color.black.opacity(0.05))
-                    .frame(height: 12)
-                    .frame(maxWidth: .infinity)
-            }
-            .padding(.vertical, 24)
-        }
-    }
-}
-
-
 
 // MARK: - Preview
 #Preview {
-    ContentView()
+    ContentView(pendingDeepLink: .constant(nil))
         .environment(SupabaseService.shared)
 }
 
@@ -7218,9 +6337,17 @@ import Supabase
 @Observable
 class SupabaseService {
     static let shared = SupabaseService()
-    
-    // Supabase client
-    private let client: SupabaseClient
+
+    // Apple Foundation Models service (on-device classification/condensation)
+    let fmService = AppleFMService()
+
+    // Concierge telemetry (fire-and-forget, privacy-safe)
+    let analytics = ConciergeAnalytics.shared
+
+    // Supabase client (nil only when config is missing)
+    let client: SupabaseClient!
+    // Surface configuration errors to UI instead of crashing
+    var configError: String? = nil
     // Realtime (user-scoped) subscriptions
     private var realtimeChannel: RealtimeChannelV2? = nil
     private var realtimeListenTasks: [Task<Void, Never>] = []
@@ -7231,14 +6358,125 @@ class SupabaseService {
     var isAuthBootstrapping: Bool = true
     var isAuthenticated: Bool = false
     var authErrorMessage: String? = nil
+    private var authStateTask: Task<Void, Never>?
     // Lightweight identity for UI (header menus, etc.)
     var currentUserEmail: String? = nil
+    // Used for local-only UI labeling (e.g. Clubs member list "You").
+    var currentUserId: String? = nil
 
     var currentUserInitial: String {
         let c = currentUserEmail?.trimmingCharacters(in: .whitespacesAndNewlines).first
         return c.map { String($0).uppercased() } ?? "M"
     }
-    
+
+    nonisolated static func userFacingAuthErrorMessage(from error: Error) -> String {
+        #if DEBUG
+        let chain = authErrorChain(from: error)
+            .map { "\($0.domain)(\($0.code)): \($0.localizedDescription)" }
+            .joined(separator: " -> ")
+        print("[Auth] error chain: \(chain)")
+        #endif
+
+        if let transportMessage = transportAuthErrorMessage(from: error) {
+            return transportMessage
+        }
+
+        let lower = error.localizedDescription.lowercased()
+        if lower.contains("invalid login credentials") {
+            return "Incorrect email or password. Please try again."
+        } else if lower.contains("user already registered") {
+            return "An account with this email already exists. Try signing in instead."
+        } else if lower.contains("email not confirmed") {
+            return "Please check your email to verify your account."
+        } else if lower.contains("password should be at least") {
+            return "Password must be at least 6 characters."
+        }
+        return "Something went wrong. Please try again."
+    }
+
+    nonisolated private static func transportAuthErrorMessage(from error: Error) -> String? {
+        for candidate in authErrorChain(from: error) {
+            guard candidate.domain == NSURLErrorDomain else { continue }
+            let code = URLError.Code(rawValue: candidate.code)
+            switch code {
+            case .notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff:
+                return "No internet connection. Check your connection and try again."
+            case .networkConnectionLost:
+                return "The network connection was lost. Please try again."
+            case .timedOut:
+                return "The request timed out. Please try again."
+            case .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed,
+                 .secureConnectionFailed, .cannotLoadFromNetwork,
+                 .appTransportSecurityRequiresSecureConnection, .badServerResponse:
+                return "Can't reach the server right now. Please try again."
+            default:
+                continue
+            }
+        }
+
+        let lower = error.localizedDescription.lowercased()
+        if lower.contains("internet connection appears to be offline") ||
+            lower.contains("not connected to the internet") {
+            return "No internet connection. Check your connection and try again."
+        } else if lower.contains("network connection was lost") {
+            return "The network connection was lost. Please try again."
+        } else if lower.contains("timed out") {
+            return "The request timed out. Please try again."
+        } else if lower.contains("cannot connect to the server") ||
+                    lower.contains("could not connect to the server") ||
+                    lower.contains("cannot connect to host") {
+            return "Can't reach the server right now. Please try again."
+        }
+        return nil
+    }
+
+    nonisolated private static func authErrorChain(from error: Error) -> [NSError] {
+        var queue: [NSError] = [error as NSError]
+        var seen = Set<String>()
+        var chain: [NSError] = []
+
+        while let current = queue.first {
+            queue.removeFirst()
+            let key = "\(current.domain)#\(current.code)#\(current.localizedDescription)"
+            if !seen.insert(key).inserted {
+                continue
+            }
+            chain.append(current)
+            if let underlying = current.userInfo[NSUnderlyingErrorKey] as? NSError {
+                queue.append(underlying)
+            } else if let underlying = current.userInfo[NSUnderlyingErrorKey] as? Error {
+                queue.append(underlying as NSError)
+            }
+        }
+
+        return chain
+    }
+
+    // MARK: - Shared interaction telemetry helpers
+
+    typealias InteractionStartedAt = CFAbsoluteTime
+
+    func beginInteractionTiming() -> InteractionStartedAt {
+        CFAbsoluteTimeGetCurrent()
+    }
+
+    func trackInteractionEvent(
+        _ event: String,
+        surface: String,
+        result: String,
+        startedAt: InteractionStartedAt? = nil,
+        extra: [String: Any] = [:]
+    ) {
+        var payload = extra
+        payload["surface"] = surface
+        payload["result"] = result
+        payload["market"] = Locale.current.region?.identifier.uppercased() ?? "US"
+        if let startedAt {
+            payload["latency_ms"] = Int((CFAbsoluteTimeGetCurrent() - startedAt) * 1000.0)
+        }
+        analytics.track(event, payload: payload)
+    }
+
     // Observable properties (no @Published needed with @Observable)
     var animeItems: [Anime] = []
     var mangaItems: [Manga] = []
@@ -7250,23 +6488,39 @@ class SupabaseService {
     var collectionFeedItems: [Media] = []
     var isCollectionLoading: Bool = false
     var collectionErrorMessage: String? = nil
+    var transientBannerMessage: String? = nil
     var userLists: [UserList] = []
     var episodes: [Episode] = []
     // Detail caches: cards/grids only carry minimal fields; we fetch full details by id on demand.
-    private var animeDetailCache: [Int: Anime] = [:]
-    private var mangaDetailCache: [Int: Manga] = [:]
+    var animeDetailCache: [Int: Anime] = [:]
+    var mangaDetailCache: [Int: Manga] = [:]
+
+    // Entity inline caches (keyed by media ID, cap 100 each)
+    var animeCharactersCache: [Int: [(character: Character, role: String)]] = [:]
+    var animeStaffCache: [Int: [(staff: Staff, role: String)]] = [:]
+    var animeStudiosCache: [Int: [Studio]] = [:]
+    var mangaCharactersCache: [Int: [(character: Character, role: String)]] = [:]
+    var mangaAuthorsCache: [Int: [(author: Author, role: String)]] = [:]
+
+    // Entity sheet caches (keyed by entity ID, TTL 120s)
+    var studioWorksCache: [String: TimedCache<[Media]>] = [:]
+    var staffWorksCache: [String: TimedCache<[(media: Media, role: String)]>] = [:]
+    var authorWorksCache: [String: TimedCache<[(media: Media, role: String)]>] = [:]
+    var characterWorksCache: [String: TimedCache<[Media]>] = [:]
+    var mediaLadderCache: [String: TimedCache<MediaLadderResponse>] = [:]
+    var mediaLadderRefreshEnqueueCooldown: [String: Date] = [:]
     // De-dupe frequently called network fetches so multiple screens mounting doesn't fan-out.
-    private var userListsFetchInFlight: Task<Void, Never>? = nil
-    private var collectionFetchInFlight: Task<Void, Never>? = nil
-    private var collectionFetchGeneration: Int = 0
-    private var collectionFetchInFlightGeneration: Int = 0
-    private var collectionFeedFetchInFlight: Task<Void, Never>? = nil
-    private var collectionFeedFetchGeneration: Int = 0
-    private var collectionFeedFetchInFlightGeneration: Int = 0
-    private var upcomingFetchInFlight: Task<Void, Never>? = nil
+    var userListsFetchInFlight: Task<Void, Never>? = nil
+    var collectionFetchInFlight: Task<Void, Never>? = nil
+    var collectionFetchGeneration: Int = 0
+    var collectionFetchInFlightGeneration: Int = 0
+    var collectionFeedFetchInFlight: Task<Void, Never>? = nil
+    var collectionFeedFetchGeneration: Int = 0
+    var collectionFeedFetchInFlightGeneration: Int = 0
+    var upcomingFetchInFlight: Task<Void, Never>? = nil
 
     // Lightweight response caches (avoid refetching the same rails/recs when a view reappears).
-    private struct TimedCache<T>: Sendable {
+    struct TimedCache<T>: Sendable {
         let value: T
         let storedAt: Date
     }
@@ -7280,14 +6534,40 @@ class SupabaseService {
     private var conciergeParseCache: [String: TimedCache<ConciergeParseResponse>] = [:]
     private var conciergeParseInFlight: [String: Task<ConciergeParseResponse, Error>] = [:]
 
-    private func trimCache<T>(_ cache: inout [String: TimedCache<T>], maxEntries: Int) {
+    func trimCache<T>(_ cache: inout [String: TimedCache<T>], maxEntries: Int) {
         guard cache.count > maxEntries else { return }
         let sorted = cache.sorted { $0.value.storedAt < $1.value.storedAt }
         let removeCount = max(0, sorted.count - maxEntries)
         for (k, _) in sorted.prefix(removeCount) { cache.removeValue(forKey: k) }
     }
 
-    private struct BackoffState: Sendable {
+    /// Retry helper for transient network failures (URLError only).
+    /// Non-network errors (e.g. HTTP 4xx, decoding) are thrown immediately.
+    /// Static so it's callable from any isolation context (including Task.detached).
+    private static func withRetry<T>(
+        maxRetries: Int = 2,
+        operation: () async throws -> T
+    ) async throws -> T {
+        var lastError: Error?
+        for attempt in 0...maxRetries {
+            do {
+                return try await operation()
+            } catch let error as URLError {
+                lastError = error
+                if attempt < maxRetries {
+                    #if DEBUG
+                    print("⟳ retry \(attempt + 1)/\(maxRetries) after URLError \(error.code.rawValue)")
+                    #endif
+                    try await Task.sleep(for: .milliseconds(Int(500 * pow(2.0, Double(attempt)))))
+                }
+            } catch {
+                throw error // Non-network errors are not retried
+            }
+        }
+        throw lastError ?? URLError(.unknown)
+    }
+
+    struct BackoffState: Sendable {
         var failures: Int = 0
         var until: Date? = nil
 
@@ -7309,28 +6589,51 @@ class SupabaseService {
         }
     }
 
-    private var upcomingBackoff = BackoffState()
-    private var lastUpcomingFetchAt: Date? = nil
-    private var lastUpcomingDays: Int = 7
+    var upcomingBackoff = BackoffState()
+    var lastUpcomingFetchAt: Date? = nil
+    var lastUpcomingDays: Int = 7
 
     // Collection pagination state (keyset by list updated_at + list row id).
     var hasMoreCollectionAnime: Bool = true
     var hasMoreCollectionManga: Bool = true
     var isLoadingMoreCollectionAnime: Bool = false
     var isLoadingMoreCollectionManga: Bool = false
-    private var collectionAnimeCursorUpdatedAt: Date? = nil
-    private var collectionAnimeCursorRowId: Int? = nil
-    private var collectionMangaCursorUpdatedAt: Date? = nil
-    private var collectionMangaCursorRowId: Int? = nil
+    var collectionAnimeCursorUpdatedAt: Date? = nil
+    var collectionAnimeCursorRowId: Int? = nil
+    var collectionMangaCursorUpdatedAt: Date? = nil
+    var collectionMangaCursorRowId: Int? = nil
 
     // Collection feed pagination state (keyset by updated_at + source_rank + list row id).
     var hasMoreCollectionFeed: Bool = true
     var isLoadingMoreCollectionFeed: Bool = false
-    private var collectionFeedCursorUpdatedAt: Date? = nil
-    private var collectionFeedCursorSourceRank: Int? = nil
-    private var collectionFeedCursorRowId: Int? = nil
+    var collectionFeedCursorUpdatedAt: Date? = nil
+    var collectionFeedCursorSourceRank: Int? = nil
+    var collectionFeedCursorRowId: Int? = nil
 
-    private var currentCollectionStatusFilter: ListStatus? = nil
+    var currentCollectionStatusFilter: ListStatus? = nil
+
+    // User list derived caches
+    var collectionAnimeIds: Set<Int> = []
+    var collectionMangaIds: Set<Int> = []
+    var userListByTypeAndId: [String: [Int: UserList]] = [:]
+    var userIdsByTypeAndStatus: [String: [ListStatus: Set<Int>]] = [:]
+    var togglingMediaKeys: Set<String> = []
+
+    // Clubs and social state
+    var clubBundleCache: [String: TimedCache<ClubBundle>] = [:]
+    var clubBundleInFlight: [String: Task<ClubBundle, Error>] = [:]
+    let rememberedClubIdKey = "com.kuro.rememberedAddToClubId"
+    var myClubs: [ClubListRow] = []
+    var hasUnseenClubActivity: Bool = false
+    var friendTrackingCounts: [String: Int] = [:]
+    var friendCountPrefetchTask: Task<Void, Never>?
+
+    // Club realtime state
+    var clubRealtimeChannel: RealtimeChannelV2?
+    var clubRealtimeListenTasks: [Task<Void, Never>] = []
+    var clubRealtimeDebounceTask: Task<Void, Never>?
+    var clubRealtimeSubscribedId: String?
+    var clubOnlineMemberCount: Int = 0
     // Upcoming airings for user's saved anime (next X days)
     struct UpcomingAiring: Decodable, Sendable {
         let anime_id: Int
@@ -7342,11 +6645,25 @@ class SupabaseService {
     var upcomingAirings: [UpcomingAiring] = []
     // Formatted countdowns keyed by anime_id
     var countdownByAnimeId: [Int: String] = [:]
-    private var countdownTimer: Timer?
+    var countdownTimer: Timer?
     var isLoading = false
     var errorMessage: String?
+    private var transientBannerDismissTask: Task<Void, Never>? = nil
 
-    private let animeProviderRanking: [String] = [
+    func showTransientBanner(_ message: String, duration: Double = 2.4) {
+        transientBannerDismissTask?.cancel()
+        transientBannerMessage = message
+        transientBannerDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            if transientBannerMessage == message {
+                transientBannerMessage = nil
+            }
+        }
+    }
+
+    // TODO: remove when streaming_availability_v1 reaches 100% — replaced by streaming_services registry
+    let animeProviderRanking: [String] = [
         "crunchyroll",
         "netflix",
         "hidive",
@@ -7359,15 +6676,56 @@ class SupabaseService {
         "max"
     ]
 
-    private let mangaProviderRanking: [String] = [
+    // Strict legal provider allowlist for watch links.
+    let animeLegalProviderAllowlist: [String] = [
+        "crunchyroll",
+        "netflix",
+        "hidive",
+        "disney",
+        "amazon",
+        "prime video",
+        "hulu",
+        "youtube",
+        "apple tv",
+        "apple",
+        "max"
+    ]
+
+    let mangaProviderRanking: [String] = [
         "manga plus",
+        "mangaplus",
         "viz",
+        "viz media",
         "bookwalker",
+        "global bookwalker",
         "comixology",
         "kindle",
+        "kobo",
+        "j-novel club",
+        "manga up",
         "kodansha",
         "yen press",
         "azuki"
+    ]
+
+    // Strict legal provider allowlist for read/buy links.
+    let mangaLegalProviderAllowlist: [String] = [
+        "manga plus",
+        "mangaplus",
+        "viz",
+        "viz media",
+        "bookwalker",
+        "global bookwalker",
+        "comixology",
+        "kindle",
+        "kobo",
+        "kodansha",
+        "yen press",
+        "azuki",
+        "j-novel club",
+        "manga up",
+        "google play books",
+        "apple books"
     ]
 
     // MARK: - Discovery policy
@@ -7398,7 +6756,11 @@ class SupabaseService {
         "Thriller"
     ]
 
-    private func sanitizeAnimeForDiscovery(_ items: [Anime], policy: DiscoveryPolicy = .init()) -> [Anime] {
+    func sanitizeAnimeForDiscovery(_ items: [Anime]) -> [Anime] {
+        sanitizeAnimeForDiscovery(items, policy: DiscoveryPolicy(includeAdult: false, excludeEcchi: true))
+    }
+
+    func sanitizeAnimeForDiscovery(_ items: [Anime], policy: DiscoveryPolicy) -> [Anime] {
         items.filter { anime in
             if !policy.includeAdult {
                 if anime.isAdult { return false }
@@ -7411,7 +6773,11 @@ class SupabaseService {
         }
     }
 
-    private func sanitizeMangaForDiscovery(_ items: [Manga], policy: DiscoveryPolicy = .init()) -> [Manga] {
+    func sanitizeMangaForDiscovery(_ items: [Manga]) -> [Manga] {
+        sanitizeMangaForDiscovery(items, policy: DiscoveryPolicy(includeAdult: false, excludeEcchi: true))
+    }
+
+    func sanitizeMangaForDiscovery(_ items: [Manga], policy: DiscoveryPolicy) -> [Manga] {
         items.filter { manga in
             if !policy.includeAdult {
                 if manga.isAdult { return false }
@@ -7486,91 +6852,335 @@ class SupabaseService {
     private var pageSize = 50  // Increased for better performance with large datasets
     var hasMoreAnime = true
     var hasMoreManga = true
-    
-    init() {
-        // Initialize Supabase client from configuration; fallback to embedded defaults to avoid breaking the app
-        let fallbackURL = URL(string: "https://bkdifromsqxkndnllmdj.supabase.co")!
-        // NOTE: keeping this hardcoded per current preference; move to Info.plist/env before shipping.
-        let fallbackKey = "[REDACTED_JWT]"
-        let url = AppConfig.supabaseURL ?? fallbackURL
-        let key = AppConfig.supabaseAnonKey ?? fallbackKey
 
-        if AppConfig.supabaseURL == nil || AppConfig.supabaseAnonKey == nil {
-            print("⚠️ Using fallback Supabase config from code. Add SUPABASE_URL and SUPABASE_ANON_KEY to Info.plist or env.")
+    init() {
+        guard let url = AppConfig.supabaseURL, let key = AppConfig.supabaseAnonKey else {
+            client = nil
+            configError = "Missing SUPABASE_URL or SUPABASE_ANON_KEY in configuration"
+            isAuthBootstrapping = false
+            return
         }
 
         client = SupabaseClient(
             supabaseURL: url,
             supabaseKey: key
         )
+        analytics.configure(client: client)
+        #if DEBUG
         print("🔥 Supabase client initialized: \(url.host ?? url.absoluteString)")
+        #endif
 
         Task { await restoreSession() }
     }
-    
+
+    private func missingConfigError() -> NSError {
+        NSError(
+            domain: "KuroConfig",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: configError ?? "Missing Supabase configuration."]
+        )
+    }
+
     // MARK: - Authentication
     func restoreSession() async {
         defer { isAuthBootstrapping = false }
+        guard let client else {
+            isAuthenticated = false
+            authErrorMessage = configError
+            currentUserId = nil
+            currentUserEmail = nil
+            analytics.setUserId(nil)
+            return
+        }
 
         do {
             let session = try await client.auth.session
             isAuthenticated = true
             authErrorMessage = nil
             currentUserEmail = session.user.email
+            currentUserId = session.user.id.uuidString
+            analytics.setUserId(currentUserId)
             await ensureProfileRow()
-            await bootstrapAfterAuth()
+            // Fire bootstrap without blocking — the UI can show immediately
+            // with shimmer/skeleton placeholders while data loads in parallel.
+            Task { await bootstrapAfterAuth() }
         } catch {
             isAuthenticated = false
+            currentUserId = nil
+            analytics.setUserId(nil)
+        }
+
+        // Listen for auth state changes (token refresh failure, server-side revocation, etc.)
+        startAuthStateListener()
+    }
+
+    private func startAuthStateListener() {
+        guard let client else { return }
+        authStateTask?.cancel()
+        authStateTask = Task { [weak self] in
+            guard let self else { return }
+            for await (event, session) in client.auth.authStateChanges {
+                guard !Task.isCancelled else { return }
+                switch event {
+                case .signedIn:
+                    if !isAuthenticated, let session {
+                        isAuthenticated = true
+                        currentUserEmail = session.user.email
+                        currentUserId = session.user.id.uuidString
+                        analytics.setUserId(currentUserId)
+                    }
+                case .signedOut:
+                    if isAuthenticated {
+                        await stopRealtimeSubscriptions()
+                        isAuthenticated = false
+                        currentUserEmail = nil
+                        currentUserId = nil
+                        authErrorMessage = nil
+                        stopCountdownUpdates()
+                        resetUserState()
+                        analytics.setUserId(nil)
+                        FeatureFlags.shared.setUserId(nil)
+                    }
+                case .tokenRefreshed:
+                    if let session {
+                        currentUserEmail = session.user.email
+                    }
+                default:
+                    break
+                }
+            }
+        }
+    }
+
+    /// Lightweight session check on foreground — if the token expired while backgrounded,
+    /// catch it early rather than waiting for the next API call to fail.
+    func refreshSessionIfNeeded() async {
+        guard let client else {
+            authErrorMessage = configError
+            return
+        }
+        do {
+            _ = try await client.auth.session
+        } catch {
+            #if DEBUG
+            print("⚠️ Session refresh failed on foreground: \(error.localizedDescription)")
+            #endif
+            // The authStateChanges listener will handle .signedOut if the session is truly gone.
         }
     }
 
     func signInWithEmail(email: String, password: String) async throws {
         authErrorMessage = nil
+        guard let client else {
+            authErrorMessage = configError
+            throw missingConfigError()
+        }
         do {
             _ = try await client.auth.signIn(email: email, password: password)
             let session = try await client.auth.session
             isAuthenticated = true
             currentUserEmail = session.user.email
+            currentUserId = session.user.id.uuidString
+            analytics.setUserId(currentUserId)
             await ensureProfileRow()
             await bootstrapAfterAuth()
         } catch {
-            authErrorMessage = error.localizedDescription
+            authErrorMessage = Self.userFacingAuthErrorMessage(from: error)
             isAuthenticated = false
+            currentUserId = nil
+            analytics.setUserId(nil)
             throw error
         }
     }
 
+    /// Auth callback redirect URL — custom scheme so Supabase redirects straight into the app (no intermediate webpage).
+    static let authCallbackURL = URL(string: "kuro://auth/callback")!
+
     func signUpWithEmail(email: String, password: String) async throws {
         authErrorMessage = nil
+        guard let client else {
+            authErrorMessage = configError
+            throw missingConfigError()
+        }
         do {
             _ = try await client.auth.signUp(email: email, password: password)
-            // Depending on Supabase settings, user may need email confirmation. We still attempt bootstrap if a session exists.
+            // With email confirmation disabled, the session is immediately available.
             if let session = (try? await client.auth.session) {
                 isAuthenticated = true
                 currentUserEmail = session.user.email
+                currentUserId = session.user.id.uuidString
+                analytics.setUserId(currentUserId)
                 await ensureProfileRow()
                 await bootstrapAfterAuth()
             } else {
                 isAuthenticated = false
+                currentUserId = nil
+                analytics.setUserId(nil)
             }
         } catch {
-            authErrorMessage = error.localizedDescription
+            authErrorMessage = Self.userFacingAuthErrorMessage(from: error)
             throw error
         }
     }
 
+    /// Lightweight email existence check for inline sign-up validation.
+    func checkEmailExists(email: String) async -> Bool {
+        guard let client else {
+            authErrorMessage = configError
+            return false
+        }
+        do {
+            let result: Bool = try await client
+                .rpc("check_email_exists", params: ["p_email": email])
+                .execute()
+                .value
+            return result
+        } catch {
+            #if DEBUG
+            print("[Auth] checkEmailExists error: \(error.localizedDescription)")
+            #endif
+            return false
+        }
+    }
+
+    func signInWithApple(idToken: String, rawNonce: String, fullName: String?) async throws {
+        authErrorMessage = nil
+        guard let client else {
+            authErrorMessage = configError
+            throw missingConfigError()
+        }
+        do {
+            let session = try await client.auth.signInWithIdToken(
+                credentials: .init(
+                    provider: .apple,
+                    idToken: idToken,
+                    nonce: rawNonce
+                )
+            )
+            isAuthenticated = true
+            currentUserEmail = session.user.email
+            currentUserId = session.user.id.uuidString
+            analytics.setUserId(currentUserId)
+
+            // Apple only provides full name on first sign-in; persist it.
+            if let fullName, !fullName.isEmpty {
+                _ = try? await client.auth.update(
+                    user: .init(data: ["full_name": .string(fullName)])
+                )
+            }
+
+            await ensureProfileRow()
+            await bootstrapAfterAuth()
+        } catch {
+            authErrorMessage = Self.userFacingAuthErrorMessage(from: error)
+            isAuthenticated = false
+            currentUserId = nil
+            analytics.setUserId(nil)
+            throw error
+        }
+    }
+
+    func resetPassword(email: String) async throws {
+        guard let client else {
+            authErrorMessage = configError
+            throw missingConfigError()
+        }
+        try await client.auth.resetPasswordForEmail(email, redirectTo: Self.authCallbackURL)
+    }
+
+    /// Handle auth callback deep link — set session from tokens received via email verification redirect.
+    func handleAuthCallback(accessToken: String, refreshToken: String) async {
+        guard let client else {
+            authErrorMessage = configError
+            return
+        }
+        do {
+            try await client.auth.setSession(accessToken: accessToken, refreshToken: refreshToken)
+            let session = try await client.auth.session
+            isAuthenticated = true
+            currentUserEmail = session.user.email
+            currentUserId = session.user.id.uuidString
+            analytics.setUserId(currentUserId)
+            await ensureProfileRow()
+            await bootstrapAfterAuth()
+        } catch {
+            authErrorMessage = "Verification failed. Please request a new link."
+            #if DEBUG
+            print("handleAuthCallback failed: \(error.localizedDescription)")
+            #endif
+        }
+    }
+
+    /// GDPR-compliant account deletion. Calls the `delete-account` Edge Function
+    /// which cascades through all user data tables, removes storage objects,
+    /// then deletes the auth.users row.
+    var isAppleUser: Bool {
+        get async {
+            guard let client else { return false }
+            guard let user = try? await client.auth.user() else { return false }
+            return user.identities?.contains(where: { $0.provider == "apple" }) ?? false
+        }
+    }
+
+    func deleteAccount(appleAuthorizationCode: String? = nil) async throws {
+        guard let client else {
+            authErrorMessage = configError
+            throw missingConfigError()
+        }
+        struct DeleteResponse: Decodable {
+            let success: Bool?
+            let error: String?
+            let message: String?
+        }
+        var body: [String: String] = ["confirm": "true"]
+        if let appleAuthorizationCode {
+            body["apple_authorization_code"] = appleAuthorizationCode
+        }
+        let response: DeleteResponse = try await client.functions.invoke(
+            "delete-account",
+            options: .init(body: body)
+        )
+        if response.success != true {
+            throw NSError(
+                domain: "KuroAccountDeletion",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: response.error ?? response.message ?? "Account deletion failed"]
+            )
+        }
+        // Clear local state (same as sign out).
+        await stopRealtimeSubscriptions()
+        isAuthenticated = false
+        currentUserEmail = nil
+        currentUserId = nil
+        authErrorMessage = nil
+        stopCountdownUpdates()
+        resetUserState()
+        analytics.setUserId(nil)
+        FeatureFlags.shared.setUserId(nil)
+    }
+
     func signOut() async {
+        guard let client else {
+            authErrorMessage = configError
+            return
+        }
         do {
             try await client.auth.signOut()
         } catch {
+            #if DEBUG
             print("❌ signOut error: \(error)")
+            #endif
+            // Error logged in debug only
         }
         await stopRealtimeSubscriptions()
         isAuthenticated = false
         currentUserEmail = nil
+        currentUserId = nil
         authErrorMessage = nil
         stopCountdownUpdates()
         resetUserState()
+        analytics.setUserId(nil)
+        FeatureFlags.shared.setUserId(nil)
     }
 
     private func resetUserState() {
@@ -7580,6 +7190,44 @@ class SupabaseService {
         collectionFeedItems = []
         upcomingAirings = []
         countdownByAnimeId = [:]
+        togglingMediaKeys.removeAll()
+        // Entity caches
+        animeCharactersCache.removeAll()
+        animeStaffCache.removeAll()
+        animeStudiosCache.removeAll()
+        mangaCharactersCache.removeAll()
+        mangaAuthorsCache.removeAll()
+        studioWorksCache.removeAll()
+        staffWorksCache.removeAll()
+        authorWorksCache.removeAll()
+        characterWorksCache.removeAll()
+        mediaLadderCache.removeAll()
+        mediaLadderRefreshEnqueueCooldown.removeAll()
+    }
+
+    /// Shed non-essential entity caches under memory pressure without
+    /// touching user-facing state (lists, collection, auth).
+    func trimCachesForMemoryPressure() {
+        animeCharactersCache.removeAll()
+        animeStaffCache.removeAll()
+        animeStudiosCache.removeAll()
+        mangaCharactersCache.removeAll()
+        mangaAuthorsCache.removeAll()
+        studioWorksCache.removeAll()
+        staffWorksCache.removeAll()
+        authorWorksCache.removeAll()
+        characterWorksCache.removeAll()
+        mediaLadderCache.removeAll()
+        mediaLadderRefreshEnqueueCooldown.removeAll()
+        discoverBundleCache.removeAll()
+        conciergeRecommendCache.removeAll()
+        conciergeParseCache.removeAll()
+        animeDetailCache.removeAll()
+        mangaDetailCache.removeAll()
+        Task { await ImagePipeline.shared.clearMemoryCache() }
+        #if DEBUG
+        print("[MemoryPressure] Trimmed entity + image caches")
+        #endif
     }
 
     private func ensureProfileRow() async {
@@ -7594,24 +7242,43 @@ class SupabaseService {
                 .upsert(ProfilePayload(id: user.id, adult_opt_in: false), onConflict: "id")
                 .execute()
         } catch {
+            #if DEBUG
             print("⚠️ ensureProfileRow failed: \(error)")
+            #endif
+            // Error logged in debug only
         }
     }
 
     private func bootstrapAfterAuth() async {
-        // Load user state early so collection indicators + progress are correct across the UI.
-        await fetchUserLists()
-        await fetchCollectionItems()
-        await fetchCollectionFeed()
-        await fetchUpcomingForUser(days: 7)
+        // Fetch all independent user data in parallel to cut startup latency.
+        // Each fetch updates @Observable properties, so the UI fills progressively.
+        async let lists: () = fetchUserLists()
+        async let collection: () = fetchCollectionItems()
+        async let feed: () = fetchCollectionFeed()
+        async let upcoming: () = fetchUpcomingForUser(days: 7)
+        _ = await (lists, collection, feed, upcoming)
+
         startCountdownUpdates()
         subscribeToUpdates()
+
+        // Feature flags are non-critical; fire without blocking.
+        if let client {
+            Task { await FeatureFlags.shared.refresh(client: client, userId: currentUserId) }
+        }
+
+        // Streaming availability: load registry + user services (non-blocking)
+        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+            Task {
+                await fetchStreamingServiceRegistry()
+                await fetchUserStreamingServices()
+            }
+        }
     }
 
-    private func currentUserIdString() async -> String? {
+    func currentUserIdString() async -> String? {
         (try? await client.auth.session.user.id.uuidString)
     }
-    
+
     // MARK: - Fetch Anime (API-backed pagination)
     func setPageSize(_ size: Int) {
         pageSize = max(1, size)
@@ -7630,21 +7297,27 @@ class SupabaseService {
 
         do {
             let offset = currentAnimePage * pageSize
-            let response: [Anime] = try await client
-                .from("anime")
-                .select()
-                .order("popularity", ascending: false)
-                .range(from: offset, to: offset + pageSize - 1)
-                .execute()
-                .value
+            let response: [Anime] = try await Self.withRetry {
+                try await self.client
+                    .from("anime")
+                    .select()
+                    .order("popularity", ascending: false)
+                    .range(from: offset, to: offset + self.pageSize - 1)
+                    .execute()
+                    .value
+            }
 
             animeItems.append(contentsOf: response)
             hasMoreAnime = response.count == pageSize
             if hasMoreAnime { currentAnimePage += 1 }
+            #if DEBUG
             print("✅ Fetched page \(currentAnimePage) (\(response.count) items), total: \(animeItems.count)")
+            #endif
         } catch {
             errorMessage = "Failed to fetch anime: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Supabase error: \(error)")
+            #endif
         }
 
         isLoading = false
@@ -7667,7 +7340,7 @@ class SupabaseService {
         // Use pageSize for pagination regardless of provided limit
         await fetchNextAnimePage()
     }
-    
+
     // MARK: - Fetch Manga (API-backed pagination)
     func resetMangaPaging() {
         currentMangaPage = 0
@@ -7682,21 +7355,27 @@ class SupabaseService {
 
         do {
             let offset = currentMangaPage * pageSize
-            let response: [Manga] = try await client
-                .from("manga")
-                .select()
-                .order("popularity", ascending: false)
-                .range(from: offset, to: offset + pageSize - 1)
-                .execute()
-                .value
+            let response: [Manga] = try await Self.withRetry {
+                try await self.client
+                    .from("manga")
+                    .select()
+                    .order("popularity", ascending: false)
+                    .range(from: offset, to: offset + self.pageSize - 1)
+                    .execute()
+                    .value
+            }
 
             mangaItems.append(contentsOf: response)
             hasMoreManga = response.count == pageSize
             if hasMoreManga { currentMangaPage += 1 }
+            #if DEBUG
             print("✅ Fetched manga page \(currentMangaPage) (\(response.count) items), total: \(mangaItems.count)")
+            #endif
         } catch {
             errorMessage = "Failed to fetch manga: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Error: \(error)")
+            #endif
         }
 
         isLoading = false
@@ -7710,12 +7389,12 @@ class SupabaseService {
             if !hasMoreManga { break }
         }
     }
-    
+
     // MARK: - Search (using your full-text search index)
     func searchContent(query: String) async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
             // Search anime using your full-text search index
             let animeResponse: [Anime] = try await client
@@ -7724,7 +7403,7 @@ class SupabaseService {
                 .textSearch("title_english,title_romaji,description_normalized", query: query)
                 .execute()
                 .value
-            
+
             // Search manga
             let mangaResponse: [Manga] = try await client
                 .from("manga")
@@ -7732,15 +7411,19 @@ class SupabaseService {
                 .textSearch("title_english,title_romaji,description_normalized", query: query)
                 .execute()
                 .value
-            
+
             animeItems = animeResponse
             mangaItems = mangaResponse
+            #if DEBUG
             print("✅ Found \(animeResponse.count) anime, \(mangaResponse.count) manga")
+            #endif
         } catch {
             errorMessage = "Search failed: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Search error: \(error)")
+            #endif
         }
-        
+
         isLoading = false
     }
 
@@ -7824,7 +7507,9 @@ class SupabaseService {
         } catch {
             errorMessage = "Search failed: \(error.localizedDescription)"
             hasMoreSearch = false
+            #if DEBUG
             print("❌ Search page error: \(error)")
+            #endif
         }
     }
 
@@ -7898,7 +7583,9 @@ class SupabaseService {
             hasMoreSearch = false
             hasMoreSearchAnime = false
             hasMoreSearchManga = false
+            #if DEBUG
             print("❌ Combined search error: \(error)")
+            #endif
         }
     }
 
@@ -8008,11 +7695,13 @@ class SupabaseService {
             hasMoreSearchAnime = oldHasMoreAnime
             hasMoreSearchManga = oldHasMoreManga
             errorMessage = "Search failed: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ search refresh: \(error)")
+            #endif
         }
     }
 
-    private func fetchSearchAnimePage(
+    func fetchSearchAnimePage(
         query: String,
         filters: SearchFilters?,
         cursorRank: Double?,
@@ -8048,7 +7737,7 @@ class SupabaseService {
         }
     }
 
-    private func fetchSearchMangaPage(
+    func fetchSearchMangaPage(
         query: String,
         filters: SearchFilters?,
         cursorRank: Double?,
@@ -8100,16 +7789,20 @@ class SupabaseService {
                     p_limit: max(1, min(60, limit)),
                     p_hours: max(1, min(168, hours))
                 )
-                let bundle: DiscoverBundle = try await self.client
-                    .rpc("discover_bundle", params: params)
-                    .execute()
-                    .value
+                let bundle: DiscoverBundle = try await Self.withRetry {
+                    try await self.client
+                        .rpc("discover_bundle", params: params)
+                        .execute()
+                        .value
+                }
                 KuroPerf.end(perf, message: "ok")
                 self.discoverBundleCache[key] = TimedCache(value: bundle, storedAt: now)
                 self.trimCache(&self.discoverBundleCache, maxEntries: 6)
                 return bundle
             } catch {
+                #if DEBUG
                 print("❌ discover_bundle rpc: \(error)")
+                #endif
                 KuroPerf.end(perf, message: "error")
                 return nil
             }
@@ -8124,10 +7817,7 @@ class SupabaseService {
     // MARK: - Detail fetch by id (full models)
     func fetchAnimeById(_ animeId: Int) async throws -> Anime? {
         if let cached = animeDetailCache[animeId] { return cached }
-        if let disk: Anime = await KuroDiskDetailCache.read(kind: .anime, id: animeId, as: Anime.self) {
-            animeDetailCache[animeId] = disk
-            return disk
-        }
+        let diskFallback: Anime? = await KuroDiskDetailCache.read(kind: .anime, id: animeId, as: Anime.self)
         let perf = KuroPerf.begin("db.anime_by_id")
         do {
             let rows: [Anime] = try await client
@@ -8149,6 +7839,14 @@ class SupabaseService {
             KuroPerf.end(perf, message: item == nil ? "missing" : "ok")
             return item
         } catch {
+            if let diskFallback {
+                #if DEBUG
+                print("⚠️ anime_by_id network error, using disk fallback: \(error)")
+                #endif
+                animeDetailCache[animeId] = diskFallback
+                KuroPerf.end(perf, message: "disk_fallback")
+                return diskFallback
+            }
             KuroPerf.end(perf, message: "error")
             throw error
         }
@@ -8156,10 +7854,7 @@ class SupabaseService {
 
     func fetchMangaById(_ mangaId: Int) async throws -> Manga? {
         if let cached = mangaDetailCache[mangaId] { return cached }
-        if let disk: Manga = await KuroDiskDetailCache.read(kind: .manga, id: mangaId, as: Manga.self) {
-            mangaDetailCache[mangaId] = disk
-            return disk
-        }
+        let diskFallback: Manga? = await KuroDiskDetailCache.read(kind: .manga, id: mangaId, as: Manga.self)
         let perf = KuroPerf.begin("db.manga_by_id")
         do {
             let rows: [Manga] = try await client
@@ -8180,6 +7875,14 @@ class SupabaseService {
             KuroPerf.end(perf, message: item == nil ? "missing" : "ok")
             return item
         } catch {
+            if let diskFallback {
+                #if DEBUG
+                print("⚠️ manga_by_id network error, using disk fallback: \(error)")
+                #endif
+                mangaDetailCache[mangaId] = diskFallback
+                KuroPerf.end(perf, message: "disk_fallback")
+                return diskFallback
+            }
             KuroPerf.end(perf, message: "error")
             throw error
         }
@@ -8195,7 +7898,13 @@ class SupabaseService {
             let orderedQuery = statusQuery.order("trending", ascending: false)
             let rows: [Anime] = try await orderedQuery.range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ trending fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ trending fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchCurrentSeasonAnime(limit: Int = 20, year: Int? = nil, onlyAiring: Bool = true, genre: String? = nil) async -> [Anime] {
@@ -8207,7 +7916,13 @@ class SupabaseService {
             let orderedQuery = statusQuery.order("popularity", ascending: false)
             let rows: [Anime] = try await orderedQuery.range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ current season fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ current season fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchSeasonAnime(season: String, year: Int, limit: Int = 20, onlyAiring: Bool = true, genre: String? = nil) async -> [Anime] {
@@ -8218,7 +7933,13 @@ class SupabaseService {
             let rows: [Anime] = try await q.order("popularity", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ season fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ season fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchNewlyAddedAnime(limit: Int = 20, genre: String? = nil) async -> [Anime] {
@@ -8229,7 +7950,13 @@ class SupabaseService {
             let rows: [Anime] = try await q.order("created_at", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ newly added fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ newly added fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchTopRatedAnime(limit: Int = 20, minScore: Int = 80, genre: String? = nil) async -> [Anime] {
@@ -8241,7 +7968,13 @@ class SupabaseService {
             let rows: [Anime] = try await q.order("average_score", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ top rated fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ top rated fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     // MARK: - Server-driven Discover sections (Manga)
@@ -8252,7 +7985,13 @@ class SupabaseService {
             let rows: [Manga] = try await q.order("trending", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeMangaForDiscovery(rows)
-        } catch { print("❌ manga trending fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ manga trending fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchNewlyAddedManga(limit: Int = 20, genre: String? = nil) async -> [Manga] {
@@ -8262,7 +8001,13 @@ class SupabaseService {
             let rows: [Manga] = try await q.order("created_at", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeMangaForDiscovery(rows)
-        } catch { print("❌ manga newly added fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ manga newly added fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchTopRatedManga(limit: Int = 20, minScore: Int = 80, genre: String? = nil) async -> [Manga] {
@@ -8272,7 +8017,13 @@ class SupabaseService {
             let rows: [Manga] = try await q.order("average_score", ascending: false).order("id", ascending: false)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeMangaForDiscovery(rows)
-        } catch { print("❌ manga top rated fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ manga top rated fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     // MARK: - Premium discovery rails (Essentials / Classics / New-to-you)
@@ -8290,7 +8041,13 @@ class SupabaseService {
                 .execute()
                 .value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ essentials anime fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ essentials anime fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchClassicsAnime(limit: Int = 20, yearBefore: Int = 2015, minScore: Int = 80, genre: String? = nil) async -> [Anime] {
@@ -8307,7 +8064,13 @@ class SupabaseService {
                 .execute()
                 .value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ classics anime fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ classics anime fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchNewToYouAnime(limit: Int = 20, candidateLimit: Int = 250, minScore: Int = 80, genre: String? = nil) async -> [Anime] {
@@ -8335,7 +8098,13 @@ class SupabaseService {
                 return a < b
             }
             return Array(shuffled.prefix(limit))
-        } catch { print("❌ new-to-you anime fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ new-to-you anime fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchEssentialsManga(limit: Int = 20, minScore: Int = 85, genre: String? = nil) async -> [Manga] {
@@ -8352,7 +8121,13 @@ class SupabaseService {
                 .execute()
                 .value
             return sanitizeMangaForDiscovery(rows)
-        } catch { print("❌ essentials manga fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ essentials manga fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchClassicsManga(limit: Int = 20, yearBefore: Int = 2015, minScore: Int = 80, genre: String? = nil) async -> [Manga] {
@@ -8369,7 +8144,13 @@ class SupabaseService {
                 .execute()
                 .value
             return sanitizeMangaForDiscovery(rows)
-        } catch { print("❌ classics manga fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ classics manga fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     func fetchNewToYouManga(limit: Int = 20, candidateLimit: Int = 300, minScore: Int = 80, genre: String? = nil) async -> [Manga] {
@@ -8396,7 +8177,13 @@ class SupabaseService {
                 return a < b
             }
             return Array(shuffled.prefix(limit))
-        } catch { print("❌ new-to-you manga fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ new-to-you manga fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     // Imminent airing within next N hours
@@ -8415,7 +8202,13 @@ class SupabaseService {
             let rows: [Anime] = try await q.order("next_airing_at", ascending: true)
                 .range(from: 0, to: max(0, limit - 1)).execute().value
             return sanitizeAnimeForDiscovery(rows)
-        } catch { print("❌ airing soon fetch: \(error)"); return [] }
+        } catch {
+            #if DEBUG
+            print("❌ airing soon fetch: \(error)")
+            #endif
+            // Error logged in debug only
+            return []
+        }
     }
 
     // MARK: - Sub-genre (tag) insights for a genre
@@ -8476,7 +8269,9 @@ class SupabaseService {
                 .map { TagFacet(id: $0.id, name: $0.name, category: $0.category, count: 0) }
             return Array(tags)
         } catch {
+            #if DEBUG
             print("❌ anime tag fetch: \(error)")
+            #endif
             return []
         }
     }
@@ -8504,173 +8299,14 @@ class SupabaseService {
                 .map { TagFacet(id: $0.id, name: $0.name, category: $0.category, count: 0) }
             return Array(tags)
         } catch {
+            #if DEBUG
             print("❌ manga tag fetch: \(error)")
+            #endif
             return []
         }
     }
 
-    /// Minimal "More like this" fetcher for detail pages (Swiss minimal: deterministic, no LLM).
-    /// Primary path uses the DB similarity RPC (tag overlap + editorial boosts/penalties).
-    /// Falls back to a lightweight genre anchor if the RPC isn't available.
-    func fetchSimilarAnime(seed: Anime, limit: Int = 14) async -> [Anime] {
-        let rpc = await fetchSimilarIdsViaRPC(mediaType: "ANIME", seedIds: [seed.id], limit: limit, allowGimmicks: false)
-        if !rpc.isEmpty, let items = await fetchAnimeByIdsPreservingOrder(rpc.map(\.mediaId)) {
-            return sanitizeAnimeForDiscovery(items)
-        }
-        return await fetchSimilarAnimeFallbackByGenre(seed: seed, limit: limit)
-    }
-
-    func fetchSimilarManga(seed: Manga, limit: Int = 14) async -> [Manga] {
-        let rpc = await fetchSimilarIdsViaRPC(mediaType: "MANGA", seedIds: [seed.id], limit: limit, allowGimmicks: false)
-        if !rpc.isEmpty, let items = await fetchMangaByIdsPreservingOrder(rpc.map(\.mediaId)) {
-            return sanitizeMangaForDiscovery(items)
-        }
-        return await fetchSimilarMangaFallbackByGenre(seed: seed, limit: limit)
-    }
-
-    private struct _RecommendSimilarRow: Decodable {
-        let mediaId: Int
-        let overlapCount: Int
-        let score: Double
-
-        enum CodingKeys: String, CodingKey {
-            case mediaId = "media_id"
-            case overlapCount = "overlap_count"
-            case score
-        }
-    }
-
-    private func fetchSimilarIdsViaRPC(
-        mediaType: String,
-        seedIds: [Int],
-        limit: Int,
-        allowGimmicks: Bool
-    ) async -> [_RecommendSimilarRow] {
-        // This RPC is a production-grade deterministic similarity engine (tag overlap + editorial weights).
-        // It may be missing in some DBs (or require auth, depending on migration state), so treat failure as "no results".
-        let perf = KuroPerf.begin("rpc.recommend_ids_similar_to_seeds")
-        do {
-            let params = RPCRecommendSimilarParams(
-                p_media_type: mediaType,
-                p_seed_ids: seedIds,
-                p_limit: max(1, min(50, limit)),
-                p_allow_gimmicks: allowGimmicks
-            )
-            let rows: [_RecommendSimilarRow] = try await client
-                .rpc("recommend_ids_similar_to_seeds", params: params)
-                .execute()
-                .value
-            KuroPerf.end(perf, message: "ok \(rows.count)")
-            return rows
-        } catch {
-            KuroPerf.end(perf, message: "error")
-            return []
-        }
-    }
-
-    private func fetchAnimeByIdsPreservingOrder(_ ids: [Int]) async -> [Anime]? {
-        if ids.isEmpty { return [] }
-        // Avoid hammering the API: fetch via cache first, then fill in missing ones concurrently.
-        // Keep ordering identical to the RPC output.
-        var resultsById: [Int: Anime] = [:]
-        resultsById.reserveCapacity(ids.count)
-
-        for id in ids {
-            if let cached = animeDetailCache[id] {
-                resultsById[id] = cached
-            }
-        }
-
-        let missing = ids.filter { resultsById[$0] == nil }
-        if !missing.isEmpty {
-            await withTaskGroup(of: Anime?.self) { group in
-                for id in missing {
-                    group.addTask { [weak self] in
-                        guard let self else { return nil }
-                        return try? await self.fetchAnimeById(id)
-                    }
-                }
-                for await item in group {
-                    if let item { resultsById[item.id] = item }
-                }
-            }
-        }
-
-        let ordered = ids.compactMap { resultsById[$0] }
-        return ordered.isEmpty ? nil : ordered
-    }
-
-    private func fetchMangaByIdsPreservingOrder(_ ids: [Int]) async -> [Manga]? {
-        if ids.isEmpty { return [] }
-        var resultsById: [Int: Manga] = [:]
-        resultsById.reserveCapacity(ids.count)
-
-        for id in ids {
-            if let cached = mangaDetailCache[id] {
-                resultsById[id] = cached
-            }
-        }
-
-        let missing = ids.filter { resultsById[$0] == nil }
-        if !missing.isEmpty {
-            await withTaskGroup(of: Manga?.self) { group in
-                for id in missing {
-                    group.addTask { [weak self] in
-                        guard let self else { return nil }
-                        return try? await self.fetchMangaById(id)
-                    }
-                }
-                for await item in group {
-                    if let item { resultsById[item.id] = item }
-                }
-            }
-        }
-
-        let ordered = ids.compactMap { resultsById[$0] }
-        return ordered.isEmpty ? nil : ordered
-    }
-
-    private func fetchSimilarAnimeFallbackByGenre(seed: Anime, limit: Int) async -> [Anime] {
-        guard let primaryGenre = seed.genreList?.first, !primaryGenre.isEmpty else { return [] }
-        do {
-            let rows: [Anime] = try await client
-                .from("anime")
-                .select()
-                .eq("is_adult", value: false)
-                .contains("genres", value: [primaryGenre])
-                .neq("id", value: seed.id)
-                .order("favourites", ascending: false)
-                .order("average_score", ascending: false)
-                .order("popularity", ascending: false)
-                .range(from: 0, to: max(0, limit - 1))
-                .execute()
-                .value
-            return sanitizeAnimeForDiscovery(rows)
-        } catch {
-            return []
-        }
-    }
-
-    private func fetchSimilarMangaFallbackByGenre(seed: Manga, limit: Int) async -> [Manga] {
-        guard let primaryGenre = seed.genreList?.first, !primaryGenre.isEmpty else { return [] }
-        do {
-            let rows: [Manga] = try await client
-                .from("manga")
-                .select()
-                .eq("is_adult", value: false)
-                .contains("genres", value: [primaryGenre])
-                .neq("id", value: seed.id)
-                .order("favourites", ascending: false)
-                .order("average_score", ascending: false)
-                .order("popularity", ascending: false)
-                .range(from: 0, to: max(0, limit - 1))
-                .execute()
-                .value
-            return sanitizeMangaForDiscovery(rows)
-        } catch {
-            return []
-        }
-    }
+    // MARK: - Similar title recommendations
 
     private struct _MangaTagSampleRow: Decodable {
         let id: Int
@@ -8727,7 +8363,9 @@ class SupabaseService {
 
             return (Array(sorted), mediaToTagIds)
         } catch {
+            #if DEBUG
             print("❌ anime tag facets fetch: \(error)")
+            #endif
             return ([], [:])
         }
     }
@@ -8771,1271 +8409,25 @@ class SupabaseService {
 
             return (Array(sorted), mediaToTagIds)
         } catch {
+            #if DEBUG
             print("❌ manga tag facets fetch: \(error)")
+            #endif
             return ([], [:])
         }
     }
-    
-    // MARK: - User Lists (normalized tables)
-    private func statusFromDB(_ listType: String) -> ListStatus {
-        switch listType.uppercased() {
-        case "READING": return .current
-        case "WATCHING": return .current
-        case "PLANNING": return .planning
-        case "COMPLETED": return .completed
-        case "DROPPED": return .dropped
-        case "PAUSED": return .paused
-        default: return .planning
-        }
-    }
 
-    private func dbListType(for status: ListStatus, mediaType: String) -> String {
-        let isManga = mediaType.lowercased() == "manga"
-        switch status {
-        case .current: return isManga ? "READING" : "WATCHING"
-        case .planning: return "PLANNING"
-        case .completed: return "COMPLETED"
-        case .dropped: return "DROPPED"
-        case .paused: return "PAUSED"
-        case .repeating: return isManga ? "READING" : "WATCHING"
-        }
-    }
+        // MARK: - User Lists (normalized tables)
+    // Extracted to SupabaseService+UserLists.swift
 
     // MARK: - Collection (server-driven)
-    func fetchCollectionItems(status: ListStatus? = nil) async {
-        currentCollectionStatusFilter = status
-        collectionFetchGeneration += 1
-        let gen = collectionFetchGeneration
+    // Extracted to SupabaseService+Collection.swift
 
-        collectionFetchInFlight?.cancel()
-        let t = Task { [weak self] in
-            guard let self else { return }
-            await self._fetchCollectionItemsImpl(status: status, generation: gen)
-        }
-        collectionFetchInFlight = t
-        collectionFetchInFlightGeneration = gen
-        await t.value
-        if collectionFetchInFlightGeneration == gen { collectionFetchInFlight = nil }
-    }
+    // MARK: - User List mutation + sync helpers
+    // Extracted to SupabaseService+UserLists.swift
 
-    func fetchCollectionItems() async {
-        await fetchCollectionItems(status: nil)
-    }
+// MARK: - Browse (server-driven paging + filters)
+    // Extracted to SupabaseService+Browse.swift
 
-    // MARK: - Collection feed (anime + manga interleaved)
-    func fetchCollectionFeed(status: ListStatus? = nil) async {
-        currentCollectionStatusFilter = status
-        collectionFeedFetchGeneration += 1
-        let gen = collectionFeedFetchGeneration
-
-        collectionFeedFetchInFlight?.cancel()
-        let t = Task { [weak self] in
-            guard let self else { return }
-            await self._fetchCollectionFeedImpl(status: status, generation: gen)
-        }
-        collectionFeedFetchInFlight = t
-        collectionFeedFetchInFlightGeneration = gen
-        await t.value
-        if collectionFeedFetchInFlightGeneration == gen { collectionFeedFetchInFlight = nil }
-    }
-
-    private struct CollectionPagingSnapshot: Sendable {
-        let anime: [AnimeCard]
-        let manga: [MangaCard]
-        let feed: [Media]
-        let animeHasMore: Bool
-        let mangaHasMore: Bool
-        let feedHasMore: Bool
-        let animeCursorUpdatedAt: Date?
-        let animeCursorRowId: Int?
-        let mangaCursorUpdatedAt: Date?
-        let mangaCursorRowId: Int?
-        let feedCursorUpdatedAt: Date?
-        let feedCursorSourceRank: Int?
-        let feedCursorRowId: Int?
-    }
-
-    private func _fetchCollectionItemsImpl(status: ListStatus?, generation: Int) async {
-        guard let userId = await currentUserIdString() else { return }
-        _ = userId // user_id is derived via JWT in the RPCs.
-        isCollectionLoading = true
-        collectionErrorMessage = nil
-        defer { isCollectionLoading = false }
-
-        let snapshot = CollectionPagingSnapshot(
-            anime: collectionAnimeItems,
-            manga: collectionMangaItems,
-            feed: collectionFeedItems,
-            animeHasMore: hasMoreCollectionAnime,
-            mangaHasMore: hasMoreCollectionManga,
-            feedHasMore: hasMoreCollectionFeed,
-            animeCursorUpdatedAt: collectionAnimeCursorUpdatedAt,
-            animeCursorRowId: collectionAnimeCursorRowId,
-            mangaCursorUpdatedAt: collectionMangaCursorUpdatedAt,
-            mangaCursorRowId: collectionMangaCursorRowId,
-            feedCursorUpdatedAt: collectionFeedCursorUpdatedAt,
-            feedCursorSourceRank: collectionFeedCursorSourceRank,
-            feedCursorRowId: collectionFeedCursorRowId
-        )
-
-        do {
-            resetCollectionPaging()
-
-            let listTypeAnime = status.map { dbListType(for: $0, mediaType: "anime") }
-            let listTypeManga = status.map { dbListType(for: $0, mediaType: "manga") }
-
-            _ = try await fetchNextCollectionAnimePage(
-                limit: 80,
-                listType: listTypeAnime,
-                generation: generation
-            )
-            _ = try await fetchNextCollectionMangaPage(
-                limit: 80,
-                listType: listTypeManga,
-                generation: generation
-            )
-        } catch {
-            // Avoid blanking the UI on transient failures (e.g. pull-to-refresh).
-            // Keep the previous content and surface an error message.
-            collectionErrorMessage = "Failed to load collection: \(error.localizedDescription)"
-            print("❌ collection fetch: \(error)")
-            restoreCollectionSnapshot(snapshot)
-        }
-    }
-
-    private func _fetchCollectionFeedImpl(status: ListStatus?, generation: Int) async {
-        guard (await currentUserIdString()) != nil else { return }
-        isCollectionLoading = true
-        collectionErrorMessage = nil
-        defer { isCollectionLoading = false }
-
-        let snapshot = CollectionPagingSnapshot(
-            anime: collectionAnimeItems,
-            manga: collectionMangaItems,
-            feed: collectionFeedItems,
-            animeHasMore: hasMoreCollectionAnime,
-            mangaHasMore: hasMoreCollectionManga,
-            feedHasMore: hasMoreCollectionFeed,
-            animeCursorUpdatedAt: collectionAnimeCursorUpdatedAt,
-            animeCursorRowId: collectionAnimeCursorRowId,
-            mangaCursorUpdatedAt: collectionMangaCursorUpdatedAt,
-            mangaCursorRowId: collectionMangaCursorRowId,
-            feedCursorUpdatedAt: collectionFeedCursorUpdatedAt,
-            feedCursorSourceRank: collectionFeedCursorSourceRank,
-            feedCursorRowId: collectionFeedCursorRowId
-        )
-
-        do {
-            resetCollectionFeedPaging()
-
-            let listTypeAnime = status.map { dbListType(for: $0, mediaType: "anime") }
-            let listTypeManga = status.map { dbListType(for: $0, mediaType: "manga") }
-
-            _ = try await fetchNextCollectionFeedPage(
-                limit: 90,
-                listTypeAnime: listTypeAnime,
-                listTypeManga: listTypeManga,
-                generation: generation
-            )
-        } catch {
-            collectionErrorMessage = "Failed to load collection: \(error.localizedDescription)"
-            print("❌ collection feed fetch: \(error)")
-            restoreCollectionSnapshot(snapshot)
-        }
-    }
-
-    private func restoreCollectionSnapshot(_ snapshot: CollectionPagingSnapshot) {
-        collectionAnimeItems = snapshot.anime
-        collectionMangaItems = snapshot.manga
-        collectionFeedItems = snapshot.feed
-        hasMoreCollectionAnime = snapshot.animeHasMore
-        hasMoreCollectionManga = snapshot.mangaHasMore
-        hasMoreCollectionFeed = snapshot.feedHasMore
-        collectionAnimeCursorUpdatedAt = snapshot.animeCursorUpdatedAt
-        collectionAnimeCursorRowId = snapshot.animeCursorRowId
-        collectionMangaCursorUpdatedAt = snapshot.mangaCursorUpdatedAt
-        collectionMangaCursorRowId = snapshot.mangaCursorRowId
-        collectionFeedCursorUpdatedAt = snapshot.feedCursorUpdatedAt
-        collectionFeedCursorSourceRank = snapshot.feedCursorSourceRank
-        collectionFeedCursorRowId = snapshot.feedCursorRowId
-    }
-
-    private func resetCollectionPaging() {
-        collectionAnimeItems = []
-        collectionMangaItems = []
-        hasMoreCollectionAnime = true
-        hasMoreCollectionManga = true
-        isLoadingMoreCollectionAnime = false
-        isLoadingMoreCollectionManga = false
-        collectionAnimeCursorUpdatedAt = nil
-        collectionAnimeCursorRowId = nil
-        collectionMangaCursorUpdatedAt = nil
-        collectionMangaCursorRowId = nil
-    }
-
-    private func resetCollectionFeedPaging() {
-        collectionFeedItems = []
-        hasMoreCollectionFeed = true
-        isLoadingMoreCollectionFeed = false
-        collectionFeedCursorUpdatedAt = nil
-        collectionFeedCursorSourceRank = nil
-        collectionFeedCursorRowId = nil
-    }
-
-    struct CollectionAnimeRow: Decodable, Sendable {
-        let list_updated_at: Date
-        let list_row_id: Int
-        let id: Int
-        let title_english: String?
-        let title_romaji: String?
-        let title_native: String?
-        let cover_image_large: String?
-        let cover_image_medium: String?
-        let banner_image: String?
-        let format: String?
-        let status: String?
-        let episode_count: Int?
-        let season_year: Int?
-        let start_date_year: Int?
-        let average_score: Int?
-        let popularity: Int?
-        let trending: Int?
-        let favourites: Int?
-        let genres: [String]?
-        let created_at: Date?
-
-        var card: AnimeCard {
-            AnimeCard(
-                id: id,
-                titleEnglish: title_english,
-                titleRomaji: title_romaji,
-                titleNative: title_native,
-                coverImageLarge: cover_image_large,
-                coverImageMedium: cover_image_medium,
-                bannerImage: banner_image,
-                format: format,
-                status: status,
-                episodeCount: episode_count,
-                seasonYear: season_year,
-                startDateYear: start_date_year,
-                averageScore: average_score,
-                popularity: popularity,
-                trending: trending,
-                favourites: favourites,
-                genreList: genres,
-                createdAt: created_at,
-                rank: nil
-            )
-        }
-    }
-
-    struct CollectionMangaRow: Decodable, Sendable {
-        let list_updated_at: Date
-        let list_row_id: Int
-        let id: Int
-        let title_english: String?
-        let title_romaji: String?
-        let title_native: String?
-        let cover_image_large: String?
-        let cover_image_medium: String?
-        let format: String?
-        let status: String?
-        let chapter_count: Int?
-        let start_date_year: Int?
-        let average_score: Int?
-        let popularity: Int?
-        let trending: Int?
-        let favourites: Int?
-        let genres: [String]?
-        let created_at: Date?
-
-        var card: MangaCard {
-            MangaCard(
-                id: id,
-                titleEnglish: title_english,
-                titleRomaji: title_romaji,
-                titleNative: title_native,
-                coverImageLarge: cover_image_large,
-                coverImageMedium: cover_image_medium,
-                format: format,
-                status: status,
-                chapterCount: chapter_count,
-                startDateYear: start_date_year,
-                averageScore: average_score,
-                popularity: popularity,
-                trending: trending,
-                favourites: favourites,
-                genreList: genres,
-                createdAt: created_at,
-                rank: nil
-            )
-        }
-    }
-
-    struct CollectionFeedRow: Decodable, Sendable {
-        let list_updated_at: Date
-        let source_rank: Int
-        let list_row_id: Int
-        let media_type: String
-        let id: Int
-        let title_english: String?
-        let title_romaji: String?
-        let title_native: String?
-        let cover_image_large: String?
-        let cover_image_medium: String?
-        let banner_image: String?
-        let format: String?
-        let status: String?
-        let episode_count: Int?
-        let chapter_count: Int?
-        let season_year: Int?
-        let start_date_year: Int?
-        let average_score: Int?
-        let popularity: Int?
-        let trending: Int?
-        let favourites: Int?
-        let genres: [String]?
-        let created_at: Date?
-
-        var media: Media {
-            let kind: MediaKind = media_type.uppercased() == "MANGA" ? .manga : .anime
-            let yearInt: Int? = kind == .anime ? (season_year ?? start_date_year) : start_date_year
-            let rating: Double? = average_score.map { Double($0) / 10.0 }
-            let image = cover_image_large ?? cover_image_medium
-            let title = (title_english?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false ? title_english : nil)
-                ?? title_romaji
-                ?? title_native
-                ?? "Untitled"
-
-            return Media(
-                id: id,
-                kind: kind,
-                title: title,
-                imageURL: image,
-                year: yearInt.map(String.init) ?? "TBA",
-                displayDescription: "",
-                episodes: episode_count,
-                chapters: chapter_count,
-                rating: rating,
-                genres: genres,
-                statusRaw: status,
-                formatRaw: format,
-                popularityValue: popularity,
-                trendingValue: trending,
-                createdAtValue: created_at
-            )
-        }
-    }
-
-    @discardableResult
-    func fetchNextCollectionFeedPage(limit: Int = 90) async -> Bool {
-        do {
-            let listTypeAnime = currentCollectionStatusFilter.map { dbListType(for: $0, mediaType: "anime") }
-            let listTypeManga = currentCollectionStatusFilter.map { dbListType(for: $0, mediaType: "manga") }
-            return try await fetchNextCollectionFeedPage(
-                limit: limit,
-                listTypeAnime: listTypeAnime,
-                listTypeManga: listTypeManga,
-                generation: collectionFeedFetchGeneration
-            )
-        } catch {
-            collectionErrorMessage = "Failed to load more: \(error.localizedDescription)"
-            print("❌ collection feed page: \(error)")
-            return false
-        }
-    }
-
-    @discardableResult
-    func fetchNextCollectionAnimePage(limit: Int = 80) async -> Bool {
-        do {
-            let listType = currentCollectionStatusFilter.map { dbListType(for: $0, mediaType: "anime") }
-            return try await fetchNextCollectionAnimePage(limit: limit, listType: listType, generation: collectionFetchGeneration)
-        } catch {
-            collectionErrorMessage = "Failed to load more: \(error.localizedDescription)"
-            print("❌ collection anime page: \(error)")
-            return false
-        }
-    }
-
-    @discardableResult
-    func fetchNextCollectionMangaPage(limit: Int = 80) async -> Bool {
-        do {
-            let listType = currentCollectionStatusFilter.map { dbListType(for: $0, mediaType: "manga") }
-            return try await fetchNextCollectionMangaPage(limit: limit, listType: listType, generation: collectionFetchGeneration)
-        } catch {
-            collectionErrorMessage = "Failed to load more: \(error.localizedDescription)"
-            print("❌ collection manga page: \(error)")
-            return false
-        }
-    }
-
-    private func fetchNextCollectionFeedPage(
-        limit: Int,
-        listTypeAnime: String?,
-        listTypeManga: String?,
-        generation: Int
-    ) async throws -> Bool {
-        guard hasMoreCollectionFeed, !isLoadingMoreCollectionFeed else { return false }
-        isLoadingMoreCollectionFeed = true
-        defer { isLoadingMoreCollectionFeed = false }
-        if Task.isCancelled { return false }
-
-        let perf = KuroPerf.begin("rpc.collection_feed_page")
-        let params = RPCCollectionFeedPageParams(
-            p_limit: max(1, min(120, limit)),
-            p_cursor_updated_at: collectionFeedCursorUpdatedAt,
-            p_cursor_source_rank: collectionFeedCursorSourceRank,
-            p_cursor_row_id: collectionFeedCursorRowId,
-            p_list_type_anime: listTypeAnime,
-            p_list_type_manga: listTypeManga
-        )
-        let rows: [CollectionFeedRow] = try await client
-            .rpc("collection_feed_page", params: params)
-            .execute()
-            .value
-        if Task.isCancelled || generation != collectionFeedFetchGeneration {
-            KuroPerf.end(perf, message: "cancelled")
-            return false
-        }
-
-        let items = rows.map(\.media)
-        collectionFeedItems.append(contentsOf: items)
-        hasMoreCollectionFeed = rows.count == params.p_limit
-        if let last = rows.last {
-            collectionFeedCursorUpdatedAt = last.list_updated_at
-            collectionFeedCursorSourceRank = last.source_rank
-            collectionFeedCursorRowId = last.list_row_id
-        }
-        KuroPerf.end(perf, message: "ok \(rows.count)")
-        return true
-    }
-
-    private func fetchNextCollectionAnimePage(limit: Int, listType: String?, generation: Int) async throws -> Bool {
-        guard hasMoreCollectionAnime, !isLoadingMoreCollectionAnime else { return false }
-        isLoadingMoreCollectionAnime = true
-        defer { isLoadingMoreCollectionAnime = false }
-        if Task.isCancelled { return false }
-
-        let perf = KuroPerf.begin("rpc.collection_anime_page")
-        let params = RPCCollectionAnimePageParams(
-            p_limit: max(1, min(120, limit)),
-            p_cursor_updated_at: collectionAnimeCursorUpdatedAt,
-            p_cursor_row_id: collectionAnimeCursorRowId,
-            p_list_type: listType
-        )
-        let rows: [CollectionAnimeRow] = try await client
-            .rpc("collection_anime_page", params: params)
-            .execute()
-            .value
-        if Task.isCancelled || generation != collectionFetchGeneration {
-            KuroPerf.end(perf, message: "cancelled")
-            return false
-        }
-
-        let cards = rows.map(\.card)
-        collectionAnimeItems.append(contentsOf: cards)
-        hasMoreCollectionAnime = rows.count == params.p_limit
-        if let last = rows.last {
-            collectionAnimeCursorUpdatedAt = last.list_updated_at
-            collectionAnimeCursorRowId = last.list_row_id
-        }
-        KuroPerf.end(perf, message: "ok \(rows.count)")
-        return true
-    }
-
-    private func fetchNextCollectionMangaPage(limit: Int, listType: String?, generation: Int) async throws -> Bool {
-        guard hasMoreCollectionManga, !isLoadingMoreCollectionManga else { return false }
-        isLoadingMoreCollectionManga = true
-        defer { isLoadingMoreCollectionManga = false }
-        if Task.isCancelled { return false }
-
-        let perf = KuroPerf.begin("rpc.collection_manga_page")
-        let params = RPCCollectionMangaPageParams(
-            p_limit: max(1, min(120, limit)),
-            p_cursor_updated_at: collectionMangaCursorUpdatedAt,
-            p_cursor_row_id: collectionMangaCursorRowId,
-            p_list_type: listType
-        )
-        let rows: [CollectionMangaRow] = try await client
-            .rpc("collection_manga_page", params: params)
-            .execute()
-            .value
-        if Task.isCancelled || generation != collectionFetchGeneration {
-            KuroPerf.end(perf, message: "cancelled")
-            return false
-        }
-
-        let cards = rows.map(\.card)
-        collectionMangaItems.append(contentsOf: cards)
-        hasMoreCollectionManga = rows.count == params.p_limit
-        if let last = rows.last {
-            collectionMangaCursorUpdatedAt = last.list_updated_at
-            collectionMangaCursorRowId = last.list_row_id
-        }
-        KuroPerf.end(perf, message: "ok \(rows.count)")
-        return true
-    }
-
-    // MARK: - Upsert user list entry (status/progress/rating/notes)
-    func upsertUserListEntry(
-        mediaId: Int,
-        mediaType: String,
-        status: ListStatus,
-        progress: Int,
-        rating: Int?,
-        notes: String?
-    ) async {
-        guard let userId = await currentUserIdString() else { return }
-        errorMessage = nil
-        do {
-            let table: String
-            let onConflict: String
-            let payload: Encodable
-
-            struct AnimePayload: Encodable {
-                let user_id: String
-                let anime_id: Int
-                let list_type: String
-                let progress: Int
-                let rating: Int?
-                let notes: String?
-            }
-
-            struct MangaPayload: Encodable {
-                let user_id: String
-                let manga_id: Int
-                let list_type: String
-                let progress: Int
-                let rating: Int?
-                let notes: String?
-            }
-
-            if mediaType.lowercased() == "anime" {
-                table = "anime_user_lists"
-                onConflict = "user_id,anime_id"
-                payload = AnimePayload(
-                    user_id: userId,
-                    anime_id: mediaId,
-                    list_type: dbListType(for: status, mediaType: mediaType),
-                    progress: max(0, progress),
-                    rating: rating,
-                    notes: notes
-                )
-            } else if mediaType.lowercased() == "manga" {
-                table = "manga_user_lists"
-                onConflict = "user_id,manga_id"
-                payload = MangaPayload(
-                    user_id: userId,
-                    manga_id: mediaId,
-                    list_type: dbListType(for: status, mediaType: mediaType),
-                    progress: max(0, progress),
-                    rating: rating,
-                    notes: notes
-                )
-            } else {
-                print("⚠️ Unknown mediaType: \(mediaType)")
-                return
-            }
-
-            try await client
-                .from(table)
-                .upsert(payload, onConflict: onConflict)
-                .execute()
-
-            errorMessage = nil
-            await fetchUserLists()
-            await fetchCollectionItems(status: currentCollectionStatusFilter)
-            await fetchCollectionFeed(status: currentCollectionStatusFilter)
-
-            if mediaType.lowercased() == "anime" {
-                await scheduleAiringNotifications(animeId: mediaId)
-                await fetchUpcomingForUser(days: 7)
-            }
-        } catch {
-            errorMessage = "Failed to save: \(error.localizedDescription)"
-            print("❌ upsert list entry error: \(error)")
-        }
-    }
-
-    func updateUserListProgress(mediaId: Int, mediaType: String, progress: Int) async {
-        guard let userId = await currentUserIdString() else { return }
-        do {
-            let table = mediaType.lowercased() == "anime" ? "anime_user_lists" : "manga_user_lists"
-            let idColumn = mediaType.lowercased() == "anime" ? "anime_id" : "manga_id"
-
-            struct UpdateData: Encodable { let progress: Int }
-
-            try await client
-                .from(table)
-                .update(UpdateData(progress: max(0, progress)))
-                .eq("user_id", value: userId)
-                .eq(idColumn, value: mediaId)
-                .execute()
-
-            await fetchUserLists()
-        } catch {
-            print("❌ Failed to update progress: \(error)")
-        }
-    }
-
-    func fetchUserLists() async {
-        if let t = userListsFetchInFlight {
-            await t.value
-            return
-        }
-        let t = Task { [weak self] in
-            guard let self else { return }
-            await self._fetchUserListsImpl()
-        }
-        userListsFetchInFlight = t
-        await t.value
-        userListsFetchInFlight = nil
-    }
-
-    private func _fetchUserListsImpl() async {
-        guard let userId = await currentUserIdString() else { return }
-
-        struct AnimeListRow: Decodable {
-            let id: Int
-            let user_id: String
-            let anime_id: Int
-            let list_type: String
-            let progress: Int
-            let rating: Int?
-            let notes: String?
-            let created_at: Date
-            let updated_at: Date
-        }
-
-        struct MangaListRow: Decodable {
-            let id: Int
-            let user_id: String
-            let manga_id: Int
-            let list_type: String
-            let progress: Int
-            let rating: Int?
-            let notes: String?
-            let created_at: Date
-            let updated_at: Date
-        }
-
-        do {
-            // Avoid `async let`: some SDK builders are not Sendable under Swift 6 strict concurrency.
-            let animeRows: [AnimeListRow] = try await client
-                .from("anime_user_lists")
-                .select()
-                .eq("user_id", value: userId)
-                .execute()
-                .value
-            let mangaRows: [MangaListRow] = try await client
-                .from("manga_user_lists")
-                .select()
-                .eq("user_id", value: userId)
-                .execute()
-                .value
-
-            let mappedAnime = animeRows.map { row in
-                UserList(
-                    id: row.id,
-                    userId: row.user_id,
-                    mediaId: row.anime_id,
-                    mediaType: "anime",
-                    status: statusFromDB(row.list_type),
-                    progress: row.progress,
-                    progressVolumes: nil,
-                    score: row.rating.map { $0 * 10 },
-                    notes: row.notes,
-                    startedAt: nil,
-                    completedAt: nil,
-                    isPrivate: false,
-                    createdAt: row.created_at,
-                    updatedAt: row.updated_at
-                )
-            }
-
-            let mappedManga = mangaRows.map { row in
-                UserList(
-                    id: row.id,
-                    userId: row.user_id,
-                    mediaId: row.manga_id,
-                    mediaType: "manga",
-                    status: statusFromDB(row.list_type),
-                    progress: row.progress,
-                    progressVolumes: nil,
-                    score: row.rating.map { $0 * 10 },
-                    notes: row.notes,
-                    startedAt: nil,
-                    completedAt: nil,
-                    isPrivate: false,
-                    createdAt: row.created_at,
-                    updatedAt: row.updated_at
-                )
-            }
-
-            let combined = (mappedAnime + mappedManga).sorted { $0.updatedAt > $1.updatedAt }
-            userLists = combined
-            rebuildUserListCaches()
-            print("✅ Fetched user lists: anime=\(mappedAnime.count), manga=\(mappedManga.count)")
-        } catch {
-            errorMessage = "Failed to fetch lists: \(error.localizedDescription)"
-            print("❌ Error: \(error)")
-        }
-    }
-    
-    // MARK: - Add/Remove in normalized user lists
-    func addToList(mediaId: Int, mediaType: String, status: ListStatus) async {
-        await upsertUserListEntry(
-            mediaId: mediaId,
-            mediaType: mediaType,
-            status: status,
-            progress: 0,
-            rating: nil,
-            notes: nil
-        )
-    }
-
-    func removeFromList(mediaId: Int, mediaType: String) async {
-        guard let userId = await currentUserIdString() else { return }
-        errorMessage = nil
-        do {
-            let table: String
-            let idColumn: String
-            switch mediaType.lowercased() {
-            case "anime": table = "anime_user_lists"; idColumn = "anime_id"
-            case "manga": table = "manga_user_lists"; idColumn = "manga_id"
-            default: return
-            }
-
-            try await client
-                .from(table)
-                .delete()
-                .eq("user_id", value: userId)
-                .eq(idColumn, value: mediaId)
-                .execute()
-
-            errorMessage = nil
-            await fetchUserLists()
-            await fetchCollectionItems(status: currentCollectionStatusFilter)
-            await fetchCollectionFeed(status: currentCollectionStatusFilter)
-            print("✅ Removed from user list")
-            if mediaType.lowercased() == "anime" {
-                cancelAiringNotifications(animeId: mediaId)
-                // Remove countdown entry
-                countdownByAnimeId[mediaId] = nil
-                upcomingAirings.removeAll { $0.anime_id == mediaId }
-            }
-        } catch {
-            errorMessage = "Failed to remove from list: \(error.localizedDescription)"
-            print("❌ Error: \(error)")
-        }
-    }
-
-    // MARK: - Upcoming Airings (user-scoped)
-    func fetchUpcomingForUser(days: Int = 7) async {
-        if let t = upcomingFetchInFlight {
-            await t.value
-            return
-        }
-
-        // Don't hammer the API when multiple screens mount or when realtime emits bursts.
-        let now = Date()
-        if days == lastUpcomingDays, let last = lastUpcomingFetchAt, now.timeIntervalSince(last) < 20 {
-            return
-        }
-        guard upcomingBackoff.canAttempt(now: now) else { return }
-
-        lastUpcomingDays = days
-        let t = Task { [weak self] in
-            guard let self else { return }
-            await self._fetchUpcomingForUserImpl(days: days)
-        }
-        upcomingFetchInFlight = t
-        await t.value
-        upcomingFetchInFlight = nil
-    }
-
-    private func _fetchUpcomingForUserImpl(days: Int) async {
-        guard let userId = await currentUserIdString() else { return }
-        do {
-            let nowISO = ISO8601DateFormatter().string(from: Date())
-            let untilISO = ISO8601DateFormatter().string(from: Date().addingTimeInterval(Double(days) * 24 * 60 * 60))
-            let rows: [UpcomingAiring] = try await client
-                .from("user_airing_next")
-                .select()
-                .eq("user_id", value: userId)
-                .gte("next_airing_at", value: nowISO)
-                .lt("next_airing_at", value: untilISO)
-                .order("next_airing_at", ascending: true)
-                .limit(500)
-                .execute()
-                .value
-            self.upcomingAirings = rows
-            updateCountdowns()
-            lastUpcomingFetchAt = Date()
-            upcomingBackoff.recordSuccess()
-        } catch {
-            upcomingBackoff.recordFailure()
-            print("❌ Failed to fetch upcoming airings: \(error)")
-        }
-    }
-
-    private func formatInterval(_ interval: TimeInterval) -> String {
-        if interval <= 0 { return "Now" }
-        let minutes = Int(interval / 60)
-        let days = minutes / (60 * 24)
-        let hours = (minutes % (60 * 24)) / 60
-        let mins = minutes % 60
-        if days > 0 { return "\(days)d \(hours)h \(mins)m" }
-        if hours > 0 { return "\(hours)h \(mins)m" }
-        return "\(mins)m"
-    }
-
-    private func updateCountdowns() {
-        let now = Date()
-        var map: [Int: String] = [:]
-        for u in upcomingAirings {
-            let interval = u.next_airing_at.timeIntervalSince(now)
-            map[u.anime_id] = formatInterval(interval)
-        }
-        countdownByAnimeId = map
-    }
-
-    private func startCountdownUpdates() {
-        countdownTimer?.invalidate()
-        // Avoid passing an actor-isolated closure to Timer (Swift 6 strict concurrency warning).
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.updateCountdowns()
-            }
-        }
-    }
-
-    private func stopCountdownUpdates() {
-        countdownTimer?.invalidate()
-        countdownTimer = nil
-    }
-
-    // MARK: - Local Notifications for Airings (Anime only)
-    private func ensureNotificationPermission() async {
-        let center = UNUserNotificationCenter.current()
-        let settings = await center.notificationSettings()
-        if settings.authorizationStatus == .notDetermined {
-            do {
-                _ = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-            } catch {
-                print("⚠️ Notification permission request failed: \(error)")
-            }
-        }
-    }
-
-    private func scheduleNotification(id: String, title: String, body: String, at date: Date) async {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.body = body
-        content.sound = .default
-
-        let triggerDate = Calendar.current.dateComponents([.year,.month,.day,.hour,.minute,.second], from: date)
-        let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
-        let request = UNNotificationRequest(identifier: id, content: content, trigger: trigger)
-        do { try await UNUserNotificationCenter.current().add(request) } catch { print("❌ Schedule notif failed: \(error)") }
-    }
-
-    func scheduleAiringNotifications(animeId: Int) async {
-        do {
-            struct Row: Decodable { let id: Int; let title_english: String?; let title_romaji: String?; let next_episode_number: Int?; let next_airing_at: Date? }
-            let row: Row = try await client
-                .from("anime")
-                .select("id,title_english,title_romaji,next_episode_number,next_airing_at")
-                .eq("id", value: animeId)
-                .single()
-                .execute()
-                .value
-            guard let airAt = row.next_airing_at, airAt > Date() else { return }
-            await ensureNotificationPermission()
-            let title = row.title_english ?? row.title_romaji ?? "Upcoming Episode"
-            let ep = row.next_episode_number.map { "E\($0)" } ?? "Next"
-            // Schedule "now airing"
-            await scheduleNotification(id: "airing-\(animeId)-start", title: "\(title) airs now", body: "\(ep) is starting.", at: airAt)
-            // Schedule 1 hour before if applicable
-            let oneHourBefore = airAt.addingTimeInterval(-3600)
-            if oneHourBefore > Date() {
-                await scheduleNotification(id: "airing-\(animeId)-1h", title: "In 1 hour: \(title)", body: "\(ep) airs soon.", at: oneHourBefore)
-            }
-        } catch {
-            print("⚠️ Could not schedule notifications: \(error)")
-        }
-    }
-
-    func cancelAiringNotifications(animeId: Int) {
-        let ids = ["airing-\(animeId)-start", "airing-\(animeId)-1h"]
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ids)
-    }
-
-    // MARK: - External Links & Streaming Helpers
-    func fetchExternalLinks(mediaType: String, mediaId: Int) async -> [ExternalLink] {
-        do {
-            return try await client
-                .from("external_links")
-                .select()
-                .eq("media_type", value: mediaType.uppercased())
-                .eq("media_id", value: mediaId)
-                .eq("is_disabled", value: false)
-                .order("priority", ascending: true)
-                .execute()
-                .value
-        } catch {
-            print("❌ Error fetching external links: \(error)")
-            return []
-        }
-    }
-
-    // MARK: - Episodes / Chapters (paged)
-    func fetchEpisodesNext(animeId: Int, fromNumber: Int, limit: Int = 20) async -> [Episode] {
-        do {
-            var q = client.from("episodes").select()
-                .eq("anime_id", value: animeId)
-
-            if fromNumber > 1 {
-                q = q.gte("number", value: fromNumber)
-            }
-
-            let ordered = q.order("number", ascending: true)
-            return try await ordered.range(from: 0, to: max(0, limit - 1)).execute().value
-        } catch {
-            print("❌ fetch episodes next: \(error)")
-            return []
-        }
-    }
-
-    func fetchEpisodesPage(animeId: Int, offset: Int, limit: Int = 50) async -> [Episode] {
-        do {
-            let from = max(0, offset)
-            let to = from + max(1, limit) - 1
-            return try await client.from("episodes").select()
-                .eq("anime_id", value: animeId)
-                .order("number", ascending: true)
-                .range(from: from, to: to)
-                .execute()
-                .value
-        } catch {
-            print("❌ fetch episodes page: \(error)")
-            return []
-        }
-    }
-
-    func fetchChaptersNext(mangaId: Int, fromNumber: Int, limit: Int = 20) async -> [MangaChapter] {
-        do {
-            var q = client.from("chapters").select()
-                .eq("manga_id", value: mangaId)
-
-            if fromNumber > 1 {
-                q = q.gte("number", value: fromNumber)
-            }
-
-            let ordered = q.order("number", ascending: true)
-            return try await ordered.range(from: 0, to: max(0, limit - 1)).execute().value
-        } catch {
-            print("❌ fetch chapters next: \(error)")
-            return []
-        }
-    }
-
-    func fetchChaptersPage(mangaId: Int, offset: Int, limit: Int = 50) async -> [MangaChapter] {
-        do {
-            let from = max(0, offset)
-            let to = from + max(1, limit) - 1
-            return try await client.from("chapters").select()
-                .eq("manga_id", value: mangaId)
-                .order("number", ascending: true)
-                .range(from: from, to: to)
-                .execute()
-                .value
-        } catch {
-            print("❌ fetch chapters page: \(error)")
-            return []
-        }
-    }
-
-    func setUserProgress(mediaId: Int, mediaType: String, progress: Int) async {
-        if let existing = userLists.first(where: { $0.mediaId == mediaId && $0.mediaType.lowercased() == mediaType.lowercased() }) {
-            let rating = existing.score.map { $0 / 10 }
-            await upsertUserListEntry(
-                mediaId: mediaId,
-                mediaType: mediaType,
-                status: existing.status,
-                progress: progress,
-                rating: (rating ?? 0) > 0 ? rating : nil,
-                notes: existing.notes
-            )
-        } else {
-            await upsertUserListEntry(
-                mediaId: mediaId,
-                mediaType: mediaType,
-                status: .current,
-                progress: progress,
-                rating: nil,
-                notes: nil
-            )
-        }
-    }
-
-    func getStreamLinkForEpisode(animeId: Int, episodeNumber: Int) async -> (url: String, site: String)? {
-        do {
-            let rows: [Episode] = try await client
-                .from("episodes")
-                .select()
-                .eq("anime_id", value: animeId)
-                .eq("number", value: episodeNumber)
-                .limit(1)
-                .execute()
-                .value
-            if let ep = rows.first, let url = ep.streamUrl, let site = ep.streamSite {
-                return (url, site)
-            }
-        } catch {
-            print("❌ Error fetching episode stream: \(error)")
-        }
-        return nil
-    }
-
-    private func bestLink(from links: [ExternalLink], ranking: [String]) -> ExternalLink? {
-        guard !links.isEmpty else { return nil }
-        func weight(for link: ExternalLink) -> (Int, Int) {
-            let priority = link.priority ?? 999
-            let site = (link.site ?? "").lowercased()
-            let rankIndex = ranking.firstIndex(where: { site.contains($0) }) ?? 999
-            return (priority, rankIndex)
-        }
-        return links
-            .filter { !$0.isDisabled && $0.url.lowercased().hasPrefix("http") }
-            .min(by: { lhs, rhs in weight(for: lhs) < weight(for: rhs) })
-    }
-
-    func getProgress(for mediaId: Int) -> Int? {
-        userLists.first { $0.mediaId == mediaId && $0.mediaType.lowercased() == "anime" }?.progress
-    }
-
-    func getBestWatchLink(anime: Anime, userProgress: Int?) async -> (url: String, site: String, label: String)? {
-        let nextEpisode = max(1, (userProgress ?? 0) + 1)
-        if let episodeLink = await getStreamLinkForEpisode(animeId: anime.id, episodeNumber: nextEpisode) {
-            let label = "WATCH EP \(nextEpisode) ON \(episodeLink.site.uppercased())"
-            return (episodeLink.url, episodeLink.site, label)
-        }
-
-        let links = await fetchExternalLinks(mediaType: "ANIME", mediaId: anime.id)
-        guard let best = bestLink(from: links, ranking: animeProviderRanking) else {
-            return nil
-        }
-        let siteLabel = (best.site ?? "PROVIDER").uppercased()
-        let verb = (userProgress ?? 0) > 0 ? "CONTINUE" : "WATCH"
-        return (best.url, best.site ?? "Provider", "\(verb) ON \(siteLabel)")
-    }
-
-    func getBestReadLink(manga: Manga) async -> (url: String, site: String, label: String)? {
-        let links = await fetchExternalLinks(mediaType: "MANGA", mediaId: manga.id)
-        guard let best = bestLink(from: links, ranking: mangaProviderRanking) else { return nil }
-        let siteLabel = (best.site ?? "Reader").uppercased()
-        return (best.url, best.site ?? "Reader", "READ ON \(siteLabel)")
-    }
-
-    // MARK: - Browse (server-driven paging + filters)
-    func fetchBrowseAnimePageKeyset(
-        genre: String?,
-        status: String?,
-        minEpisodes: Int?,
-        maxEpisodes: Int?,
-        sort: BrowseSort = .popular,
-        cursorInt: Int?,
-        cursorDate: Date?,
-        cursorId: Int?,
-        limit: Int
-    ) async -> [AnimeCard] {
-        do {
-            let perf = KuroPerf.begin("rpc.browse_anime_page")
-            let params = RPCBrowseAnimePageParams(
-                p_genre: genre,
-                p_status: status,
-                p_min_episodes: minEpisodes,
-                p_max_episodes: maxEpisodes,
-                p_sort: sort.rpcKey,
-                p_cursor_int: cursorInt,
-                p_cursor_ts: cursorDate,
-                p_cursor_id: cursorId,
-                p_limit: max(1, min(120, limit))
-            )
-            let rows: [AnimeCard] = try await client.rpc("browse_anime_page", params: params).execute().value
-            KuroPerf.end(perf, message: "ok")
-            return rows
-        } catch {
-            print("❌ browse_anime_page rpc: \(error)")
-            return []
-        }
-    }
-
-    func fetchBrowseMangaPageKeyset(
-        genre: String?,
-        status: String?,
-        minChapters: Int?,
-        maxChapters: Int?,
-        sort: BrowseSort = .popular,
-        cursorInt: Int?,
-        cursorDate: Date?,
-        cursorId: Int?,
-        limit: Int
-    ) async -> [MangaCard] {
-        do {
-            let perf = KuroPerf.begin("rpc.browse_manga_page")
-            let params = RPCBrowseMangaPageParams(
-                p_genre: genre,
-                p_status: status,
-                p_min_chapters: minChapters,
-                p_max_chapters: maxChapters,
-                p_sort: sort.rpcKey,
-                p_cursor_int: cursorInt,
-                p_cursor_ts: cursorDate,
-                p_cursor_id: cursorId,
-                p_limit: max(1, min(120, limit))
-            )
-            let rows: [MangaCard] = try await client.rpc("browse_manga_page", params: params).execute().value
-            KuroPerf.end(perf, message: "ok")
-            return rows
-        } catch {
-            print("❌ browse_manga_page rpc: \(error)")
-            return []
-        }
-    }
-
-    func fetchBrowseAnimePage(
-        genre: String?,
-        status: String?,
-        minEpisodes: Int?,
-        maxEpisodes: Int?,
-        sort: BrowseSort = .popular,
-        page: Int,
-        pageSize: Int
-    ) async -> [Anime] {
-        do {
-            let size = max(1, pageSize)
-            let offset = max(0, page) * size
-            var q = client.from("anime").select()
-
-            if let genre, !genre.isEmpty {
-                q = q.contains("genres", value: [genre])
-            }
-            if let status, !status.isEmpty {
-                q = q.eq("status", value: status)
-            }
-            if let minEpisodes {
-                q = q.gte("episodes", value: minEpisodes)
-            }
-            if let maxEpisodes {
-                q = q.lte("episodes", value: maxEpisodes)
-            }
-
-            let ordered = q.order(sort.orderColumn, ascending: false).order("id", ascending: false)
-            return try await ordered.range(from: offset, to: offset + size - 1).execute().value
-        } catch {
-            print("❌ browse anime fetch: \(error)")
-            return []
-        }
-    }
-
-    func fetchBrowseMangaPage(
-        genre: String?,
-        status: String?,
-        minChapters: Int?,
-        maxChapters: Int?,
-        sort: BrowseSort = .popular,
-        page: Int,
-        pageSize: Int
-    ) async -> [Manga] {
-        do {
-            let size = max(1, pageSize)
-            let offset = max(0, page) * size
-            var q = client.from("manga").select()
-
-            if let genre, !genre.isEmpty {
-                q = q.contains("genres", value: [genre])
-            }
-            if let status, !status.isEmpty {
-                q = q.eq("status", value: status)
-            }
-            if let minChapters {
-                q = q.gte("chapters", value: minChapters)
-            }
-            if let maxChapters {
-                q = q.lte("chapters", value: maxChapters)
-            }
-
-            let ordered = q.order(sort.orderColumn, ascending: false).order("id", ascending: false)
-            return try await ordered.range(from: offset, to: offset + size - 1).execute().value
-        } catch {
-            print("❌ browse manga fetch: \(error)")
-            return []
-        }
-    }
-    
-    // MARK: - Filter by Genre (using your genres array)
-    func filterByGenre(_ genre: String) async {
-        isLoading = true
-        
-        do {
-            let response: [Anime] = try await client
-                .from("anime")
-                .select()
-                .contains("genres", value: [genre])
-                .order("average_score", ascending: false)
-                .limit(50)
-                .execute()
-                .value
-            
-            animeItems = response
-            print("✅ Filtered by genre: \(genre)")
-        } catch {
-            errorMessage = "Filter failed: \(error.localizedDescription)"
-            print("❌ Error: \(error)")
-        }
-        
-        isLoading = false
-    }
-    
-    // MARK: - Get by Mood (using your genre system)
-    func getByMood(_ mood: String) -> [Anime] {
-        switch mood {
-        case "Contemplative":
-            return animeItems.filter { anime in
-                anime.genres?.contains(where: { genre in
-                    ["Drama", "Psychological", "Mystery"].contains(genre)
-                }) ?? false
-            }
-        case "Energetic":
-            return animeItems.filter { anime in
-                anime.genres?.contains(where: { genre in
-                    ["Action", "Sports", "Adventure"].contains(genre)
-                }) ?? false
-            }
-        case "Melancholic":
-            return animeItems.filter { anime in
-                anime.genres?.contains(where: { genre in
-                    ["Drama", "Romance", "Slice of Life"].contains(genre)
-                }) ?? false
-            }
-        case "Uplifting":
-            return animeItems.filter { anime in
-                anime.genres?.contains(where: { genre in
-                    ["Comedy", "Adventure", "Music"].contains(genre)
-                }) ?? false
-            }
-        case "Mysterious":
-            return animeItems.filter { anime in
-                anime.genres?.contains(where: { genre in
-                    ["Thriller", "Horror", "Supernatural", "Mystery"].contains(genre)
-                }) ?? false
-            }
-        default:
-            return Array(animeItems.prefix(10))
-        }
-    }
 
     // MARK: - Concierge (Edge Functions)
     enum ConciergeScope: String, Sendable {
@@ -10056,7 +8448,7 @@ class SupabaseService {
         }
     }
 
-    private func decodeRetryAfterSeconds(from data: Data) -> Int? {
+    func decodeRetryAfterSeconds(from data: Data) -> Int? {
         // Edge functions return: { "error": "Rate limited", "retry_after_s": 30 }
         guard !data.isEmpty else { return nil }
         if let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
@@ -10067,7 +8459,7 @@ class SupabaseService {
         return nil
     }
 
-    private func translateConciergeFunctionError(_ error: Error) -> Error {
+    func translateConciergeFunctionError(_ error: Error) -> Error {
         if case let FunctionsError.httpError(code, data) = error, code == 429 {
             return ConciergeGuardrailsError.rateLimited(retryAfterSeconds: decodeRetryAfterSeconds(from: data))
         }
@@ -10080,6 +8472,9 @@ class SupabaseService {
         let variant_type: String
         let title_raw: String
         let score: Double
+        let year: Int?
+        let format: String?
+        let cover_image_medium: String?
     }
 
     struct ConciergeParseItemParsed: Decodable, Sendable {
@@ -10093,9 +8488,29 @@ class SupabaseService {
         let caughtUp: Bool?
         let lastEpisode: Bool?
         let completed: Bool?
+        let yearMention: Int?
         let rating: Double?
         let progressTotal: Int?
         let progressUnit: String?
+    }
+
+    struct ConciergeExistingEntry: Decodable, Sendable {
+        let media_type: String
+        let media_id: Int
+        let status: String
+        let progress_episodes: Int?
+        let progress_chapters: Int?
+        let progress_volumes: Int?
+        let rating: Int?
+        let updated_at: String
+    }
+
+    struct ConciergeAmbiguity: Decodable, Sendable {
+        let kind: String             // "status_unclear", "unit_unclear", "intent_unclear"
+        let options: [String]?       // e.g. ["COMPLETED", "CURRENT"] or ["episode", "season", "chapter", "volume"]
+        let suggested_question: String?
+        let title_context: String?   // title the ambiguity relates to
+        let number_context: String?  // the ambiguous number (for unit_unclear)
     }
 
     struct ConciergeParseItem: Decodable, Sendable, Identifiable {
@@ -10104,6 +8519,8 @@ class SupabaseService {
         let parsed: ConciergeParseItemParsed
         let candidates: [ConciergeCandidate]
         let candidateError: String?
+        let existing_entry: ConciergeExistingEntry?
+        let ambiguity: ConciergeAmbiguity?
 
         var id: String { raw + "|" + normalized }
     }
@@ -10114,11 +8531,30 @@ class SupabaseService {
         let items: [ConciergeParseItem]
     }
 
-    func conciergeParse(text: String, scope: ConciergeScope = .both, limitPerItem: Int = 10) async throws -> ConciergeParseResponse {
+    /// Fire-and-forget edge function warmup — warms the Deno isolate without auth/rate-limit.
+    func conciergeWarmup() async {
+        do {
+            let client = self.client
+            _ = try await Task.detached(priority: .background) {
+                let data = try JSONSerialization.data(withJSONObject: ["text": ""], options: [])
+                let options = FunctionInvokeOptions(
+                    method: .post,
+                    query: [URLQueryItem(name: "warmup", value: "true")],
+                    body: data
+                )
+                let _: [String: Bool] = try await client!.functions.invoke("concierge-parse", options: options)
+            }.value
+        } catch {
+            // Best-effort warmup — silently ignore failures
+        }
+    }
+
+    func conciergeParse(text: String, scope: ConciergeScope = .both, limitPerItem: Int = 10, clarification: [String: String]? = nil) async throws -> ConciergeParseResponse {
         let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let lim = max(3, min(15, limitPerItem))
         let user = await currentUserIdString() ?? "anon"
-        let key = "concierge_parse|\(user)|\(scope.rawValue)|\(lim)|\(normalized)"
+        let clarifyKey = clarification.map { $0.sorted(by: { $0.key < $1.key }).map { "\($0.key)=\($0.value)" }.joined(separator: "&") } ?? ""
+        let key = "concierge_parse|\(user)|\(scope.rawValue)|\(lim)|\(normalized)|\(clarifyKey)"
 
         let now = Date()
         // Very short TTL: just enough to make back-to-back retries feel instant.
@@ -10129,18 +8565,24 @@ class SupabaseService {
             return try await task.value
         }
 
-        // Run decoding off the main actor to avoid UI jank (keyboard/input stutter).
+        // Keep the request in a Task so callers can share in-flight work.
+        // This runs on the main actor; the network call is async and should not block the UI thread.
         let client = self.client
-        let task = Task<ConciergeParseResponse, Error>.detached(priority: .userInitiated) {
-            let payload = [
+        let clarify = clarification
+        let task = Task<ConciergeParseResponse, Error>(priority: .userInitiated) {
+            var payload: [String: Any] = [
                 "text": text,
                 "scope": scope.rawValue,
                 "limitPerItem": lim,
-            ] as [String : Any]
+            ]
+            if let clarify {
+                payload["clarification"] = clarify
+            }
             let data = try JSONSerialization.data(withJSONObject: payload, options: [])
             let options = FunctionInvokeOptions(method: .post, body: data)
-            let resp: ConciergeParseResponse = try await client.functions.invoke("concierge-parse", options: options)
-            return resp
+            return try await SupabaseService.withRetry { [client] in
+                try await client!.functions.invoke("concierge-parse", options: options)
+            }
         }
         conciergeParseInFlight[key] = task
         defer { conciergeParseInFlight[key] = nil }
@@ -10161,6 +8603,16 @@ class SupabaseService {
             let mediaType: String
             let mediaId: Int
             let status: String
+            let action: String?
+        }
+        struct Skipped: Decodable, Sendable {
+            let mediaType: String
+            let mediaId: Int
+        }
+        struct Conflict: Decodable, Sendable {
+            let mediaType: String?
+            let mediaId: Int?
+            let error: String
         }
         struct ApplyError: Decodable, Sendable {
             let mediaType: String?
@@ -10168,6 +8620,8 @@ class SupabaseService {
             let error: String
         }
         let applied: [Applied]?
+        let skipped: [Skipped]?
+        let conflicts: [Conflict]?
         let errors: [ApplyError]?
     }
 
@@ -10177,10 +8631,10 @@ class SupabaseService {
                 "items": items,
             ]
             let client = self.client
-            let task = Task<ConciergeApplyResponse, Error>.detached(priority: .userInitiated) {
+            let task = Task<ConciergeApplyResponse, Error>(priority: .userInitiated) {
                 let data = try JSONSerialization.data(withJSONObject: payload, options: [])
                 let options = FunctionInvokeOptions(method: .post, body: data)
-                return try await client.functions.invoke("concierge-apply", options: options)
+                return try await client!.functions.invoke("concierge-apply", options: options)
             }
             return try await task.value
         } catch {
@@ -10209,10 +8663,10 @@ class SupabaseService {
                 "sessionId": sessionId,
             ]
             let client = self.client
-            let task = Task<ConciergeUndoResponse, Error>.detached(priority: .userInitiated) {
+            let task = Task<ConciergeUndoResponse, Error>(priority: .userInitiated) {
                 let data = try JSONSerialization.data(withJSONObject: payload, options: [])
                 let options = FunctionInvokeOptions(method: .post, body: data)
-                return try await client.functions.invoke("concierge-undo", options: options)
+                return try await client!.functions.invoke("concierge-undo", options: options)
             }
             return try await task.value
         } catch {
@@ -10220,77 +8674,18 @@ class SupabaseService {
         }
     }
 
-    struct ConciergeResolveResponse: Decodable, Sendable {
-        let success: Bool
-        struct Choice: Decodable, Sendable {
-            let i: Int
-            let pick: Int
-            let confidence: Double
-            let reason: String?
-            struct Chosen: Decodable, Sendable {
-                let id: String
-                let title: String
-            }
-            let chosen: Chosen?
-        }
-        let choices: [Choice]?
-        let error: String?
-    }
+    // MARK: - Concierge: AniList import
+    // Extracted to SupabaseService+Concierge.swift
 
-    func conciergeResolve(items: [ConciergeParseItem], maxCandidates: Int = 6) async throws -> ConciergeResolveResponse {
-        let payloadItems: [[String: Any]] = items.prefix(20).map { item in
-            let parsed: [String: Any] = [
-                "mediaTypeHint": item.parsed.mediaTypeHint as Any,
-                "status": item.parsed.status as Any,
-                "progressEpisodes": item.parsed.progressEpisodes as Any,
-                "progressChapters": item.parsed.progressChapters as Any,
-                "progressVolumes": item.parsed.progressVolumes as Any,
-                "seasonNumber": item.parsed.seasonNumber as Any,
-                "episodeInSeason": item.parsed.episodeInSeason as Any,
-                "caughtUp": item.parsed.caughtUp as Any,
-                "lastEpisode": item.parsed.lastEpisode as Any,
-                "completed": item.parsed.completed as Any,
-            ]
-            let cands: [[String: Any]] = item.candidates.prefix(max(2, min(10, maxCandidates))).map { c in
-                [
-                    "media_type": c.media_type,
-                    "media_id": c.media_id,
-                    "variant_type": c.variant_type,
-                    "title_raw": c.title_raw,
-                    "score": c.score,
-                ]
-            }
-            return [
-                "raw": item.raw,
-                "normalized": item.normalized,
-                "parsed": parsed,
-                "candidates": cands,
-            ]
-        }
 
-        let payload: [String: Any] = [
-            "items": payloadItems,
-            "maxCandidates": max(2, min(10, maxCandidates)),
-        ]
-        do {
-            let client = self.client
-            let task = Task<ConciergeResolveResponse, Error>.detached(priority: .userInitiated) {
-                let data = try JSONSerialization.data(withJSONObject: payload, options: [])
-                let options = FunctionInvokeOptions(method: .post, body: data)
-                return try await client.functions.invoke("concierge-resolve", options: options)
-            }
-            return try await task.value
-        } catch {
-            throw translateConciergeFunctionError(error)
-        }
-    }
-
-    struct ConciergeRecommendResponse: Decodable, Sendable {
-        let success: Bool
-        let categories: [String]?
-        struct Mode: Decodable, Sendable, Identifiable {
-            let id: String
-            let title: String
+	    struct ConciergeRecommendResponse: Decodable, Sendable {
+	        let success: Bool
+	        let locale: String?
+	        let curatorNote: String?
+	        let categories: [String]?
+	        struct Mode: Decodable, Sendable, Identifiable {
+	            let id: String
+	            let title: String
             let confidence: Double?
             let reason: String?
         }
@@ -10310,17 +8705,32 @@ class SupabaseService {
 
             var id: String { "\(mediaType)|\(mediaId)" }
         }
-        struct Set: Decodable, Sendable, Identifiable {
-            let id: String
-            let title: String
-            let modeId: String?
-            let confidence: Double?
-            let reason: String?
-            let items: [Item]?
+	        struct Set: Decodable, Sendable, Identifiable {
+	            let id: String
+	            let title: String
+	            let internalTitle: String?
+	            let displayTitle: String?
+	            let displaySubtitle: String?
+	            let curatorNote: String?
+	            let locale: String?
+	            let modeId: String?
+	            let confidence: Double?
+	            let reason: String?
+	            let items: [Item]?
+	        }
+        struct Assist: Decodable, Sendable {
+            let ragUsed: Bool?
+            let seedEntityId: String?
+
+            enum CodingKeys: String, CodingKey {
+                case ragUsed
+                case seedEntityId
+            }
         }
         let modes: [Mode]?
         let sets: [Set]?
         let items: [Item]?
+        let assist: Assist?
         let message: String?
         let narrated: Bool?
         let error: String?
@@ -10340,9 +8750,10 @@ class SupabaseService {
             return try await task.value
         }
 
-        // Run decoding off the main actor to keep the chat input responsive.
+        // Keep the request in a Task so callers can share in-flight work.
+        // This runs on the main actor; the network call is async and should not block the UI thread.
         let client = self.client
-        let task = Task<ConciergeRecommendResponse, Error>.detached(priority: .userInitiated) {
+        let task = Task<ConciergeRecommendResponse, Error>(priority: .userInitiated) {
             let payload: [String: Any] = [
                 "text": text,
                 "scope": scope.rawValue,
@@ -10351,7 +8762,9 @@ class SupabaseService {
             ]
             let data = try JSONSerialization.data(withJSONObject: payload, options: [])
             let options = FunctionInvokeOptions(method: .post, body: data)
-            let resp: ConciergeRecommendResponse = try await client.functions.invoke("concierge-recommend", options: options)
+            let resp: ConciergeRecommendResponse = try await SupabaseService.withRetry { [client] in
+                try await client!.functions.invoke("concierge-recommend", options: options)
+            }
             return resp
         }
         conciergeRecommendInFlight[key] = task
@@ -10365,8 +8778,42 @@ class SupabaseService {
             throw translateConciergeFunctionError(error)
         }
     }
-    
-    // MARK: - Real-time Subscriptions  
+
+    /// Best-effort feedback for server-side RAG retrieval.
+    /// Never throws to callers by design; failures are debug-logged only.
+    func conciergeRetrieveFeedback(
+        query: String,
+        locale: String,
+        selectedEntityId: String?,
+        accepted: Bool,
+        rejectedReason: String? = nil
+    ) async {
+        do {
+            var payload: [String: Any] = [
+                "query": query,
+                "locale": locale,
+                "accepted": accepted,
+            ]
+            if let selectedEntityId, !selectedEntityId.isEmpty {
+                payload["selected_entity_id"] = selectedEntityId
+            }
+            if let rejectedReason, !rejectedReason.isEmpty {
+                payload["rejected_reason"] = rejectedReason
+            }
+            let data = try JSONSerialization.data(withJSONObject: payload, options: [])
+            let options = FunctionInvokeOptions(method: .post, body: data)
+            let _: [String: Bool] = try await client.functions.invoke(
+                "concierge-retrieve-feedback",
+                options: options
+            )
+        } catch {
+            #if DEBUG
+            print("[SupabaseService] conciergeRetrieveFeedback failed: \(error.localizedDescription)")
+            #endif
+        }
+    }
+
+    // MARK: - Real-time Subscriptions
     func subscribeToUpdates() {
         Task { [weak self] in
             guard let self else { return }
@@ -10414,7 +8861,13 @@ class SupabaseService {
             },
         ]
 
-        await channel.subscribe()
+        do {
+            _ = try await channel.subscribeWithError()
+        } catch {
+            #if DEBUG
+            print("⚠️ realtime subscribe failed: \(error)")
+            #endif
+        }
     }
 
     @MainActor
@@ -10448,32 +8901,167 @@ class SupabaseService {
         realtimeChannel = nil
         realtimeSubscribedUserId = nil
     }
-    
+
     // MARK: - Collection Management Helpers
-    // Fast lookup caches to keep scrolling snappy (avoid O(n) list scans per card render).
-    private var collectionAnimeIds: Set<Int> = []
-    private var collectionMangaIds: Set<Int> = []
-    private var userListByTypeAndId: [String: [Int: UserList]] = [:]
-    private var userIdsByTypeAndStatus: [String: [ListStatus: Set<Int>]] = [:]
+    // Extracted to SupabaseService+UserLists.swift
 
-    private func rebuildUserListCaches() {
-        var anime: Set<Int> = []
-        var manga: Set<Int> = []
-        var byType: [String: [Int: UserList]] = ["anime": [:], "manga": [:]]
-        var byTypeStatus: [String: [ListStatus: Set<Int>]] = ["anime": [:], "manga": [:]]
+// MARK: - Concierge: Library export helper
 
-        for item in userLists {
-            let t = item.mediaType.lowercased()
-            if t == "anime" { anime.insert(item.mediaId) }
-            if t == "manga" { manga.insert(item.mediaId) }
-            byType[t, default: [:]][item.mediaId] = item
-            byTypeStatus[t, default: [:]][item.status, default: []].insert(item.mediaId)
+    struct ConciergeLibraryExportResult: Sendable {
+        let text: String
+        let exportedItemCount: Int
+        let truncated: Bool
+    }
+
+    /// Build plain-text concierge payload from the user's current library list.
+    /// Useful for one-tap import from within the app.
+    func conciergeLibraryExportText(
+        includeStatus: Set<ListStatus>? = nil,
+        includeMediaTypes: Set<String> = ["anime", "manga"],
+        maxItems: Int = 400
+    ) async -> ConciergeLibraryExportResult? {
+        if userLists.isEmpty {
+            await fetchUserLists()
         }
 
-        collectionAnimeIds = anime
-        collectionMangaIds = manga
-        userListByTypeAndId = byType
-        userIdsByTypeAndStatus = byTypeStatus
+        guard !userLists.isEmpty else { return nil }
+
+        let allowedStatuses = includeStatus.map(Set.init) ?? Set(ListStatus.allCases)
+        let allowedTypes = Set(includeMediaTypes.map { $0.lowercased() })
+
+        let filtered = userLists.filter {
+            allowedTypes.contains($0.mediaType.lowercased()) && allowedStatuses.contains($0.status)
+        }
+
+        guard !filtered.isEmpty else { return nil }
+
+        let capped = Array(filtered.prefix(max(0, maxItems)))
+        guard !capped.isEmpty else { return nil }
+
+        // 1) Resolve titles for this snapshot.
+        let lookup = await resolveLibraryTitles(for: capped)
+
+        // 2) Keep list in server order (updatedAt desc from fetchUserLists).
+        let lines: [String] = capped.compactMap { entry in
+            guard let title = lookup[entry.mediaId] else { return nil }
+            let suffix = conciergeLibrarySuffix(for: entry)
+            return suffix.isEmpty ? title : "\(title) \(suffix)"
+        }
+
+        guard !lines.isEmpty else { return nil }
+        return ConciergeLibraryExportResult(
+            text: lines.joined(separator: "\n"),
+            exportedItemCount: lines.count,
+            truncated: filtered.count > capped.count
+        )
+    }
+
+    private func conciergeLibrarySuffix(for entry: UserList) -> String {
+        let isAnime = entry.mediaType.lowercased() == "anime"
+        let progress = max(0, entry.progress)
+        switch entry.status {
+        case .completed:
+            return "(completed)"
+        case .dropped:
+            return "(dropped)"
+        case .paused:
+            return "(paused)"
+        case .planning:
+            return "(planning)"
+        case .repeating:
+            return isAnime ? "(rewatching)" : "(re-reading)"
+        case .current:
+            if progress > 0 {
+                return isAnime ? "(watching ep \(progress))" : "(reading ch \(progress))"
+            }
+            return isAnime ? "(watching)" : "(reading)"
+        }
+    }
+
+    private func resolveLibraryTitles(for items: [UserList]) async -> [Int: String] {
+        let animeIds = Set(items.filter { $0.mediaType.lowercased() == "anime" }.map(\.mediaId))
+        let mangaIds = Set(items.filter { $0.mediaType.lowercased() == "manga" }.map(\.mediaId))
+
+        var titlesById: [Int: String] = [:]
+
+        for (table, ids) in [("anime", animeIds), ("manga", mangaIds)] as [(String, Set<Int>)] {
+            let idList = Array(ids).sorted()
+            guard !idList.isEmpty else { continue }
+
+            struct MediaTitleRow: Decodable {
+                let id: Int
+                let titleEnglish: String?
+                let titleRomaji: String?
+                let titleNative: String?
+
+                enum CodingKeys: String, CodingKey {
+                    case id
+                    case titleEnglish = "title_english"
+                    case titleRomaji = "title_romaji"
+                    case titleNative = "title_native"
+                }
+            }
+
+            for start in stride(from: 0, through: max(0, idList.count), by: 200) {
+                let end = min(start + 200, idList.count)
+                guard start < end else { continue }
+                let chunk = Array(idList[start..<end])
+
+                do {
+                    let rows: [MediaTitleRow] = try await client
+                        .from(table)
+                        .select("id,title_english,title_romaji,title_native")
+                        .in("id", values: chunk)
+                        .execute()
+                        .value
+
+                    for row in rows {
+                        let title = row.titleEnglish?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            ?? row.titleRomaji?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            ?? row.titleNative?.trimmingCharacters(in: .whitespacesAndNewlines)
+                            ?? ""
+                        if !title.isEmpty {
+                            titlesById[row.id] = title
+                        }
+                    }
+                } catch {
+                    #if DEBUG
+                    print("[SupabaseService] Failed to resolve titles for \(table): \(error)")
+                    #endif
+                }
+
+            }
+        }
+
+        // Use local detail cache as a fallback if table lookups failed.
+        var localAnimeLookup: [Int: String] = [:]
+        for item in animeItems {
+            let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !title.isEmpty && title.lowercased() != "unknown" {
+                localAnimeLookup[item.id] = title
+            }
+        }
+
+        var localMangaLookup: [Int: String] = [:]
+        for item in mangaItems {
+            let title = item.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !title.isEmpty && title.lowercased() != "unknown" {
+                localMangaLookup[item.id] = title
+            }
+        }
+
+        for item in items {
+            if titlesById[item.mediaId] == nil {
+                let fallback = item.mediaType.lowercased() == "anime"
+                    ? localAnimeLookup[item.mediaId]
+                    : localMangaLookup[item.mediaId]
+                if let fallback, !fallback.isEmpty {
+                    titlesById[item.mediaId] = fallback
+                }
+            }
+        }
+
+        return titlesById
     }
 
     func userMediaIds(mediaType: String, status: ListStatus? = nil) -> Set<Int> {
@@ -10508,6 +9096,24 @@ class SupabaseService {
         userListByTypeAndId[mediaType.lowercased()]?[mediaId]?.progress
     }
 
+    func userListEntry(mediaType: String, mediaId: Int) -> UserList? {
+        userListByTypeAndId[mediaType.lowercased()]?[mediaId]
+    }
+
+    func incrementProgress(mediaId: Int, mediaType: String) async {
+        guard let entry = userListByTypeAndId[mediaType.lowercased()]?[mediaId] else { return }
+        let newProgress = entry.progress + 1
+        await upsertUserListEntry(
+            mediaId: mediaId,
+            mediaType: mediaType,
+            status: entry.status,
+            progress: newProgress,
+            rating: entry.score,
+            notes: entry.notes,
+            verdict: entry.verdict
+        )
+    }
+
     func isFavorited(_ animeId: Int) -> Bool {
         // Check if anime has high score (favorited)
         return userListByTypeAndId["anime"]?[animeId]?.score ?? 0 >= 90
@@ -10515,10 +9121,40 @@ class SupabaseService {
 
     func toggleInCollection(mediaId: Int, mediaType: String) {
         let type = mediaType.lowercased()
-        if isInCollection(mediaId: mediaId, mediaType: type) {
-            Task { await removeFromList(mediaId: mediaId, mediaType: type) }
+        let key = "\(type)-\(mediaId)"
+        guard !togglingMediaKeys.contains(key) else { return }
+        togglingMediaKeys.insert(key)
+
+        let wasInCollection = isInCollection(mediaId: mediaId, mediaType: type)
+
+        // Optimistic: flip local set immediately so UI reflects the change
+        if type == "anime" {
+            if wasInCollection { collectionAnimeIds.remove(mediaId) } else { collectionAnimeIds.insert(mediaId) }
         } else {
-            Task { await addToList(mediaId: mediaId, mediaType: type, status: .planning) }
+            if wasInCollection { collectionMangaIds.remove(mediaId) } else { collectionMangaIds.insert(mediaId) }
+        }
+
+        Task {
+            if wasInCollection {
+                let success = await removeFromList(mediaId: mediaId, mediaType: type)
+                if !success {
+                    // Rollback: re-insert the ID
+                    if type == "anime" { collectionAnimeIds.insert(mediaId) } else { collectionMangaIds.insert(mediaId) }
+                    showTransientBanner("Couldn't update list. Try again.")
+                } else {
+                    showTransientBanner("Removed from collection")
+                }
+            } else {
+                let success = await addToList(mediaId: mediaId, mediaType: type, status: .planning)
+                if !success {
+                    // Rollback: remove the optimistically inserted ID
+                    if type == "anime" { collectionAnimeIds.remove(mediaId) } else { collectionMangaIds.remove(mediaId) }
+                    showTransientBanner("Couldn't update list. Try again.")
+                } else {
+                    showTransientBanner("Added to collection")
+                }
+            }
+            togglingMediaKeys.remove(key)
         }
     }
 
@@ -10527,17 +9163,21 @@ class SupabaseService {
     }
 
     func toggleFavorite(for animeId: Int) {
-        // Toggle by setting/removing high score
+        let key = "fav-\(animeId)"
+        guard !togglingMediaKeys.contains(key) else { return }
+        togglingMediaKeys.insert(key)
         Task {
+            defer { togglingMediaKeys.remove(key) }
             guard let entry = userLists.first(where: { $0.mediaId == animeId && $0.mediaType.lowercased() == "anime" }) else { return }
             let shouldUnfavorite = (entry.score ?? 0) >= 90
-            let newRating: Int? = shouldUnfavorite ? nil : 10
+            let newRating: Int? = shouldUnfavorite ? nil : 100
             await updateListRating(mediaId: animeId, mediaType: "anime", rating: newRating)
         }
     }
 
     private func updateListRating(mediaId: Int, mediaType: String, rating: Int?) async {
         guard let userId = await currentUserIdString() else { return }
+        errorMessage = nil
         do {
             let table = mediaType.lowercased() == "anime" ? "anime_user_lists" : "manga_user_lists"
             let idColumn = mediaType.lowercased() == "anime" ? "anime_id" : "manga_id"
@@ -10553,80 +9193,105 @@ class SupabaseService {
                 .eq(idColumn, value: mediaId)
                 .execute()
 
+            errorMessage = nil
             await fetchUserLists()
         } catch {
+            errorMessage = "Couldn't update rating: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Failed to update rating: \(error)")
+            #endif
         }
     }
+
+        // MARK: - Clubs
+    // Extracted to SupabaseService+Clubs.swift
+
+    // MARK: - Social Activity (Friend Comments & Indicators)
+    // Extracted to SupabaseService+Social.swift
+
+// MARK: - Streaming Availability state
+
+    // Stored on the main service; behavior lives in SupabaseService+Streaming.swift.
+    var providerCache: [String: [ProviderInfo]] = [:]
+    var providerPrefetchTask: Task<Void, Never>?
+    var providerAvailabilityCache: [String: [ProviderAvailabilityProvider]] = [:]
+    var providerAvailabilityPrefetchTask: Task<Void, Never>?
+    var availabilityRefreshEnqueueCooldown: [String: Date] = [:]
+    var userStreamingServices: [String] = []
+    var clubSharedProvidersCache: [String: ClubSharedProvidersResponse] = [:]
+    var streamingServiceRegistry: [StreamingServiceRecord] = []
+
+        // MARK: - Club Realtime
+    // Extracted to SupabaseService+ClubRealtime.swift
+
+
 }
 
 #else
-// Fallback mock service when the Supabase SDK isn't available
+// Fallback mock service when the Supabase SDK isn't available.
+// Kept minimal: no model-type references (Anime, Manga, UserList,
+// Episode, ListStatus) so this block compiles standalone.
 @MainActor
 @Observable
 class SupabaseService {
     static let shared = SupabaseService()
 
-    // Data stores
-    var animeItems: [Anime] = []
-    var mangaItems: [Manga] = []
-    var userLists: [UserList] = []
-    var episodes: [Episode] = []
+    let fmService = AppleFMService()
+
+    // Observable state used by views
     var isLoading = false
     var errorMessage: String?
+    var configError: String? = nil
+    var isAuthBootstrapping: Bool = false
+    var isAuthenticated: Bool = false
+    var authErrorMessage: String? = nil
+    var currentUserEmail: String? = nil
+    var currentUserId: String? = nil
 
     init() {
-        // No-op: mock environment
-        print("⚠️ Supabase SDK not found. Running with mock SupabaseService.")
+        #if DEBUG
+        print("[Mock] Supabase SDK not found. Running with mock SupabaseService.")
+        #endif
     }
 
-    // Auth no-op
+    // Auth
     func signInAnonymously() async throws {}
+    func handleAuthCallback(accessToken: String, refreshToken: String) async {}
+    func refreshSessionIfNeeded() async {}
 
-    // Data loading no-ops that simulate empty results
+    // Memory pressure
+    func trimCachesForMemoryPressure() {}
+
+    // Data loading no-ops
     func fetchAnime(limit: Int = 50) async {
         isLoading = true
-        defer { isLoading = false }
-        animeItems = []
+        isLoading = false
     }
 
     func fetchManga(limit: Int = 50) async {
         isLoading = true
-        defer { isLoading = false }
-        mangaItems = []
+        isLoading = false
     }
 
     func searchContent(query: String) async {
         isLoading = true
-        defer { isLoading = false }
-        // Keep whatever is already loaded (mock does nothing)
+        isLoading = false
     }
 
-    func fetchUserLists() async {
-        userLists = []
-    }
-
-    func addToList(mediaId: Int, mediaType: String, status: ListStatus) async {
-        // No persistence in mock
-    }
+    func fetchUserLists() async {}
 
     func filterByGenre(_ genre: String) async {
         isLoading = true
-        defer { isLoading = false }
-        // No-op
+        isLoading = false
     }
 
-    func getByMood(_ mood: String) -> [Anime] {
-        return []
-    }
-
-    func subscribeToUpdates() {
-        // No realtime in mock
-    }
+    func subscribeToUpdates() {}
 
     func isInCollection(_ animeId: Int) -> Bool { false }
+    func isInCollection(mediaId: Int, mediaType: String) -> Bool { false }
     func isFavorited(_ animeId: Int) -> Bool { false }
     func toggleInCollection(_ animeId: Int) {}
+    func toggleInCollection(mediaId: Int, mediaType: String) {}
     func toggleFavorite(for animeId: Int) {}
 }
 #endif
@@ -10639,20 +9304,56 @@ class SupabaseService {
 
 
 ```swift
+// MARK: - CONCIERGE VIEW (INLINE CHAT ARCHITECTURE)
+// No full-screen state machine. Everything renders inline in the chat scroll.
+// High-confidence imports auto-apply with undo toast. Recommendations appear as editorial rails.
+
 import SwiftUI
 
+// MARK: - Import Reconciliation Types
+
+enum ImportItemAction: String, Sendable {
+    case add
+    case update
+    case skip
+}
+
+struct ImportDiff: Sendable {
+    struct FieldDiff<T: Sendable>: Sendable {
+        let from: T
+        let to: T
+    }
+    var status: FieldDiff<String>?
+    var progressEpisodes: FieldDiff<Int>?
+    var progressChapters: FieldDiff<Int>?
+    var progressVolumes: FieldDiff<Int>?
+    var rating: FieldDiff<Int?>?
+
+    var isEmpty: Bool {
+        status == nil && progressEpisodes == nil && progressChapters == nil && progressVolumes == nil && rating == nil
+    }
+}
+
+// MARK: - Main View
 struct ConciergeView: View {
     @Environment(SupabaseService.self) private var supabaseService
 
     let assistantEnabled: Bool
+    var initialPrompt: String? = nil
 
+    // MARK: Input & Core State
     @State private var input: String = ""
-    @FocusState private var inputFocused: Bool
+    @State private var didConsumeInitialPrompt = false
+    @State private var focusRequest: Bool = false
     @State private var messages: [ConciergeMessage] = []
     @State private var isWorking = false
     @State private var errorText: String? = nil
     @State private var selectedByItemId: [String: SupabaseService.ConciergeCandidate] = [:]
+    @State private var itemActions: [String: ImportItemAction] = [:]
+    @State private var excludedItemIds: Set<String> = []
+    @State private var autoReasonByItemId: [String: String] = [:]
     @State private var lastApplySessionId: String? = nil
+    @State private var lastApplySessionResetTask: Task<Void, Never>? = nil
     @State private var selectedAnime: Anime? = nil
     @State private var selectedManga: Manga? = nil
     @State private var toast: KuroToastState? = nil
@@ -10660,196 +9361,80 @@ struct ConciergeView: View {
     @State private var assistantExpanded: Bool = false
     @State private var assistantOffset: CGSize = .zero
     @State private var assistantDragStart: CGSize = .zero
-
-    private var hasActionBar: Bool {
-        (activeItems?.isEmpty == false) || lastApplySessionId != nil
+    @State private var containerSize: CGSize = CGSize(width: 393, height: 852)
+    @State private var appliedImportMessageIds: Set<UUID> = []
+    @State private var lastAppliedImportMessageId: UUID? = nil
+    @State private var applyingImportMessageId: UUID? = nil
+    @State private var appliedImportSummary: String? = nil
+    @State private var lastRecommendQuery: String? = nil
+    @State private var lastRecommendWasRagAssist: Bool = false
+    @State private var warmupTask: Task<Void, Never>? = nil
+    @State private var prefetchTask: Task<Void, Never>? = nil
+    @State private var prefetchTask2: Task<Void, Never>? = nil
+    @State private var backgroundRefreshTask: Task<Void, Never>? = nil
+    @State private var backgroundRefreshTask2: Task<Void, Never>? = nil
+    @State private var undoRefreshTask: Task<Void, Never>? = nil
+    @State private var disambiguationTask: Task<Void, Never>? = nil
+    @State private var lastRagSeedEntityId: String? = nil
+    @State private var ragFeedbackSentForQuery: Set<String> = []
+    @State private var showAniListImportSheet: Bool = false
+    private var mascotState: ConciergeMascotState {
+        if isWorking { return .thinking }
+        if errorText != nil { return .concerned }
+        if input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return .idle }
+        return .listening
     }
 
-    init(assistantEnabled: Bool = true) {
+    private var clarifyV2Enabled: Bool {
+        FeatureFlags.shared.isClarifyV2Enabled
+    }
+
+    private var fmAssistEnabled: Bool {
+        FeatureFlags.shared.isFmAssistEnabled && supabaseService.fmService.isAvailable
+    }
+
+    private var conciergePerfV2Enabled: Bool {
+        FeatureFlags.shared.isConciergePerfV2Enabled
+    }
+
+    private var isGermanLocale: Bool {
+        let language = Locale.current.language.languageCode?.identifier.lowercased() ?? "en"
+        return language.hasPrefix("de")
+    }
+
+    private var editorialSubtitle: String {
+        "Import from Kuro instantly — or tell me what you're in the mood for."
+    }
+
+    private var editorialFooterText: String {
+        if isWorking {
+            return isGermanLocale ? "Einen Moment." : "One moment."
+        }
+        return isGermanLocale ? "Importiere direkt aus deiner Bibliothek — oder lass mich zwei Rails kuratieren." : "Import from your list — or let me curate two rails."
+    }
+
+    init(assistantEnabled: Bool = true, initialPrompt: String? = nil) {
         self.assistantEnabled = assistantEnabled
+        self.initialPrompt = initialPrompt
     }
 
+    // MARK: Body
     var body: some View {
         ZStack {
-            // Ambient background so glass has something to refract (kept very subtle).
-            // Use a clear base so the sheet's material background stays visible.
-            Color.clear.ignoresSafeArea()
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [Color.black.opacity(0.06), Color.clear],
-                        center: .center,
-                        startRadius: 10,
-                        endRadius: 220
-                    )
-                )
-                .frame(width: 360, height: 360)
-                .offset(x: -140, y: -220)
-                .blur(radius: 0.5)
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [Color.black.opacity(0.05), Color.clear],
-                        center: .center,
-                        startRadius: 10,
-                        endRadius: 260
-                    )
-                )
-                .frame(width: 420, height: 420)
-                .offset(x: 160, y: -80)
-                .blur(radius: 0.5)
+            Color.kuroBackground.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                ScrollViewReader { proxy in
-                    ScrollView(.vertical, showsIndicators: false) {
-                        LazyVStack(alignment: .leading, spacing: 12) {
-                            if messages.isEmpty {
-                                ConciergeIntroCard()
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.top, 14)
-                                    .padding(.bottom, 8)
+            editorialChatView
 
-                                ConciergeStarterActions(
-                                    onPaste: { pasteFromClipboard() },
-                                    onExampleImport: { seedExampleImport() },
-                                    onExampleVibe: { seedExampleVibe() }
-                                )
-                                .frame(maxWidth: .infinity)
-                            }
-
-                            ForEach(messages) { msg in
-                                ConciergeBubble(
-                                    message: msg,
-                                    selected: { item in selectedByItemId[item.id] },
-                                    onSelect: { item, candidate in
-                                        KuroAccessibility.impactHaptic(.light)
-                                        selectedByItemId[item.id] = candidate
-                                    },
-                                    onOpenRecommendation: { rec in
-                                        Task { await openRecommendation(rec) }
-                                    },
-                                    onQuickSave: { rec in
-                                        Task { await quickSaveRecommendation(rec) }
-                                    }
-                                )
-                                .id(msg.id)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
-                            }
-
-                            if isWorking {
-                                ConciergeTypingIndicator()
-                                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
-                        .padding(.bottom, 16)
-                    }
-                    .scrollDismissesKeyboard(.interactively)
-                    .onChange(of: messages.count) {
-                        if let last = messages.last {
-                            withAnimation(.easeInOut(duration: 0.25)) {
-                                proxy.scrollTo(last.id, anchor: .bottom)
-                            }
-                        }
-                    }
-                }
-
-            if let errorText {
-                Text(errorText)
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(.red.opacity(0.85))
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-            }
-
-            if let activeItems, !activeItems.isEmpty {
-                ConciergeActionBar(
-                    selectedCount: activeSelectedCount,
-                    hasAnySelection: activeSelectedCount > 0,
-                    canUndo: lastApplySessionId != nil,
-                    onApply: { Task { await applyActiveItems() } },
-                    onUndo: { Task { await undoLastApply() } }
-                )
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(
-                    KuroGlassCard(cornerRadius: 22) { Color.clear }
-                )
-            } else if lastApplySessionId != nil {
-                ConciergeActionBar(
-                    selectedCount: 0,
-                    hasAnySelection: false,
-                    canUndo: true,
-                    onApply: {},
-                    onUndo: { Task { await undoLastApply() } }
-                )
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(
-                    KuroGlassCard(cornerRadius: 22) { Color.clear }
-                )
-            }
-
-            Divider()
-                .opacity(0.12)
-
-                HStack(spacing: 10) {
-                    TextField("Paste titles, or ask for a vibe…", text: $input, axis: .vertical)
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(.black.opacity(0.86))
-                        .textInputAutocapitalization(.never)
-                        .disableAutocorrection(true)
-                        .lineLimit(1...4)
-                        .padding(.vertical, 10)
-                        .focused($inputFocused)
-                        .submitLabel(.send)
-                        .onSubmit { Task { await send() } }
-
-                    Button(action: { Task { await send() } }) {
-                        Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWorking ? .black.opacity(0.2) : .black)
-                    }
-                    .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isWorking)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    KuroGlassCard(cornerRadius: 22) {
-                        Color.clear
-                    }
-                )
-                // Prevent the global pager swipe gesture from stealing drags/taps while typing.
-                // This fixes "faulty" keyboard interactions and accidental page switches.
-                .kuroSwipeExclusionZone()
-                .padding(.horizontal, 16)
-                .padding(.bottom, 14)
-                .padding(.top, 8)
-            }
-        }
-        .overlay(alignment: .bottom) {
+            // Toast overlay
             if let toast {
-                KuroToast(toast: toast)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, hasActionBar ? 152 : 92)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .overlay(alignment: .bottomLeading) {
-            if assistantEnabled {
-                GeometryReader { geo in
-                    KuroConciergeAssistant(
-                        expanded: $assistantExpanded,
-                        offset: $assistantOffset,
-                        dragStart: $assistantDragStart,
-                        baseBottomPadding: hasActionBar ? 168 : 104,
-                        containerSize: geo.size
-                    ) {
-                        inputFocused = true
-                    }
+                VStack {
+                    Spacer()
+                    KuroToast(toast: toast)
+                        .padding(.horizontal, KuroDesignSpacing.md)
+                        .padding(.bottom, 92)
                 }
-                .ignoresSafeArea()
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(100)
             }
         }
         .sheet(item: $selectedAnime) { anime in
@@ -10858,309 +9443,1147 @@ struct ConciergeView: View {
         .sheet(item: $selectedManga) { manga in
             MangaDetailView(manga: manga)
         }
-    }
-
-    // NOTE: send() uses hybrid FM-primary + keyword-fallback intent routing.
-    // See ConciergeView.swift lines ~620-747 for the actual implementation.
-    // Flow: shouldAskClarifyingQuestion() → FM assistIntent() (if enabled) → routeByKeywords() fallback
-    //       → handleImportFlow() or handleRecommendationFlow()
-    // looksLikeImport() and segmentLooksTitleLike() are now in TextNormalization.swift (static methods).
-    // ConciergeView’s private looksLikeImport() delegates to TextNormalization.looksLikeImport().
-
-    private struct AutoResolveResult {
-        let itemsToApply: [[String: Any]]
-        let remaining: [SupabaseService.ConciergeParseItem]
-        let appliedSummaryLines: [String]
-    }
-
-    private func autoResolveForApply(items: [SupabaseService.ConciergeParseItem]) -> AutoResolveResult {
-        var toApply: [[String: Any]] = []
-        var remaining: [SupabaseService.ConciergeParseItem] = []
-        var appliedSummaryLines: [String] = []
-
-        for item in items {
-            if !(item.candidateError?.isEmpty ?? true) { remaining.append(item); continue }
-            guard let top = item.candidates.first else { remaining.append(item); continue }
-            let secondScore = item.candidates.dropFirst().first?.score ?? 0
-
-            // Confidence rules: high similarity and not too ambiguous.
-            let margin = top.score - secondScore
-            // Auto-apply must be extremely safe. We trade friction for avoiding wrong saves.
-            // Score-only thresholds are not enough for ambiguous short titles; add a title plausibility gate.
-            let confident =
-                (top.score >= 1.10 && margin >= 0.10) ||
-                (top.score >= 1.00 && margin >= 0.22)
-            let titleSafe = isTitleAutoApplySafe(normalized: item.normalized, parsed: item.parsed, candidateTitle: top.title_raw)
-            if !confident || !titleSafe { remaining.append(item); continue }
-
-            let status = normalizedStatus(for: item.parsed.status, mediaType: top.media_type)
-            var payload: [String: Any] = [
-                "raw": item.raw,
-                "mediaType": top.media_type.uppercased(),
-                "mediaId": top.media_id,
-                "status": status,
-                "confidence": top.score,
-                "candidates": item.candidates.map { cand in
-                    [
-                        "media_type": cand.media_type,
-                        "media_id": cand.media_id,
-                        "variant_type": cand.variant_type,
-                        "title_raw": cand.title_raw,
-                        "score": cand.score,
-                    ]
-                },
-            ]
-
-            if let p = item.parsed.progressEpisodes { payload["progressEpisodes"] = p }
-            if let p = item.parsed.progressChapters { payload["progressChapters"] = p }
-            if let p = item.parsed.progressVolumes { payload["progressVolumes"] = p }
-            if let s = item.parsed.seasonNumber { payload["seasonNumber"] = s }
-            if let e = item.parsed.episodeInSeason { payload["episodeInSeason"] = e }
-            if let b = item.parsed.caughtUp { payload["caughtUp"] = b }
-            if let b = item.parsed.lastEpisode { payload["lastEpisode"] = b }
-            if let b = item.parsed.completed { payload["completed"] = b }
-
-            toApply.append(payload)
-
-            appliedSummaryLines.append(summaryLineForAppliedItem(title: top.title_raw, mediaType: top.media_type, status: status, parsed: item.parsed))
-        }
-
-        return AutoResolveResult(itemsToApply: toApply, remaining: remaining, appliedSummaryLines: appliedSummaryLines)
-    }
-
-    private func isTitleAutoApplySafe(
-        normalized: String,
-        parsed: SupabaseService.ConciergeParseItemParsed,
-        candidateTitle: String
-    ) -> Bool {
-        func tokens(_ s: String) -> [String] {
-            let stop: Set<String> = [
-                // EN
-                "the", "a", "an", "of", "and", "or", "to", "in", "on", "for", "with",
-                // DE
-                "der", "die", "das", "ein", "eine", "einer", "eines", "und", "oder", "zu", "im", "in", "am", "auf", "mit",
-            ]
-            let cleaned = s
-                .lowercased()
-                .replacingOccurrences(of: #"[^\\p{L}\\p{N}\\s]+"#, with: " ", options: .regularExpression)
-                .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let parts = cleaned.split(separator: " ").map(String.init)
-            return parts.filter { !$0.isEmpty && !stop.contains($0) }
-        }
-
-        let q = tokens(normalized)
-        let c = tokens(candidateTitle)
-        guard !q.isEmpty, !c.isEmpty else { return false }
-
-        // Single-token titles are the most ambiguous (e.g. Naruto vs Naruto Shippuden).
-        // Only auto-apply if the candidate is also single-token and exact.
-        // If the user also mentioned a season number, force disambiguation instead of guessing.
-        if q.count == 1 {
-            if let season = parsed.seasonNumber, season >= 2 { return false }
-            return c.count == 1 && c[0] == q[0]
-        }
-
-        let qSet = Set(q)
-        let cSet = Set(c)
-        let overlap = Double(qSet.intersection(cSet).count) / Double(qSet.count)
-
-        // Require that most query tokens appear in the chosen title.
-        if overlap < 0.75 { return false }
-
-        // Avoid auto-apply to long variants when the user gave a short base title.
-        if c.count - q.count >= 4 { return false }
-
-        return true
-    }
-
-    private func summaryLineForAppliedItem(
-        title: String,
-        mediaType: String,
-        status: String,
-        parsed: SupabaseService.ConciergeParseItemParsed
-    ) -> String {
-        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let s = status.uppercased()
-
-        let verb: String
-        switch s {
-        case "COMPLETED": verb = "Completed"
-        case "WATCHING": verb = "Watching"
-        case "READING": verb = "Reading"
-        case "PLANNING": verb = "Planned"
-        case "DROPPED": verb = "Dropped"
-        case "PAUSED": verb = "Paused"
-        default: verb = s.capitalized
-        }
-
-        if mediaType.uppercased() == "ANIME" {
-            if let season = parsed.seasonNumber, let ep = parsed.episodeInSeason {
-                return "\(cleanTitle) — \(verb) (S\(season)E\(ep))"
+        .sheet(isPresented: $showAniListImportSheet) {
+            ConciergeAniListImportSheet(
+                supabaseService: supabaseService,
+                isGermanLocale: isGermanLocale
+            ) { response in
+                let count = response.itemCount ?? 0
+                await sendExternalImport(
+                    sourceLabel: "AniList",
+                    displayText: isGermanLocale
+                        ? "AniList-Import — \(count) Titel"
+                        : "AniList import — \(count) items",
+                    sourceText: response.text ?? "",
+                    truncated: response.truncated ?? false
+                )
             }
-            if let ep = parsed.progressEpisodes {
-                return "\(cleanTitle) — \(verb) (Ep \(ep))"
+        }
+        .task {
+            // Warm up the edge function isolate on view appear (fire-and-forget)
+            warmupTask = Task.detached(priority: .background) {
+                await supabaseService.conciergeWarmup()
             }
-            return "\(cleanTitle) — \(verb)"
-        } else {
-            if let ch = parsed.progressChapters {
-                return "\(cleanTitle) — \(verb) (Ch \(ch))"
+
+            // Pre-fill input from deep link prompt (consumed once)
+            if !didConsumeInitialPrompt, let prompt = initialPrompt?.trimmingCharacters(in: .whitespacesAndNewlines), !prompt.isEmpty {
+                didConsumeInitialPrompt = true
+                input = prompt
+                focusRequest = true
             }
-            if let vol = parsed.progressVolumes {
-                return "\(cleanTitle) — \(verb) (Vol \(vol))"
+        }
+        .onDisappear {
+            lastApplySessionResetTask?.cancel()
+            warmupTask?.cancel()
+            prefetchTask?.cancel()
+            prefetchTask2?.cancel()
+            backgroundRefreshTask?.cancel()
+            backgroundRefreshTask2?.cancel()
+            undoRefreshTask?.cancel()
+            toastDismissTask?.cancel()
+            disambiguationTask?.cancel()
+        }
+        .preferredColorScheme(.light)
+    }
+
+    private var editorialChatView: some View {
+        ConciergeEditorialShell(
+            title: "Concierge",
+            subtitle: editorialSubtitle,
+            errorText: errorText,
+            showsIntentDeck: false
+        ) {
+            EmptyView()
+        } responseStage: {
+            ConciergeResponseStage {
+                messageTimeline(
+                    horizontalPadding: 24,
+                    topPadding: 20,
+                    bottomPadding: 20,
+                    messageSpacing: 20,
+                    includeStarter: true
+                )
             }
-            return "\(cleanTitle) — \(verb)"
+        } composer: {
+            ConciergeInputField(
+                text: $input,
+                isSending: isWorking,
+                focusRequest: $focusRequest,
+                onSend: { text in
+                    Task { await send(text: text) }
+                }
+                ,onAutoSend: { text in
+                    // Auto-send only when the input field detects a real paste import list.
+                    Task { await send(text: text) }
+                }
+            )
+            .kuroSwipeExclusionZone()
+        } footer: {
+            EmptyView()
+        }
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { containerSize = geo.size }
+                    .onChange(of: geo.size) { containerSize = geo.size }
+            }
         }
     }
 
-    private var activeItems: [SupabaseService.ConciergeParseItem]? {
-        messages.last(where: { $0.role == .assistant && ($0.items?.isEmpty == false) })?.items
-    }
+    private func sendExternalImport(sourceLabel: String, displayText: String, sourceText: String, truncated: Bool) async {
+        let t = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return }
+        guard !isWorking else { return }
 
-    private var activeSelectedCount: Int {
-        guard let items = activeItems else { return 0 }
-        return items.reduce(0) { acc, item in
-            acc + (selectedByItemId[item.id] != nil ? 1 : 0)
-        }
-    }
-
-    private func normalizedStatus(for raw: String?, mediaType: String) -> String {
-        let s = (raw ?? "").uppercased()
-        if mediaType == "MANGA", s == "WATCHING" { return "READING" }
-        if mediaType == "ANIME", s == "READING" { return "WATCHING" }
-        if s.isEmpty { return "PLANNING" }
-        return s
-    }
-
-    private func applyActiveItems() async {
-        guard let items = activeItems else { return }
-        let chosen = items.compactMap { item -> [String: Any]? in
-            guard let c = selectedByItemId[item.id] else { return nil }
-            let status = normalizedStatus(for: item.parsed.status, mediaType: c.media_type)
-            var payload: [String: Any] = [
-                "raw": item.raw,
-                "mediaType": c.media_type,
-                "mediaId": c.media_id,
-                "status": status,
-                "confidence": c.score,
-                "candidates": item.candidates.map { cand in
-                    [
-                        "media_type": cand.media_type,
-                        "media_id": cand.media_id,
-                        "variant_type": cand.variant_type,
-                        "title_raw": cand.title_raw,
-                        "score": cand.score,
-                    ]
-                },
-            ]
-            if let p = item.parsed.progressEpisodes { payload["progressEpisodes"] = p }
-            if let p = item.parsed.progressChapters { payload["progressChapters"] = p }
-            if let p = item.parsed.progressVolumes { payload["progressVolumes"] = p }
-            if let s = item.parsed.seasonNumber { payload["seasonNumber"] = s }
-            if let e = item.parsed.episodeInSeason { payload["episodeInSeason"] = e }
-            if let b = item.parsed.caughtUp { payload["caughtUp"] = b }
-            if let b = item.parsed.lastEpisode { payload["lastEpisode"] = b }
-            if let b = item.parsed.completed { payload["completed"] = b }
-            return payload
-        }
-
-        guard !chosen.isEmpty else { return }
-        isWorking = true
         errorText = nil
+        let sendStartedAt = supabaseService.beginInteractionTiming()
+
+        // Compact user bubble (avoid dumping 200 lines into chat).
+        let userMsg = ConciergeMessage(role: .user, text: displayText, sourceUserText: t, items: nil)
+        withAnimation(KuroAnimation.editorial) {
+            messages.append(userMsg)
+        }
+
+        isWorking = true
         defer { isWorking = false }
 
+        await handleImportFlow(text: t, interactionStartedAt: sendStartedAt)
+
+        if truncated {
+            showToast(.init(
+                kind: .info,
+                title: isGermanLocale ? "Teilimport" : "Partial import",
+                subtitle: isGermanLocale ? "Ich habe zuerst 200 Titel importiert. Du kannst später mehr importieren." : "Imported the first 200 items. You can import more later.",
+                actionTitle: nil,
+                onAction: nil
+            ), autoDismissSeconds: 4.0)
+        }
+    }
+
+    // MARK: Chat View (Always Visible)
+    private var chatView: some View {
+        VStack(spacing: 0) {
+            messageTimeline(
+                horizontalPadding: KuroDesignSpacing.padding,
+                topPadding: KuroDesignSpacing.md,
+                bottomPadding: KuroDesignSpacing.md,
+                includeStarter: true
+            )
+
+            if let errorText {
+                Text(errorText)
+                    .font(.kuroCaption())
+                    .foregroundColor(.kuroError)
+                    .padding(.horizontal, KuroDesignSpacing.padding)
+                    .padding(.vertical, 10)
+            }
+
+            Rectangle()
+                .fill(Color.kuroBlack06)
+                .frame(height: 0.5)
+
+            ConciergeInputField(
+                text: $input,
+                isSending: isWorking,
+                focusRequest: $focusRequest,
+                onSend: { text in
+                    Task { await send(text: text) }
+                }
+            )
+            .kuroSwipeExclusionZone()
+            .padding(.horizontal, KuroDesignSpacing.md)
+            .padding(.bottom, 14)
+            .padding(.top, KuroDesignSpacing.sm)
+        }
+        .overlay(alignment: .bottomLeading) {
+            if assistantEnabled {
+                KuroConciergeMascot(
+                    expanded: $assistantExpanded,
+                    offset: $assistantOffset,
+                    dragStart: $assistantDragStart,
+                    baseBottomPadding: 104,
+                    containerSize: containerSize,
+                    state: mascotState
+                ) {
+                    focusRequest = true
+                }
+            }
+        }
+        .background {
+            GeometryReader { geo in
+                Color.clear
+                    .onAppear { containerSize = geo.size }
+                    .onChange(of: geo.size) { containerSize = geo.size }
+            }
+        }
+    }
+
+    private func messageTimeline(
+        horizontalPadding: CGFloat,
+        topPadding: CGFloat,
+        bottomPadding: CGFloat,
+        messageSpacing: CGFloat = KuroDesignSpacing.md,
+        includeStarter: Bool
+    ) -> some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(alignment: .leading, spacing: messageSpacing) {
+                    if includeStarter && messages.isEmpty {
+                        ConciergeIntroCard()
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 14)
+                            .padding(.bottom, KuroDesignSpacing.sm)
+
+                        ConciergeStarterActions(
+                            onPaste: { pasteFromClipboard() },
+                            onImportLibrary: {
+                                Task { await importFromLibrary() }
+                            },
+                            onExampleImport: { seedExampleImport() },
+                            onExampleVibe: { seedExampleVibe() }
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+
+                    if !messages.isEmpty {
+                        HStack {
+                            Spacer()
+                            Button {
+                                startNewChat()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.message")
+                                        .font(.kuroCustom(10, weight: .medium, relativeTo: .caption1))
+                                    Text("NEW CHAT")
+                                        .font(.kuroMicro(weight: .semibold))
+                                        .tracking(1.2)
+                                }
+                                .foregroundColor(.kuroTextTertiary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.kuroBlack06)
+                                )
+                            }
+                        }
+                    }
+
+                    ForEach(messages) { msg in
+                        ConciergeBubble(
+                            message: msg,
+                            selected: { item in selectedByItemId[item.id] },
+                            onSelect: { item, candidate in
+                                KuroAccessibility.impactHaptic(.light)
+                                selectedByItemId[item.id] = candidate
+                            },
+                            onOpenRecommendation: { rec in
+                                Task { await openRecommendation(rec) }
+                            },
+                            onQuickSave: { rec in
+                                Task { await quickSaveRecommendation(rec) }
+                            },
+                            onClarifyPaste: { pasteFromClipboard() },
+                            onClarifyImportLibrary: {
+                                Task { await importFromLibrary() }
+                            },
+                            onClarifyExampleImport: { seedExampleImport() },
+                            onClarifyExampleVibe: { seedExampleVibe() },
+                            onClarifyAmbiguity: clarifyV2Enabled ? { kind, value, sourceText in
+                                Task { await handleClarification(kind: kind, value: value, sourceText: sourceText) }
+                            } : nil,
+                            onConfirmItems: { response in
+                                Task { await confirmImport(response: response, sourceMessageId: msg.id) }
+                            },
+                            onReparse: {
+                                reparse(message: msg)
+                            },
+                            onUndoImport: lastApplySessionId != nil ? {
+                                guard let sid = lastApplySessionId else { return }
+                                Task { await undoApply(sessionId: sid) }
+                            } : nil,
+                            onViewCollection: appliedImportMessageIds.contains(msg.id) ? {
+                                navigateToCollection()
+                            } : nil,
+                            isImportApplied: appliedImportMessageIds.contains(msg.id),
+                            isImportApplying: applyingImportMessageId == msg.id,
+                            importAppliedSummary: appliedImportMessageIds.contains(msg.id) ? appliedImportSummary : nil,
+                            autoReasonByItemId: autoReasonByItemId,
+                            itemActions: itemActions,
+                            excludedItemIds: $excludedItemIds
+                        )
+                        .id(msg.id)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+
+                    if isWorking && !messages.isEmpty {
+                        ConciergeTypingIndicator()
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                }
+                .padding(.horizontal, horizontalPadding)
+                .padding(.top, topPadding)
+                .padding(.bottom, bottomPadding)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: messages.count) {
+                if let last = messages.last {
+                    withAnimation(KuroAnimation.fast) {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: Send (Main Entry Point)
+    private func send(text: String) async {
+        guard !text.isEmpty else { return }
+        guard !isWorking else { return }
+        errorText = nil
+        let sendStartedAt = supabaseService.beginInteractionTiming()
+
+        #if DEBUG
+        let sendStart = CFAbsoluteTimeGetCurrent()
+        #endif
+
+        // Add user message immediately (optimistic)
+        let userMsg = ConciergeMessage(role: .user, text: text, items: nil)
+        withAnimation(KuroAnimation.editorial) {
+            messages.append(userMsg)
+        }
+
+        // Mark first use (collapses intro hint on next visit)
+        if !UserDefaults.standard.bool(forKey: "kuro_concierge_used") {
+            UserDefaults.standard.set(true, forKey: "kuro_concierge_used")
+        }
+
+        #if DEBUG
+        let optimisticEnd = CFAbsoluteTimeGetCurrent()
+        print("[Concierge Timing] send() called -> optimistic append: \(String(format: "%.1f", (optimisticEnd - sendStart) * 1000))ms")
+        #endif
+
+        // Low-signal prompts ("ADD", random letters, etc.) should not guess.
+        // Ask a clarifying question with examples instead of hitting the network.
+        if shouldAskClarifyingQuestion(text) {
+            let assistantMsg = ConciergeMessage(
+                role: .assistant,
+                text: "What would you like to do?",
+                showClarifyActions: true,
+                items: nil
+            )
+            withAnimation(KuroAnimation.editorial) {
+                messages.append(assistantMsg)
+            }
+            supabaseService.analytics.track("clarify_shown", payload: [
+                "reason": "low_signal",
+                "input_length": Double(text.count),
+                "surface": "concierge_chat",
+                "result": "clarify",
+            ])
+            supabaseService.trackInteractionEvent(
+                "concierge_first_response_ms",
+                surface: "concierge_chat",
+                result: "clarify",
+                startedAt: sendStartedAt
+            )
+            return
+        }
+
+        isWorking = true
+
+        if fmAssistEnabled {
+            // FM-primary: use on-device model for intent classification
+            let locale = isGermanLocale ? "de" : "en"
+            let fmResult = await supabaseService.fmService.assistIntent(text: text, locale: locale)
+
+            if let result = fmResult, result.confidence >= 0.65 {
+                let intent = result.selectedIntent
+
+                supabaseService.analytics.track("intent_detected", payload: [
+                    "intent": intent,
+                    "source": "fm",
+                    "confidence": result.confidence,
+                    "input_length": Double(text.count),
+                ])
+
+                #if DEBUG
+                print("[Concierge] FM intent: \(intent) (confidence: \(String(format: "%.2f", result.confidence)), reasoning: \(result.reasoning))")
+                #endif
+
+                switch intent {
+                case "import":
+                    await handleImportFlow(text: text, interactionStartedAt: sendStartedAt)
+                case "unknown":
+                    let clarifyMsg = ConciergeMessage(
+                        role: .assistant,
+                        text: "What would you like to do?",
+                        showClarifyActions: true,
+                        items: nil
+                    )
+                    withAnimation(KuroAnimation.editorial) {
+                        messages.append(clarifyMsg)
+                    }
+                default:
+                    // recommend_vibe, recommend_seed, library_query, club_action
+                    await handleRecommendationFlow(text: text, interactionStartedAt: sendStartedAt)
+                }
+            } else {
+                // FM failed, timed out, or low confidence — fall back to keywords
+                #if DEBUG
+                if let result = fmResult {
+                    print("[Concierge] FM low confidence (\(String(format: "%.2f", result.confidence))), falling back to keywords")
+                } else {
+                    print("[Concierge] FM unavailable, falling back to keywords")
+                }
+                #endif
+                await routeByKeywords(text: text, sendStartedAt: sendStartedAt)
+            }
+        } else {
+            // FM not available — keyword routing (current behavior)
+            await routeByKeywords(text: text, sendStartedAt: sendStartedAt)
+        }
+
+        isWorking = false
+    }
+
+    private func routeByKeywords(text: String, sendStartedAt: CFAbsoluteTime) async {
+        if looksLikeImport(text) {
+            supabaseService.analytics.track("intent_detected", payload: [
+                "intent": "import",
+                "source": "keywords",
+                "input_length": Double(text.count),
+            ])
+            await handleImportFlow(text: text, interactionStartedAt: sendStartedAt)
+        } else {
+            supabaseService.analytics.track("intent_detected", payload: [
+                "intent": "recommend",
+                "source": "keywords",
+                "input_length": Double(text.count),
+            ])
+            await handleRecommendationFlow(text: text, interactionStartedAt: sendStartedAt)
+        }
+    }
+
+    private func reparse(message: ConciergeMessage) {
+        // Only assistant messages that were generated from a specific user input can re-parse.
+        guard message.role == .assistant, let source = message.sourceUserText, !source.isEmpty else { return }
+        input = source
+        focusRequest = true
+    }
+
+    // MARK: Clarification Re-Parse (Disambiguated)
+    private func handleClarification(kind: String, value: String, sourceText: String) async {
+        guard clarifyV2Enabled else { return }
+        errorText = nil
+        isWorking = true
+
+        // Dismiss keyboard
+        #if os(iOS)
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        #endif
+
+        // Intent-level clarify can switch flows directly.
+        if kind == "intent_unclear" {
+            if value.lowercased() == "recommend_seed" {
+                supabaseService.analytics.track("clarify_selected", payload: [
+                    "kind": kind,
+                    "value": value,
+                    "routed_to": "recommend",
+                    "surface": "concierge_chat",
+                    "result": "recommend",
+                ])
+                await handleRecommendationFlow(text: sourceText)
+                isWorking = false
+                return
+            }
+        }
+
+        let clarification = [kind: value]
+        supabaseService.analytics.track("clarify_selected", payload: [
+            "kind": kind,
+            "value": value,
+            "routed_to": "import_reparse",
+            "surface": "concierge_chat",
+            "result": "import_reparse",
+        ])
+
         do {
-            let summaryLines: [String] = items.compactMap { item in
+            let response = try await supabaseService.conciergeParse(
+                text: sourceText,
+                scope: .both,
+                clarification: clarification
+            )
+
+            // Pre-select top candidates
+            for item in response.items {
+                autoReasonByItemId[item.id] = nil
+                if let top = item.candidates.first, top.score >= 0.60 {
+                    if !hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention) {
+                        selectedByItemId[item.id] = top
+                    }
+                }
+                let action = computeItemAction(item: item)
+                itemActions[item.id] = action
+            }
+
+            // Check if there are still ambiguities in the re-parsed response
+            let remainingAmbiguity = response.items.compactMap(\.ambiguity).first
+
+            if remainingAmbiguity != nil, clarifyV2Enabled {
+                // Still ambiguous -- show another clarify card
+                let assistantMsg = ConciergeMessage(
+                    role: .assistant,
+                    text: "",
+                    sourceUserText: sourceText,
+                    items: response.items,
+                    parseResponse: response,
+                    ambiguity: remainingAmbiguity
+                )
+                withAnimation(KuroAnimation.editorial) {
+                    messages.append(assistantMsg)
+                }
+            } else {
+                // Resolved -- show the confirm bubble
+                let assistantMsg = ConciergeMessage(
+                    role: .assistant,
+                    text: "",
+                    sourceUserText: sourceText,
+                    items: response.items,
+                    parseResponse: response
+                )
+                withAnimation(KuroAnimation.editorial) {
+                    messages.append(assistantMsg)
+                }
+            }
+        } catch {
+            handleError(error)
+        }
+
+        isWorking = false
+    }
+
+    // NOTE: This runs BEFORE FM intent classification (by design).
+    // Catches garbage/low-signal input without burning FM inference.
+    private func shouldAskClarifyingQuestion(_ text: String) -> Bool {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.isEmpty { return true }
+
+        // If it already looks like an import (multi-line, progress/status cues), don't block.
+        if looksLikeImport(t) { return false }
+
+        // Single-token short inputs are most likely noise unless they are known abbreviations.
+        let tokens = t.split(whereSeparator: { $0.isWhitespace || $0 == "," || $0 == ";" })
+        if tokens.count == 1 {
+            let s = String(tokens[0])
+            let upper = s.uppercased()
+
+            // Known short anime abbreviations we should treat as a seed instead of asking.
+            // Keep this set small and high-signal; the server still handles the rich parsing.
+            let knownAbbrev: Set<String> = [
+                "AOT", "HXH", "NGE", "EVA", "DB", "DBZ", "DBS", "SAO",
+                "TPN", "BNHA", "OP"
+            ]
+            if knownAbbrev.contains(upper) { return false }
+
+            // Obvious low-signal (very short or command-like).
+            if s.count <= 3 { return true }
+            if upper == "ADD" || upper == "IMPORT" { return true }
+
+            // Random letters (no vowels) tends to be noise: "AGBTT".
+            if s.count <= 6,
+               s.range(of: #"^[A-Za-z]{3,6}$"#, options: .regularExpression) != nil
+            {
+                let lower = s.lowercased()
+                let hasVowel = lower.contains(where: { "aeiouy".contains($0) })
+                if !hasVowel { return true }
+            }
+        }
+
+        // If it's extremely short and has no structure, ask.
+        if t.count < 5, t.range(of: #"[0-9\(\)]"#, options: .regularExpression) == nil {
+            return true
+        }
+
+        return false
+    }
+
+    // MARK: Import Flow (Inline)
+    private func handleImportFlow(text: String, interactionStartedAt: SupabaseService.InteractionStartedAt? = nil) async {
+        let parseStartedAt = supabaseService.beginInteractionTiming()
+        do {
+            var firstResponseTracked = false
+
+            func trackFirstResponseIfNeeded(_ result: String) {
+                guard let interactionStartedAt, !firstResponseTracked else { return }
+                firstResponseTracked = true
+                supabaseService.trackInteractionEvent(
+                    "concierge_first_response_ms",
+                    surface: "concierge_chat",
+                    result: result,
+                    startedAt: interactionStartedAt
+                )
+            }
+
+            #if DEBUG
+            let parseStart = CFAbsoluteTimeGetCurrent()
+            #endif
+
+            let response = try await supabaseService.conciergeParse(text: text, scope: .both)
+
+            supabaseService.analytics.track("parse_completed", payload: [
+                "item_count": Double(response.items.count),
+                "has_ambiguity": response.items.contains { $0.ambiguity != nil },
+            ])
+            supabaseService.trackInteractionEvent(
+                "concierge_parse_ms",
+                surface: "concierge_parse",
+                result: "ok",
+                startedAt: parseStartedAt,
+                extra: ["item_count": response.items.count]
+            )
+
+            #if DEBUG
+            let parseEnd = CFAbsoluteTimeGetCurrent()
+            print("[Concierge Timing] parse response returned: \(String(format: "%.0f", (parseEnd - parseStart) * 1000))ms")
+            #endif
+
+            // Prefetch top candidate covers so the confirm bubble feels instant.
+            #if canImport(UIKit)
+            let maxPrefetchItems = conciergePerfV2Enabled ? 12 : 8
+            let coverUrls: [URL] = Array(response.items.flatMap { item in
+                item.candidates.prefix(1).compactMap { c in
+                    guard let s = c.cover_image_medium, let url = URL(string: s) else { return nil }
+                    return url
+                }
+            }.prefix(maxPrefetchItems))
+            #if DEBUG
+            let prefetchStart = CFAbsoluteTimeGetCurrent()
+            print("[Concierge Timing] image prefetch started: \(String(format: "%.1f", (prefetchStart - parseEnd) * 1000))ms after parse")
+            #endif
+            prefetchTask = Task.detached(priority: .background) {
+                await ImagePipeline.shared.prefetch(urls: coverUrls, maxPixelSize: 520)
+            }
+            #endif
+
+            // Pre-select top candidates (skip when adaptations are ambiguous)
+            var hasAnyExistingEntry = false
+            var ambiguousItemsNeedingHelp: [SupabaseService.ConciergeParseItem] = []
+            for item in response.items {
+                autoReasonByItemId[item.id] = nil
+                if let top = item.candidates.first, top.score >= 0.60 {
+                    if hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention) {
+                        ambiguousItemsNeedingHelp.append(item)
+                        continue
+                    }
+                    selectedByItemId[item.id] = top
+                }
+
+                // Compute reconciliation action per item
+                let action = computeItemAction(item: item)
+                itemActions[item.id] = action
+                if item.existing_entry != nil {
+                    hasAnyExistingEntry = true
+                }
+            }
+
+            // Check for parser-level ambiguities that need user clarification
+            let parserAmbiguity = response.items.compactMap(\.ambiguity).first
+
+            if let ambiguity = parserAmbiguity, clarifyV2Enabled {
+                // Dismiss keyboard when clarify card appears
+                #if os(iOS)
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                #endif
+
+                let assistantMsg = ConciergeMessage(
+                    role: .assistant,
+                    text: ambiguity.suggested_question ?? "",
+                    sourceUserText: text,
+                    items: response.items,
+                    parseResponse: response,
+                    ambiguity: ambiguity
+                )
+                withAnimation(KuroAnimation.editorial) {
+                    messages.append(assistantMsg)
+                }
+                trackFirstResponseIfNeeded("clarify")
+                #if DEBUG
+                print("[Concierge Timing] clarify card rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
+                #endif
+            } else {
+                // Auto-apply safety: disabled when ANY item has an existing_entry
+                let allHighConfidence = !hasAnyExistingEntry && response.items.allSatisfy { item in
+                    guard let top = item.candidates.first else { return false }
+                    return top.score >= 0.85 && !hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention)
+                }
+
+                if allHighConfidence && !response.items.isEmpty {
+                    // Auto-apply: skip confirm UI entirely
+                    await autoApplyImport(response: response, interactionStartedAt: interactionStartedAt)
+                } else {
+                    // Show inline confirm bubble in chat
+                    let assistantMsg = ConciergeMessage(
+                        role: .assistant,
+                        text: "",
+                        sourceUserText: text,
+                        items: response.items,
+                        parseResponse: response
+                    )
+                    withAnimation(KuroAnimation.editorial) {
+                        messages.append(assistantMsg)
+                    }
+                    trackFirstResponseIfNeeded("confirm")
+                    #if DEBUG
+                    print("[Concierge Timing] confirm bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
+                    #endif
+                }
+            }
+
+            // On-device Apple FM can help pick the correct adaptation when candidates share a base title
+            // (e.g. "Hunter x Hunter" 1999 vs 2011). This runs after the confirm bubble is visible
+            // so the UI stays snappy, and it never overrides a user-made selection.
+            if !ambiguousItemsNeedingHelp.isEmpty {
+                disambiguationTask = Task {
+                    await autoDisambiguateAmbiguousAdaptations(items: ambiguousItemsNeedingHelp, userText: text)
+                }
+            }
+        } catch {
+            supabaseService.trackInteractionEvent(
+                "concierge_parse_ms",
+                surface: "concierge_parse",
+                result: "error",
+                startedAt: parseStartedAt
+            )
+            handleError(error)
+        }
+    }
+
+    private func autoDisambiguateAmbiguousAdaptations(
+        items: [SupabaseService.ConciergeParseItem],
+        userText: String
+    ) async {
+        // FM assist is optional and flag-gated.
+        guard fmAssistEnabled else { return }
+
+        for item in items {
+            if Task.isCancelled { return }
+
+            // Respect manual selections and "excluded" toggles.
+            if excludedItemIds.contains(item.id) { continue }
+            if selectedByItemId[item.id] != nil { continue }
+
+            // Keep the candidate set small to reduce latency.
+            let topCandidates = Array(item.candidates.prefix(4))
+            guard topCandidates.count >= 2 else { continue }
+
+            let fmCandidates: [DisambiguationCandidate] = topCandidates.enumerated().map { i, c in
+                DisambiguationCandidate(
+                    index: i,
+                    title: c.title_raw,
+                    year: c.year,
+                    format: c.format,
+                    score: c.score,
+                    variantType: c.media_type
+                )
+            }
+
+            guard let picked = await supabaseService.fmService.disambiguate(
+                candidates: fmCandidates,
+                userText: userText,
+                rawTitle: item.raw
+            ) else {
+                continue
+            }
+
+            let idx = picked.selectedIndex
+            guard topCandidates.indices.contains(idx) else { continue }
+
+            // Apply only if the user still hasn't chosen something else.
+            if selectedByItemId[item.id] == nil && !excludedItemIds.contains(item.id) {
+                selectedByItemId[item.id] = topCandidates[idx]
+                autoReasonByItemId[item.id] = picked.reasoning
+            }
+        }
+    }
+
+    // MARK: Reconciliation Helpers
+
+    private func computeItemAction(item: SupabaseService.ConciergeParseItem) -> ImportItemAction {
+        guard let existing = item.existing_entry else { return .add }
+        let diff = computeDiff(existing: existing, parsed: item.parsed)
+        if let diff, !diff.isEmpty { return .update }
+        return .skip
+    }
+
+    private func computeDiff(existing: SupabaseService.ConciergeExistingEntry, parsed: SupabaseService.ConciergeParseItemParsed) -> ImportDiff? {
+        var diff = ImportDiff()
+
+        if let parsedStatus = parsed.status,
+           parsedStatus.uppercased() != existing.status.uppercased() {
+            diff.status = ImportDiff.FieldDiff(from: existing.status, to: parsedStatus.uppercased())
+        }
+        if let ep = parsed.progressEpisodes,
+           ep != (existing.progress_episodes ?? 0) {
+            diff.progressEpisodes = ImportDiff.FieldDiff(from: existing.progress_episodes ?? 0, to: ep)
+        }
+        if let ch = parsed.progressChapters,
+           ch != (existing.progress_chapters ?? 0) {
+            diff.progressChapters = ImportDiff.FieldDiff(from: existing.progress_chapters ?? 0, to: ch)
+        }
+        if let vol = parsed.progressVolumes,
+           vol != (existing.progress_volumes ?? 0) {
+            diff.progressVolumes = ImportDiff.FieldDiff(from: existing.progress_volumes ?? 0, to: vol)
+        }
+
+        return diff.isEmpty ? nil : diff
+    }
+
+    // MARK: Auto-Apply (High Confidence, Pure Adds Only)
+    private func autoApplyImport(
+        response: SupabaseService.ConciergeParseResponse,
+        interactionStartedAt: SupabaseService.InteractionStartedAt? = nil
+    ) async {
+        do {
+            let chosen = buildApplyPayload(from: response)
+            guard !chosen.isEmpty else { return }
+
+            let res = try await supabaseService.conciergeApply(items: chosen)
+            if let sessionId = res.sessionId {
+                setLastApplySession(sessionId)
+            }
+
+            // Check if the apply actually succeeded
+            guard res.success else {
+                let errorDetail = res.errors?.first?.error ?? "Unknown error"
+                showToast(.init(kind: .error, title: "Failed to add items", subtitle: errorDetail, actionTitle: nil, onAction: nil))
+                return
+            }
+
+            // Refresh collection in background (don't block toast)
+            backgroundRefreshTask = Task.detached {
+                async let _lists: () = supabaseService.fetchUserLists()
+                async let _items: () = supabaseService.fetchCollectionItems()
+                async let _feed: () = supabaseService.fetchCollectionFeed(status: nil)
+                _ = await (_lists, _items, _feed)
+            }
+
+            // Show success toast with undo
+            let appliedCount = res.applied?.count ?? chosen.count
+            let summaryText = "\(appliedCount) item\(appliedCount == 1 ? "" : "s") added to collection"
+            let sid = lastApplySessionId
+            showToast(.init(
+                kind: .success,
+                title: summaryText,
+                subtitle: nil,
+                actionTitle: "UNDO",
+                onAction: {
+                    guard let sid else { return }
+                    Task {
+                        await undoApply(sessionId: sid)
+                    }
+                }
+            ), autoDismissSeconds: 4.0)
+
+            // Build title list for confirmation message
+            let titleNames = response.items.compactMap { item -> String? in
                 guard let c = selectedByItemId[item.id] else { return nil }
-                let status = normalizedStatus(for: item.parsed.status, mediaType: c.media_type)
-                return summaryLineForAppliedItem(title: c.title_raw, mediaType: c.media_type, status: status, parsed: item.parsed)
+                if excludedItemIds.contains(item.id) { return nil }
+                return c.title_raw
+            }
+            let titleList = titleNames.isEmpty ? "" : "\n" + titleNames.map { "· \($0)" }.joined(separator: "\n")
+
+            // Add confirmation message to chat
+            let confirmMsg = ConciergeMessage(
+                role: .assistant,
+                text: "\(summaryText).\(titleList)",
+                items: nil
+            )
+            withAnimation(KuroAnimation.editorial) {
+                appliedImportSummary = summaryText
+                messages.append(confirmMsg)
+            }
+            if let interactionStartedAt {
+                supabaseService.trackInteractionEvent(
+                    "concierge_first_response_ms",
+                    surface: "concierge_chat",
+                    result: "auto_apply",
+                    startedAt: interactionStartedAt
+                )
+            }
+
+        } catch {
+            handleError(error)
+        }
+    }
+
+    // MARK: Recommendation Flow (Inline Rails)
+    private func handleRecommendationFlow(
+        text: String,
+        interactionStartedAt: SupabaseService.InteractionStartedAt? = nil
+    ) async {
+        let recommendStartedAt = supabaseService.beginInteractionTiming()
+        do {
+            var firstResponseTracked = false
+
+            func trackFirstResponseIfNeeded(_ result: String) {
+                guard let interactionStartedAt, !firstResponseTracked else { return }
+                firstResponseTracked = true
+                supabaseService.trackInteractionEvent(
+                    "concierge_first_response_ms",
+                    surface: "concierge_chat",
+                    result: result,
+                    startedAt: interactionStartedAt
+                )
+            }
+
+            #if DEBUG
+            let recStart = CFAbsoluteTimeGetCurrent()
+            #endif
+
+            let rec = try await supabaseService.conciergeRecommend(text: text, scope: .both, limit: 8)
+            supabaseService.trackInteractionEvent(
+                "concierge_recommend_ms",
+                surface: "concierge_recommend",
+                result: "ok",
+                startedAt: recommendStartedAt,
+                extra: ["item_count": (rec.items ?? []).count]
+            )
+            lastRecommendQuery = text
+            lastRecommendWasRagAssist = rec.assist?.ragUsed == true
+            lastRagSeedEntityId = rec.assist?.seedEntityId
+            let sets = (rec.sets ?? []).filter { ($0.items ?? []).isEmpty == false }
+            let flattened = sets.flatMap { $0.items ?? [] }
+            let displayItems = !flattened.isEmpty ? flattened : (rec.items ?? [])
+            let note = (rec.curatorNote ?? sets.first?.curatorNote ?? rec.message ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+            #if DEBUG
+            let recEnd = CFAbsoluteTimeGetCurrent()
+            print("[Concierge Timing] recommend response returned: \(String(format: "%.0f", (recEnd - recStart) * 1000))ms")
+            #endif
+
+            // Prefetch recommendation posters for a snappy first render.
+            #if canImport(UIKit)
+            let maxPrefetchItems = conciergePerfV2Enabled ? 12 : 8
+            let recUrls: [URL] = Array(displayItems.compactMap { item in
+                guard let s = item.coverImageMedium, let url = URL(string: s) else { return nil }
+                return url
+            }.prefix(maxPrefetchItems))
+            #if DEBUG
+            print("[Concierge Timing] rec image prefetch started: \(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - recEnd) * 1000))ms after response")
+            #endif
+            prefetchTask2 = Task.detached(priority: .background) {
+                await ImagePipeline.shared.prefetch(urls: recUrls, maxPixelSize: 560)
+            }
+            #endif
+
+            if rec.success, !displayItems.isEmpty {
+                // Append inline recommendation message with editorial rails
+                let assistantMsg = ConciergeMessage(
+                    role: .assistant,
+                    text: note,
+                    items: nil,
+                    recommendations: !sets.isEmpty ? nil : displayItems,
+                    recommendationSets: !sets.isEmpty ? sets : nil
+                )
+                withAnimation(KuroAnimation.editorial) {
+                    messages.append(assistantMsg)
+                }
+                let ladderCandidates: [(mediaType: String, mediaId: Int)] = displayItems
+                    .prefix(8)
+                    .map { item in
+                        (mediaType: item.mediaType.uppercased(), mediaId: item.mediaId)
+                    }
+                supabaseService.prefetchMediaRelationRefreshRequests(
+                    items: ladderCandidates,
+                    reason: "concierge_recommend"
+                )
+                trackFirstResponseIfNeeded("recommend")
+                #if DEBUG
+                print("[Concierge Timing] rec bubble rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - recStart) * 1000))ms total from rec start")
+                #endif
+            } else {
+                lastRecommendWasRagAssist = false
+                lastRagSeedEntityId = nil
+                // No results — show text message
+                let locale = (rec.locale ?? "en").lowercased()
+                let fallback = locale.hasPrefix("de")
+                    ? "Sag mir eine Stimmung oder eine klare Kante (kurz, ohne Romance, ein Jahr) — ich kuratiere es neu fuer dich."
+                    : "Give me a mood or one constraint (short, no romance, a year) and I’ll curate it — new to you."
+                let assistantMsg = ConciergeMessage(
+                    role: .assistant,
+                    text: rec.message ?? fallback,
+                    items: nil
+                )
+                withAnimation(KuroAnimation.editorial) {
+                    messages.append(assistantMsg)
+                }
+                trackFirstResponseIfNeeded("recommend_empty")
+            }
+
+        } catch {
+            supabaseService.trackInteractionEvent(
+                "concierge_recommend_ms",
+                surface: "concierge_recommend",
+                result: "error",
+                startedAt: recommendStartedAt
+            )
+            handleError(error)
+        }
+    }
+
+    // MARK: Confirm Import (From Inline Bubble)
+    private func confirmImport(response: SupabaseService.ConciergeParseResponse, sourceMessageId: UUID? = nil) async {
+        isWorking = true
+        if let sourceMessageId {
+            applyingImportMessageId = sourceMessageId
+        }
+
+        do {
+            let chosen = buildApplyPayload(from: response)
+
+            guard !chosen.isEmpty else {
+                showToast(.init(kind: .error, title: "No items selected", subtitle: nil, actionTitle: nil, onAction: nil))
+                isWorking = false
+                applyingImportMessageId = nil
+                return
             }
 
             let res = try await supabaseService.conciergeApply(items: chosen)
-            if let sessionId = res.sessionId { lastApplySessionId = sessionId }
-            await supabaseService.fetchUserLists()
-            await supabaseService.fetchCollectionItems()
-            await supabaseService.fetchCollectionFeed(status: nil)
-            let details = summaryLines.isEmpty ? "" : ("\n" + summaryLines.prefix(8).map { "• \($0)" }.joined(separator: "\n"))
-            messages.append(
-                ConciergeMessage(
-                    role: .assistant,
-                    text: res.success
-                        ? "Saved.\(details)"
-                        : "Applied with errors. You can try again or undo the last batch.",
-                    items: nil
-                )
-            )
-            if res.success {
-                let n = chosen.count
-                showToast(
-                    .init(
-                        kind: .success,
-                        title: "Saved \(n) item\(n == 1 ? "" : "s")",
-                        subtitle: lastApplySessionId == nil ? nil : "You can undo the batch.",
-                        actionTitle: lastApplySessionId == nil ? nil : "Undo",
-                        onAction: lastApplySessionId == nil ? nil : { Task { await undoLastApply() } }
-                    ),
-                    autoDismissSeconds: lastApplySessionId == nil ? 2.0 : 4.5
-                )
-            } else {
-                showToast(.init(kind: .error, title: "Applied with issues", subtitle: "Try again or undo.", actionTitle: nil, onAction: nil))
+            if let sessionId = res.sessionId {
+                setLastApplySession(sessionId)
             }
+
+            // Check if the apply actually succeeded
+            guard res.success else {
+                let errorDetail = res.errors?.first?.error ?? "Unknown error"
+                showToast(.init(kind: .error, title: "Failed to apply items", subtitle: errorDetail, actionTitle: nil, onAction: nil))
+                isWorking = false
+                applyingImportMessageId = nil
+                return
+            }
+
+            // Refresh collection in background
+            backgroundRefreshTask2 = Task.detached {
+                async let _lists: () = supabaseService.fetchUserLists()
+                async let _items: () = supabaseService.fetchCollectionItems()
+                async let _feed: () = supabaseService.fetchCollectionFeed(status: nil)
+                _ = await (_lists, _items, _feed)
+            }
+
+            // Compute summary text based on actual server response
+            let appliedItems = res.applied ?? []
+            let serverAddCount = appliedItems.filter { $0.action == "add" }.count
+            let serverUpdateCount = appliedItems.filter { $0.action == "update" }.count
+            let conflictCount = res.conflicts?.count ?? 0
+
+            var summaryParts: [String] = []
+            if serverAddCount > 0 { summaryParts.append("\(serverAddCount) added") }
+            if serverUpdateCount > 0 { summaryParts.append("\(serverUpdateCount) updated") }
+            let summaryText = summaryParts.isEmpty ? "\(appliedItems.count) items applied" : summaryParts.joined(separator: ", ")
+
+            let sid = lastApplySessionId
+            showToast(.init(
+                kind: conflictCount > 0 ? .info : .success,
+                title: summaryText,
+                subtitle: conflictCount > 0 ? "\(conflictCount) conflict\(conflictCount == 1 ? "" : "s") -- review needed" : nil,
+                actionTitle: "UNDO",
+                onAction: {
+                    guard let sid else { return }
+                    Task {
+                        await undoApply(sessionId: sid)
+                    }
+                }
+            ), autoDismissSeconds: 4.0)
+
+            withAnimation(KuroAnimation.editorial) {
+                appliedImportSummary = summaryText
+                applyingImportMessageId = nil
+                if let sourceMessageId {
+                    appliedImportMessageIds.insert(sourceMessageId)
+                    lastAppliedImportMessageId = sourceMessageId
+                }
+            }
+
         } catch {
-            errorText = "Apply failed: \(error.localizedDescription)"
-            showToast(.init(kind: .error, title: "Apply failed", subtitle: error.localizedDescription, actionTitle: nil, onAction: nil))
+            handleError(error)
+        }
+
+        isWorking = false
+    }
+
+    // MARK: Build Apply Payload
+    private func buildApplyPayload(from response: SupabaseService.ConciergeParseResponse) -> [[String: Any]] {
+        response.items.compactMap { item -> [String: Any]? in
+            guard let c = selectedByItemId[item.id] else { return nil }
+
+            // Respect per-item exclusion toggles
+            if excludedItemIds.contains(item.id) { return nil }
+
+            let action = itemActions[item.id] ?? .add
+            // Skip items produce no apply payload
+            if action == .skip { return nil }
+
+            let mediaType = c.media_type
+            let status = normalizedStatus(for: item.parsed.status, mediaType: mediaType)
+
+            var payload: [String: Any] = [
+                "raw": item.raw,
+                "mediaType": mediaType.uppercased(),
+                "mediaId": c.media_id,
+                "status": status,
+                "confidence": c.score,
+                "action": action.rawValue,
+            ]
+
+            let p = item.parsed
+            if let v = p.progressEpisodes  { payload["progressEpisodes"] = v }
+            if let v = p.progressChapters   { payload["progressChapters"] = v }
+            if let v = p.progressVolumes    { payload["progressVolumes"] = v }
+            if let v = p.seasonNumber       { payload["seasonNumber"] = v }
+            if let v = p.episodeInSeason    { payload["episodeInSeason"] = v }
+            if let v = p.caughtUp           { payload["caughtUp"] = v }
+            if let v = p.lastEpisode        { payload["lastEpisode"] = v }
+            if let v = p.completed          { payload["completed"] = v }
+            if let v = p.rating             { payload["rating"] = v }
+
+            // TOCTOU protection: send expected existing state for updates
+            if action == .update, let existing = item.existing_entry {
+                var expected: [String: Any] = ["status": existing.status]
+                if let ep = existing.progress_episodes { expected["progress_episodes"] = ep }
+                if let ch = existing.progress_chapters { expected["progress_chapters"] = ch }
+                if let vol = existing.progress_volumes { expected["progress_volumes"] = vol }
+                payload["expectedExisting"] = expected
+            }
+
+            return payload
         }
     }
 
-    private func undoLastApply() async {
-        guard let sessionId = lastApplySessionId else { return }
-        isWorking = true
-        errorText = nil
-        defer { isWorking = false }
-
-        do {
-            let res = try await supabaseService.conciergeUndo(sessionId: sessionId)
-            await supabaseService.fetchUserLists()
-            await supabaseService.fetchCollectionItems()
-            await supabaseService.fetchCollectionFeed(status: nil)
-            lastApplySessionId = nil
-            messages.append(
-                ConciergeMessage(
-                    role: .assistant,
-                    text: res.success ? "Undid last batch." : "Undo failed. Try again.",
-                    items: nil
-                )
-            )
-            showToast(.init(kind: res.success ? .success : .error, title: res.success ? "Undid last batch" : "Undo failed", subtitle: nil, actionTitle: nil, onAction: nil))
-        } catch {
-            errorText = "Undo failed: \(error.localizedDescription)"
-            showToast(.init(kind: .error, title: "Undo failed", subtitle: error.localizedDescription, actionTitle: nil, onAction: nil))
-        }
-    }
-
+    // MARK: Actions
     private func openRecommendation(_ item: SupabaseService.ConciergeRecommendResponse.Item) async {
-        isWorking = true
         errorText = nil
-        defer { isWorking = false }
 
         do {
             if item.mediaType.uppercased() == "ANIME" {
                 let anime = try await supabaseService.fetchAnimeById(item.mediaId)
                 guard let anime else {
-                    errorText = "Couldn’t find that anime in the database."
+                    errorText = "Couldn't find that anime in the database."
                     return
                 }
                 selectedAnime = anime
+                recordRagFeedbackIfNeeded(accepted: true)
             } else {
                 let manga = try await supabaseService.fetchMangaById(item.mediaId)
                 guard let manga else {
-                    errorText = "Couldn’t find that manga in the database."
+                    errorText = "Couldn't find that manga in the database."
                     return
                 }
                 selectedManga = manga
+                recordRagFeedbackIfNeeded(accepted: true)
             }
         } catch {
-            errorText = "Couldn’t open: \(error.localizedDescription)"
+            errorText = "Couldn't open: \(error.localizedDescription)"
         }
     }
 
@@ -11172,25 +10595,211 @@ struct ConciergeView: View {
             status: .planning,
             progress: 0,
             rating: nil,
-            notes: nil
+            notes: nil,
+            verdict: supabaseService.userListEntry(mediaType: mediaType, mediaId: item.mediaId)?.verdict
         )
+        recordRagFeedbackIfNeeded(accepted: true)
         showToast(.init(kind: .success, title: "Added to Planning", subtitle: item.title, actionTitle: nil, onAction: nil))
     }
+
+    // MARK: Undo
+    private func undoApply(sessionId: String) async {
+        isWorking = true
+        errorText = nil
+        defer { isWorking = false }
+
+        do {
+            let res = try await supabaseService.conciergeUndo(sessionId: sessionId)
+
+            // Refresh in background
+            undoRefreshTask = Task.detached {
+                async let _lists: () = supabaseService.fetchUserLists()
+                async let _items: () = supabaseService.fetchCollectionItems()
+                async let _feed: () = supabaseService.fetchCollectionFeed(status: nil)
+                _ = await (_lists, _items, _feed)
+            }
+
+            setLastApplySession(nil)
+
+            if res.success {
+                if let lastAppliedImportMessageId {
+                    appliedImportMessageIds.remove(lastAppliedImportMessageId)
+                    self.lastAppliedImportMessageId = nil
+                }
+                showToast(.init(kind: .success, title: "Import undone", subtitle: nil, actionTitle: nil, onAction: nil))
+            } else {
+                showToast(.init(kind: .error, title: "Undo failed", subtitle: "Try again.", actionTitle: nil, onAction: nil))
+            }
+        } catch {
+            errorText = "Undo failed: \(error.localizedDescription)"
+            showToast(.init(kind: .error, title: "Undo failed", subtitle: error.localizedDescription, actionTitle: nil, onAction: nil))
+        }
+    }
+
+    // MARK: Helpers
+    private func handleError(_ error: Error) {
+        if let guardrail = error as? SupabaseService.ConciergeGuardrailsError {
+            // Persistent: rate limit / guardrail errors stay inline until next action
+            errorText = guardrail.localizedDescription
+        } else {
+            // Transient: network / server errors as auto-dismissing toast only
+            errorText = nil
+            showToast(.init(kind: .error, title: "Error", subtitle: error.localizedDescription, actionTitle: nil, onAction: nil), autoDismissSeconds: 3.0)
+        }
+    }
+
+    private func navigateToCollection() {
+        #if os(iOS)
+        if let url = URL(string: "kuro://collection") {
+            UIApplication.shared.open(url)
+        }
+        #endif
+    }
+
+    private func startNewChat() {
+        withAnimation(KuroAnimation.fast) {
+            messages = []
+        }
+        input = ""
+        focusRequest = true
+        errorText = nil
+        selectedByItemId = [:]
+        itemActions = [:]
+        excludedItemIds = []
+        autoReasonByItemId = [:]
+        appliedImportMessageIds = []
+        lastAppliedImportMessageId = nil
+        applyingImportMessageId = nil
+        appliedImportSummary = nil
+        lastRecommendQuery = nil
+        lastRecommendWasRagAssist = false
+        lastRagSeedEntityId = nil
+        ragFeedbackSentForQuery = []
+    }
+
+    private func normalizedStatus(for raw: String?, mediaType: String?) -> String {
+        let s = (raw ?? "").uppercased()
+        if mediaType == "manga", s == "WATCHING" { return "READING" }
+        if mediaType == "anime", s == "READING" { return "WATCHING" }
+        if s.isEmpty { return "PLANNING" }
+        return s
+    }
+
+    private func setLastApplySession(_ sessionId: String?) {
+        lastApplySessionResetTask?.cancel()
+        lastApplySessionId = sessionId
+        guard let sessionId else { return }
+        // Avoid stale sticky undo controls if the user moves on.
+        lastApplySessionResetTask = Task {
+            try? await Task.sleep(nanoseconds: 120_000_000_000)
+            guard !Task.isCancelled else { return }
+            if lastApplySessionId == sessionId {
+                lastApplySessionId = nil
+            }
+        }
+    }
+
+    // MARK: Adaptation Ambiguity Guard
+    private func strippedBaseTitle(_ raw: String) -> String {
+        var t = raw
+        if let range = t.range(of: #"\s*\([^)]*\)\s*$"#, options: .regularExpression) {
+            t.removeSubrange(range)
+        }
+        if let range = t.range(of: ": ") {
+            t = String(t[t.startIndex..<range.lowerBound])
+        }
+        return t.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    private func hasAmbiguousAdaptations(
+        candidates: [SupabaseService.ConciergeCandidate],
+        yearMention: Int?
+    ) -> Bool {
+        guard candidates.count >= 2 else { return false }
+
+        let top = candidates[0]
+        let second = candidates[1]
+
+        guard top.media_id != second.media_id else { return false }
+
+        let baseTop = strippedBaseTitle(top.title_raw)
+        let baseSecond = strippedBaseTitle(second.title_raw)
+        guard baseTop == baseSecond else { return false }
+
+        if let mentioned = yearMention, let topYear = top.year, topYear == mentioned {
+            return false
+        }
+
+        return true
+    }
+
+    private func recordRagFeedbackIfNeeded(accepted: Bool, rejectedReason: String? = nil) {
+        guard lastRecommendWasRagAssist, let query = lastRecommendQuery else { return }
+        let key = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !key.isEmpty else { return }
+        guard !ragFeedbackSentForQuery.contains(key) else { return }
+        ragFeedbackSentForQuery.insert(key)
+
+        let locale = Locale.current.identifier
+        let entityId = lastRagSeedEntityId
+
+        Task(priority: .utility) {
+            await supabaseService.conciergeRetrieveFeedback(
+                query: query,
+                locale: locale,
+                selectedEntityId: entityId,
+                accepted: accepted,
+                rejectedReason: rejectedReason
+            )
+        }
+    }
+
 
     @MainActor
     private func showToast(_ next: KuroToastState, autoDismissSeconds: Double = 2.5) {
         toastDismissTask?.cancel()
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(KuroAnimation.fast) {
             toast = next
         }
         toastDismissTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: UInt64(max(0.8, autoDismissSeconds) * 1_000_000_000))
             if !Task.isCancelled {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(KuroAnimation.fast) {
                     toast = nil
                 }
             }
         }
+    }
+
+    private func importFromLibrary() async {
+        guard !isWorking else { return }
+        errorText = nil
+
+        let result = await supabaseService.conciergeLibraryExportText(
+            includeStatus: Set(ListStatus.allCases),
+            includeMediaTypes: ["anime", "manga"],
+            maxItems: 400
+        )
+
+        guard let result else {
+            showToast(.init(
+                kind: .info,
+                title: isGermanLocale ? "Bibliothek leer" : "Library is empty",
+                subtitle: isGermanLocale ? "Bitte füge zuerst Titel zu deiner Bibliothek hinzu." : "Add titles to your library first.",
+                actionTitle: nil,
+                onAction: nil
+            ))
+            return
+        }
+
+        await sendExternalImport(
+            sourceLabel: isGermanLocale ? "Kuro-Liste" : "Kuro library",
+            displayText: isGermanLocale
+                ? "Kuro-Liste importieren (\(result.exportedItemCount) Titel)"
+                : "Importing from Kuro library (\(result.exportedItemCount) items)",
+            sourceText: result.text,
+            truncated: result.truncated
+        )
     }
 
     private func pasteFromClipboard() {
@@ -11198,11 +10807,17 @@ struct ConciergeView: View {
         guard let t = UIPasteboard.general.string?.trimmingCharacters(in: .whitespacesAndNewlines),
               !t.isEmpty
         else {
-            showToast(.init(kind: .info, title: "Clipboard is empty", subtitle: "Copy a list of titles, then tap Paste.", actionTitle: nil, onAction: nil))
+            showToast(.init(
+                kind: .info,
+                title: isGermanLocale ? "Zwischenablage ist leer" : "Clipboard is empty",
+                subtitle: isGermanLocale ? "Kopiere eine Liste von Titeln und tippe dann auf Einfügen." : "Copy a list of titles, then tap Paste.",
+                actionTitle: nil,
+                onAction: nil
+            ))
             return
         }
         input = t
-        inputFocused = true
+        focusRequest = true
         KuroAccessibility.impactHaptic(.light)
         #endif
     }
@@ -11213,838 +10828,162 @@ struct ConciergeView: View {
         Jujutsu Kaisen up to ep 12
         Hunter x Hunter (2011)
         """
-        inputFocused = true
+        focusRequest = true
         KuroAccessibility.impactHaptic(.light)
     }
 
     private func seedExampleVibe() {
-        input = "Something funny, premium, not childish."
-        inputFocused = true
+        input = isGermanLocale
+            ? "Etwas lustig, trocken, figurengetrieben — nicht kindisch."
+            : "Something funny, dry, character-led — not childish."
+        focusRequest = true
         KuroAccessibility.impactHaptic(.light)
     }
+
+    // MARK: Import vs Vibe Detection
+    private func looksLikeImport(_ text: String) -> Bool {
+        TextNormalization.looksLikeImport(text)
+    }
 }
 
-private struct ConciergeBubble: View {
-    let message: ConciergeMessage
-    let selected: (SupabaseService.ConciergeParseItem) -> SupabaseService.ConciergeCandidate?
-    let onSelect: (SupabaseService.ConciergeParseItem, SupabaseService.ConciergeCandidate) -> Void
-    let onOpenRecommendation: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-    let onQuickSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-    @State private var hiddenRecommendationIds: Set<String> = []
-    @State private var stepIndex: Int = 0
+// MARK: - Guided Tutorial Overlay
 
-    private func glassBubble<Content: View>(cornerRadius: CGFloat, @ViewBuilder content: () -> Content) -> some View {
-        content()
-            .background(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [Color.white.opacity(0.72), Color.white.opacity(0.18), Color.black.opacity(0.05)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.8
-                            )
-                    )
-                    .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 10)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+private struct ConciergeTutorialOverlay: View {
+    @Binding var step: Int
+    let isGerman: Bool
+    let onDismiss: () -> Void
+
+    private let steps: [(iconEN: String, titleEN: String, bodyEN: String, iconDE: String, titleDE: String, bodyDE: String)] = [
+        (
+            iconEN: "text.bubble",
+            titleEN: "Describe a mood",
+            bodyEN: "Type something like \"dark, not gory, short\" and the Concierge curates two rails for you.",
+            iconDE: "text.bubble",
+            titleDE: "Beschreibe eine Stimmung",
+            bodyDE: "Schreibe z.B. \"dunkel, kein Gore, kurz\" und der Concierge kuratiert zwei Rails fur dich."
+        ),
+        (
+            iconEN: "doc.on.clipboard",
+            titleEN: "Or paste your list",
+            bodyEN: "Paste your anime list from any source. The Concierge matches, reconciles, and imports it.",
+            iconDE: "doc.on.clipboard",
+            titleDE: "Oder fuge deine Liste ein",
+            bodyDE: "Fuge deine Anime-Liste ein. Der Concierge gleicht ab, erkennt Konflikte und importiert."
+        ),
+        (
+            iconEN: "sparkles",
+            titleEN: "Curated for you",
+            bodyEN: "Recommendations come filtered against your library. No duplicates, no noise.",
+            iconDE: "sparkles",
+            titleDE: "Kuratiert fur dich",
+            bodyDE: "Empfehlungen werden gegen deine Bibliothek gefiltert. Keine Duplikate, kein Rauschen."
+        ),
+    ]
+
+    private var activeStep: (iconEN: String, titleEN: String, bodyEN: String, iconDE: String, titleDE: String, bodyDE: String) {
+        steps[step]
     }
 
     var body: some View {
-        VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 8) {
-            if message.role == .user {
-                Text(message.text)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 14)
+        ZStack {
+            // Dimmed backdrop
+            Color.kuroBlack.opacity(0.32)
+                .ignoresSafeArea()
+                .onTapGesture { advance() }
+
+            VStack(spacing: 20) {
+                Spacer()
+
+                tutorialCard
+                .padding(.vertical, 28)
+                .padding(.horizontal, 20)
+
+                Spacer()
+
+                // Skip
+                if step < steps.count - 1 {
+                    skipButton
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(isGerman ? "Concierge-Anleitung" : "Concierge tutorial")
+    }
+
+    private var tutorialCard: some View {
+        VStack(spacing: 18) {
+            Circle()
+                .fill(Color.kuroWhite.opacity(0.12))
+                .frame(width: 56, height: 56)
+                .overlay(
+                    Image(systemName: isGerman ? activeStep.iconDE : activeStep.iconEN)
+                        .font(.kuroCustom(22, weight: .light, relativeTo: .title3))
+                        .foregroundColor(Color.kuroWhite.opacity(0.88))
+                )
+
+            Text(isGerman ? activeStep.titleDE : activeStep.titleEN)
+                .font(.kuroCustom(22, weight: .ultraLight, design: .serif, relativeTo: .title3))
+                .foregroundColor(Color.kuroWhite92)
+
+            Text(isGerman ? activeStep.bodyDE : activeStep.bodyEN)
+                .font(.kuroBody(weight: .light))
+                .foregroundColor(Color.kuroWhite.opacity(0.68))
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                .padding(.horizontal, 24)
+
+            HStack(spacing: 6) {
+                ForEach(0..<steps.count, id: \.self) { i in
+                    Circle()
+                        .fill(Color.kuroWhite.opacity(step == i ? 0.80 : 0.25))
+                        .frame(width: 5, height: 5)
+                }
+            }
+            .padding(.top, 4)
+
+            Button(action: { advance() }) {
+                Text(step < steps.count - 1
+                     ? (isGerman ? "WEITER" : "NEXT")
+                     : (isGerman ? "VERSTANDEN" : "GOT IT"))
+                    .font(.kuroCaption(weight: .medium))
+                    .tracking(1.8)
+                    .foregroundColor(Color.kuroBlack.opacity(0.88))
+                    .padding(.horizontal, 28)
                     .padding(.vertical, 12)
                     .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.black.opacity(0.92))
-                    )
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            } else {
-                glassBubble(cornerRadius: 18) {
-                    Text(message.text)
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(.black.opacity(0.9))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-
-            if let items = message.items, !items.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(items) { item in
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text(item.raw)
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.black)
-                                Spacer()
-                                if let hint = item.parsed.mediaTypeHint {
-                                    Text(hint)
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .tracking(1.0)
-                                        .foregroundColor(.black.opacity(0.45))
-                                }
-                            }
-
-                            if !item.candidates.isEmpty {
-                                let top = item.candidates.prefix(5)
-                                let picked = selected(item)
-                                ForEach(Array(top.enumerated()), id: \.offset) { _, c in
-                                    Button(action: { onSelect(item, c) }) {
-                                        HStack(spacing: 10) {
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(c.title_raw)
-                                                    .font(.system(size: 13, weight: .regular))
-                                                    .foregroundColor(.black.opacity(0.85))
-                                                    .lineLimit(1)
-                                                Text("\(c.media_type) • \(String(format: "%.2f", c.score))")
-                                                    .font(.system(size: 10, weight: .semibold))
-                                                    .tracking(1.0)
-                                                    .foregroundColor(.black.opacity(0.35))
-                                            }
-                                            Spacer()
-                                            Image(systemName: picked == c ? "checkmark.circle.fill" : "circle")
-                                                .font(.system(size: 16, weight: .regular))
-                                                .foregroundColor(picked == c ? .black : .black.opacity(0.2))
-                                        }
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 10)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .fill(picked == c ? Color.black.opacity(0.06) : Color.black.opacity(0.03))
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            } else if let err = item.candidateError, !err.isEmpty {
-                                Text("No candidates (missing title_search/search_titles?)")
-                                    .font(.system(size: 12, weight: .regular))
-                                    .foregroundColor(.black.opacity(0.5))
-                            } else {
-                                Text("No candidates")
-                                    .font(.system(size: 12, weight: .regular))
-                                    .foregroundColor(.black.opacity(0.5))
-                            }
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.black.opacity(0.03))
-                        )
-                    }
-                }
-            }
-
-            if let cats = message.recommendationCategories, !cats.isEmpty,
-               ((message.recommendationSets ?? []).isEmpty == false || (message.recommendations ?? []).isEmpty == false) {
-                ConciergeCategoryPills(categories: cats)
-            }
-
-            if let sets = message.recommendationSets, !sets.isEmpty {
-                ConciergeRecommendationSetsDeck(
-                    sets: sets,
-                    hiddenIds: $hiddenRecommendationIds,
-                    onOpen: onOpenRecommendation,
-                    onSave: onQuickSave
-                )
-            } else if let recs = message.recommendations, !recs.isEmpty {
-                ConciergeRecommendationDeck(
-                    items: recs,
-                    hiddenIds: $hiddenRecommendationIds,
-                    onOpen: onOpenRecommendation,
-                    onSave: onQuickSave
-                )
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: message.role == .user ? .trailing : .leading)
-    }
-}
-
-private struct ConciergeCategoryPills: View {
-    let categories: [String]
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(categories, id: \.self) { c in
-                    Text(c.uppercased())
-                        .font(.system(size: 9, weight: .semibold))
-                        .tracking(1.3)
-                        .foregroundColor(.black.opacity(0.55))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(
-                            Capsule(style: .continuous)
-                                .fill(Color.black.opacity(0.05))
-                        )
-                }
-            }
-            .padding(.horizontal, 2)
-        }
-        .frame(height: 26)
-        .kuroSwipeExclusionZone()
-    }
-}
-
-private struct ConciergeRecommendationDeck: View {
-    let items: [SupabaseService.ConciergeRecommendResponse.Item]
-    @Binding var hiddenIds: Set<String>
-    let onOpen: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-    let onSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-
-    private var visible: [SupabaseService.ConciergeRecommendResponse.Item] {
-        items.filter { !hiddenIds.contains($0.id) }
-    }
-
-    private var classics: [SupabaseService.ConciergeRecommendResponse.Item] {
-        visible.filter { ($0.signals ?? []).map { $0.uppercased() }.contains("CLASSIC") }
-    }
-    private var picks: [SupabaseService.ConciergeRecommendResponse.Item] {
-        let classicIds = Set(classics.map { $0.id })
-        return visible.filter { !classicIds.contains($0.id) }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if picks.isEmpty && classics.isEmpty {
-                Text("Nothing else in this set — try a different vibe.")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(.black.opacity(0.5))
-            } else {
-                if !picks.isEmpty {
-                    ConciergeRecommendationRail(
-                        title: "PICKS",
-                        items: picks,
-                        hiddenIds: $hiddenIds,
-                        onOpen: onOpen,
-                        onSave: onSave
-                    )
-                }
-                if !classics.isEmpty {
-                    ConciergeRecommendationRail(
-                        title: "CLASSICS",
-                        items: classics,
-                        hiddenIds: $hiddenIds,
-                        onOpen: onOpen,
-                        onSave: onSave
-                    )
-                }
-            }
-        }
-    }
-}
-
-private struct ConciergeRecommendationSetsDeck: View {
-    let sets: [SupabaseService.ConciergeRecommendResponse.Set]
-    @Binding var hiddenIds: Set<String>
-    let onOpen: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-    let onSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            ForEach(sets) { set in
-                let items = set.items ?? []
-                if !items.isEmpty {
-                    ConciergeRecommendationRail(
-                        title: set.title.uppercased(),
-                        items: items,
-                        hiddenIds: $hiddenIds,
-                        onOpen: onOpen,
-                        onSave: onSave
-                    )
-                }
-            }
-        }
-    }
-}
-
-private struct ConciergeRecommendationRail: View {
-    let title: String
-    let items: [SupabaseService.ConciergeRecommendResponse.Item]
-    @Binding var hiddenIds: Set<String>
-    let onOpen: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-    let onSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-
-    private var visible: [SupabaseService.ConciergeRecommendResponse.Item] {
-        items.filter { !hiddenIds.contains($0.id) }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(title)
-                    .font(.system(size: 10, weight: .semibold))
-                    .tracking(1.6)
-                    .foregroundColor(.black.opacity(0.55))
-                Spacer()
-            }
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 12) {
-                    ForEach(visible) { item in
-                        ConciergeRecommendationCompactCard(
-                            item: item,
-                            onOpen: { onOpen(item) },
-                            onSave: {
-                                onSave(item)
-                                hiddenIds.insert(item.id)
-                            },
-                            onSkip: {
-                                KuroAccessibility.impactHaptic(.light)
-                                hiddenIds.insert(item.id)
-                            }
-                        )
-                    }
-                }
-                .padding(.horizontal, 2)
-            }
-            .kuroSwipeExclusionZone()
-        }
-    }
-}
-
-private struct ConciergeRecommendationCompactCard: View {
-    let item: SupabaseService.ConciergeRecommendResponse.Item
-    let onOpen: () -> Void
-    let onSave: () -> Void
-    let onSkip: () -> Void
-
-    private let width: CGFloat = 176
-    private var height: CGFloat { width / 0.72 }
-
-    private var displayScore: Double? {
-        guard let s = item.averageScore else { return nil }
-        return Double(s) / 10.0
-    }
-
-    private var badges: [String] {
-        var out: [String] = []
-        if let s = item.averageScore, s >= 88 { out.append("MASTERPIECE") }
-        else if let y = item.year, y > 0 && y <= 2010, (item.averageScore ?? 0) >= 80 { out.append("CLASSIC") }
-        if (item.matchCount ?? 0) >= 2 { out.append("MATCH") }
-        return out
-    }
-
-    private var signals: [String] {
-        let raw = (item.signals ?? []).map { $0.uppercased() }
-        // De-dup and keep tight.
-        var seen: Set<String> = []
-        var out: [String] = []
-        for s in (badges + raw) {
-            let v = s.trimmingCharacters(in: .whitespacesAndNewlines)
-            if v.isEmpty { continue }
-            if seen.contains(v) { continue }
-            seen.insert(v)
-            out.append(v)
-            if out.count >= 4 { break }
-        }
-        return out
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Button(action: {
-                KuroAccessibility.impactHaptic(.light)
-                onOpen()
-            }) {
-                ZStack(alignment: .topTrailing) {
-                    KuroCachedAsyncImage(url: URL(string: item.coverImageMedium ?? ""), maxPixelSize: 220) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: width, height: height)
-                                .clipped()
-                        case .failure, .empty:
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.black.opacity(0.06))
-                                .frame(width: width, height: height)
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                    .frame(width: width, height: height)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                    if let s = displayScore, s > 0 {
-                        KuroScoreBadge(score: s)
-                            .padding(8)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(item.title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.black.opacity(0.92))
-                    .lineLimit(2)
-                    .frame(height: 34, alignment: .top)
-
-                HStack(spacing: 6) {
-                    if let y = item.year { Text(String(y)) }
-                    if let f = item.format, !f.isEmpty {
-                        if item.year != nil { Text("·") }
-                        Text(f)
-                    }
-                }
-                .font(.system(size: 11, weight: .regular))
-                .foregroundColor(.black.opacity(0.55))
-                .frame(height: 14, alignment: .topLeading)
-
-                if let blurb = item.blurb, !blurb.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(blurb)
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundColor(.black.opacity(0.62))
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                HStack(spacing: 10) {
-                    Button(action: onSkip) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.black.opacity(0.55))
-                            .frame(width: 34, height: 34)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color.black.opacity(0.03))
-                            )
-                    }
-                    .buttonStyle(.plain)
-
-                    Button(action: onSave) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "bookmark.fill")
-                                .font(.system(size: 12, weight: .semibold))
-                            Text("SAVE")
-                                .font(.system(size: 11, weight: .semibold))
-                                .tracking(1.4)
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 34)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color.black.opacity(0.90))
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .frame(width: width, alignment: .leading)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(item.title)
-        .accessibilityHint("Recommendation. Save or open details.")
-    }
-}
-
-private struct ConciergeActionBar: View {
-    let selectedCount: Int
-    let hasAnySelection: Bool
-    let canUndo: Bool
-    let onApply: () -> Void
-    let onUndo: () -> Void
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Button(action: onUndo) {
-                Text("UNDO")
-                    .font(.system(size: 11, weight: .semibold))
-                    .tracking(1.6)
-                    .foregroundColor(canUndo ? .black : .black.opacity(0.25))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color.black.opacity(canUndo ? 0.04 : 0.02))
+                        Capsule(style: .continuous)
+                            .fill(Color.kuroWhite92)
                     )
             }
             .buttonStyle(.plain)
-            .disabled(!canUndo)
+        }
+    }
 
-            Spacer()
+    private var skipButton: some View {
+        Button(action: { onDismiss() }) {
+            Text(isGerman ? "Uberspringen" : "Skip")
+                .font(.kuroCaption(weight: .medium))
+                .foregroundColor(Color.kuroWhite.opacity(0.42))
+        }
+        .buttonStyle(.plain)
+        .padding(.bottom, 48)
+    }
 
-            Button(action: onApply) {
-                HStack(spacing: 8) {
-                    Text("APPLY")
-                        .font(.system(size: 11, weight: .semibold))
-                        .tracking(1.6)
-                    Text("\(selectedCount)")
-                        .font(.system(size: 11, weight: .semibold))
-                        .tracking(1.0)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 999, style: .continuous)
-                                .fill(Color.white.opacity(0.12))
-                        )
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(hasAnySelection ? Color.black : Color.black.opacity(0.2))
-                )
+    private func advance() {
+        KuroAccessibility.impactHaptic(.light)
+        if step < steps.count - 1 {
+            withAnimation(KuroAnimation.fast) {
+                step += 1
             }
-            .buttonStyle(.plain)
-            .disabled(!hasAnySelection)
+        } else {
+            onDismiss()
         }
     }
 }
 
-private struct ConciergeTypingIndicator: View {
-    @State private var phase: Int = 0
-
-    var body: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 4) {
-                Circle().fill(Color.black.opacity(0.25)).frame(width: 6, height: 6).opacity(phase == 0 ? 1 : 0.35)
-                    .scaleEffect(phase == 0 ? 1.15 : 0.95)
-                Circle().fill(Color.black.opacity(0.25)).frame(width: 6, height: 6).opacity(phase == 1 ? 1 : 0.35)
-                    .scaleEffect(phase == 1 ? 1.15 : 0.95)
-                Circle().fill(Color.black.opacity(0.25)).frame(width: 6, height: 6).opacity(phase == 2 ? 1 : 0.35)
-                    .scaleEffect(phase == 2 ? 1.15 : 0.95)
-            }
-            Text("Thinking")
-                .font(.system(size: 12, weight: .regular))
-                .foregroundColor(.black.opacity(0.55))
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(
-                            LinearGradient(
-                                colors: [Color.white.opacity(0.72), Color.white.opacity(0.18), Color.black.opacity(0.05)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.8
-                        )
-                )
-                .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 10)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .task {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 220_000_000)
-                phase = (phase + 1) % 3
-            }
-        }
-    }
-}
-
-private struct ConciergeIntroCard: View {
-    var body: some View {
-        KuroGlassCard(cornerRadius: 24) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 12) {
-                    KuroConciergeMark(size: 34)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("CONCIERGE")
-                            .font(.system(size: 12, weight: .semibold))
-                            .tracking(2.0)
-                            .foregroundColor(.black.opacity(0.80))
-                        Text("Imports + recommendations")
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundColor(.black.opacity(0.55))
-                    }
-
-                    Spacer(minLength: 0)
-                }
-
-                Text("Paste titles to import, or describe the mood.\nDefaults are clean — no adult content.")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.black.opacity(0.62))
-            }
-            .padding(16)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Concierge. Paste titles to import, or ask for a vibe.")
-    }
-}
-
-private struct ConciergeStarterActions: View {
-    let onPaste: () -> Void
-    let onExampleImport: () -> Void
-    let onExampleVibe: () -> Void
-
-    @State private var appeared: Bool = false
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            KuroGlassPill(
-                title: "Paste from clipboard",
-                subtitle: "Fast import",
-                systemImage: "doc.on.clipboard",
-                action: onPaste
-            )
-            .offset(y: appeared ? 0 : 6)
-            .opacity(appeared ? 1 : 0)
-
-            KuroGlassPill(
-                title: "Try an import example",
-                subtitle: "Shows the format",
-                systemImage: "text.append",
-                action: onExampleImport
-            )
-            .offset(y: appeared ? 0 : 10)
-            .opacity(appeared ? 1 : 0)
-
-            KuroGlassPill(
-                title: "Give me a vibe",
-                subtitle: "Recommendations",
-                systemImage: "sparkles",
-                action: onExampleVibe
-            )
-            .offset(y: appeared ? 0 : 14)
-            .opacity(appeared ? 1 : 0)
-        }
-        .padding(.horizontal, 20)
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.22)) {
-                appeared = true
-            }
-        }
-    }
-}
-
-private struct KuroConciergeAssistant: View {
-    @Binding var expanded: Bool
-    @Binding var offset: CGSize
-    @Binding var dragStart: CGSize
-    let baseBottomPadding: CGFloat
-    let containerSize: CGSize
-    let onTapMascot: () -> Void
-
-    @Namespace private var mascotNS
-    @State private var pulse: Bool = false
-
-    private let panelWidth: CGFloat = 316
-    private let panelHeight: CGFloat = 148
-
-    var body: some View {
-        let clamped = clamp(offset: offset)
-
-        VStack(spacing: 0) {
-            if expanded {
-                KuroGlassCard(cornerRadius: 26) {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(spacing: 10) {
-                            KuroConciergeMark(size: 34)
-                                .matchedGeometryEffect(id: "kurochan", in: mascotNS)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text("CONCIERGE")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .tracking(2.0)
-                                    .foregroundColor(.black.opacity(0.78))
-                                Text("Imports + recommendations")
-                                    .font(.system(size: 11, weight: .regular))
-                                    .foregroundColor(.black.opacity(0.55))
-                            }
-                            Spacer(minLength: 0)
-
-                            Button(action: { withAnimation(.easeInOut(duration: 0.18)) { expanded = false } }) {
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.black.opacity(0.55))
-                                    .frame(width: 34, height: 34)
-                                    .background(
-                                        Circle().fill(Color.white.opacity(0.35))
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        Text("Paste a list to import, or ask for a vibe.\nClean results by default — no adult content.")
-                            .font(.system(size: 12, weight: .regular))
-                            .foregroundColor(.black.opacity(0.62))
-
-                        Button(action: {
-                            KuroAccessibility.impactHaptic(.light)
-                            onTapMascot()
-                        }) {
-                            HStack(spacing: 10) {
-                                Text("START CHAT")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .tracking(1.8)
-                                    .foregroundColor(.black.opacity(0.82))
-                                Spacer(minLength: 0)
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.black.opacity(0.42))
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 11)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(Color.white.opacity(0.32))
-                                    .overlay(Capsule().stroke(Color.white.opacity(0.55), lineWidth: 0.8))
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(16)
-                    .frame(width: panelWidth, height: panelHeight, alignment: .topLeading)
-                }
-                .overlay(alignment: .topTrailing) {
-                    // Subtle sheen that makes the glass feel premium.
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.55), Color.white.opacity(0.0)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .frame(width: 180, height: 140)
-                    .rotationEffect(.degrees(-20))
-                    .offset(x: 40, y: -30)
-                    .blendMode(.screen)
-                    .allowsHitTesting(false)
-                }
-                .gesture(
-                    DragGesture(minimumDistance: 6)
-                        .onChanged { value in
-                            offset = CGSize(
-                                width: dragStart.width + value.translation.width,
-                                height: dragStart.height + value.translation.height
-                            )
-                        }
-                        .onEnded { _ in
-                            let next = clamp(offset: offset)
-                            withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.86)) {
-                                offset = next
-                            }
-                            dragStart = next
-                        }
-                )
-            } else {
-                Button(action: {
-                    withAnimation(.interactiveSpring(response: 0.26, dampingFraction: 0.86)) { expanded = true }
-                }) {
-                    ZStack {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(Color.white.opacity(0.6), lineWidth: 0.9)
-                            )
-                            .frame(width: 56, height: 56)
-
-                        Circle()
-                            .strokeBorder(Color.white.opacity(pulse ? 0.65 : 0.25), lineWidth: 1.1)
-                            .frame(width: 56, height: 56)
-                            .scaleEffect(pulse ? 1.08 : 0.96)
-                            .opacity(pulse ? 1.0 : 0.0)
-                            .allowsHitTesting(false)
-
-                        KuroConciergeMark(size: 24)
-                            .matchedGeometryEffect(id: "kurochan", in: mascotNS)
-                    }
-                }
-                .buttonStyle(.plain)
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 6)
-                        .onChanged { value in
-                            offset = CGSize(
-                                width: dragStart.width + value.translation.width,
-                                height: dragStart.height + value.translation.height
-                            )
-                        }
-                        .onEnded { _ in
-                            let next = clamp(offset: offset)
-                            withAnimation(.interactiveSpring(response: 0.25, dampingFraction: 0.86)) {
-                                offset = next
-                            }
-                            dragStart = next
-                        }
-                )
-            }
-        }
-        .padding(.leading, 16)
-        .padding(.bottom, baseBottomPadding)
-        .offset(clamped)
-        .onAppear {
-            // Ensure a sensible initial position.
-            if dragStart == .zero, offset == .zero {
-                dragStart = .zero
-                offset = .zero
-            }
-
-            // Soft pulse so the orb feels "alive".
-            withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
-                pulse = true
-            }
-        }
-    }
-
-    private func clamp(offset: CGSize) -> CGSize {
-        // Relative to bottom-leading with padding already applied.
-        // Allow dragging right/up, but not off-screen.
-        let maxRight = max(0, containerSize.width - (panelWidth + 32))
-        let minX: CGFloat = 0
-        let maxX: CGFloat = maxRight
-
-        // Allow moving up roughly 70% of the screen; don't allow dragging below the base anchor.
-        let minY: CGFloat = -max(120, containerSize.height * 0.70)
-        let maxY: CGFloat = 0
-
-        return CGSize(
-            width: min(maxX, max(minX, offset.width)),
-            height: min(maxY, max(minY, offset.height))
-        )
-	    }
-	}
-
-	struct ConciergeMessage: Identifiable {
-	    enum Role { case user, assistant }
-	    let id = UUID()
-    let role: Role
-    let text: String
-    let items: [SupabaseService.ConciergeParseItem]?
-    let recommendations: [SupabaseService.ConciergeRecommendResponse.Item]?
-    let recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]?
-    let recommendationCategories: [String]?
-
-    init(
-        role: Role,
-        text: String,
-        items: [SupabaseService.ConciergeParseItem]? = nil,
-        recommendations: [SupabaseService.ConciergeRecommendResponse.Item]? = nil,
-        recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]? = nil,
-        recommendationCategories: [String]? = nil
-    ) {
-        self.role = role
-        self.text = text
-        self.items = items
-        self.recommendations = recommendations
-        self.recommendationSets = recommendationSets
-        self.recommendationCategories = recommendationCategories
-    }
-}
-
-private extension Optional where Wrapped == String {
-    var isNilOrEmpty: Bool {
-        switch self {
-        case .none: return true
-        case .some(let s): return s.isEmpty
-        }
-    }
+// MARK: - Preview
+#Preview {
+    ConciergeView()
 }
 
 ```
@@ -12057,9 +10996,19 @@ private extension Optional where Wrapped == String {
 ```ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { umlautFold } from "../_shared/normalization.ts";
 
 type MediaType = "ANIME" | "MANGA";
 type ListStatus = "WATCHING" | "READING" | "PLANNING" | "COMPLETED" | "DROPPED" | "PAUSED";
+
+type Ambiguity = {
+  kind: "status_unclear" | "unit_unclear" | "intent_unclear";
+  options: string[];
+  suggested_question: string;
+  suggested_question_de: string;
+  title_context?: string;
+  number_context?: string;
+} | null;
 
 type ParsedItem = {
   raw: string;
@@ -12069,11 +11018,16 @@ type ParsedItem = {
   progressEpisodes?: number;
   progressChapters?: number;
   progressVolumes?: number;
+  progressTotal?: number;
+  progressUnit?: string;
   seasonNumber?: number;
   episodeInSeason?: number;
   caughtUp?: boolean;
   lastEpisode?: boolean;
   completed?: boolean;
+  yearMention?: number;
+  rating?: number;
+  ambiguity?: Ambiguity;
 };
 
 function romanToInt(input: string): number | null {
@@ -12104,9 +11058,10 @@ function expandCommonAbbreviations(title: string): string | null {
   const compact = raw.toLowerCase().replace(/[^a-z0-9]+/g, "");
   const map: Record<string, string> = {
     aot: "Attack on Titan",
-    snk: "Attack on Titan", // Shingeki no Kyojin (common abbreviation)
+    snk: "Attack on Titan", // Shingeki no Kyojin
     jjk: "Jujutsu Kaisen",
     mha: "My Hero Academia",
+    bnha: "My Hero Academia", // Boku no Hero Academia
     hxh: "Hunter x Hunter",
     fmab: "Fullmetal Alchemist: Brotherhood",
     fma: "Fullmetal Alchemist",
@@ -12114,6 +11069,24 @@ function expandCommonAbbreviations(title: string): string | null {
     csm: "Chainsaw Man",
     jjba: "JoJo's Bizarre Adventure",
     kny: "Demon Slayer: Kimetsu no Yaiba",
+    op: "One Piece",
+    db: "Dragon Ball",
+    dbz: "Dragon Ball Z",
+    dbs: "Dragon Ball Super",
+    sao: "Sword Art Online",
+    bc: "Black Clover",
+    tog: "Tower of God",
+    mia: "Made in Abyss",
+    rezero: "Re:ZERO -Starting Life in Another World-",
+    konosuba: "Kono Subarashii Sekai ni Shukufuku wo!",
+    mp100: "Mob Psycho 100",
+    nge: "Neon Genesis Evangelion",
+    eva: "Neon Genesis Evangelion",
+    lotgh: "Legend of the Galactic Heroes",
+    logh: "Legend of the Galactic Heroes",
+    tpn: "The Promised Neverland",
+    dm: "Dungeon Meshi",
+    cote: "Classroom of the Elite",
   };
 
   // Only expand when we have a known mapping. Avoid risky short acronyms like "DS".
@@ -12152,19 +11125,27 @@ function normalizeAliasKey(raw: string): string {
   s = s.replace(/\b(i\s+have|i'?m|im|i\s+am|i)\b/giu, " ");
   s = s.replace(/\b(ich\s+habe|ich\s+hab|ich|bin)\b/giu, " ");
   s = s.replace(
-    /\b(watched|watching|finished|completed|dropped|paused|planning|read|reading|caught up|up to date|seen|saw)\b/giu,
+    /\b(watched|watching|finished|completed|dropped|paused|planning|read|reading|caught up|up to date|seen|saw|started|begun)\b/giu,
     " ",
   );
   s = s.replace(
-    /\b(geschaut|gesehen|gelesen|fertig|abgeschlossen|beendet|abgebrochen|pausiert|geplant|aktuell|komplett|vollständig|vollstaendig)\b/giu,
+    /\b(geschaut|gesehen|gelesen|fertig|abgeschlossen|beendet|abgebrochen|pausiert|geplant|aktuell|komplett|vollständig|vollstaendig|angefangen|noch dabei)\b/giu,
     " ",
   );
+  // strip rating patterns
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s*\/\s*\d{1,2}\b/giu, " ");
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s+(?:von|out of)\s+\d{1,2}\b/giu, " ");
+  s = s.replace(/\beine?\s+\d{1,2}\b/giu, " ");
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s+(?:punkte|points?|stars?|sterne?)\b/giu, " ");
+  s = s.replace(/⭐/g, " ");
   // strip progress markers
   s = s.replace(/\b(?:season|staffel|episode|ep|folge|chapter|ch|kapitel|volume|vol|band)\b/giu, " ");
   s = s.replace(/\b\d{1,2}\s*x\s*\d{1,4}\b/giu, " ");
   s = s.replace(/\bs\d{1,2}\s*e\d{1,4}\b/giu, " ");
   // keep only letters/numbers/spaces (unicode)
   s = s.replace(/[^\p{L}\p{N}\s]+/gu, " ");
+  // Fold umlauts for consistent alias matching
+  s = umlautFold(s);
   s = s.replace(/\s+/g, " ").trim();
   return s.slice(0, 160);
 }
@@ -12272,20 +11253,48 @@ function parseStatus(raw: string): { status?: ListStatus; completed?: boolean } 
   const hasPartialProgress =
     /\b(?:until|till|up to|upto|to|bis)\b/.test(s) &&
     /\b(?:season|staffel|episode|ep|folge|chapter|ch|kapitel|band|vol|volume|\d{1,2}\s*x\s*\d{1,4}|s\d{1,2}\s*e\d{1,4})\b/.test(s);
+  const hasSoftPartial =
+    /\b(halfway|half way|midway|partway|some of it|a bit|a few (?:eps|episodes|chapters))\b/.test(s) ||
+    /\b(halb|hälfte|haelfte|zur hälfte|zur haelfte|teilweise|ein bisschen)\b/.test(s);
 
   // English + slang
   if (/\b(caught up|up to date|up-to-date|latest|current)\b/.test(s)) return { status: "WATCHING" };
-  if (/\b(i\s+(?:just\s+)?watched|i\s+(?:just\s+)?finished|i\s+(?:just\s+)?completed|i\s+(?:just\s+)?saw|i\s+have\s+watched|i\s+have\s+seen)\b/.test(s)) {
-    if (hasPartialProgress && !explicitCompletion) return { status: "WATCHING" };
+  const iFinished =
+    /\b(i\s+(?:just\s+)?finished|i\s+(?:just\s+)?completed)\b/.test(s);
+  const iWatched =
+    /\b(i\s+(?:just\s+)?watched|i\s+(?:just\s+)?saw|i\s+have\s+watched|i\s+have\s+seen)\b/.test(s);
+  const iRead =
+    /\b(i\s+(?:just\s+)?read|i\s+have\s+read)\b/.test(s);
+  const iStarted =
+    /\b(i\s+(?:just\s+)?started|i\s+(?:just\s+)?begun|i\s+have\s+started)\b/.test(s);
+
+  if (iFinished) {
+    if ((hasPartialProgress || hasSoftPartial) && !explicitCompletion) return { status: "WATCHING" };
     return { status: "COMPLETED", completed: true };
   }
-  if (/\b(i\s+(?:just\s+)?read|i\s+have\s+read)\b/.test(s)) {
-    if (hasPartialProgress && !explicitCompletion) return { status: "READING" };
-    return { status: "COMPLETED", completed: true };
+  if (iWatched) {
+    // "I watched X" is ambiguous; default to WATCHING unless explicitly completed.
+    if ((hasPartialProgress || hasSoftPartial) && !explicitCompletion) return { status: "WATCHING" };
+    if (explicitCompletion) return { status: "COMPLETED", completed: true };
+    return { status: "WATCHING" };
+  }
+  if (iRead) {
+    if ((hasPartialProgress || hasSoftPartial) && !explicitCompletion) return { status: "READING" };
+    if (explicitCompletion) return { status: "COMPLETED", completed: true };
+    return { status: "READING" };
+  }
+  if (iStarted) {
+    // "I started X" → WATCHING unless manga context
+    if (/\b(read|reading|manga|manhwa|manhua|chapter|ch|volume|vol|band|kapitel)\b/.test(s)) return { status: "READING" };
+    return { status: "WATCHING" };
   }
   if (/\b(i'?m\s+watching|i\s+am\s+watching)\b/.test(s)) return { status: "WATCHING" };
   if (/\b(i'?m\s+reading|i\s+am\s+reading)\b/.test(s)) return { status: "READING" };
   if (/\b(completed|finished|done)\b/.test(s)) return { status: "COMPLETED", completed: true };
+  if (/\b(started|begun)\b/.test(s)) {
+    if (/\b(read|reading|manga|manhwa|manhua|chapter|ch|volume|vol|band|kapitel)\b/.test(s)) return { status: "READING" };
+    return { status: "WATCHING" };
+  }
   if (/\b(dropped)\b/.test(s)) return { status: "DROPPED" };
   if (/\b(paused|on hold|on-hold|hiatus)\b/.test(s)) return { status: "PAUSED" };
   if (/\b(planning|plan to watch|plan to read|ptw|ptr)\b/.test(s)) return { status: "PLANNING" };
@@ -12295,18 +11304,29 @@ function parseStatus(raw: string): { status?: ListStatus; completed?: boolean } 
   // German
   if (/\b(aktuell|auf dem neuesten stand|up to date|auf dem aktuellen stand)\b/.test(s)) return { status: "WATCHING" };
   if (/\b(ich\s+habe|ich\s+hab)\b/.test(s) && /\b(geschaut|gesehen|gelesen)\b/.test(s)) {
-    if (hasPartialProgress) {
+    if (hasPartialProgress || hasSoftPartial) {
       if (/\b(gelesen)\b/.test(s)) return { status: "READING" };
       return { status: "WATCHING" };
     }
-    return { status: "COMPLETED", completed: true };
+    if (explicitCompletion) return { status: "COMPLETED", completed: true };
+    // "Ich habe X geschaut" is ambiguous; default to WATCHING unless explicit completion.
+    if (/\b(gelesen)\b/.test(s)) return { status: "READING" };
+    return { status: "WATCHING" };
   }
-  if (/\b(ich\s+(?:schaue|gucke|sehe)|gerade\s+am\s+schauen|am\s+schauen)\b/.test(s)) return { status: "WATCHING" };
-  if (/\b(ich\s+lese|gerade\s+am\s+lesen|am\s+lesen)\b/.test(s)) return { status: "READING" };
+  if (/\b(ich\s+(?:schaue|gucke|sehe)|gerade\s+am\s+schauen|am\s+schauen|schaue\s+gerade)\b/.test(s)) return { status: "WATCHING" };
+  if (/\b(ich\s+lese|gerade\s+am\s+lesen|am\s+lesen|lese\s+gerade)\b/.test(s)) return { status: "READING" };
+  if (/\b(noch\s+dabei)\b/.test(s)) {
+    if (/\b(lese|lesen|gelesen|manga|manhwa|manhua|kapitel|band)\b/.test(s)) return { status: "READING" };
+    return { status: "WATCHING" };
+  }
   if (/\b(fertig|abgeschlossen|beendet|zu ende|komplett)\b/.test(s)) return { status: "COMPLETED", completed: true };
   if (/\b(abgebrochen|gedroppt|droppe|droppen)\b/.test(s)) return { status: "DROPPED" };
   if (/\b(pausiert|pause|auf eis)\b/.test(s)) return { status: "PAUSED" };
-  if (/\b(plane|geplant|will schauen|will sehen|möchte schauen|möchte sehen)\b/.test(s)) return { status: "PLANNING" };
+  if (/\b(plane|geplant|will schauen|will sehen|möchte schauen|möchte sehen|will lesen|möchte lesen)\b/.test(s)) return { status: "PLANNING" };
+  if (/\b(angefangen)\b/.test(s)) {
+    if (/\b(lese|lesen|gelesen|manga|manhwa|manhua|kapitel|band)\b/.test(s)) return { status: "READING" };
+    return { status: "WATCHING" };
+  }
   if (/\b(lese|am lesen|gerade am lesen)\b/.test(s)) return { status: "READING" };
   if (/\b(schaue|gucke|sehe|am schauen|gerade am schauen)\b/.test(s)) return { status: "WATCHING" };
   return {};
@@ -12329,11 +11349,62 @@ function parseMagicFlags(raw: string): Pick<ParsedItem, "caughtUp" | "lastEpisod
   };
 }
 
+function parseRating(raw: string): number | undefined {
+  const s = raw.toLowerCase();
+
+  // Star emoji counting: ⭐⭐⭐ = 3
+  const starEmojis = (raw.match(/⭐/g) ?? []).length;
+  if (starEmojis >= 1 && starEmojis <= 10) return starEmojis;
+
+  // "X/10" or "X/Y" rating format (e.g. 9/10, 8.5/10)
+  const slashRating = s.match(/\b(\d{1,2}(?:\.\d)?)\s*\/\s*(\d{1,2})\b/);
+  if (slashRating) {
+    const num = parseFloat(slashRating[1]);
+    const denom = parseInt(slashRating[2], 10);
+    if (denom > 0 && num >= 0 && num <= denom) {
+      return Math.round((num / denom) * 10 * 10) / 10; // Normalize to 0-10 scale
+    }
+  }
+
+  // "X von 10" / "X out of 10"
+  const outOfRating = s.match(/\b(\d{1,2}(?:\.\d)?)\s+(?:von|out of)\s+(\d{1,2})\b/);
+  if (outOfRating) {
+    const num = parseFloat(outOfRating[1]);
+    const denom = parseInt(outOfRating[2], 10);
+    if (denom > 0 && num >= 0 && num <= denom) {
+      return Math.round((num / denom) * 10 * 10) / 10;
+    }
+  }
+
+  // "eine 8" / "eine 9" (DE casual rating)
+  const eineRating = s.match(/\beine?\s+(\d{1,2}(?:\.\d)?)\b/);
+  if (eineRating) {
+    const val = parseFloat(eineRating[1]);
+    if (val >= 0 && val <= 10) return val;
+  }
+
+  // "8 Punkte" / "8 points"
+  const punkteRating = s.match(/\b(\d{1,2}(?:\.\d)?)\s+(?:punkte|points?)\b/);
+  if (punkteRating) {
+    const val = parseFloat(punkteRating[1]);
+    if (val >= 0 && val <= 10) return val;
+  }
+
+  // "8 stars" / "8 Sterne"
+  const starsRating = s.match(/\b(\d{1,2}(?:\.\d)?)\s+(?:stars?|sterne?)\b/);
+  if (starsRating) {
+    const val = parseFloat(starsRating[1]);
+    if (val >= 0 && val <= 10) return val;
+  }
+
+  return undefined;
+}
+
 function parseProgress(
   raw: string,
 ): Pick<
   ParsedItem,
-  "progressEpisodes" | "progressChapters" | "progressVolumes" | "seasonNumber" | "episodeInSeason"
+  "progressEpisodes" | "progressChapters" | "progressVolumes" | "progressTotal" | "progressUnit" | "seasonNumber" | "episodeInSeason"
 > {
   let s = raw.toLowerCase();
   const out: any = {};
@@ -12441,6 +11512,55 @@ function parseProgress(
   const band = s.match(/\b(?:band)\s*(\d{1,4})\b/);
   if (band) out.progressVolumes = parseInt(band[1], 10);
 
+  // "bis Folge X" / "bei Episode X" / "bei Folge X" (DE preposition + unit)
+  const bisEp = s.match(/\b(?:bis|bei)\s+(?:folge|episode|ep)\s*(\d{1,4})\b/);
+  if (bisEp && !out.progressEpisodes) out.progressEpisodes = parseInt(bisEp[1], 10);
+  const bisKap = s.match(/\b(?:bis|bei)\s+(?:kapitel|chapter|ch)\s*(\d{1,5})\b/);
+  if (bisKap && !out.progressChapters) out.progressChapters = parseInt(bisKap[1], 10);
+  const bisBand = s.match(/\b(?:bis|bei)\s+(?:band|volume|vol)\s*(\d{1,4})\b/);
+  if (bisBand && !out.progressVolumes) out.progressVolumes = parseInt(bisBand[1], 10);
+
+  // "X of Y episodes/chapters/volumes" / "X von Y Folgen/Kapitel/Bände"
+  const xOfYEp = s.match(/\b(\d{1,4})\s+(?:of|von)\s+(\d{1,4})\s*(?:episodes?|folgen?|eps?)\b/);
+  if (xOfYEp) {
+    out.progressEpisodes = out.progressEpisodes ?? parseInt(xOfYEp[1], 10);
+    out.progressTotal = parseInt(xOfYEp[2], 10);
+    out.progressUnit = "episode";
+  }
+  const xOfYCh = s.match(/\b(\d{1,5})\s+(?:of|von)\s+(\d{1,5})\s*(?:chapters?|kapitel)\b/);
+  if (xOfYCh) {
+    out.progressChapters = out.progressChapters ?? parseInt(xOfYCh[1], 10);
+    out.progressTotal = parseInt(xOfYCh[2], 10);
+    out.progressUnit = "chapter";
+  }
+  const xOfYVol = s.match(/\b(\d{1,4})\s+(?:of|von)\s+(\d{1,4})\s*(?:volumes?|bände|baende|band)\b/);
+  if (xOfYVol) {
+    out.progressVolumes = out.progressVolumes ?? parseInt(xOfYVol[1], 10);
+    out.progressTotal = parseInt(xOfYVol[2], 10);
+    out.progressUnit = "volume";
+  }
+
+  // "Folge X von Y" / "Episode X of Y" (unit before numbers)
+  const folgeXvonY = s.match(/\b(?:folge|episode|ep)\s*(\d{1,4})\s+(?:von|of)\s+(\d{1,4})\b/);
+  if (folgeXvonY) {
+    out.progressEpisodes = out.progressEpisodes ?? parseInt(folgeXvonY[1], 10);
+    out.progressTotal = out.progressTotal ?? parseInt(folgeXvonY[2], 10);
+    out.progressUnit = out.progressUnit ?? "episode";
+  }
+  const kapXvonY = s.match(/\b(?:kapitel|chapter|ch)\s*(\d{1,5})\s+(?:von|of)\s+(\d{1,5})\b/);
+  if (kapXvonY) {
+    out.progressChapters = out.progressChapters ?? parseInt(kapXvonY[1], 10);
+    out.progressTotal = out.progressTotal ?? parseInt(kapXvonY[2], 10);
+    out.progressUnit = out.progressUnit ?? "chapter";
+  }
+
+  // Infer progressUnit from what was detected
+  if (!out.progressUnit) {
+    if (out.progressEpisodes != null) out.progressUnit = "episode";
+    else if (out.progressChapters != null) out.progressUnit = "chapter";
+    else if (out.progressVolumes != null) out.progressUnit = "volume";
+  }
+
   return out;
 }
 
@@ -12458,6 +11578,38 @@ function mediaTypeHint(raw: string): MediaType | undefined {
   if (/\b(volume|vol\.|band|chapter|ch\.|kapitel)\b/.test(s)) return "MANGA";
   if (/\b(episode|ep\.|folge|staffel)\b/.test(s)) return "ANIME";
   return undefined;
+}
+
+// Year mention policy (product): used to disambiguate adaptations (e.g. "HxH 2011").
+// Keep this small to reduce false positives on random numbers in prompts.
+const YEAR_MENTION_MIN = 1960;
+const YEAR_MENTION_MAX = 2030;
+
+function isPlausibleYearMention(y: number): boolean {
+  return Number.isFinite(y) && y >= YEAR_MENTION_MIN && y <= YEAR_MENTION_MAX;
+}
+
+function extractYearMention(raw: string): number | undefined {
+  // Must run BEFORE stripMeta() removes parenthesized content.
+  // Collect all 4-digit numbers that look like plausible anime/manga years.
+  const matches: number[] = [];
+
+  // Parenthesized years: "Hunter x Hunter (2011)"
+  for (const m of raw.matchAll(/\((\d{4})\)/g)) {
+    const y = Number(m[1]);
+    if (isPlausibleYearMention(y)) matches.push(y);
+  }
+
+  // Standalone 4-digit years (not part of larger number)
+  for (const m of raw.matchAll(/(?<!\d)(\d{4})(?!\d)/g)) {
+    const y = Number(m[1]);
+    if (isPlausibleYearMention(y) && !matches.includes(y)) matches.push(y);
+  }
+
+  // If multiple distinct years found (e.g. "FMA 2003 vs 2009"), ambiguous: return nothing.
+  const unique = Array.from(new Set(matches));
+  if (unique.length !== 1) return undefined;
+  return unique[0];
 }
 
 function stripMeta(raw: string): string {
@@ -12502,8 +11654,193 @@ function stripMeta(raw: string): string {
   );
   s = s.replace(/\b\d{1,2}\s*x\s*\d{1,4}\b/gi, " ");
   s = s.replace(/\bs\d{1,2}\s*e\d{1,4}\b/gi, " ");
+  // Strip rating patterns so they don't pollute title search.
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s*\/\s*\d{1,2}\b/gi, " ");
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s+(?:von|out of)\s+\d{1,2}\b/gi, " ");
+  s = s.replace(/\beine?\s+\d{1,2}(?:\.\d)?\b/gi, " ");
+  s = s.replace(/\b\d{1,2}(?:\.\d)?\s+(?:punkte|points?|stars?|sterne?)\b/gi, " ");
+  s = s.replace(/⭐/g, " ");
+  // Strip new status keywords from title.
+  s = s.replace(/\b(started|begun|angefangen|noch dabei)\b/gi, " ");
+  // Strip "bis/bei" progress phrases from title.
+  s = s.replace(/\b(?:bis|bei)\s+(?:folge|episode|ep|kapitel|chapter|ch|band|volume|vol)\s*\d{1,5}\b/gi, " ");
+  // Strip "X of/von Y" progress phrases.
+  s = s.replace(/\b\d{1,5}\s+(?:of|von)\s+\d{1,5}\s*(?:episodes?|folgen?|eps?|chapters?|kapitel|volumes?|bände|baende|band)\b/gi, " ");
+  // Strip standalone year mentions so they don't pollute trigram search.
+  // Parenthesized years are already removed above. Keep year-only queries (e.g. manga "1984").
+  s = s.replace(/\s+/g, " ").trim();
+  if (!/^\d{4}$/.test(s)) {
+    s = s.replace(/(?<!\d)(\d{4})(?!\d)/g, (m, yy) => {
+      const y = Number(yy);
+      return isPlausibleYearMention(y) ? " " : m;
+    });
+  }
   s = s.replace(/\s+/g, " ").trim();
   return s;
+}
+
+function detectAmbiguity(item: ParsedItem): Ambiguity {
+  const s = item.raw.toLowerCase();
+  const hasStatus = item.status != null;
+  const hasProgress = (item.progressEpisodes != null || item.progressChapters != null || item.progressVolumes != null);
+  const hasRating = item.rating != null;
+  const titleContext = item.normalized || item.raw;
+  const numberContext = firstNumber(item.raw);
+
+  // "watched" / "geschaut" / "gesehen" without explicit completion signal
+  // The parser defaults these to WATCHING, but the user may mean COMPLETED.
+  const ambiguousWatched =
+    (/\b(watched|saw|geschaut|gesehen)\b/.test(s) && !(/\b(i'?m\s+watching|i\s+am\s+watching|schaue\s+gerade|gerade\s+am\s+schauen|noch\s+dabei)\b/.test(s))) &&
+    item.status === "WATCHING" &&
+    !item.completed && !item.caughtUp && !item.lastEpisode &&
+    !hasProgress;
+
+  // "gelesen" / "read" without explicit completion signal
+  const ambiguousRead =
+    (/\b(read|gelesen)\b/.test(s) && !(/\b(i'?m\s+reading|i\s+am\s+reading|lese\s+gerade|gerade\s+am\s+lesen|noch\s+dabei)\b/.test(s))) &&
+    item.status === "READING" &&
+    !item.completed &&
+    !hasProgress;
+
+  if (ambiguousWatched || ambiguousRead) {
+    return {
+      kind: "status_unclear",
+      options: ["COMPLETED", ambiguousRead ? "READING" : "WATCHING"],
+      suggested_question: ambiguousRead ? "Finished or still reading?" : "Finished or still watching?",
+      suggested_question_de: ambiguousRead ? "Fertig gelesen oder noch dabei?" : "Fertig geschaut oder noch dabei?",
+      title_context: titleContext,
+    };
+  }
+
+  // Progress number without clear unit context
+  // A bare number attached to progress without a recognized unit keyword
+  if (hasProgress && !item.progressUnit && !item.seasonNumber) {
+    return {
+      kind: "unit_unclear",
+      options: ["episode", "season", "chapter", "volume"],
+      suggested_question: "Which unit? Episode, season, chapter, or volume?",
+      suggested_question_de: "Welche Einheit? Folge, Staffel, Kapitel oder Band?",
+      title_context: titleContext,
+      number_context: numberContext != null ? String(numberContext) : undefined,
+    };
+  }
+
+  // Status + bare number without unit (e.g. "watched 203", "ich habe 12 gesehen").
+  // Ask the user what the number refers to.
+  const hasUnitKeyword = /\b(ep|episode|folge|season|staffel|chapter|ch|kapitel|volume|vol|band)\b/i.test(s);
+  const numericHint =
+    numberContext != null &&
+    (item.yearMention == null || numberContext !== item.yearMention);
+  if (hasStatus && !hasProgress && !hasRating && numericHint && !hasUnitKeyword) {
+    return {
+      kind: "unit_unclear",
+      options: ["episode", "season", "chapter", "volume"],
+      suggested_question: "Does that number mean episode, season, chapter, or volume?",
+      suggested_question_de: "Meint diese Zahl Folge, Staffel, Kapitel oder Band?",
+      title_context: titleContext,
+      number_context: String(numberContext),
+    };
+  }
+
+  // Title-only without status, progress, or rating → unclear intent
+  if (!hasStatus && !hasProgress && !hasRating && item.normalized.length > 0) {
+    return {
+      kind: "intent_unclear",
+      options: ["import", "recommend_seed"],
+      suggested_question: "Add to your list, or use as a recommendation seed?",
+      suggested_question_de: "Zur Liste hinzufügen oder als Empfehlungsgrundlage nutzen?",
+      title_context: titleContext,
+    };
+  }
+
+  return null;
+}
+
+function parseClarificationMap(input: unknown): Record<string, string> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(input as Record<string, unknown>)) {
+    if (typeof v !== "string") continue;
+    const key = String(k).trim();
+    const val = v.trim();
+    if (!key || !val) continue;
+    out[key] = val;
+  }
+  return out;
+}
+
+function firstNumber(raw: string): number | undefined {
+  const m = raw.match(/\b(\d{1,5})\b/);
+  if (!m) return undefined;
+  const n = parseInt(m[1], 10);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function applyClarification(item: ParsedItem, clarification: Record<string, string>): ParsedItem {
+  if (!item.ambiguity) return item;
+
+  const kind = item.ambiguity.kind;
+  const pick = clarification[kind]?.toLowerCase();
+  if (!pick) return item;
+
+  if (kind === "status_unclear") {
+    // Accept parser UI values plus common aliases.
+    if (pick === "completed" || pick === "fertig") {
+      item.status = "COMPLETED";
+      item.completed = true;
+      item.ambiguity = null;
+    } else if (pick === "watching" || pick === "current" || pick === "noch dabei") {
+      const lower = item.raw.toLowerCase();
+      const looksLikeReading =
+        item.mediaTypeHint === "MANGA" ||
+        /\b(read|reading|gelesen|lese|kapitel|chapter|band|volume|manga|manhwa|manhua)\b/.test(lower);
+      item.status = looksLikeReading ? "READING" : "WATCHING";
+      item.completed = false;
+      item.ambiguity = null;
+    } else if (pick === "reading" || pick === "lesend") {
+      item.status = "READING";
+      item.completed = false;
+      item.ambiguity = null;
+    }
+    return item;
+  }
+
+  if (kind === "unit_unclear") {
+    const unit = pick;
+    const n = firstNumber(item.raw);
+    if (!n) return item;
+
+    if (unit === "episode" || unit === "ep" || unit === "folge") {
+      item.progressEpisodes = n;
+      item.progressUnit = "episode";
+      item.ambiguity = null;
+    } else if (unit === "chapter" || unit === "ch" || unit === "kapitel") {
+      item.progressChapters = n;
+      item.progressUnit = "chapter";
+      item.ambiguity = null;
+    } else if (unit === "volume" || unit === "vol" || unit === "band") {
+      item.progressVolumes = n;
+      item.progressUnit = "volume";
+      item.ambiguity = null;
+    } else if (unit === "season" || unit === "staffel") {
+      item.seasonNumber = n;
+      item.progressUnit = "season";
+      item.ambiguity = null;
+    }
+    return item;
+  }
+
+  if (kind === "intent_unclear") {
+    // Parse endpoint can only return import-ready rows.
+    // If user clarifies import, pin a safe default status.
+    if (pick === "import") {
+      item.status = item.status ?? "PLANNING";
+      item.ambiguity = null;
+    }
+    return item;
+  }
+
+  return item;
 }
 
 function tokenOverlapBoost(query: string, title: string): number {
@@ -12693,6 +12030,12 @@ function clientIp(req: Request): string | null {
 serve(async (req) => {
   if (req.method !== "POST") return json({ error: "Method not allowed" }, { status: 405 });
 
+  // Warmup: short-circuit before auth/rate-limit to warm the Deno isolate
+  const url = new URL(req.url);
+  if (url.searchParams.get("warmup") === "true") {
+    return json({ ok: true });
+  }
+
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY");
   const supabaseService = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -12706,16 +12049,34 @@ serve(async (req) => {
     global: { headers: authHeader ? { Authorization: authHeader } : {} },
   });
 
-  // Rate limit parsing even for unauthenticated users (falls back to per-IP).
+  const body = await req.json().catch(() => ({}));
+  const text: string = String(body?.text ?? "");
+  if (typeof text !== "string" || text.length > 5000) {
+    return json({ error: "Text too long (max 5000 chars)" }, { status: 400 });
+  }
+  const scope: "anime" | "manga" | "both" = body?.scope ?? "both";
+  const limitPerItem = Math.max(3, Math.min(15, Number(body?.limitPerItem ?? 10)));
+  const clarification = parseClarificationMap(body?.clarification);
+
+  const itemsRaw = splitItems(text);
+  if (itemsRaw.length === 0) {
+    return json({ success: true, items: [] });
+  }
+
+  // Run rate-limit check and auth verification in parallel (they are independent).
   const ip = clientIp(req);
-  const { data: rl } = await client.rpc("check_concierge_rate_limit", {
-    p_kind: "parse",
-    p_ip: ip,
-    // Nulls => load tunables from public.concierge_config.
-    p_window_seconds: null,
-    p_max_user: null,
-    p_max_ip: null,
-  });
+  const [rlResult, userResult] = await Promise.all([
+    client.rpc("check_concierge_rate_limit", {
+      p_kind: "parse",
+      p_ip: ip,
+      p_window_seconds: null,
+      p_max_user: null,
+      p_max_ip: null,
+    }),
+    client.auth.getUser(),
+  ]);
+
+  const rl = rlResult.data;
   if (rl && rl.allowed === false) {
     return json(
       { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
@@ -12723,19 +12084,7 @@ serve(async (req) => {
     );
   }
 
-  const body = await req.json().catch(() => ({}));
-  const text: string = String(body?.text ?? "");
-  const scope: "anime" | "manga" | "both" = body?.scope ?? "both";
-  const limitPerItem = Math.max(3, Math.min(15, Number(body?.limitPerItem ?? 10)));
-
-  const itemsRaw = splitItems(text);
-  if (itemsRaw.length === 0) {
-    return json({ success: true, items: [] });
-  }
-
-  // Verify user (required for launch). If missing, we still return candidates but mark unauthenticated.
-  const { data: userData } = await client.auth.getUser();
-  const userId = userData?.user?.id ?? null;
+  const userId = userResult.data?.user?.id ?? null;
 
   // Optional: configure feedback logging threshold (single DB roundtrip per request).
   let feedbackEnabled = Boolean(userId);
@@ -12760,154 +12109,275 @@ serve(async (req) => {
     const progress = parseProgress(cleaned);
     const hint = mediaTypeHint(cleaned);
     const flags = parseMagicFlags(cleaned);
-    return {
+    const yearMention = extractYearMention(cleaned);
+    const rating = parseRating(cleaned);
+    const item: ParsedItem = {
       raw: cleaned,
       normalized: stripMeta(cleaned),
       mediaTypeHint: hint,
       status: status.status,
       completed: status.completed,
+      yearMention,
+      rating,
       ...flags,
       ...progress,
     };
+    item.ambiguity = detectAmbiguity(item);
+    return applyClarification(item, clarification);
   });
 
-  const outItems: any[] = [];
+  // Process all parsed items in parallel — each item searches for a different title
+  // so they are fully independent of each other.
+  const outItems = await Promise.all(parsed.map(async (item) => {
+    try {
+      const mediaType =
+        scope === "anime" ? "ANIME" : scope === "manga" ? "MANGA" : item.mediaTypeHint ?? null;
 
-  for (const item of parsed) {
-    const mediaType =
-      scope === "anime" ? "ANIME" : scope === "manga" ? "MANGA" : item.mediaTypeHint ?? null;
-
-    let aliasTarget: { media_type: string; media_id: number; title_raw?: string | null } | null = null;
-    if (userId && item.normalized) {
-      const aliasNorm = normalizeAliasKey(item.raw);
-      if (aliasNorm) {
-        const mediaTypeFilter = mediaType ?? null;
-        const q = client
-          .from("title_aliases")
-          .select("media_type,media_id,title_raw,hits")
-          .eq("user_id", userId)
-          .eq("alias_norm", aliasNorm);
-        const res = mediaTypeFilter ? await q.eq("media_type", mediaTypeFilter).maybeSingle() : await q.order("hits", { ascending: false }).limit(1).maybeSingle();
-        if (!res.error && res.data?.media_id && res.data?.media_type) {
-          aliasTarget = res.data;
+      let aliasTarget: { media_type: string; media_id: number; title_raw?: string | null } | null = null;
+      if (userId && item.normalized) {
+        const aliasNorm = normalizeAliasKey(item.raw);
+        if (aliasNorm) {
+          const mediaTypeFilter = mediaType ?? null;
+          const q = client
+            .from("title_aliases")
+            .select("media_type,media_id,title_raw,hits")
+            .eq("user_id", userId)
+            .eq("alias_norm", aliasNorm);
+          const res = mediaTypeFilter ? await q.eq("media_type", mediaTypeFilter).maybeSingle() : await q.order("hits", { ascending: false }).limit(1).maybeSingle();
+          if (!res.error && res.data?.media_id && res.data?.media_type) {
+            aliasTarget = res.data;
+          }
         }
       }
-    }
 
-    const queries: { q: string; seasonBoost: boolean }[] = [{ q: item.normalized, seasonBoost: false }];
-    const expanded = expandCommonAbbreviations(item.normalized);
-    if (expanded && expanded !== item.normalized) {
-      // Treat the expanded form as an alternate query; it tends to help new users on acronyms (AoT/JJK/etc).
-      queries.push({ q: expanded, seasonBoost: false });
-    }
-    if (item.seasonNumber && item.normalized && (mediaType === "ANIME" || item.mediaTypeHint === "ANIME")) {
-      for (const q of buildSeasonQueries(item.normalized, item.seasonNumber)) {
-        queries.push({ q, seasonBoost: true });
+      const queries: { q: string; seasonBoost: boolean }[] = [{ q: item.normalized, seasonBoost: false }];
+      const expanded = expandCommonAbbreviations(item.normalized);
+      if (expanded && expanded !== item.normalized) {
+        // Treat the expanded form as an alternate query; it tends to help new users on acronyms (AoT/JJK/etc).
+        queries.push({ q: expanded, seasonBoost: false });
       }
-    }
-
-    const merged = new Map<string, any>();
-    let candidateError: string | null = null;
-
-    for (const q of queries) {
-      const { data: candidates, error } = await client.rpc("search_titles", {
-        p_query: q.q,
-        p_media_type: mediaType,
-        p_limit: Math.max(5, Math.min(limitPerItem, 12)),
-      });
-      if (error) {
-        candidateError = candidateError ?? error.message ?? "search error";
-        continue;
-      }
-      for (const c of (candidates ?? [])) {
-        const key = `${c.media_type}:${c.media_id}`;
-        const baseScore = typeof c.score === "number" ? c.score : 0;
-        const seasonBoost = q.seasonBoost && item.seasonNumber ? seasonMatchBoost(String(c.title_raw ?? ""), item.seasonNumber) : 0;
-        const overlapBoost = tokenOverlapBoost(item.normalized, String(c.title_raw ?? ""));
-        const penalty = variantPenalty(item.raw, { title_raw: c.title_raw, variant_type: c.variant_type });
-        const aliasBoost =
-          aliasTarget && aliasTarget.media_type === c.media_type && Number(aliasTarget.media_id) === Number(c.media_id) ? 0.80 : 0;
-        // Allow a tiny score > 1 so "Season 2" variants can beat the base title when both match at 1.0.
-        const adjusted = Math.max(0, Math.min(1.25, baseScore + seasonBoost + overlapBoost + aliasBoost - penalty));
-        const existing = merged.get(key);
-        if (!existing || (existing.score ?? 0) < adjusted) {
-          merged.set(key, { ...c, score: adjusted });
+      if (item.seasonNumber && item.normalized && (mediaType === "ANIME" || item.mediaTypeHint === "ANIME")) {
+        for (const q of buildSeasonQueries(item.normalized, item.seasonNumber)) {
+          queries.push({ q, seasonBoost: true });
         }
       }
-    }
 
-    const mergedCandidates = Array.from(merged.values())
-      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-      .slice(0, limitPerItem);
+      const merged = new Map<string, any>();
+      let candidateError: string | null = null;
 
-    // Second pass: if confidence is low, try denoised keyword queries.
-    const bestScore = typeof mergedCandidates[0]?.score === "number" ? mergedCandidates[0].score : 0;
-    if (bestScore < 0.55 && item.normalized.length >= 8) {
-      for (const q of buildDenoisedQueries(item.normalized)) {
-        const { data: extra, error } = await client.rpc("search_titles", {
-          p_query: q,
-          p_media_type: mediaType,
-          p_limit: Math.max(5, Math.min(limitPerItem, 12)),
-        });
-        if (error) continue;
-        for (const c of (extra ?? [])) {
+      // Run all initial search queries for this item in parallel.
+      const searchLimit = Math.max(5, Math.min(limitPerItem, 12));
+      const searchResults = await Promise.all(
+        queries.map((q) =>
+          client.rpc("search_titles", {
+            p_query: q.q,
+            p_media_type: mediaType,
+            p_limit: searchLimit,
+          }).then((res) => ({ ...res, seasonBoost: q.seasonBoost }))
+        )
+      );
+
+      for (const result of searchResults) {
+        if (result.error) {
+          candidateError = candidateError ?? result.error.message ?? "search error";
+          continue;
+        }
+        for (const c of (result.data ?? [])) {
           const key = `${c.media_type}:${c.media_id}`;
           const baseScore = typeof c.score === "number" ? c.score : 0;
+          const seasonBoost = result.seasonBoost && item.seasonNumber ? seasonMatchBoost(String(c.title_raw ?? ""), item.seasonNumber) : 0;
+          const overlapBoost = tokenOverlapBoost(item.normalized, String(c.title_raw ?? ""));
           const penalty = variantPenalty(item.raw, { title_raw: c.title_raw, variant_type: c.variant_type });
-          const adjusted = Math.max(0, Math.min(1.25, baseScore + tokenOverlapBoost(item.normalized, String(c.title_raw ?? "")) - penalty));
+          const aliasBoost =
+            aliasTarget && aliasTarget.media_type === c.media_type && Number(aliasTarget.media_id) === Number(c.media_id) ? 0.80 : 0;
+          const yearBoost = item.yearMention && typeof c.year === "number" && c.year === item.yearMention ? 0.25 : 0;
+          // Allow a tiny score > 1 so "Season 2" variants can beat the base title when both match at 1.0.
+          const adjusted = Math.max(0, Math.min(1.25, baseScore + seasonBoost + overlapBoost + aliasBoost + yearBoost - penalty));
           const existing = merged.get(key);
           if (!existing || (existing.score ?? 0) < adjusted) {
             merged.set(key, { ...c, score: adjusted });
           }
         }
       }
-    }
 
-    const finalCandidates = Array.from(merged.values())
-      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-      .slice(0, limitPerItem);
+      const mergedCandidates = Array.from(merged.values())
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+        .slice(0, limitPerItem);
 
-    if (feedbackEnabled) {
-      try {
-        const top = finalCandidates[0] ?? null;
-        const bestScore = typeof top?.score === "number" ? top.score : null;
-        // Only log low-confidence/no-match items to avoid added latency.
-        if (bestScore == null || bestScore < feedbackLowScore || finalCandidates.length === 0) {
-          await client.rpc("log_concierge_parse_feedback", {
-            p_raw: item.raw,
-            p_normalized: item.normalized,
-            p_alias_norm: normalizeAliasKey(item.raw),
-            p_best_score: bestScore,
-            p_candidates_count: finalCandidates.length,
-            p_top_media_type: top?.media_type ?? null,
-            p_top_media_id: top?.media_id ?? null,
-          });
+      // Second pass: if confidence is low, try denoised keyword queries in parallel.
+      const bestScore = typeof mergedCandidates[0]?.score === "number" ? mergedCandidates[0].score : 0;
+      if (bestScore < 0.55 && item.normalized.length >= 8) {
+        const denoisedQueries = buildDenoisedQueries(item.normalized);
+        const denoisedResults = await Promise.all(
+          denoisedQueries.map((q) =>
+            client.rpc("search_titles", {
+              p_query: q,
+              p_media_type: mediaType,
+              p_limit: searchLimit,
+            })
+          )
+        );
+
+        for (const { data: extra, error } of denoisedResults) {
+          if (error) continue;
+          for (const c of (extra ?? [])) {
+            const key = `${c.media_type}:${c.media_id}`;
+            const baseScore = typeof c.score === "number" ? c.score : 0;
+            const penalty = variantPenalty(item.raw, { title_raw: c.title_raw, variant_type: c.variant_type });
+            const adjusted = Math.max(0, Math.min(1.25, baseScore + tokenOverlapBoost(item.normalized, String(c.title_raw ?? "")) - penalty));
+            const existing = merged.get(key);
+            if (!existing || (existing.score ?? 0) < adjusted) {
+              merged.set(key, { ...c, score: adjusted });
+            }
+          }
         }
-      } catch {
-        // best-effort
       }
-    }
 
-    outItems.push({
-      raw: item.raw,
-      normalized: item.normalized,
-      parsed: {
-        mediaTypeHint: item.mediaTypeHint ?? null,
-        status: item.status ?? null,
-        progressEpisodes: item.progressEpisodes ?? null,
-        progressChapters: item.progressChapters ?? null,
-        progressVolumes: item.progressVolumes ?? null,
-        seasonNumber: item.seasonNumber ?? null,
-        episodeInSeason: item.episodeInSeason ?? null,
-        caughtUp: item.caughtUp ?? null,
-        lastEpisode: item.lastEpisode ?? null,
-        completed: item.completed ?? null,
-      },
-      candidates: finalCandidates,
-      candidateError,
-      aliasNorm: userId ? normalizeAliasKey(item.raw) : null,
-    });
-  }
+      const finalCandidates = Array.from(merged.values())
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+        .slice(0, limitPerItem);
+
+      if (feedbackEnabled) {
+        try {
+          const top = finalCandidates[0] ?? null;
+          const bestScore = typeof top?.score === "number" ? top.score : null;
+          // Only log low-confidence/no-match items to avoid added latency.
+          if (bestScore == null || bestScore < feedbackLowScore || finalCandidates.length === 0) {
+            await client.rpc("log_concierge_parse_feedback", {
+              p_raw: item.raw,
+              p_normalized: item.normalized,
+              p_alias_norm: normalizeAliasKey(item.raw),
+              p_best_score: bestScore,
+              p_candidates_count: finalCandidates.length,
+              p_top_media_type: top?.media_type ?? null,
+              p_top_media_id: top?.media_id ?? null,
+            });
+          }
+        } catch {
+          // best-effort
+        }
+      }
+
+      // --- Import reconciliation: look up existing user list entry ---
+      let existingEntry: {
+        media_type: string;
+        media_id: number;
+        status: string;
+        progress_episodes: number | null;
+        progress_chapters: number | null;
+        progress_volumes: number | null;
+        rating: number | null;
+        updated_at: string;
+      } | null = null;
+
+      const topCandidate = finalCandidates[0] ?? null;
+      const topScore = typeof topCandidate?.score === "number" ? topCandidate.score : 0;
+
+      if (userId && topCandidate && topScore >= 0.60) {
+        try {
+          const cMediaType: string = topCandidate.media_type;
+          const cMediaId: number = Number(topCandidate.media_id);
+          // user_id in anime_user_lists/manga_user_lists is TEXT, auth.uid() is UUID — cast to text
+          const userIdText = String(userId);
+
+          if (cMediaType === "ANIME") {
+            const { data: row } = await client
+              .from("anime_user_lists")
+              .select("list_type,progress,rating,updated_at")
+              .eq("user_id", userIdText)
+              .eq("anime_id", cMediaId)
+              .maybeSingle();
+            if (row) {
+              existingEntry = {
+                media_type: "ANIME",
+                media_id: cMediaId,
+                status: row.list_type ?? "PLANNING",
+                progress_episodes: row.progress ?? null,
+                progress_chapters: null,
+                progress_volumes: null,
+                rating: row.rating ?? null,
+                updated_at: row.updated_at ?? new Date().toISOString(),
+              };
+            }
+          } else if (cMediaType === "MANGA") {
+            const { data: row } = await client
+              .from("manga_user_lists")
+              .select("list_type,progress,rating,updated_at")
+              .eq("user_id", userIdText)
+              .eq("manga_id", cMediaId)
+              .maybeSingle();
+            if (row) {
+              existingEntry = {
+                media_type: "MANGA",
+                media_id: cMediaId,
+                status: row.list_type ?? "PLANNING",
+                progress_episodes: null,
+                progress_chapters: row.progress ?? null,
+                progress_volumes: null,
+                rating: row.rating ?? null,
+                updated_at: row.updated_at ?? new Date().toISOString(),
+              };
+            }
+          }
+        } catch {
+          // best-effort: if lookup fails, treat as no existing entry
+        }
+      }
+
+      return {
+        raw: item.raw,
+        normalized: item.normalized,
+        parsed: {
+          mediaTypeHint: item.mediaTypeHint ?? null,
+          status: item.status ?? null,
+          progressEpisodes: item.progressEpisodes ?? null,
+          progressChapters: item.progressChapters ?? null,
+          progressVolumes: item.progressVolumes ?? null,
+          progressTotal: item.progressTotal ?? null,
+          progressUnit: item.progressUnit ?? null,
+          seasonNumber: item.seasonNumber ?? null,
+          episodeInSeason: item.episodeInSeason ?? null,
+          caughtUp: item.caughtUp ?? null,
+          lastEpisode: item.lastEpisode ?? null,
+          completed: item.completed ?? null,
+          yearMention: item.yearMention ?? null,
+          rating: item.rating ?? null,
+        },
+        ambiguity: item.ambiguity ?? null,
+        candidates: finalCandidates,
+        candidateError,
+        aliasNorm: userId ? normalizeAliasKey(item.raw) : null,
+        existing_entry: existingEntry,
+      };
+    } catch (err) {
+      // Per-item error handling: don't let one item's failure abort others.
+      return {
+        raw: item.raw,
+        normalized: item.normalized,
+        parsed: {
+          mediaTypeHint: item.mediaTypeHint ?? null,
+          status: item.status ?? null,
+          progressEpisodes: item.progressEpisodes ?? null,
+          progressChapters: item.progressChapters ?? null,
+          progressVolumes: item.progressVolumes ?? null,
+          progressTotal: item.progressTotal ?? null,
+          progressUnit: item.progressUnit ?? null,
+          seasonNumber: item.seasonNumber ?? null,
+          episodeInSeason: item.episodeInSeason ?? null,
+          caughtUp: item.caughtUp ?? null,
+          lastEpisode: item.lastEpisode ?? null,
+          completed: item.completed ?? null,
+          yearMention: item.yearMention ?? null,
+          rating: item.rating ?? null,
+        },
+        ambiguity: item.ambiguity ?? null,
+        candidates: [],
+        candidateError: err instanceof Error ? err.message : "unknown error",
+        aliasNorm: userId ? normalizeAliasKey(item.raw) : null,
+        existing_entry: null,
+      };
+    }
+  }));
 
   // Lightweight run logging (best-effort; table is RLS-deny by default for users).
   if (userId) {
@@ -12943,6 +12413,8 @@ type Candidate = {
   title_raw: string;
   variant_type?: string;
   score?: number;
+  year?: number;
+  format?: string;
 };
 
 type Parsed = {
@@ -12956,6 +12428,7 @@ type Parsed = {
   caughtUp?: boolean | null;
   lastEpisode?: boolean | null;
   completed?: boolean | null;
+  yearMention?: number | null;
 };
 
 type ResolveItem = {
@@ -12978,6 +12451,22 @@ function clampInt(v: unknown, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+/** Strip common LLM prompt-injection patterns from user-supplied text before interpolation. */
+function sanitizeForLLM(text: string): string {
+  return text
+    // Strip common injection patterns
+    .replace(/\b(ignore|disregard|forget)\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?|context)/gi, '[filtered]')
+    .replace(/\b(you\s+are\s+now|new\s+instructions?|system\s*:)/gi, '[filtered]')
+    .replace(/\b(act\s+as|pretend\s+(to\s+be|you\s+are)|role\s*play)/gi, '[filtered]')
+    // Strip markdown/HTML injection attempts
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/<[^>]+>/g, '')
+    // Limit length
+    .slice(0, 2000)
+    // Trim whitespace
+    .trim();
+}
+
 function extractJsonObject(text: string): any | null {
   const s = String(text || "");
   const start = s.indexOf("{");
@@ -12994,7 +12483,7 @@ function extractJsonObject(text: string): any | null {
 async function groqResolve(opts: {
   apiKey: string;
   model: string;
-  items: Array<{ raw: string; parsed: Parsed; options: Array<{ id: string; title: string; variant?: string; score?: number }> }>;
+  items: Array<{ raw: string; parsed: Parsed; options: Array<{ id: string; title: string; variant?: string; score?: number; year?: number; format?: string }> }>;
 }): Promise<{ resolved: any | null; usageTotal: number | null }> {
   const url = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -13007,6 +12496,7 @@ Rules:
 - If none match, set pick to -1.
 - If the user explicitly says watched/saw/schaue/geschaut => prefer ANIME; read/lese/gelesen => prefer MANGA.
 - If seasonNumber is present, prefer an option whose title includes that season (e.g., "Season 2", "2nd Season") IF the base title also matches.
+- If the user mentions a year (yearMention in parsed), prefer the option whose year matches that year.
 - DO NOT hallucinate. Only choose from options.
 - Output must be valid JSON ONLY, matching:
   {"choices":[{"i":number,"pick":number,"confidence":number,"reason":string}...]}
@@ -13014,8 +12504,8 @@ Rules:
 Items:
 ${opts.items
   .map((it, idx) =>
-    `#${idx} raw="${it.raw}" parsed=${JSON.stringify(it.parsed ?? {})}\noptions:\n${it.options
-      .map((o, j) => `  [${j}] ${o.id} ${o.title}${o.variant ? ` (${o.variant})` : ""}${typeof o.score === "number" ? ` score=${o.score.toFixed(3)}` : ""}`)
+    `#${idx} raw="${sanitizeForLLM(it.raw)}" parsed=${JSON.stringify(it.parsed ?? {})}\noptions:\n${it.options
+      .map((o, j) => `  [${j}] ${o.id} ${o.title}${o.year ? ` [${o.year}]` : ""}${o.format ? ` ${o.format}` : ""}${o.variant ? ` (${o.variant})` : ""}${typeof o.score === "number" ? ` score=${o.score.toFixed(3)}` : ""}`)
       .join("\n")}`,
   )
   .join("\n\n")}`;
@@ -13127,6 +12617,8 @@ serve(async (req) => {
           title: String(c.title_raw ?? "").slice(0, 120),
           variant: String(c.variant_type ?? ""),
           score: typeof c.score === "number" ? c.score : undefined,
+          year: typeof c.year === "number" ? c.year : undefined,
+          format: typeof c.format === "string" && c.format ? c.format : undefined,
         }));
       return { raw, parsed, options };
     });
@@ -13187,7 +12679,7 @@ serve(async (req) => {
         pick,
         confidence,
         reason,
-        chosen: opt ? { id: opt.id, title: opt.title } : null,
+        chosen: opt ? { id: opt.id, title: opt.title, year: opt.year ?? null, format: opt.format ?? null } : null,
       });
     }
 
@@ -13229,6 +12721,10 @@ type ConciergeMode = {
   id: string;
   title: string;
   synonyms?: string[];
+  // Optional linkage to a pinned curated rail (per media type).
+  // Example config:
+  //   "rail_id": {"anime":"classics_anime","manga":"classics_manga"}
+  rail_id?: string | { anime?: string; manga?: string; both?: string };
   required_genres?: string[];
   exclude_genres?: string[];
   min_score?: number;
@@ -13240,7 +12736,29 @@ type ConciergeMode = {
 
 type ModePick = { id: string; title: string; confidence: number; reason: string };
 
+type UserConstraints = {
+  excluded_genres: string[];
+  format: string | null;       // "MOVIE" | "SHORT_FORM" | "ONA" | "OVA" | null
+  max_episodes: number | null;
+  min_episodes: number | null;
+  year_min: number | null;
+  year_max: number | null;
+  why: string[];
+};
+
 type CandidateRow = { media_id: number; match_count?: number | null; score?: number | null };
+
+// Penalties for known weak/sparse mode inventories.
+// Keeps routing deterministic while reducing accidental selection of weaker rails
+// unless user intent is explicit.
+const MODE_HEALTH_PENALTIES: Record<string, number> = {
+  historical: 2.8,
+  mecha: 2.6,
+  school_coming_of_age: 2.4,
+  shoujo_josei: 2.2,
+  mystery_detective: 1.4,
+  music_performance: 1.2,
+};
 
 function json(res: unknown, init: ResponseInit = {}) {
   return new Response(JSON.stringify(res), {
@@ -13267,6 +12785,313 @@ function safeNumber(v: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function stableBucket(input: string): number {
+  // djb2-style deterministic hash, then map into [0, 99].
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = ((hash << 5) + hash) + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 100;
+}
+
+function inferRequestMarket(req: Request): string {
+  const cfCountry = req.headers.get("cf-ipcountry")?.trim().toUpperCase();
+  if (cfCountry && /^[A-Z]{2}$/.test(cfCountry)) return cfCountry;
+
+  const acceptLanguage = req.headers.get("accept-language") ?? "";
+  const first = acceptLanguage.split(",")[0]?.trim() ?? "";
+  const region = first.match(/-[A-Za-z]{2}\b/)?.[0]?.slice(1).toUpperCase();
+  if (region && /^[A-Z]{2}$/.test(region)) return region;
+  return "US";
+}
+
+type Locale = "en" | "de";
+
+function inferLocale(req: Request, market: string): Locale {
+  const m = (market || "").trim().toUpperCase();
+  if (["DE", "AT", "CH"].includes(m)) return "de";
+  const acceptLanguage = (req.headers.get("accept-language") ?? "").trim().toLowerCase();
+  if (acceptLanguage.startsWith("de")) return "de";
+  return "en";
+}
+
+type CuratedCopy = {
+  displayTitle: string;
+  displaySubtitle?: string;
+  // A short axis used for deterministic curator notes.
+  tasteAxis: { en: string; de: string };
+};
+
+const CURATED_MODE_COPY: Record<string, CuratedCopy> = {
+  premium_picks: {
+    displayTitle: "The Cut",
+    displaySubtitle: "High-confidence picks, new to you",
+    tasteAxis: { en: "craft-forward picks", de: "Handwerk und Qualität" },
+  },
+  gateway_start_here: {
+    displayTitle: "Start Here",
+    displaySubtitle: "A clean entry point",
+    tasteAxis: { en: "approachable, high-signal stories", de: "zugänglich und treffsicher" },
+  },
+  premium_action: {
+    displayTitle: "Action With Craft",
+    displaySubtitle: "Clean choreography, real momentum",
+    tasteAxis: { en: "momentum and clarity", de: "Tempo und Klarheit" },
+  },
+  premium_comedy_grownup: {
+    displayTitle: "Comedy With Bite",
+    displaySubtitle: "Smart, dry, character-led",
+    tasteAxis: { en: "dry wit and precision", de: "trockener Witz und Präzision" },
+  },
+  cozy_comfort: {
+    displayTitle: "Soft Evenings",
+    displaySubtitle: "Gentle, restorative stories",
+    tasteAxis: { en: "gentle pacing", de: "sanft und wohltuend" },
+  },
+  dark_serious: {
+    displayTitle: "Dark, Not Empty",
+    displaySubtitle: "Serious tone, strong craft",
+    tasteAxis: { en: "serious tone", de: "ernst, aber mit Substanz" },
+  },
+  hidden_gems: {
+    displayTitle: "Underseen",
+    displaySubtitle: "Quiet classics, overlooked hits",
+    tasteAxis: { en: "under-discussed brilliance", de: "unter dem Radar" },
+  },
+  classics_expanded: {
+    displayTitle: "The Canon",
+    displaySubtitle: "Anchors worth knowing",
+    tasteAxis: { en: "foundational works", de: "Grundpfeiler" },
+  },
+  short_one_season: {
+    displayTitle: "Short, Complete",
+    displaySubtitle: "One season, clean finish",
+    tasteAxis: { en: "tight structure", de: "straff und abgeschlossen" },
+  },
+  movie_night: {
+    displayTitle: "One Perfect Film",
+    displaySubtitle: "Stand-alone nights",
+    tasteAxis: { en: "one-shot impact", de: "ein Abend, ein Treffer" },
+  },
+  romance_serious: {
+    displayTitle: "Romance That Lands",
+    displaySubtitle: "Earned, not fluffy",
+    tasteAxis: { en: "emotional weight", de: "emotionale Wucht" },
+  },
+  romcom: {
+    displayTitle: "Light, Sharp Romance",
+    displaySubtitle: "Warmth with timing",
+    tasteAxis: { en: "warm timing", de: "warm und pointiert" },
+  },
+  fantasy_non_isekai: {
+    displayTitle: "Fantasy With Texture",
+    displaySubtitle: "Myth, wonder, discipline",
+    tasteAxis: { en: "mythic texture", de: "Mythos und Textur" },
+  },
+  isekai: {
+    displayTitle: "Other Worlds, Cleanly",
+    displaySubtitle: "Escapism with craft",
+    tasteAxis: { en: "clear escapism", de: "klare Eskapismus-Linie" },
+  },
+  sports: {
+    displayTitle: "Competition, Pure",
+    displaySubtitle: "Training arcs that work",
+    tasteAxis: { en: "earned momentum", de: "verdientes Momentum" },
+  },
+  scifi: {
+    displayTitle: "Ideas With Heat",
+    displaySubtitle: "Speculation, not noise",
+    tasteAxis: { en: "clean sci-fi ideas", de: "klare Sci-Fi-Ideen" },
+  },
+  horror_supernatural: {
+    displayTitle: "Unease, Done Right",
+    displaySubtitle: "Atmosphere over gore",
+    tasteAxis: { en: "atmosphere and tension", de: "Atmosphäre und Spannung" },
+  },
+  mecha: {
+    displayTitle: "Steel and Stakes",
+    displaySubtitle: "Big machines, real themes",
+    tasteAxis: { en: "scale and conviction", de: "Groesse und Haltung" },
+  },
+  mystery_detective: {
+    displayTitle: "Cases With Discipline",
+    displaySubtitle: "Puzzles that hold",
+    tasteAxis: { en: "sharp mystery logic", de: "scharfe Logik" },
+  },
+  music_performance: {
+    displayTitle: "Sound and Feeling",
+    displaySubtitle: "Performance that moves",
+    tasteAxis: { en: "rhythm and emotion", de: "Rhythmus und Gefühl" },
+  },
+  historical: {
+    displayTitle: "Period Weight",
+    displaySubtitle: "History with texture",
+    tasteAxis: { en: "weight and texture", de: "Gewicht und Textur" },
+  },
+  school_coming_of_age: {
+    displayTitle: "Coming-of-Age, Quietly",
+    displaySubtitle: "Youth, rendered cleanly",
+    tasteAxis: { en: "intimate growth", de: "intimes Wachsen" },
+  },
+  shoujo_josei: {
+    displayTitle: "Emotion, With Clarity",
+    displaySubtitle: "Character-first, precise",
+    tasteAxis: { en: "emotional clarity", de: "emotionale Klarheit" },
+  },
+  similar_to_seed: {
+    displayTitle: "In the Same Orbit",
+    displaySubtitle: "Close to your anchor",
+    tasteAxis: { en: "adjacent craft", de: "nahe am Anker" },
+  },
+};
+
+function softenFallbackTitle(raw: string): string {
+  const t = String(raw ?? "").trim();
+  if (!t) return "Selections";
+  return t
+    .replace(/\bpremium\b/gi, "")
+    .replace(/\(.*?\)/g, "")
+    .replace(/\s*\/\s*/g, " · ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function curatedCopyForMode(locale: Locale, modeId: string, modeTitleFallback: string): { displayTitle: string; displaySubtitle?: string; tasteAxis: string } {
+  const c = CURATED_MODE_COPY[modeId];
+  if (!c) {
+    const softened = softenFallbackTitle(modeTitleFallback);
+    return {
+      displayTitle: softened,
+      displaySubtitle: locale === "de" ? "Kuratiert, neu für dich" : "Curated, new to you",
+      tasteAxis: locale === "de" ? "Ton und Handwerk" : "tone and craft",
+    };
+  }
+  const deTitles: Record<string, string> = {
+    // Hand-authored DE titles (do not auto-translate).
+    premium_picks: "Die Auswahl",
+    premium_comedy_grownup: "Komödie mit Biss",
+    cozy_comfort: "Sanfte Abende",
+    dark_serious: "Dunkel, nicht leer",
+    hidden_gems: "Unterschätzt",
+    classics_expanded: "Der Kanon",
+    short_one_season: "Kurz, abgeschlossen",
+    movie_night: "Ein perfekter Film",
+    romance_serious: "Romantik, die trifft",
+    romcom: "Leicht, aber scharf",
+    fantasy_non_isekai: "Fantasy mit Textur",
+    isekai: "Andere Welten, sauber",
+    sports: "Wettkampf, pur",
+    scifi: "Ideen mit Hitze",
+    horror_supernatural: "Unbehagen, richtig",
+    mecha: "Stahl und Einsatz",
+    mystery_detective: "Fälle mit Disziplin",
+    music_performance: "Klang und Gefühl",
+    historical: "Zeitgewicht",
+    school_coming_of_age: "Coming-of-Age, leise",
+    shoujo_josei: "Gefühl, mit Klarheit",
+    gateway_start_here: "Hier anfangen",
+    premium_action: "Action mit Handwerk",
+    similar_to_seed: "In derselben Umlaufbahn",
+  };
+  const deSubtitles: Record<string, string> = {
+    premium_picks: "Sichere Picks, neu für dich",
+    premium_comedy_grownup: "Trocken, klug, figurengetrieben",
+    cozy_comfort: "Ruhig, warm, erholsam",
+    dark_serious: "Ernst, aber mit Substanz",
+    hidden_gems: "Übersehenes, das sitzt",
+    classics_expanded: "Anker, die man kennt",
+    short_one_season: "Eine Staffel, sauberer Abschluss",
+    movie_night: "Standalone-Abende",
+    romance_serious: "Verdient, nicht fluffig",
+    romcom: "Wärme mit Timing",
+    fantasy_non_isekai: "Mythos, Staunen, Disziplin",
+    isekai: "Eskapismus mit Handwerk",
+    sports: "Training, das funktioniert",
+    scifi: "Spekulation, nicht Lärm",
+    horror_supernatural: "Atmosphäre statt Gore",
+    mecha: "Große Maschinen, echte Themen",
+    mystery_detective: "Rätsel, die halten",
+    music_performance: "Performance, die bewegt",
+    historical: "Geschichte mit Textur",
+    school_coming_of_age: "Jugend, klar gezeichnet",
+    shoujo_josei: "Figuren zuerst, präzise",
+    gateway_start_here: "Ein sauberer Einstieg",
+    premium_action: "Choreo, Tempo, Klarheit",
+    similar_to_seed: "Nahe an deinem Anker",
+  };
+  return {
+    displayTitle: locale === "de" ? (deTitles[modeId] ?? c.displayTitle) : c.displayTitle,
+    displaySubtitle: locale === "de" ? (deSubtitles[modeId] ?? c.displaySubtitle) : c.displaySubtitle,
+    tasteAxis: locale === "de" ? c.tasteAxis.de : c.tasteAxis.en,
+  };
+}
+
+function clampWords(s: string, maxWords: number): string {
+  const parts = String(s ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= maxWords) return parts.join(" ");
+  return parts.slice(0, maxWords).join(" ");
+}
+
+function buildCuratorNote(args: {
+  locale: Locale;
+  primaryModeId: string;
+  primaryModeTitle: string;
+  constraints: UserConstraints;
+  ragUsed: boolean;
+  seedTitle?: string | null;
+  avoidedGenres?: string[];
+}): string {
+  const { locale, constraints, primaryModeId, primaryModeTitle } = args;
+  const copy = curatedCopyForMode(locale, primaryModeId, primaryModeTitle);
+
+  const constraintBits: string[] = [];
+  if (constraints.format === "MOVIE") constraintBits.push(locale === "de" ? "nur Filme" : "movie-only");
+  if (constraints.max_episodes != null) constraintBits.push(locale === "de" ? "kurz gehalten" : "kept it short");
+  if (constraints.year_min != null || constraints.year_max != null) {
+    const a = constraints.year_min != null ? String(constraints.year_min) : "";
+    const b = constraints.year_max != null ? String(constraints.year_max) : "";
+    const span = a && b ? `${a}-${b}` : (a ? `ab ${a}` : (b ? `bis ${b}` : ""));
+    if (span) constraintBits.push(locale === "de" ? `im Zeitraum ${span}` : `within ${span}`);
+  }
+  if (constraints.excluded_genres.length > 0) {
+    const g = constraints.excluded_genres.slice(0, 2).join(locale === "de" ? " und " : " and ");
+    constraintBits.push(locale === "de" ? `ohne ${g}` : `avoiding ${g}`);
+  }
+
+  const constraintPhrase = constraintBits.length
+    ? constraintBits[0]
+    : (locale === "de" ? "sauber gefiltert" : "cleanly filtered");
+
+  const personalPhrase = (() => {
+    if (args.ragUsed && args.seedTitle) {
+      const t = clampWords(String(args.seedTitle), 6);
+      return locale === "de" ? `in der Nähe von ${t}` : `near ${t}`;
+    }
+    return locale === "de" ? "neu für dich" : "new to you";
+  })();
+
+  return locale === "de"
+    ? `Ich habe ${constraintPhrase} beachtet, in Richtung ${copy.tasteAxis} geneigt und ${personalPhrase} priorisiert.`
+    : `I kept it ${constraintPhrase}, leaned toward ${copy.tasteAxis}, and prioritized ${personalPhrase}.`;
+}
+
+/** Strip common LLM prompt-injection patterns from user-supplied text before interpolation. */
+function sanitizeForLLM(text: string): string {
+  return text
+    // Strip common injection patterns
+    .replace(/\b(ignore|disregard|forget)\s+(all\s+)?(previous|above|prior)\s+(instructions?|prompts?|rules?|context)/gi, '[filtered]')
+    .replace(/\b(you\s+are\s+now|new\s+instructions?|system\s*:)/gi, '[filtered]')
+    .replace(/\b(act\s+as|pretend\s+(to\s+be|you\s+are)|role\s*play)/gi, '[filtered]')
+    // Strip markdown/HTML injection attempts
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/<[^>]+>/g, '')
+    // Limit length
+    .slice(0, 2000)
+    // Trim whitespace
+    .trim();
+}
+
 function normalizeText(s: string): string {
   return s
     .toLowerCase()
@@ -13285,10 +13110,25 @@ function parseModesFromConfig(cfg: any): ConciergeMode[] {
     const id = typeof r.id === "string" ? r.id.trim() : "";
     const title = typeof r.title === "string" ? r.title.trim() : "";
     if (!id || !title) continue;
+    let rail_id: ConciergeMode["rail_id"] | undefined = undefined;
+    const rid = (r as any).rail_id;
+    if (typeof rid === "string" && rid.trim()) {
+      rail_id = rid.trim();
+    } else if (rid && typeof rid === "object") {
+      const anime = typeof (rid as any).anime === "string" ? (rid as any).anime.trim() : "";
+      const manga = typeof (rid as any).manga === "string" ? (rid as any).manga.trim() : "";
+      const both = typeof (rid as any).both === "string" ? (rid as any).both.trim() : "";
+      rail_id = {
+        ...(anime ? { anime } : {}),
+        ...(manga ? { manga } : {}),
+        ...(both ? { both } : {}),
+      };
+    }
     out.push({
       id,
       title,
       synonyms: safeStringArray((r as any).synonyms),
+      rail_id,
       required_genres: safeStringArray((r as any).required_genres),
       exclude_genres: safeStringArray((r as any).exclude_genres),
       min_score: safeNumber((r as any).min_score) ?? undefined,
@@ -13303,12 +13143,38 @@ function parseModesFromConfig(cfg: any): ConciergeMode[] {
 
 function defaultModes(): ConciergeMode[] {
   // Safe fallback if config/migration hasn't been applied yet.
+  // Matches the v3 migration (20260206100000_concierge_modes_v3_expanded).
   return [
+    // ── Existing 8 modes (enriched synonyms) ──
+    {
+      id: "premium_picks",
+      title: "Premium Picks",
+      synonyms: ["something good", "recommend something", "surprise me", "premium", "best", "top tier", "what should i watch", "anything good", "just pick something", "quality"],
+      min_score: 75,
+      min_popularity: 2500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "gateway_start_here",
+      title: "Start Here",
+      synonyms: ["first anime", "first manga", "where do i start", "getting into anime", "getting into manga", "beginner", "new to anime", "new to manga", "gateway", "never watched anime"],
+      rail_id: { anime: "gateway_anime", manga: "gateway_manga" },
+    },
     {
       id: "premium_action",
       title: "Premium Action",
-      synonyms: ["premium action", "best action", "action premium", "hype action", "fight scenes"],
+      synonyms: ["action", "hype action", "action premium", "best action", "sakuga", "fight scenes", "battle", "tournament", "shounen", "epic fights", "adrenaline"],
       required_genres: ["Action"],
+      min_score: 75,
+      min_popularity: 3500,
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "premium_comedy_grownup",
+      title: "Premium Comedy (grown-up)",
+      synonyms: ["funny but not childish", "grown up comedy", "adult humor", "smart comedy", "witzig aber nicht kindisch", "sitcom", "parody", "satire", "clever humor", "comedy for adults"],
+      required_genres: ["Comedy"],
       min_score: 75,
       min_popularity: 3500,
       exclude_genres: ["Kids"],
@@ -13317,26 +13183,16 @@ function defaultModes(): ConciergeMode[] {
     {
       id: "cozy_comfort",
       title: "Cozy / Comfort",
-      synonyms: ["cozy", "comfort", "chill", "relax", "healing", "iyashikei", "gemütlich"],
+      synonyms: ["cozy", "comfort", "chill", "relax", "healing", "iyashikei", "gemütlich", "wholesome", "feel good", "heartwarming", "warm", "gentle", "peaceful"],
       required_genres: ["Slice of Life"],
       min_score: 70,
       min_popularity: 1200,
       exclude_formats: ["MUSIC"],
     },
     {
-      id: "premium_comedy_grownup",
-      title: "Premium Comedy (grown-up)",
-      synonyms: ["funny but not childish", "grown up comedy", "smart comedy", "adult humor", "witzig aber nicht kindisch"],
-      required_genres: ["Comedy"],
-      min_score: 75,
-      min_popularity: 3500,
-      exclude_genres: ["Kids"],
-      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
-    },
-    {
       id: "dark_serious",
       title: "Dark / Serious",
-      synonyms: ["dark", "serious", "mature", "grown up", "not childish", "psychological", "thriller", "mind game"],
+      synonyms: ["dark", "serious", "mature", "grown up", "not childish", "psychological", "thriller", "mind game", "seinen", "gore", "violent", "gritty", "brutal", "mind bending"],
       required_genres: ["Drama", "Thriller", "Psychological", "Mystery"],
       min_score: 78,
       min_popularity: 2500,
@@ -13346,7 +13202,7 @@ function defaultModes(): ConciergeMode[] {
     {
       id: "hidden_gems",
       title: "Hidden Gems",
-      synonyms: ["hidden gems", "underrated", "less known", "something new", "new to me", "surprise me"],
+      synonyms: ["hidden gems", "underrated", "less known", "something new", "new to me", "overlooked", "sleeper", "cult", "niche", "off the beaten path"],
       min_score: 78,
       max_popularity: 45000,
       exclude_genres: ["Kids"],
@@ -13355,18 +13211,141 @@ function defaultModes(): ConciergeMode[] {
     {
       id: "classics_expanded",
       title: "Classics (expanded)",
-      synonyms: ["classic", "classics", "must watch", "essentials", "goat", "greatest of all time"],
+      synonyms: ["classic", "classics", "must watch", "essentials", "goat", "greatest of all time", "old school", "retro", "90s anime", "80s anime", "iconic", "all time best"],
+      rail_id: { anime: "classics_anime", manga: "classics_manga" },
       classic_year_max: 2012,
       min_score: 80,
       min_popularity: 1500,
       exclude_genres: ["Kids"],
       exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
     },
+    // ── 6 new modes ──
+    {
+      id: "short_one_season",
+      title: "Short & Complete",
+      synonyms: ["short", "one season", "12 episodes", "13 episodes", "quick watch", "binge", "one cour", "single season", "short anime"],
+      min_score: 74,
+      min_popularity: 2000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC", "MOVIE", "ONA"],
+    },
+    {
+      id: "movie_night",
+      title: "Movie Night",
+      synonyms: ["movie", "movies", "film", "anime movie", "movie night", "feature film", "standalone movie"],
+      min_score: 76,
+      min_popularity: 2000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV", "TV_SHORT", "SPECIAL", "MUSIC", "ONA", "OVA"],
+    },
+    {
+      id: "romance_serious",
+      title: "Romance (serious)",
+      synonyms: ["serious romance", "love story", "romantic drama", "romance drama", "emotional romance", "bittersweet", "heartbreak", "romance not comedy", "deep romance"],
+      required_genres: ["Romance", "Drama"],
+      min_score: 74,
+      min_popularity: 2000,
+      exclude_genres: ["Kids", "Comedy"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "romcom",
+      title: "Romcom",
+      synonyms: ["romcom", "romantic comedy", "rom com", "funny romance", "lighthearted romance", "love comedy", "cute romance", "fluffy", "sweet romance"],
+      required_genres: ["Romance", "Comedy"],
+      min_score: 72,
+      min_popularity: 2000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "fantasy_non_isekai",
+      title: "Fantasy (no isekai)",
+      synonyms: ["fantasy", "high fantasy", "swords and sorcery", "magic", "epic fantasy", "fantasy no isekai", "traditional fantasy", "pure fantasy"],
+      required_genres: ["Fantasy"],
+      min_score: 74,
+      min_popularity: 2000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    {
+      id: "isekai",
+      title: "Isekai",
+      synonyms: ["isekai", "transported to another world", "reincarnated", "another world", "reborn", "other world", "parallel world", "summoned to another world", "truck-kun"],
+      required_genres: ["Fantasy", "Adventure"],
+      min_score: 72,
+      min_popularity: 2500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+    },
+    // ── 3 additional modes (Phase 1 expansion) ──
+    {
+      id: "sports",
+      title: "Sports",
+      synonyms: ["sports", "sport", "basketball", "soccer", "football", "volleyball", "boxing", "tennis", "baseball", "cycling", "running", "swimming", "haikyuu", "blue lock", "kuroko"],
+      required_genres: ["Sports"],
+      min_score: 72,
+      min_popularity: 1500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+      rail_id: { anime: "sports_anime", manga: "sports_manga" },
+    },
+    {
+      id: "scifi",
+      title: "Sci-Fi",
+      synonyms: ["sci-fi", "science fiction", "scifi", "cyberpunk", "space", "futuristic", "dystopian", "robots", "space opera", "mecha"],
+      required_genres: ["Sci-Fi"],
+      min_score: 74,
+      min_popularity: 2000,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+      rail_id: { anime: "scifi_anime", manga: "scifi_manga" },
+    },
+    {
+      id: "horror_supernatural",
+      title: "Horror & Supernatural",
+      synonyms: ["horror", "scary", "creepy", "supernatural", "ghost", "demon", "occult", "vampire", "zombie", "curse", "haunted", "junji ito"],
+      required_genres: ["Horror", "Supernatural"],
+      min_score: 70,
+      min_popularity: 1500,
+      exclude_genres: ["Kids"],
+      exclude_formats: ["TV_SHORT", "SPECIAL", "MUSIC"],
+      rail_id: { anime: "horror_supernatural_anime", manga: "horror_supernatural_manga" },
+    },
   ];
 }
 
-function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[]): { score: number; reason: string } {
+const GERMAN_VIBE_FORMS: Record<string, string> = {
+  "düsteres": "düster", "düstere": "düster", "düsterem": "düster", "düsterer": "düster", "düsteren": "düster",
+  "lustiges": "lustig", "lustige": "lustig", "lustigem": "lustig", "lustiger": "lustig", "lustigen": "lustig",
+  "gemütliches": "gemütlich", "gemütliche": "gemütlich", "gemütlichem": "gemütlich",
+  "ernstes": "ernst", "ernste": "ernst", "ernstem": "ernst", "ernster": "ernst",
+  "gruseliges": "gruselig", "gruselige": "gruselig", "gruseligem": "gruselig",
+  "romantisches": "romantisch", "romantische": "romantisch", "romantischem": "romantisch",
+  "historisches": "historisch", "historische": "historisch", "historischem": "historisch",
+  "witziges": "witzig", "witzige": "witzig", "witzigem": "witzig",
+  "entspannendes": "entspannend", "entspannende": "entspannend",
+  "unheimliches": "unheimlich", "unheimliche": "unheimlich",
+  "legendäres": "legendär", "legendäre": "legendär",
+  "übernatürliches": "übernatürlich", "übernatürliche": "übernatürlich",
+};
+
+function normalizeUmlauts(s: string): string {
+  return s.replace(/ü/g, "ue").replace(/ö/g, "oe").replace(/ä/g, "ae").replace(/ß/g, "ss")
+          .replace(/Ü/g, "Ue").replace(/Ö/g, "Oe").replace(/Ä/g, "Ae");
+}
+
+function normalizeGermanVibeWords(text: string): string {
+  let result = text.toLowerCase();
+  for (const [inflected, base] of Object.entries(GERMAN_VIBE_FORMS)) {
+    result = result.replace(new RegExp(`\\b${inflected}\\b`, "g"), base);
+  }
+  return result;
+}
+
+function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[], excludedGenres: string[] = [], userConstraints?: UserConstraints): { score: number; reason: string } {
   const t = normalizeText(text);
+  const tNorm = normalizeUmlauts(normalizeGermanVibeWords(text));
   let score = 0;
   let reason = "";
 
@@ -13374,7 +13353,7 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[]):
   for (const syn of synonyms) {
     const s = normalizeText(syn);
     if (!s) continue;
-    if (t.includes(s)) {
+    if (t.includes(s) || normalizeUmlauts(normalizeGermanVibeWords(t)).includes(normalizeUmlauts(normalizeGermanVibeWords(s)))) {
       score += Math.max(2, Math.min(5, Math.ceil(s.split(" ").length / 2) + 2));
       if (!reason) reason = `matches "${syn}"`;
     }
@@ -13388,78 +13367,287 @@ function scoreMode(text: string, mode: ConciergeMode, inferredGenres: string[]):
     if (!reason) reason = `genre: ${overlap.slice(0, 2).join(", ")}`;
   }
 
+  // Penalize modes whose core genres are excluded by user (e.g. "no romance" suppresses romcom).
+  const exclLower = new Set(excludedGenres.map((g) => g.toLowerCase()));
+  const exclOverlap = req.filter((g) => exclLower.has(g.toLowerCase()));
+  if (exclOverlap.length > 0) {
+    score -= 5 * exclOverlap.length;
+  }
+
   // Classic intent boosts the classics mode and slightly downweights gimmick modes.
-  const wantsClassic = /\b(classic|classics|must watch|essentials|goat|greatest)\b/i.test(text);
+  const wantsClassic = /\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s|klassiker|klassisch|legendaer|meisterwerk|muss man gesehen haben)\b/i.test(tNorm);
   if (wantsClassic && mode.id.includes("classic")) {
     score += 3;
     if (!reason) reason = "classic intent";
   }
-  const wantsHidden = /\b(hidden gem|underrated|less known|new to me|surprise)\b/i.test(text);
+  const wantsHidden = /\b(hidden gem|underrated|less known|new to me|surprise|geheimtipp|unterschaetzt|unbekannt|wenig bekannt)\b/i.test(tNorm);
   if (wantsHidden && mode.id.includes("hidden")) {
     score += 3;
     if (!reason) reason = "hidden gems intent";
   }
 
   // Cheap maturity heuristic.
-  const mature = /\b(not childish|grown[- ]?up|mature|serious|dark)\b/i.test(text);
+  const mature = /\b(not childish|grown[- ]?up|mature|serious|dark)\b/i.test(tNorm);
   if (mature && (mode.id.includes("grown") || mode.id.includes("dark"))) {
     score += 2;
     if (!reason) reason = "mature tone";
   }
 
+  // Movie intent.
+  const wantsMovie = /\b(movie|film|filme|movie night|filmabend|kinofilm)\b/i.test(tNorm);
+  if (wantsMovie && mode.id === "movie_night") {
+    score += 3;
+    if (!reason) reason = "movie intent";
+  }
+
+  // Short/binge intent.
+  const wantsShort = /\b(short|one season|quick watch|binge|one cour|12 ep|13 ep|kurz|eine staffel|1 staffel|schnell|durchschauen|kurze serie|kurz und gut)\b/i.test(tNorm);
+  if (wantsShort && mode.id === "short_one_season") {
+    score += 3;
+    if (!reason) reason = "short series intent";
+  }
+
+  // Isekai intent (boost isekai, penalize fantasy_non_isekai).
+  const wantsIsekai = /\b(isekai|reincarnated|another world|reborn|truck[- ]?kun)\b/i.test(tNorm);
+  if (wantsIsekai && mode.id === "isekai") {
+    score += 3;
+    if (!reason) reason = "isekai intent";
+  }
+  if (wantsIsekai && mode.id === "fantasy_non_isekai") {
+    score -= 4; // suppress non-isekai fantasy when user explicitly wants isekai
+  }
+
+  // "No isekai" intent (boost fantasy_non_isekai, penalize isekai).
+  const noIsekai = /\b(no isekai|not isekai|ohne isekai|nicht isekai|kein isekai|fantasy no isekai|non[- ]?isekai)\b/i.test(tNorm);
+  if (noIsekai && mode.id === "fantasy_non_isekai") {
+    score += 4;
+    if (!reason) reason = "non-isekai intent";
+  }
+  if (noIsekai && mode.id === "isekai") {
+    score -= 4;
+  }
+
+  // Romance sub-type disambiguation.
+  const wantsRomcom = /\b(romcom|rom com|romantic comedy|funny romance|cute romance|fluffy|romantische komoedie|lustige romanze)\b/i.test(tNorm);
+  if (wantsRomcom && mode.id === "romcom") {
+    score += 3;
+    if (!reason) reason = "romcom intent";
+  }
+  if (wantsRomcom && mode.id === "romance_serious") {
+    score -= 2;
+  }
+  const wantsSeriousRomance = /\b(serious romance|romance drama|heartbreak|bittersweet|deep romance|ernste romanze|liebesgeschichte|herzschmerz)\b/i.test(tNorm);
+  if (wantsSeriousRomance && mode.id === "romance_serious") {
+    score += 3;
+    if (!reason) reason = "serious romance intent";
+  }
+  if (wantsSeriousRomance && mode.id === "romcom") {
+    score -= 2;
+  }
+
+  // Sports intent.
+  const wantsSports = /\b(sports?|soccer|basketball|volleyball|boxing|tennis|baseball|haikyuu|blue lock|kuroko|fussball)\b/i.test(tNorm);
+  if (wantsSports && mode.id === "sports") {
+    score += 3;
+    if (!reason) reason = "sports intent";
+  }
+
+  // Sci-fi intent.
+  const wantsScifi = /\b(sci[- ]?fi|scifi|science fiction|cyberpunk|space|futuristic|dystopian|space opera|mecha|weltraum|zukunft|roboter)\b/i.test(tNorm);
+  if (wantsScifi && mode.id === "scifi") {
+    score += 3;
+    if (!reason) reason = "sci-fi intent";
+  }
+
+  // Horror/supernatural intent (disambiguate from dark_serious).
+  const wantsHorror = /\b(horror|scary|creepy|ghost|demon|occult|vampire|zombie|curse|haunted|junji ito|gruselig|geist|daemon|unheimlich|schaurig)\b/i.test(tNorm);
+  if (wantsHorror && mode.id === "horror_supernatural") {
+    score += 3;
+    if (!reason) reason = "horror intent";
+  }
+  if (wantsHorror && mode.id === "dark_serious") {
+    score -= 2; // prefer horror_supernatural over dark_serious for explicit horror queries
+  }
+
+  // Cozy/comfort intent.
+  const wantsCozy = /\b(cozy|chill|healing|wholesome|comfort|gemuetlich|entspannend|wohlfuehl|beruhigend)\b/i.test(tNorm);
+  if (wantsCozy && mode.id === "cozy_comfort") {
+    score += 3;
+    if (!reason) reason = "cozy intent";
+  }
+
+  // Mecha intent.
+  const wantsMecha = /\b(mecha|giant robot|gundam|eva(ngelion)?|code geass|roboter|riesenroboter)\b/i.test(tNorm);
+  if (wantsMecha && mode.id === "mecha") {
+    score += 3;
+    if (!reason) reason = "mecha intent";
+  }
+
+  // Mystery/detective intent.
+  const wantsMystery = /\b(mystery|detective|whodunit|krimi|detektiv|who done it|case solved|raetsel)\b/i.test(tNorm);
+  if (wantsMystery && mode.id === "mystery_detective") {
+    score += 3;
+    if (!reason) reason = "mystery intent";
+  }
+
+  // Music/performance intent.
+  const wantsMusic = /\b(music anime|band|idol|concert|musik|instrument|k[- ]?on)\b/i.test(tNorm);
+  if (wantsMusic && mode.id === "music_performance") {
+    score += 3;
+    if (!reason) reason = "music intent";
+  }
+
+  // Historical intent.
+  const wantsHistorical = /\b(historical|samurai|period|war drama|medieval|historisch|mittelalter|vinland)\b/i.test(tNorm);
+  if (wantsHistorical && mode.id === "historical") {
+    score += 3;
+    if (!reason) reason = "historical intent";
+  }
+
+  // School/coming-of-age intent.
+  const wantsSchool = /\b(school|campus|high school|coming.of.age|youth|schule|jugend|gymnasium)\b/i.test(tNorm);
+  if (wantsSchool && mode.id === "school_coming_of_age") {
+    score += 3;
+    if (!reason) reason = "school intent";
+  }
+
+  // Shoujo/Josei intent.
+  const wantsShoujoJosei = /\b(shoujo|josei|for women|girls manga|fuer frauen|maedchen|woman protagonist)\b/i.test(tNorm);
+  if (wantsShoujoJosei && mode.id === "shoujo_josei") {
+    score += 3;
+    if (!reason) reason = "shoujo/josei intent";
+  }
+
+  // ── Constraint-based mode penalties ──
+  if (userConstraints) {
+    // Movie constraint: penalize TV-focused modes, boost movie_night.
+    if (userConstraints.format === "MOVIE") {
+      if (mode.id === "movie_night") {
+        score += 4;
+        if (!reason) reason = "movie constraint";
+      } else if (mode.exclude_formats?.includes("MOVIE")) {
+        score -= 6; // mode explicitly excludes movies
+      }
+    }
+    // Short-form constraint: penalize long-series modes.
+    if (userConstraints.format === "SHORT_FORM" || userConstraints.format === "OVA" || userConstraints.format === "ONA") {
+      if (mode.id === "short_one_season") {
+        score += 3;
+        if (!reason) reason = "short-form constraint";
+      }
+    }
+    // Max-episodes constraint: boost short_one_season mode when user wants <=26 episodes.
+    if (userConstraints.max_episodes != null && userConstraints.max_episodes <= 26) {
+      if (mode.id === "short_one_season") {
+        score += 2;
+        if (!reason) reason = "episode limit constraint";
+      }
+    }
+    // Min-episodes constraint: penalize short modes when user wants long.
+    if (userConstraints.min_episodes != null && userConstraints.min_episodes >= 50) {
+      if (mode.id === "short_one_season" || mode.id === "movie_night") {
+        score -= 5;
+      }
+    }
+    // Year max constraint: boost classics mode if user wants older titles.
+    if (userConstraints.year_max != null && userConstraints.year_max <= 2012) {
+      if (mode.id.includes("classic")) {
+        score += 2;
+        if (!reason) reason = "year constraint (classic era)";
+      }
+    }
+  }
+
+  // Quality guardrail: down-weight known weak/sparse mode inventories when
+  // the prompt signal is weak. Explicit intent still wins.
+  const healthPenalty = MODE_HEALTH_PENALTIES[mode.id] ?? 0;
+  if (healthPenalty > 0) {
+    if (score < 3) {
+      score -= healthPenalty;
+      if (!reason) reason = "quality safeguard";
+    } else if (score < 5) {
+      score -= Math.min(1.5, healthPenalty * 0.35);
+    }
+  }
+
   return { score, reason: reason || "default" };
 }
 
-function pickTwoModes(text: string, modes: ConciergeMode[], inferredGenres: string[]): ModePick[] {
-  const scored = modes.map((m) => {
-    const { score, reason } = scoreMode(text, m, inferredGenres);
-    return { mode: m, score, reason };
-  });
-
-  // Always keep a classics rail as a stable anchor, unless we don't have such a mode.
-  const classics = scored.find((x) => x.mode.id.includes("classic"))?.mode ?? null;
-
-  scored.sort((a, b) => b.score - a.score);
-
-  const primary = scored.find((x) => !x.mode.id.includes("classic"))?.mode ?? scored[0]?.mode ?? null;
-  const primaryReason = scored.find((x) => x.mode.id === primary?.id)?.reason ?? "default";
-  const primaryScore = scored.find((x) => x.mode.id === primary?.id)?.score ?? 0;
-
-  let secondary: ConciergeMode | null = null;
-  let secondaryReason = "default";
-  let secondaryScore = 0;
-
-  if (classics && classics.id !== primary?.id) {
-    secondary = classics;
-    const hit = scored.find((x) => x.mode.id === classics.id);
-    secondaryReason = hit?.reason ?? "classic rail";
-    secondaryScore = hit?.score ?? 0;
-  } else {
-    const next = scored.find((x) => x.mode.id !== primary?.id);
-    secondary = next?.mode ?? null;
-    secondaryReason = next?.reason ?? "default";
-    secondaryScore = next?.score ?? 0;
-  }
-
-  const mk = (m: ConciergeMode | null, score: number, reason: string): ModePick | null => {
-    if (!m) return null;
-    // Convert a small integer-ish score to a [0..1] confidence for UI/debugging.
-    const confidence = Math.max(0, Math.min(1, score / 10));
-    return { id: m.id, title: m.title, confidence, reason };
-  };
-
-  const out: ModePick[] = [];
-  const p = mk(primary, primaryScore, primaryReason);
-  if (p) out.push(p);
-  const s = mk(secondary, secondaryScore, secondaryReason);
-  if (s) out.push(s);
-  return out.slice(0, 2);
+function sigmoid(x: number) {
+  const v = 1 / (1 + Math.exp(-x));
+  return Math.max(0, Math.min(1, v));
 }
+
+function isClassicIntent(text: string) {
+  const t = normalizeUmlauts(text.toLowerCase());
+  return /\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s|klassiker|klassisch|meisterwerk|muss man gesehen haben|legendaer|legendaere)\b/i.test(t);
+}
+
+function isGatewayIntent(text: string) {
+  const t = normalizeUmlauts(text.toLowerCase());
+  return /\b(first anime|first manga|where do i start|getting into anime|getting into manga|neu bei anime|neu bei manga|anime anfangen|manga anfangen|erstes anime|erstes manga|womit anfangen|wo fange ich an)\b/i.test(t);
+}
+
+function isHiddenGemsIntent(text: string) {
+  const t = normalizeUmlauts(text.toLowerCase());
+  return /\b(hidden gem|hidden gems|underrated|less known|new to me|geheimtipp|unterschaetzt|unbekannt|wenig bekannt|insider)\b/i.test(t);
+}
+
+function mapStrongGenreToModeId(text: string, excludedGenres: string[] = []): string | null {
+  const t = normalizeUmlauts(normalizeGermanVibeWords(text.toLowerCase()));
+  const excl = new Set(excludedGenres.map((g) => g.toLowerCase()));
+  // High-signal intent should win over generic genre words.
+  // Structural intents (movie, short, no-isekai) are never blocked by genre exclusions.
+  if (/\b(classic|classics|must watch|essentials|goat|greatest|retro|old school|oldschool|vintage|80s|90s|klassiker|klassisch|legendaer|meisterwerk)\b/.test(t)) return "classics_expanded";
+  if (/\b(movie|movies|film|filme|movie night|feature film|standalone movie|filmabend|kinofilm)\b/.test(t)) return "movie_night";
+  if (/\b(short|one season|quick watch|binge|one cour|12 ep|13 ep|eine staffel|1 staffel|kurze serie|kurz und gut)\b/.test(t)) return "short_one_season";
+  if (/\b(no isekai|not isekai|ohne isekai|nicht isekai|non[- ]?isekai|kein isekai)\b/.test(t)) return "fantasy_non_isekai";
+  // Special romance sub-genres (no dedicated mode, but we prefer serious romance over romcom).
+  if (!excl.has("romance") && /\b(shounen ai|shonen ai)\b/.test(t)) return "romance_serious";
+  // "Magical girl" / mahou shoujo shouldn't be treated as generic fantasy.
+  if (/\b(mahou shoujo|magical girl)\b/.test(t)) return "premium_picks";
+  if (!excl.has("isekai") && /\b(isekai|reincarnat|reborn|another world|truck[- ]?kun)\b/.test(t)) return "isekai";
+  if (!excl.has("romance") && /\b(romcom|rom com|romantic comedy)\b/.test(t)) return "romcom";
+  if (!excl.has("romance") && /\b(serious romance|romance drama|bittersweet|heartbreak|deep romance)\b/.test(t)) return "romance_serious";
+  if (!excl.has("romance") && /\b(romance|love story|romantic)\b/.test(t)) return "romcom";
+  // School/coming-of-age and shoujo/josei (after romance to avoid false positives).
+  if (/\b(school anime|high school|coming of age|schule|jugend)\b/.test(t)) return "school_coming_of_age";
+  if (/\b(shoujo|josei|for women|fuer frauen|maedchen)\b/.test(t)) return "shoujo_josei";
+  // Specific genre modes (before generic action/comedy/fantasy).
+  if (/\b(mecha|giant robot|gundam|evangelion)\b/.test(t)) return "mecha";
+  if (/\b(mystery|detective|whodunit|krimi|detektiv)\b/.test(t)) return "mystery_detective";
+  if (/\b(music anime|band anime|idol anime|musik anime)\b/.test(t)) return "music_performance";
+  if (/\b(historical|samurai|period drama|medieval|historisch|mittelalter)\b/.test(t)) return "historical";
+  if (!excl.has("action") && /\b(action)\b/.test(t)) return "premium_action";
+  if (!excl.has("comedy") && /\b(comedy|funny|laugh)\b/.test(t)) return "premium_comedy_grownup";
+  if (!excl.has("slice of life") && /\b(slice of life|cozy|comfort|chill|relax|gemuetlich|entspannend|wohlfuehl)\b/.test(t)) return "cozy_comfort";
+  if (!excl.has("horror") && !excl.has("supernatural") && /\b(horror|scary|creepy|supernatural|ghost|demon|occult|vampire|zombie|gruselig|unheimlich|schaurig)\b/.test(t)) return "horror_supernatural";
+  if (!excl.has("thriller") && !excl.has("psychological") && !excl.has("mystery") && /\b(thriller|psychological|mind[- ]?game|mystery|dark|serious)\b/.test(t)) return "dark_serious";
+  if (!excl.has("sci-fi") && /\b(sci[- ]?fi|scifi|science fiction|cyberpunk|space opera|dystopian|futuristic|weltraum|zukunft)\b/.test(t)) return "scifi";
+  if (!excl.has("sports") && /\b(sports?|soccer|basketball|volleyball|boxing|tennis|baseball|fussball)\b/.test(t)) return "sports";
+  if (!excl.has("fantasy") && /\b(fantasy|magic)\b/.test(t)) return "fantasy_non_isekai";
+  return null;
+}
+
+function normalizePromptForCache(text: string) {
+  return normalizeText(text).slice(0, 220);
+}
+
+type RouterDecision = {
+  primaryId: string;
+  secondaryId: string;
+  secondaryCandidates: string[];
+  primaryConfidence: number;
+  primaryReason: string;
+  usedLLM: boolean;
+  topScore: number;
+};
+
 
 function inferLanguage(text: string): "de" | "en" {
   const t = text.toLowerCase();
   // Minimal heuristic: just enough for DE narration.
-  if (/\b(ich|habe|hab|schaue|gucke|sehe|lese|staffel|folge|kapitel|band|bitte|empfehl)\b/.test(t)) return "de";
+  if (/\b(ich|habe|hab|schaue|gucke|sehe|lese|staffel|folge|kapitel|band|bitte|empfehl|vorschlagen|suchen|finden|zeig|such|importieren|eintragen|hinzuf(ü|ue)gen|aktualisieren)\b/.test(t)) return "de";
   if (/[äöüß]/i.test(t)) return "de";
   return "en";
 }
@@ -13479,6 +13667,45 @@ function inferSeedQuery(text: string): string | null {
   const m1 = t.match(/\b(?:like|similar to)\s+(.+?)(?:[.?!]|$)/i);
   if (m1?.[1]) return m1[1].trim().replace(/^["']|["']$/g, "");
   return null;
+}
+
+type SeedOverride = { mt: MediaType; mediaId: number; title: string };
+
+function expandKnownAbbrevSeed(raw: string): string | null {
+  const t = raw.trim();
+  // Keep this small and high-signal; it only runs for bare/short prompts.
+  const map: Record<string, string> = {
+    aot: "Attack on Titan",
+    hxh: "Hunter x Hunter",
+    fmab: "Fullmetal Alchemist: Brotherhood",
+    nge: "Neon Genesis Evangelion",
+    eva: "Neon Genesis Evangelion",
+    lotgh: "Legend of the Galactic Heroes",
+    op: "One Piece",
+  };
+  const key = t.toLowerCase();
+  return map[key] ?? null;
+}
+
+function inferBareSeedCandidate(text: string): string | null {
+  const t = text.trim();
+  if (!t) return null;
+  // Avoid treating normal recommendation prompts as seeds.
+  if (/\b(recommend|something|give me|suggest|looking for|i want|show me|find me)\b/i.test(t)) return null;
+  // Limit to short queries: bare titles or abbreviations.
+  const words = t.split(/\s+/).filter(Boolean);
+  if (words.length === 0 || words.length > 5) return null;
+  if (t.length > 40) return null;
+
+  // Abbrev + optional year (e.g. "HxH 2011").
+  const yearMatch = t.match(/\b(19|20)\d{2}\b/);
+  const year = yearMatch ? yearMatch[0] : null;
+  const tokenNoYear = year ? t.replace(year, "").trim() : t;
+  const expanded = expandKnownAbbrevSeed(tokenNoYear);
+  if (expanded) return year ? `${expanded} ${year}` : expanded;
+
+  // Single/bare title candidate; verified against DB before use.
+  return t;
 }
 
 function inferCategories(text: string): string[] {
@@ -13570,6 +13797,175 @@ function inferRequiredGenres(text: string): string[] {
   return uniq(out);
 }
 
+function inferExcludedGenres(text: string): string[] {
+  const excluded: string[] = [];
+  const lower = text.toLowerCase();
+
+  // Patterns: "no romance", "without harem", "not isekai", "minus comedy"
+  // German: "kein romance", "keine comedy", "ohne harem"
+  const negPatterns = [
+    /\b(?:no|without|not|minus|keine?|ohne)\s+(\w+)/gi,
+  ];
+
+  const genreMap: Record<string, string> = {
+    romance: "Romance",
+    comedy: "Comedy",
+    action: "Action",
+    horror: "Horror",
+    harem: "Harem",
+    ecchi: "Ecchi",
+    isekai: "Isekai",
+    mecha: "Mecha",
+    sports: "Sports",
+    music: "Music",
+    kids: "Kids",
+    fantasy: "Fantasy",
+    scifi: "Sci-Fi",
+    "sci-fi": "Sci-Fi",
+    drama: "Drama",
+    thriller: "Thriller",
+    mystery: "Mystery",
+    supernatural: "Supernatural",
+  };
+
+  for (const pat of negPatterns) {
+    pat.lastIndex = 0;
+    let m;
+    while ((m = pat.exec(lower)) !== null) {
+      const mapped = genreMap[m[1].toLowerCase()];
+      if (mapped && !excluded.includes(mapped)) excluded.push(mapped);
+    }
+  }
+
+  return excluded;
+}
+
+/**
+ * Unified constraint extraction from user text (EN + DE).
+ * Produces structured constraints used by mode selection, rail filtering, and post-filtering.
+ * Each detected constraint appends an explainable reason to `why`.
+ */
+function extractConstraints(text: string): UserConstraints {
+  const t = text.toLowerCase();
+  const tNorm = normalizeUmlauts(t);
+  const why: string[] = [];
+
+  // ── Genre/tag exclusions (extends inferExcludedGenres) ──
+  const excluded_genres = inferExcludedGenres(text);
+  for (const g of excluded_genres) {
+    why.push(`Excluded genre: user excluded '${g}'`);
+  }
+  // Additional DE patterns: "nicht Isekai", "non-isekai"
+  if (/\b(?:nicht|non)\s*[- ]?\s*isekai\b/i.test(tNorm) && !excluded_genres.includes("Isekai")) {
+    excluded_genres.push("Isekai");
+    why.push("Excluded genre: user excluded 'Isekai' (nicht/non pattern)");
+  }
+
+  // ── Format constraints ──
+  let format: string | null = null;
+
+  // Movie intent (EN + DE)
+  if (/\b(movie|movies|film|filme|filmabend|kinofilm|feature film|standalone movie)\b/i.test(tNorm)) {
+    format = "MOVIE";
+    why.push("Format: user wants movies");
+  }
+  // One season / short series intent (EN + DE)
+  else if (/\b(one season|eine staffel|1 staffel|single season|one cour|ein cour)\b/i.test(tNorm)) {
+    format = "TV_SHORT_SERIES";  // sentinel: handled as max_episodes <= 13 below
+    why.push("Format: user wants single-season / short series");
+  }
+  // Short / OVA / ONA intent (EN + DE)
+  else if (/\b(short|kurz|ova|ona|special|kurzfilm)\b/i.test(tNorm) &&
+           !/\b(short series|kurze serie)\b/i.test(tNorm)) {
+    // Only match standalone "short" / "kurz", not "short series"
+    if (/\b(ova)\b/i.test(tNorm)) {
+      format = "OVA";
+      why.push("Format: user wants OVA");
+    } else if (/\b(ona)\b/i.test(tNorm)) {
+      format = "ONA";
+      why.push("Format: user wants ONA");
+    } else {
+      format = "SHORT_FORM"; // sentinel for ONA|OVA|SPECIAL
+      why.push("Format: user wants short-form content");
+    }
+  }
+
+  // ── Length constraints ──
+  let max_episodes: number | null = null;
+  let min_episodes: number | null = null;
+
+  // "under X episodes" / "unter X Folgen" / "weniger als X Folgen" / "less than X episodes"
+  const maxEpMatch = tNorm.match(/\b(?:under|unter|weniger als|less than|max|maximal|hoechstens|höchstens|bis zu)\s+(\d{1,4})\s*(?:episodes?|folgen?|eps?)\b/i);
+  if (maxEpMatch) {
+    max_episodes = parseInt(maxEpMatch[1], 10);
+    why.push(`Length: max ${max_episodes} episodes`);
+  }
+  // "over X episodes" / "über X Folgen" / "mehr als X Folgen" / "more than X episodes"
+  const minEpMatch = tNorm.match(/\b(?:over|ueber|über|mehr als|more than|min|mindestens|ab)\s+(\d{1,4})\s*(?:episodes?|folgen?|eps?)\b/i);
+  if (minEpMatch) {
+    min_episodes = parseInt(minEpMatch[1], 10);
+    why.push(`Length: min ${min_episodes} episodes`);
+  }
+  // "long" / "lang" implies 50+ episodes
+  if (!min_episodes && /\b(long anime|long series|langes anime|lange serie|lang|marathon)\b/i.test(tNorm)) {
+    min_episodes = 50;
+    why.push("Length: user wants long series (50+ episodes)");
+  }
+
+  // One-season sentinel: apply max_episodes if not already set
+  if (format === "TV_SHORT_SERIES" && !max_episodes) {
+    max_episodes = 13;
+    format = null; // don't lock to a specific format, just limit episodes
+  } else if (format === "TV_SHORT_SERIES") {
+    format = null; // max_episodes already captures intent
+  }
+
+  // ── Year constraints ──
+  let year_min: number | null = null;
+  let year_max: number | null = null;
+  const currentYear = new Date().getFullYear();
+
+  // "from YYYY" / "ab YYYY" / "seit YYYY" / "after YYYY" / "nach YYYY"
+  const yearMinMatch = tNorm.match(/\b(?:from|ab|seit|after|nach|starting|beginning)\s+((?:19|20)\d{2})\b/i);
+  if (yearMinMatch) {
+    year_min = parseInt(yearMinMatch[1], 10);
+    why.push(`Year: from ${year_min} onward`);
+  }
+  // "before YYYY" / "vor YYYY" / "until YYYY" / "bis YYYY" (year context only)
+  const yearMaxMatch = tNorm.match(/\b(?:before|vor|until|bis)\s+((?:19|20)\d{2})\b/i);
+  if (yearMaxMatch) {
+    year_max = parseInt(yearMaxMatch[1], 10);
+    why.push(`Year: before ${year_max}`);
+  }
+  // "classic" / "Klassiker" → year_max: 2005
+  if (!year_max && /\b(classic|klassiker|klassisch|retro|old school|oldschool|vintage)\b/i.test(tNorm)) {
+    year_max = 2005;
+    why.push("Year: classic era (pre-2005)");
+  }
+  // "new" / "neu" / "recent" / "aktuell" → year_min: current_year - 2
+  if (!year_min && /\b(new|neu|recent|aktuell|neue|neues|neueste|latest|this season|diese saison)\b/i.test(tNorm)) {
+    // Avoid false positives: "new to me" / "new to anime" is not a year filter
+    if (!/\b(new to me|new to anime|new to manga|neu bei)\b/i.test(tNorm)) {
+      year_min = currentYear - 2;
+      why.push(`Year: recent (${year_min}+)`);
+    }
+  }
+  // Decade mentions: "90s anime" / "80er" / "2000er"
+  const decadeMatch = tNorm.match(/\b((?:19|20)?\d0)s?\s*(?:anime|manga)?\b/i) ??
+                       tNorm.match(/\b((?:19|20)?\d0)er\b/i);
+  if (decadeMatch && !year_min && !year_max) {
+    let decade = parseInt(decadeMatch[1], 10);
+    if (decade < 100) decade += decade >= 50 ? 1900 : 2000; // "90s" → 1990, "00s" → 2000
+    if (decade >= 1960 && decade <= 2020) {
+      year_min = decade;
+      year_max = decade + 9;
+      why.push(`Year: ${decade}s decade`);
+    }
+  }
+
+  return { excluded_genres, format, max_episodes, min_episodes, year_min, year_max, why };
+}
+
 function inferQualityFloor(text: string): { minScore: number; minPopularity: number; excludeFormats: Set<string> } {
   const t = text.toLowerCase();
   const wantsPremium = /\b(premium|masterpiece|must[- ]?watch|classic|classics|top tier|best)\b/.test(t);
@@ -13620,12 +14016,13 @@ async function groqNarrate(opts: {
       ? `Gib nur JSON zurück: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`
       : `Return JSON only: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`;
 
+  const safeUserText = sanitizeForLLM(opts.userText);
   const user =
     opts.lang === "de"
-      ? `User prompt: ${opts.userText}\n\nItems:\n${opts.items
+      ? `User prompt: ${safeUserText}\n\nItems:\n${opts.items
           .map((it) => `- ${it.id}: ${it.title} (${it.year ?? "?"}) ${it.format ?? ""} [${it.signals.join(", ")}]`)
           .join("\n")}\n\nSchreibe pro Item genau einen kurzen, spoilerfreien Satz. Gib nur JSON zurück: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`
-      : `User prompt: ${opts.userText}\n\nItems:\n${opts.items
+      : `User prompt: ${safeUserText}\n\nItems:\n${opts.items
           .map((it) => `- ${it.id}: ${it.title} (${it.year ?? "?"}) ${it.format ?? ""} [${it.signals.join(", ")}]`)
           .join("\n")}\n\nWrite one short, spoiler-free sentence per item. Return JSON only: {"blurbs":{"ANIME|123":"...", "MANGA|456":"..."}}`;
 
@@ -13707,6 +14104,41 @@ function clientIp(req: Request): string | null {
   return null;
 }
 
+async function isFeatureFlagEnabledForUser(
+  client: any,
+  flagName: string,
+  userId: string,
+  market: string,
+): Promise<boolean> {
+  try {
+    const { data, error } = await client
+      .from("feature_flags")
+      .select("enabled,rollout_percentage,target_markets")
+      .eq("flag_name", flagName)
+      .maybeSingle();
+    if (error || !data) return false;
+
+    const enabled = Boolean((data as any).enabled);
+    if (!enabled) return false;
+
+    const targetMarkets = Array.isArray((data as any).target_markets)
+      ? (data as any).target_markets.map((x: any) => String(x).toUpperCase())
+      : [];
+    if (targetMarkets.length > 0 && !targetMarkets.includes("*") && !targetMarkets.includes(market.toUpperCase())) {
+      return false;
+    }
+
+    const rollout = Number((data as any).rollout_percentage ?? 0);
+    if (!Number.isFinite(rollout) || rollout <= 0) return false;
+    if (rollout >= 100) return true;
+
+    const bucket = stableBucket(`${userId}:${flagName}`);
+    return bucket < rollout;
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   try {
     if (req.method !== "POST") return json({ error: "Method not allowed" }, { status: 405 });
@@ -13724,18 +14156,20 @@ serve(async (req) => {
       global: { headers: authHeader ? { Authorization: authHeader } : {} },
     });
 
-    const { data: userData, error: userErr } = await client.auth.getUser();
-    if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
-
-    // Server-side rate limiting (per-user + per-IP).
+    // Auth + rate-limit in parallel (both use the same client).
     const ip = clientIp(req);
-    const { data: rl } = await client.rpc("check_concierge_rate_limit", {
-      p_kind: "recommend",
-      p_ip: ip,
-      p_window_seconds: null,
-      p_max_user: null,
-      p_max_ip: null,
-    });
+    const [rlResult, userResult] = await Promise.all([
+      client.rpc("check_concierge_rate_limit", {
+        p_kind: "recommend",
+        p_ip: ip,
+        p_window_seconds: null,
+        p_max_user: null,
+        p_max_ip: null,
+      }),
+      client.auth.getUser(),
+    ]);
+
+    const rl = rlResult.data;
     if (rl && rl.allowed === false) {
       return json(
         { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
@@ -13743,8 +14177,15 @@ serve(async (req) => {
       );
     }
 
+    const userData = userResult.data;
+    const userErr = userResult.error;
+    if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
+
     const body = await req.json().catch(() => ({}));
     const text: string = String(body?.text ?? "");
+    if (text.length > 5000) {
+      return json({ error: "Text too long (max 5000 chars)" }, { status: 400 });
+    }
     const scope: string = String(body?.scope ?? "both");
     const limit = Math.max(3, Math.min(20, Number(body?.limit ?? 8)));
     let narrate: boolean = Boolean(body?.narrate ?? false);
@@ -13753,27 +14194,30 @@ serve(async (req) => {
     const categories = inferCategories(text);
     const gimmickTagIds = inferGimmickTagIds(text);
     const requiredGenres = inferRequiredGenres(text);
+    const constraints = extractConstraints(text);
+    const userExcludedGenres = constraints.excluded_genres;
     const quality = inferQualityFloor(text);
 
-    // Concierge config (tunable without redeploy): used for modes + global LLM budgets.
-    const { data: conciergeCfg } = await client.rpc("get_concierge_config");
-    const configuredModes = parseModesFromConfig(conciergeCfg);
-    const modes = configuredModes.length ? configuredModes : defaultModes();
-
-    // Focus tags are only used for explicit "gimmicks" (isekai, reincarnation, etc.)
-    // because `recommend_ids_premium` *requires* focus tags to match when provided.
-    const focusTagIds = await mapTagAnilistIdsToInternal(client, gimmickTagIds);
+    // Parallel fetch: config, tag mapping, and editorial boosts are independent.
     const allowGimmicks =
       gimmickTagIds.length > 0 || /\b(slime)\b/.test(text.toLowerCase());
     const lang = inferLanguage(text);
-
     const mediaType = inferMediaType(text, scope);
-    const seedQuery = inferSeedQuery(text);
+    let seedQuery = inferSeedQuery(text);
+    let seedOverride: SeedOverride | null = null;
 
-    // Load editorial tag boosts once; used to add deterministic "premium" signals.
-    const { data: tagBoosts } = await client
-      .from("editorial_tag_boosts")
-      .select("tag_id,boost,reason");
+    const [
+      { data: conciergeCfg },
+      focusTagIds,
+      { data: tagBoosts },
+    ] = await Promise.all([
+      client.rpc("get_concierge_config"),
+      mapTagAnilistIdsToInternal(client, gimmickTagIds),
+      client.from("editorial_tag_boosts").select("tag_id,boost,reason"),
+    ]);
+
+    const configuredModes = parseModesFromConfig(conciergeCfg);
+    const modes = configuredModes.length ? configuredModes : defaultModes();
     const tagBoostByTag = new Map<number, any>((tagBoosts ?? []).map((t: any) => [t.tag_id, t]));
     const boostTagIds = Array.from(tagBoostByTag.keys());
 
@@ -13829,36 +14273,48 @@ serve(async (req) => {
       if (ids.length === 0) return { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
 
       const table = mt === "ANIME" ? "anime" : "manga";
-      const { data: mediaRows, error: mediaErr } = await client
-        .from(table)
-        .select("id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres")
-        .in("id", ids);
-      if (mediaErr) throw mediaErr;
-      const byId = new Map<number, any>((mediaRows ?? []).map((r: any) => [r.id, r]));
+      const linkTable = mt === "ANIME" ? "anime_tags" : "manga_tags";
+      const idCol = mt === "ANIME" ? "anime_id" : "manga_id";
+      const mediaSelect =
+        mt === "ANIME"
+          ? "id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,episodes"
+          : "id,title_english,title_romaji,title_native,cover_image_medium,average_score,popularity,start_date_year,format,status,site_url,is_adult,genres,chapters";
 
-      const { data: boosts } = await client
-        .from("editorial_boosts")
-        .select("media_id,label,weight")
-        .eq("media_type", mt)
-        .in("media_id", ids);
-      const boostById = new Map<number, any>((boosts ?? []).map((b: any) => [b.media_id, b]));
+      // All three queries depend only on `ids` — run in parallel.
+      const [mediaRes, boostsRes, tagLinksRes] = await Promise.all([
+        client
+          .from(table)
+          .select(mediaSelect)
+          .in("id", ids),
+        client
+          .from("editorial_boosts")
+          .select("media_id,label,weight")
+          .eq("media_type", mt)
+          .in("media_id", ids),
+        boostTagIds.length > 0
+          ? client
+              .from(linkTable)
+              .select(`${idCol},tag_id`)
+              .in(idCol, ids)
+              .in("tag_id", boostTagIds)
+          : Promise.resolve({ data: [] as any[], error: null }),
+      ]);
 
-      // Get which boosted tags apply to each media id (signals only; not used for ranking).
-      let tagLinks: any[] = [];
-      if (boostTagIds.length > 0) {
-        const linkTable = mt === "ANIME" ? "anime_tags" : "manga_tags";
-        const idCol = mt === "ANIME" ? "anime_id" : "manga_id";
-        const resLinks = await client
-          .from(linkTable)
-          .select(`${idCol},tag_id`)
-          .in(idCol, ids)
-          .in("tag_id", boostTagIds);
-        if (!resLinks.error) tagLinks = resLinks.data ?? [];
-      }
+      if (mediaRes.error) throw mediaRes.error;
+      const rows = Array.isArray(mediaRes.data) ? mediaRes.data : [];
+      const normalizedRows = rows.map((r: any) => {
+        if (mt === "MANGA" && r?.episodes == null && r?.chapters != null) {
+          r.episodes = r.chapters;
+        }
+        return r;
+      });
+      const byId = new Map<number, any>(normalizedRows.map((r: any) => [r.id, r]));
+      const boostById = new Map<number, any>((boostsRes.data ?? []).map((b: any) => [b.media_id, b]));
+      const tagLinks = !tagLinksRes.error ? (tagLinksRes.data ?? []) : [];
 
       const boostedReasonsById = new Map<number, string[]>();
       for (const row of tagLinks) {
-        const mediaId = Number(row[mt === "ANIME" ? "anime_id" : "manga_id"]);
+        const mediaId = Number(row[idCol]);
         const tagId = Number(row.tag_id);
         const tb = tagBoostByTag.get(tagId);
         const reason = String(tb?.reason ?? "").trim();
@@ -13875,9 +14331,11 @@ serve(async (req) => {
       limit: number;
       requiredGenres: string[];
       excludeGenres: string[];
+      avoidGenres?: string[];
       classicYearMax?: number;
       quality: { minScore: number; minPopularity: number; maxPopularity: number | null; excludeFormats: Set<string> };
       prioritizeClassicBoost?: boolean;
+      constraints?: UserConstraints;
     }) => {
       const hasGenres = (m: any, required: string[]) => {
         if (!required.length) return true;
@@ -13894,27 +14352,79 @@ serve(async (req) => {
         return excluded.some((g) => gs.includes(g));
       };
 
+      const uc = opts.constraints;
+
       const passes = (m: any) => {
         if (!m) return false;
         if (m.is_adult === true) return false;
-        if (opts.quality.excludeFormats.has(String(m.format ?? "").toUpperCase())) return false;
+        const fmt = String(m.format ?? "").toUpperCase();
+
+        // Format constraint: if user wants MOVIE, only allow MOVIE format.
+        if (uc?.format === "MOVIE" && fmt !== "MOVIE") return false;
+        // Short-form: allow ONA, OVA, SPECIAL only.
+        if (uc?.format === "SHORT_FORM" && !["ONA", "OVA", "SPECIAL"].includes(fmt)) return false;
+        if (uc?.format === "OVA" && fmt !== "OVA") return false;
+        if (uc?.format === "ONA" && fmt !== "ONA") return false;
+
+        // Default format exclusions (unless overridden by constraint).
+        if (!uc?.format && opts.quality.excludeFormats.has(fmt)) return false;
         if (hasExcludedGenres(m, opts.excludeGenres)) return false;
 
         const year = Number(m.start_date_year ?? 0);
         if (opts.classicYearMax && year > 0 && year > opts.classicYearMax) return false;
+        // Year constraints from user.
+        if (uc?.year_min != null && year > 0 && year < uc.year_min) return false;
+        if (uc?.year_max != null && year > 0 && year > uc.year_max) return false;
 
         const score = Number(m.average_score ?? 0);
         const pop = Number(m.popularity ?? 0);
         if (opts.quality.minScore > 0 && score > 0 && score < opts.quality.minScore) return false;
         if (opts.quality.minPopularity > 0 && pop > 0 && pop < opts.quality.minPopularity) return false;
         if (opts.quality.maxPopularity != null && pop > 0 && pop > opts.quality.maxPopularity) return false;
+
+        // Episode count constraints (anime only; manga uses chapters).
+        if (mt === "ANIME") {
+          const eps = Number(m.episodes ?? 0);
+          if (uc?.max_episodes != null && eps > 0 && eps > uc.max_episodes) return false;
+          if (uc?.min_episodes != null && eps > 0 && eps < uc.min_episodes) return false;
+        }
+
         return true;
       };
 
+      const avoid = Array.isArray(opts.avoidGenres) ? opts.avoidGenres.map((g) => String(g)).filter(Boolean) : [];
+      const shouldDiversify = avoid.length > 0 && opts.requiredGenres.length === 0;
+
+      const overlapCount = (m: any): number => {
+        if (!shouldDiversify) return 0;
+        const gs = Array.isArray(m?.genres) ? m.genres.map((x: any) => String(x)) : [];
+        if (!gs.length) return 0;
+        let n = 0;
+        for (const g of avoid) {
+          if (gs.includes(g)) n++;
+        }
+        return n;
+      };
+
+      const stableDiversify = (arr: CandidateRow[]): CandidateRow[] => {
+        if (!shouldDiversify || arr.length <= 1) return arr;
+        return arr
+          .map((r, idx) => ({ r, idx }))
+          .sort((a, b) => {
+            const ma = ctx.byId.get(a.r.media_id);
+            const mb = ctx.byId.get(b.r.media_id);
+            const oa = overlapCount(ma);
+            const ob = overlapCount(mb);
+            if (oa !== ob) return oa - ob; // prefer less overlap with top genres
+            return a.idx - b.idx; // stable tie-break
+          })
+          .map((x) => x.r);
+      };
+
       // Prefer: genre match + quality; then quality; then anything (no hard failures).
-      const primary: CandidateRow[] = [];
-      const secondary: CandidateRow[] = [];
-      const tertiary: CandidateRow[] = [];
+      let primary: CandidateRow[] = [];
+      let secondary: CandidateRow[] = [];
+      let tertiary: CandidateRow[] = [];
 
       for (const r of rows) {
         const m = ctx.byId.get(r.media_id);
@@ -13923,6 +14433,10 @@ serve(async (req) => {
         else if (passes(m)) secondary.push(r);
         else tertiary.push(r);
       }
+
+      primary = stableDiversify(primary);
+      secondary = stableDiversify(secondary);
+      tertiary = stableDiversify(tertiary);
 
       let ordered = [...primary, ...secondary, ...tertiary];
       if (opts.prioritizeClassicBoost) {
@@ -13967,115 +14481,473 @@ serve(async (req) => {
       return out;
     };
 
-    const modePicks = pickTwoModes(text, modes, requiredGenres);
     const modeById = new Map<string, ConciergeMode>(modes.map((m) => [m.id, m]));
+    const classicsMode = modeById.get("classics_expanded") ?? Array.from(modeById.values()).find((m) => m.id.includes("classic")) ?? null;
+    const premiumMode = modeById.get("premium_picks") ?? Array.from(modeById.values()).find((m) => m.id.includes("premium")) ?? null;
 
-    const resolvedModes = modePicks
-      .map((mp) => modeById.get(mp.id))
-      .filter((m): m is ConciergeMode => Boolean(m));
+    const routerCfg = conciergeCfg?.router_llm ?? {};
+    const cacheTtlDays = Number(routerCfg?.cache_ttl_days ?? 30);
 
-    const hasClassicMode = resolvedModes.some((m) => m.id.includes("classic"));
-    const nonClassicModes = resolvedModes.filter((m) => !m.id.includes("classic"));
+    const userId = userData.user.id;
+    const market = inferRequestMarket(req);
+    const locale = inferLocale(req, market);
+    const ragAssistEnabled = await isFeatureFlagEnabledForUser(client, "rag_assist_v1", userId, market);
+    const promptNorm = normalizePromptForCache(text);
 
-    // Pull candidate pools once (per media type), then slice/filter into rails in-memory.
-    const unionCats = uniq([
-      ...categories,
-      ...nonClassicModes.flatMap((m) => m.required_genres ?? []),
-    ]);
-    const premiumCats = unionCats.length ? unionCats : (categories.length ? categories : null);
-    const classicCats = hasClassicMode ? (categories.length ? categories : null) : null;
+    const userTopGenresPromise: Promise<string[]> = (async () => {
+      try {
+        const { data: ul, error: ulErr } = await client
+          .from("user_lists")
+          .select("media_type,media_id")
+          .eq("user_id", userId)
+          .limit(120);
+        if (ulErr || !Array.isArray(ul) || ul.length === 0) return [];
 
-    const premiumRowsByType: Record<MediaType, CandidateRow[]> = { ANIME: [], MANGA: [] };
-    const classicRowsByType: Record<MediaType, CandidateRow[]> = { ANIME: [], MANGA: [] };
+        const animeIds = ul.filter((r: any) => String(r.media_type ?? "").toLowerCase() === "anime").map((r: any) => Number(r.media_id)).filter((x: number) => Number.isFinite(x) && x > 0).slice(0, 80);
+        const mangaIds = ul.filter((r: any) => String(r.media_type ?? "").toLowerCase() === "manga").map((r: any) => Number(r.media_id)).filter((x: number) => Number.isFinite(x) && x > 0).slice(0, 80);
 
-    if (mediaType === "ANIME" || mediaType === "BOTH") {
-      premiumRowsByType.ANIME = await getPremiumCandidates("ANIME", premiumCats);
-      if (hasClassicMode) classicRowsByType.ANIME = await getPremiumCandidates("ANIME", classicCats);
-    }
-    if (mediaType === "MANGA" || mediaType === "BOTH") {
-      premiumRowsByType.MANGA = await getPremiumCandidates("MANGA", premiumCats);
-      if (hasClassicMode) classicRowsByType.MANGA = await getPremiumCandidates("MANGA", classicCats);
-    }
+        const [aRes, mRes] = await Promise.all([
+          animeIds.length ? client.from("anime").select("id,genres").in("id", animeIds) : Promise.resolve({ data: [] as any[], error: null as any }),
+          mangaIds.length ? client.from("manga").select("id,genres").in("id", mangaIds) : Promise.resolve({ data: [] as any[], error: null as any }),
+        ]);
 
-    const ctxByType: Record<MediaType, MediaContext> = {
-      ANIME: { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() },
-      MANGA: { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() },
+        const counts = new Map<string, number>();
+        const bump = (g: string) => counts.set(g, (counts.get(g) ?? 0) + 1);
+        const ingest = (rows: any[]) => {
+          for (const r of rows) {
+            const gs = Array.isArray(r?.genres) ? r.genres.map((x: any) => String(x)) : [];
+            for (const g of gs) {
+              if (!g) continue;
+              if (g === "Hentai" || g === "Ecchi" || g === "Kids") continue;
+              bump(g);
+            }
+          }
+        };
+
+        if (Array.isArray(aRes.data)) ingest(aRes.data);
+        if (Array.isArray(mRes.data)) ingest(mRes.data);
+
+        const top = Array.from(counts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .map(([g]) => g)
+          .slice(0, 5);
+        return top;
+      } catch {
+        return [];
+      }
+    })();
+
+    const modeFamily = (modeId: string) => {
+      if (modeId.startsWith("premium_")) return "premium";
+      if (modeId.startsWith("classics")) return "classics";
+      if (modeId === "romcom" || modeId.startsWith("romance_")) return "romance";
+      if (modeId === "similar_to_seed") return "seed";
+      return modeId.split("_")[0] ?? modeId;
     };
-    if (mediaType === "ANIME" || mediaType === "BOTH") {
-      const ids = uniq([
-        ...premiumRowsByType.ANIME.map((r) => r.media_id),
-        ...classicRowsByType.ANIME.map((r) => r.media_id),
-      ]);
-      ctxByType.ANIME = await fetchMediaContext("ANIME", ids);
-    }
-    if (mediaType === "MANGA" || mediaType === "BOTH") {
-      const ids = uniq([
-        ...premiumRowsByType.MANGA.map((r) => r.media_id),
-        ...classicRowsByType.MANGA.map((r) => r.media_id),
-      ]);
-      ctxByType.MANGA = await fetchMediaContext("MANGA", ids);
-    }
 
-    // Build up to 2 rails (modes). Always keep a classics rail as the second choice where possible.
-    const sets: any[] = [];
+    const arrayOverlapCount = (a: string[], b: string[]) => {
+      if (!a.length || !b.length) return 0;
+      const right = new Set(b.map((x) => x.toLowerCase()));
+      let n = 0;
+      for (const item of a) if (right.has(item.toLowerCase())) n++;
+      return n;
+    };
 
-    for (const mp of modePicks) {
-      const mode = modeById.get(mp.id) ?? null;
-      const isClassicMode = (mode?.id ?? mp.id).includes("classic");
-      const perSetTotal = isClassicMode ? Math.min(20, Math.max(limit, 14)) : limit;
-      const perType = mediaType === "BOTH" ? Math.max(3, Math.ceil(perSetTotal / 2)) : perSetTotal;
+    const rankSecondaryCandidates = async (primaryId: string): Promise<Array<{ id: string; score: number; reason: string }>> => {
+      const classicsId = classicsMode?.id ?? "classics_expanded";
+      const primary = modeById.get(primaryId) ?? null;
+      const primaryReq = safeStringArray(primary?.required_genres);
+      const topGenres = await userTopGenresPromise;
+      const wantsClassic = isClassicIntent(text);
 
-      const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
-      const modeExcluded = mode?.exclude_genres ?? [];
+      const all = Array.from(modeById.values())
+        .filter((m) => m.id !== primaryId && m.id !== "similar_to_seed")
+        .map((m) => {
+          const s = scoreMode(text, m, requiredGenres, userExcludedGenres, constraints);
+          let score = s.score;
+          const reasons: string[] = [];
 
-      const q = compileQuality(mode);
+          const req = safeStringArray(m.required_genres);
+          const genreOverlap = arrayOverlapCount(primaryReq, req);
+          if (genreOverlap > 0) {
+            score -= Math.min(4, genreOverlap * 1.6);
+            reasons.push("genre-overlap");
+          }
 
-      const animeRows =
-        (mediaType === "ANIME" || mediaType === "BOTH")
-          ? (isClassicMode ? classicRowsByType.ANIME : premiumRowsByType.ANIME)
-          : [];
-      const mangaRows =
-        (mediaType === "MANGA" || mediaType === "BOTH")
-          ? (isClassicMode ? classicRowsByType.MANGA : premiumRowsByType.MANGA)
-          : [];
+          if (modeFamily(primaryId) === modeFamily(m.id)) {
+            score -= 2.2;
+            reasons.push("same-family");
+          }
 
-      const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
-        ? buildItemsFromRows("ANIME", animeRows, ctxByType.ANIME, {
-          limit: perType,
-          requiredGenres: modeRequired,
-          excludeGenres: modeExcluded,
-          classicYearMax: mode?.classic_year_max,
-          quality: q,
-          prioritizeClassicBoost: isClassicMode,
+          // Keep classics available, but no longer hardwire it as the default second rail.
+          if (m.id === classicsId) {
+            if (wantsClassic) {
+              score += 2.5;
+              reasons.push("explicit-classic");
+            } else {
+              score -= 3.2;
+              reasons.push("avoid-default-classic");
+            }
+          }
+
+          // Prefer less saturated taste pockets for secondary rails.
+          const topGenreOverlap = arrayOverlapCount(req, topGenres);
+          if (topGenreOverlap > 0) {
+            score -= Math.min(3, topGenreOverlap * 1.1);
+            reasons.push("top-genre-overlap");
+          }
+
+          // Slightly prefer curated rails (when quality is present) to keep selection deterministic.
+          if (m.rail_id) {
+            score += 0.4;
+          }
+
+          return {
+            id: m.id,
+            score,
+            reason: reasons.length > 0 ? reasons.join(",") : (s.reason || "scored"),
+          };
         })
-        : [];
-      const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
-        ? buildItemsFromRows("MANGA", mangaRows, ctxByType.MANGA, {
-          limit: perType,
-          requiredGenres: modeRequired,
-          excludeGenres: modeExcluded,
-          classicYearMax: mode?.classic_year_max,
-          quality: q,
-          prioritizeClassicBoost: isClassicMode,
-        })
-        : [];
+        .sort((a, b) => b.score - a.score);
 
-      const merged = mediaType === "BOTH" ? mergeAlternating(animeItems, mangaItems, perSetTotal) : [...animeItems, ...mangaItems].slice(0, perSetTotal);
+      return all;
+    };
 
-      sets.push({
-        id: mp.id,
-        title: mp.title,
-        modeId: mp.id,
-        confidence: mp.confidence,
-        reason: mp.reason,
-        items: merged,
+    const mkPick = (id: string, title: string, confidence: number, reason: string): ModePick => ({
+      id,
+      title,
+      confidence: Math.max(0, Math.min(1, confidence)),
+      reason,
+    });
+
+    const loadCache = async (): Promise<RouterDecision | null> => {
+      if (!cacheTtlDays || cacheTtlDays <= 0) return null;
+      const { data, error } = await client
+        .from("concierge_mode_cache")
+        .select("primary_mode_id,secondary_mode_id,used_llm,updated_at")
+        .eq("user_id", userId)
+        .eq("prompt_norm", promptNorm)
+        .maybeSingle();
+      if (error || !data) return null;
+      const updatedAt = Date.parse(String((data as any).updated_at ?? ""));
+      if (!Number.isFinite(updatedAt)) return null;
+      const ageDays = (Date.now() - updatedAt) / (1000 * 60 * 60 * 24);
+      if (ageDays > cacheTtlDays) return null;
+      const primaryId = String((data as any).primary_mode_id ?? "").trim();
+      const secondaryId = String((data as any).secondary_mode_id ?? "").trim();
+      if (!primaryId || !secondaryId) return null;
+      return {
+        primaryId,
+        secondaryId,
+        secondaryCandidates: [secondaryId],
+        primaryConfidence: 0.75,
+        primaryReason: "cache",
+        usedLLM: Boolean((data as any).used_llm ?? false),
+        topScore: 999,
+      };
+    };
+
+    const saveCache = async (dec: RouterDecision) => {
+      if (!cacheTtlDays || cacheTtlDays <= 0) return;
+      try {
+        await client
+          .from("concierge_mode_cache")
+          .upsert(
+            {
+              user_id: userId,
+              prompt_norm: promptNorm,
+              primary_mode_id: dec.primaryId,
+              secondary_mode_id: dec.secondaryId,
+              used_llm: dec.usedLLM,
+            },
+            { onConflict: "user_id,prompt_norm" },
+          );
+      } catch {
+        // best-effort
+      }
+    };
+
+    const decideModes = async (): Promise<RouterDecision> => {
+      const classicsId = classicsMode?.id ?? "classics_expanded";
+
+      const buildDecision = async (
+        primaryId: string,
+        primaryConfidence: number,
+        primaryReason: string,
+        usedLLM: boolean,
+        topScore: number,
+      ): Promise<RouterDecision> => {
+        const ranked = await rankSecondaryCandidates(primaryId);
+        const fallbackSecondary = primaryId === classicsId
+          ? (premiumMode?.id ?? "premium_picks")
+          : (premiumMode?.id ?? classicsId);
+        const secondaryId = ranked[0]?.id ?? fallbackSecondary;
+        return {
+          primaryId,
+          secondaryId,
+          secondaryCandidates: uniq([secondaryId, ...ranked.map((r) => r.id)]).slice(0, 8),
+          primaryConfidence,
+          primaryReason,
+          usedLLM,
+          topScore,
+        };
+      };
+
+      // Cache (prevents repeated LLM spend and stabilizes routing).
+      const cached = await loadCache();
+      if (cached) {
+        // Rehydrate ranked alternatives on cache hits so we do not lock users
+        // into a stale single secondary rail for the full cache TTL window.
+        const ranked = await rankSecondaryCandidates(cached.primaryId);
+        cached.secondaryCandidates = uniq([cached.secondaryId, ...ranked.map((r) => r.id)]).slice(0, 8);
+        return cached;
+      }
+
+      // Hard overrides (one-shot magic).
+      if (seedQuery) {
+        const dec = await buildDecision("similar_to_seed", 1, "seed similarity", false, 999);
+        await saveCache(dec);
+        return dec;
+      }
+
+      // Bare-title seed: verify against DB first (prevents gibberish => empty Similar rail).
+      const bareCandidate = inferBareSeedCandidate(text);
+      if (bareCandidate) {
+        const pickSeedVerified = async (mt: MediaType) => {
+          const { data: seeds, error: seedErr } = await client.rpc("search_titles", {
+            p_query: bareCandidate,
+            p_media_type: mt,
+            p_limit: 6,
+          });
+          if (seedErr || !Array.isArray(seeds) || seeds.length === 0) return null;
+          const top = seeds[0];
+          if ((top?.score ?? 0) < 0.45) return null;
+          return { mt, mediaId: Number(top.media_id), title: String(top.title_raw ?? top.title ?? "").trim() };
+        };
+
+        const verified =
+          mediaType === "MANGA" ? await pickSeedVerified("MANGA")
+            : mediaType === "ANIME" ? await pickSeedVerified("ANIME")
+            : (await pickSeedVerified("ANIME")) ?? (await pickSeedVerified("MANGA"));
+
+        if (verified && Number.isFinite(verified.mediaId) && verified.mediaId > 0) {
+          seedQuery = bareCandidate;
+          seedOverride = verified;
+          const dec = await buildDecision("similar_to_seed", 1, "bare title seed similarity", false, 999);
+          await saveCache(dec);
+          return dec;
+        }
+      }
+
+      if (isClassicIntent(text)) {
+        const dec = await buildDecision(classicsId, 1, "classic intent", false, 999);
+        await saveCache(dec);
+        return dec;
+      }
+      if (isGatewayIntent(text)) {
+        const primaryId = modeById.has("gateway_start_here") ? "gateway_start_here" : (premiumMode?.id ?? "premium_picks");
+        const dec = await buildDecision(primaryId, 1, "start here intent", false, 999);
+        await saveCache(dec);
+        return dec;
+      }
+      if (isHiddenGemsIntent(text)) {
+        const primaryId = modeById.has("hidden_gems") ? "hidden_gems" : (premiumMode?.id ?? "premium_picks");
+        const dec = await buildDecision(primaryId, 1, "hidden gems intent", false, 999);
+        await saveCache(dec);
+        return dec;
+      }
+      const genreMapped = mapStrongGenreToModeId(text, userExcludedGenres);
+      if (genreMapped && modeById.has(genreMapped)) {
+        const dec = await buildDecision(genreMapped, 0.9, "strong genre signal", false, 999);
+        await saveCache(dec);
+        return dec;
+      }
+
+      // Deterministic scoring (fallback).
+      const candidates = Array.from(modeById.values()).filter((m) => m.id !== classicsId);
+      const scored = candidates.map((m) => {
+        const s = scoreMode(text, m, requiredGenres, userExcludedGenres, constraints);
+        let score = s.score;
+        // Tie-breaker so vague prompts don't pick random modes.
+        if (m.id === "premium_picks") score += 1;
+        return { mode: m, score, reason: s.reason };
+      }).sort((a, b) => b.score - a.score);
+
+      const top = scored[0] ?? null;
+      const runner = scored[1] ?? null;
+      const topId = top?.mode?.id ?? (premiumMode?.id ?? "premium_picks");
+      const topScore = Number(top?.score ?? 0);
+      const delta = Number(top?.score ?? 0) - Number(runner?.score ?? 0);
+      const primaryConfidence = sigmoid(delta - 1);
+      const primaryReason = top?.reason ?? "scored";
+
+      const dec = await buildDecision(topId, primaryConfidence, primaryReason, false, topScore);
+      await saveCache(dec);
+      return dec;
+    };
+
+	    const decision = await decideModes();
+
+	    const modePicks: ModePick[] = [];
+	    const primaryMode = modeById.get(decision.primaryId) ?? null;
+	    const primaryCopy = curatedCopyForMode(locale, decision.primaryId, primaryMode?.title ?? decision.primaryId);
+	    modePicks.push(mkPick(decision.primaryId, primaryCopy.displayTitle, decision.primaryConfidence, decision.primaryReason));
+
+    const perTypeLimit = (total: number) => mediaType === "BOTH" ? Math.max(3, Math.ceil(total / 2)) : total;
+
+    const mapCuratedRowToItem = (row: any) => {
+      const mt = String(row?.media_type ?? row?.mediaType ?? "").toUpperCase();
+      const mediaTypeOut = mt === "MANGA" ? "MANGA" : "ANIME";
+      const mediaId = Number(row?.media_id ?? row?.mediaId ?? 0);
+      const title = row?.title_english ?? row?.title_romaji ?? row?.title_native ?? "Unknown";
+      return {
+        mediaType: mediaTypeOut,
+        mediaId,
+        matchCount: null,
+        score: null,
+        title,
+        coverImageMedium: row?.cover_image_medium ?? row?.coverImageMedium ?? null,
+        averageScore: row?.average_score ?? row?.averageScore ?? null,
+        year: row?.year ?? null,
+        format: row?.format ?? null,
+        status: row?.status ?? null,
+        siteUrl: row?.site_url ?? row?.siteUrl ?? null,
+        signals: Array.isArray(row?.signals) ? row.signals : [],
+        genres: Array.isArray(row?.genres) ? row.genres : null,
+      };
+    };
+
+    const railIdFor = (mode: ConciergeMode | null, mt: MediaType): string | null => {
+      if (!mode?.rail_id) return null;
+      if (typeof mode.rail_id === "string") return mode.rail_id;
+      const both = mode.rail_id.both;
+      if (both) return both;
+      return mt === "ANIME" ? (mode.rail_id.anime ?? null) : (mode.rail_id.manga ?? null);
+    };
+
+    const filterByConstraints = (items: any[]) => {
+      return items.filter((it) => {
+        // Genre exclusion.
+        if (userExcludedGenres.length) {
+          const gs = Array.isArray(it.genres) ? it.genres.map((g: any) => String(g)) : [];
+          if (userExcludedGenres.some((eg) => gs.includes(eg))) return false;
+        }
+        // Format constraint.
+        const fmt = String(it.format ?? "").toUpperCase();
+        if (constraints.format === "MOVIE" && fmt !== "MOVIE") return false;
+        if (constraints.format === "SHORT_FORM" && !["ONA", "OVA", "SPECIAL"].includes(fmt)) return false;
+        if (constraints.format === "OVA" && fmt !== "OVA") return false;
+        if (constraints.format === "ONA" && fmt !== "ONA") return false;
+        // Year constraints.
+        const year = Number(it.year ?? 0);
+        if (constraints.year_min != null && year > 0 && year < constraints.year_min) return false;
+        if (constraints.year_max != null && year > 0 && year > constraints.year_max) return false;
+        return true;
       });
-    }
+    };
 
-    // If the user is explicit ("like Vagabond"), offer a similarity rail as the first mode.
-    // This keeps the UX feeling "smart" without spending LLM tokens.
-    if (seedQuery) {
-      // Only override when we can find a decent seed title.
+	    const fetchCurated = async (mode: ConciergeMode, total: number) => {
+	      const avoidGenres = await userTopGenresPromise;
+	      const stableDiversifyItems = (arr: any[]): any[] => {
+	        if (!Array.isArray(arr) || arr.length <= 1) return arr;
+	        if (!avoidGenres.length) return arr;
+	        const overlap = (it: any) => {
+	          const gs = Array.isArray(it?.genres) ? it.genres.map((g: any) => String(g)) : [];
+	          if (!gs.length) return 0;
+	          let n = 0;
+	          for (const g of avoidGenres) if (gs.includes(g)) n++;
+	          return n;
+	        };
+	        return arr
+	          .map((it, idx) => ({ it, idx }))
+	          .sort((a, b) => {
+	            const oa = overlap(a.it);
+	            const ob = overlap(b.it);
+	            if (oa !== ob) return oa - ob;
+	            return a.idx - b.idx;
+	          })
+	          .map((x) => x.it);
+	      };
+
+	      // Fetch extra to compensate for post-filtering by user constraints.
+	      const hasActiveConstraints = userExcludedGenres.length > 0 || constraints.format != null || constraints.year_min != null || constraints.year_max != null;
+	      const fetchLimit = hasActiveConstraints ? total + 20 : total;
+      const perType = perTypeLimit(fetchLimit);
+      const animeRid = railIdFor(mode, "ANIME");
+      const mangaRid = railIdFor(mode, "MANGA");
+      const [animeRows, mangaRows] = await Promise.all([
+        (mediaType === "ANIME" || mediaType === "BOTH") && animeRid
+          ? client.rpc("curated_rail_cards", { p_rail_id: animeRid, p_limit: perType, p_exclude_seen: true }).then((r) => r.data)
+          : [],
+        (mediaType === "MANGA" || mediaType === "BOTH") && mangaRid
+          ? client.rpc("curated_rail_cards", { p_rail_id: mangaRid, p_limit: perType, p_exclude_seen: true }).then((r) => r.data)
+          : [],
+      ]);
+	      const a = stableDiversifyItems(filterByConstraints(Array.isArray(animeRows) ? animeRows.map(mapCuratedRowToItem) : []));
+	      const m = stableDiversifyItems(filterByConstraints(Array.isArray(mangaRows) ? mangaRows.map(mapCuratedRowToItem) : []));
+	      const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
+	      return merged;
+	    };
+
+    let ragAssistUsed = false;
+    let ragSeedEntityId: string | null = null;
+
+    const fetchSeedFromRag = async (): Promise<{ mt: MediaType; mediaId: number; title: string; entityId: string | null } | null> => {
+      if (!ragAssistEnabled || !seedQuery) return null;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const ragFormat =
+        constraints.format === "MOVIE" || constraints.format === "ONA" || constraints.format === "OVA"
+          ? constraints.format
+          : null;
+
+      try {
+        const ragUrl = `${supabaseUrl}/functions/v1/concierge-retrieve-assist`;
+        const res = await fetch(ragUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(authHeader ? { Authorization: authHeader } : {}),
+          },
+          body: JSON.stringify({
+            query: seedQuery,
+            locale: lang,
+            media_type: mediaType === "BOTH" ? null : mediaType,
+            excluded_genres: userExcludedGenres,
+            format: ragFormat,
+            year_min: constraints.year_min,
+            year_max: constraints.year_max,
+          }),
+          signal: controller.signal,
+        });
+        if (!res.ok) return null;
+        const payload = await res.json().catch(() => null);
+        const candidates = Array.isArray(payload?.entity_candidates) ? payload.entity_candidates : [];
+        const top = candidates[0];
+        if (!top) return null;
+
+        const mt = String(top.media_type ?? "").toUpperCase();
+        const mediaId = Number(top.anilist_id ?? 0);
+        const score = Number(top.score ?? 0);
+        const title = String(top.title ?? "").trim();
+        const entityId = typeof top.entity_id === "string" ? top.entity_id : null;
+        if (!Number.isFinite(mediaId) || mediaId <= 0) return null;
+        if (score < 0.45) return null;
+        if (mt !== "ANIME" && mt !== "MANGA") return null;
+
+        ragAssistUsed = true;
+        ragSeedEntityId = entityId;
+        return { mt, mediaId, title: title || seedQuery, entityId };
+      } catch {
+        return null;
+      } finally {
+        clearTimeout(timeout);
+      }
+    };
+
+	    const buildSimilarToSeedRail = async (total: number) => {
+      // Only build when we have a decent seed title.
       const pickSeed = async (mt: MediaType) => {
         const { data: seeds, error: seedErr } = await client.rpc("search_titles", {
           p_query: seedQuery,
@@ -14085,74 +14957,345 @@ serve(async (req) => {
         if (seedErr || !Array.isArray(seeds) || seeds.length === 0) return null;
         const top = seeds[0];
         if ((top?.score ?? 0) < 0.35) return null;
-        return { mt, mediaId: Number(top.media_id), title: String(top.title ?? "").trim() };
+        return { mt, mediaId: Number(top.media_id), title: String(top.title_raw ?? top.title ?? "").trim() };
       };
 
-      const seed = mediaType === "MANGA" ? await pickSeed("MANGA")
+      const seed = seedOverride
+        ? seedOverride
+        : mediaType === "MANGA" ? await pickSeed("MANGA")
         : mediaType === "ANIME" ? await pickSeed("ANIME")
         : (await pickSeed("ANIME")) ?? (await pickSeed("MANGA"));
+      const ragSeed = (!seed || !Number.isFinite(seed.mediaId) || seed.mediaId <= 0)
+        ? await fetchSeedFromRag()
+        : null;
+      if (ragSeed) {
+        seedOverride = { mt: ragSeed.mt, mediaId: ragSeed.mediaId, title: ragSeed.title };
+      }
+	      const effectiveSeed = seedOverride ?? seed;
+	      if (!effectiveSeed || !Number.isFinite(effectiveSeed.mediaId) || effectiveSeed.mediaId <= 0) {
+	        return { title: "Similar", items: [] as any[] };
+	      }
 
-      if (seed && Number.isFinite(seed.mediaId) && seed.mediaId > 0) {
-        const perSetTotal = limit;
-        const perType = mediaType === "BOTH" ? Math.max(3, Math.ceil(perSetTotal / 2)) : perSetTotal;
-        const q = compileQuality(null);
+	      const avoidGenres = await userTopGenresPromise;
+	      const perType = perTypeLimit(total);
+	      const q = compileQuality(null);
+	      const getSim = async (mt: MediaType) => {
+        const { data: sim, error: simErr } = await client.rpc("recommend_ids_similar_to_seeds", {
+          p_media_type: mt,
+          p_seed_ids: [effectiveSeed.mediaId],
+          p_limit: 50,
+          p_allow_gimmicks: allowGimmicks,
+        });
+        if (simErr || !Array.isArray(sim)) return [] as CandidateRow[];
+        return sim.map((r: any) => ({
+          media_id: Number(r.media_id),
+          match_count: r.overlap_count ?? r.match_count ?? 0,
+          score: r.score ?? null,
+        }));
+      };
 
-        const getSim = async (mt: MediaType) => {
-          const { data: sim, error: simErr } = await client.rpc("recommend_ids_similar_to_seeds", {
-            p_media_type: mt,
-            p_seed_ids: [seed.mediaId],
-            p_limit: 50,
-            p_allow_gimmicks: allowGimmicks,
-          });
-          if (simErr || !Array.isArray(sim)) return [] as CandidateRow[];
-          return sim.map((r: any) => ({
-            media_id: Number(r.media_id),
-            match_count: r.overlap_count ?? r.match_count ?? 0,
-            score: r.score ?? null,
-          }));
-        };
+      const [animeRows, mangaRows] = await Promise.all([
+        (mediaType === "ANIME" || mediaType === "BOTH") ? getSim("ANIME") : [],
+        (mediaType === "MANGA" || mediaType === "BOTH") ? getSim("MANGA") : [],
+      ]);
+      const emptyCtx: MediaContext = { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+      const [simCtxAnime, simCtxManga] = await Promise.all([
+        (mediaType === "ANIME" || mediaType === "BOTH")
+          ? fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
+          : emptyCtx,
+        (mediaType === "MANGA" || mediaType === "BOTH")
+          ? fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
+          : emptyCtx,
+      ]);
 
-        const animeRows = (mediaType === "ANIME" || mediaType === "BOTH") ? await getSim("ANIME") : [];
-        const mangaRows = (mediaType === "MANGA" || mediaType === "BOTH") ? await getSim("MANGA") : [];
-        const simCtxAnime = (mediaType === "ANIME" || mediaType === "BOTH")
-          ? await fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
-          : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
-        const simCtxManga = (mediaType === "MANGA" || mediaType === "BOTH")
-          ? await fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
-          : { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+	      const a = (mediaType === "ANIME" || mediaType === "BOTH")
+	        ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, avoidGenres, quality: q, constraints })
+	        : [];
+	      const m = (mediaType === "MANGA" || mediaType === "BOTH")
+	        ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: userExcludedGenres, avoidGenres, quality: q, constraints })
+	        : [];
 
-        const animeItems = (mediaType === "ANIME" || mediaType === "BOTH")
-          ? buildItemsFromRows("ANIME", animeRows, simCtxAnime, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
-          : [];
-        const mangaItems = (mediaType === "MANGA" || mediaType === "BOTH")
-          ? buildItemsFromRows("MANGA", mangaRows, simCtxManga, { limit: perType, requiredGenres, excludeGenres: [], quality: q })
-          : [];
+      const merged = mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
+      const title = effectiveSeed.title || seedQuery || "seed";
+      return { title: `Similar to "${title}"`, items: merged };
+    };
 
-        const merged = mediaType === "BOTH" ? mergeAlternating(animeItems, mangaItems, perSetTotal) : [...animeItems, ...mangaItems].slice(0, perSetTotal);
-        const title = seed.title || seedQuery;
+	    const buildAlgorithmicRail = async (mode: ConciergeMode | null, total: number) => {
+	      const avoidGenres = await userTopGenresPromise;
+	      const perType = perTypeLimit(total);
+	      const modeRequired = uniq([...(mode?.required_genres ?? []), ...requiredGenres]);
+	      const modeExcluded = uniq([...(mode?.exclude_genres ?? []), ...userExcludedGenres]);
+      const q = compileQuality(mode);
+      const pCats = uniq([...categories, ...(mode?.required_genres ?? [])]);
+      const cats = pCats.length ? pCats : (categories.length ? categories : null);
 
-        // Keep the classics rail as the secondary mode, but replace the primary.
-        if (sets.length >= 1) {
-          sets[0] = {
-            id: "similar_to_seed",
-            title: `Similar to “${title}”`,
-            modeId: "similar_to_seed",
-            confidence: 1,
-            reason: "seed similarity",
-            items: merged,
+      const [animeRows, mangaRows] = await Promise.all([
+        (mediaType === "ANIME" || mediaType === "BOTH") ? getPremiumCandidates("ANIME", cats) : [],
+        (mediaType === "MANGA" || mediaType === "BOTH") ? getPremiumCandidates("MANGA", cats) : [],
+      ]);
+      const emptyCtx: MediaContext = { byId: new Map(), boostById: new Map(), boostedReasonsById: new Map() };
+      const [ctxAnime, ctxManga] = await Promise.all([
+        (mediaType === "ANIME" || mediaType === "BOTH")
+          ? fetchMediaContext("ANIME", animeRows.map((r) => r.media_id))
+          : emptyCtx,
+        (mediaType === "MANGA" || mediaType === "BOTH")
+          ? fetchMediaContext("MANGA", mangaRows.map((r) => r.media_id))
+          : emptyCtx,
+      ]);
+
+	      const a = (mediaType === "ANIME" || mediaType === "BOTH")
+	        ? buildItemsFromRows("ANIME", animeRows, ctxAnime, {
+	          limit: perType,
+	          requiredGenres: modeRequired,
+	          excludeGenres: modeExcluded,
+	          avoidGenres,
+	          classicYearMax: mode?.classic_year_max,
+	          quality: q,
+	          prioritizeClassicBoost: (mode?.id ?? "").includes("classic"),
+	          constraints,
+	        })
+	        : [];
+	      const m = (mediaType === "MANGA" || mediaType === "BOTH")
+	        ? buildItemsFromRows("MANGA", mangaRows, ctxManga, {
+	          limit: perType,
+	          requiredGenres: modeRequired,
+	          excludeGenres: modeExcluded,
+	          avoidGenres,
+	          classicYearMax: mode?.classic_year_max,
+	          quality: q,
+	          prioritizeClassicBoost: (mode?.id ?? "").includes("classic"),
+	          constraints,
+	        })
+	        : [];
+      return mediaType === "BOTH" ? mergeAlternating(a, m, total) : [...a, ...m].slice(0, total);
+    };
+
+    const buildRailItems = async (modeId: string, total: number) => {
+      if (modeId === "similar_to_seed") {
+        return await buildSimilarToSeedRail(total);
+      }
+      const mode = modeById.get(modeId) ?? null;
+      // Curated rail if configured; fall back to algorithmic if empty/unavailable.
+      // If curated returns fewer than requested, fill the remainder algorithmically (still one-shot).
+      if (mode?.rail_id) {
+        try {
+          const curated = await fetchCurated(mode, total);
+          if (curated.length > 0) {
+            if (curated.length >= total) return { title: mode.title, items: curated.slice(0, total) };
+
+            const algo = await buildAlgorithmicRail(mode, total);
+            const seen = new Set(curated.map((it: any) => `${it.mediaType}|${it.mediaId}`));
+            const filled = [...curated];
+            for (const it of algo) {
+              if (filled.length >= total) break;
+              const k = `${it.mediaType}|${it.mediaId}`;
+              if (seen.has(k)) continue;
+              seen.add(k);
+              filled.push(it);
+            }
+            return { title: mode.title, items: filled };
+          }
+        } catch {
+          // ignore
+        }
+      }
+      const items = await buildAlgorithmicRail(mode, total);
+      return { title: mode?.title ?? modeId, items };
+    };
+
+    // Exactly 2 rails: primary + diversified secondary (no hard classics anchor).
+    const primaryTotal = limit;
+    const secondaryTotal = Math.max(10, Math.min(16, limit + 2));
+    const minSecondaryItems = Math.max(8, Math.min(secondaryTotal, 12));
+
+    const classicsId = classicsMode?.id ?? "classics_expanded";
+    const explicitClassicIntent = isClassicIntent(text);
+    const preferredSecondaryIds = uniq([
+      decision.secondaryId,
+      ...decision.secondaryCandidates,
+      premiumMode?.id ?? "premium_picks",
+      ...(explicitClassicIntent ? [classicsId] : []),
+    ])
+      .filter((id) => !!id && id !== decision.primaryId)
+      .slice(0, 5);
+
+    const primaryBuilt = await buildRailItems(decision.primaryId, primaryTotal);
+    const primaryItemKeys = new Set(primaryBuilt.items.map((it: any) => `${it.mediaType}|${it.mediaId}`));
+    const secondaryPriority = new Map<string, number>();
+    preferredSecondaryIds.forEach((id, idx) => secondaryPriority.set(id, preferredSecondaryIds.length - idx));
+
+    const evaluateSecondary = (modeId: string, built: { title: string; items: any[] }) => {
+      const itemKeys = built.items.map((it: any) => `${it.mediaType}|${it.mediaId}`);
+      const overlapCount = itemKeys.filter((k) => primaryItemKeys.has(k)).length;
+      const overlapRatio = built.items.length > 0 ? overlapCount / built.items.length : 1;
+      const itemCoverage = Math.min(1, built.items.length / Math.max(1, secondaryTotal));
+      let score = 0;
+      score += (secondaryPriority.get(modeId) ?? 0) * 1.1;
+      score += itemCoverage * 2.0;
+      score -= overlapRatio * 5.0;
+      if (built.items.length < minSecondaryItems) score -= 2.8;
+      if (modeId === classicsId && !explicitClassicIntent) score -= 3.2;
+      if (modeFamily(modeId) === modeFamily(decision.primaryId)) score -= 1.2;
+      const acceptable = built.items.length >= minSecondaryItems && overlapRatio <= 0.45;
+      return {
+        score,
+        acceptable,
+        overlapRatio,
+        overlapCount,
+      };
+    };
+
+    const fallbackSecondaryId = preferredSecondaryIds[0] ?? (premiumMode?.id ?? classicsId);
+    const fallbackSecondaryBuilt = await buildRailItems(fallbackSecondaryId, secondaryTotal);
+
+    type SecondaryCandidateEvaluation = {
+      modeId: string;
+      built: { title: string; items: any[] };
+      eval: {
+        score: number;
+        acceptable: boolean;
+        overlapRatio: number;
+        overlapCount: number;
+      };
+    };
+
+    const secondaryCandidateResults: SecondaryCandidateEvaluation[] = await Promise.all(
+      preferredSecondaryIds.map(async (modeId): Promise<SecondaryCandidateEvaluation> => {
+        try {
+          const built = await buildRailItems(modeId, secondaryTotal);
+          return { modeId, built, eval: evaluateSecondary(modeId, built) };
+        } catch {
+          const emptyBuilt = { title: modeId, items: [] as any[] };
+          return {
+            modeId,
+            built: emptyBuilt,
+            eval: {
+              score: Number.NEGATIVE_INFINITY,
+              acceptable: false,
+              overlapRatio: 1,
+              overlapCount: 0,
+            },
           };
-        } else {
-          sets.unshift({
-            id: "similar_to_seed",
-            title: `Similar to “${title}”`,
-            modeId: "similar_to_seed",
-            confidence: 1,
-            reason: "seed similarity",
-            items: merged,
-          });
+        }
+      }),
+    );
+
+    const chooseBetterSecondary = (a: SecondaryCandidateEvaluation, b: SecondaryCandidateEvaluation) => {
+      if (a.eval.acceptable !== b.eval.acceptable) {
+        return a.eval.acceptable ? -1 : 1;
+      }
+      if (a.eval.score !== b.eval.score) {
+        return b.eval.score - a.eval.score;
+      }
+      if (a.eval.overlapRatio !== b.eval.overlapRatio) {
+        return a.eval.overlapRatio - b.eval.overlapRatio;
+      }
+      if (a.built.items.length !== b.built.items.length) {
+        return b.built.items.length - a.built.items.length;
+      }
+      const ap = secondaryPriority.get(a.modeId) ?? 0;
+      const bp = secondaryPriority.get(b.modeId) ?? 0;
+      return bp - ap;
+    };
+
+    const sortedSecondaryCandidates = secondaryCandidateResults
+      .slice()
+      .sort(chooseBetterSecondary);
+
+    let chosenSecondary = sortedSecondaryCandidates[0] ?? {
+      modeId: fallbackSecondaryId,
+      built: fallbackSecondaryBuilt,
+      eval: evaluateSecondary(fallbackSecondaryId, fallbackSecondaryBuilt),
+    };
+
+    // Guardrail: if classics wins by default, prefer a close non-classics candidate
+    // unless the user explicitly asked for classics.
+    if (!explicitClassicIntent && chosenSecondary.modeId === classicsId) {
+      const bestNonClassic = sortedSecondaryCandidates.find((c) =>
+        c.modeId !== classicsId && c.eval.acceptable
+      );
+      if (bestNonClassic && bestNonClassic.eval.score >= (chosenSecondary.eval.score - 0.9)) {
+        chosenSecondary = bestNonClassic;
+      }
+    }
+
+    // Diversity stabilizer: rotate within the top close alternatives so the second rail
+    // does not collapse into the same mode for broad prompts.
+    if (!explicitClassicIntent) {
+      const nonClassicAcceptable = sortedSecondaryCandidates.filter((c) =>
+        c.modeId !== classicsId && c.eval.acceptable
+      );
+      if (nonClassicAcceptable.length >= 2) {
+        const topScore = nonClassicAcceptable[0].eval.score;
+        const closeBand = nonClassicAcceptable
+          .filter((c) => (topScore - c.eval.score) <= 0.8)
+          .slice(0, 3);
+        if (closeBand.length >= 2) {
+          const pickIndex = stableBucket(`${promptNorm}|${decision.primaryId}|secondary`) % closeBand.length;
+          chosenSecondary = closeBand[pickIndex];
         }
       }
     }
+
+    const chosenSecondaryId = chosenSecondary.modeId;
+    const chosenSecondaryBuilt = chosenSecondary.built;
+    const chosenEval = chosenSecondary.eval;
+
+    const secondaryMode = modeById.get(chosenSecondaryId) ?? null;
+    const secondaryCopy = curatedCopyForMode(locale, chosenSecondaryId, secondaryMode?.title ?? chosenSecondaryBuilt.title);
+    const secondaryConfidence = chosenEval.acceptable ? 0.82 : 0.64;
+    const secondaryReason = chosenEval.acceptable
+      ? "diversified-secondary"
+      : "fallback-secondary";
+
+    if (chosenSecondaryId !== decision.secondaryId) {
+      await saveCache({
+        ...decision,
+        secondaryId: chosenSecondaryId,
+        secondaryCandidates: uniq([chosenSecondaryId, ...decision.secondaryCandidates]),
+      });
+    }
+
+    modePicks.push(mkPick(chosenSecondaryId, secondaryCopy.displayTitle, secondaryConfidence, secondaryReason));
+
+	    const curatorNote = buildCuratorNote({
+	      locale,
+	      primaryModeId: decision.primaryId,
+	      primaryModeTitle: primaryMode?.title ?? primaryBuilt.title,
+	      constraints,
+	      ragUsed: ragAssistUsed,
+	      seedTitle: seedOverride?.title ?? null,
+	      avoidedGenres: await userTopGenresPromise,
+	    });
+
+	    const sets: any[] = [
+	      {
+	        id: decision.primaryId,
+	        title: primaryCopy.displayTitle,
+	        internalTitle: primaryBuilt.title,
+	        displayTitle: primaryCopy.displayTitle,
+	        displaySubtitle: primaryCopy.displaySubtitle,
+	        curatorNote,
+	        locale,
+	        modeId: decision.primaryId,
+	        confidence: modePicks[0].confidence,
+	        reason: modePicks[0].reason,
+	        items: primaryBuilt.items,
+	      },
+	      {
+	        id: chosenSecondaryId,
+	        title: secondaryCopy.displayTitle,
+	        internalTitle: chosenSecondaryBuilt.title,
+	        displayTitle: secondaryCopy.displayTitle,
+	        displaySubtitle: secondaryCopy.displaySubtitle,
+	        curatorNote,
+	        locale,
+	        modeId: chosenSecondaryId,
+	        confidence: modePicks[1].confidence,
+	        reason: modePicks[1].reason,
+	        items: chosenSecondaryBuilt.items,
+	      },
+	    ];
 
     // Flatten for backwards compatibility + LLM narration.
     const allItems: any[] = [];
@@ -14173,21 +15316,36 @@ serve(async (req) => {
         p_input_chars: text.length,
         p_items_count: allItems.length,
       });
+
+      // Router quality telemetry for secondary-rail diversity and overlap monitoring.
+      await client.rpc("log_concierge_run", {
+        p_kind: "recommend_router_v2",
+        p_status: "success",
+        p_input_chars: text.length,
+        p_items_count: chosenSecondaryBuilt.items.length,
+        p_error: JSON.stringify({
+          primary_mode_id: decision.primaryId,
+          secondary_mode_id: chosenSecondaryId,
+          secondary_candidates_count: preferredSecondaryIds.length,
+          secondary_overlap_ratio: Number(chosenEval.overlapRatio.toFixed(4)),
+          secondary_overlap_count: chosenEval.overlapCount,
+          secondary_item_count: chosenSecondaryBuilt.items.length,
+          secondary_acceptable: chosenEval.acceptable,
+        }),
+      });
     } catch {
       // best-effort
     }
 
-    const message = (() => {
-      if (sets.length === 0) {
-        return categories.length === 0
-          ? "Premium picks (new to you). Tell me a vibe like “funny”, “sad”, “cozy”, or a genre to sharpen it."
-          : null;
-      }
-      const titles = sets.slice(0, 2).map((s: any) => String(s.title ?? "")).filter(Boolean);
-      if (titles.length >= 2) return `Two rails for you: ${titles[0]} + ${titles[1]}.`;
-      if (titles.length === 1) return `Here’s a rail for you: ${titles[0]}.`;
-      return null;
-    })();
+	    const message = (() => {
+	      if (sets.length === 0) {
+	        return locale === "de"
+	          ? "Sag mir eine Stimmung oder eine klare Kante (kurz, ohne Romance, ein Jahr) — ich kuratiere es neu für dich."
+	          : "Give me a mood or one constraint (short, no romance, a year) and I’ll curate it — new to you.";
+	      }
+	      // Backwards-compat: older clients can show the curator note in plain text.
+	      return curatorNote;
+	    })();
 
     // Optional narration (pure presentation layer).
     let narrationError: string | null = null;
@@ -14305,15 +15463,33 @@ serve(async (req) => {
       }
     }
 
-    return json({
-      success: true,
-      categories,
-      modes: modePicks,
-      sets,
-      // Backwards compat: clients that only understand `items` still get a useful response.
+	    return json({
+	      success: true,
+	      locale,
+	      curatorNote,
+	      categories,
+	      modes: modePicks,
+	      sets,
+	      // Backwards compat: clients that only understand `items` still get a useful response.
       items: allItems,
       message,
       narrated: narrate,
+      // Constraint info for WhyThisSheet and debugging.
+      constraints: constraints.why.length > 0 ? {
+        excluded_genres: constraints.excluded_genres.length > 0 ? constraints.excluded_genres : undefined,
+        format: constraints.format ?? undefined,
+        max_episodes: constraints.max_episodes ?? undefined,
+        min_episodes: constraints.min_episodes ?? undefined,
+        year_min: constraints.year_min ?? undefined,
+        year_max: constraints.year_max ?? undefined,
+        why: constraints.why,
+      } : undefined,
+      assist: ragAssistEnabled
+        ? {
+          ragUsed: ragAssistUsed,
+          seedEntityId: ragSeedEntityId ?? undefined,
+        }
+        : undefined,
       ...(debugNarration ? { narrationError } : {}),
     });
   } catch (e) {
@@ -14450,27 +15626,36 @@ serve(async (req) => {
       global: { headers: authHeader ? { Authorization: authHeader } : {} },
     });
 
-    const { data: userData, error: userErr } = await client.auth.getUser();
+    const ip = clientIp(req);
+
+    // Parallelize auth, rate-limit check, and body parsing — they are independent.
+    const [authResult, rlResult, body] = await Promise.all([
+      client.auth.getUser(),
+      client.rpc("check_concierge_rate_limit", {
+        p_kind: "apply",
+        p_ip: ip,
+        p_window_seconds: null,
+        p_max_user: null,
+        p_max_ip: null,
+      }),
+      req.json().catch(() => ({})),
+    ]);
+
+    const { data: userData, error: userErr } = authResult;
     if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
     const userId = userData.user.id;
 
-    const ip = clientIp(req);
-    const { data: rl } = await client.rpc("check_concierge_rate_limit", {
-      p_kind: "apply",
-      p_ip: ip,
-      p_window_seconds: null,
-      p_max_user: null,
-      p_max_ip: null,
-    });
+    const rl = rlResult.data;
     if (rl && rl.allowed === false) {
       return json(
         { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
         { status: 429, headers: { "Retry-After": String(rl.retry_after_s ?? 30) } },
       );
     }
-
-    const body = await req.json().catch(() => ({}));
     const items: any[] = Array.isArray(body?.items) ? body.items : [];
+    if (!Array.isArray(body?.items) || items.length > 100) {
+      return json({ error: "Too many items (max 100)" }, { status: 400 });
+    }
     if (items.length === 0) return json({ success: true, applied: 0, sessionId: null, errors: [] });
 
     // Create an import session so we can support undo.
@@ -14485,20 +15670,42 @@ serve(async (req) => {
     const sessionId: string = sessionRow.id;
 
     const applied: any[] = [];
+    const skipped: any[] = [];
+    const conflicts: any[] = [];
     const errors: any[] = [];
 
-    for (const it of items) {
+    // Process all items in parallel — each targets a different media_id so they're independent.
+    const results = await Promise.all(items.map(async (it) => {
       const mediaType: MediaType | null = it?.mediaType === "ANIME" || it?.mediaType === "MANGA" ? it.mediaType : null;
       const mediaId: number | null = clampInt(it?.mediaId, 1, 2_000_000_000);
       let status: ListStatus | null =
         typeof it?.status === "string" ? (it.status.toUpperCase() as ListStatus) : null;
 
       if (!mediaType || !mediaId || !status) {
-        errors.push({ item: it, error: "Invalid mediaType/mediaId/status" });
-        continue;
+        return { ok: false as const, kind: "error" as const, item: it, error: "Invalid mediaType/mediaId/status" };
       }
 
+      // Reconciliation action: 'add' (default for backwards compat), 'update', or 'skip'
+      const importAction: "add" | "update" | "skip" =
+        it?.action === "update" ? "update" : it?.action === "skip" ? "skip" : "add";
+
       try {
+        // --- Handle skip action ---
+        if (importAction === "skip") {
+          await client.from("import_session_items").insert({
+            session_id: sessionId,
+            raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType}:${mediaId}`,
+            parsed: it?.parsed ?? {},
+            candidates: Array.isArray(it?.candidates) ? it.candidates.slice(0, 12) : [],
+            chosen: { mediaType, mediaId },
+            action: null,
+            confidence: typeof it?.confidence === "number" ? it.confidence : 0,
+            state: "skipped",
+            import_action: "skip",
+          });
+          return { ok: true as const, kind: "skip" as const, mediaType, mediaId, status };
+        }
+
         if (mediaType === "ANIME") {
           const explicitComplete = it?.lastEpisode === true || it?.completed === true;
           const caughtUp = it?.caughtUp === true;
@@ -14524,6 +15731,7 @@ serve(async (req) => {
             }
           }
 
+          // Re-check current state (TOCTOU protection for updates)
           const before = await client
             .from("anime_user_lists")
             .select("list_type,progress,rating,notes")
@@ -14531,6 +15739,34 @@ serve(async (req) => {
             .eq("anime_id", mediaId)
             .maybeSingle();
           if (before.error) throw before.error;
+
+          // TOCTOU check for updates: verify current state matches what client expected
+          if (importAction === "update" && it?.expectedExisting) {
+            const exp = it.expectedExisting;
+            const cur = before.data;
+            if (!cur) {
+              // Entry was deleted between parse and apply — conflict
+              return { ok: false as const, kind: "conflict" as const, mediaType, mediaId, error: "Entry no longer exists (deleted since parse)" };
+            }
+            if (
+              (exp.status && cur.list_type !== exp.status) ||
+              (exp.progress_episodes != null && cur.progress !== exp.progress_episodes)
+            ) {
+              await client.from("import_session_items").insert({
+                session_id: sessionId,
+                raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType}:${mediaId}`,
+                parsed: it?.parsed ?? {},
+                candidates: Array.isArray(it?.candidates) ? it.candidates.slice(0, 12) : [],
+                chosen: { mediaType, mediaId },
+                action: { table: "anime_user_lists", key: { user_id: userId, anime_id: mediaId }, before: cur, after: null },
+                confidence: typeof it?.confidence === "number" ? it.confidence : 0,
+                state: "error",
+                import_action: "update",
+                error: "TOCTOU conflict: current state changed since parse",
+              });
+              return { ok: false as const, kind: "conflict" as const, mediaType, mediaId, error: "State changed since parse — review and retry" };
+            }
+          }
 
           const seasonNumber = clampInt(it?.seasonNumber, 1, 100);
           const episodeInSeason = clampInt(it?.episodeInSeason, 0, 100_000);
@@ -14564,6 +15800,9 @@ serve(async (req) => {
             // best-effort
           }
 
+          // Store previous_values for undo support on updates
+          const previousValues = importAction === "update" && before.data ? before.data : null;
+
           await client.from("import_session_items").insert({
             session_id: sessionId,
             raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType}:${mediaId}`,
@@ -14585,6 +15824,8 @@ serve(async (req) => {
             },
             confidence: typeof it?.confidence === "number" ? it.confidence : 0,
             state: "applied",
+            import_action: importAction,
+            previous_values: previousValues,
           });
         } else {
           const explicitComplete = it?.completed === true;
@@ -14602,6 +15843,7 @@ serve(async (req) => {
             if (totalKnown != null) progress = totalKnown;
           }
 
+          // Re-check current state (TOCTOU protection for updates)
           const before = await client
             .from("manga_user_lists")
             .select("list_type,progress,rating,notes")
@@ -14609,6 +15851,34 @@ serve(async (req) => {
             .eq("manga_id", mediaId)
             .maybeSingle();
           if (before.error) throw before.error;
+
+          // TOCTOU check for updates: verify current state matches what client expected
+          if (importAction === "update" && it?.expectedExisting) {
+            const exp = it.expectedExisting;
+            const cur = before.data;
+            if (!cur) {
+              return { ok: false as const, kind: "conflict" as const, mediaType, mediaId, error: "Entry no longer exists (deleted since parse)" };
+            }
+            if (
+              (exp.status && cur.list_type !== exp.status) ||
+              (exp.progress_chapters != null && cur.progress !== exp.progress_chapters)
+            ) {
+              await client.from("import_session_items").insert({
+                session_id: sessionId,
+                raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType}:${mediaId}`,
+                parsed: it?.parsed ?? {},
+                candidates: Array.isArray(it?.candidates) ? it.candidates.slice(0, 12) : [],
+                chosen: { mediaType, mediaId },
+                action: { table: "manga_user_lists", key: { user_id: userId, manga_id: mediaId }, before: cur, after: null },
+                confidence: typeof it?.confidence === "number" ? it.confidence : 0,
+                state: "error",
+                import_action: "update",
+                error: "TOCTOU conflict: current state changed since parse",
+              });
+              return { ok: false as const, kind: "conflict" as const, mediaType, mediaId, error: "State changed since parse — review and retry" };
+            }
+          }
+
           const payload = {
             user_id: userId,
             manga_id: mediaId,
@@ -14635,6 +15905,8 @@ serve(async (req) => {
             // best-effort
           }
 
+          const previousValues = importAction === "update" && before.data ? before.data : null;
+
           await client.from("import_session_items").insert({
             session_id: sessionId,
             raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType}:${mediaId}`,
@@ -14653,12 +15925,13 @@ serve(async (req) => {
             },
             confidence: typeof it?.confidence === "number" ? it.confidence : 0,
             state: "applied",
+            import_action: importAction,
+            previous_values: previousValues,
           });
         }
 
-        applied.push({ mediaType, mediaId, status });
+        return { ok: true as const, kind: importAction as "add" | "update", mediaType, mediaId, status };
       } catch (e) {
-        errors.push({ mediaType, mediaId, error: (e as Error).message ?? String(e) });
         await client.from("import_session_items").insert({
           session_id: sessionId,
           raw: typeof it?.raw === "string" ? it.raw.slice(0, 500) : `${mediaType ?? "UNKNOWN"}:${mediaId ?? "?"}`,
@@ -14668,13 +15941,30 @@ serve(async (req) => {
           action: null,
           confidence: typeof it?.confidence === "number" ? it.confidence : 0,
           state: "error",
+          import_action: importAction,
           error: ((e as Error).message ?? String(e)).slice(0, 500),
         });
+        return { ok: false as const, kind: "error" as const, mediaType, mediaId, error: (e as Error).message ?? String(e) };
+      }
+    }));
+
+    // Collect results preserving original order.
+    for (const r of results) {
+      if (r.ok && r.kind === "skip") {
+        skipped.push({ mediaType: r.mediaType, mediaId: r.mediaId });
+      } else if (r.ok) {
+        applied.push({ mediaType: r.mediaType, mediaId: r.mediaId, status: r.status, action: r.kind });
+      } else if (r.kind === "conflict") {
+        conflicts.push({ mediaType: r.mediaType, mediaId: r.mediaId, error: r.error });
+      } else if ("item" in r) {
+        errors.push({ item: r.item, error: r.error });
+      } else {
+        errors.push({ mediaType: r.mediaType, mediaId: r.mediaId, error: r.error });
       }
     }
 
     await client.from("import_sessions").update({
-      status: errors.length ? "failed" : "applied",
+      status: errors.length || conflicts.length ? "failed" : "applied",
     }).eq("id", sessionId);
 
     try {
@@ -14688,7 +15978,7 @@ serve(async (req) => {
       // Best-effort metrics only.
     }
 
-    return json({ success: errors.length === 0, sessionId, applied, errors });
+    return json({ success: errors.length === 0 && conflicts.length === 0, sessionId, applied, skipped, conflicts, errors });
   } catch (e) {
     const err = e as Error;
     return json(
@@ -14781,6 +16071,22 @@ serve(async (req) => {
     const sessionId = typeof body?.sessionId === "string" ? body.sessionId : null;
     if (!sessionId) return json({ error: "Missing sessionId" }, { status: 400 });
 
+  // H4: Only allow undo of the most recent session for this user
+  const latestSession = await client
+    .from("import_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("status", "applied")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestSession.error) return json({ error: latestSession.error.message }, { status: 500 });
+  if (!latestSession.data) return json({ error: "No applied session to undo" }, { status: 404 });
+  if (latestSession.data.id !== sessionId) {
+    return json({ error: "Can only undo the most recent import session" }, { status: 409 });
+  }
+
   const session = await client
     .from("import_sessions")
     .select("id,user_id,status")
@@ -14793,11 +16099,12 @@ serve(async (req) => {
 
   const itemsRes = await client
     .from("import_session_items")
-    .select("id,chosen,action,state")
+    .select("id,chosen,action,state,import_action,previous_values")
     .eq("session_id", sessionId);
   if (itemsRes.error) return json({ error: itemsRes.error.message }, { status: 500 });
 
   const reverted: any[] = [];
+  const warnings: any[] = [];
   const errors: any[] = [];
 
   for (const row of itemsRes.data ?? []) {
@@ -14807,56 +16114,136 @@ serve(async (req) => {
       const mediaId: number | null = clampInt(chosen?.mediaId, 1, 2_000_000_000);
       if (!mediaType || !mediaId) continue;
 
-      const action = row?.action ?? {};
-      const before = action?.before ?? null;
+      const itemAction = row?.import_action ?? "add";
+      const actionData = row?.action ?? {};
+      const afterData = actionData?.after ?? null;
+      const previousValues = row?.previous_values ?? null;
+
+      // Skip items that were skipped during import — nothing to undo
+      if (itemAction === "skip") continue;
 
       if (mediaType === "ANIME") {
-        if (!before) {
-          const del = await client
-            .from("anime_user_lists")
-            .delete()
-            .eq("user_id", userId)
-            .eq("anime_id", mediaId);
-          if (del.error) throw del.error;
-        } else {
+        // Verify current state matches what we set (detect manual edits / overlapping imports)
+        const current = await client
+          .from("anime_user_lists")
+          .select("list_type,progress,rating,notes")
+          .eq("user_id", userId)
+          .eq("anime_id", mediaId)
+          .maybeSingle();
+
+        if (current.error) throw current.error;
+
+        // If the entry no longer exists or was modified since our import, warn instead of blindly reverting
+        if (afterData && current.data) {
+          const cur = current.data;
+          if (cur.list_type !== afterData.list_type || cur.progress !== afterData.progress) {
+            warnings.push({ mediaType, mediaId, reason: "Entry was modified since import — skipping undo to avoid data loss" });
+            continue;
+          }
+        }
+
+        if (itemAction === "update" && previousValues) {
+          // Restore previous values for updates
           const payload = {
             user_id: userId,
             anime_id: mediaId,
-            list_type: (before?.list_type as ListStatus) ?? "PLANNING",
-            progress: before?.progress ?? null,
-            rating: before?.rating ?? null,
-            notes: before?.notes ?? null,
+            list_type: (previousValues.list_type as ListStatus) ?? "PLANNING",
+            progress: previousValues.progress ?? null,
+            rating: previousValues.rating ?? null,
+            notes: previousValues.notes ?? null,
           };
           const up = await client
             .from("anime_user_lists")
             .upsert(payload as any, { onConflict: "user_id,anime_id" });
           if (up.error) throw up.error;
+          reverted.push({ mediaType, mediaId, undoType: "restored" });
+        } else {
+          // For adds (or legacy items without import_action): delete the entry
+          const before = actionData?.before ?? null;
+          if (!before) {
+            const del = await client
+              .from("anime_user_lists")
+              .delete()
+              .eq("user_id", userId)
+              .eq("anime_id", mediaId);
+            if (del.error) throw del.error;
+            reverted.push({ mediaType, mediaId, undoType: "deleted" });
+          } else {
+            const payload = {
+              user_id: userId,
+              anime_id: mediaId,
+              list_type: (before.list_type as ListStatus) ?? "PLANNING",
+              progress: before.progress ?? null,
+              rating: before.rating ?? null,
+              notes: before.notes ?? null,
+            };
+            const up = await client
+              .from("anime_user_lists")
+              .upsert(payload as any, { onConflict: "user_id,anime_id" });
+            if (up.error) throw up.error;
+            reverted.push({ mediaType, mediaId, undoType: "restored" });
+          }
         }
       } else {
-        if (!before) {
-          const del = await client
-            .from("manga_user_lists")
-            .delete()
-            .eq("user_id", userId)
-            .eq("manga_id", mediaId);
-          if (del.error) throw del.error;
-        } else {
+        // MANGA
+        const current = await client
+          .from("manga_user_lists")
+          .select("list_type,progress,rating,notes")
+          .eq("user_id", userId)
+          .eq("manga_id", mediaId)
+          .maybeSingle();
+
+        if (current.error) throw current.error;
+
+        if (afterData && current.data) {
+          const cur = current.data;
+          if (cur.list_type !== afterData.list_type || cur.progress !== afterData.progress) {
+            warnings.push({ mediaType, mediaId, reason: "Entry was modified since import — skipping undo to avoid data loss" });
+            continue;
+          }
+        }
+
+        if (itemAction === "update" && previousValues) {
           const payload = {
             user_id: userId,
             manga_id: mediaId,
-            list_type: (before?.list_type as ListStatus) ?? "PLANNING",
-            progress: before?.progress ?? null,
-            rating: before?.rating ?? null,
-            notes: before?.notes ?? null,
+            list_type: (previousValues.list_type as ListStatus) ?? "PLANNING",
+            progress: previousValues.progress ?? null,
+            rating: previousValues.rating ?? null,
+            notes: previousValues.notes ?? null,
           };
           const up = await client
             .from("manga_user_lists")
             .upsert(payload as any, { onConflict: "user_id,manga_id" });
           if (up.error) throw up.error;
+          reverted.push({ mediaType, mediaId, undoType: "restored" });
+        } else {
+          const before = actionData?.before ?? null;
+          if (!before) {
+            const del = await client
+              .from("manga_user_lists")
+              .delete()
+              .eq("user_id", userId)
+              .eq("manga_id", mediaId);
+            if (del.error) throw del.error;
+            reverted.push({ mediaType, mediaId, undoType: "deleted" });
+          } else {
+            const payload = {
+              user_id: userId,
+              manga_id: mediaId,
+              list_type: (before.list_type as ListStatus) ?? "PLANNING",
+              progress: before.progress ?? null,
+              rating: before.rating ?? null,
+              notes: before.notes ?? null,
+            };
+            const up = await client
+              .from("manga_user_lists")
+              .upsert(payload as any, { onConflict: "user_id,manga_id" });
+            if (up.error) throw up.error;
+            reverted.push({ mediaType, mediaId, undoType: "restored" });
+          }
         }
       }
-
-      reverted.push({ mediaType, mediaId });
     } catch (e) {
       errors.push({ id: row?.id, error: (e as Error).message ?? String(e) });
     }
@@ -14875,7 +16262,7 @@ serve(async (req) => {
     // Best-effort metrics only.
   }
 
-    return json({ success: errors.length === 0, sessionId, reverted, errors });
+    return json({ success: errors.length === 0, sessionId, reverted, warnings, errors });
   } catch (e) {
     const err = e as Error;
     return json(
@@ -14901,7 +16288,6 @@ serve(async (req) => {
 -- - LLM daily budget + global kill-switch flag
 
 begin;
-
 -- 1) Kill switch / flags (readable via SECURITY DEFINER function).
 create table if not exists public.system_flags (
   key text primary key,
@@ -14909,9 +16295,7 @@ create table if not exists public.system_flags (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 alter table public.system_flags enable row level security;
-
 -- No policies: clients cannot read flags directly.
 
 do $$ begin
@@ -14921,11 +16305,9 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 insert into public.system_flags(key, enabled)
 values ('llm_enabled', true)
 on conflict (key) do nothing;
-
 create or replace function public.is_flag_enabled(p_key text)
 returns boolean
 language plpgsql
@@ -14938,9 +16320,7 @@ begin
   select enabled into v from public.system_flags where key = p_key;
   return coalesce(v, true);
 end $$;
-
 grant execute on function public.is_flag_enabled(text) to anon, authenticated;
-
 -- 2) Rate limit buckets (atomic upsert increments).
 create table if not exists public.rate_limit_buckets (
   bucket_key text not null,
@@ -14950,9 +16330,7 @@ create table if not exists public.rate_limit_buckets (
   updated_at timestamptz not null default now(),
   primary key (bucket_key, window_start)
 );
-
 create index if not exists idx_rate_limit_buckets_window_start on public.rate_limit_buckets (window_start desc);
-
 alter table public.rate_limit_buckets enable row level security;
 -- No policies: users cannot read/write buckets directly.
 
@@ -14963,7 +16341,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 create or replace function public.rate_limit_hit(
   p_bucket_key text,
   p_window_seconds integer
@@ -14994,9 +16371,7 @@ begin
 
   return v;
 end $$;
-
 grant execute on function public.rate_limit_hit(text, integer) to anon, authenticated;
-
 create or replace function public.check_concierge_rate_limit(
   p_kind text,
   p_ip text,
@@ -15041,9 +16416,7 @@ begin
     'retry_after_s', retry_after
   );
 end $$;
-
 grant execute on function public.check_concierge_rate_limit(text, text, integer, integer, integer) to anon, authenticated;
-
 -- 3) LLM daily budget (reserve + finalize to keep budgets accurate and concurrency-safe).
 create table if not exists public.llm_daily_usage (
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -15056,7 +16429,6 @@ create table if not exists public.llm_daily_usage (
   updated_at timestamptz not null default now(),
   primary key (user_id, day)
 );
-
 alter table public.llm_daily_usage enable row level security;
 -- No policies: users cannot read/write usage directly.
 
@@ -15067,7 +16439,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 create or replace function public.llm_budget_reserve(
   p_reserved_tokens integer,
   p_max_daily_tokens integer default 20000,
@@ -15137,7 +16508,6 @@ begin
     'max_daily_calls', p_max_daily_calls
   );
 end $$;
-
 create or replace function public.llm_budget_finalize(
   p_reserved_tokens integer,
   p_actual_tokens integer,
@@ -15198,10 +16568,8 @@ begin
     'calls', coalesce(calls_total, 0)
   );
 end $$;
-
 grant execute on function public.llm_budget_reserve(integer, integer, integer, text) to authenticated;
 grant execute on function public.llm_budget_finalize(integer, integer, text) to authenticated;
-
 commit;
 
 ```
@@ -15216,7 +16584,6 @@ commit;
 -- Goal: prevent LLM spend abuse even with many users.
 
 begin;
-
 -- 1) Global daily usage table.
 create table if not exists public.llm_global_daily_usage (
   day date primary key,
@@ -15226,7 +16593,6 @@ create table if not exists public.llm_global_daily_usage (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
-
 alter table public.llm_global_daily_usage enable row level security;
 -- No policies: clients cannot read/write global usage directly.
 
@@ -15237,7 +16603,6 @@ do $$ begin
       for each row execute function public.set_updated_at();
   end if;
 end $$;
-
 create or replace function public.llm_global_budget_reserve(
   p_reserved_tokens integer,
   p_max_daily_tokens integer,
@@ -15300,7 +16665,6 @@ begin
     'max_daily_calls', p_max_daily_calls
   );
 end $$;
-
 create or replace function public.llm_global_budget_finalize(
   p_reserved_tokens integer,
   p_actual_tokens integer
@@ -15349,10 +16713,8 @@ begin
     'calls', coalesce(calls_total, 0)
   );
 end $$;
-
 grant execute on function public.llm_global_budget_reserve(integer, integer, integer) to authenticated;
 grant execute on function public.llm_global_budget_finalize(integer, integer) to authenticated;
-
 -- 2) Patch default config with "natural usage" limits + global budget.
 update public.concierge_config
 set config =
@@ -15379,9 +16741,7 @@ set config =
     true
   )
 where id = true;
-
 commit;
-
 
 ```
 
@@ -15502,10 +16862,8 @@ begin
   return out;
 end;
 $$;
-
 revoke all on function public.admin_schema_snapshot() from public;
 grant execute on function public.admin_schema_snapshot() to service_role;
-
 
 ```
 
@@ -16496,3 +17854,25 @@ Replaced KuroGlassCard-based club rows with clean editorial entries (serif typog
 - `ClubDetailView.swift` requests the lightweight loading snapshot in parallel with the full bundle, enriching the initial loading state immediately.
 - Commit `926c848`. 2 files changed, +110 / -17 lines.
 - Validation: iOS build passed, unit tests passed. `supabase db lint --linked` not re-verified in this session (requires DB auth). Current repo inventory: 86 Swift files / 162 migrations.
+
+### 2026-03-25: Auth transport errors clarified (Build 19)
+
+- `SupabaseService.userFacingAuthErrorMessage(from:)` now maps transport-layer auth failures into explicit user copy:
+  - offline -> `No internet connection. Check your connection and try again.`
+  - timeout -> `The request timed out. Please try again.`
+  - cannot-connect / DNS / TLS / bad-server-response -> `Can't reach the server right now. Please try again.`
+- `AuthView` now uses the shared mapping instead of local string matching, so sign-in, sign-up, and Apple sign-in all surface the same clearer messaging.
+- Added focused `KuroTests` coverage for offline, timeout, wrapped cannot-connect, and invalid-credentials cases.
+- Commit `6836fcb`. TestFlight build `19` uploaded successfully after all 8 quality gates passed.
+
+### 2026-03-26: Discover rotation + ancillary anime exclusions
+
+- Added migration `20260326221000_discover_new_to_you_rotation.sql`: `discover_bundle` is now `plpgsql`/`volatile`, `new_to_you` uses per-user `discover_rail_impressions`, and rotation prefers unseen titles first before recycling oldest impressions.
+- Added migration `20260326234000_exclude_ancillary_anime_from_default_surfaces.sql`: default anime `Discover`, `Search`, and `Browse` now exclude `SPECIAL`, `MUSIC`, and `TV_SHORT`.
+- Browse keeps an explicit override: if `p_format` is one of those values, the browse RPC still returns that format intentionally.
+- Live verification:
+  - `search_anime_page('Darwin')` now returns mainline Darwin results first.
+  - `search_anime_page('One Piece Fan Letter')` no longer returns the ancillary `SPECIAL` item in default anime search.
+  - default `browse_anime_page` excludes ancillary formats, while explicit `p_format = 'SPECIAL'` still returns them.
+  - `discover_bundle` no longer surfaces `ONE PIECE FAN LETTER`.
+- Commits `8c4e1ff` and `a8b9f78`.
