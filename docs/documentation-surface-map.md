@@ -19,6 +19,7 @@ This file defines which Markdown surfaces are current, which are reference-only,
 | `docs/production-blockers.md` | Focused audit/reference doc | Narrow-scope operational reference, not a whole-repo authority. |
 | `docs/filter-wiring-audit.md` | Focused audit/reference doc | Targeted verification output. |
 | `docs/clubs-spec.md` | Product spec | Historical design intent plus still-relevant implementation context. |
+| `docs/personalization_execution_contract.md` | Execution contract | Strict sprint/specification surface for personalization work, including glossary, rules, gates, and rollback policy. |
 | `MASTER_PLAN.md`, `REPRODUCE.md`, `SCHEDULES.md` | Operational/reference docs | Keep only while they remain actively useful. |
 
 ## Historical / archived docs

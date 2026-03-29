@@ -1,6 +1,6 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-26
+**Last updated:** 2026-03-29
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
@@ -994,3 +994,10 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - Default anime Search, Browse, and Discover now hide ancillary entries like specials, music videos, and TV shorts so the mainline results come first.
 - Browse still lets a user intentionally filter into those formats if they really want them.
 - Example result: `ONE PIECE FAN LETTER` no longer appears in default discovery/search, but still appears if the user explicitly browses `SPECIAL`.
+
+
+### 2026-03-29 — Personalization execution contract added
+- Kuro now has one strict planning document for future personalization work: `/Applications/Kuro/docs/personalization_execution_contract.md`.
+- This is not feature code. It is the rulebook for how personalization must be built so it cannot be implemented loosely or sloppily.
+- It defines what Kuro is allowed to personalize first (`New to You`), what must stay non-personalized in v1 (Search and Browse), which user signals count, how imports are discounted, and what counts as “done” for each sprint, plus ticket-style deliverables inside each sprint.
+- It also includes rollback rules, review questions, fixture users, and validation checklists so the work stays curated and does not drift into noisy recommendation logic.

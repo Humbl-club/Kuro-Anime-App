@@ -1,6 +1,6 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-26
+**Last updated:** 2026-03-29
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
@@ -17876,3 +17876,15 @@ Replaced KuroGlassCard-based club rows with clean editorial entries (serif typog
   - default `browse_anime_page` excludes ancillary formats, while explicit `p_format = 'SPECIAL'` still returns them.
   - `discover_bundle` no longer surfaces `ONE PIECE FAN LETTER`.
 - Commits `8c4e1ff` and `a8b9f78`.
+
+
+### 2026-03-29: Personalization execution contract added
+
+- Added `/Applications/Kuro/docs/personalization_execution_contract.md` as the single strict planning surface for personalization work.
+- The document replaces the looser multi-file/folder idea with one execution contract covering: glossary, decision matrix, ranking rules, import discount, confidence progression, review rubric, rollback policy, sprint-by-sprint done criteria, and a ticket-style backlog that breaks each sprint into narrow deliverables.
+- v1 policy is now explicit in writing:
+  - personalization starts with `discover_bundle -> new_to_you` only
+  - Search and Browse stay non-personalized in v1
+  - only durable list-state signals are allowed in v1
+  - editorial prior remains structurally dominant
+- This surface is intentionally written to constrain LLM execution: every sprint now has allowed/forbidden surfaces, required artifacts, validation commands, failure conditions, rollback paths, and a brutal `Done only if` checklist.

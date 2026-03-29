@@ -582,3 +582,8 @@ These items were evaluated and intentionally deferred:
 | — | Admin UI for modes | Low priority — DB JSON editing sufficient for now |
 | — | Documentation cleanup (2026-03-10) | **Done**: 17 stale docs archived, inventory counts fixed (68 Swift / 153 migrations), cross-refs updated, quality gate patched |
 | — | Production readiness rollup (2026-03-14) | **Done**: graceful config error (no fatalError), memory pressure handler, 127+ prints in #if DEBUG, feature flags retry (3 attempts), 8 quality gates in CI/Fastlane, club bundle LIMIT clauses, social_activity_v1 at 100%, xcconfig wired, Build 16 shipped |
+
+
+## Personalization execution contract (2026-03-29) -- ADDED
+
+A new strict planning surface now lives at `/Applications/Kuro/docs/personalization_execution_contract.md`. This is the execution contract for future personalization work, not shipped feature code. It locks v1 to durable list-state signals, keeps Search/Browse non-personalized in v1, makes `New to You` the first personalized surface, and defines glossary terms, ranking constraints, sprint-specific gates, rollback policy, ticket-style execution backlog items, and LLM-proof `Done only if` checklists before any implementation begins.
