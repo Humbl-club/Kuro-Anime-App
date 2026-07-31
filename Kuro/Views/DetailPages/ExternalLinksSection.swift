@@ -30,10 +30,10 @@ struct ExternalLinksSection: View {
 
                 HStack(spacing: 12) {
                     if let url = anilistURL {
-                        ExternalLinkButton(title: "AniList", url: url)
+                        ExternalLinkButton(title: "AniList", url: url, mediaType: mediaType, mediaId: anilistId)
                     }
                     if let url = malURL {
-                        ExternalLinkButton(title: "MyAnimeList", url: url)
+                        ExternalLinkButton(title: "MyAnimeList", url: url, mediaType: mediaType, mediaId: anilistId)
                     }
                 }
             }
@@ -44,6 +44,9 @@ struct ExternalLinksSection: View {
 private struct ExternalLinkButton: View {
     let title: String
     let url: URL
+    let mediaType: String
+    let mediaId: Int
+    @Environment(SupabaseService.self) private var supabaseService
 
     var body: some View {
         Link(destination: url) {
@@ -67,5 +70,13 @@ private struct ExternalLinkButton: View {
             )
         }
         .accessibilityLabel("Reference link: \(title)")
+        .simultaneousGesture(TapGesture().onEnded {
+            supabaseService.recordOutboundLink(
+                mediaType: mediaType.uppercased(),
+                mediaId: mediaId,
+                linkKind: "external_reference",
+                provider: title
+            )
+        })
     }
 }

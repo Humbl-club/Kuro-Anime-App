@@ -705,10 +705,15 @@ struct JournalActivityContent: View {
     }
 
     private var emptyState: some View {
-        ClubDetailEmptyStateCard(
-            icon: "book",
+        // Duo clubs: the bundle withholds member_statuses below 3 members (k>=3 rule),
+        // so say so honestly instead of implying activity is merely missing.
+        let isDuo = bundle.member_count == 2
+        return ClubDetailEmptyStateCard(
+            icon: isDuo ? "person.2" : "book",
             title: "No activity yet",
-            message: "Activity appears as members update their progress.",
+            message: isDuo
+                ? "Activity unlocks at 3 members — invite one more friend."
+                : "Activity appears as members update their progress.",
             actionTitle: nil,
             action: nil
         )

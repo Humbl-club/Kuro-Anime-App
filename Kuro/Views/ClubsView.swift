@@ -8,13 +8,20 @@ import PostgREST
 struct ClubsView: View {
     @Environment(SupabaseService.self) private var supabaseService
 
+    @Binding var pendingJoinCode: String?
+
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
+    @State private var joinPrefillCode = ""
     @State private var selectedClubId: String? = nil
     @State private var didInitialLoad = false
     @State private var isInitialLoading = false
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
+
+    init(pendingJoinCode: Binding<String?> = .constant(nil)) {
+        _pendingJoinCode = pendingJoinCode
+    }
 
     var body: some View {
         ZStack {
@@ -63,6 +70,8 @@ struct ClubsView: View {
             isInitialLoading = false
             supabaseService.clearClubNotificationBadge()
         }
+        .onAppear { consumePendingJoinCode() }
+        .onChange(of: pendingJoinCode) { _, _ in consumePendingJoinCode() }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             Task {
                 await supabaseService.fetchMyClubs()
@@ -75,8 +84,8 @@ struct ClubsView: View {
             }
             .environment(supabaseService)
         }
-        .sheet(isPresented: $showJoinSheet) {
-            JoinClubSheet { response in
+        .sheet(isPresented: $showJoinSheet, onDismiss: { joinPrefillCode = "" }) {
+            JoinClubSheet(initialCode: joinPrefillCode) { response in
                 showToast(.success, title: "Joined club", subtitle: response.club_name)
             }
             .environment(supabaseService)
@@ -111,6 +120,17 @@ struct ClubsView: View {
                 showJoinSheet = true
             }
         )
+    }
+
+    /// Deep-link entry (kuro://join/<code>): open the join sheet prefilled, then clear the stash.
+    private func consumePendingJoinCode() {
+        guard let code = pendingJoinCode else { return }
+        pendingJoinCode = nil
+        joinPrefillCode = code
+        showJoinSheet = true
+        #if DEBUG
+        print("[Clubs] Opened join sheet from deep link (code prefilled)")
+        #endif
     }
 
     // MARK: - Club List
@@ -731,11 +751,16 @@ private struct JoinClubSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(SupabaseService.self) private var supabaseService
 
-    @State private var inviteCode = ""
+    @State private var inviteCode: String
     @State private var isSubmitting = false
     @State private var errorText: String? = nil
 
     let onJoined: (SupabaseService.JoinClubResponse) -> Void
+
+    init(initialCode: String = "", onJoined: @escaping (SupabaseService.JoinClubResponse) -> Void) {
+        _inviteCode = State(initialValue: initialCode)
+        self.onJoined = onJoined
+    }
 
     var body: some View {
         NavigationStack {

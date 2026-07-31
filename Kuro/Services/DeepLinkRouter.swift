@@ -9,6 +9,7 @@ enum DeepLink: Equatable {
     case anime(id: Int)
     case manga(id: Int)
     case club(id: String)
+    case joinClub(code: String)
     case collection
     case discover
     case concierge(prompt: String?)
@@ -20,6 +21,7 @@ enum DeepLink: Equatable {
     /// - `kuro://anime/12345`
     /// - `kuro://manga/67890`
     /// - `kuro://club/uuid-string`
+    /// - `kuro://join/AB12CD34`
     /// - `kuro://collection`
     /// - `kuro://discover`
     /// - `kuro://concierge`
@@ -46,6 +48,12 @@ enum DeepLink: Equatable {
         case "club":
             guard let first = pathComponents.first, !first.isEmpty else { return nil }
             return .club(id: first)
+        case "join":
+            // Invite codes are 6-12 alphanumeric characters, stored uppercased.
+            guard let first = pathComponents.first else { return nil }
+            let code = first.uppercased()
+            guard code.range(of: "^[A-Z0-9]{6,12}$", options: .regularExpression) != nil else { return nil }
+            return .joinClub(code: code)
         case "collection":
             return .collection
         case "discover":

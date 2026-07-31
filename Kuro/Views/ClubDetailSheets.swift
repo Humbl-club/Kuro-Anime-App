@@ -448,7 +448,7 @@ struct ClubSettingsSheet: View {
                             }
 
                             ShareLink(
-                                item: "Join my club \"\(bundle.club.name)\" on Kuro! Enter invite code: \(code)",
+                                item: "Join my club \"\(bundle.club.name)\" in Kuro: kuro://join/\(code) — or enter code \(code) in the app.",
                                 subject: Text("Join \(bundle.club.name) on Kuro"),
                                 message: Text("Use this invite code to join: \(code)")
                             ) {

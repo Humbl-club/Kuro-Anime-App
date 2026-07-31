@@ -1542,6 +1542,7 @@ struct ActionButtons: View {
             ) { link in
                 if let url = validatedURL(from: link.url) {
                     KuroAccessibility.impactHaptic(.light)
+                    supabaseService.recordOutboundLink(mediaType: "ANIME", mediaId: anime.id, linkKind: "provider_sheet", provider: link.title)
                     openURL(url)
                 } else {
                     onToast(.init(kind: .error, title: "Couldn’t open link", subtitle: "Try a different provider.", actionTitle: nil, onAction: nil))
@@ -1607,6 +1608,7 @@ struct ActionButtons: View {
         if allLinks.count > 1 {
             showProviders = true
         } else {
+            supabaseService.recordOutboundLink(mediaType: "ANIME", mediaId: anime.id, linkKind: "watch", provider: link.title)
             openURL(linkURL)
         }
     }

@@ -419,6 +419,16 @@ struct EditorialDiscoverView: View {
             }
         }
 
+        // Personalized NEW TO YOU (flag-gated): swap the rail's data source.
+        // Any error or empty result quietly keeps the bundle rail.
+        if FeatureFlags.shared.personalizedNewToYouV1Enabled {
+            if let personalized = await supabaseService.fetchPersonalizedNewToYou(limit: 20, mediaType: "ANIME"),
+               !personalized.isEmpty {
+                let mapped = personalized.map { $0.toAnimeCard() }
+                await MainActor.run { vm.newToYou = mapped }
+            }
+        }
+
         KuroPerf.end(perf, message: gotAnyNew ? "ok" : "no new data")
 
         // Prefetch friend tracking counts for card indicators
@@ -1174,7 +1184,7 @@ struct DiscoverFullSectionHeader: View {
                         .foregroundColor(.kuroTextTertiary)
 
                     Text(title)
-                        .font(.system(size: 20, weight: .semibold, design: .serif))
+                        .font(.kuroTitle(weight: .semibold))
                         .tracking(0.4)
                         .foregroundColor(.black)
                         .lineLimit(2)

@@ -587,3 +587,34 @@ These items were evaluated and intentionally deferred:
 ## Personalization execution contract (2026-03-29) -- ADDED
 
 A new strict planning surface now lives at `/Applications/Kuro/docs/personalization_execution_contract.md`. This is the execution contract for future personalization work, not shipped feature code. It locks v1 to durable list-state signals, keeps Search/Browse non-personalized in v1, makes `New to You` the first personalized surface, and defines glossary terms, ranking constraints, sprint-specific gates, rollback policy, ticket-style execution backlog items, and LLM-proof `Done only if` checklists before any implementation begins.
+
+## Personalization Sprint 01 (2026-07-30) -- SHIPPED (backend capture)
+
+- Migration `20260730160000_taste_signal_events_v1.sql` applied on linked project.
+- Captures durable signals from `anime_user_lists` / `manga_user_lists` into `taste_signal_events`; optional `taste_profile_recompute_queue`.
+- Rating thresholds use live DB **1–10** scale (`high>=8`, `low<=4`).
+- Import-origin via `taste_import_context` + `concierge-apply` hooks (no list column; SET LOCAL not viable across PostgREST upserts).
+- Next: Sprint 02 profile computation. Not yet: Discover `New to You` personalization (Sprint 03).
+
+## KIMI K3 Agent Swarm overnight epic (2026-07-31) -- EXECUTED / SHIPPED
+
+- Spec: `docs/superpowers/specs/2026-07-31-kimi-k3-agent-swarm-overnight-epic.md` (creativity-first rewrite).
+- Phase 0 mandatory first: full-system + design check, creative ideation deck (≥3 concepts per problem space), Red Team, ADRs — then implement winners.
+- Problem spaces: taste learning/representation, lists/IA, left-page destiny, CDN/images, clubs, ad-free monetization, design unity.
+- Human priors (swipe, CDN, clubs, money) are hunches, not the prescribed solution.
+- Frozen: Auth light redesign UI in progress.
+- Status: **executed overnight 2026-07-31; shipped to production** (all 6 migrations applied, 2 edge functions redeployed, iOS build + KuroTests green). See the next section for what landed.
+
+## K3 overnight ship (2026-07-31) -- SHIPPED
+
+Phase 0 artifacts: `docs/superpowers/specs/2026-07-31-phase0-full-system-check.md`, `2026-07-31-creative-ideation-deck.md`, and 6 ADRs (taste learning/representation, leftmost surface + concierge archive, image CDN strategy, clubs overnight posture, monetization posture, design direction).
+
+- **Taste Deck v1 (Sprint 02 delivered)**: `fetch_taste_deck_batch` / `record_taste_deck_signal` (love +0.55, known +0.25, skip −0.45; 300/day; latest action wins; retract) / `fetch_my_taste_profile`; `recompute_user_taste_profile` (events × tag ranks + genres, import ×0.25, confidence tiers 0.05–0.20, title cap 8% / franchise cap 15%, avoidance floors) + 15-min pure-SQL drain cron. iOS: `TasteDeckView.swift` at pager index 0 behind `taste_deck_v1` (100%). Migration pair `20260731010000`/`20260731011000`.
+- **Personalized New to You (Sprint 03 delivered, staged)**: `fetch_personalized_new_to_you` — editorial_prior×0.8 + fit×confidence (editorial stays dominant), avoided-tag penalty, 7-day impression rotation. Wired in `EditorialDiscoverView` behind `personalized_new_to_you_v1` (0%). Migration `20260731012000`.
+- **Concierge archive**: out of the pager (index 0 is Taste now); entry via Profile row + `kuro://concierge` sheet (prompt preserved) + `--kuro-start=concierge`. Backend untouched.
+- **Image convergence**: remote-only mirror selection, anti-unmirror triggers on 4 tables, `priority_at` queue + `enqueue_image_mirror` (60/day), 50-row priority drain per run, visibility-ordered char/staff candidates, coverage view. Baseline: anime 2.8%, manga 1.4%, characters 0.2%, staff 0.5%. Migration `20260731020000`.
+- **Clubs trust pack**: `toggle_club_reaction` allowlist fixed (was API-dead); friend-activity RPCs enforce sharing levels (privacy hole closed); flags re-seeded (reactions/list-enriched 100%, realtime/pace/notifications 0% dark). iOS: `kuro://join/<code>` share links + prefilled join sheet, never-member copy fix, duo-club honesty copy. Migration `20260731040000`.
+- **Monetization ledger**: `outbound_link_events` + `record_outbound_link` (120/hr) + 90-day purge cron; iOS instrumentation on watch/read/provider-sheet/external-reference taps. `affiliate_links_v1` seeded OFF (compliance review first); no ads ever. Migration `20260731030000`.
+- **Edge functions**: `mirror-images` (remote-only, visibility ordering, priority drain) and `concierge-import-anilist` (getUser 401 gate) redeployed.
+- **Design law (ADR)**: one hero grammar (club-hero grain recipe), `KuroAnimation` tokens only, one placeholder spec for new UI.
+- Open follow-ups: define ramp criteria for `personalized_new_to_you_v1` and the three dark clubs flags; compliance review before `affiliate_links_v1`; watch `deck_known` (+0.25) for false-positive profile drift.

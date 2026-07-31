@@ -76,6 +76,9 @@ serve(async (req) => {
 
     const results: Record<string, number> = {};
 
+    // Priority drain first: rows flagged by enqueue_image_mirror (mirror-on-view).
+    results['priority'] = await drainPriorityQueue();
+
     if (mediaTypes.includes('ANIME')) {
       results['anime'] = await mirrorAnime(supabase, bucket, limit, offset, overwrite);
     }
@@ -106,11 +109,109 @@ serve(async (req) => {
     }
   }
 
+  async function drainPriorityQueue(): Promise<number> {
+    const { data: pending, error } = await supabase
+      .from('image_mirror_state')
+      .select('media_type, media_id, asset_key')
+      .not('priority_at', 'is', null)
+      .order('priority_at', { ascending: true })
+      .limit(50);
+    if (error) {
+      console.error('priority drain select error:', error);
+      return 0;
+    }
+    if (!pending || pending.length === 0) return 0;
+
+    // Resolve live rows for the pending media ids (per type).
+    const idsByType: Record<string, number[]> = {};
+    for (const row of pending) {
+      (idsByType[row.media_type] ??= []).push(row.media_id);
+    }
+    const liveByKey: Record<string, any> = {};
+    for (const mediaType of Object.keys(idsByType) as MediaType[]) {
+      const query = (mediaType === 'ANIME' || mediaType === 'MANGA')
+        ? supabase.from(tableFor(mediaType)).select('id, cover_image_large, cover_image_medium, banner_image')
+        : supabase.from(tableFor(mediaType)).select('id, image_large');
+      const { data, error: lerr } = await query.in('id', idsByType[mediaType]);
+      if (lerr) {
+        console.error(`priority drain live fetch error (${mediaType}):`, lerr);
+        continue;
+      }
+      for (const row of (data ?? [])) liveByKey[`${mediaType}:${row.id}`] = row;
+    }
+
+    let mirroredCount = 0;
+    const updatesByKey: Record<string, any> = {};
+    for (const row of pending) {
+      if (shouldStop()) break;
+      const mediaType = row.media_type as MediaType;
+      const live = liveByKey[`${mediaType}:${row.media_id}`];
+      const sourceUrl = live ? (live[row.asset_key] ?? null) : null;
+      const updates = updatesByKey[`${mediaType}:${row.media_id}`] ??= {};
+      // Permanent = nothing actionable (missing source / already mirrored);
+      // transient fetch/upload failures keep priority_at and retry next run.
+      const permanent = !sourceUrl || !isRemoteAndNotMirrored(sourceUrl);
+      const mirrored = await mirrorAsset(
+        mediaType,
+        row.media_id,
+        row.asset_key,
+        sourceUrl,
+        priorityBasePath(mediaType, row.media_id, row.asset_key),
+        (url) => { updates[row.asset_key] = url; },
+        overwrite,
+      );
+      if (mirrored) mirroredCount++;
+      if (mirrored || permanent) {
+        await clearPriority(mediaType, row.media_id, row.asset_key);
+      }
+    }
+
+    // Apply accumulated live-row updates.
+    for (const key of Object.keys(updatesByKey)) {
+      const updates = updatesByKey[key];
+      if (Object.keys(updates).length === 0) continue;
+      const [mediaType, idStr] = key.split(':');
+      const { error: uerr } = await supabase.from(tableFor(mediaType as MediaType)).update(updates).eq('id', Number(idStr));
+      if (uerr) console.error('priority drain update error:', uerr);
+    }
+    return mirroredCount;
+  }
+
+  function tableFor(mediaType: MediaType): string {
+    switch (mediaType) {
+      case 'ANIME': return 'anime';
+      case 'MANGA': return 'manga';
+      case 'CHARACTER': return 'characters';
+      case 'STAFF': return 'staff';
+    }
+  }
+
+  function priorityBasePath(mediaType: MediaType, mediaId: number, assetKey: string): string {
+    switch (assetKey) {
+      case 'cover_image_large': return `${tableFor(mediaType)}/${mediaId}/cover_large`;
+      case 'cover_image_medium': return `${tableFor(mediaType)}/${mediaId}/cover_medium`;
+      case 'banner_image': return `${tableFor(mediaType)}/${mediaId}/banner`;
+      default: return `${tableFor(mediaType)}/${mediaId}`;
+    }
+  }
+
+  async function clearPriority(mediaType: MediaType, mediaId: number, assetKey: string): Promise<void> {
+    const { error } = await supabase
+      .from('image_mirror_state')
+      .update({ priority_at: null, updated_at: new Date().toISOString() })
+      .eq('media_type', mediaType)
+      .eq('media_id', mediaId)
+      .eq('asset_key', assetKey);
+    if (error) console.error('priority_at clear error:', error);
+  }
+
   async function mirrorAnime(supabase: any, bucket: string, limit: number, offset: number, overwrite: boolean): Promise<number> {
     const { data, error } = await supabase
       .from('anime')
       // In this schema, `id` is the AniList id (no separate `anilist_id` column).
       .select('id, cover_image_large, cover_image_medium, banner_image')
+      // Remote-only: rows already on our Storage CDN are out of the window.
+      .not('cover_image_large', 'like', '%/storage/v1/%')
       .order('popularity', { ascending: false })
       .range(offset, offset + limit - 1);
     if (error) throw error;
@@ -145,6 +246,8 @@ serve(async (req) => {
       .from('manga')
       // In this schema, `id` is the AniList id (no separate `anilist_id` column).
       .select('id, cover_image_large, cover_image_medium, banner_image')
+      // Remote-only: rows already on our Storage CDN are out of the window.
+      .not('cover_image_large', 'like', '%/storage/v1/%')
       .order('popularity', { ascending: false })
       .range(offset, offset + limit - 1);
     if (error) throw error;
@@ -173,10 +276,11 @@ serve(async (req) => {
 
   async function mirrorCharacters(supabase: any, bucket: string, limit: number, offset: number, overwrite: boolean): Promise<number> {
     const { data, error } = await supabase
-      .from('characters')
-      // In this schema, `id` is the AniList id (no separate `anilist_id` column).
+      .from('image_mirror_character_candidates')
+      // Visibility-ordered (catalog join count) + remote-only, via the service_role view.
       .select('id, image_large')
-      .order('id', { ascending: true })
+      .not('image_large', 'like', '%/storage/v1/%')
+      .order('visibility_count', { ascending: false })
       .range(offset, offset + limit - 1);
     if (error) throw error;
     let updated = 0;
@@ -197,10 +301,11 @@ serve(async (req) => {
 
   async function mirrorStaff(supabase: any, bucket: string, limit: number, offset: number, overwrite: boolean): Promise<number> {
     const { data, error } = await supabase
-      .from('staff')
-      // In this schema, `id` is the AniList id (no separate `anilist_id` column).
+      .from('image_mirror_staff_candidates')
+      // Visibility-ordered (catalog join count) + remote-only, via the service_role view.
       .select('id, image_large')
-      .order('id', { ascending: true })
+      .not('image_large', 'like', '%/storage/v1/%')
+      .order('visibility_count', { ascending: false })
       .range(offset, offset + limit - 1);
     if (error) throw error;
     let updated = 0;

@@ -771,3 +771,320 @@ struct DetailTruthfulnessTests {
         #expect(preferredPrimaryProviderItem(from: verified + catalog, preferredSite: "Crunchyroll")?.isVerified == true)
     }
 }
+
+
+// MARK: - Taste Deck Tests
+
+@Suite("Taste Deck")
+struct TasteDeckTests {
+
+    @Test("Decodes a full deck card from snake_case JSON")
+    func testDeckCardDecoding() throws {
+        let json = """
+        {
+          "media_type": "ANIME",
+          "media_id": 123,
+          "title": "Frieren: Beyond Journey's End",
+          "cover_image_large": "https://example.com/frieren-large.jpg",
+          "cover_image_medium": "https://example.com/frieren-medium.jpg",
+          "cover_image_color": "#e4d5c8",
+          "genres": ["Adventure", "Drama", "Fantasy"],
+          "average_score": 91,
+          "format": "TV",
+          "year": 2023,
+          "synopsis": "An elf mage reflects on a long journey.",
+          "episodes": 28,
+          "chapters": null,
+          "volumes": null,
+          "seasons_count": 2,
+          "has_dub": true,
+          "has_sub": true
+        }
+        """
+        let data = try #require(json.data(using: .utf8))
+        let card = try JSONDecoder().decode(TasteDeckCard.self, from: data)
+        #expect(card.mediaType == "ANIME")
+        #expect(card.mediaId == 123)
+        #expect(card.title == "Frieren: Beyond Journey's End")
+        #expect(card.coverImageLarge == "https://example.com/frieren-large.jpg")
+        #expect(card.coverImageColor == "#e4d5c8")
+        #expect(card.genres == ["Adventure", "Drama", "Fantasy"])
+        #expect(card.averageScore == 91)
+        #expect(card.format == "TV")
+        #expect(card.year == 2023)
+        #expect(card.synopsis == "An elf mage reflects on a long journey.")
+        #expect(card.episodes == 28)
+        #expect(card.chapters == nil)
+        #expect(card.volumes == nil)
+        #expect(card.seasonsCount == 2)
+        #expect(card.hasDub == true)
+        #expect(card.hasSub == true)
+    }
+
+    @Test("Decodes v1.1 meta fields on a manga card")
+    func testDeckCardMetaDecodingManga() throws {
+        let json = """
+        {
+          "media_type": "MANGA", "media_id": 42, "title": "Berserk",
+          "format": "MANGA", "chapters": 364, "volumes": 41,
+          "has_dub": null, "has_sub": null
+        }
+        """
+        let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
+        #expect(card.episodes == nil)
+        #expect(card.chapters == 364)
+        #expect(card.volumes == 41)
+        #expect(card.seasonsCount == nil)
+        #expect(card.hasDub == nil)
+        #expect(card.hasSub == nil)
+    }
+
+    @Test("Meta chips: TV anime with dub")
+    func testMetaChipsAnimeTVDub() throws {
+        let json = """
+        {
+          "media_type": "ANIME", "media_id": 1, "title": "X",
+          "format": "TV", "episodes": 24, "seasons_count": 2, "has_dub": true, "has_sub": true
+        }
+        """
+        let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
+        #expect(card.metaChips == ["24 EP", "2 SEASONS", "DUB"])
+    }
+
+    @Test("Meta chips: singular forms stay singular")
+    func testMetaChipsSingular() throws {
+        let json = """
+        {
+          "media_type": "ANIME", "media_id": 2, "title": "X",
+          "format": "TV", "episodes": 1, "seasons_count": 1
+        }
+        """
+        let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
+        #expect(card.metaChips == ["1 EP", "1 SEASON"])
+    }
+
+    @Test("Meta chips: sub only when no dub is known")
+    func testMetaChipsSubOnlyWhenNoDub() throws {
+        let json = """
+        {
+          "media_type": "ANIME", "media_id": 3, "title": "X",
+          "format": "TV", "episodes": 12, "seasons_count": 1, "has_dub": false, "has_sub": true
+        }
+        """
+        let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
+        #expect(card.metaChips == ["12 EP", "1 SEASON", "SUB"])
+    }
+
+    @Test("Meta chips: no language chip when availability is unknown or negative")
+    func testMetaChipsLanguageUnknown() throws {
+        let unknownJSON = """
+        {
+          "media_type": "ANIME", "media_id": 4, "title": "X",
+          "format": "TV", "episodes": 12, "seasons_count": 1, "has_dub": null, "has_sub": null
+        }
+        """
+        let negativeJSON = """
+        {
+          "media_type": "ANIME", "media_id": 5, "title": "Y",
+          "format": "TV", "episodes": 12, "seasons_count": 1, "has_dub": false, "has_sub": false
+        }
+        """
+        let unknown = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(unknownJSON.data(using: .utf8)))
+        let negative = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(negativeJSON.data(using: .utf8)))
+        #expect(unknown.metaChips == ["12 EP", "1 SEASON"])
+        #expect(negative.metaChips == ["12 EP", "1 SEASON"])
+    }
+
+    @Test("Meta chips: movie reads as FILM plus language")
+    func testMetaChipsMovie() throws {
+        let json = """
+        {
+          "media_type": "ANIME", "media_id": 6, "title": "X",
+          "format": "MOVIE", "episodes": 1, "has_dub": true
+        }
+        """
+        let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
+        #expect(card.metaChips == ["FILM", "DUB"])
+    }
+
+    @Test("Meta chips: non-TV anime formats show episodes only")
+    func testMetaChipsOtherAnimeFormat() throws {
+        let json = """
+        { "media_type": "ANIME", "media_id": 7, "title": "X", "format": "OVA", "episodes": 6 }
+        """
+        let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
+        #expect(card.metaChips == ["6 EP"])
+    }
+
+    @Test("Meta chips: manga prefers volumes, falls back to chapters")
+    func testMetaChipsManga() throws {
+        let volumesJSON = """
+        { "media_type": "MANGA", "media_id": 8, "title": "X", "format": "MANGA", "volumes": 14, "chapters": 120 }
+        """
+        let chaptersJSON = """
+        { "media_type": "MANGA", "media_id": 9, "title": "Y", "format": "MANGA", "chapters": 1 }
+        """
+        let withVolumes = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(volumesJSON.data(using: .utf8)))
+        let chaptersOnly = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(chaptersJSON.data(using: .utf8)))
+        #expect(withVolumes.metaChips == ["VOL 14"])
+        #expect(chaptersOnly.metaChips == ["1 CH"])
+    }
+
+    @Test("Meta chips: empty when nothing is known")
+    func testMetaChipsEmpty() throws {
+        let json = """
+        { "media_type": "ANIME", "media_id": 10, "title": "X", "format": "TV" }
+        """
+        let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
+        #expect(card.metaChips.isEmpty)
+    }
+
+    @Test("Stable key follows the MediaDisplayable format")
+    func testStableKeyFormat() throws {
+        let animeJSON = """
+        { "media_type": "ANIME", "media_id": 123, "title": "Frieren" }
+        """
+        let mangaJSON = """
+        { "media_type": "MANGA", "media_id": 42, "title": "Berserk" }
+        """
+        let anime = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(animeJSON.data(using: .utf8)))
+        let manga = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(mangaJSON.data(using: .utf8)))
+        #expect(anime.stableKey == "anime-123")
+        #expect(manga.stableKey == "manga-42")
+        #expect(anime.id == "anime-123")
+        // Same numeric id across media types must stay distinct.
+        let anime42 = try JSONDecoder().decode(
+            TasteDeckCard.self,
+            from: try #require(#"{ "media_type": "ANIME", "media_id": 42, "title": "X" }"#.data(using: .utf8))
+        )
+        #expect(anime42.stableKey != manga.stableKey)
+    }
+
+    @Test("Optional card fields tolerate absence")
+    func testDeckCardMissingOptionals() throws {
+        let json = """
+        { "media_type": "MANGA", "media_id": 7, "title": "Solo Leveling" }
+        """
+        let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
+        #expect(card.coverImageLarge == nil)
+        #expect(card.coverImageMedium == nil)
+        #expect(card.genres == nil)
+        #expect(card.averageScore == nil)
+        #expect(card.year == nil)
+        #expect(card.synopsis == nil)
+        #expect(card.imageURL == nil)
+        #expect(card.captionLine.isEmpty)
+    }
+
+    @Test("Caption line joins genres, year and format quietly")
+    func testCaptionLine() throws {
+        let json = """
+        {
+          "media_type": "ANIME", "media_id": 1, "title": "Cowboy Bebop",
+          "genres": ["Action", "Sci-Fi", "Drama"], "year": 1998, "format": "TV"
+        }
+        """
+        let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
+        #expect(card.captionLine == "Action · Sci-Fi · 1998 · TV")
+    }
+
+    @Test("Decodes a full taste profile vector")
+    func testTasteProfileVectorDecoding() throws {
+        let json = """
+        {
+          "genres": { "Drama": 0.82, "Sci-Fi": 0.41 },
+          "tags": { "Found Family": 0.3 },
+          "avoided_tags": ["Ecchi"],
+          "confidence": 0.2,
+          "event_count": 34
+        }
+        """
+        let data = try #require(json.data(using: .utf8))
+        let vector = try JSONDecoder().decode(TasteProfileVector.self, from: data)
+        #expect(vector.genres["Drama"] == 0.82)
+        #expect(vector.genres["Sci-Fi"] == 0.41)
+        #expect(vector.tags["Found Family"] == 0.3)
+        #expect(vector.avoidedTags == ["Ecchi"])
+        #expect(vector.confidence == 0.2)
+        #expect(vector.eventCount == 34)
+    }
+
+    @Test("Profile vector tolerates missing fields with quiet defaults")
+    func testTasteProfileVectorMissingFields() throws {
+        let json = """
+        { "genres": { "Drama": 0.5 } }
+        """
+        let data = try #require(json.data(using: .utf8))
+        let vector = try JSONDecoder().decode(TasteProfileVector.self, from: data)
+        #expect(vector.genres["Drama"] == 0.5)
+        #expect(vector.tags.isEmpty)
+        #expect(vector.avoidedTags.isEmpty)
+        #expect(vector.confidence == 0)
+        #expect(vector.eventCount == 0)
+        #expect(vector.computedAt == nil)
+
+        let empty = try JSONDecoder().decode(TasteProfileVector.self, from: try #require("{}".data(using: .utf8)))
+        #expect(empty.genres.isEmpty)
+        #expect(empty.confidence == 0)
+    }
+
+    @Test("Confidence maps to words, never raw numbers")
+    func testConfidenceWord() {
+        let emerging = TasteProfile(vector: TasteProfileVector(confidence: 0.1, eventCount: 6), updatedAt: nil)
+        let confident = TasteProfile(vector: TasteProfileVector(confidence: 0.15, eventCount: 20), updatedAt: nil)
+        #expect(emerging.confidenceWord == "emerging")
+        #expect(confident.confidenceWord == "confident")
+    }
+
+    @Test("Profile sorts leanings by weight")
+    func testProfileTopGenresOrdering() {
+        let vector = TasteProfileVector(genres: ["Action": 0.3, "Drama": 0.9, "Sci-Fi": 0.6])
+        let profile = TasteProfile(vector: vector, updatedAt: nil)
+        #expect(profile.topGenres.map(\.name) == ["Drama", "Sci-Fi", "Action"])
+    }
+}
+
+
+// MARK: - Deep Link Router Tests
+
+@Suite("Deep Link Router")
+struct DeepLinkRouterTests {
+
+    @Test("Parses kuro://join with a valid code")
+    func testJoinValidCode() throws {
+        let url = try #require(URL(string: "kuro://join/AB12CD34"))
+        #expect(DeepLink.from(url: url) == .joinClub(code: "AB12CD34"))
+    }
+
+    @Test("Lowercased join code is uppercased")
+    func testJoinLowercasedCode() throws {
+        let url = try #require(URL(string: "kuro://join/ab12cd34"))
+        #expect(DeepLink.from(url: url) == .joinClub(code: "AB12CD34"))
+    }
+
+    @Test("Six-character codes are accepted")
+    func testJoinShortestValidCode() throws {
+        let url = try #require(URL(string: "kuro://join/AB12CD"))
+        #expect(DeepLink.from(url: url) == .joinClub(code: "AB12CD"))
+    }
+
+    @Test("Garbage join codes are rejected")
+    func testJoinGarbageRejected() throws {
+        // Too short (< 6)
+        #expect(DeepLink.from(url: try #require(URL(string: "kuro://join/AB12C"))) == nil)
+        // Too long (> 12)
+        #expect(DeepLink.from(url: try #require(URL(string: "kuro://join/AB12CD34EF567"))) == nil)
+        // Non-alphanumeric
+        #expect(DeepLink.from(url: try #require(URL(string: "kuro://join/AB-12CD3"))) == nil)
+        #expect(DeepLink.from(url: try #require(URL(string: "kuro://join/AB%2012CD"))) == nil)
+        // Missing code
+        #expect(DeepLink.from(url: try #require(URL(string: "kuro://join/"))) == nil)
+        #expect(DeepLink.from(url: try #require(URL(string: "kuro://join"))) == nil)
+    }
+
+    @Test("Existing club link still parses alongside join")
+    func testClubLinkUnaffected() throws {
+        let url = try #require(URL(string: "kuro://club/9f2c1a44-1234-4abc-8def-0123456789ab"))
+        #expect(DeepLink.from(url: url) == .club(id: "9f2c1a44-1234-4abc-8def-0123456789ab"))
+    }
+}

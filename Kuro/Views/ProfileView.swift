@@ -15,6 +15,7 @@ struct ProfileView: View {
     @State private var isDeleting: Bool = false
     @State private var showServicePicker: Bool = false
     @State private var showAniListImportSheet: Bool = false
+    @State private var showConciergeSheet: Bool = false
     @State private var importResult: ProfileImportResult? = nil
     @State private var streamingObservability: SupabaseService.StreamingObservabilitySnapshot? = nil
     @State private var isRefreshingStreamingObservability: Bool = false
@@ -131,6 +132,18 @@ struct ProfileView: View {
                 isGermanLocale: isGermanLocale
             ) { response in
                 await handleAniListImportCompleted(response)
+            }
+        }
+        .sheet(isPresented: $showConciergeSheet) {
+            NavigationStack {
+                ConciergeView(assistantEnabled: true)
+                    .environment(supabaseService)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showConciergeSheet = false }
+                                .font(.kuroBody(weight: .light))
+                        }
+                    }
             }
         }
     }
@@ -365,6 +378,16 @@ struct ProfileView: View {
                     : "Preview and import your anime or manga lists"
             ) {
                 showAniListImportSheet = true
+            }
+
+            ProfileActionRow(
+                icon: "bubble.left.and.bubble.right",
+                title: "Concierge",
+                subtitle: isGermanLocale
+                    ? "Beschreibe eine Stimmung oder füge eine Liste ein"
+                    : "Describe a mood or paste a list"
+            ) {
+                showConciergeSheet = true
             }
 
             ProfileActionRow(

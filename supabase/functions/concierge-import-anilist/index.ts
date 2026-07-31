@@ -216,6 +216,9 @@ serve(async (req) => {
       global: { headers: authHeader ? { Authorization: authHeader } : {} },
     });
 
+    const { data: userData, error: userErr } = await client.auth.getUser();
+    if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
+
     const ip = clientIp(req) ?? "";
     const { data: rl } = await client.rpc("check_concierge_rate_limit", { p_kind: "anilist_import", p_ip: ip });
     if (rl && rl.allowed === false) {

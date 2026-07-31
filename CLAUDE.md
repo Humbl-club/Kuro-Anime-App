@@ -241,7 +241,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 
 ## FILE MAP (exact, current as of 2026-03-24)
 
-### iOS app — 88 Swift files in `Kuro/`
+### iOS app — 91 Swift files in `Kuro/`
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
@@ -316,7 +316,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `SupabaseModels.swift` — all Supabase data models
 - `DiscoverBundle.swift` — discover bundle response model
 
-### Supabase — 162 migration files in repo, 15 deployed edge functions (as of 2026-03-18)
+### Supabase — 176 migration files in repo, 15 deployed edge functions (as of 2026-07-31)
 
 **Edge functions (15):**
 - `concierge-parse` — deterministic NLP parser, title candidate search

@@ -1,9 +1,18 @@
 # Personalization Execution Contract
 
 **Status:** Active planning contract  
-**Last updated:** 2026-03-29  
+**Last updated:** 2026-07-30  
 **Scope:** Kuro personalization, recommendation reranking, explanation policy, club taste, and continuation intelligence  
 **Primary rule:** Editorial curation stays dominant. Personalization may rerank inside curated bounds but may not replace them.
+
+### Sprint 01 design lock (2026-07-30)
+
+Locked for implementation (backend capture only; no Discover/Search/Browse ranking):
+
+1. **Rating scale:** live DB `anime_user_lists.rating` / `manga_user_lists.rating` are `integer` with `CHECK (rating >= 1 AND rating <= 10)`. Thresholds: `rating_high >= 8`, `rating_low <= 4`. (Stale 10–100 docs are wrong; trust live DB.)
+2. **UUID cast:** list `user_id` stays TEXT; triggers use safe `_taste_parse_user_id` and **never** fail the list write on bad cast.
+3. **Import origin:** no new list column. `concierge-apply` calls `begin_taste_import_context` / `clear_taste_import_context` (short-lived `taste_import_context` row). PostgREST cannot span `SET LOCAL` across separate upsert requests, so the context table is the production substitute for session-local GUC marking.
+4. **Out of scope for Sprint 01:** Discover UI, Search/Browse ranking, profile computation, streaming flag, CDN mirror.
 
 ---
 
@@ -152,10 +161,11 @@ These are the current concrete touchpoints.
 ## 5) Glossary and fixed numeric definitions
 
 ### Rating thresholds
-- `rating_high = >= 80`
-- `rating_low = <= 40`
-- ratings are stored in DB on a 10-100 scale
-- UI 1-10 scale must be converted before applying these thresholds
+- `rating_high = >= 8`
+- `rating_low = <= 4`
+- ratings are stored in DB on a **1–10** scale (`CHECK (rating >= 1 AND rating <= 10)` on list tables)
+- UI may still use stars/display helpers, but taste capture thresholds apply to the **DB integer 1–10** value directly
+- historical docs that claimed a 10–100 DB scale are superseded by live schema
 
 ### Meaningful progress
 - `meaningful_progress_anime = max(3 episodes, 25% of known total episodes)`
@@ -559,6 +569,7 @@ Minimum columns for `taste_signal_events`:
 - `concierge-apply` mutations are captured via trigger path
 - no-op updates do not create spam events
 - import-origin events are marked so import discount can be applied later
+- rating thresholds use live DB 1–10 scale (`>=8` / `<=4`)
 
 ### Failure conditions
 - app-only logging becomes the source of truth
@@ -585,11 +596,17 @@ Minimum columns for `taste_signal_events`:
 - disable trigger path by reverting migration or rolling forward with safe no-op trigger
 
 ### Done only if
-- [ ] Server-side trigger path is the source of truth
-- [ ] Import-origin events are marked
-- [ ] No noisy event spam remains
-- [ ] Transition tests pass
-- [ ] UUID/text user-id handling is safe
+- [x] Server-side trigger path is the source of truth
+- [x] Import-origin events are marked
+- [x] No noisy event spam remains
+- [x] Transition tests pass
+- [x] UUID/text user-id handling is safe
+
+### Shipped surfaces (2026-07-30)
+- Migration: `supabase/migrations/20260730160000_taste_signal_events_v1.sql`
+- Tables: `taste_signal_events`, `taste_profile_recompute_queue`, `taste_import_context`
+- Triggers: `taste_capture_anime_user_lists`, `taste_capture_manga_user_lists`
+- Edge: `concierge-apply` begin/clear import context around list upserts
 
 ---
 
