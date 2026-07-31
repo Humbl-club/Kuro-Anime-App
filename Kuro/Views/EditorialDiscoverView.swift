@@ -93,7 +93,7 @@ struct EditorialDiscoverView: View {
                         await refreshSections()
                     })
                 } else {
-                    VStack(spacing: 24) {
+                    VStack(spacing: KuroDesignSpacing.lg) {
                     // Stale data indicator when offline but showing cached content
                     if !networkMonitor.isConnected && hasAnyContent {
                         Text("SHOWING CACHED DATA")
@@ -129,7 +129,17 @@ struct EditorialDiscoverView: View {
 
                     // MARK: Primary sections (always visible, ordered by user value)
 
-                    if let featured = vm.featured, (selectedMediaType == .all || selectedMediaType == .anime) {
+                    // MARK: The One Thing (daily editorial hero; falls back to legacy FEATURED)
+                    if let feature = vm.dailyFeature,
+                       (selectedMediaType == .all
+                        || (selectedMediaType == .anime && feature.kind == .anime)
+                        || (selectedMediaType == .manga && feature.kind == .manga)) {
+                        DiscoverOneThingCard(feature: feature, width: currentWidth - 40)
+                            .padding(.horizontal, 20)
+                    } else if !vm.dailyFeatureResolved && selectedMediaType != .manga {
+                        DiscoverOneThingSkeleton(width: currentWidth - 40)
+                            .padding(.horizontal, 20)
+                    } else if let featured = vm.featured, (selectedMediaType == .all || selectedMediaType == .anime) {
                         KuroHeroCard(media: featured, width: currentWidth - 40)
                             .padding(.horizontal, 20)
                     }
@@ -140,11 +150,23 @@ struct EditorialDiscoverView: View {
                             subtitle: "Next 24 hours",
                             items: Array(vm.airingToday.prefix(10)),
                             containerWidth: currentWidth,
-                            onSeeAll: { activeRoute = .animeAiringToday }
+                            onSeeAll: { activeRoute = .animeAiringToday },
+                            largeCards: true
                         )
                     }
 
-                    if !vm.newToYou.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
+                    // Because-You replaces NEW TO YOU when the taste rail has
+                    // enough signal (mixed anime+manga feed: ALL filter only).
+                    if !vm.becauseYou.isEmpty && selectedMediaType == .all {
+                        Dense2ColumnSectionFixed(
+                            title: "BECAUSE YOU LOVED",
+                            subtitle: "Similar picks, not in your list",
+                            items: Array(vm.becauseYou.prefix(8)),
+                            screenWidth: currentWidth,
+                            onSeeAll: { activeRoute = .animeBecauseYou },
+                            reason: vm.becauseYouReason
+                        )
+                    } else if !vm.newToYou.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
                         Dense2ColumnSectionFixed(
                             title: "NEW TO YOU",
                             subtitle: "High score, not in your list",
@@ -160,7 +182,8 @@ struct EditorialDiscoverView: View {
                             subtitle: "Gateway picks (high confidence)",
                             items: Array(vm.essentials.prefix(10)),
                             containerWidth: currentWidth,
-                            onSeeAll: { activeRoute = .animeEssentials }
+                            onSeeAll: { activeRoute = .animeEssentials },
+                            largeCards: true
                         )
                     }
 
@@ -181,7 +204,8 @@ struct EditorialDiscoverView: View {
                             items: vm.trending,
                             containerWidth: currentWidth,
                             onSeeAll: { activeRoute = .animeTrending },
-                            showFilters: true
+                            showFilters: true,
+                            largeCards: true
                         )
                     }
 
@@ -191,7 +215,8 @@ struct EditorialDiscoverView: View {
                             subtitle: "Foundational reads",
                             items: Array(vm.essentialsManga.prefix(10)),
                             containerWidth: currentWidth,
-                            onSeeAll: { activeRoute = .mangaEssentials }
+                            onSeeAll: { activeRoute = .mangaEssentials },
+                            largeCards: true
                         )
                     }
 
@@ -242,7 +267,8 @@ struct EditorialDiscoverView: View {
                                 subtitle: "Airing now",
                                 items: Array(vm.currentSeason.prefix(10)),
                                 containerWidth: currentWidth,
-                                onSeeAll: { activeRoute = .animeCurrentSeason }
+                                onSeeAll: { activeRoute = .animeCurrentSeason },
+                                largeCards: true
                             )
                         }
 
@@ -282,7 +308,8 @@ struct EditorialDiscoverView: View {
                                 title: "TRENDING MANGA",
                                 subtitle: "Popular manga",
                                 items: Array(vm.trendingManga.prefix(10)),
-                                containerWidth: currentWidth
+                                containerWidth: currentWidth,
+                                largeCards: true
                             )
                         }
 
@@ -297,7 +324,7 @@ struct EditorialDiscoverView: View {
                     }
                 }
                 .padding(.top, 12)
-                .padding(.bottom, 32)
+                .padding(.bottom, KuroDesignSpacing.xl)
             }
             }
             // A parent `.scrollDisabled(true)` (e.g. on a paging container) can propagate via environment.
@@ -329,6 +356,8 @@ struct EditorialDiscoverView: View {
                 FullSectionView(title: route.title, items: vm.classics)
             case .animeNewToYou:
                 FullSectionView(title: route.title, items: vm.newToYou)
+            case .animeBecauseYou:
+                FullSectionView(title: route.title, items: vm.becauseYou)
             case .animeAiringToday:
                 FullSectionView(title: route.title, items: vm.airingToday)
             case .animeCurrentSeason:
@@ -370,6 +399,7 @@ struct EditorialDiscoverView: View {
 
         // Keep local list state up to date for badges/progress, while fetching the server bundle.
         async let _ = supabaseService.fetchUserLists()
+        async let dailyFeatureResult = supabaseService.fetchDailyFeature()
         let bundle = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
 
         let gotAnyNew = bundle.map { b in
@@ -419,13 +449,44 @@ struct EditorialDiscoverView: View {
             }
         }
 
-        // Personalized NEW TO YOU (flag-gated): swap the rail's data source.
-        // Any error or empty result quietly keeps the bundle rail.
+        // The One Thing: resolve alongside the bundle; nil -> legacy hero fallback.
+        let dailyFeature = await dailyFeatureResult
+        await MainActor.run {
+            vm.dailyFeature = dailyFeature
+            vm.dailyFeatureResolved = true
+        }
+
+        // Discover P1, flag-gated: Because-You replaces NEW TO YOU when the
+        // taste rail clears the evidence floor (>= 4 cards). Otherwise the
+        // existing personalized NTY swap runs, failing that the bundle rail.
         if FeatureFlags.shared.personalizedNewToYouV1Enabled {
-            if let personalized = await supabaseService.fetchPersonalizedNewToYou(limit: 20, mediaType: "ANIME"),
-               !personalized.isEmpty {
-                let mapped = personalized.map { $0.toAnimeCard() }
-                await MainActor.run { vm.newToYou = mapped }
+            var becauseApplied = false
+            if let rail = await supabaseService.fetchBecauseYouRail(limit: 12), rail.count >= 4 {
+                let items = rail.map { $0.toMedia() }
+                let reason = rail.first?.reasonTitle
+                await MainActor.run {
+                    vm.becauseYou = items
+                    vm.becauseYouReason = reason
+                }
+                becauseApplied = true
+            }
+            if !becauseApplied {
+                await MainActor.run {
+                    vm.becauseYou = []
+                    vm.becauseYouReason = nil
+                }
+                // Personalized NEW TO YOU (flag-gated): swap the rail's data source.
+                // Any error or empty result quietly keeps the bundle rail.
+                if let personalized = await supabaseService.fetchPersonalizedNewToYou(limit: 20, mediaType: "ANIME"),
+                   !personalized.isEmpty {
+                    let mapped = personalized.map { $0.toAnimeCard() }
+                    await MainActor.run { vm.newToYou = mapped }
+                }
+            }
+        } else {
+            await MainActor.run {
+                vm.becauseYou = []
+                vm.becauseYouReason = nil
             }
         }
 
@@ -501,6 +562,22 @@ struct EditorialDiscoverView: View {
     }
 }
 
+// MARK: - Section Reason Line (Discover P1)
+// Italic serif line under a section's tracked title when a reason exists
+// (Because-You now; other editorial sections later). ADR typography stance:
+// italic serif for reflective lines.
+struct DiscoverReasonLine: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.kuroCustom(14, weight: .light, design: .serif, relativeTo: .callout))
+            .italic()
+            .foregroundColor(.kuroTextSecondary)
+            .lineLimit(2)
+    }
+}
+
 // MARK: - Compact Horizontal Section
 // Dense horizontal scroll showing many anime
 struct CompactHorizontalSection<Item: MediaDisplayable>: View {
@@ -510,6 +587,10 @@ struct CompactHorizontalSection<Item: MediaDisplayable>: View {
     var containerWidth: CGFloat
     var onSeeAll: (() -> Void)? = nil
     var showFilters: Bool = false
+    /// Italic serif line under the title when the section has a reason (Discover P1).
+    var reason: String? = nil
+    /// Discover-only: ~15-20% larger rail cards (fewer faces, more presence).
+    var largeCards: Bool = false
 
     @State private var selectedFilter: AnimeFilter = .all
 
@@ -534,6 +615,10 @@ struct CompactHorizontalSection<Item: MediaDisplayable>: View {
     }
 
     private var cardWidth: CGFloat {
+        if largeCards {
+            let candidate = floor((containerWidth - 56) / 2.35)
+            return min(170, max(132, candidate))
+        }
         // Scale up horizontal cards on large screens while preserving density.
         let candidate = floor((containerWidth - 56) / 2.8)
         return min(144, max(112, candidate))
@@ -549,6 +634,10 @@ struct CompactHorizontalSection<Item: MediaDisplayable>: View {
                         .tracking(0.5)
                         .foregroundColor(.black)
                         .accessibilityAddTraits(.isHeader)
+
+                    if let reason, !reason.isEmpty {
+                        DiscoverReasonLine(text: reason)
+                    }
 
                     Text(subtitle)
                         .font(.system(size: 11, weight: .regular))
@@ -708,20 +797,8 @@ struct CompactAnimeCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
 
                     if let rating = media.rating, rating > 0 {
-                        HStack(spacing: 2) {
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 8))
-                            Text(String(format: "%.1f", rating))
-                                .font(.system(size: 10, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(
-                            Capsule()
-                                .fill(Color.black.opacity(0.75))
-                        )
-                        .padding(6)
+                        KuroScoreBadge(score: rating)
+                            .padding(6)
                     }
                 }
 
@@ -1072,8 +1149,16 @@ struct CompactHorizontalMangaSection<Item: MediaDisplayable>: View {
     let items: [Item]
     var containerWidth: CGFloat
     var onSeeAll: (() -> Void)? = nil
+    /// Italic serif line under the title when the section has a reason (Discover P1).
+    var reason: String? = nil
+    /// Discover-only: ~15-20% larger rail cards (fewer faces, more presence).
+    var largeCards: Bool = false
 
     private var cardWidth: CGFloat {
+        if largeCards {
+            let candidate = floor((containerWidth - 56) / 2.35)
+            return min(170, max(132, candidate))
+        }
         let candidate = floor((containerWidth - 56) / 2.8)
         return min(144, max(112, candidate))
     }
@@ -1087,6 +1172,10 @@ struct CompactHorizontalMangaSection<Item: MediaDisplayable>: View {
                         .tracking(0.5)
                         .foregroundColor(.black)
                         .accessibilityAddTraits(.isHeader)
+
+                    if let reason, !reason.isEmpty {
+                        DiscoverReasonLine(text: reason)
+                    }
 
                     Text(subtitle)
                         .font(.system(size: 11, weight: .regular))
@@ -1241,6 +1330,8 @@ struct Dense2ColumnSectionFixed<Item: MediaDisplayable>: View {
     let screenWidth: CGFloat
     var onSeeAll: (() -> Void)? = nil
     var showFilters: Bool = false
+    /// Italic serif line under the title when the section has a reason (Discover P1).
+    var reason: String? = nil
 
     @State private var selectedFilter: AnimeFilter = .all
 
@@ -1273,6 +1364,10 @@ struct Dense2ColumnSectionFixed<Item: MediaDisplayable>: View {
                         .tracking(0.5)
                         .foregroundColor(.black)
                         .accessibilityAddTraits(.isHeader)
+
+                    if let reason, !reason.isEmpty {
+                        DiscoverReasonLine(text: reason)
+                    }
 
                     Text(subtitle)
                         .font(.system(size: 11, weight: .regular))
@@ -1351,6 +1446,8 @@ struct Dense2ColumnMangaSectionFixed<Item: MediaDisplayable>: View {
     let items: [Item]
     let screenWidth: CGFloat
     var onSeeAll: (() -> Void)? = nil
+    /// Italic serif line under the title when the section has a reason (Discover P1).
+    var reason: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -1361,6 +1458,10 @@ struct Dense2ColumnMangaSectionFixed<Item: MediaDisplayable>: View {
                         .tracking(0.5)
                         .foregroundColor(.black)
                         .accessibilityAddTraits(.isHeader)
+
+                    if let reason, !reason.isEmpty {
+                        DiscoverReasonLine(text: reason)
+                    }
 
                     Text(subtitle)
                         .font(.system(size: 11, weight: .regular))
