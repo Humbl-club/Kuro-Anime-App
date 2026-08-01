@@ -891,7 +891,16 @@ struct TasteLeaningsSheet: View {
     var latestSignalAt: Date? = nil
 
     @State private var profile: TasteProfile? = nil
+    @State private var realmMeta: [String: RealmMeta] = [:]
+    @State private var realmBarsVisible = false
     @State private var didLoad = false
+
+    /// `seededProfile` skips the network fetch — used by the #Preview below.
+    init(latestSignalAt: Date? = nil, seededProfile: TasteProfile? = nil) {
+        self.latestSignalAt = latestSignalAt
+        _profile = State(initialValue: seededProfile)
+        _didLoad = State(initialValue: seededProfile != nil)
+    }
 
     var body: some View {
         NavigationStack {
@@ -923,7 +932,10 @@ struct TasteLeaningsSheet: View {
             }
         }
         .task {
+            guard !didLoad else { return }
+            async let metaFetch = supabaseService.fetchRealmMeta()
             profile = await supabaseService.fetchMyTasteProfile()
+            realmMeta = Dictionary(uniqueKeysWithValues: await metaFetch.map { ($0.realm, $0) })
             didLoad = true
         }
     }
@@ -931,6 +943,9 @@ struct TasteLeaningsSheet: View {
     @ViewBuilder
     private func leaningsContent(_ profile: TasteProfile) -> some View {
         freshnessNote(profile)
+        if !profile.realms.isEmpty {
+            realmsSection(Array(profile.topRealms.prefix(6)))
+        }
         if !profile.genres.isEmpty {
             weightSection(title: "GENRES", entries: Array(profile.topGenres.prefix(6)))
         }
@@ -1031,6 +1046,56 @@ struct TasteLeaningsSheet: View {
             .foregroundColor(.kuroTextTertiary)
     }
 
+    /// Realms lead the sheet: the Realm Graph's top mood-worlds, each a serif
+    /// name, a quiet family caption, and a monochrome weight bar — no raw numbers.
+    private func realmsSection(_ realms: [TasteRealm]) -> some View {
+        let maxWeight = realms.map(\.weight).max() ?? 1
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            sectionEyebrow("YOUR REALMS")
+            VStack(spacing: 0) {
+                ForEach(Array(realms.enumerated()), id: \.offset) { index, realm in
+                    VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(realmDisplayName(realm))
+                                .font(.kuroTitle(weight: .regular))
+                                .foregroundColor(.kuroBlack80)
+                            Spacer(minLength: KuroDesignSpacing.md)
+                            Text(realm.humanizedFamily)
+                                .font(.kuroCaption(weight: .light))
+                                .foregroundColor(.kuroTextTertiary)
+                        }
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule(style: .continuous)
+                                    .fill(Color.kuroBlack06)
+                                Capsule(style: .continuous)
+                                    .fill(Color.kuroBlack20)
+                                    .frame(width: max(2, geo.size.width * (realmBarsVisible ? realm.weight / max(maxWeight, 0.0001) : 0)))
+                            }
+                        }
+                        .frame(height: 2)
+                    }
+                    .padding(.vertical, KuroDesignSpacing.sm + 2)
+                    if index < realms.count - 1 {
+                        Rectangle()
+                            .fill(Color.kuroBlack08)
+                            .frame(height: 0.5)
+                    }
+                }
+            }
+        }
+        .onAppear {
+            withAnimation(KuroMotion.resolve(KuroAnimation.editorial)) {
+                realmBarsVisible = true
+            }
+        }
+    }
+
+    /// realm_meta display copy when loaded, humanized stable key otherwise.
+    private func realmDisplayName(_ realm: TasteRealm) -> String {
+        realmMeta[realm.realm]?.displayName ?? realm.humanizedRealm
+    }
+
     private func weightSection(title: String, entries: [(name: String, weight: Double)]) -> some View {
         let maxWeight = entries.map(\.weight).max() ?? 1
         return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
@@ -1061,4 +1126,38 @@ struct TasteLeaningsSheet: View {
             }
         }
     }
+}
+
+
+// MARK: - Previews
+
+#Preview("Leanings — Realms") {
+    TasteLeaningsSheet(
+        latestSignalAt: Date(),
+        seededProfile: TasteProfile(
+            vector: TasteProfileVector(
+                genres: ["Drama": 0.82, "Sci-Fi": 0.41, "Romance": 0.3],
+                tags: ["Found Family": 0.3, "Slow Burn": 0.22],
+                avoidedTags: ["Ecchi"],
+                realms: [
+                    TasteRealm(realm: "quiet-melancholy", family: "emotional-core", weight: 0.42),
+                    TasteRealm(realm: "auteur-cinema", family: "craft-art", weight: 0.35),
+                    TasteRealm(realm: "coming-of-age", family: "emotional-core", weight: 0.28),
+                    TasteRealm(realm: "time-parallel-worlds", family: "speculative-worlds", weight: 0.21),
+                    TasteRealm(realm: "slice-of-life-iyashikei", family: "emotional-core", weight: 0.14),
+                    TasteRealm(realm: "psychological-thriller", family: "mind-thrill", weight: 0.09)
+                ],
+                confidence: 0.2,
+                eventCount: 34,
+                computedAt: Date().addingTimeInterval(-12 * 60)
+            ),
+            updatedAt: nil
+        )
+    )
+    .environment(SupabaseService())
+}
+
+#Preview("Leanings — Empty") {
+    TasteLeaningsSheet()
+        .environment(SupabaseService())
 }

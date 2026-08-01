@@ -121,12 +121,56 @@ struct TasteDeckCard: Identifiable, Codable, Sendable {
     }
 }
 
+/// One entry of the profile's `realms` array (Realm Graph, server keeps top 6,
+/// stored highest-weight first): {"realm":"quiet-melancholy","family":"emotional-core","weight":0.42}.
+struct TasteRealm: Decodable, Sendable {
+    let realm: String
+    let family: String
+    let weight: Double
+
+    /// "quiet-melancholy" -> "Quiet Melancholy". Realm/family keys are stable
+    /// lowercase-hyphenated slugs; used when realm_meta display copy is absent.
+    /// Small connector words stay lowercase except in first position
+    /// ("coming-of-age" -> "Coming of Age", matching the editorial display names).
+    static func humanize(_ key: String) -> String {
+        let smallWords: Set<String> = ["of", "and", "the", "in", "a", "to"]
+        return key.split(separator: "-")
+            .enumerated()
+            .map { index, word in
+                if index > 0 && smallWords.contains(word.lowercased()) { return String(word) }
+                return word.prefix(1).uppercased() + word.dropFirst()
+            }
+            .joined(separator: " ")
+    }
+
+    var humanizedRealm: String { Self.humanize(realm) }
+    var humanizedFamily: String { Self.humanize(family) }
+}
+
+/// Display copy for one realm from the public-read `realm_meta` table.
+struct RealmMeta: Decodable, Sendable {
+    let realm: String
+    let family: String
+    let displayName: String
+    let blurb: String
+    let sort: Int
+
+    enum CodingKeys: String, CodingKey {
+        case realm
+        case family
+        case displayName = "display_name"
+        case blurb
+        case sort
+    }
+}
+
 /// Decoded form of the `vector` jsonb column returned by `fetch_my_taste_profile`.
 /// Tolerant of missing fields so a partially-computed profile never breaks decoding.
 struct TasteProfileVector: Decodable, Sendable {
     var genres: [String: Double]
     var tags: [String: Double]
     var avoidedTags: [String]
+    var realms: [TasteRealm]
     var confidence: Double
     var eventCount: Int
     var computedAt: Date?
@@ -135,6 +179,7 @@ struct TasteProfileVector: Decodable, Sendable {
         case genres
         case tags
         case avoidedTags = "avoided_tags"
+        case realms
         case confidence
         case eventCount = "event_count"
         case computedAt = "computed_at"
@@ -144,6 +189,7 @@ struct TasteProfileVector: Decodable, Sendable {
         genres: [String: Double] = [:],
         tags: [String: Double] = [:],
         avoidedTags: [String] = [],
+        realms: [TasteRealm] = [],
         confidence: Double = 0,
         eventCount: Int = 0,
         computedAt: Date? = nil
@@ -151,6 +197,7 @@ struct TasteProfileVector: Decodable, Sendable {
         self.genres = genres
         self.tags = tags
         self.avoidedTags = avoidedTags
+        self.realms = realms
         self.confidence = confidence
         self.eventCount = eventCount
         self.computedAt = computedAt
@@ -161,6 +208,7 @@ struct TasteProfileVector: Decodable, Sendable {
         genres = (try? container.decodeIfPresent([String: Double].self, forKey: .genres)) ?? [:]
         tags = (try? container.decodeIfPresent([String: Double].self, forKey: .tags)) ?? [:]
         avoidedTags = (try? container.decodeIfPresent([String].self, forKey: .avoidedTags)) ?? []
+        realms = (try? container.decodeIfPresent([TasteRealm].self, forKey: .realms)) ?? []
         confidence = (try? container.decodeIfPresent(Double.self, forKey: .confidence)) ?? 0
         eventCount = (try? container.decodeIfPresent(Int.self, forKey: .eventCount)) ?? 0
         computedAt = try? container.decodeIfPresent(Date.self, forKey: .computedAt)
@@ -171,6 +219,7 @@ struct TasteProfile: Sendable {
     var genres: [String: Double]
     var tags: [String: Double]
     var avoidedTags: [String]
+    var realms: [TasteRealm]
     var confidence: Double
     var eventCount: Int
     var computedAt: Date?
@@ -180,6 +229,7 @@ struct TasteProfile: Sendable {
         genres = vector?.genres ?? [:]
         tags = vector?.tags ?? [:]
         avoidedTags = vector?.avoidedTags ?? []
+        realms = vector?.realms ?? []
         confidence = vector?.confidence ?? 0
         eventCount = vector?.eventCount ?? 0
         computedAt = vector?.computedAt ?? nil
@@ -195,6 +245,12 @@ struct TasteProfile: Sendable {
 
     var topTags: [(name: String, weight: Double)] {
         tags.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
+    }
+
+    /// Server stores top 6 highest-weight first; sorted defensively in case a
+    /// hand-edited vector ever arrives out of order.
+    var topRealms: [TasteRealm] {
+        realms.sorted { $0.weight > $1.weight }
     }
 }
 
@@ -300,6 +356,26 @@ extension SupabaseService {
             print("❌ fetchPersonalizedNewToYou error: \(error)")
             #endif
             return nil
+        }
+    }
+
+    /// Realm display copy. realm_meta is a public-read catalog table (RLS
+    /// `select using (true)`), so a plain PostgREST select — no RPC needed.
+    /// Returns [] on error; callers fall back to humanizing the stable realm keys.
+    func fetchRealmMeta() async -> [RealmMeta] {
+        do {
+            let rows: [RealmMeta] = try await client
+                .from("realm_meta")
+                .select()
+                .order("sort")
+                .execute()
+                .value
+            return rows
+        } catch {
+            #if DEBUG
+            print("❌ fetchRealmMeta error: \(error)")
+            #endif
+            return []
         }
     }
 }

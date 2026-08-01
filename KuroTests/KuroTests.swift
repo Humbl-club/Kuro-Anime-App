@@ -1042,6 +1042,59 @@ struct TasteDeckTests {
         let profile = TasteProfile(vector: vector, updatedAt: nil)
         #expect(profile.topGenres.map(\.name) == ["Drama", "Sci-Fi", "Action"])
     }
+
+    @Test("Decodes the realms array from the profile vector")
+    func testTasteProfileVectorRealmsDecoding() throws {
+        let json = """
+        {
+          "genres": { "Drama": 0.82 },
+          "realms": [
+            { "realm": "quiet-melancholy", "family": "emotional-core", "weight": 0.42 },
+            { "realm": "auteur-cinema", "family": "craft-art", "weight": 0.35 }
+          ],
+          "confidence": 0.2,
+          "event_count": 34
+        }
+        """
+        let data = try #require(json.data(using: .utf8))
+        let vector = try JSONDecoder().decode(TasteProfileVector.self, from: data)
+        #expect(vector.realms.count == 2)
+        #expect(vector.realms[0].realm == "quiet-melancholy")
+        #expect(vector.realms[0].family == "emotional-core")
+        #expect(vector.realms[0].weight == 0.42)
+
+        let profile = TasteProfile(vector: vector, updatedAt: nil)
+        #expect(profile.topRealms.map(\.realm) == ["quiet-melancholy", "auteur-cinema"])
+    }
+
+    @Test("Realms default to empty when absent or malformed")
+    func testTasteProfileVectorRealmsMissing() throws {
+        let noRealms = try JSONDecoder().decode(
+            TasteProfileVector.self,
+            from: try #require(#"{ "genres": { "Drama": 0.5 } }"#.data(using: .utf8))
+        )
+        #expect(noRealms.realms.isEmpty)
+
+        let malformed = try JSONDecoder().decode(
+            TasteProfileVector.self,
+            from: try #require(#"{ "realms": "not-an-array" }"#.data(using: .utf8))
+        )
+        #expect(malformed.realms.isEmpty)
+
+        let profile = TasteProfile(vector: noRealms, updatedAt: nil)
+        #expect(profile.realms.isEmpty)
+        #expect(profile.topRealms.isEmpty)
+    }
+
+    @Test("Realm keys humanize when display copy is absent")
+    func testTasteRealmHumanize() {
+        #expect(TasteRealm.humanize("quiet-melancholy") == "Quiet Melancholy")
+        #expect(TasteRealm.humanize("emotional-core") == "Emotional Core")
+        #expect(TasteRealm.humanize("mecha") == "Mecha")
+        let realm = TasteRealm(realm: "slice-of-life-iyashikei", family: "emotional-core", weight: 0.14)
+        #expect(realm.humanizedRealm == "Slice of Life Iyashikei")
+        #expect(realm.humanizedFamily == "Emotional Core")
+    }
 }
 
 
