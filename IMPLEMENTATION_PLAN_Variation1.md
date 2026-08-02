@@ -618,3 +618,12 @@ Phase 0 artifacts: `docs/superpowers/specs/2026-07-31-phase0-full-system-check.m
 - **Edge functions**: `mirror-images` (remote-only, visibility ordering, priority drain) and `concierge-import-anilist` (getUser 401 gate) redeployed.
 - **Design law (ADR)**: one hero grammar (club-hero grain recipe), `KuroAnimation` tokens only, one placeholder spec for new UI.
 - Open follow-ups: define ramp criteria for `personalized_new_to_you_v1` and the three dark clubs flags; compliance review before `affiliate_links_v1`; watch `deck_known` (+0.25) for false-positive profile drift.
+
+
+## Realm Graph Stage 2b — Groq descriptor pipeline (2026-08-02) -- IN PROGRESS / LIVE
+
+- Spec/design: `docs/superpowers/specs/2026-08-02-realm-descriptor-groq-pipeline-design.md` (+ parent realm-graph master plan §6).
+- Edge function `realm-describe` deployed; worker + salvage scripts in repo.
+- Salvage complete (1510 swarm rows). Groq drain running against pending visible pool.
+- Deferred: taste indicators, membership delta apply, gold-set edges, Stage 4 rails.
+

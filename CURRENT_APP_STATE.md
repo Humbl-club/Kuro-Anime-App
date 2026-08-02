@@ -17014,6 +17014,22 @@ grant execute on function public.admin_schema_snapshot() to service_role;
 
 ## Change Log
 
+### 2026-08-02: Realm descriptor Groq pipeline (Stage 2b) — salvage + edge function + drain
+
+Finished the Realm Graph Stage 2b writer path without agent-swarm spend.
+
+**Shipped / applied:**
+- Design: `docs/superpowers/specs/2026-08-02-realm-descriptor-groq-pipeline-design.md`
+- Edge function `realm-describe` (IMPORT_SECRET gate, `--no-verify-jwt`): loads title context, calls Groq (`GROQ_MODEL_REALM` default `llama-3.3-70b-versatile`), validates against `upsert_media_realm_llm` contract, batch mode ≤25 with one upsert/call.
+- Scripts: `realm_llm_salvage_swarm.js`, `realm_descriptor_worker.js` (checkpointed), `realm_descriptor_validate_selftest.js`; reuse `realm_llm_pass_fetch.js` / `realm_llm_pass_submit.js`.
+- Migrations: `20260802010000` enqueue + ops helpers + drain cron; `20260802013000` resolve import secret from `kuro-import-*` cron literals when GUC empty; `20260802014000` upsert rate budget 60→600/hr; `20260802015000` pause 2m cron while worker owns TPM.
+- Salvage: 1510 valid `/tmp/realm_out_*.jsonl` rows submitted (`kimi-swarm-2026-08`).
+- Live smoke: Llama descriptors writing; Spirited Away similarity still Ghibli-class after earlier penalty clamp.
+- Drain: checkpointed worker running against `media_realm_llm_pending` (Groq on_demand TPM-limited; overnight catch-up via worker rounds).
+
+**Out of scope (deferred):** craft taste indicators; LLM membership ±0.2 apply; gold-set edges eval; Stage 4 Discover Shelf/Hidden Gem.
+
+
 ### 2026-02-24 — Fix Detail Page Scrolling Issues
 - **Vertical dead zone fix**: Added `.padding(.bottom, -safeTop)` after `.offset(y: -safeTop)` on hero sections in both `AnimeDetailView.swift` and `MangaDetailView.swift`. The offset is visual-only and didn't shrink the layout frame, creating a phantom gap at the bottom of the scroll content equal to `safeTop` (~59pt). The negative bottom padding compensates.
 - **Horizontal scroll fix**: Removed `.kuroSwipeExclusionZone()` from `SimilarSection` (AnimeDetailView:332) and `MangaSimilarSection` (MangaDetailView:289). These sections only appear inside `.sheet()` presentations where the root pager's gesture doesn't apply. The exclusion zone added a competing `DragGesture(minimumDistance: 4)` that fought with the native horizontal ScrollView gesture and the `.kuroDeliberateTap` gesture on each card, preventing horizontal scrolling.
