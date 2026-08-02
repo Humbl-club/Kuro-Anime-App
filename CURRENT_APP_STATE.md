@@ -17027,6 +17027,7 @@ Finished the Realm Graph Stage 2b writer path without agent-swarm spend.
 - Live smoke: Llama descriptors writing; Spirited Away similarity still Ghibli-class after earlier penalty clamp.
 - Drain: checkpointed worker running against `media_realm_llm_pending` (Groq on_demand TPM-limited; overnight catch-up via worker rounds).
 
+- Security follow-up applied: `upsert_media_realm_llm` revoked from `authenticated` (service_role / realm-describe only); dropped `_ops_peek_import_secret` + `_ops_list_import_crons`.
 **Out of scope (deferred):** craft taste indicators; LLM membership ±0.2 apply; gold-set edges eval; Stage 4 Discover Shelf/Hidden Gem.
 
 
