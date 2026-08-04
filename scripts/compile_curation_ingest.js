@@ -419,10 +419,11 @@ $$;
 revoke all on function public.fetch_realm_hidden_gem() from public;
 grant execute on function public.fetch_realm_hidden_gem() to authenticated, service_role;
 
--- NOTE: media_realm_tier refresh is intentionally NOT in this migration —
--- a full refresh times out inside the migration transaction. Existing
--- pg_cron job refreshes the matview; or run manually after push:
---   refresh materialized view concurrently public.media_realm_tier;
+-- NOTE: media_realm_tier rebuild is intentionally NOT in this migration —
+-- the full rebuild is too slow for a migration transaction. As of
+-- 20260804120000 media_realm_tier is a TABLE rebuilt nightly by pg_cron
+-- ('realm-tier-refresh', 04:50 UTC); or run manually after push:
+--   set statement_timeout = '600s'; select public.rebuild_media_realm_tier();
 `;
 
   fs.writeFileSync(migPath, sql);

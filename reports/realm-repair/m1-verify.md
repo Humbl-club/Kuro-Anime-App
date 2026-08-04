@@ -346,3 +346,85 @@ SA top-25 scan: 1381 and 13287 absent; no vending-machine / gag-isekai peers pre
 | G3 | **SOFT-FAIL** | Hanako #8 > WC #23; causes: no isMain data (importer gap) + tag-space proximity (Phase 5) |
 | G4 | **PASS** | 1381/13287 and peers absent from SA top-25 (merit floor + penalty + tier) |
 | G5 | **PASS** | PB 286 / Paprika 486: canon tier, craft-art family bridge, cost path 0.65 × 0.7857 — realm cliff no longer structural; genre cliff caveat stands |
+
+---
+
+# M2 verify (2026-08-04, Fixes 3+4 — tier from effective + cron)
+
+- **Migrations under test:** `20260804120000_tier_from_effective_and_cron.sql`, `20260804121000_rebuild_tier_execute_service_role_only.sql` (both applied)
+- **Method:** identical to M1 — Management API, SELECT-only; all numbers re-derived independently, none taken from the implementer.
+
+## T1 — no visible member missing a tier row — PASS
+
+```sql
+with vis as (score>=70, non-adult, has-cover anime UNION manga),
+     memb as (select media_type, media_id, max(weight) w
+              from media_realm_membership_effective group by 1,2)
+select count(*) filter (where mb.w >= 0.25 and t.media_id is null),
+       count(*) filter (where mb.w >= 0.35 and t.media_id is null),
+       count(*) filter (where mb.w >= 0.25)
+from vis v join memb mb using(...) left join media_realm_tier t using(...);
+```
+
+Result: **missing at >= 0.25 = 0 · missing at >= 0.35 = 0** · visible members at >= 0.25 = 7,457. Expected 0; got 0 at both thresholds — nothing to explain. The pre-fix gap (~2,200 / 429 claimed) is closed.
+
+## T2 — tier rows present and sane — PASS
+
+- Spirited Away 111 → `supernatural-yokai / canon`; Totoro 221 → `kids-family / canon`.
+- Previously-tier-less cohort spot-check. The exact pre-rebuild set is not reconstructible live (the old matview was dropped and both membership sources have since moved), so the cohort was derived by its mechanism: raw top weight below `_realm_membership_threshold()` (= 0.25, so the OLD build's percentile-basis join produced no row) while effective weight clears it. 5 such titles, all now tiered:
+
+| type | id | title | avg | realm | tier | eff_w | raw_w |
+|---|---|---|---|---|---|---|---|
+| ANIME | 13236 | Gabriel Dropout OVA | 75 | moe-cgdct | acclaimed | 0.450 | 0.250− |
+| ANIME | 16090 | Nadia: The Secret of Blue Water | 73 | grand-adventure | acclaimed | 0.450 | 0.250− |
+| MANGA | 12205 | Yuunagi ni Mae, Boku no Ribbon | 71 | sports-competition | solid | 0.450 | 0.250− |
+| MANGA | 8044 | Nademonogatari | 84 | seinen-drama | canon | 0.449 | 0.249 |
+| MANGA | 7039 | My Beloved Oppressor | 73 | seinen-drama | acclaimed | 0.449 | 0.249 |
+
+(An alternative derivation — tiered titles with zero raw membership rows — returns empty: the raw matview has itself refreshed past the old tier build, confirming the split-brain was threshold/staleness-shaped, not missing-row-shaped.)
+
+## C1 — cron job — PASS
+
+`cron.job`: **jobid 51 · jobname `realm-tier-refresh` · schedule `50 4 * * *` · active `true` · command exactly** `set statement_timeout = '600s'; select public.rebuild_media_realm_tier();` (session-level SET as its own first statement — the load-bearing part).
+
+`realm-tier-rebuild-once`: **absent from `cron.job`** — properly unscheduled, not lingering. (Its historical run persists in `job_run_details` as jobid 52, which is expected — run history survives unschedule.)
+
+## C2 — rebuild run — PASS
+
+Latest `cron.job_run_details` for the rebuild command (jobid 52, the one-off): **status `succeeded`, return "1 row", 2026-08-04 18:52:00 → 18:54:16 UTC = 136.3 s** — well inside the 600 s ceiling and above the old 120 s killer, i.e. the old cron could never have completed it. Corroborating history: 4/4 runs of the old jobid 48 (`refresh materialized view concurrently…`) failed 2026-08-01…04, each at exactly 120.0 s with "canceling statement due to statement timeout" — matches the migration's diagnosis verbatim.
+
+## STRUCT — table shape + ACLs — PASS
+
+- `pg_class`: `media_realm_tier` **relkind `r`** (plain table), **relrowsecurity `true`**.
+- `pg_policies`: exactly one policy — `media_realm_tier_select_all`, **cmd SELECT, USING (true)**, roles {public}; **no write policies** (default-deny for client-role DML).
+- Indexes: **`media_realm_tier_uidx` UNIQUE (media_type, media_id)** + `media_realm_tier_realm_idx` (realm).
+- `rebuild_media_realm_tier()` **proacl = `{postgres=X/postgres,service_role=X/postgres}`** — EXECUTE is postgres + service_role ONLY; the ACL is non-NULL and contains neither anon, authenticated, nor PUBLIC, so those roles get permission denied by definition (JWT probe skipped per instruction; the deny path for unprivileged roles was incidentally demonstrated live when the Management API read-only role got `42501 permission denied` invoking `_realm_membership_threshold()`).
+
+## REG — no behavior regression — PASS
+
+- `recommend_ids_similar_to_seeds('ANIME', array[111], 12, false)`: **identical to the M1 loop-2 list** — same 12 ids, same order, same scores (Mononoke 0.6802 #1 … Totoro **#10 @ 0.3458** … MUSHI-SHI #12).
+- `media_realm_profile` resolves: row for ANIME 111 (Spirited Away · supernatural-yokai · canon) returned.
+- Tier distribution (rebuilt table, 57,310 rows):
+
+| type | canon | acclaimed | solid | tail |
+|---|---|---|---|---|
+| ANIME | 2,296 | 2,870 | 3,559 | 8,689 |
+| MANGA | 933 | 4,433 | 10,580 | 23,950 |
+
+## SEM — tier semantics preserved — PASS
+
+- Before-tiers ARE derivable for 9 ids: the M1 loop-1 evidence in this file recorded pre-rebuild tiers. Before → after: 111, 221, 334, 1413, 2142, 286, 486 all `canon → canon`; **1381 `acclaimed → acclaimed`**; 13287 `solid → solid`. 9/9 unchanged — consistent with a semantics-preserving rebuild where only the membership universe moved.
+- Canon plausibility: old 56,874 rows with canon 2,463 + 1,050 = 3,513 → new 57,310 rows with canon **2,296 + 933 = 3,229** (−8%). Canon contracted slightly; no explosion. Total rows +436 net (new tier-less entrants offset by titles whose effective membership dropped out).
+- Standing flag (pre-existing, NOT a Fix-3 regression): 1381 "Reborn as a Vending Machine" keeps `acclaimed` — a within-realm percentile artifact of isekai-reincarnation (tier measures good-for-its-kind). Fix-3's brief was semantics preservation, which this confirms; the artifact belongs to the tuning phase.
+
+## M2 verdict table
+
+| Check | Verdict | Evidence |
+|---|---|---|
+| T1 | **PASS** | 0 missing tier rows at >= 0.25 and >= 0.35 (7,457 visible members) |
+| T2 | **PASS** | 111 supernatural-yokai/canon, 221 kids-family/canon; 5 cohort spot-checks tiered sanely |
+| C1 | **PASS** | jobid 51, `50 4 * * *`, active, command begins `set statement_timeout = '600s';`; one-off job absent |
+| C2 | **PASS** | rebuild succeeded in 136.3 s (vs 4/4 prior 120.0 s timeouts of the old refresh) |
+| STRUCT | **PASS** | relkind r, RLS on, select-only policy, unique (media_type,media_id), proacl postgres+service_role only |
+| REG | **PASS** | SA top-12 bit-identical incl. Totoro #10 @ 0.3458; profile view resolves; distribution sane |
+| SEM | **PASS** | 9/9 recorded before-tiers unchanged; canon 3,513 → 3,229 (no explosion) |
