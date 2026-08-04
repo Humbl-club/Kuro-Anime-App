@@ -176,6 +176,20 @@ struct EditorialDiscoverView: View {
                         )
                     }
 
+                    // Stage 4 — The Shelf (tonight's realm), flag-gated.
+                    if FeatureFlags.shared.discoverRealmRailsV1Enabled,
+                       !vm.tonightShelf.isEmpty,
+                       selectedMediaType == .all || selectedMediaType == .anime {
+                        CompactHorizontalSection(
+                            title: (vm.tonightShelfTitle ?? "THE SHELF").uppercased(),
+                            subtitle: vm.tonightShelfSubtitle ?? "Tonight's realm",
+                            items: Array(vm.tonightShelf.prefix(10)),
+                            containerWidth: currentWidth,
+                            onSeeAll: nil,
+                            largeCards: true
+                        )
+                    }
+
                     if !vm.essentials.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
                         CompactHorizontalSection(
                             title: "ESSENTIAL ANIME",
@@ -185,6 +199,20 @@ struct EditorialDiscoverView: View {
                             onSeeAll: { activeRoute = .animeEssentials },
                             largeCards: true
                         )
+                    }
+
+                    // Stage 4 — Hidden Gem (reuse One Thing card grammar).
+                    if FeatureFlags.shared.discoverRealmRailsV1Enabled,
+                       let gem = vm.hiddenGem,
+                       (selectedMediaType == .all
+                        || (selectedMediaType == .anime && gem.kind == .anime)
+                        || (selectedMediaType == .manga && gem.kind == .manga)) {
+                        DiscoverOneThingCard(
+                            feature: gem,
+                            width: currentWidth - 40,
+                            eyebrow: "HIDDEN GEM"
+                        )
+                        .padding(.horizontal, 20)
                     }
 
                     if !vm.newToYouManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
@@ -487,6 +515,34 @@ struct EditorialDiscoverView: View {
             await MainActor.run {
                 vm.becauseYou = []
                 vm.becauseYouReason = nil
+            }
+        }
+
+        // Stage 4 — The Shelf + Hidden Gem (flag-gated, independent of P1).
+        if FeatureFlags.shared.discoverRealmRailsV1Enabled {
+            async let shelfResult = supabaseService.fetchTonightShelf(limit: 12)
+            async let gemResult = supabaseService.fetchRealmHiddenGem()
+            let shelf = await shelfResult
+            let gem = await gemResult
+            await MainActor.run {
+                if let shelf, !shelf.isEmpty {
+                    vm.tonightShelf = shelf.map { $0.toMedia() }
+                    vm.tonightShelfTitle = shelf.first?.displayName.map { "THE SHELF · \($0.uppercased())" }
+                        ?? "THE SHELF"
+                    vm.tonightShelfSubtitle = shelf.first?.blurb ?? "Tonight's realm"
+                } else {
+                    vm.tonightShelf = []
+                    vm.tonightShelfTitle = nil
+                    vm.tonightShelfSubtitle = nil
+                }
+                vm.hiddenGem = gem?.toDailyFeature()
+            }
+        } else {
+            await MainActor.run {
+                vm.tonightShelf = []
+                vm.tonightShelfTitle = nil
+                vm.tonightShelfSubtitle = nil
+                vm.hiddenGem = nil
             }
         }
 

@@ -93,6 +93,93 @@ struct RPCFetchBecauseYouRailParams: Encodable, Sendable {
     let p_limit: Int
 }
 
+struct RPCFetchTonightShelfParams: Encodable, Sendable {
+    let p_limit: Int
+}
+
+/// Discover Stage 4 — The Shelf ("tonight's realm") card row.
+struct TonightShelfCard: Identifiable, Codable, Sendable {
+    let realm: String?
+    let displayName: String?
+    let blurb: String?
+    let mediaType: String
+    let mediaId: Int
+    let title: String
+    let coverImageLarge: String?
+    let coverImageMedium: String?
+    let coverImageColor: String?
+    let genres: [String]?
+    let averageScore: Int?
+    let format: String?
+    let year: Int?
+    let synopsis: String?
+    let episodes: Int?
+    let chapters: Int?
+    let volumes: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case realm
+        case displayName = "display_name"
+        case blurb
+        case mediaType = "media_type"
+        case mediaId = "media_id"
+        case title
+        case coverImageLarge = "cover_image_large"
+        case coverImageMedium = "cover_image_medium"
+        case coverImageColor = "cover_image_color"
+        case genres
+        case averageScore = "average_score"
+        case format
+        case year
+        case synopsis
+        case episodes
+        case chapters
+        case volumes
+    }
+
+    var id: String { "\(mediaType.lowercased())-\(mediaId)" }
+}
+
+/// Discover Stage 4 — Hidden Gem (high-tier, low-popularity in tonight's realm).
+struct RealmHiddenGem: Identifiable, Codable, Sendable {
+    let realm: String?
+    let displayName: String?
+    let blurb: String?
+    let mediaType: String
+    let mediaId: Int
+    let title: String
+    let coverImageLarge: String?
+    let bannerImage: String?
+    let genres: [String]?
+    let score: Int?
+    let year: Int?
+    let format: String?
+    let argument: String?
+
+    enum CodingKeys: String, CodingKey {
+        case realm
+        case displayName = "display_name"
+        case blurb
+        case mediaType = "media_type"
+        case mediaId = "media_id"
+        case title
+        case coverImageLarge = "cover_image_large"
+        case bannerImage = "banner_image"
+        case genres
+        case score
+        case year
+        case format
+        case argument
+    }
+
+    var id: String { "\(mediaType.lowercased())-\(mediaId)" }
+    var kind: MediaKind { mediaType.uppercased() == "MANGA" ? .manga : .anime }
+    var artURL: URL? {
+        guard let raw = bannerImage ?? coverImageLarge, !raw.isEmpty else { return nil }
+        return URL(string: raw)
+    }
+}
+
 // MARK: - SupabaseService
 
 #if canImport(Supabase)
@@ -131,6 +218,38 @@ extension SupabaseService {
             return nil
         }
     }
+
+    /// Stage 4 The Shelf — tonight's realm rail. nil on error; [] when empty.
+    func fetchTonightShelf(limit: Int = 12) async -> [TonightShelfCard]? {
+        do {
+            let rows: [TonightShelfCard] = try await client
+                .rpc("fetch_tonight_shelf", params: RPCFetchTonightShelfParams(p_limit: limit))
+                .execute()
+                .value
+            return rows
+        } catch {
+            #if DEBUG
+            print("❌ fetchTonightShelf error: \(error)")
+            #endif
+            return nil
+        }
+    }
+
+    /// Stage 4 Hidden Gem — 0 or 1 weekly pick in tonight's realm.
+    func fetchRealmHiddenGem() async -> RealmHiddenGem? {
+        do {
+            let rows: [RealmHiddenGem] = try await client
+                .rpc("fetch_realm_hidden_gem")
+                .execute()
+                .value
+            return rows.first
+        } catch {
+            #if DEBUG
+            print("❌ fetchRealmHiddenGem error: \(error)")
+            #endif
+            return nil
+        }
+    }
 }
 #endif
 
@@ -159,6 +278,48 @@ extension BecauseYouCard {
             popularityValue: nil,
             trendingValue: nil,
             createdAtValue: nil
+        )
+    }
+}
+
+extension TonightShelfCard {
+    func toMedia() -> Media {
+        Media(
+            id: mediaId,
+            kind: mediaType.uppercased() == "MANGA" ? .manga : .anime,
+            title: title,
+            imageURL: {
+                guard let raw = coverImageLarge ?? coverImageMedium, !raw.isEmpty else { return nil }
+                return raw
+            }(),
+            year: year.map(String.init) ?? "TBA",
+            displayDescription: synopsis ?? "",
+            episodes: episodes,
+            chapters: chapters,
+            rating: averageScore.map { Double($0) / 10.0 },
+            genres: genres,
+            statusRaw: nil,
+            formatRaw: format,
+            popularityValue: nil,
+            trendingValue: nil,
+            createdAtValue: nil
+        )
+    }
+}
+
+extension RealmHiddenGem {
+    func toDailyFeature() -> DailyFeature {
+        DailyFeature(
+            mediaType: mediaType,
+            mediaId: mediaId,
+            title: title,
+            coverImageLarge: coverImageLarge,
+            bannerImage: bannerImage,
+            genres: genres,
+            score: score,
+            year: year,
+            format: format,
+            argument: argument
         )
     }
 }

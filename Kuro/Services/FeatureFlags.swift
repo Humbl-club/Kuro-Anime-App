@@ -41,6 +41,7 @@ final class FeatureFlags {
     var isCreditsCastV1Enabled: Bool { evaluate("credits_cast_v1") }
     var tasteDeckV1Enabled: Bool { evaluate("taste_deck_v1") }
     var personalizedNewToYouV1Enabled: Bool { evaluate("personalized_new_to_you_v1") }
+    var discoverRealmRailsV1Enabled: Bool { evaluate("discover_realm_rails_v1") }
 
     // MARK: - Init
 

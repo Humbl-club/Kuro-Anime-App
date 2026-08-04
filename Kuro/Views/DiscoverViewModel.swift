@@ -21,6 +21,12 @@ final class DiscoverViewModel {
     var becauseYou: [Media] = []
     var becauseYouReason: String? = nil
 
+    // Discover Stage 4 — The Shelf + Hidden Gem (flag: discover_realm_rails_v1).
+    var tonightShelf: [Media] = []
+    var tonightShelfTitle: String? = nil
+    var tonightShelfSubtitle: String? = nil
+    var hiddenGem: DailyFeature? = nil
+
     // Manga sections
     var essentialsManga: [MangaCard] = []
     var classicsManga: [MangaCard] = []

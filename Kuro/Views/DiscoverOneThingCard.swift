@@ -12,6 +12,8 @@ import SwiftUI
 struct DiscoverOneThingCard: View {
     let feature: DailyFeature
     let width: CGFloat
+    /// Eyebrow label (default: The One Thing; Stage 4 Hidden Gem overrides).
+    var eyebrow: String = "THE ONE THING"
 
     @State private var showDetail = false
     @State private var isPressed = false
@@ -81,7 +83,7 @@ struct DiscoverOneThingCard: View {
             KuroGlassCard(tone: .onImage) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
                     HStack(alignment: .center) {
-                        Text("THE ONE THING")
+                        Text(eyebrow)
                             .font(.kuroMicro(weight: .medium))
                             .tracking(1.8)
                             .foregroundColor(.kuroWhite80)
@@ -127,7 +129,7 @@ struct DiscoverOneThingCard: View {
         .kuroAnimation(KuroAnimation.editorial, value: isPressed)
         .pressable($isPressed, duration: 0.15)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("The One Thing. \(feature.title)"))
+        .accessibilityLabel(Text("\(eyebrow). \(feature.title)"))
         .accessibilityHint("Opens details")
         .accessibilityAddTraits(.isButton)
         .sheet(isPresented: $showDetail) {
