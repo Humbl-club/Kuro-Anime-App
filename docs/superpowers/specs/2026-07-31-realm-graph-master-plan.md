@@ -1,6 +1,6 @@
 # The Realm Graph — Kuro's Curation Knowledge Graph (master plan, 2026-07-31)
 
-Status: Stage 1 live in prod (signatures/matviews/gated similarity + penalty clamp). Stage 2b descriptor pipeline live (Groq `realm-describe` + salvage); drain in progress. Stage 3 edges imported (gold-set eval still open). Stage 4 not started. Taxonomy treated as blessed for v1.
+Status: Stage 1–2 DONE (incl. Spirited Away gate harden). Stage 3: edges imported + gold harness scaffolding; heuristic eval says keep edges advisory (owner judgments still open). Stage 4 partial: Shelf + Hidden Gem RPCs/iOS behind `discover_realm_rails_v1` @ 0%. Taxonomy blessed for v1. Groq writer abandoned.
 Supersedes nothing; extends `2026-07-31-taste-math-v2-critical-review.md` (tag space stays the substrate) and the Discover/Browse proposal.
 
 ## 0. The model in one paragraph
@@ -112,7 +112,7 @@ Import into `media_rec_edges` (bulk job). Then the evaluation harness: gold set 
 ## 8. Stage plan
 
 - **Stage 1 (1 evening, deterministic):** signatures v1 (swarm drafts per §2, owner vetoes), the 3 matviews + tier, similarity v4 gate, Because-You + One Thing rewired, deck realm-stratification v1, leanings-as-realms. Acceptance: Spirited Away test + vending machine test + 20 hand-checked pairs across realms.
-- **Stage 2 (1–2 days compute):** canon_seed compiled + owner blessing; LLM pass on 8k visible; membership adjustments applied.
+- **Stage 2 (1–2 days compute):** canon_seed compiled + owner blessing; LLM pass on 8k visible; membership adjustments applied. *(2026-08-02 expand: JCAA / Annecy / Taishō / Kono backfill + seasonal_signal — see `2026-08-02-curation-sources-research.md`.)*
 - **Stage 3 (parallel):** edges import + evaluation harness; decision by numbers.
 - **Stage 4 (continuous):** realm maintenance cron (split/merge reports, drift), deck co-occurrence as third association source, Discover P2/P3 rails re-targeted onto realms (The Shelf = "tonight's realm", Hidden Gem = high-tier low-popularity per realm).
 

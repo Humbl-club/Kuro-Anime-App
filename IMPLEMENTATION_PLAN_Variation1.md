@@ -620,10 +620,11 @@ Phase 0 artifacts: `docs/superpowers/specs/2026-07-31-phase0-full-system-check.m
 - Open follow-ups: define ramp criteria for `personalized_new_to_you_v1` and the three dark clubs flags; compliance review before `affiliate_links_v1`; watch `deck_known` (+0.25) for false-positive profile drift.
 
 
-## Realm Graph Stage 2b — Groq descriptor pipeline (2026-08-02) -- IN PROGRESS / LIVE
+## Realm Graph Stages 1–4 progress (2026-08-02)
 
-- Spec/design: `docs/superpowers/specs/2026-08-02-realm-descriptor-groq-pipeline-design.md` (+ parent realm-graph master plan §6).
-- Edge function `realm-describe` deployed; worker + salvage scripts in repo.
-- Salvage complete (1510 swarm rows). Groq drain running against pending visible pool.
-- Deferred: taste indicators, membership delta apply, gold-set edges, Stage 4 rails.
+- **Stage 1/2:** signatures, matviews, descriptors, ±0.2 deltas, Spirited Away gate harden — DONE.
+- **Stage 3:** edges imported; gold harness live (`eval/realm_rec_gold` + `scripts/eval_realm_rec_gold.js`). Heuristic run: **do not ship** edges into ranking. Owner shortlists ready (`owner_shortlists.jsonl` / `owner_judgments.template.jsonl`) — fill `owner_judgments.jsonl` next.
+- **Stage 4 (partial):** `fetch_tonight_shelf` + `fetch_realm_hidden_gem` + iOS behind `discover_realm_rails_v1` @ 0%. Hidden Gem now boosts `curation_seasonal_signal` hits. Still open: maintenance cron, co-occurrence, Bridge/This Week, flag ramp.
+- **Curation ingest (2026-08-02):** research doc + migration `20260802150000` pushed (JCAA, Annecy expand, Taishō/Kono backfill, Critic Consensus → named desks, seasonal table).
+- Deferred: taste indicators; owner canon unbless pass if needed; concurrent `media_realm_tier` refresh after large canon inserts.
 

@@ -17030,6 +17030,49 @@ Finished the Realm Graph Stage 2b writer path without agent-swarm spend.
 - Security follow-up applied: `upsert_media_realm_llm` revoked from `authenticated` (service_role / realm-describe only); dropped `_ops_peek_import_secret` + `_ops_list_import_crons`.
 **Out of scope (deferred):** craft taste indicators; LLM membership ±0.2 apply; gold-set edges eval; Stage 4 Discover Shelf/Hidden Gem.
 
+### 2026-08-02 (cont.): Drain pacing under Groq TPM + edge idle timeout
+
+- Redeployed `realm-describe` with 429 “try again in Xs” parse + harder backoff.
+- Worker only checkpoints successes; exponential cool-down on 429/zero-progress (45s→5m); yields after streak ≥6.
+- Durable Mac drain restarted at **batch-size 1** (batch 2 hit Supabase Functions `IDLE_TIMEOUT` 150s while Groq slept inside the request).
+- Cron `realm-describe-drain-*` stays unscheduled (`20260802120000`) so it does not fight the Mac worker for TPM.
+- Live counts ~1618 done / ~5548 pending (mostly salvage); throughput capped by Groq on_demand ~8k TPM — expect multi-day drain unless tier bumped.
+
+### 2026-08-02 (cont.): Groq descriptor drain abandoned — agent-written pass
+
+- Product decision: **stop using Groq** for Stage 2b descriptors. Mac `realm_descriptor_worker` / `realm-describe` Groq path stopped; cron stays off.
+- Writer path returns to `realm_llm_pass_fetch.js` → agent-authored JSONL → `realm_llm_pass_submit.js` with `SUPABASE_SERVICE_ROLE_KEY` (authenticated upsert remains revoked).
+- Model id for this pass: `kimi-k3-max-2026-08`. Operating from Kimi master plan §6 (not the Groq design doc).
+- **Descriptor drain complete 2026-08-02:** `media_realm_llm_pending` = 0; ~7166 rows in `media_realm_llm` (~5548 `kimi-k3-max-2026-08`).
+- `realm-describe` edge function may remain deployed but is **not** the active writer.
+
+### 2026-08-02 (cont.): Stage 2 membership deltas + QA — DONE
+
+- Migrations: `20260802123000_media_realm_membership_delta_v1` (delta table + `media_realm_membership_effective` view + `recompute_media_realm_llm_deltas` + similarity gates on effective), `20260802124000` / `20260802125000` (float4 ±0.2 clamp/CHECK fix).
+- Scripts: `scripts/realm_llm_apply_deltas.js`, `scripts/realm_llm_qa_fetch.js`.
+- QA: rewrote all **208** `confidence < 0.7` rows (all were `kimi-swarm-2026-08`) → model `kimi-k3-max-2026-08-qa`; low-conf count now **0**. Spirited Away upgraded off Groq to the same QA model.
+- Deltas: `recompute_media_realm_llm_deltas(0.7)` → **~20,986** overlay rows. Rules matview unchanged; similarity reads effective.
+- Spirited Away neighbors (spot-check): Mononoke, Howl’s, Kiki’s, Boy and the Heron, Ponyo, xxxHOLiC, Noragami Aragoto, Natsume movie… — Ghibli/folklore-heavy top. Residual LN/shounen leakage (e.g. Re:ZERO S4, JJK) still in the long tail via affinity — Stage 3 gate polish, not delta infra.
+### 2026-08-02 (cont.): Tracks A+B+C — gate harden, gold eval, Stage 4 rails
+
+- **Spirited Away gate harden** (`20260802140000`): canon seeds use membership ≥ 0.35 for S + shared-pass requires candidate top ∈ S; affinity vetoes battle-shounen↔yokai and isekai↔auteur. Re:ZERO/JJK gone from top-20. Report: `reports/realm-acceptance/2026-08-02-spirited-away.md`.
+- **canon_seed.blessed** (`20260802141000`, default true) + merit floor honors blessed. Owner can veto without deleting citations.
+- **Stage 3 gold harness**: `scripts/eval_realm_rec_gold.js` + `eval/realm_rec_gold/{seeds,judgments}.jsonl` (100 seeds). Heuristic P@10 (47/100 scored): raw 0.81 / gated 0.25 / ∩ 0.19 — **do not ship edges into ranking** (Δ∩−gated = −0.06; needs owner judgments). Report: `reports/realm-rec-gold/latest.md`.
+- **Stage 4 Discover rails** (flag `discover_realm_rails_v1` @ 0%): RPCs `fetch_tonight_shelf`, `fetch_realm_hidden_gem`; iOS wired in Discover behind the flag. Smoke-tested on demo account (horror-dread shelf + Umineko gem).
+- Still deferred: owner gold judgments, taste indicators, realm maintenance cron, Bridge/This Week.
+
+### 2026-08-02 (cont.): Curation sources expand (EN+JP research → ingest)
+
+- Research writeup: `docs/superpowers/specs/2026-08-02-curation-sources-research.md`.
+- Migration `20260802150000_curation_sources_expand_v1` (pushed):
+  - New Tier-A `canon_seed`: **Japan Cartoonists Association Award** (21), Annecy expansion (source renamed from `Annecy Cristal`; 13 total), Manga Taishō ≥80-pt nominees (+4 → 23), Kono Manga #2/#3 (→ 66).
+  - Split opaque **Critic Consensus** into named desks (**Paste Magazine** 19, **Time Out** 15, **The A.V. Club** 6) then deleted Critic Consensus rows.
+  - New table `curation_seasonal_signal` (18 rows): Filmarks H1 rankings, 次にくるマンガ大賞, EN yearlist exemplars — **not** canon.
+  - `fetch_realm_hidden_gem` prefers seasonal-signal titles inside tonight's realm pool.
+- Tooling: `scripts/compile_curation_ingest.js` + `scripts/data/curation_ingest_candidates.json`; reports in `reports/curation-ingest/`.
+- Owner gold scaffolding: `scripts/realm_gold_owner_shortlist.js` → `eval/realm_rec_gold/owner_shortlists.jsonl` + `owner_judgments.template.jsonl` (100 seeds). Owner still must fill judgments before Stage 3 ship.
+- Note: matview refresh timed out inside the migration txn — rely on pg_cron / manual `refresh materialized view concurrently public.media_realm_tier`.
+
 
 ### 2026-02-24 — Fix Detail Page Scrolling Issues
 - **Vertical dead zone fix**: Added `.padding(.bottom, -safeTop)` after `.offset(y: -safeTop)` on hero sections in both `AnimeDetailView.swift` and `MangaDetailView.swift`. The offset is visual-only and didn't shrink the layout frame, creating a phantom gap at the bottom of the scroll content equal to `safeTop` (~59pt). The negative bottom padding compensates.

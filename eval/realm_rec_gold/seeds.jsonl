@@ -1,0 +1,100 @@
+{"seed_key":"ANIME:11","media_type":"ANIME","kuro_id":11,"anilist_id":21,"title":"ONE PIECE","primary_realm":"grand-adventure","family":"epic-adventure","tier":"canon"}
+{"seed_key":"ANIME:91","media_type":"ANIME","kuro_id":91,"anilist_id":97940,"title":"Black Clover","primary_realm":"grand-adventure","family":"epic-adventure","tier":"canon"}
+{"seed_key":"ANIME:3","media_type":"ANIME","kuro_id":3,"anilist_id":101922,"title":"Demon Slayer: Kimetsu no Yaiba","primary_realm":"battle-shounen","family":"epic-adventure","tier":"canon"}
+{"seed_key":"ANIME:5","media_type":"ANIME","kuro_id":5,"anilist_id":113415,"title":"JUJUTSU KAISEN","primary_realm":"battle-shounen","family":"epic-adventure","tier":"canon"}
+{"seed_key":"ANIME:2","media_type":"ANIME","kuro_id":2,"anilist_id":16498,"title":"Attack on Titan","primary_realm":"dark-fantasy","family":"epic-adventure","tier":"canon"}
+{"seed_key":"ANIME:9","media_type":"ANIME","kuro_id":9,"anilist_id":20605,"title":"Tokyo Ghoul","primary_realm":"dark-fantasy","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"ANIME:93","media_type":"ANIME","kuro_id":93,"anilist_id":19815,"title":"No Game, No Life","primary_realm":"isekai-reincarnation","family":"epic-adventure","tier":"canon"}
+{"seed_key":"ANIME:125","media_type":"ANIME","kuro_id":125,"anilist_id":101280,"title":"That Time I Got Reincarnated as a Slime","primary_realm":"isekai-reincarnation","family":"epic-adventure","tier":"canon"}
+{"seed_key":"ANIME:189","media_type":"ANIME","kuro_id":189,"anilist_id":128893,"title":"Hell’s Paradise","primary_realm":"sword-samurai","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"ANIME:229","media_type":"ANIME","kuro_id":229,"anilist_id":19603,"title":"Fate/stay night: Unlimited Blade Works","primary_realm":"sword-samurai","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"ANIME:102","media_type":"ANIME","kuro_id":102,"anilist_id":101348,"title":"Vinland Saga","primary_realm":"historical-epic","family":"epic-adventure","tier":"canon"}
+{"seed_key":"ANIME:233","media_type":"ANIME","kuro_id":233,"anilist_id":161645,"title":"The Apothecary Diaries","primary_realm":"historical-epic","family":"epic-adventure","tier":"canon"}
+{"seed_key":"ANIME:98","media_type":"ANIME","kuro_id":98,"anilist_id":21827,"title":"Violet Evergarden","primary_realm":"quiet-melancholy","family":"emotional-core","tier":"canon"}
+{"seed_key":"ANIME:153","media_type":"ANIME","kuro_id":153,"anilist_id":101347,"title":"Dororo","primary_realm":"quiet-melancholy","family":"emotional-core","tier":"canon"}
+{"seed_key":"ANIME:23","media_type":"ANIME","kuro_id":23,"anilist_id":20665,"title":"Your lie in April","primary_realm":"romance-slow-burn","family":"emotional-core","tier":"canon"}
+{"seed_key":"ANIME:160","media_type":"ANIME","kuro_id":160,"anilist_id":99750,"title":"I Want to Eat Your Pancreas","primary_realm":"romance-slow-burn","family":"emotional-core","tier":"canon"}
+{"seed_key":"ANIME:167","media_type":"ANIME","kuro_id":167,"anilist_id":21804,"title":"The Disastrous Life of Saiki K.","primary_realm":"slice-of-life-iyashikei","family":"emotional-core","tier":"canon"}
+{"seed_key":"ANIME:416","media_type":"ANIME","kuro_id":416,"anilist_id":98444,"title":"Laid-Back Camp","primary_realm":"slice-of-life-iyashikei","family":"emotional-core","tier":"canon"}
+{"seed_key":"ANIME:16","media_type":"ANIME","kuro_id":16,"anilist_id":20954,"title":"A Silent Voice","primary_realm":"coming-of-age","family":"emotional-core","tier":"canon"}
+{"seed_key":"ANIME:104","media_type":"ANIME","kuro_id":104,"anilist_id":124080,"title":"Horimiya","primary_realm":"coming-of-age","family":"emotional-core","tier":"canon"}
+{"seed_key":"ANIME:336","media_type":"ANIME","kuro_id":336,"anilist_id":578,"title":"Grave of the Fireflies","primary_realm":"tragedy-tearjerker","family":"emotional-core","tier":"canon"}
+{"seed_key":"ANIME:493","media_type":"ANIME","kuro_id":493,"anilist_id":17729,"title":"The Fruit of Grisaia","primary_realm":"tragedy-tearjerker","family":"emotional-core","tier":"canon"}
+{"seed_key":"ANIME:4","media_type":"ANIME","kuro_id":4,"anilist_id":1535,"title":"Death Note","primary_realm":"psychological-thriller","family":"mind-thrill","tier":"canon"}
+{"seed_key":"ANIME:181","media_type":"ANIME","kuro_id":181,"anilist_id":19,"title":"Monster","primary_realm":"psychological-thriller","family":"mind-thrill","tier":"canon"}
+{"seed_key":"ANIME:24","media_type":"ANIME","kuro_id":24,"anilist_id":21234,"title":"ERASED","primary_realm":"mystery-detective","family":"mind-thrill","tier":"canon"}
+{"seed_key":"ANIME:162","media_type":"ANIME","kuro_id":162,"anilist_id":12189,"title":"Hyouka","primary_realm":"mystery-detective","family":"mind-thrill","tier":"acclaimed"}
+{"seed_key":"ANIME:141","media_type":"ANIME","kuro_id":141,"anilist_id":97986,"title":"Made in Abyss","primary_realm":"horror-dread","family":"mind-thrill","tier":"canon"}
+{"seed_key":"ANIME:146","media_type":"ANIME","kuro_id":146,"anilist_id":11111,"title":"Another","primary_realm":"horror-dread","family":"mind-thrill","tier":"canon"}
+{"seed_key":"ANIME:112","media_type":"ANIME","kuro_id":112,"anilist_id":20931,"title":"Death Parade","primary_realm":"mind-game-strategy","family":"mind-thrill","tier":"canon"}
+{"seed_key":"ANIME:118","media_type":"ANIME","kuro_id":118,"anilist_id":98314,"title":"Kakegurui","primary_realm":"mind-game-strategy","family":"mind-thrill","tier":"canon"}
+{"seed_key":"ANIME:241","media_type":"ANIME","kuro_id":241,"anilist_id":20872,"title":"Plastic Memories","primary_realm":"sci-fi-space","family":"speculative-worlds","tier":"acclaimed"}
+{"seed_key":"ANIME:429","media_type":"ANIME","kuro_id":429,"anilist_id":6,"title":"Trigun","primary_realm":"sci-fi-space","family":"speculative-worlds","tier":"canon"}
+{"seed_key":"ANIME:109","media_type":"ANIME","kuro_id":109,"anilist_id":1575,"title":"Code Geass: Lelouch of the Rebellion","primary_realm":"mecha","family":"speculative-worlds","tier":"canon"}
+{"seed_key":"ANIME:110","media_type":"ANIME","kuro_id":110,"anilist_id":30,"title":"Neon Genesis Evangelion","primary_realm":"mecha","family":"speculative-worlds","tier":"canon"}
+{"seed_key":"ANIME:117","media_type":"ANIME","kuro_id":117,"anilist_id":1,"title":"Cowboy Bebop","primary_realm":"cyberpunk-dystopia","family":"speculative-worlds","tier":"canon"}
+{"seed_key":"ANIME:158","media_type":"ANIME","kuro_id":158,"anilist_id":13601,"title":"PSYCHO-PASS","primary_realm":"cyberpunk-dystopia","family":"speculative-worlds","tier":"canon"}
+{"seed_key":"ANIME:15","media_type":"ANIME","kuro_id":15,"anilist_id":21519,"title":"Your Name.","primary_realm":"time-parallel-worlds","family":"speculative-worlds","tier":"canon"}
+{"seed_key":"ANIME:28","media_type":"ANIME","kuro_id":28,"anilist_id":21355,"title":"Re:ZERO -Starting Life in Another World-","primary_realm":"time-parallel-worlds","family":"speculative-worlds","tier":"canon"}
+{"seed_key":"ANIME:161","media_type":"ANIME","kuro_id":161,"anilist_id":431,"title":"Howl‘s Moving Castle","primary_realm":"auteur-cinema","family":"craft-art","tier":"canon"}
+{"seed_key":"ANIME:200","media_type":"ANIME","kuro_id":200,"anilist_id":164,"title":"Princess Mononoke","primary_realm":"auteur-cinema","family":"craft-art","tier":"canon"}
+{"seed_key":"ANIME:356","media_type":"ANIME","kuro_id":356,"anilist_id":11597,"title":"Nisemonogatari","primary_realm":"arthouse-experimental","family":"craft-art","tier":"canon"}
+{"seed_key":"ANIME:424","media_type":"ANIME","kuro_id":424,"anilist_id":9260,"title":"Kizumonogatari Part 1: Tekketsu","primary_realm":"arthouse-experimental","family":"craft-art","tier":"canon"}
+{"seed_key":"ANIME:12","media_type":"ANIME","kuro_id":12,"anilist_id":5114,"title":"Fullmetal Alchemist: Brotherhood","primary_realm":"classic-serial-canon","family":"craft-art","tier":"canon"}
+{"seed_key":"ANIME:20","media_type":"ANIME","kuro_id":20,"anilist_id":110277,"title":"Attack on Titan Final Season","primary_realm":"classic-serial-canon","family":"craft-art","tier":"canon"}
+{"seed_key":"ANIME:22","media_type":"ANIME","kuro_id":22,"anilist_id":21507,"title":"Mob Psycho 100","primary_realm":"comedy-parody","family":"laughter","tier":"canon"}
+{"seed_key":"ANIME:94","media_type":"ANIME","kuro_id":94,"anilist_id":101921,"title":"Kaguya-sama: Love is War","primary_realm":"comedy-parody","family":"laughter","tier":"canon"}
+{"seed_key":"ANIME:96","media_type":"ANIME","kuro_id":96,"anilist_id":4224,"title":"Toradora!","primary_realm":"romantic-comedy","family":"laughter","tier":"canon"}
+{"seed_key":"ANIME:135","media_type":"ANIME","kuro_id":135,"anilist_id":20923,"title":"Food Wars!","primary_realm":"romantic-comedy","family":"laughter","tier":"canon"}
+{"seed_key":"ANIME:30","media_type":"ANIME","kuro_id":30,"anilist_id":20464,"title":"HAIKYU!!","primary_realm":"sports-competition","family":"life-world","tier":"canon"}
+{"seed_key":"ANIME:139","media_type":"ANIME","kuro_id":139,"anilist_id":20992,"title":"HAIKYU!! 2nd Season","primary_realm":"sports-competition","family":"life-world","tier":"canon"}
+{"seed_key":"ANIME:220","media_type":"ANIME","kuro_id":220,"anilist_id":5680,"title":"K-ON!","primary_realm":"music-performance","family":"life-world","tier":"acclaimed"}
+{"seed_key":"ANIME:338","media_type":"ANIME","kuro_id":338,"anilist_id":877,"title":"NANA","primary_realm":"music-performance","family":"life-world","tier":"canon"}
+{"seed_key":"ANIME:227","media_type":"ANIME","kuro_id":227,"anilist_id":21518,"title":"Food Wars! The Second Plate","primary_realm":"food-craft","family":"life-world","tier":"canon"}
+{"seed_key":"ANIME:288","media_type":"ANIME","kuro_id":288,"anilist_id":99255,"title":"Food Wars! The Third Plate","primary_realm":"food-craft","family":"life-world","tier":"canon"}
+{"seed_key":"ANIME:172","media_type":"ANIME","kuro_id":172,"anilist_id":21776,"title":"Miss Kobayashi's Dragon Maid","primary_realm":"workplace-adult-life","family":"life-world","tier":"canon"}
+{"seed_key":"ANIME:177","media_type":"ANIME","kuro_id":177,"anilist_id":99578,"title":"Wotakoi: Love is Hard for Otaku","primary_realm":"workplace-adult-life","family":"life-world","tier":"canon"}
+{"seed_key":"ANIME:159","media_type":"ANIME","kuro_id":159,"anilist_id":2904,"title":"Code Geass: Lelouch of the Rebellion R2","primary_realm":"war-military","family":"intense","tier":"canon"}
+{"seed_key":"ANIME:176","media_type":"ANIME","kuro_id":176,"anilist_id":113936,"title":"Dr. STONE: STONE WARS","primary_realm":"war-military","family":"intense","tier":"canon"}
+{"seed_key":"ANIME:7","media_type":"ANIME","kuro_id":7,"anilist_id":11061,"title":"Hunter x Hunter (2011)","primary_realm":"crime-underworld","family":"intense","tier":"canon"}
+{"seed_key":"ANIME:124","media_type":"ANIME","kuro_id":124,"anilist_id":120120,"title":"Tokyo Revengers","primary_realm":"crime-underworld","family":"intense","tier":"acclaimed"}
+{"seed_key":"ANIME:92","media_type":"ANIME","kuro_id":92,"anilist_id":20447,"title":"Noragami","primary_realm":"supernatural-yokai","family":"intense","tier":"canon"}
+{"seed_key":"ANIME:111","media_type":"ANIME","kuro_id":111,"anilist_id":199,"title":"Spirited Away","primary_realm":"supernatural-yokai","family":"intense","tier":"canon"}
+{"seed_key":"ANIME:282","media_type":"ANIME","kuro_id":282,"anilist_id":21709,"title":"Yuri!!! on ICE","primary_realm":"bl-yuri","family":"relationships-identity","tier":"canon"}
+{"seed_key":"ANIME:313","media_type":"ANIME","kuro_id":313,"anilist_id":108430,"title":"given","primary_realm":"bl-yuri","family":"relationships-identity","tier":"canon"}
+{"seed_key":"ANIME:97","media_type":"ANIME","kuro_id":97,"anilist_id":140960,"title":"SPY x FAMILY","primary_realm":"family-generations","family":"relationships-identity","tier":"canon"}
+{"seed_key":"ANIME:183","media_type":"ANIME","kuro_id":183,"anilist_id":142838,"title":"SPY x FAMILY Cour 2","primary_realm":"family-generations","family":"relationships-identity","tier":"canon"}
+{"seed_key":"ANIME:195","media_type":"ANIME","kuro_id":195,"anilist_id":150672,"title":"Oshi No Ko","primary_realm":"idol-showbiz","family":"relationships-identity","tier":"canon"}
+{"seed_key":"ANIME:286","media_type":"ANIME","kuro_id":286,"anilist_id":437,"title":"Perfect Blue","primary_realm":"idol-showbiz","family":"relationships-identity","tier":"canon"}
+{"seed_key":"ANIME:271","media_type":"ANIME","kuro_id":271,"anilist_id":130003,"title":"BOCCHI THE ROCK!","primary_realm":"moe-cgdct","family":"otaku-register","tier":"canon"}
+{"seed_key":"ANIME:358","media_type":"ANIME","kuro_id":358,"anilist_id":18507,"title":"Free! -Iwatobi Swim Club-","primary_realm":"moe-cgdct","family":"otaku-register","tier":"canon"}
+{"seed_key":"ANIME:198","media_type":"ANIME","kuro_id":198,"anilist_id":127720,"title":"Mushoku Tensei: Jobless Reincarnation Cour 2","primary_realm":"ecchi-fanservice","family":"otaku-register","tier":"canon"}
+{"seed_key":"ANIME:339","media_type":"ANIME","kuro_id":339,"anilist_id":15451,"title":"High School DxD NEW","primary_realm":"ecchi-fanservice","family":"otaku-register","tier":"canon"}
+{"seed_key":"ANIME:2015","media_type":"ANIME","kuro_id":2015,"anilist_id":120150,"title":"Bungo Stray Dogs WAN!","primary_realm":"gag-short-form","family":"otaku-register","tier":"canon"}
+{"seed_key":"ANIME:4409","media_type":"ANIME","kuro_id":4409,"anilist_id":127690,"title":"PUI PUI MOLCAR","primary_realm":"gag-short-form","family":"otaku-register","tier":"canon"}
+{"seed_key":"ANIME:208","media_type":"ANIME","kuro_id":208,"anilist_id":124845,"title":"WONDER EGG PRIORITY","primary_realm":"seinen-drama","family":"seinen-alternative","tier":"acclaimed"}
+{"seed_key":"ANIME:250","media_type":"ANIME","kuro_id":250,"anilist_id":141391,"title":"Call of the Night","primary_realm":"seinen-drama","family":"seinen-alternative","tier":"canon"}
+{"seed_key":"ANIME:1621","media_type":"ANIME","kuro_id":1621,"anilist_id":7193,"title":"Blue Literature Series","primary_realm":"gekiga-alternative","family":"seinen-alternative","tier":"acclaimed"}
+{"seed_key":"ANIME:4152","media_type":"ANIME","kuro_id":4152,"anilist_id":9996,"title":"Hyouge Mono","primary_realm":"gekiga-alternative","family":"seinen-alternative","tier":"canon"}
+{"seed_key":"ANIME:374","media_type":"ANIME","kuro_id":374,"anilist_id":2890,"title":"Ponyo","primary_realm":"kids-family","family":"young","tier":"canon"}
+{"seed_key":"ANIME:410","media_type":"ANIME","kuro_id":410,"anilist_id":99468,"title":"Teasing Master Takagi-san","primary_realm":"kids-family","family":"young","tier":"canon"}
+{"seed_key":"MANGA:7","media_type":"MANGA","kuro_id":7,"anilist_id":30013,"title":"One Piece","primary_realm":"grand-adventure","family":"epic-adventure","tier":"canon"}
+{"seed_key":"MANGA:25","media_type":"MANGA","kuro_id":25,"anilist_id":86123,"title":"Black Clover","primary_realm":"grand-adventure","family":"epic-adventure","tier":"canon"}
+{"seed_key":"MANGA:84","media_type":"MANGA","kuro_id":84,"anilist_id":98416,"title":"Dr. STONE","primary_realm":"grand-adventure","family":"epic-adventure","tier":"canon"}
+{"seed_key":"MANGA:89","media_type":"MANGA","kuro_id":89,"anilist_id":118586,"title":"Frieren: Beyond Journey’s End","primary_realm":"grand-adventure","family":"epic-adventure","tier":"canon"}
+{"seed_key":"MANGA:130","media_type":"MANGA","kuro_id":130,"anilist_id":30598,"title":"Fairy Tail","primary_realm":"grand-adventure","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"MANGA:151","media_type":"MANGA","kuro_id":151,"anilist_id":86082,"title":"Delicious in Dungeon","primary_realm":"grand-adventure","family":"epic-adventure","tier":"canon"}
+{"seed_key":"MANGA:163","media_type":"MANGA","kuro_id":163,"anilist_id":105393,"title":"A Returner's Magic Should Be Special","primary_realm":"grand-adventure","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"MANGA:182","media_type":"MANGA","kuro_id":182,"anilist_id":109957,"title":"Second Life Ranker","primary_realm":"grand-adventure","family":"epic-adventure","tier":"canon"}
+{"seed_key":"MANGA:254","media_type":"MANGA","kuro_id":254,"anilist_id":110462,"title":"Tomb Raider King","primary_realm":"grand-adventure","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"MANGA:364","media_type":"MANGA","kuro_id":364,"anilist_id":113666,"title":"FFF-Class Trashero","primary_realm":"grand-adventure","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"MANGA:375","media_type":"MANGA","kuro_id":375,"anilist_id":151025,"title":"Mythic Item Obtained","primary_realm":"grand-adventure","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"MANGA:428","media_type":"MANGA","kuro_id":428,"anilist_id":120385,"title":"Log-in Murim","primary_realm":"grand-adventure","family":"epic-adventure","tier":"canon"}
+{"seed_key":"MANGA:465","media_type":"MANGA","kuro_id":465,"anilist_id":103255,"title":"Fairy Tail: 100 Years Quest","primary_realm":"grand-adventure","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"MANGA:494","media_type":"MANGA","kuro_id":494,"anilist_id":86720,"title":"Helck","primary_realm":"grand-adventure","family":"epic-adventure","tier":"canon"}
+{"seed_key":"MANGA:533","media_type":"MANGA","kuro_id":533,"anilist_id":101722,"title":"An Archdemon's Dilemma: How to Love Your Elf Bride","primary_realm":"grand-adventure","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"MANGA:786","media_type":"MANGA","kuro_id":786,"anilist_id":144079,"title":"Demon Devourer","primary_realm":"grand-adventure","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"MANGA:833","media_type":"MANGA","kuro_id":833,"anilist_id":99065,"title":"Ragna Crimson","primary_realm":"grand-adventure","family":"epic-adventure","tier":"acclaimed"}
+{"seed_key":"MANGA:4","media_type":"MANGA","kuro_id":4,"anilist_id":101517,"title":"Jujutsu Kaisen","primary_realm":"battle-shounen","family":"epic-adventure","tier":"canon"}
+{"seed_key":"MANGA:22","media_type":"MANGA","kuro_id":22,"anilist_id":30012,"title":"Bleach","primary_realm":"battle-shounen","family":"epic-adventure","tier":"canon"}
+{"seed_key":"MANGA:79","media_type":"MANGA","kuro_id":79,"anilist_id":30011,"title":"Naruto","primary_realm":"battle-shounen","family":"epic-adventure","tier":"canon"}
