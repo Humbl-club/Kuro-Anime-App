@@ -628,3 +628,10 @@ Phase 0 artifacts: `docs/superpowers/specs/2026-07-31-phase0-full-system-check.m
 - **Curation ingest (2026-08-02):** research doc + migration `20260802150000` pushed (JCAA, Annecy expand, Taishō/Kono backfill, Critic Consensus → named desks, seasonal table).
 - Deferred: taste indicators; owner canon unbless pass if needed; concurrent `media_realm_tier` refresh after large canon inserts.
 
+## Realm repair + critique ingestion — direction locked (2026-08-04)
+
+- Verification audit (repo + live DB + iOS) confirmed: penalty term inert, tier-refresh cron 0/4 (timeouts), raw-vs-effective membership split-brain, ~600 visible titles tier-less, similarity RPC timeouts, gold set unfilled, realm flags dark at 0%.
+- Owner locked the fix direction: three measurement layers (tags = subject only; craft lineage first-class; **critic ingestion** from trust-tiered niche sites parsed into fixed axes + quotes), verdict voice copy table, deadpan content-notes table, beautiful-trash shelf (joy ≠ acclaim), gates→costs, precomputed `media_similar_titles`.
+- Order: Repair → owner gold set → 10-site/200-title parser pilot → swarm → LLM regrade. Spec: `docs/superpowers/specs/2026-08-04-realm-repair-and-critique-plan.md`.
+- Status: **plan saved, nothing implemented yet.** Aug-2 working tree committed 2026-08-04 (`51c013e`, `e10a25d`, `ba198c3`); not pushed to origin.
+
