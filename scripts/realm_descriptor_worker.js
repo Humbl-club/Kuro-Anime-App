@@ -232,63 +232,90 @@ async function main() {
     appendProgress(pendingProgress.splice(0, pendingProgress.length));
   };
 
+  // Only checkpoint successes. Failures (esp. 429) must retry later and
+  // should not bloat the progress file.
+  const recordOk = (mediaType, mediaId) => {
+    pendingProgress.push({
+      media_type: mediaType,
+      media_id: mediaId,
+      ok: true,
+      error: null,
+      at: new Date().toISOString(),
+    });
+    ok += 1;
+  };
+
   if (args.batch) {
-    for (let i = 0; i < todo.length; i += args.batchSize) {
+    let rateLimitedStreak = 0;
+    for (let i = 0; i < todo.length; ) {
       const slice = todo.slice(i, i + args.batchSize);
+      let batchOk = 0;
+      let batchFail = 0;
+      let hit429 = false;
+      let retryHintSec = null;
       try {
         const result = await callDescribe(config, { batch: true, limit: slice.length });
         for (const r of result.results || []) {
-          const line = {
-            media_type: r.media_type,
-            media_id: r.media_id,
-            ok: !!r.ok,
-            error: r.error || null,
-            at: new Date().toISOString(),
-          };
-          pendingProgress.push(line);
-          if (r.ok) ok += 1;
-          else fail += 1;
+          if (r.ok) {
+            recordOk(r.media_type, r.media_id);
+            batchOk += 1;
+          } else {
+            batchFail += 1;
+            fail += 1;
+            const err = r.error || '';
+            if (err.includes('429') || /rate limit/i.test(err)) hit429 = true;
+            const m = err.match(/try again in ([0-9.]+)\s*s/i);
+            if (m) retryHintSec = Math.max(retryHintSec || 0, Number(m[1]));
+            log(`fail ${r.media_type}:${r.media_id} ${err.slice(0, 160)}`);
+          }
+        }
+        if (!result.results || result.results.length === 0) {
+          batchFail = slice.length;
+          fail += slice.length;
         }
       } catch (e) {
-        log(`batch error: ${e.message}`);
-        for (const p of slice) {
-          pendingProgress.push({
-            media_type: p.media_type,
-            media_id: p.media_id,
-            ok: false,
-            error: e.message.slice(0, 300),
-            at: new Date().toISOString(),
-          });
-          fail += 1;
-        }
+        const msg = e.message || String(e);
+        log(`batch error: ${msg.slice(0, 220)}`);
+        batchFail = slice.length;
+        fail += slice.length;
+        if (msg.includes('429') || /rate limit/i.test(msg) || e.status === 429) hit429 = true;
+        const m = msg.match(/try again in ([0-9.]+)\s*s/i);
+        if (m) retryHintSec = Number(m[1]);
         if (e.status === 401) break;
       }
-      // Flush after every batch so a killed worker never loses successful upserts.
+
       flush();
-      log(`progress ok=${ok} fail=${fail} / ${todo.length}`);
-      // Stay under Groq on_demand TPM (~8k).
-      await sleep(6000);
+      log(`progress ok=${ok} fail=${fail} / ${todo.length} (batch +${batchOk}/-${batchFail})`);
+
+      if (hit429 || batchOk === 0) {
+        rateLimitedStreak += 1;
+        const exponential = Math.min(600000, 60000 * (2 ** Math.min(rateLimitedStreak - 1, 4)));
+        const hinted = retryHintSec != null
+          ? Math.min(600000, Math.ceil(retryHintSec * 1000) + 2000)
+          : null;
+        const cool = Math.max(exponential, hinted || 0);
+        log(`rate-limit cool-down ${Math.round(cool / 1000)}s (streak=${rateLimitedStreak}${hinted != null ? ` hint=${retryHintSec}s` : ''})`);
+        await sleep(cool);
+        if (batchOk > 0) {
+          rateLimitedStreak = 0;
+          i += args.batchSize;
+        } else if (rateLimitedStreak >= 4) {
+          log('rate-limit streak high — yielding to outer drain loop');
+          break;
+        }
+      } else {
+        rateLimitedStreak = 0;
+        i += args.batchSize;
+        // ~1 title / 25–30s keeps on_demand TPM (~8k) healthy for llama-3.3-70b.
+        await sleep(Math.max(25000, slice.length * 20000));
+      }
     }
   } else {
     await mapPool(todo, args.concurrency, async (p) => {
       try {
         await callDescribe(config, { media_type: p.media_type, media_id: p.media_id });
-        pendingProgress.push({
-          media_type: p.media_type,
-          media_id: p.media_id,
-          ok: true,
-          error: null,
-          at: new Date().toISOString(),
-        });
-        ok += 1;
+        recordOk(p.media_type, p.media_id);
       } catch (e) {
-        pendingProgress.push({
-          media_type: p.media_type,
-          media_id: p.media_id,
-          ok: false,
-          error: (e.message || String(e)).slice(0, 300),
-          at: new Date().toISOString(),
-        });
         fail += 1;
         log(`fail ${p.media_type}:${p.media_id} ${e.message}`);
       }
@@ -299,7 +326,9 @@ async function main() {
 
   flush();
   console.log(JSON.stringify({ ok, fail, total: todo.length, progress: PROGRESS_PATH }));
-  if (fail > 0 && ok === 0) process.exit(1);
+  // Exit 0 even with partial failures so the outer drain keeps looping;
+  // exit 1 only when we made zero progress (likely hard misconfig).
+  if (ok === 0 && fail > 0) process.exit(1);
 }
 
 main().catch((error) => {

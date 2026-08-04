@@ -320,8 +320,11 @@ async function callGroq(
   system: string,
   user: string,
 ): Promise<string> {
+  // Fail-fast on 429 — do NOT sleep inside the edge request. Supabase Functions
+  // idle-timeout is 150s; sleeping here caused IDLE_TIMEOUT 504s while the Mac
+  // worker already owns cool-down. Transient empty responses get one short retry.
   let lastErr = "Groq failed";
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -340,9 +343,7 @@ async function callGroq(
     });
     const body = await res.json().catch(() => null);
     if (res.status === 429) {
-      lastErr = `Groq HTTP 429: ${JSON.stringify(body)?.slice(0, 220)}`;
-      await new Promise((r) => setTimeout(r, 8000 + attempt * 4000));
-      continue;
+      throw new Error(`Groq HTTP 429: ${JSON.stringify(body)?.slice(0, 220)}`);
     }
     if (!res.ok) {
       throw new Error(`Groq HTTP ${res.status}: ${JSON.stringify(body)?.slice(0, 300)}`);
@@ -350,7 +351,7 @@ async function callGroq(
     const content = body?.choices?.[0]?.message?.content;
     if (typeof content === "string" && content.trim()) return content;
     lastErr = "Groq returned empty content";
-    await new Promise((r) => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 800));
   }
   throw new Error(lastErr);
 }
@@ -372,7 +373,13 @@ async function generateOne(
     const nudge = attempt === 0
       ? user
       : `${user}\n\nPrevious output failed validation: ${lastErrors.join("; ")}. Return ONLY valid JSON matching the schema.`;
-    const raw = await callGroq(groqKey, groqModel, system, nudge);
+    let raw: string;
+    try {
+      raw = await callGroq(groqKey, groqModel, system, nudge);
+    } catch (e) {
+      // Propagate rate-limits immediately (no validation retry burn).
+      throw e;
+    }
     let parsed: Record<string, unknown>;
     try {
       parsed = extractJsonObject(raw) as Record<string, unknown>;
@@ -467,13 +474,16 @@ serve(async (req) => {
           rows.push(row);
           results.push({ media_type: p.media_type, media_id: p.media_id, ok: true });
         } catch (e) {
+          const msg = (e as Error).message?.slice(0, 300) || "failed";
           console.error(`[realm-describe] fail ${p.media_type}:${p.media_id}`, e);
           results.push({
             media_type: p.media_type,
             media_id: p.media_id,
             ok: false,
-            error: (e as Error).message?.slice(0, 300),
+            error: msg,
           });
+          // Stop batch on rate-limit so remaining titles aren't wasted burns.
+          if (msg.includes("429") || /rate limit/i.test(msg)) break;
         }
       }
       // One upsert call per batch (≤25 rows) so the 600/hr RPC budget can drain ~15k/hr.
@@ -510,6 +520,8 @@ serve(async (req) => {
     return json({ success: true, descriptor: row });
   } catch (e) {
     console.error("[realm-describe]", e);
-    return json({ error: (e as Error).message?.slice(0, 500) || "failed" }, 500);
+    const msg = (e as Error).message?.slice(0, 500) || "failed";
+    const status = msg.includes("429") || /rate limit/i.test(msg) ? 429 : 500;
+    return json({ error: msg }, status);
   }
 });

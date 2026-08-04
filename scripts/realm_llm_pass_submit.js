@@ -35,9 +35,10 @@
   to 3 waits, then aborts. Reruns are safe: the RPC is an upsert.
 
   Env:
-    KURO_TEST_JWT        Bearer token (test account). Required unless --dry-run.
-    SUPABASE_URL         Optional override; default parsed from Config/Shared.xcconfig.
-    SUPABASE_ANON_KEY    Optional override; default parsed from Config/Shared.xcconfig.
+    SUPABASE_SERVICE_ROLE_KEY  Preferred writer (upsert is service_role-only after
+                               20260802017000). Required unless --dry-run.
+    KURO_TEST_JWT              Legacy fallback; will 401 if authenticated revoked.
+    SUPABASE_URL / SUPABASE_ANON_KEY  Optional; default from Config/Shared.xcconfig.
 */
 
 const fs = require('fs');
@@ -103,7 +104,14 @@ function loadSupabaseConfig() {
   if (!url || !anonKey) {
     throw new Error('Missing SUPABASE_URL / SUPABASE_ANON_KEY (env or Config/Shared.xcconfig).');
   }
-  return { url: url.replace(/\/+$/, ''), anonKey, jwt: process.env.KURO_TEST_JWT || null };
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || null;
+  const jwt = serviceKey || process.env.KURO_TEST_JWT || null;
+  return {
+    url: url.replace(/\/+$/, ''),
+    anonKey,
+    jwt,
+    usingServiceRole: Boolean(serviceKey),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -288,7 +296,10 @@ async function main() {
   const args = parseArgs(process.argv);
   const config = loadSupabaseConfig();
   if (!args.dryRun && !config.jwt) {
-    throw new Error('Missing KURO_TEST_JWT env var (bearer for upsert_media_realm_llm). Only --dry-run works without it.');
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY (preferred) or KURO_TEST_JWT. Only --dry-run works without it.');
+  }
+  if (!args.dryRun && !config.usingServiceRole) {
+    log('WARNING: submitting with KURO_TEST_JWT — upsert is service_role-only; expect 401 unless grants were restored.');
   }
 
   const realmNames = await fetchRealmNames(config);
