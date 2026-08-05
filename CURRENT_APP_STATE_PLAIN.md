@@ -1077,3 +1077,7 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **The recommendation engine now leads with what real fans recommend** (community recommendation data), with Kuro's quality/realm gates demoting the junk instead of computing neighbors from tags alone. Spirited Away's "more like this" is now literally the Miyazaki shelf; Berserk's is Vinland Saga, Vagabond, Claymore.
 - **Quality is measured, not claimed**: on the 100-seed gold benchmark, similar-titles precision jumped from 51% to **82%** (the theoretical ceiling of the data is 85%).
 - Also fixed: the daily hero's description no longer renders in all-lowercase.
+
+### 2026-08-05 (night) — Real critics are in the database now, and sequels stopped hijacking rails
+- The "what critics say" layer exists: 25 real reviews from named critics (English and Japanese) parsed into structured verdicts with exact quotes — every quote mechanically verified against the original article, nothing misattributed, nothing stored as full text. Small on purpose: the pilot proved the machine works; coverage grows with more approved sources.
+- Rails now recommend franchises by their proper starting point — "similar to Tokyo Revengers" suggests My Hero Academia season 1, not a mid-franchise movie.
