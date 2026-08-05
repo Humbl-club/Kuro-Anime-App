@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-08-05T17:01:03.770Z",
+ "generated_at": "2026-08-05T21:24:06.860Z",
  "summary": "13 PASS / 0 FAIL / 1 SOFT-FAIL / 1 SKIP-or-WARN",
  "results": [
   {
@@ -25,7 +25,7 @@
   {
    "id": "G3",
    "verdict": "SOFT-FAIL",
-   "evidence": "Hanako S2 rank 24 vs Wolf Children absent (known SOFT-FAIL: importer isMain gap + tag space)"
+   "evidence": "Hanako S2 rank absent vs Wolf Children absent (known SOFT-FAIL: importer isMain gap + tag space)"
   },
   {
    "id": "G4",
@@ -65,7 +65,7 @@
   {
    "id": "S2",
    "verdict": "PASS",
-   "evidence": "gold eval: 100/100 scored, generated 2026-08-05T16:57:26.567Z (heuristic labels; timeouts are the metric)"
+   "evidence": "gold eval: 100/100 scored, generated 2026-08-05T17:10:05.096Z (heuristic labels; timeouts are the metric)"
   },
   {
    "id": "H1",
