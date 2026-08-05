@@ -496,3 +496,58 @@ select counts from media_similar_titles / media_similar_seed_state; spot-check F
 | CRON | **PASS** | drive-5m batch 100 + nightly 05:10 active; last real green build 184.9 s; no leftover one-offs |
 | ACL | **PASS** | Tables + builder + _live locked to postgres/service_role; RPC grants unchanged; 3 pre-existing ERRORs only |
 | HEALTH | **PASS** | 12 conns, 0 stuck; 19:20 cron-slot blackout matches OOM narrative; work_mem override gone |
+
+---
+
+# M4 verify (2026-08-05 00:18 UTC, Fix 6 — hygiene)
+
+- **Migration under test:** `20260804150000_hygiene_ops_fn_and_view_advisors.sql` (applied)
+- **Method:** Management API (SELECT-only), PostgREST probes as anon + demo authenticated user, repo greps. All claims re-derived.
+
+## H1 — secret-scraping scaffolding gone, no dangling callers — PASS
+
+```sql
+select proname from pg_proc … where proname like '\_ops\_%' or proname = 'enqueue_realm_describe_batch';   -- []
+select proname from pg_proc … where prosrc ilike any of the four dropped names;                            -- []
+select jobid, jobname from cron.job where command references either;                                       -- []
+```
+
+- `pg_proc`: **zero rows** for `_ops_%` functions and `enqueue_realm_describe_batch`.
+- Caller sanity-check of the implementer's claim: `prosrc` scan across all public functions for `_ops_import_secret_from_cron`, `enqueue_realm_describe_batch`, `_ops_peek_import_secret`, `_ops_list_import_crons` → **zero hits**; `cron.job.command` scan → **zero hits**; repo scan (`Kuro/`, `scripts/`, `supabase/functions/`, `eval/`) → **zero hits**. Nothing referenced the dropped pair; the claim holds.
+
+## H2 — security advisors — PASS
+
+Management API `advisors/security`: 169 findings, **ERROR count = 0** (was 3 in M3). The `security_definer_view` trio is cleared; remaining findings are WARN/INFO only.
+
+## VIEWS — invoker flag, bodies, ACLs — PASS
+
+| view | reloptions | relacl (postgres owner implied) |
+|---|---|---|
+| realm_affinity_effective | `security_invoker=true` | **service_role=r only** (anon/authenticated FULL-privilege grant removed) |
+| media_realm_llm_pending | `security_invoker=true` | **authenticated=r, service_role=r** (no anon) |
+| media_realm_profile | `security_invoker=true` | **authenticated=r, service_role=r** — **NO anon** |
+
+Bodies vs repo definitions (`20260731150000:263`, `20260731170000:305`, `20260804120000` §3): `pg_get_viewdef` output matches each migration definition column-for-column and join-for-join; the only differences are the pretty-printer's normalizations (`::real` self-cast elided, `not in (…)` rendered `<> ALL(ARRAY[…])`, `order by popularity desc, media_type, media_id` rendered `ORDER BY 4 DESC, 1, 2`). `ALTER VIEW … SET (security_invoker)` cannot rewrite the stored rule by construction; semantic equality confirmed.
+
+## REG — consumer regression — PASS
+
+- Hot path: seed 111 `p_limit 12` authed via PostgREST → **200, 12 rows**, first = 200 @ 0.680187, 101 ms.
+- **Fallback path (the one that actually traverses `realm_affinity_effective`):** seed ANIME 13 (SAO, avg 69 — visible-pool-excluded, has vectors, no store rows → routes to `_recommend_ids_similar_to_seeds_live`) authed → **200, 12 rows** (1.44 s, expected live-path latency). Invoker-mode view read inside the SECURITY DEFINER function still executes as owner — no permission regression for callers who themselves hold no grant on the view.
+- `fetch_my_taste_profile` (demo JWT) → **200**, returns realm vector (battle-shounen 0.4062, dark-fantasy 0.3956, …).
+- Anon `GET /rest/v1/media_realm_profile?limit=1` → **HTTP 401, SQLSTATE 42501 "permission denied for view media_realm_profile"**. Authenticated same read → 200 with a row (retained ops surface).
+
+## CRON-WATCH — overnight jobs — PASS (as of 00:18 UTC)
+
+- `realm-tier-refresh` (jobid 51): **no run yet today — first scheduled fire is 04:50 UTC**, which had not arrived at verification time (00:18 UTC). Zero historical runs under this jobid is expected (scheduled by M2 on 2026-08-04 after 04:50); the rebuild it invokes was proven green in M2 (one-off, 136.3 s).
+- `realm-similar-drive-5m` (jobid 87): last 12 fires (23:20 → 00:15 UTC) **all succeeded** — no-ops of 0.3–3.9 s plus one real 60.9 s batch at 00:05 (hourly imports added visible titles; the driver picked them up within minutes — the self-healing convergence working as designed).
+- `realm-similar-nightly` (jobid 54): 05:10 UTC, not yet due; no anomalous runs in window.
+
+## M4 verdict table
+
+| Check | Verdict | Evidence |
+|---|---|---|
+| H1 | **PASS** | 0 `_ops_%`/enqueue rows in pg_proc; prosrc + cron + repo caller scans all empty |
+| H2 | **PASS** | Security advisors: ERROR = 0 (169 findings, WARN/INFO only) |
+| VIEWS | **PASS** | All 3 `security_invoker=true`; bodies match migrations (printer normalization only); ACLs exactly as specified, no anon on profile |
+| REG | **PASS** | Seed-111 12 rows @ 101 ms; fallback seed-13 12 rows (view traversal OK); taste profile 200; anon profile read = 401/42501 |
+| CRON-WATCH | **PASS** | Driver 12/12 green (incl. real 60.9 s pickup batch); tier-refresh first fire 04:50 UTC still ahead at check time |

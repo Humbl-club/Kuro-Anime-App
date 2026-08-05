@@ -1,0 +1,81 @@
+{
+ "generated_at": "2026-08-05T00:19:52.911Z",
+ "summary": "12 PASS / 0 FAIL / 1 SOFT-FAIL / 2 SKIP-or-WARN",
+ "results": [
+  {
+   "id": "P1",
+   "verdict": "PASS",
+   "evidence": "Berserk top-25 penalty-tag rows: 0 (want 0), 25 results"
+  },
+  {
+   "id": "P2",
+   "verdict": "PASS",
+   "evidence": "penalized snapshot candidates back in top-25: 0 of 11"
+  },
+  {
+   "id": "G1",
+   "verdict": "PASS",
+   "evidence": "Ghibli-class anchors in top-12: Princess Mononoke, Howl‘s Moving Castle, Ponyo, My Neighbor Totoro"
+  },
+  {
+   "id": "G2",
+   "verdict": "PASS",
+   "evidence": "Totoro rank: 10"
+  },
+  {
+   "id": "G3",
+   "verdict": "SOFT-FAIL",
+   "evidence": "Hanako S2 rank 8 vs Wolf Children 22 (known SOFT-FAIL: importer isMain gap + tag space)"
+  },
+  {
+   "id": "G4",
+   "verdict": "PASS",
+   "evidence": "vending-class titles in SA top-25: 0"
+  },
+  {
+   "id": "G5",
+   "verdict": "PASS",
+   "evidence": "Perfect Blue/Paprika realm rows >=0.2: 11 (structural path exists; genre-overlap cliff caveat recorded)"
+  },
+  {
+   "id": "T1",
+   "verdict": "PASS",
+   "evidence": "visible titles with effective membership >=0.25 and no tier row: 0"
+  },
+  {
+   "id": "T2",
+   "verdict": "PASS",
+   "evidence": "111=supernatural-yokai/canon, 221=kids-family/canon"
+  },
+  {
+   "id": "C1",
+   "verdict": "PASS",
+   "evidence": "realm-tier-refresh 50 4 * * * active=true"
+  },
+  {
+   "id": "C2",
+   "verdict": "WARN",
+   "evidence": "last run: null"
+  },
+  {
+   "id": "S1",
+   "verdict": "SKIP",
+   "evidence": "--skip-latency"
+  },
+  {
+   "id": "S2",
+   "verdict": "PASS",
+   "evidence": "gold eval: 100/100 scored, generated 2026-08-04T23:50:04.787Z (heuristic labels; timeouts are the metric)"
+  },
+  {
+   "id": "H1",
+   "verdict": "PASS",
+   "evidence": "_ops_*/enqueue_realm_describe_batch functions remaining: 0"
+  },
+  {
+   "id": "H2",
+   "verdict": "PASS",
+   "evidence": "security advisor ERRORs: 0"
+  }
+ ]
+}
