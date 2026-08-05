@@ -1,46 +1,82 @@
 {
   "summary": {
     "n_seeds": 100,
-    "n_scored": 47,
-    "mean_p10_raw": 0.8085106382978722,
-    "mean_p10_gated": 0.251063829787234,
-    "mean_p10_intersect": 0.18936170212765951,
-    "delta_intersect_minus_gated": -0.0617021276595745,
+    "n_scored": 100,
+    "mean_p10_raw": 0.8169999999999988,
+    "mean_p10_gated": 0.1990000000000001,
+    "mean_p10_intersect": 0.1449999999999999,
+    "delta_intersect_minus_gated": -0.05400000000000019,
     "ship_threshold": 0.05,
     "ship_edges_into_ranking": false,
     "note": "Judgments are heuristic-bootstrap unless owner-replaced. Do not ship on heuristic alone.",
-    "generated_at": "2026-08-02T11:30:04.222Z"
+    "generated_at": "2026-08-04T23:50:04.787Z"
   },
   "rows": [
     {
       "seed_key": "ANIME:11",
       "title": "ONE PIECE",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 43,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.3,
+      "p10_intersect": 0.3
     },
     {
       "seed_key": "ANIME:91",
       "title": "Black Clover",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.2,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:3",
       "title": "Demon Slayer: Kimetsu no Yaiba",
-      "skip": "gated timeout"
+      "realm": "battle-shounen",
+      "family": "epic-adventure",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.4,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:5",
       "title": "JUJUTSU KAISEN",
-      "skip": "gated timeout"
+      "realm": "battle-shounen",
+      "family": "epic-adventure",
+      "n_relevant": 44,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.4,
+      "p10_intersect": 0.3
     },
     {
       "seed_key": "ANIME:2",
       "title": "Attack on Titan",
-      "skip": "gated timeout"
+      "realm": "dark-fantasy",
+      "family": "epic-adventure",
+      "n_relevant": 41,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.3,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:9",
       "title": "Tokyo Ghoul",
-      "skip": "gated timeout"
+      "realm": "dark-fantasy",
+      "family": "epic-adventure",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.2,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:93",
@@ -50,8 +86,8 @@
       "n_relevant": 8,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.1,
-      "p10_intersect": 0.1
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:125",
@@ -62,22 +98,40 @@
       "n_edges": 25,
       "p10_raw": 0.8,
       "p10_gated": 0.3,
-      "p10_intersect": 0.2
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:189",
       "title": "Hell’s Paradise",
-      "skip": "gated timeout"
+      "realm": "sword-samurai",
+      "family": "epic-adventure",
+      "n_relevant": 28,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:229",
       "title": "Fate/stay night: Unlimited Blade Works",
-      "skip": "gated timeout"
+      "realm": "sword-samurai",
+      "family": "epic-adventure",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:102",
       "title": "Vinland Saga",
-      "skip": "gated timeout"
+      "realm": "historical-epic",
+      "family": "epic-adventure",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.1,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:233",
@@ -87,18 +141,30 @@
       "n_relevant": 42,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.2,
+      "p10_gated": 0.1,
       "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:98",
       "title": "Violet Evergarden",
-      "skip": "gated timeout"
+      "realm": "quiet-melancholy",
+      "family": "emotional-core",
+      "n_relevant": 42,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.7,
+      "p10_intersect": 0.4
     },
     {
       "seed_key": "ANIME:153",
       "title": "Dororo",
-      "skip": "gated timeout"
+      "realm": "quiet-melancholy",
+      "family": "emotional-core",
+      "n_relevant": 45,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.5,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:23",
@@ -119,8 +185,8 @@
       "n_relevant": 43,
       "n_edges": 25,
       "p10_raw": 0.9,
-      "p10_gated": 0.6,
-      "p10_intersect": 0.5
+      "p10_gated": 0.5,
+      "p10_intersect": 0.4
     },
     {
       "seed_key": "ANIME:167",
@@ -130,7 +196,7 @@
       "n_relevant": 44,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.2,
+      "p10_gated": 0,
       "p10_intersect": 0
     },
     {
@@ -152,7 +218,7 @@
       "n_relevant": 41,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.4,
+      "p10_gated": 0.6,
       "p10_intersect": 0.4
     },
     {
@@ -163,8 +229,8 @@
       "n_relevant": 28,
       "n_edges": 25,
       "p10_raw": 0.9,
-      "p10_gated": 0.4,
-      "p10_intersect": 0.3
+      "p10_gated": 0.3,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:336",
@@ -174,7 +240,7 @@
       "n_relevant": 28,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.3,
+      "p10_gated": 0.2,
       "p10_intersect": 0.2
     },
     {
@@ -185,8 +251,8 @@
       "n_relevant": 8,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.1,
-      "p10_intersect": 0.1
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:4",
@@ -207,8 +273,8 @@
       "n_relevant": 46,
       "n_edges": 25,
       "p10_raw": 1,
-      "p10_gated": 0.3,
-      "p10_intersect": 0.3
+      "p10_gated": 0.4,
+      "p10_intersect": 0.4
     },
     {
       "seed_key": "ANIME:24",
@@ -218,13 +284,19 @@
       "n_relevant": 41,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.2,
-      "p10_intersect": 0.2
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:162",
       "title": "Hyouka",
-      "skip": "gated timeout"
+      "realm": "mystery-detective",
+      "family": "mind-thrill",
+      "n_relevant": 28,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:141",
@@ -234,7 +306,7 @@
       "n_relevant": 44,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.6,
+      "p10_gated": 0.5,
       "p10_intersect": 0.4
     },
     {
@@ -245,8 +317,8 @@
       "n_relevant": 25,
       "n_edges": 24,
       "p10_raw": 0.9,
-      "p10_gated": 0.4,
-      "p10_intersect": 0.1
+      "p10_gated": 0.3,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:112",
@@ -267,13 +339,19 @@
       "n_relevant": 8,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.3,
-      "p10_intersect": 0.3
+      "p10_gated": 0.2,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:241",
       "title": "Plastic Memories",
-      "skip": "gated timeout"
+      "realm": "sci-fi-space",
+      "family": "speculative-worlds",
+      "n_relevant": 44,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.2,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:429",
@@ -283,8 +361,8 @@
       "n_relevant": 42,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.3,
-      "p10_intersect": 0.2
+      "p10_gated": 0.2,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:109",
@@ -294,7 +372,7 @@
       "n_relevant": 48,
       "n_edges": 25,
       "p10_raw": 0.9,
-      "p10_gated": 0.2,
+      "p10_gated": 0.3,
       "p10_intersect": 0.2
     },
     {
@@ -306,7 +384,7 @@
       "n_edges": 25,
       "p10_raw": 0.8,
       "p10_gated": 0.5,
-      "p10_intersect": 0.5
+      "p10_intersect": 0.4
     },
     {
       "seed_key": "ANIME:117",
@@ -327,8 +405,8 @@
       "n_relevant": 44,
       "n_edges": 25,
       "p10_raw": 0.9,
-      "p10_gated": 0.4,
-      "p10_intersect": 0.3
+      "p10_gated": 0.5,
+      "p10_intersect": 0.4
     },
     {
       "seed_key": "ANIME:15",
@@ -338,13 +416,19 @@
       "n_relevant": 45,
       "n_edges": 25,
       "p10_raw": 0.9,
-      "p10_gated": 0.5,
+      "p10_gated": 0.6,
       "p10_intersect": 0.3
     },
     {
       "seed_key": "ANIME:28",
       "title": "Re:ZERO -Starting Life in Another World-",
-      "skip": "gated timeout"
+      "realm": "time-parallel-worlds",
+      "family": "speculative-worlds",
+      "n_relevant": 41,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:161",
@@ -360,7 +444,13 @@
     {
       "seed_key": "ANIME:200",
       "title": "Princess Mononoke",
-      "skip": "gated timeout"
+      "realm": "auteur-cinema",
+      "family": "craft-art",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.3,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:356",
@@ -381,23 +471,41 @@
       "n_relevant": 8,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.1,
-      "p10_intersect": 0.1
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:12",
       "title": "Fullmetal Alchemist: Brotherhood",
-      "skip": "gated timeout"
+      "realm": "classic-serial-canon",
+      "family": "craft-art",
+      "n_relevant": 42,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.4,
+      "p10_intersect": 0.4
     },
     {
       "seed_key": "ANIME:20",
       "title": "Attack on Titan Final Season",
-      "skip": "gated timeout"
+      "realm": "classic-serial-canon",
+      "family": "craft-art",
+      "n_relevant": 8,
+      "n_edges": 13,
+      "p10_raw": 0.8,
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:22",
       "title": "Mob Psycho 100",
-      "skip": "gated timeout"
+      "realm": "comedy-parody",
+      "family": "laughter",
+      "n_relevant": 43,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.4,
+      "p10_intersect": 0.3
     },
     {
       "seed_key": "ANIME:94",
@@ -408,7 +516,7 @@
       "n_edges": 25,
       "p10_raw": 0.8,
       "p10_gated": 0.2,
-      "p10_intersect": 0.1
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:96",
@@ -429,8 +537,8 @@
       "n_relevant": 8,
       "n_edges": 24,
       "p10_raw": 0.8,
-      "p10_gated": 0.1,
-      "p10_intersect": 0.1
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:30",
@@ -457,7 +565,13 @@
     {
       "seed_key": "ANIME:220",
       "title": "K-ON!",
-      "skip": "gated timeout"
+      "realm": "music-performance",
+      "family": "life-world",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:338",
@@ -467,8 +581,8 @@
       "n_relevant": 47,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.6,
-      "p10_intersect": 0.5
+      "p10_gated": 0.4,
+      "p10_intersect": 0.4
     },
     {
       "seed_key": "ANIME:227",
@@ -478,8 +592,8 @@
       "n_relevant": 5,
       "n_edges": 5,
       "p10_raw": 0.5,
-      "p10_gated": 0,
-      "p10_intersect": 0
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:288",
@@ -495,37 +609,79 @@
     {
       "seed_key": "ANIME:172",
       "title": "Miss Kobayashi's Dragon Maid",
-      "skip": "gated timeout"
+      "realm": "workplace-adult-life",
+      "family": "life-world",
+      "n_relevant": 47,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:177",
       "title": "Wotakoi: Love is Hard for Otaku",
-      "skip": "gated timeout"
+      "realm": "workplace-adult-life",
+      "family": "life-world",
+      "n_relevant": 48,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.2,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:159",
       "title": "Code Geass: Lelouch of the Rebellion R2",
-      "skip": "gated timeout"
+      "realm": "war-military",
+      "family": "intense",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:176",
       "title": "Dr. STONE: STONE WARS",
-      "skip": "gated timeout"
+      "realm": "war-military",
+      "family": "intense",
+      "n_relevant": 28,
+      "n_edges": 8,
+      "p10_raw": 0.8,
+      "p10_gated": 0.1,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:7",
       "title": "Hunter x Hunter (2011)",
-      "skip": "gated timeout"
+      "realm": "crime-underworld",
+      "family": "intense",
+      "n_relevant": 42,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.4,
+      "p10_intersect": 0.3
     },
     {
       "seed_key": "ANIME:124",
       "title": "Tokyo Revengers",
-      "skip": "gated timeout"
+      "realm": "crime-underworld",
+      "family": "intense",
+      "n_relevant": 47,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:92",
       "title": "Noragami",
-      "skip": "gated timeout"
+      "realm": "supernatural-yokai",
+      "family": "intense",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.2,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:111",
@@ -535,8 +691,8 @@
       "n_relevant": 27,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.3,
-      "p10_intersect": 0.3
+      "p10_gated": 0.4,
+      "p10_intersect": 0.4
     },
     {
       "seed_key": "ANIME:282",
@@ -546,8 +702,8 @@
       "n_relevant": 48,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.3,
-      "p10_intersect": 0
+      "p10_gated": 0.2,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:313",
@@ -568,8 +724,8 @@
       "n_relevant": 45,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.5,
-      "p10_intersect": 0.3
+      "p10_gated": 0.4,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:183",
@@ -579,8 +735,8 @@
       "n_relevant": 8,
       "n_edges": 19,
       "p10_raw": 0.8,
-      "p10_gated": 0.2,
-      "p10_intersect": 0.2
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:195",
@@ -590,8 +746,8 @@
       "n_relevant": 46,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.1,
-      "p10_intersect": 0.1
+      "p10_gated": 0.3,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:286",
@@ -601,8 +757,8 @@
       "n_relevant": 44,
       "n_edges": 24,
       "p10_raw": 0.8,
-      "p10_gated": 0.4,
-      "p10_intersect": 0.4
+      "p10_gated": 0.3,
+      "p10_intersect": 0.3
     },
     {
       "seed_key": "ANIME:271",
@@ -612,13 +768,19 @@
       "n_relevant": 43,
       "n_edges": 25,
       "p10_raw": 0.9,
-      "p10_gated": 0,
-      "p10_intersect": 0
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:358",
       "title": "Free! -Iwatobi Swim Club-",
-      "skip": "gated timeout"
+      "realm": "moe-cgdct",
+      "family": "otaku-register",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.2,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:198",
@@ -634,12 +796,24 @@
     {
       "seed_key": "ANIME:339",
       "title": "High School DxD NEW",
-      "skip": "gated timeout"
+      "realm": "ecchi-fanservice",
+      "family": "otaku-register",
+      "n_relevant": 8,
+      "n_edges": 13,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:2015",
       "title": "Bungo Stray Dogs WAN!",
-      "skip": "gated timeout"
+      "realm": "gag-short-form",
+      "family": "otaku-register",
+      "n_relevant": 8,
+      "n_edges": 21,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:4409",
@@ -655,17 +829,35 @@
     {
       "seed_key": "ANIME:208",
       "title": "WONDER EGG PRIORITY",
-      "skip": "gated timeout"
+      "realm": "seinen-drama",
+      "family": "seinen-alternative",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:250",
       "title": "Call of the Night",
-      "skip": "gated timeout"
+      "realm": "seinen-drama",
+      "family": "seinen-alternative",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:1621",
       "title": "Blue Literature Series",
-      "skip": "gated timeout"
+      "realm": "gekiga-alternative",
+      "family": "seinen-alternative",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "ANIME:4152",
@@ -675,8 +867,8 @@
       "n_relevant": 8,
       "n_edges": 20,
       "p10_raw": 0.8,
-      "p10_gated": 0.1,
-      "p10_intersect": 0.1
+      "p10_gated": 0.2,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:374",
@@ -692,107 +884,233 @@
     {
       "seed_key": "ANIME:410",
       "title": "Teasing Master Takagi-san",
-      "skip": "gated timeout"
+      "realm": "kids-family",
+      "family": "young",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "MANGA:7",
       "title": "One Piece",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 40,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.5,
+      "p10_intersect": 0.5
     },
     {
       "seed_key": "MANGA:25",
       "title": "Black Clover",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 43,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "MANGA:84",
       "title": "Dr. STONE",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 46,
+      "n_edges": 24,
+      "p10_raw": 0.8,
+      "p10_gated": 0.3,
+      "p10_intersect": 0
     },
     {
       "seed_key": "MANGA:89",
       "title": "Frieren: Beyond Journey’s End",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.3,
+      "p10_intersect": 0.3
     },
     {
       "seed_key": "MANGA:130",
       "title": "Fairy Tail",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "MANGA:151",
       "title": "Delicious in Dungeon",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 45,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.3,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "MANGA:163",
       "title": "A Returner's Magic Should Be Special",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 45,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "MANGA:182",
       "title": "Second Life Ranker",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 28,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "MANGA:254",
       "title": "Tomb Raider King",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 8,
+      "n_edges": 24,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "MANGA:364",
       "title": "FFF-Class Trashero",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "MANGA:375",
       "title": "Mythic Item Obtained",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 8,
+      "n_edges": 18,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "MANGA:428",
       "title": "Log-in Murim",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "MANGA:465",
       "title": "Fairy Tail: 100 Years Quest",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "MANGA:494",
       "title": "Helck",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 28,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.5,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "MANGA:533",
       "title": "An Archdemon's Dilemma: How to Love Your Elf Bride",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 8,
+      "n_edges": 24,
+      "p10_raw": 0.8,
+      "p10_gated": 0.1,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "MANGA:786",
       "title": "Demon Devourer",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 8,
+      "n_edges": 12,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "MANGA:833",
       "title": "Ragna Crimson",
-      "skip": "gated timeout"
+      "realm": "grand-adventure",
+      "family": "epic-adventure",
+      "n_relevant": 8,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "MANGA:4",
       "title": "Jujutsu Kaisen",
-      "skip": "gated timeout"
+      "realm": "battle-shounen",
+      "family": "epic-adventure",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.8,
+      "p10_gated": 0.2,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "MANGA:22",
       "title": "Bleach",
-      "skip": "gated timeout"
+      "realm": "battle-shounen",
+      "family": "epic-adventure",
+      "n_relevant": 27,
+      "n_edges": 25,
+      "p10_raw": 0.9,
+      "p10_gated": 0.3,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "MANGA:79",
       "title": "Naruto",
-      "skip": "gated timeout"
+      "realm": "battle-shounen",
+      "family": "epic-adventure",
+      "n_relevant": 25,
+      "n_edges": 24,
+      "p10_raw": 0.8,
+      "p10_gated": 0.3,
+      "p10_intersect": 0.2
     }
   ]
 }

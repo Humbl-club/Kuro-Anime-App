@@ -428,3 +428,71 @@ Latest `cron.job_run_details` for the rebuild command (jobid 52, the one-off): *
 | STRUCT | **PASS** | relkind r, RLS on, select-only policy, unique (media_type,media_id), proacl postgres+service_role only |
 | REG | **PASS** | SA top-12 bit-identical incl. Totoro #10 @ 0.3458; profile view resolves; distribution sane |
 | SEM | **PASS** | 9/9 recorded before-tiers unchanged; canon 3,513 → 3,229 (no explosion) |
+
+---
+
+# M3 verify (2026-08-05 run, Fix 5 — precompute serving)
+
+- **Migrations under test:** `20260804130000_media_similar_titles_precompute.sql`, `20260804131000_similar_builder_oom_fix.sql`, `20260804132000_similar_driver_batch_100.sql` (all applied)
+- **Method:** Management API (SELECT-only) for DB evidence; PostgREST with the demo authenticated user for latency + exclusion; `scripts/eval_realm_rec_gold.js` run fresh locally. All numbers re-derived.
+
+## S1 — authenticated PostgREST latency — PASS
+
+Signed in as the demo user (`kuro-visual-demo-2026@mailbox.invalid`, role authenticated, uid `5ae7c460-…`). 2 untimed warmups, then 20 timed calls (`p_limit 12`, 5 each over seeds ANIME 111, MANGA 5, ANIME 92, MANGA 16), all HTTP 200:
+
+**p50 = 93 ms · p95 = 105 ms · min 82 ms · max 115 ms** — target < 200 ms met with 2x headroom; every single call was under 200 ms. (Baseline for comparison, M1: p50 1.91 s / p95 3.61 s via Management API; pre-M1: 53/100 gold seeds timed out.)
+
+## S2 — gold eval fresh run — PASS
+
+`node scripts/eval_realm_rec_gold.js` (anon JWT, PostgREST): **100/100 seeds scored, zero timeouts, zero errors** — wrote `reports/realm-rec-gold/latest.json` / `latest.md` (generated_at 2026-08-04T23:50:04Z). P@10 (heuristic-bootstrap labels — recorded, not gated): raw-edges 0.817 · gated RPC 0.199 · intersect 0.145 · delta −0.054 → `ship_edges_into_ranking: false`. The raw arm "wins" by construction (judgments were bootstrapped from AniList edge data); the pass metric here is timeouts, which went 53/100 → **0/100**.
+
+## STORE — precomputed store integrity — PASS
+
+```sql
+select counts from media_similar_titles / media_similar_seed_state; spot-check FULL OUTER JOIN store-vs-live per seed
+```
+
+- **225,541 rows · 7,519 distinct seeds · state 7,537 rows · stale = 0 (converged) · avg depth 30.00** · built_at 19:24 → 23:24 UTC 2026-08-04.
+- The 18 state-rows-without-store-rows: 17 ANIME + 1 MANGA, of which 15 have **no tag vector at all** (zero-norm — the live scorer also returns nothing for them); the rest gated to empty. Legitimately empty, not missing.
+- Spot-check vs `_recommend_ids_similar_to_seeds_live` (executed via Management API, no JWT → no user exclusion, same universe as the store): seeds ANIME 200 (Mononoke), MANGA 16 (Vinland Saga), ANIME 92 (Noragami) — **15/15 rows equal** (id AND score, all 5 ranks each, e.g. 200→353 @ 0.786291 both sides).
+
+## RPC — equivalence + blend — PASS
+
+- Seed 111 `p_limit 12` through the rewritten RPC: **byte-identical to the M1 loop-2 list** — 200 (0.6802), 161 (0.6298), 374 (0.4383), 1259 (0.4283), 92 (0.4251), 2759 (0.4041), 1630 (0.3849), 2142 (0.3511), 376 (0.3509), **221 (0.3458)**, 4466 (0.3359), 15673 (0.3319).
+- Multi-seed blend `{111, 200}`: sane — Howl's #1 @ 1.1504 (sum of its per-seed scores), Ponyo/MUSHI-SHI/Nausicaä/Kaguya following; **neither seed appears in its own results**.
+
+## EXCL — per-user exclusion at read — PASS
+
+- Code path: live RPC def reads `media_similar_titles`, applies the `not exists (select 1 from public.user_lists ul …)` filter inside the precomputed branch, falls back to `_recommend_ids_similar_to_seeds_live` when no seed is precomputed, and routes `p_allow_gimmicks=true` to live. All four markers verified in `pg_get_functiondef`.
+- Behavioral probe: demo user has anime `[16, 111]` on their list; seed ANIME 23's stored rank-2 is anime 16. Authenticated call → `160, 2279, 409, …` (**16 absent**, list backfilled to 12 from stored depth); anon call → `160, 16, 2279, …` (**16 present at rank 2**). Exclusion is per-user at read, exactly as designed.
+
+## CRON — driver + nightly — PASS
+
+- `cron.job`: **jobid 87 `realm-similar-drive-5m` · `*/5 * * * *` · active · command `set statement_timeout = '600s'; select public.rebuild_media_similar_titles(100);`** (batch 100 per 20260804132000) and **jobid 54 `realm-similar-nightly` · `10 5 * * *` · active · re-stale UPDATE**. Full job-table scan: no `realm-similar-firstbuild` or any other leftover one-off (the incident-era jobids 53/55 exist only in run history, not in `cron.job`).
+- Latest real green driver run: **2026-08-04 23:00:00 UTC, succeeded, 184.9 s** (a genuine batch build), followed by 23:05–23:20 instant returns (~0 s = advisory-lock skips while a final convergence invocation finished at 23:24:13, the store's newest built_at) and 23:25+ true no-ops (0.3–1.1 s). stale = 0 confirms convergence.
+- Run history coherence: 10 failed runs 21:05→22:55 each at ~600 s (the batch-200 era documented in 20260804132000), 28 succeeded; no failures since batch 100.
+
+## ACL — grants + advisors — PASS
+
+- `media_similar_titles` + `media_similar_seed_state`: relacl **`{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}`** (no anon/authenticated/PUBLIC), RLS enabled, **zero policies** — the documented client-invisible design.
+- `rebuild_media_similar_titles` + `_recommend_ids_similar_to_seeds_live`: proacl **postgres + service_role X only**. `recommend_ids_similar_to_seeds`: **postgres, anon, authenticated, service_role** — client grants unchanged.
+- Security advisors (Management API, MCP tool was permission-blocked): 171 findings, **ERROR count = 3, exactly the pre-existing `security_definer_view` trio** (media_realm_profile, realm_affinity_effective, media_realm_llm_pending — M4's scope). **No new ERRORs.** Fix-5 objects appear only as 2 INFO `rls_enabled_no_policy` notices — the intentional posture above.
+
+## HEALTH — incident residue — PASS
+
+- Now: **12 connections, 1 active, 0 queries running > 60 s.**
+- OOM window (2026-08-04 19:20–19:45 UTC narrative): `cron.job_run_details` shows normal fires at 19:10/19:15, then **nothing recorded in the 19:20 slot and silence through ~19:45** (jobs that should have fired at 19:30/19:35/19:45 are absent) — consistent with the instance dying at the 19:20 driver fire and returning after the Management-API restart. First post-restart entries 19:25/19:26 are the since-removed emergency-era jobids 53/55 (one with the mangled `"SET"` return_message noted in 20260804131000).
+- Live builder def: **`work_mem` override GONE** (`pg_get_functiondef` contains no `work_mem`; the `set local statement_timeout = '600s'` remains).
+
+## M3 verdict table
+
+| Check | Verdict | Evidence |
+|---|---|---|
+| S1 | **PASS** | 20/20 authed calls 200 OK; p50 93 ms / p95 105 ms / max 115 ms (target < 200 ms) |
+| S2 | **PASS** | 100/100 scored, 0 timeouts; P@10 raw 0.817 / gated 0.199 / intersect 0.145 (heuristic labels) |
+| STORE | **PASS** | 225,541 rows · 7,519 seeds · stale 0 · depth 30.00; 15/15 spot-check rows equal to live scorer |
+| RPC | **PASS** | Seed 111 p12 byte-identical to M1 loop-2; blend {111,200} sane, seeds self-excluded |
+| EXCL | **PASS** | Def has user_lists filter at read; probe: 16 absent authed / rank 2 anon, depth backfills |
+| CRON | **PASS** | drive-5m batch 100 + nightly 05:10 active; last real green build 184.9 s; no leftover one-offs |
+| ACL | **PASS** | Tables + builder + _live locked to postgres/service_role; RPC grants unchanged; 3 pre-existing ERRORs only |
+| HEALTH | **PASS** | 12 conns, 0 stuck; 19:20 cron-slot blackout matches OOM narrative; work_mem override gone |
