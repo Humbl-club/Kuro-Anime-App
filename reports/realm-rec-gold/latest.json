@@ -3,13 +3,13 @@
     "n_seeds": 100,
     "n_scored": 100,
     "mean_p10_raw": 0.8469999999999994,
-    "mean_p10_gated": 0.5120000000000001,
-    "mean_p10_intersect": 0.23400000000000015,
-    "delta_intersect_minus_gated": -0.27799999999999997,
+    "mean_p10_gated": 0.5120000000000002,
+    "mean_p10_intersect": 0.23300000000000015,
+    "delta_intersect_minus_gated": -0.2790000000000001,
     "ship_threshold": 0.05,
     "ship_edges_into_ranking": false,
     "note": "Judgments are heuristic-bootstrap unless owner-replaced. Do not ship on heuristic alone.",
-    "generated_at": "2026-08-05T02:47:59.161Z"
+    "generated_at": "2026-08-05T16:23:27.067Z"
   },
   "rows": [
     {
@@ -108,18 +108,18 @@
       "n_relevant": 16,
       "n_edges": 25,
       "p10_raw": 0.9,
-      "p10_gated": 0.7,
-      "p10_intersect": 0.2
+      "p10_gated": 0.8,
+      "p10_intersect": 0.3
     },
     {
       "seed_key": "ANIME:229",
       "title": "Fate/stay night: Unlimited Blade Works",
       "realm": "sword-samurai",
       "family": "epic-adventure",
-      "n_relevant": 6,
+      "n_relevant": 7,
       "n_edges": 25,
       "p10_raw": 0.5,
-      "p10_gated": 0.1,
+      "p10_gated": 0.2,
       "p10_intersect": 0
     },
     {
@@ -185,8 +185,8 @@
       "n_relevant": 16,
       "n_edges": 25,
       "p10_raw": 0.9,
-      "p10_gated": 0.9,
-      "p10_intersect": 0.4
+      "p10_gated": 1,
+      "p10_intersect": 0.5
     },
     {
       "seed_key": "ANIME:167",
@@ -237,10 +237,10 @@
       "title": "Grave of the Fireflies",
       "realm": "tragedy-tearjerker",
       "family": "emotional-core",
-      "n_relevant": 12,
+      "n_relevant": 13,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.5,
+      "p10_gated": 0.6,
       "p10_intersect": 0.4
     },
     {
@@ -303,11 +303,11 @@
       "title": "Made in Abyss",
       "realm": "horror-dread",
       "family": "mind-thrill",
-      "n_relevant": 11,
+      "n_relevant": 12,
       "n_edges": 25,
       "p10_raw": 0.9,
       "p10_gated": 0.6,
-      "p10_intersect": 0.4
+      "p10_intersect": 0.5
     },
     {
       "seed_key": "ANIME:146",
@@ -350,8 +350,8 @@
       "n_relevant": 15,
       "n_edges": 25,
       "p10_raw": 0.9,
-      "p10_gated": 0.7,
-      "p10_intersect": 0.4
+      "p10_gated": 0.5,
+      "p10_intersect": 0.2
     },
     {
       "seed_key": "ANIME:429",
@@ -391,7 +391,7 @@
       "title": "Cowboy Bebop",
       "realm": "cyberpunk-dystopia",
       "family": "speculative-worlds",
-      "n_relevant": 15,
+      "n_relevant": 16,
       "n_edges": 25,
       "p10_raw": 1,
       "p10_gated": 0.7,
@@ -435,7 +435,7 @@
       "title": "Howl‘s Moving Castle",
       "realm": "auteur-cinema",
       "family": "craft-art",
-      "n_relevant": 14,
+      "n_relevant": 15,
       "n_edges": 25,
       "p10_raw": 0.9,
       "p10_gated": 0.7,
@@ -611,10 +611,10 @@
       "title": "Miss Kobayashi's Dragon Maid",
       "realm": "workplace-adult-life",
       "family": "life-world",
-      "n_relevant": 17,
+      "n_relevant": 18,
       "n_edges": 25,
       "p10_raw": 1,
-      "p10_gated": 0.7,
+      "p10_gated": 0.8,
       "p10_intersect": 0.1
     },
     {
@@ -625,7 +625,7 @@
       "n_relevant": 15,
       "n_edges": 25,
       "p10_raw": 1,
-      "p10_gated": 0.5,
+      "p10_gated": 0.4,
       "p10_intersect": 0
     },
     {
@@ -669,7 +669,7 @@
       "n_relevant": 12,
       "n_edges": 25,
       "p10_raw": 0.9,
-      "p10_gated": 0.3,
+      "p10_gated": 0.2,
       "p10_intersect": 0
     },
     {
@@ -721,11 +721,11 @@
       "title": "SPY x FAMILY",
       "realm": "family-generations",
       "family": "relationships-identity",
-      "n_relevant": 11,
+      "n_relevant": 12,
       "n_edges": 25,
       "p10_raw": 0.9,
       "p10_gated": 0.4,
-      "p10_intersect": 0.2
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:183",
@@ -776,11 +776,11 @@
       "title": "Free! -Iwatobi Swim Club-",
       "realm": "moe-cgdct",
       "family": "otaku-register",
-      "n_relevant": 15,
+      "n_relevant": 17,
       "n_edges": 25,
       "p10_raw": 1,
-      "p10_gated": 0.7,
-      "p10_intersect": 0.3
+      "p10_gated": 0.6,
+      "p10_intersect": 0.4
     },
     {
       "seed_key": "ANIME:198",
@@ -834,8 +834,8 @@
       "n_relevant": 16,
       "n_edges": 25,
       "p10_raw": 1,
-      "p10_gated": 0.6,
-      "p10_intersect": 0.2
+      "p10_gated": 0.5,
+      "p10_intersect": 0.1
     },
     {
       "seed_key": "ANIME:250",
@@ -845,7 +845,7 @@
       "n_relevant": 9,
       "n_edges": 25,
       "p10_raw": 0.6,
-      "p10_gated": 0.3,
+      "p10_gated": 0.2,
       "p10_intersect": 0
     },
     {
@@ -853,7 +853,7 @@
       "title": "Blue Literature Series",
       "realm": "gekiga-alternative",
       "family": "seinen-alternative",
-      "n_relevant": 12,
+      "n_relevant": 13,
       "n_edges": 25,
       "p10_raw": 0.7,
       "p10_gated": 0.5,
@@ -963,10 +963,10 @@
       "title": "A Returner's Magic Should Be Special",
       "realm": "grand-adventure",
       "family": "epic-adventure",
-      "n_relevant": 10,
+      "n_relevant": 11,
       "n_edges": 25,
       "p10_raw": 0.8,
-      "p10_gated": 0.2,
+      "p10_gated": 0.3,
       "p10_intersect": 0.1
     },
     {
@@ -985,10 +985,10 @@
       "title": "Tomb Raider King",
       "realm": "grand-adventure",
       "family": "epic-adventure",
-      "n_relevant": 12,
+      "n_relevant": 13,
       "n_edges": 24,
       "p10_raw": 0.8,
-      "p10_gated": 0.3,
+      "p10_gated": 0.4,
       "p10_intersect": 0.1
     },
     {
@@ -1054,8 +1054,8 @@
       "n_relevant": 6,
       "n_edges": 24,
       "p10_raw": 0.5,
-      "p10_gated": 0.1,
-      "p10_intersect": 0.1
+      "p10_gated": 0,
+      "p10_intersect": 0
     },
     {
       "seed_key": "MANGA:786",
@@ -1106,10 +1106,10 @@
       "title": "Naruto",
       "realm": "battle-shounen",
       "family": "epic-adventure",
-      "n_relevant": 11,
+      "n_relevant": 12,
       "n_edges": 24,
       "p10_raw": 0.8,
-      "p10_gated": 0.5,
+      "p10_gated": 0.6,
       "p10_intersect": 0.3
     }
   ]
