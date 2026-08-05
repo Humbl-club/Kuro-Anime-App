@@ -11,22 +11,27 @@ partly sourced from the AniList edges they score) and say so themselves.
 
 ## What you do (~1 hour, ≥50 seeds is enough)
 
-1. Open `eval/realm_rec_gold/owner_shortlists.jsonl` — 100 seeds, 40 candidates each
-   (canon-neighbor + heuristic pools, each candidate labeled with title + realm + tier).
-2. Copy `eval/realm_rec_gold/owner_judgments.template.jsonl` →
-   `eval/realm_rec_gold/owner_judgments.jsonl` (same directory).
-3. For each seed you judge: fill `relevant` with the candidate ids that genuinely
-   belong next to the seed, `rejected` with the ones that don't. Skip seeds freely —
-   judged seeds only are scored; **≥50 judged seeds** makes the eval decision-grade.
-   `notes` is optional but valuable ("right realm, wrong register" etc).
-4. Run the eval against your judgments:
+1. **Use the interactive judging tool** (easiest path):
+   https://claude.ai/code/artifact/f026a849-76ef-41e0-ada7-9d25db31b0db
+   All 100 seeds × 40 candidates embedded; tap ✓/✗ per candidate, arrow keys between
+   seeds, progress autosaves in the browser, skip freely. **≥50 judged seeds** makes
+   the eval decision-grade.
+2. Press **Export** — it downloads two files:
+   - `owner_judgments.jsonl` → save to `eval/realm_rec_gold/owner_judgments.jsonl`
+     (the human-readable record, includes your rejections + notes)
+   - `judgments.jsonl` → save to `eval/realm_rec_gold/judgments.jsonl` — this
+     **replaces the heuristic file; the eval reads exactly this path** (note: the
+     script has no `--judgments` flag — earlier drafts of this doc said otherwise).
+3. Run the eval:
 
    ```bash
-   node scripts/eval_realm_rec_gold.js --judgments eval/realm_rec_gold/owner_judgments.jsonl
+   node scripts/eval_realm_rec_gold.js
    ```
 
    Output: `reports/realm-rec-gold/latest.{json,md}` — mean P@10 for
    (a) raw AniList edges, (b) the realm-gated graph, (c) edges∩gate.
+   (Manual alternative: edit the template by hand per the old flow — the tool is
+   strictly the same data, just faster.)
 
 ## What the numbers decide
 

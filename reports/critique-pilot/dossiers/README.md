@@ -40,3 +40,18 @@ Legal posture per plan §9 applies to all of the above: quotes ≤40 words + att
 takedown honored by construction.
 
 Seed SQL draft (commented, not runnable as-is): `../critic_sources.seed.OWNER_BLESS_REQUIRED.sql`
+
+## Owner redirect (2026-08-05) — slate v2 direction
+
+Owner feedback on the proposed slate: prefers **real articles** (essays/critique) over
+review-desk content; wants **Medium** as the primary pilot source (owner has a paid
+subscription; per-title search surfaces multiple articles per anime; pilot ~100–200
+titles), plus **Japan Powered**; keeps **Manga Bookshelf**; "Wrong Every Time is
+alright"; ANN and the rest of the EN slate read as weak to the owner. Preference for
+Asian/JP voices and article-form criticism stands.
+
+Status: Medium + Japan Powered dossiers commissioned (in progress). Slate v2 will be
+proposed after those land — likely: Medium (per-publication/author tiering, owner-session
+reading path), Japan Powered, Manga Bookshelf, Fujitsu column (the compliant JP
+real-article anchor), Wrong Every Time as alternate. Still PROPOSED-not-blessed;
+Medium's TOS/robots posture must clear the §9 legal bar before any fetch design.
