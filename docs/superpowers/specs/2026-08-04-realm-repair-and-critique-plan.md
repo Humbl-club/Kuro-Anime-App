@@ -268,3 +268,15 @@ schema supports it by construction) · JP sites under identical rules.
 - [ ] Fill `owner_judgments.jsonl` (§4, ~1 hour)
 - [ ] Go/no-go on swarm at the pilot gate
 - [ ] Flag ramp decision (after Phase 5, not before)
+
+## §4 baseline — recorded 2026-08-05 (Fable 5 pooled judge, owner veto pending)
+
+100/100 seeds, zero timeouts, 1,839 pooled judgments (judge the arms' actual top-10s):
+P@10 raw edges **0.847** · gated graph **0.512** · intersect 0.234 (÷10 artifact on short
+lists) · Δ(c−b) −0.278 → pre-registered ship rule: no. Underlying finding: edges are the
+strong retrieval signal (86.8% judged relevant), tag-projection cosine is weak (51.2%).
+Strategic fork for owner: edges-first-realm-checked serving. Caveats: LLM/AniList
+correlated priors; unknowns 4.8% (gated-skewed 6.3% vs 2.7%). Evidence:
+eval/realm_rec_gold/judgments.fable5.audit.jsonl + reports/realm-rec-gold/latest.md.
+Judge-confirmed realm misassignments (Food Wars→romantic-comedy ×2 judges, Fate UBW→
+sword-samurai, HxH→crime-underworld, Mushoku→ecchi-fanservice) are named Phase-5 targets.

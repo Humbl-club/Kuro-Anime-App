@@ -35,6 +35,18 @@ D — insider-conflict caveat) is the JP craft alternate.
 - **Open gap:** no compliant JP *manga* critique desk found. Candidates exist only
   behind blocks. Carry as a scouting follow-up; do not force it for the pilot.
 
+## Round 0 extension — owner-proposed sources (2026-08-05, PROPOSED, NOT BLESSED)
+
+Two additional dossiers at the owner's direction ("real articles over review-farm content"):
+
+- **Medium platform** (`medium-platform.md`) — platform E; blessing unit is per
+  publication/author (AniTAY-Official C, vetted individual authors ≤C). Robots blocks
+  ClaudeBot sitewide + TOS bans scraping → **owner-session manual reading only**; RSS
+  works for monitoring blessed authors. Rich essay coverage for popular + cult titles.
+- **Japan Powered** (`japan-powered.md`) — ACTIVE weekly, single named critic (Chris
+  Kincaid), 933 counted posts, argued+cited essays, cultural/legacy lens. robots
+  `ai-train=no` + WAF 403s AI fetchers → **manual-path only**. Proposed tier C.
+
 Legal posture per plan §9 applies to all of the above: quotes ≤40 words + attribution
 + link, robots/TOS respected (recorded per dossier), no full-prose storage, per-site
 takedown honored by construction.

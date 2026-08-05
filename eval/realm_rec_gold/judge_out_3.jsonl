@@ -1,0 +1,454 @@
+{"seed_key": "ANIME:220", "id": 271, "v": "relevant", "why": "Girls-band comedy, K-ON's direct spiritual successor", "conf": 0.95}
+{"seed_key": "ANIME:220", "id": 414, "v": "relevant", "why": "Girls-ensemble sincerity and friendship warmth, more dramatic", "conf": 0.65}
+{"seed_key": "ANIME:220", "id": 416, "v": "relevant", "why": "Cozy CGDCT club comfort, same gentle register", "conf": 0.8}
+{"seed_key": "ANIME:220", "id": 475, "v": "relevant", "why": "KyoAni school music club, more dramatic sibling", "conf": 0.85}
+{"seed_key": "ANIME:220", "id": 498, "v": "relevant", "why": "Classic CGDCT comedy, same era and register", "conf": 0.7}
+{"seed_key": "ANIME:220", "id": 727, "v": "relevant", "why": "KyoAni cozy slice-of-life, Yamada's gentle touch", "conf": 0.75}
+{"seed_key": "ANIME:220", "id": 1105, "v": "relevant", "why": "Cozy girls slice-of-life neighborhood, sequel entry though", "conf": 0.6}
+{"seed_key": "ANIME:220", "id": 1226, "v": "relevant", "why": "Gentle girls slice-of-life with loving craft", "conf": 0.65}
+{"seed_key": "ANIME:220", "id": 1425, "v": "relevant", "why": "Girls band drama, angstier but same neighborhood", "conf": 0.7}
+{"seed_key": "ANIME:220", "id": 1691, "v": "relevant", "why": "Girls club doing a craft, cozy K-ON formula", "conf": 0.7}
+{"seed_key": "ANIME:220", "id": 19645, "v": "not_relevant", "why": "Male idol franchise fan-service ONA, wrong register", "conf": 0.7}
+{"seed_key": "ANIME:220", "id": 20371, "v": "unknown", "why": "Cannot confidently identify this music video", "conf": 0.3}
+{"seed_key": "ANIME:220", "id": 29631, "v": "not_relevant", "why": "Love Live chibi spinoff special, fandom-locked", "conf": 0.65}
+{"seed_key": "ANIME:220", "id": 29797, "v": "not_relevant", "why": "Kids idol franchise crossover movie, wrong neighborhood", "conf": 0.75}
+{"seed_key": "ANIME:220", "id": 29896, "v": "not_relevant", "why": "Viral song MV, not a series experience", "conf": 0.6}
+{"seed_key": "ANIME:220", "id": 30030, "v": "not_relevant", "why": "Vocaloid music video, not a show", "conf": 0.5}
+{"seed_key": "ANIME:220", "id": 30323, "v": "not_relevant", "why": "Vocaloid dance PV, not a series", "conf": 0.5}
+{"seed_key": "ANIME:220", "id": 63008, "v": "unknown", "why": "Cannot confidently place this music short", "conf": 0.3}
+{"seed_key": "ANIME:220", "id": 63034, "v": "not_relevant", "why": "Male idol concert film, franchise-locked", "conf": 0.7}
+{"seed_key": "ANIME:220", "id": 81131, "v": "unknown", "why": "Cannot confidently identify this MV", "conf": 0.3}
+{"seed_key": "ANIME:338", "id": 262, "v": "not_relevant", "why": "Sweet teen shoujo romance, lacks NANA's adult rawness", "conf": 0.6}
+{"seed_key": "ANIME:338", "id": 313, "v": "relevant", "why": "Band plus tender romance drama, close feel", "conf": 0.8}
+{"seed_key": "ANIME:338", "id": 418, "v": "not_relevant", "why": "Cozy CGDCT comedy, opposite of NANA's rawness", "conf": 0.75}
+{"seed_key": "ANIME:338", "id": 861, "v": "relevant", "why": "Musicians chasing dreams, adult emotional drama", "conf": 0.65}
+{"seed_key": "ANIME:338", "id": 904, "v": "relevant", "why": "Earnest music-club drama with romance threads", "conf": 0.55}
+{"seed_key": "ANIME:338", "id": 921, "v": "relevant", "why": "Music, youth, messy love — same emotional register", "conf": 0.85}
+{"seed_key": "ANIME:338", "id": 1103, "v": "relevant", "why": "Gritty band coming-of-age, canonical NANA pairing", "conf": 0.85}
+{"seed_key": "ANIME:338", "id": 1351, "v": "relevant", "why": "Josei dramedy about womanhood, same demographic soul", "conf": 0.7}
+{"seed_key": "ANIME:338", "id": 1416, "v": "relevant", "why": "Ai Yazawa's own adult fashion romance", "conf": 0.9}
+{"seed_key": "ANIME:338", "id": 1425, "v": "relevant", "why": "Raw girls-band drama, kindred intensity", "conf": 0.7}
+{"seed_key": "ANIME:338", "id": 1779, "v": "relevant", "why": "Showbiz shoujo drama, ambition and heartbreak", "conf": 0.6}
+{"seed_key": "ANIME:338", "id": 2682, "v": "relevant", "why": "Band as vessel for messy interpersonal wounds", "conf": 0.7}
+{"seed_key": "ANIME:338", "id": 3814, "v": "not_relevant", "why": "Comedy CGDCT recap film, wrong tone entirely", "conf": 0.7}
+{"seed_key": "ANIME:338", "id": 4002, "v": "relevant", "why": "Yazawa art-school romance, same author voice", "conf": 0.85}
+{"seed_key": "ANIME:338", "id": 13352, "v": "not_relevant", "why": "Dated teen love-triangle melodrama, weaker craft", "conf": 0.5}
+{"seed_key": "ANIME:227", "id": 534, "v": "not_relevant", "why": "Romance drama, no food or competition", "conf": 0.8}
+{"seed_key": "ANIME:227", "id": 833, "v": "not_relevant", "why": "School rom-com, wrong neighborhood entirely", "conf": 0.8}
+{"seed_key": "ANIME:227", "id": 942, "v": "not_relevant", "why": "Gag comedy, no culinary hook", "conf": 0.75}
+{"seed_key": "ANIME:227", "id": 1235, "v": "relevant", "why": "Food-fueled battles, ecchi comedy hype — kindred trash-fun", "conf": 0.7}
+{"seed_key": "ANIME:227", "id": 1650, "v": "relevant", "why": "Loving food porn, though cozy not competitive", "conf": 0.5}
+{"seed_key": "ANIME:227", "id": 2149, "v": "relevant", "why": "Food-chain craft and school grit, quality food story", "conf": 0.6}
+{"seed_key": "ANIME:227", "id": 2173, "v": "not_relevant", "why": "Gag comedy special, no food axis", "conf": 0.75}
+{"seed_key": "ANIME:227", "id": 2478, "v": "not_relevant", "why": "Wholesome romance fluff, wrong neighborhood", "conf": 0.75}
+{"seed_key": "ANIME:227", "id": 2851, "v": "relevant", "why": "Cooking-school competition structure, younger register", "conf": 0.5}
+{"seed_key": "ANIME:227", "id": 3488, "v": "not_relevant", "why": "School romance film, no culinary hook", "conf": 0.75}
+{"seed_key": "ANIME:227", "id": 3905, "v": "not_relevant", "why": "Cheap pastry romance shorts, low register", "conf": 0.65}
+{"seed_key": "ANIME:227", "id": 4372, "v": "not_relevant", "why": "Gintama gag special, fandom-locked", "conf": 0.8}
+{"seed_key": "ANIME:227", "id": 5658, "v": "not_relevant", "why": "Comedy OVA, no culinary anything", "conf": 0.8}
+{"seed_key": "ANIME:227", "id": 30884, "v": "relevant", "why": "Iron Wok Jan: aggressive cooking battles, direct kin", "conf": 0.65}
+{"seed_key": "ANIME:288", "id": 211, "v": "not_relevant", "why": "Teen rom-com, wrong neighborhood", "conf": 0.8}
+{"seed_key": "ANIME:288", "id": 521, "v": "not_relevant", "why": "Introspective school romance, no food", "conf": 0.8}
+{"seed_key": "ANIME:288", "id": 534, "v": "not_relevant", "why": "Romance drama, no culinary hook", "conf": 0.8}
+{"seed_key": "ANIME:288", "id": 833, "v": "not_relevant", "why": "Rom-com harem, wrong neighborhood", "conf": 0.8}
+{"seed_key": "ANIME:288", "id": 1040, "v": "relevant", "why": "Food-centered warmth, cozy not competitive", "conf": 0.5}
+{"seed_key": "ANIME:288", "id": 1236, "v": "not_relevant", "why": "Basketball classic, different neighborhood despite competition", "conf": 0.55}
+{"seed_key": "ANIME:288", "id": 1650, "v": "relevant", "why": "Food adoration, gentle register though", "conf": 0.5}
+{"seed_key": "ANIME:288", "id": 2149, "v": "relevant", "why": "Food production grit, genuine culinary substance", "conf": 0.6}
+{"seed_key": "ANIME:288", "id": 2473, "v": "relevant", "why": "Gourmet battle shounen, food-powered spectacle kin", "conf": 0.75}
+{"seed_key": "ANIME:288", "id": 2478, "v": "not_relevant", "why": "Romance fluff, wrong neighborhood", "conf": 0.75}
+{"seed_key": "ANIME:288", "id": 2490, "v": "not_relevant", "why": "Sports special, no food", "conf": 0.75}
+{"seed_key": "ANIME:288", "id": 5658, "v": "not_relevant", "why": "Gag OVA, nothing culinary", "conf": 0.8}
+{"seed_key": "ANIME:288", "id": 6176, "v": "relevant", "why": "Over-the-top cooking duels, weaker craft but same game", "conf": 0.6}
+{"seed_key": "ANIME:288", "id": 7959, "v": "not_relevant", "why": "Kids idol show, wrong universe", "conf": 0.85}
+{"seed_key": "ANIME:172", "id": 97, "v": "relevant", "why": "Supernatural found-family comedy with warmth", "conf": 0.75}
+{"seed_key": "ANIME:172", "id": 140, "v": "relevant", "why": "Mythic beings navigating mundane life, comedic kin", "conf": 0.7}
+{"seed_key": "ANIME:172", "id": 362, "v": "relevant", "why": "Workplace CGDCT comedy, same light register", "conf": 0.6}
+{"seed_key": "ANIME:172", "id": 474, "v": "relevant", "why": "Deadpan supernatural houseguest, found-family heart", "conf": 0.8}
+{"seed_key": "ANIME:172", "id": 538, "v": "relevant", "why": "Cozy monster-girl found family, lighter craft", "conf": 0.55}
+{"seed_key": "ANIME:172", "id": 539, "v": "relevant", "why": "Angels and demons in daily-life comedy", "conf": 0.65}
+{"seed_key": "ANIME:172", "id": 784, "v": "not_relevant", "why": "Creative-passion club comedy, different engine", "conf": 0.5}
+{"seed_key": "ANIME:172", "id": 838, "v": "relevant", "why": "Supernatural creature comforts office worker — same formula", "conf": 0.8}
+{"seed_key": "ANIME:172", "id": 865, "v": "relevant", "why": "Monster girls in gentle everyday life", "conf": 0.7}
+{"seed_key": "ANIME:172", "id": 881, "v": "relevant", "why": "Warm ensemble slice-of-life comedy classic", "conf": 0.5}
+{"seed_key": "ANIME:172", "id": 1045, "v": "relevant", "why": "Demoted demon in mundane life, kindred comedy", "conf": 0.6}
+{"seed_key": "ANIME:172", "id": 1136, "v": "franchise", "why": "Dragon Maid's own OVA", "conf": 0.98}
+{"seed_key": "ANIME:172", "id": 1313, "v": "relevant", "why": "Demon-girl daily comedy, warm duo dynamic", "conf": 0.7}
+{"seed_key": "ANIME:172", "id": 1455, "v": "relevant", "why": "Cozy iyashikei ensemble, same comfort register", "conf": 0.5}
+{"seed_key": "ANIME:172", "id": 2960, "v": "relevant", "why": "Cozy CGDCT cafe comfort, OVA entry", "conf": 0.5}
+{"seed_key": "ANIME:172", "id": 3638, "v": "relevant", "why": "Exhausted office worker healed by supernatural cutie", "conf": 0.75}
+{"seed_key": "ANIME:172", "id": 3807, "v": "relevant", "why": "CGDCT comedy with yuri undertones, kindred", "conf": 0.5}
+{"seed_key": "ANIME:172", "id": 5435, "v": "relevant", "why": "Cozy CGDCT specials, same gentle register", "conf": 0.5}
+{"seed_key": "ANIME:172", "id": 7637, "v": "unknown", "why": "Cannot confidently judge this 2026 title", "conf": 0.35}
+{"seed_key": "ANIME:172", "id": 12973, "v": "relevant", "why": "Demon-girl cozy comedy continued", "conf": 0.6}
+{"seed_key": "ANIME:177", "id": 104, "v": "relevant", "why": "Established-couple warmth, mature low-drama romance", "conf": 0.65}
+{"seed_key": "ANIME:177", "id": 127, "v": "relevant", "why": "Top-tier romcom craft, school setting though", "conf": 0.5}
+{"seed_key": "ANIME:177", "id": 148, "v": "relevant", "why": "Otaku hobby bonding romance, younger cast", "conf": 0.6}
+{"seed_key": "ANIME:177", "id": 211, "v": "not_relevant", "why": "Teen shoujo tsundere energy, wrong register", "conf": 0.5}
+{"seed_key": "ANIME:177", "id": 294, "v": "relevant", "why": "Manga-artist romcom, otaku-adjacent deadpan comedy", "conf": 0.6}
+{"seed_key": "ANIME:177", "id": 335, "v": "relevant", "why": "Couples-focused low-stakes romance vignettes", "conf": 0.55}
+{"seed_key": "ANIME:177", "id": 383, "v": "relevant", "why": "Adult woman, gamer romance — very Wotakoi", "conf": 0.8}
+{"seed_key": "ANIME:177", "id": 433, "v": "not_relevant", "why": "Standard school romcom, misses adult register", "conf": 0.55}
+{"seed_key": "ANIME:177", "id": 456, "v": "not_relevant", "why": "Teen school antics, wrong life stage", "conf": 0.5}
+{"seed_key": "ANIME:177", "id": 521, "v": "not_relevant", "why": "Adolescent first love, different register", "conf": 0.5}
+{"seed_key": "ANIME:177", "id": 530, "v": "relevant", "why": "Adult otaku online romance, perfect match", "conf": 0.85}
+{"seed_key": "ANIME:177", "id": 788, "v": "relevant", "why": "Nerdy adults fumbling romance scientifically", "conf": 0.7}
+{"seed_key": "ANIME:177", "id": 799, "v": "relevant", "why": "Adult working life, otaku industry warmth", "conf": 0.6}
+{"seed_key": "ANIME:177", "id": 834, "v": "relevant", "why": "Office romance comedy between working adults", "conf": 0.8}
+{"seed_key": "ANIME:177", "id": 1022, "v": "relevant", "why": "Office colleagues romance, gentle workplace comedy", "conf": 0.75}
+{"seed_key": "ANIME:177", "id": 1043, "v": "relevant", "why": "Adult working-life malaise comedy", "conf": 0.6}
+{"seed_key": "ANIME:177", "id": 1351, "v": "relevant", "why": "Adult otaku women, romance and self-acceptance", "conf": 0.7}
+{"seed_key": "ANIME:177", "id": 1420, "v": "relevant", "why": "Adult-life romance and growing up", "conf": 0.55}
+{"seed_key": "ANIME:177", "id": 1559, "v": "relevant", "why": "Workplace ensemble romcom, same sitcom rhythm", "conf": 0.65}
+{"seed_key": "ANIME:177", "id": 5727, "v": "not_relevant", "why": "Teen school romance, wrong life stage", "conf": 0.5}
+{"seed_key": "ANIME:159", "id": 2, "v": "relevant", "why": "War, twists, escalating strategic spectacle", "conf": 0.8}
+{"seed_key": "ANIME:159", "id": 4, "v": "relevant", "why": "Genius antihero cat-and-mouse, canonical pairing", "conf": 0.85}
+{"seed_key": "ANIME:159", "id": 20, "v": "relevant", "why": "Political warfare and moral spirals", "conf": 0.8}
+{"seed_key": "ANIME:159", "id": 110, "v": "relevant", "why": "Prestige mecha drama, more introspective", "conf": 0.6}
+{"seed_key": "ANIME:159", "id": 134, "v": "relevant", "why": "War tragedy with grand reveals", "conf": 0.8}
+{"seed_key": "ANIME:159", "id": 155, "v": "relevant", "why": "Theatrical maximalist mecha spectacle", "conf": 0.6}
+{"seed_key": "ANIME:159", "id": 204, "v": "relevant", "why": "Mecha war drama on oppression, kindred", "conf": 0.8}
+{"seed_key": "ANIME:159", "id": 379, "v": "relevant", "why": "Dark society, devastating reveals, moral weight", "conf": 0.55}
+{"seed_key": "ANIME:159", "id": 385, "v": "relevant", "why": "War drama mecha, superb payoff", "conf": 0.8}
+{"seed_key": "ANIME:159", "id": 469, "v": "relevant", "why": "War epic finale, same neighborhood", "conf": 0.6}
+{"seed_key": "ANIME:159", "id": 857, "v": "relevant", "why": "Strategic mecha war chess, Geass-lite", "conf": 0.75}
+{"seed_key": "ANIME:159", "id": 954, "v": "franchise", "why": "Code Geass sequel film", "conf": 0.98}
+{"seed_key": "ANIME:159", "id": 1018, "v": "relevant", "why": "Mecha classic, gentler coming-of-age tone", "conf": 0.5}
+{"seed_key": "ANIME:159", "id": 1067, "v": "relevant", "why": "Scheming antihero dismantling class system, very Lelouch", "conf": 0.75}
+{"seed_key": "ANIME:159", "id": 1512, "v": "not_relevant", "why": "Somber art-film realism, wrong theatrical register", "conf": 0.5}
+{"seed_key": "ANIME:159", "id": 2786, "v": "relevant", "why": "Political mecha terrorism, antihero ambiguity", "conf": 0.6}
+{"seed_key": "ANIME:159", "id": 4143, "v": "not_relevant", "why": "Dour realist mecha grind, different flavor", "conf": 0.5}
+{"seed_key": "ANIME:159", "id": 12948, "v": "franchise", "why": "Code Geass compilation film", "conf": 0.95}
+{"seed_key": "ANIME:159", "id": 18588, "v": "unknown", "why": "Cannot confidently judge this 2026 ONA", "conf": 0.3}
+{"seed_key": "ANIME:176", "id": 5, "v": "not_relevant", "why": "Dark curse battles, not science optimism", "conf": 0.55}
+{"seed_key": "ANIME:176", "id": 11, "v": "relevant", "why": "Exuberant Jump adventure optimism, kindred spirit", "conf": 0.5}
+{"seed_key": "ANIME:176", "id": 28, "v": "not_relevant", "why": "Dark suffering isekai, wrong feel", "conf": 0.6}
+{"seed_key": "ANIME:176", "id": 91, "v": "not_relevant", "why": "Underdog magic battles, no science hook", "conf": 0.55}
+{"seed_key": "ANIME:176", "id": 125, "v": "relevant", "why": "Civilization-building progression, kindred hook", "conf": 0.55}
+{"seed_key": "ANIME:176", "id": 258, "v": "not_relevant", "why": "Superhero war arc, different engine", "conf": 0.55}
+{"seed_key": "ANIME:176", "id": 317, "v": "relevant", "why": "Science edutainment joy, same curiosity appeal", "conf": 0.55}
+{"seed_key": "ANIME:176", "id": 364, "v": "franchise", "why": "Dr. STONE's later season", "conf": 0.98}
+{"seed_key": "ANIME:176", "id": 557, "v": "relevant", "why": "Survival-craft knowledge procedural, adventurous", "conf": 0.6}
+{"seed_key": "ANIME:176", "id": 850, "v": "relevant", "why": "Rebuilding technology through knowledge, gentler", "conf": 0.6}
+{"seed_key": "ANIME:176", "id": 856, "v": "relevant", "why": "Post-collapse world, scientific curiosity heroine", "conf": 0.5}
+{"seed_key": "ANIME:176", "id": 1761, "v": "relevant", "why": "Engineering ingenuity race adventure", "conf": 0.55}
+{"seed_key": "ANIME:176", "id": 2137, "v": "not_relevant", "why": "Melancholy sky opera, different feel", "conf": 0.5}
+{"seed_key": "ANIME:176", "id": 3364, "v": "relevant", "why": "Post-apocalyptic optimist adventure, rebuilding civilization", "conf": 0.6}
+{"seed_key": "ANIME:176", "id": 4400, "v": "relevant", "why": "Kids crafting survival on hostile world", "conf": 0.6}
+{"seed_key": "ANIME:176", "id": 4661, "v": "not_relevant", "why": "Cozy farming isekai, no scientific drive", "conf": 0.5}
+{"seed_key": "ANIME:176", "id": 4814, "v": "not_relevant", "why": "Spy family comedy, wrong universe", "conf": 0.75}
+{"seed_key": "ANIME:176", "id": 13366, "v": "not_relevant", "why": "Tomino mecha epic, different experience", "conf": 0.5}
+{"seed_key": "ANIME:7", "id": 3, "v": "relevant", "why": "Polished battle shounen, broader spectacle", "conf": 0.55}
+{"seed_key": "ANIME:7", "id": 5, "v": "relevant", "why": "HxH-influenced tactical battles, dark turns", "conf": 0.7}
+{"seed_key": "ANIME:7", "id": 6, "v": "relevant", "why": "Mainline battle shounen, less crafty", "conf": 0.5}
+{"seed_key": "ANIME:7", "id": 8, "v": "relevant", "why": "Superb fights, satirical register", "conf": 0.5}
+{"seed_key": "ANIME:7", "id": 11, "v": "relevant", "why": "Grand adventure shounen, canonical pairing", "conf": 0.7}
+{"seed_key": "ANIME:7", "id": 12, "v": "relevant", "why": "Masterpiece adventure with dark stakes", "conf": 0.8}
+{"seed_key": "ANIME:7", "id": 14, "v": "relevant", "why": "Classic battle shounen foundation", "conf": 0.6}
+{"seed_key": "ANIME:7", "id": 22, "v": "relevant", "why": "Supernatural action with craft and heart", "conf": 0.5}
+{"seed_key": "ANIME:7", "id": 26, "v": "relevant", "why": "Long-form battle shounen epic", "conf": 0.6}
+{"seed_key": "ANIME:7", "id": 114, "v": "relevant", "why": "Strategic bizarre battles, kindred inventiveness", "conf": 0.6}
+{"seed_key": "ANIME:7", "id": 173, "v": "relevant", "why": "HxH-inspired tower game, rougher production", "conf": 0.6}
+{"seed_key": "ANIME:7", "id": 205, "v": "relevant", "why": "Stand chess-match battles, stylish", "conf": 0.6}
+{"seed_key": "ANIME:7", "id": 329, "v": "not_relevant", "why": "Quiet mafia noir, wrong neighborhood", "conf": 0.6}
+{"seed_key": "ANIME:7", "id": 447, "v": "relevant", "why": "Togashi's other battle series, same craft", "conf": 0.85}
+{"seed_key": "ANIME:7", "id": 476, "v": "relevant", "why": "Mainline hero shounen, less cunning", "conf": 0.5}
+{"seed_key": "ANIME:7", "id": 720, "v": "franchise", "why": "Earlier adaptation of same manga", "conf": 0.95}
+{"seed_key": "ANIME:7", "id": 1956, "v": "not_relevant", "why": "Mafia revenge tragedy, different experience", "conf": 0.55}
+{"seed_key": "ANIME:124", "id": 24, "v": "relevant", "why": "Time-leap to prevent tragedy, same hook", "conf": 0.75}
+{"seed_key": "ANIME:124", "id": 28, "v": "relevant", "why": "Redo-death loops to save loved ones", "conf": 0.6}
+{"seed_key": "ANIME:124", "id": 29, "v": "relevant", "why": "Time travel undoing deaths, higher craft", "conf": 0.65}
+{"seed_key": "ANIME:124", "id": 184, "v": "relevant", "why": "Street gangs, doomed bonds, propulsive tragedy", "conf": 0.6}
+{"seed_key": "ANIME:124", "id": 201, "v": "relevant", "why": "Tokyo gang ensemble intrigue", "conf": 0.6}
+{"seed_key": "ANIME:124", "id": 246, "v": "relevant", "why": "Adult gets youth do-over, same fantasy", "conf": 0.6}
+{"seed_key": "ANIME:124", "id": 316, "v": "relevant", "why": "Looping thriller racing to save someone", "conf": 0.7}
+{"seed_key": "ANIME:124", "id": 430, "v": "relevant", "why": "Modern delinquent gang brawls and bonds", "conf": 0.8}
+{"seed_key": "ANIME:124", "id": 437, "v": "relevant", "why": "Entering the past to change fates", "conf": 0.65}
+{"seed_key": "ANIME:124", "id": 529, "v": "franchise", "why": "Tokyo Revengers' own sequel", "conf": 0.98}
+{"seed_key": "ANIME:124", "id": 964, "v": "not_relevant", "why": "Sci-fi romance drama, wrong neighborhood", "conf": 0.55}
+{"seed_key": "ANIME:124", "id": 1172, "v": "not_relevant", "why": "Weak reset-gimmick romance film", "conf": 0.6}
+{"seed_key": "ANIME:124", "id": 1539, "v": "relevant", "why": "Time-crisis thriller with gang menace", "conf": 0.5}
+{"seed_key": "ANIME:124", "id": 1912, "v": "not_relevant", "why": "Messy delinquent spectacle, clearly weaker", "conf": 0.5}
+{"seed_key": "ANIME:124", "id": 2524, "v": "relevant", "why": "Time-intervention thriller continued", "conf": 0.6}
+{"seed_key": "ANIME:124", "id": 3606, "v": "not_relevant", "why": "Franchise side-film, fandom-locked clans", "conf": 0.5}
+{"seed_key": "ANIME:124", "id": 6298, "v": "not_relevant", "why": "VN sci-fi OVA, wrong everything", "conf": 0.6}
+{"seed_key": "ANIME:124", "id": 7021, "v": "not_relevant", "why": "Exploitation-grade turf war, register too rough", "conf": 0.5}
+{"seed_key": "ANIME:124", "id": 10762, "v": "relevant", "why": "Yakuza redoes life via time-slip, premise ancestor", "conf": 0.55}
+{"seed_key": "ANIME:124", "id": 22508, "v": "not_relevant", "why": "Botched game adaptation, wrong neighborhood", "conf": 0.7}
+{"seed_key": "ANIME:92", "id": 5, "v": "relevant", "why": "Urban curse-battling action, darker", "conf": 0.6}
+{"seed_key": "ANIME:92", "id": 132, "v": "relevant", "why": "Stylish urban supernatural gifted action", "conf": 0.75}
+{"seed_key": "ANIME:92", "id": 140, "v": "relevant", "why": "Divine beings scraping by in modern Japan", "conf": 0.6}
+{"seed_key": "ANIME:92", "id": 150, "v": "relevant", "why": "Shinigami action romp with attitude", "conf": 0.6}
+{"seed_key": "ANIME:92", "id": 178, "v": "relevant", "why": "Spirit action-comedy with romantic spark", "conf": 0.6}
+{"seed_key": "ANIME:92", "id": 215, "v": "relevant", "why": "Spirit-hunter action drama, KyoAni flavor", "conf": 0.6}
+{"seed_key": "ANIME:92", "id": 272, "v": "relevant", "why": "School spirits, god-adjacent bonds, comedy-drama", "conf": 0.7}
+{"seed_key": "ANIME:92", "id": 323, "v": "relevant", "why": "Stylish supernatural duo banter", "conf": 0.5}
+{"seed_key": "ANIME:92", "id": 435, "v": "relevant", "why": "Gods, shrines, human-divine bonds, classic pairing", "conf": 0.75}
+{"seed_key": "ANIME:92", "id": 445, "v": "relevant", "why": "Youkai goddess in modern life, talkier", "conf": 0.5}
+{"seed_key": "ANIME:92", "id": 1456, "v": "not_relevant", "why": "Historical swordsman drama, wrong neighborhood", "conf": 0.6}
+{"seed_key": "ANIME:92", "id": 1630, "v": "relevant", "why": "Youkai family dramedy, more literary", "conf": 0.55}
+{"seed_key": "ANIME:92", "id": 1806, "v": "franchise", "why": "Noragami's own OVA", "conf": 0.98}
+{"seed_key": "ANIME:92", "id": 2614, "v": "not_relevant", "why": "Mythic armor battle epic, old-school register", "conf": 0.5}
+{"seed_key": "ANIME:92", "id": 2945, "v": "relevant", "why": "Spirit-school comedy-drama continued", "conf": 0.6}
+{"seed_key": "ANIME:92", "id": 15673, "v": "not_relevant", "why": "Contemplative episodic mushi tales, wrong energy", "conf": 0.55}
+{"seed_key": "ANIME:92", "id": 16274, "v": "relevant", "why": "Youkai wish-shop episodic with emotional weight", "conf": 0.55}
+{"seed_key": "ANIME:92", "id": 22440, "v": "relevant", "why": "Exorcist shounen action, same supernatural neighborhood", "conf": 0.65}
+{"seed_key": "ANIME:111", "id": 92, "v": "not_relevant", "why": "TV shounen action-comedy, wrong register for Ghibli", "conf": 0.55}
+{"seed_key": "ANIME:111", "id": 161, "v": "relevant", "why": "Miyazaki fantasy wonder, same magic", "conf": 0.9}
+{"seed_key": "ANIME:111", "id": 200, "v": "relevant", "why": "Miyazaki spirit-world epic", "conf": 0.9}
+{"seed_key": "ANIME:111", "id": 221, "v": "relevant", "why": "Miyazaki's gentle spirit encounters", "conf": 0.85}
+{"seed_key": "ANIME:111", "id": 368, "v": "relevant", "why": "Spirit-world transformation film, lesser craft", "conf": 0.55}
+{"seed_key": "ANIME:111", "id": 374, "v": "relevant", "why": "Miyazaki childhood enchantment", "conf": 0.8}
+{"seed_key": "ANIME:111", "id": 375, "v": "relevant", "why": "Miyazaki coming-of-age wonder", "conf": 0.8}
+{"seed_key": "ANIME:111", "id": 376, "v": "relevant", "why": "Spirit doors and journeys, Ghibli-descended", "conf": 0.7}
+{"seed_key": "ANIME:111", "id": 824, "v": "relevant", "why": "Spirit-world coming-of-age, Hosoda warmth", "conf": 0.75}
+{"seed_key": "ANIME:111", "id": 856, "v": "relevant", "why": "Miyazaki mythic epic grandeur", "conf": 0.7}
+{"seed_key": "ANIME:111", "id": 858, "v": "relevant", "why": "Ghibli quiet wonder and smallness", "conf": 0.7}
+{"seed_key": "ANIME:111", "id": 1259, "v": "not_relevant", "why": "Gothic TV youkai procedural, format mismatch", "conf": 0.5}
+{"seed_key": "ANIME:111", "id": 1413, "v": "relevant", "why": "Miyazaki's spirit-world passage", "conf": 0.8}
+{"seed_key": "ANIME:111", "id": 1630, "v": "relevant", "why": "Youkai whimsy with literary warmth", "conf": 0.6}
+{"seed_key": "ANIME:111", "id": 2142, "v": "not_relevant", "why": "School ghost action-comedy TV, wrong register", "conf": 0.55}
+{"seed_key": "ANIME:111", "id": 2759, "v": "relevant", "why": "Gentle youkai film, Ghibli-adjacent tenderness", "conf": 0.75}
+{"seed_key": "ANIME:282", "id": 274, "v": "relevant", "why": "Pretty-boy sports bonds, same fanbase energy", "conf": 0.8}
+{"seed_key": "ANIME:282", "id": 313, "v": "relevant", "why": "Tender queer romance through performance", "conf": 0.7}
+{"seed_key": "ANIME:282", "id": 358, "v": "relevant", "why": "Beautiful boys aquatic sports drama", "conf": 0.75}
+{"seed_key": "ANIME:282", "id": 1024, "v": "relevant", "why": "Artistic pair sport with rivalry drama", "conf": 0.6}
+{"seed_key": "ANIME:282", "id": 1055, "v": "relevant", "why": "Gentle BL romance film", "conf": 0.6}
+{"seed_key": "ANIME:282", "id": 1132, "v": "relevant", "why": "Quiet seaside BL film", "conf": 0.6}
+{"seed_key": "ANIME:282", "id": 1157, "v": "relevant", "why": "Sweet BL warmth", "conf": 0.6}
+{"seed_key": "ANIME:282", "id": 1831, "v": "relevant", "why": "Boys artistic gymnastics team", "conf": 0.7}
+{"seed_key": "ANIME:282", "id": 2190, "v": "franchise", "why": "Yuri on ICE's own film", "conf": 0.95}
+{"seed_key": "ANIME:282", "id": 2428, "v": "relevant", "why": "Figure skating, coach bond, superb drama", "conf": 0.85}
+{"seed_key": "ANIME:282", "id": 2995, "v": "not_relevant", "why": "Mediocre YoI chaser, clearly weaker", "conf": 0.5}
+{"seed_key": "ANIME:282", "id": 4088, "v": "not_relevant", "why": "Girls hockey idol hybrid, weak", "conf": 0.6}
+{"seed_key": "ANIME:282", "id": 4717, "v": "not_relevant", "why": "Grueling sprint drama, lacks YoI's warmth", "conf": 0.5}
+{"seed_key": "ANIME:282", "id": 4932, "v": "relevant", "why": "Skating artistry drama continued", "conf": 0.8}
+{"seed_key": "ANIME:282", "id": 10438, "v": "not_relevant", "why": "Kids idol skating shorts, wrong universe", "conf": 0.7}
+{"seed_key": "ANIME:282", "id": 13154, "v": "not_relevant", "why": "Dated BL melodrama, different register", "conf": 0.5}
+{"seed_key": "ANIME:282", "id": 13273, "v": "not_relevant", "why": "Old-school BL workplace melodrama, dated feel", "conf": 0.5}
+{"seed_key": "ANIME:313", "id": 271, "v": "not_relevant", "why": "Manic band comedy, misses given's tenderness", "conf": 0.5}
+{"seed_key": "ANIME:313", "id": 282, "v": "relevant", "why": "Queer love through performance, kindred warmth", "conf": 0.7}
+{"seed_key": "ANIME:313", "id": 338, "v": "relevant", "why": "Band and love entwined, deeper drama", "conf": 0.8}
+{"seed_key": "ANIME:313", "id": 861, "v": "relevant", "why": "Music duo intimacy and dreams", "conf": 0.6}
+{"seed_key": "ANIME:313", "id": 904, "v": "relevant", "why": "Music club emotional drama", "conf": 0.65}
+{"seed_key": "ANIME:313", "id": 921, "v": "relevant", "why": "Music, youth, aching bonds", "conf": 0.75}
+{"seed_key": "ANIME:313", "id": 1055, "v": "relevant", "why": "Gentle BL with music thread, canonical pairing", "conf": 0.85}
+{"seed_key": "ANIME:313", "id": 1132, "v": "relevant", "why": "Quiet tender BL film", "conf": 0.75}
+{"seed_key": "ANIME:313", "id": 1157, "v": "relevant", "why": "Soft BL sweetness", "conf": 0.75}
+{"seed_key": "ANIME:313", "id": 1425, "v": "relevant", "why": "Band as emotional outlet, raw feelings", "conf": 0.6}
+{"seed_key": "ANIME:313", "id": 1719, "v": "relevant", "why": "BL romance, rougher edges", "conf": 0.55}
+{"seed_key": "ANIME:313", "id": 2189, "v": "relevant", "why": "Band intensity with queer undercurrent", "conf": 0.6}
+{"seed_key": "ANIME:313", "id": 2682, "v": "relevant", "why": "Band bearing heavy interpersonal feelings", "conf": 0.65}
+{"seed_key": "ANIME:313", "id": 2697, "v": "relevant", "why": "Understated BL drama", "conf": 0.65}
+{"seed_key": "ANIME:313", "id": 2814, "v": "franchise", "why": "given's own film", "conf": 0.98}
+{"seed_key": "ANIME:313", "id": 4595, "v": "not_relevant", "why": "Deadpan indie band comedy, wrong tone", "conf": 0.5}
+{"seed_key": "ANIME:313", "id": 8556, "v": "relevant", "why": "Band-feelings side film, same neighborhood", "conf": 0.5}
+{"seed_key": "ANIME:313", "id": 22630, "v": "relevant", "why": "Adult BL romance film", "conf": 0.55}
+{"seed_key": "ANIME:97", "id": 22, "v": "not_relevant", "why": "Coming-of-age esper drama, different engine", "conf": 0.5}
+{"seed_key": "ANIME:97", "id": 94, "v": "relevant", "why": "Prestige comedy warmth, co-recommended constantly", "conf": 0.55}
+{"seed_key": "ANIME:97", "id": 150, "v": "not_relevant", "why": "Battle shounen, wrong neighborhood", "conf": 0.55}
+{"seed_key": "ANIME:97", "id": 218, "v": "relevant", "why": "Comedy craft plus growing warmth", "conf": 0.55}
+{"seed_key": "ANIME:97", "id": 270, "v": "not_relevant", "why": "Pure surreal gag, no family heart", "conf": 0.5}
+{"seed_key": "ANIME:97", "id": 291, "v": "relevant", "why": "Stylish con-artist capers, slick fun", "conf": 0.6}
+{"seed_key": "ANIME:97", "id": 315, "v": "franchise", "why": "SPY x FAMILY's own season", "conf": 0.98}
+{"seed_key": "ANIME:97", "id": 370, "v": "relevant", "why": "Retired killer domestic comedy, premise sibling", "conf": 0.8}
+{"seed_key": "ANIME:97", "id": 425, "v": "relevant", "why": "Stylish buddy action comedy", "conf": 0.5}
+{"seed_key": "ANIME:97", "id": 474, "v": "relevant", "why": "Criminal guardian, psychic kid, found family", "conf": 0.8}
+{"seed_key": "ANIME:97", "id": 503, "v": "not_relevant", "why": "School romance, wrong neighborhood", "conf": 0.5}
+{"seed_key": "ANIME:97", "id": 795, "v": "relevant", "why": "Assassins raising a child, same premise", "conf": 0.9}
+{"seed_key": "ANIME:97", "id": 837, "v": "relevant", "why": "Parent hiding secret job, family warmth", "conf": 0.75}
+{"seed_key": "ANIME:97", "id": 1081, "v": "relevant", "why": "Tough guy melted by childcare", "conf": 0.8}
+{"seed_key": "ANIME:97", "id": 1759, "v": "relevant", "why": "Operative comically mishandling civilian life", "conf": 0.6}
+{"seed_key": "ANIME:97", "id": 4814, "v": "relevant", "why": "Spy-family action comedy, lighter craft", "conf": 0.6}
+{"seed_key": "ANIME:97", "id": 13342, "v": "not_relevant", "why": "Chaotic retro romcom, different energy", "conf": 0.55}
+{"seed_key": "ANIME:183", "id": 94, "v": "relevant", "why": "Warm prestige comedy, shared audience", "conf": 0.55}
+{"seed_key": "ANIME:183", "id": 97, "v": "franchise", "why": "Same SPY x FAMILY franchise", "conf": 0.98}
+{"seed_key": "ANIME:183", "id": 218, "v": "relevant", "why": "Comedy craft and warmth", "conf": 0.55}
+{"seed_key": "ANIME:183", "id": 291, "v": "relevant", "why": "Con-artist caper style and heart", "conf": 0.6}
+{"seed_key": "ANIME:183", "id": 425, "v": "relevant", "why": "Buddy action comedy flash", "conf": 0.5}
+{"seed_key": "ANIME:183", "id": 448, "v": "relevant", "why": "Ex-yakuza domesticity gag, same engine", "conf": 0.75}
+{"seed_key": "ANIME:183", "id": 474, "v": "relevant", "why": "Found family with dangerous guardian", "conf": 0.8}
+{"seed_key": "ANIME:183", "id": 503, "v": "not_relevant", "why": "School romance, wrong neighborhood", "conf": 0.5}
+{"seed_key": "ANIME:183", "id": 795, "v": "relevant", "why": "Hitmen parenting a toddler", "conf": 0.9}
+{"seed_key": "ANIME:183", "id": 837, "v": "relevant", "why": "Secret-keeping father, daughter warmth", "conf": 0.75}
+{"seed_key": "ANIME:183", "id": 973, "v": "not_relevant", "why": "Teasing school romance, different engine", "conf": 0.55}
+{"seed_key": "ANIME:183", "id": 981, "v": "franchise", "why": "SPY x FAMILY's own film", "conf": 0.98}
+{"seed_key": "ANIME:183", "id": 1081, "v": "relevant", "why": "Yakuza softened by childcare", "conf": 0.8}
+{"seed_key": "ANIME:183", "id": 1082, "v": "franchise", "why": "SPY x FAMILY's own season", "conf": 0.98}
+{"seed_key": "ANIME:183", "id": 1414, "v": "not_relevant", "why": "School romcom chaos, wrong neighborhood", "conf": 0.55}
+{"seed_key": "ANIME:183", "id": 1565, "v": "relevant", "why": "Assassin comedy with heart", "conf": 0.6}
+{"seed_key": "ANIME:183", "id": 3380, "v": "not_relevant", "why": "Sibling gag shorts, thinner register", "conf": 0.5}
+{"seed_key": "ANIME:183", "id": 4814, "v": "relevant", "why": "Spy-family comedy, lighter", "conf": 0.6}
+{"seed_key": "ANIME:183", "id": 12932, "v": "not_relevant", "why": "Low-key divine roommates gag, different rhythm", "conf": 0.5}
+{"seed_key": "ANIME:183", "id": 13342, "v": "not_relevant", "why": "Retro chaos romcom, different energy", "conf": 0.55}
+{"seed_key": "ANIME:195", "id": 19, "v": "not_relevant", "why": "Escape thriller, no showbiz satire", "conf": 0.5}
+{"seed_key": "ANIME:195", "id": 24, "v": "relevant", "why": "Rebirth-adjacent race to prevent tragedy", "conf": 0.55}
+{"seed_key": "ANIME:195", "id": 90, "v": "relevant", "why": "Entertainment-industry pressures via supernatural adolescence", "conf": 0.6}
+{"seed_key": "ANIME:195", "id": 94, "v": "relevant", "why": "Same author's wit, fans overlap heavily", "conf": 0.6}
+{"seed_key": "ANIME:195", "id": 213, "v": "not_relevant", "why": "Terrorism thriller, wrong neighborhood", "conf": 0.55}
+{"seed_key": "ANIME:195", "id": 246, "v": "not_relevant", "why": "Gentle second-chance romance, wrong tone", "conf": 0.5}
+{"seed_key": "ANIME:195", "id": 286, "v": "relevant", "why": "Dark idol-industry psychology, the canonical ancestor", "conf": 0.9}
+{"seed_key": "ANIME:195", "id": 450, "v": "relevant", "why": "Rebirth into idol grind, satirical twin", "conf": 0.7}
+{"seed_key": "ANIME:195", "id": 490, "v": "relevant", "why": "Sharp modern mystery with showbiz rot", "conf": 0.65}
+{"seed_key": "ANIME:195", "id": 501, "v": "not_relevant", "why": "Fantasy motherhood weepie, different experience", "conf": 0.55}
+{"seed_key": "ANIME:195", "id": 546, "v": "not_relevant", "why": "Dialogue-driven supernatural mystery, different appeal", "conf": 0.5}
+{"seed_key": "ANIME:195", "id": 1203, "v": "relevant", "why": "Adolescence-industry supernatural drama, franchise film", "conf": 0.5}
+{"seed_key": "ANIME:195", "id": 1377, "v": "not_relevant", "why": "School supernatural drama OVAs, no showbiz", "conf": 0.5}
+{"seed_key": "ANIME:195", "id": 2092, "v": "relevant", "why": "Performing-arts school pressures and trauma", "conf": 0.75}
+{"seed_key": "ANIME:195", "id": 2326, "v": "relevant", "why": "Revenge-mystery infiltration, surreal comedy edge", "conf": 0.5}
+{"seed_key": "ANIME:195", "id": 2536, "v": "relevant", "why": "Voice-actress industry friction and personas", "conf": 0.6}
+{"seed_key": "ANIME:195", "id": 4780, "v": "relevant", "why": "Idol-industry machinations, surprisingly dark", "conf": 0.5}
+{"seed_key": "ANIME:195", "id": 14987, "v": "relevant", "why": "Parasocial fame toxicity, thematic descendant", "conf": 0.55}
+{"seed_key": "ANIME:286", "id": 4, "v": "relevant", "why": "Pulpy psychological-thriller adjacency", "conf": 0.5}
+{"seed_key": "ANIME:286", "id": 29, "v": "not_relevant", "why": "Otaku time-travel thriller, different texture", "conf": 0.5}
+{"seed_key": "ANIME:286", "id": 181, "v": "relevant", "why": "Adult psychological thriller masterwork", "conf": 0.8}
+{"seed_key": "ANIME:286", "id": 195, "v": "relevant", "why": "Idol-industry darkness, Perfect Blue's heir", "conf": 0.8}
+{"seed_key": "ANIME:286", "id": 257, "v": "relevant", "why": "Psychological breakdown as art film", "conf": 0.6}
+{"seed_key": "ANIME:286", "id": 269, "v": "relevant", "why": "Identity dissolving through media, kindred nightmare", "conf": 0.8}
+{"seed_key": "ANIME:286", "id": 486, "v": "relevant", "why": "Kon's reality-blurring dreamwork", "conf": 0.9}
+{"seed_key": "ANIME:286", "id": 739, "v": "relevant", "why": "Surreal introspective art ambition", "conf": 0.5}
+{"seed_key": "ANIME:286", "id": 741, "v": "relevant", "why": "Kon's societal paranoia mosaic", "conf": 0.9}
+{"seed_key": "ANIME:286", "id": 744, "v": "relevant", "why": "Mind-dive serial-killer procedural", "conf": 0.6}
+{"seed_key": "ANIME:286", "id": 1017, "v": "relevant", "why": "Kon's humane side, auteur lineage", "conf": 0.55}
+{"seed_key": "ANIME:286", "id": 1338, "v": "relevant", "why": "Kon: actress, memory, blurred film-reality", "conf": 0.85}
+{"seed_key": "ANIME:286", "id": 1364, "v": "relevant", "why": "Arthouse murder psychology, mid-series chapter", "conf": 0.5}
+{"seed_key": "ANIME:286", "id": 1512, "v": "relevant", "why": "Bleak adult psychological art film", "conf": 0.55}
+{"seed_key": "ANIME:286", "id": 1634, "v": "not_relevant", "why": "Stylized romance melodrama, wrong neighborhood", "conf": 0.55}
+{"seed_key": "ANIME:286", "id": 1735, "v": "relevant", "why": "Otomo anthology; Magnetic Rose is kin", "conf": 0.65}
+{"seed_key": "ANIME:286", "id": 4003, "v": "not_relevant", "why": "Idol fandom drama, wrong register entirely", "conf": 0.55}
+{"seed_key": "ANIME:286", "id": 14987, "v": "relevant", "why": "Internet-fame psychosis, modern descendant", "conf": 0.6}
+{"seed_key": "ANIME:271", "id": 220, "v": "relevant", "why": "Girls-band ancestor, cozy comedy", "conf": 0.85}
+{"seed_key": "ANIME:271", "id": 270, "v": "relevant", "why": "High-craft absurdist gag energy", "conf": 0.6}
+{"seed_key": "ANIME:271", "id": 313, "v": "not_relevant", "why": "Tender BL romance, misses Bocchi's comedy", "conf": 0.5}
+{"seed_key": "ANIME:271", "id": 416, "v": "relevant", "why": "Cozy introvert-friendly CGDCT", "conf": 0.6}
+{"seed_key": "ANIME:271", "id": 418, "v": "relevant", "why": "Girls-band cozy classic", "conf": 0.8}
+{"seed_key": "ANIME:271", "id": 467, "v": "relevant", "why": "Social-anxiety cringe comedy, spiritual ancestor", "conf": 0.65}
+{"seed_key": "ANIME:271", "id": 1152, "v": "relevant", "why": "Anxious loner girl making friends", "conf": 0.7}
+{"seed_key": "ANIME:271", "id": 1313, "v": "relevant", "why": "CGDCT comedy duo warmth", "conf": 0.55}
+{"seed_key": "ANIME:271", "id": 1322, "v": "not_relevant", "why": "Anxious lead but fantasy-academy feel", "conf": 0.5}
+{"seed_key": "ANIME:271", "id": 1425, "v": "relevant", "why": "Girls band, rawer drama", "conf": 0.8}
+{"seed_key": "ANIME:271", "id": 1427, "v": "relevant", "why": "Anonymous creative girls finding voice", "conf": 0.75}
+{"seed_key": "ANIME:271", "id": 1892, "v": "relevant", "why": "K-ON cozy band extra", "conf": 0.6}
+{"seed_key": "ANIME:271", "id": 2189, "v": "relevant", "why": "Girls rock intensity", "conf": 0.75}
+{"seed_key": "ANIME:271", "id": 2682, "v": "relevant", "why": "Girls-band interpersonal drama", "conf": 0.8}
+{"seed_key": "ANIME:271", "id": 4190, "v": "not_relevant", "why": "Chibi franchise gag shorts, fan-service register", "conf": 0.55}
+{"seed_key": "ANIME:271", "id": 4595, "v": "relevant", "why": "Indie band joy, deadpan comedy", "conf": 0.6}
+{"seed_key": "ANIME:271", "id": 7335, "v": "not_relevant", "why": "Franchise anniversary special, fandom-locked", "conf": 0.6}
+{"seed_key": "ANIME:271", "id": 8556, "v": "relevant", "why": "Band-drama side film, same neighborhood", "conf": 0.5}
+{"seed_key": "ANIME:271", "id": 22387, "v": "franchise", "why": "Bocchi's own recap film", "conf": 0.98}
+{"seed_key": "ANIME:358", "id": 30, "v": "relevant", "why": "Boys team-sports bonds, higher craft", "conf": 0.7}
+{"seed_key": "ANIME:358", "id": 274, "v": "relevant", "why": "Pretty boys, sport, found friendship", "conf": 0.8}
+{"seed_key": "ANIME:358", "id": 282, "v": "relevant", "why": "Male beauty and artistry in sport", "conf": 0.8}
+{"seed_key": "ANIME:358", "id": 377, "v": "relevant", "why": "Boys sports rivalry spectacle", "conf": 0.65}
+{"seed_key": "ANIME:358", "id": 933, "v": "relevant", "why": "Male ensemble running toward selfhood", "conf": 0.7}
+{"seed_key": "ANIME:358", "id": 993, "v": "franchise", "why": "Free!'s own sequel", "conf": 0.98}
+{"seed_key": "ANIME:358", "id": 1055, "v": "not_relevant", "why": "Quiet BL romance film, different experience", "conf": 0.5}
+{"seed_key": "ANIME:358", "id": 1059, "v": "relevant", "why": "Serious soccer development drama", "conf": 0.55}
+{"seed_key": "ANIME:358", "id": 1391, "v": "relevant", "why": "KyoAni boys-club formula, direct sibling", "conf": 0.9}
+{"seed_key": "ANIME:358", "id": 1636, "v": "relevant", "why": "Water polo boys team", "conf": 0.7}
+{"seed_key": "ANIME:358", "id": 1831, "v": "relevant", "why": "Boys gymnastics team warmth", "conf": 0.75}
+{"seed_key": "ANIME:358", "id": 2549, "v": "relevant", "why": "Boys sports recap film, same neighborhood", "conf": 0.5}
+{"seed_key": "ANIME:358", "id": 2688, "v": "relevant", "why": "KyoAni archery boys continued", "conf": 0.85}
+{"seed_key": "ANIME:358", "id": 2905, "v": "relevant", "why": "Gentle male-ensemble slice of life", "conf": 0.55}
+{"seed_key": "ANIME:358", "id": 2932, "v": "not_relevant", "why": "Wholesome babysitting, no sports", "conf": 0.55}
+{"seed_key": "ANIME:358", "id": 2995, "v": "relevant", "why": "Pretty-boys skating rivalry, weaker craft", "conf": 0.5}
+{"seed_key": "ANIME:358", "id": 3758, "v": "relevant", "why": "Diving-club boys, same pool literally", "conf": 0.5}
+{"seed_key": "ANIME:358", "id": 13234, "v": "relevant", "why": "Boys baseball psychology and bonds", "conf": 0.6}
+{"seed_key": "ANIME:198", "id": 28, "v": "relevant", "why": "Heavyweight isekai suffering and growth", "conf": 0.8}
+{"seed_key": "ANIME:198", "id": 103, "v": "not_relevant", "why": "Isekai parody sitcom, opposite register", "conf": 0.55}
+{"seed_key": "ANIME:198", "id": 121, "v": "relevant", "why": "Serious-toned isekai adventure, lesser craft", "conf": 0.6}
+{"seed_key": "ANIME:198", "id": 125, "v": "relevant", "why": "World-building isekai, gentler", "conf": 0.6}
+{"seed_key": "ANIME:198", "id": 143, "v": "relevant", "why": "Isekai power-fantasy world-building", "conf": 0.6}
+{"seed_key": "ANIME:198", "id": 145, "v": "relevant", "why": "Fantasy life lived with emotional depth", "conf": 0.65}
+{"seed_key": "ANIME:198", "id": 170, "v": "not_relevant", "why": "Battle shounen spectacle, wrong neighborhood", "conf": 0.6}
+{"seed_key": "ANIME:198", "id": 193, "v": "relevant", "why": "Nation-building isekai continued", "conf": 0.55}
+{"seed_key": "ANIME:198", "id": 245, "v": "not_relevant", "why": "Pure hype progression, no character drama", "conf": 0.5}
+{"seed_key": "ANIME:198", "id": 387, "v": "relevant", "why": "Grounded melancholy isekai survival", "conf": 0.7}
+{"seed_key": "ANIME:198", "id": 466, "v": "not_relevant", "why": "Standard isekai romp, thinner", "conf": 0.5}
+{"seed_key": "ANIME:198", "id": 551, "v": "not_relevant", "why": "Ghibli adventure, wrong neighborhood", "conf": 0.6}
+{"seed_key": "ANIME:198", "id": 896, "v": "relevant", "why": "Reincarnated child raised by inhumans, earnest kin", "conf": 0.6}
+{"seed_key": "ANIME:198", "id": 1435, "v": "relevant", "why": "Isekai dark power-fantasy film", "conf": 0.5}
+{"seed_key": "ANIME:198", "id": 9585, "v": "not_relevant", "why": "Family-friendly Chinese fantasy film", "conf": 0.5}
+{"seed_key": "ANIME:198", "id": 10094, "v": "not_relevant", "why": "Cultivation franchise deep-cut, different tradition", "conf": 0.5}
+{"seed_key": "ANIME:198", "id": 13002, "v": "not_relevant", "why": "Shounen adventure OVA, wrong neighborhood", "conf": 0.55}
+{"seed_key": "ANIME:198", "id": 29123, "v": "unknown", "why": "Cannot confidently identify this donghua", "conf": 0.3}
+{"seed_key": "ANIME:198", "id": 30528, "v": "not_relevant", "why": "Cultivation saga mid-season, different tradition", "conf": 0.5}
+{"seed_key": "ANIME:339", "id": 18, "v": "not_relevant", "why": "Earnest hero shounen, no ecchi harem", "conf": 0.6}
+{"seed_key": "ANIME:339", "id": 446, "v": "relevant", "why": "Demon battle-harem ecchi, direct clone", "conf": 0.8}
+{"seed_key": "ANIME:339", "id": 447, "v": "not_relevant", "why": "Classic supernatural battles, no harem register", "conf": 0.55}
+{"seed_key": "ANIME:339", "id": 453, "v": "not_relevant", "why": "Esper action, barely fanservice", "conf": 0.5}
+{"seed_key": "ANIME:339", "id": 509, "v": "relevant", "why": "Fanservice-y battle romp energy", "conf": 0.5}
+{"seed_key": "ANIME:339", "id": 514, "v": "relevant", "why": "Harem ecchi comedy staple", "conf": 0.7}
+{"seed_key": "ANIME:339", "id": 909, "v": "relevant", "why": "Ecchi demon-contract battle fantasy", "conf": 0.7}
+{"seed_key": "ANIME:339", "id": 1001, "v": "relevant", "why": "Ecchi power-through-lewdness battle action", "conf": 0.7}
+{"seed_key": "ANIME:339", "id": 1011, "v": "relevant", "why": "Battle-harem ecchi continued", "conf": 0.75}
+{"seed_key": "ANIME:339", "id": 1031, "v": "relevant", "why": "Supernatural ecchi harem pact comedy", "conf": 0.65}
+{"seed_key": "ANIME:339", "id": 1245, "v": "relevant", "why": "Monster-girl harem ecchi", "conf": 0.7}
+{"seed_key": "ANIME:339", "id": 1251, "v": "not_relevant", "why": "Emotional KyoAni fantasy film, wrong register", "conf": 0.55}
+{"seed_key": "ANIME:339", "id": 1257, "v": "relevant", "why": "Maximum ecchi battle harem, weaker craft", "conf": 0.55}
+{"seed_key": "ANIME:339", "id": 1478, "v": "not_relevant", "why": "Wholesome witch fun, wrong universe", "conf": 0.7}
+{"seed_key": "ANIME:339", "id": 2074, "v": "relevant", "why": "Vampire battle-harem ecchi, DxD's sibling", "conf": 0.65}
+{"seed_key": "ANIME:339", "id": 2451, "v": "not_relevant", "why": "Fate franchise battle film, no harem", "conf": 0.6}
+{"seed_key": "ANIME:339", "id": 4355, "v": "not_relevant", "why": "Classic fantasy comedy, different era-feel", "conf": 0.5}
+{"seed_key": "ANIME:339", "id": 4467, "v": "relevant", "why": "Ecchi dark-fantasy carnage romp", "conf": 0.6}
+{"seed_key": "ANIME:339", "id": 16389, "v": "not_relevant", "why": "Donghua gag fantasy, wrong neighborhood", "conf": 0.5}
+{"seed_key": "ANIME:339", "id": 22440, "v": "not_relevant", "why": "Straight demon shounen, no fanservice engine", "conf": 0.5}
+{"seed_key": "ANIME:2015", "id": 218, "v": "not_relevant", "why": "Full romcom, not chibi gag format", "conf": 0.5}
+{"seed_key": "ANIME:2015", "id": 270, "v": "relevant", "why": "Pure gag-comedy energy", "conf": 0.6}
+{"seed_key": "ANIME:2015", "id": 327, "v": "franchise", "why": "Bungo Stray Dogs mainline", "conf": 0.95}
+{"seed_key": "ANIME:2015", "id": 340, "v": "relevant", "why": "Sketch gag-comedy rhythm", "conf": 0.65}
+{"seed_key": "ANIME:2015", "id": 503, "v": "not_relevant", "why": "Romance slices, wrong genre", "conf": 0.55}
+{"seed_key": "ANIME:2015", "id": 846, "v": "relevant", "why": "Chibi crossover gag spinoff, same format", "conf": 0.7}
+{"seed_key": "ANIME:2015", "id": 881, "v": "relevant", "why": "Sketch-comedy ensemble charm", "conf": 0.55}
+{"seed_key": "ANIME:2015", "id": 938, "v": "relevant", "why": "Comfy franchise side-story slice", "conf": 0.6}
+{"seed_key": "ANIME:2015", "id": 973, "v": "not_relevant", "why": "Teasing romcom, wrong format", "conf": 0.5}
+{"seed_key": "ANIME:2015", "id": 1009, "v": "franchise", "why": "Bungo Stray Dogs film", "conf": 0.95}
+{"seed_key": "ANIME:2015", "id": 1229, "v": "relevant", "why": "Chibi gag spinoff of dark series, format twin", "conf": 0.75}
+{"seed_key": "ANIME:2015", "id": 1976, "v": "relevant", "why": "Arawi gag-comedy craft", "conf": 0.6}
+{"seed_key": "ANIME:2015", "id": 2554, "v": "relevant", "why": "Chibi afterschool gag spinoff twin", "conf": 0.75}
+{"seed_key": "ANIME:2015", "id": 3337, "v": "relevant", "why": "Chibi RPG-parody spinoff twin", "conf": 0.75}
+{"seed_key": "ANIME:2015", "id": 4561, "v": "unknown", "why": "Cannot confidently identify these specials", "conf": 0.3}
+{"seed_key": "ANIME:2015", "id": 4650, "v": "relevant", "why": "Chibi gag spinoff of dark series", "conf": 0.7}
+{"seed_key": "ANIME:2015", "id": 5138, "v": "relevant", "why": "Chibi franchise gag shorts, same format", "conf": 0.6}
+{"seed_key": "ANIME:2015", "id": 8880, "v": "not_relevant", "why": "Ancient obscure fandom-locked chibi shorts", "conf": 0.5}
+{"seed_key": "ANIME:2015", "id": 13005, "v": "relevant", "why": "Mini-format franchise comedy shorts", "conf": 0.65}
+{"seed_key": "ANIME:2015", "id": 13342, "v": "not_relevant", "why": "Full romcom remake series, wrong format", "conf": 0.5}
+{"seed_key": "ANIME:4409", "id": 270, "v": "relevant", "why": "Absurdist visual-gag joy, kindred spirit", "conf": 0.6}
+{"seed_key": "ANIME:4409", "id": 1313, "v": "not_relevant", "why": "Standard CGDCT comedy, wrong format-feel", "conf": 0.5}
+{"seed_key": "ANIME:4409", "id": 1565, "v": "not_relevant", "why": "Action-comedy ONA, wrong neighborhood", "conf": 0.55}
+{"seed_key": "ANIME:4409", "id": 1759, "v": "not_relevant", "why": "Military school comedy, wrong universe", "conf": 0.6}
+{"seed_key": "ANIME:4409", "id": 2055, "v": "relevant", "why": "Deadpan absurdist gag shorts", "conf": 0.6}
+{"seed_key": "ANIME:4409", "id": 3475, "v": "relevant", "why": "Mixed-media absurdist shorts, kindred weirdness", "conf": 0.55}
+{"seed_key": "ANIME:4409", "id": 3567, "v": "not_relevant", "why": "Episodic kids gadget comedy, different charm", "conf": 0.5}
+{"seed_key": "ANIME:4409", "id": 3641, "v": "relevant", "why": "Adorable critter charm for all ages", "conf": 0.55}
+{"seed_key": "ANIME:4409", "id": 3916, "v": "not_relevant", "why": "Gintama parody spinoff, fandom-locked", "conf": 0.5}
+{"seed_key": "ANIME:4409", "id": 5025, "v": "relevant", "why": "Stop-motion mascot gentleness, format twin", "conf": 0.8}
+{"seed_key": "ANIME:4409", "id": 5284, "v": "relevant", "why": "Cute-creature shorts with absurd bite", "conf": 0.85}
+{"seed_key": "ANIME:4409", "id": 5479, "v": "relevant", "why": "Pet gag shorts, cute-critter kin", "conf": 0.65}
+{"seed_key": "ANIME:4409", "id": 6112, "v": "not_relevant", "why": "Feature film with pathos, different register", "conf": 0.5}
+{"seed_key": "ANIME:4409", "id": 6336, "v": "relevant", "why": "Stop-motion Sanrio mascots, same director lineage", "conf": 0.8}
+{"seed_key": "ANIME:4409", "id": 7835, "v": "unknown", "why": "Cannot confidently identify this short", "conf": 0.3}
+{"seed_key": "ANIME:4409", "id": 8819, "v": "relevant", "why": "Mascot critter shorts, modest but kindred", "conf": 0.55}
+{"seed_key": "ANIME:4409", "id": 13342, "v": "not_relevant", "why": "Retro romcom chaos, wrong universe", "conf": 0.6}
+{"seed_key": "ANIME:4409", "id": 13356, "v": "relevant", "why": "Mascot-cat gag shorts, format twin", "conf": 0.65}
+{"seed_key": "ANIME:4409", "id": 96234, "v": "relevant", "why": "Yarn-craft stop-motion cuteness, material kin", "conf": 0.5}
+{"seed_key": "ANIME:208", "id": 180, "v": "relevant", "why": "Dark magical-girl trauma deconstruction", "conf": 0.8}
+{"seed_key": "ANIME:208", "id": 269, "v": "relevant", "why": "Surreal psyche dissolution", "conf": 0.6}
+{"seed_key": "ANIME:208", "id": 363, "v": "not_relevant", "why": "Grounded shoujo healing, conventional form", "conf": 0.5}
+{"seed_key": "ANIME:208", "id": 486, "v": "relevant", "why": "Surreal dream-logic imagery", "conf": 0.55}
+{"seed_key": "ANIME:208", "id": 739, "v": "relevant", "why": "Surreal adolescent existential drift", "conf": 0.7}
+{"seed_key": "ANIME:208", "id": 741, "v": "relevant", "why": "Surreal societal trauma mosaic", "conf": 0.6}
+{"seed_key": "ANIME:208", "id": 748, "v": "relevant", "why": "Adolescent psyche via supernatural metaphor", "conf": 0.5}
+{"seed_key": "ANIME:208", "id": 934, "v": "relevant", "why": "Cute surface, devastating child trauma", "conf": 0.85}
+{"seed_key": "ANIME:208", "id": 1042, "v": "relevant", "why": "Ikuhara symbolism over shared wounds", "conf": 0.85}
+{"seed_key": "ANIME:208", "id": 1131, "v": "relevant", "why": "Ikuhara surreal-adolescence landmark", "conf": 0.8}
+{"seed_key": "ANIME:208", "id": 1174, "v": "not_relevant", "why": "Exploitative dark magical-girl schlock", "conf": 0.55}
+{"seed_key": "ANIME:208", "id": 1203, "v": "relevant", "why": "Adolescent trauma through supernatural metaphor", "conf": 0.55}
+{"seed_key": "ANIME:208", "id": 1253, "v": "relevant", "why": "Girls' pain fought in surreal battle-world", "conf": 0.55}
+{"seed_key": "ANIME:208", "id": 1260, "v": "relevant", "why": "Surreal psyche-diving girls adventure", "conf": 0.75}
+{"seed_key": "ANIME:208", "id": 1555, "v": "relevant", "why": "Ikuhara surreal adolescent connection", "conf": 0.75}
+{"seed_key": "ANIME:208", "id": 1625, "v": "relevant", "why": "Symbolic surreal girls' duels", "conf": 0.75}
+{"seed_key": "ANIME:208", "id": 1903, "v": "not_relevant", "why": "Immortal journey weepy, different experience", "conf": 0.5}
+{"seed_key": "ANIME:208", "id": 2041, "v": "relevant", "why": "Uncanny apocalypse over girls' friendship", "conf": 0.6}
+{"seed_key": "ANIME:208", "id": 5317, "v": "unknown", "why": "Know premise only, cannot judge feel confidently", "conf": 0.35}
+{"seed_key": "ANIME:208", "id": 22509, "v": "relevant", "why": "Dark youth-suffering anthology, kindred themes", "conf": 0.55}
