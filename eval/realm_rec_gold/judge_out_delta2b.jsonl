@@ -1,0 +1,151 @@
+{"seed_key":"ANIME:159","id":391,"v":"relevant","why":"Same-era dark stylish action; morally gray appeal matches","conf":0.7}
+{"seed_key":"ANIME:7","id":295,"v":"not_relevant","why":"Gag-adventure era register far from HxH tactical darkness","conf":0.55}
+{"seed_key":"ANIME:124","id":1793,"v":"relevant","why":"Tokyo street-gang drama, direct neighborhood","conf":0.7}
+{"seed_key":"ANIME:124","id":392,"v":"not_relevant","why":"Supernatural clan stylishness, not delinquent emotional core","conf":0.55}
+{"seed_key":"ANIME:124","id":232,"v":"not_relevant","why":"Animal-society psychological drama, wrong neighborhood","conf":0.8}
+{"seed_key":"ANIME:124","id":5973,"v":"not_relevant","why":"Corporate proxy-battle game, not gang brotherhood","conf":0.55}
+{"seed_key":"ANIME:124","id":8912,"v":"relevant","why":"Genre-defining delinquent gang fights; dated OVA","conf":0.6}
+{"seed_key":"ANIME:124","id":10209,"v":"relevant","why":"Delinquent street-punk genre kin, comedy-forward","conf":0.5}
+{"seed_key":"ANIME:124","id":29992,"v":"not_relevant","why":"1969 banchou ancestor, archaic register","conf":0.6}
+{"seed_key":"ANIME:124","id":1076,"v":"relevant","why":"Modern delinquent-gang exact match; non-entry sequel","conf":0.7}
+{"seed_key":"ANIME:92","id":3,"v":"relevant","why":"Mainstream supernatural action shonen, sincere core","conf":0.55}
+{"seed_key":"ANIME:92","id":22,"v":"relevant","why":"Urban spirits, comedy-drama blend, same energy","conf":0.75}
+{"seed_key":"ANIME:92","id":153,"v":"not_relevant","why":"Grim historical tone far from Noragami levity","conf":0.5}
+{"seed_key":"ANIME:92","id":108,"v":"relevant","why":"Teen sees spirits, sword action; classic pairing","conf":0.8}
+{"seed_key":"ANIME:111","id":1184,"v":"relevant","why":"Ghibli warmth and craft; different subject","conf":0.6}
+{"seed_key":"ANIME:111","id":15,"v":"relevant","why":"Beautiful supernatural film, standard gateway pairing","conf":0.7}
+{"seed_key":"ANIME:111","id":331,"v":"relevant","why":"Spirit-world bond, wistful Ghibli-esque tone","conf":0.8}
+{"seed_key":"ANIME:313","id":12877,"v":"relevant","why":"Gentle BL romance, same audience","conf":0.75}
+{"seed_key":"ANIME:313","id":23,"v":"relevant","why":"Music, grief, romance; strong thematic match","conf":0.7}
+{"seed_key":"ANIME:313","id":527,"v":"relevant","why":"Thoughtful queer romance drama, register match","conf":0.65}
+{"seed_key":"ANIME:97","id":1221,"v":"relevant","why":"Espionage team drama for spy half","conf":0.6}
+{"seed_key":"ANIME:97","id":344,"v":"not_relevant","why":"Chaotic gangster ensemble, not family-spy comfort","conf":0.55}
+{"seed_key":"ANIME:97","id":461,"v":"relevant","why":"Adult-child found-family warmth matches Anya appeal","conf":0.7}
+{"seed_key":"ANIME:97","id":872,"v":"relevant","why":"Unexpected parenthood warmth, family half match","conf":0.7}
+{"seed_key":"ANIME:183","id":1376,"v":"relevant","why":"Precocious child, adult caretakers, wholesome comedy","conf":0.7}
+{"seed_key":"ANIME:183","id":2053,"v":"relevant","why":"Deadly-competent domestic comedy; non-entry sequel","conf":0.65}
+{"seed_key":"ANIME:183","id":1043,"v":"relevant","why":"Adults performing for kids, comedy register","conf":0.5}
+{"seed_key":"ANIME:183","id":344,"v":"not_relevant","why":"Immortal gangster ensemble, wrong neighborhood","conf":0.55}
+{"seed_key":"ANIME:195","id":1779,"v":"relevant","why":"Showbiz climb with revenge motive; apt","conf":0.8}
+{"seed_key":"ANIME:195","id":388,"v":"not_relevant","why":"AI action with songs; overlap superficial","conf":0.55}
+{"seed_key":"ANIME:195","id":1427,"v":"relevant","why":"Creative-identity performance drama, contemporary register","conf":0.6}
+{"seed_key":"ANIME:195","id":4591,"v":"relevant","why":"Acting-world classic Oshi no Ko homages","conf":0.65}
+{"seed_key":"ANIME:286","id":419,"v":"relevant","why":"Cerebral 90s identity cinema, adult register","conf":0.65}
+{"seed_key":"ANIME:286","id":490,"v":"relevant","why":"Psychological mystery, showbiz underbelly, dark twist","conf":0.75}
+{"seed_key":"ANIME:271","id":475,"v":"relevant","why":"Music-club drama, same cluster","conf":0.75}
+{"seed_key":"ANIME:271","id":414,"v":"relevant","why":"Acclaimed girls-ensemble growth drama","conf":0.6}
+{"seed_key":"ANIME:198","id":975,"v":"relevant","why":"Immersive journey fantasy with romance","conf":0.55}
+{"seed_key":"ANIME:198","id":552,"v":"not_relevant","why":"Meditative post-apocalypse, wrong appeal","conf":0.6}
+{"seed_key":"ANIME:198","id":919,"v":"relevant","why":"Life-spanning fantasy growth, mortality; sequel entry","conf":0.5}
+{"seed_key":"ANIME:198","id":141,"v":"relevant","why":"Immersive dark fantasy world, common companion","conf":0.7}
+{"seed_key":"ANIME:208","id":320,"v":"relevant","why":"Stylized teen trauma ensemble drama","conf":0.6}
+{"seed_key":"ANIME:208","id":215,"v":"not_relevant","why":"Conventional KyoAni action fantasy, off-register","conf":0.5}
+{"seed_key":"ANIME:208","id":324,"v":"not_relevant","why":"Breezy buddy gunplay, not trauma surrealism","conf":0.6}
+{"seed_key":"ANIME:250","id":272,"v":"relevant","why":"Stylish supernatural flirtation, striking art","conf":0.55}
+{"seed_key":"ANIME:250","id":1427,"v":"relevant","why":"Nocturnal misfits finding identity after dark","conf":0.6}
+{"seed_key":"ANIME:250","id":178,"v":"relevant","why":"Stylish modern supernatural rom-com energy","conf":0.55}
+{"seed_key":"ANIME:250","id":201,"v":"relevant","why":"Nocturnal Tokyo supernatural ensemble vibes","conf":0.6}
+{"seed_key":"ANIME:250","id":90,"v":"relevant","why":"Talky teen supernatural romance, common companion","conf":0.65}
+{"seed_key":"ANIME:1621","id":4878,"v":"not_relevant","why":"Same Dazai novel, CG-action register clash","conf":0.6}
+{"seed_key":"ANIME:4152","id":18588,"v":"unknown","why":"Unfamiliar 2026 ONA","conf":0.9}
+{"seed_key":"ANIME:4152","id":233,"v":"relevant","why":"Intelligent historical court intrigue, adult register","conf":0.55}
+{"seed_key":"ANIME:4152","id":1114,"v":"not_relevant","why":"Shonen gag-action register drop","conf":0.5}
+{"seed_key":"ANIME:4152","id":2168,"v":"relevant","why":"Prestige historical court politics classic","conf":0.5}
+{"seed_key":"ANIME:4152","id":168,"v":"not_relevant","why":"Witty supernatural talkfest, wrong neighborhood","conf":0.6}
+{"seed_key":"ANIME:374","id":511,"v":"relevant","why":"Sea-folk and surface love, oceanic fantasy","conf":0.55}
+{"seed_key":"ANIME:374","id":848,"v":"relevant","why":"Ghibli warmth, though grounded not fantastical","conf":0.6}
+{"seed_key":"ANIME:374","id":911,"v":"relevant","why":"Warm ocean fantasy romance film","conf":0.6}
+{"seed_key":"ANIME:374","id":1225,"v":"relevant","why":"Ghibli folkloric childhood fantasy masterwork","conf":0.65}
+{"seed_key":"ANIME:410","id":278,"v":"relevant","why":"Wholesome sweet romance comedy","conf":0.8}
+{"seed_key":"ANIME:410","id":104,"v":"relevant","why":"Sweet school rom-com, same audience","conf":0.75}
+{"seed_key":"ANIME:410","id":1167,"v":"relevant","why":"Teasing skit rom-com, direct dynamic match","conf":0.75}
+{"seed_key":"ANIME:410","id":96,"v":"relevant","why":"Classic bickering-couple rom-com","conf":0.65}
+{"seed_key":"ANIME:410","id":834,"v":"relevant","why":"Teasing senpai dynamic, workplace flavor","conf":0.75}
+{"seed_key":"ANIME:410","id":1198,"v":"relevant","why":"Competitive teasing childhood romance","conf":0.7}
+{"seed_key":"MANGA:7","id":97,"v":"relevant","why":"Grand escalating long-run epic, common pairing","conf":0.65}
+{"seed_key":"MANGA:7","id":16,"v":"relevant","why":"Epic seafaring adventure saga","conf":0.65}
+{"seed_key":"MANGA:7","id":322,"v":"relevant","why":"Classic Jump adventure with heart","conf":0.55}
+{"seed_key":"MANGA:7","id":271,"v":"relevant","why":"Jump long-runner, crew comedy plus serious arcs","conf":0.7}
+{"seed_key":"MANGA:25","id":497,"v":"relevant","why":"Upbeat magic battle shonen","conf":0.7}
+{"seed_key":"MANGA:25","id":4,"v":"relevant","why":"Modern battle shonen staple","conf":0.75}
+{"seed_key":"MANGA:25","id":134,"v":"relevant","why":"Jump sorcery battle action","conf":0.7}
+{"seed_key":"MANGA:25","id":148,"v":"relevant","why":"Battle-shonen root Tabata openly emulates","conf":0.55}
+{"seed_key":"MANGA:25","id":356,"v":"relevant","why":"Energetic supernatural Jump action-comedy","conf":0.6}
+{"seed_key":"MANGA:84","id":2982,"v":"relevant","why":"Modern knowledge rebuilding a past era","conf":0.6}
+{"seed_key":"MANGA:84","id":155,"v":"relevant","why":"Survival craft knowledge adventure, common pairing","conf":0.65}
+{"seed_key":"MANGA:89","id":494,"v":"relevant","why":"Post-demon-lord fantasy, comedy hiding depth","conf":0.75}
+{"seed_key":"MANGA:89","id":949,"v":"relevant","why":"Gorgeous contemplative fantasy wonder","conf":0.7}
+{"seed_key":"MANGA:130","id":497,"v":"relevant","why":"Fun magic adventure shonen","conf":0.6}
+{"seed_key":"MANGA:130","id":2747,"v":"unknown","why":"Unfamiliar 2024 title","conf":0.8}
+{"seed_key":"MANGA:130","id":10,"v":"relevant","why":"Mainstream friendship battle shonen","conf":0.65}
+{"seed_key":"MANGA:130","id":148,"v":"relevant","why":"Mashima's foundational adventure influence","conf":0.6}
+{"seed_key":"MANGA:130","id":4305,"v":"not_relevant","why":"Game tie-in adaptation, weak register","conf":0.6}
+{"seed_key":"MANGA:130","id":309,"v":"relevant","why":"Jump found-family battle comedy","conf":0.65}
+{"seed_key":"MANGA:151","id":321,"v":"relevant","why":"Inventive auteur dark-whimsy fantasy, same fandom","conf":0.7}
+{"seed_key":"MANGA:151","id":497,"v":"relevant","why":"Playful fantasy with inventive magic","conf":0.55}
+{"seed_key":"MANGA:151","id":1598,"v":"unknown","why":"One-shot not confidently known","conf":0.6}
+{"seed_key":"MANGA:151","id":2982,"v":"relevant","why":"Food-and-production detail in another world","conf":0.5}
+{"seed_key":"MANGA:163","id":1395,"v":"relevant","why":"Academy mage progression manhwa, exact neighborhood","conf":0.7}
+{"seed_key":"MANGA:163","id":994,"v":"not_relevant","why":"Murim family drama, different subgenre","conf":0.5}
+{"seed_key":"MANGA:163","id":1698,"v":"relevant","why":"Dark academy fantasy manhwa","conf":0.6}
+{"seed_key":"MANGA:163","id":9329,"v":"relevant","why":"Undercover academy mage classic","conf":0.6}
+{"seed_key":"MANGA:163","id":126,"v":"relevant","why":"Regression power fantasy, top register","conf":0.75}
+{"seed_key":"MANGA:163","id":182,"v":"relevant","why":"Regressor tower-climbing, same shelf","conf":0.75}
+{"seed_key":"MANGA:182","id":993,"v":"relevant","why":"Hidden-power hunter webtoon, same shelf","conf":0.65}
+{"seed_key":"MANGA:182","id":1096,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:182","id":3064,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:182","id":4155,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:182","id":163,"v":"relevant","why":"Regression fantasy, same shelf","conf":0.75}
+{"seed_key":"MANGA:254","id":428,"v":"relevant","why":"Pulpy K-fantasy system romp","conf":0.65}
+{"seed_key":"MANGA:254","id":1514,"v":"relevant","why":"Greedy hunter monopolizing rewards, kindred protagonist","conf":0.7}
+{"seed_key":"MANGA:254","id":6755,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:254","id":248,"v":"relevant","why":"Hunter power-fantasy webtoon shelf","conf":0.7}
+{"seed_key":"MANGA:254","id":351,"v":"relevant","why":"Tower hunter power fantasy, same register","conf":0.7}
+{"seed_key":"MANGA:254","id":375,"v":"relevant","why":"Artifact-driven hunter power fantasy","conf":0.7}
+{"seed_key":"MANGA:364","id":926,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:364","id":3054,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:364","id":3078,"v":"relevant","why":"Plays regressor tropes with comedic edge","conf":0.55}
+{"seed_key":"MANGA:364","id":8440,"v":"not_relevant","why":"Cozy dragon fluff versus dark satire","conf":0.5}
+{"seed_key":"MANGA:364","id":242,"v":"relevant","why":"Snarky brutal returnee skewering heroes","conf":0.6}
+{"seed_key":"MANGA:375","id":1703,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:375","id":6462,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:375","id":6755,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:375","id":13099,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:375","id":163,"v":"relevant","why":"Popular K-fantasy progression, adjacent shelf","conf":0.6}
+{"seed_key":"MANGA:428","id":994,"v":"relevant","why":"Murim genre kin with family heart","conf":0.55}
+{"seed_key":"MANGA:428","id":19,"v":"relevant","why":"System-apocalypse webtoon, top register","conf":0.65}
+{"seed_key":"MANGA:428","id":214,"v":"relevant","why":"Murim regression masterpiece, exact shelf","conf":0.8}
+{"seed_key":"MANGA:428","id":515,"v":"relevant","why":"VR game-world grind classic","conf":0.7}
+{"seed_key":"MANGA:465","id":453,"v":"relevant","why":"Big-shonen sequel continuation, adjacent audience","conf":0.5}
+{"seed_key":"MANGA:465","id":148,"v":"relevant","why":"Mashima's foundational adventure influence","conf":0.6}
+{"seed_key":"MANGA:465","id":10,"v":"relevant","why":"Mainstream friendship battle shonen","conf":0.65}
+{"seed_key":"MANGA:465","id":110,"v":"relevant","why":"Stylish guild-school battle shonen era-mate","conf":0.65}
+{"seed_key":"MANGA:465","id":309,"v":"relevant","why":"Found-family battle comedy","conf":0.6}
+{"seed_key":"MANGA:465","id":2747,"v":"unknown","why":"Unfamiliar 2024 title","conf":0.8}
+{"seed_key":"MANGA:465","id":4644,"v":"not_relevant","why":"Game tie-in, weak register","conf":0.6}
+{"seed_key":"MANGA:494","id":128,"v":"relevant","why":"Magic-world gag battler with heart","conf":0.6}
+{"seed_key":"MANGA:494","id":1378,"v":"relevant","why":"Mizukami earnest fantasy, famously overlapping fandom","conf":0.75}
+{"seed_key":"MANGA:494","id":941,"v":"relevant","why":"Comedic strongest-hero surface, real stakes","conf":0.55}
+{"seed_key":"MANGA:494","id":78,"v":"not_relevant","why":"Bleak edgelord register clashes with warmth","conf":0.6}
+{"seed_key":"MANGA:494","id":1937,"v":"relevant","why":"Deceptive-appearance fantasy warmth, common pairing","conf":0.75}
+{"seed_key":"MANGA:494","id":106,"v":"not_relevant","why":"Spectacle tournament, lacks Helck's heart","conf":0.55}
+{"seed_key":"MANGA:494","id":3605,"v":"not_relevant","why":"Horror siege ensemble, distant neighborhood","conf":0.5}
+{"seed_key":"MANGA:533","id":16,"v":"not_relevant","why":"Brutal historical epic, wrong shelf entirely","conf":0.8}
+{"seed_key":"MANGA:533","id":6697,"v":"not_relevant","why":"Prestige historical drama, register worlds apart","conf":0.65}
+{"seed_key":"MANGA:533","id":5153,"v":"unknown","why":"Weakly recalled niche title","conf":0.5}
+{"seed_key":"MANGA:533","id":8699,"v":"relevant","why":"Cozy human-elf domestic fantasy niche","conf":0.5}
+{"seed_key":"MANGA:533","id":6536,"v":"relevant","why":"Rescued-elf domestic warmth, same niche","conf":0.5}
+{"seed_key":"MANGA:533","id":4781,"v":"unknown","why":"Not confidently known","conf":0.55}
+{"seed_key":"MANGA:786","id":1303,"v":"unknown","why":"Seed and candidate not confidently known","conf":0.55}
+{"seed_key":"MANGA:786","id":372,"v":"unknown","why":"Seed identity not confidently known","conf":0.5}
+{"seed_key":"MANGA:833","id":3981,"v":"relevant","why":"Dark monster-slaying with cute-brutal contrast","conf":0.6}
+{"seed_key":"MANGA:833","id":21664,"v":"relevant","why":"Grim penal-hero dark fantasy","conf":0.5}
+{"seed_key":"MANGA:833","id":318,"v":"relevant","why":"Stylish monster-hunting ultraviolence, monstrous ally","conf":0.65}
+{"seed_key":"MANGA:833","id":8849,"v":"unknown","why":"Not confidently known","conf":0.6}
+{"seed_key":"MANGA:833","id":494,"v":"not_relevant","why":"Warm comedy tone opposes Ragna's grimness","conf":0.5}
+{"seed_key":"MANGA:22","id":144,"v":"relevant","why":"Stylish urban-fantasy battle, the Bleach comparison","conf":0.75}
+{"seed_key":"MANGA:22","id":322,"v":"relevant","why":"Classic Jump sword action","conf":0.6}
+{"seed_key":"MANGA:22","id":148,"v":"relevant","why":"Canonical battle-shonen lineage","conf":0.5}
+{"seed_key":"MANGA:79","id":7805,"v":"not_relevant","why":"Neighborhood fits; short-lived series, register gap","conf":0.5}
+{"seed_key":"MANGA:79","id":2023,"v":"relevant","why":"Twin brother's kindred adventure shonen","conf":0.7}
+{"seed_key":"MANGA:79","id":134,"v":"relevant","why":"Modern Jump dark battle shonen","conf":0.7}

@@ -1071,3 +1071,9 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - **Security cleanup:** a leftover internal function that could read a secret out of the job scheduler was removed, and three database views no longer bypass permission checks. The security scanner's error count went from 3 to 0. One item needs the owner: rotate the import secret and store it properly.
 - **Critique-site scouting done (nothing ingested):** 12 dossiers on niche anime/manga critique sites (7 English, 5 Japanese) with honest notes on which ones even allow automated reading — several famous ones don't. The owner picks the 3–4 pilot sites; nothing was fetched or blessed.
 - Nothing user-visible changed by itself: the realm rails and personalized rows stay switched off until the owner flips them.
+
+### 2026-08-05 (later) — Similar-titles got dramatically better, and it's measured
+- **393 wrongly-filed titles corrected** (double-checked by two independent judges each): Perfect Blue is finally a psychological thriller, ARIA is healing slice-of-life, Free! is sports. Corrections auto-retire once the deeper fix lands.
+- **The recommendation engine now leads with what real fans recommend** (community recommendation data), with Kuro's quality/realm gates demoting the junk instead of computing neighbors from tags alone. Spirited Away's "more like this" is now literally the Miyazaki shelf; Berserk's is Vinland Saga, Vagabond, Claymore.
+- **Quality is measured, not claimed**: on the 100-seed gold benchmark, similar-titles precision jumped from 51% to **82%** (the theoretical ceiling of the data is 85%).
+- Also fixed: the daily hero's description no longer renders in all-lowercase.

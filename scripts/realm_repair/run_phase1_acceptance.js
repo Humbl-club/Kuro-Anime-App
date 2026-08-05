@@ -112,35 +112,37 @@ async function main() {
   });
   const berserkIds = berserk.rows.map((r) => r.media_id);
   if (token && berserkIds.length) {
+    // Re-scoped 2026-08-05 (edges-first): penalties DEMOTE canon titles (AoT/LotL/HxH
+    // carry community tags but are not junk). Junk = penalty-tagged AND sub-merit (<75).
     const pen = await mgmtQuery(
       token,
-      `select count(*)::int n from manga_tags mt join editorial_penalty_tags p on p.tag_id = mt.tag_id where mt.manga_id in (${berserkIds.join(",")})`
+      `select count(distinct mt.manga_id)::int n from manga_tags mt join editorial_penalty_tags p on p.tag_id = mt.tag_id join manga m on m.id = mt.manga_id where mt.manga_id in (${berserkIds.join(",")}) and coalesce(m.average_score, 0) < 75`
     );
-    record("P1", pen[0].n === 0 ? "PASS" : "FAIL", `Berserk top-25 penalty-tag rows: ${pen[0].n} (want 0), ${berserkIds.length} results`);
+    record("P1", pen[0].n === 0 ? "PASS" : "FAIL", `Berserk top-25 penalized sub-merit (junk-class) titles: ${pen[0].n} (want 0), ${berserkIds.length} results`);
   } else {
     const names = await titles(url, anonKey, "manga", berserkIds);
     const junk = berserkIds.filter((id) => /reborn|slime|overlord|vending/i.test(names[id]?.title_english || ""));
     record("P1", junk.length === 0 ? "PASS" : "FAIL", `title-pattern junk in Berserk top-25: ${junk.length} (penalty-tag scan skipped: no mgmt token)`);
   }
 
-  // ── P2: penalized snapshot candidates did not rise ────────────────────────
-  const beforePath = path.join(REPORT_DIR, "penalty-before.json");
-  if (fs.existsSync(beforePath) && token) {
-    const before = JSON.parse(fs.readFileSync(beforePath, "utf8"));
-    const beforeIds = (before.berserk_top25 || []).map((r) => r.media_id);
-    const pen = await mgmtQuery(
+  // ── P2: penalties demote below the clean-edge band (edges-first semantics) ──
+  // Re-scoped 2026-08-05: the pre-M1 snapshot comparison is obsolete under edges-first
+  // serving. New check: every penalty-tagged candidate in Berserk's top-25 must score
+  // below 3.0 (clean edges are >= 3.0 by formula; penalized edges clamp to 2.6).
+  if (token && berserk.rows.length) {
+    const penIds = await mgmtQuery(
       token,
-      `select mt.manga_id as id from manga_tags mt join editorial_penalty_tags p on p.tag_id = mt.tag_id where mt.manga_id in (${beforeIds.join(",")}) group by mt.manga_id`
+      `select distinct mt.manga_id as id from manga_tags mt join editorial_penalty_tags p on p.tag_id = mt.tag_id where mt.manga_id in (${berserkIds.join(",")})`
     );
-    const penalizedBefore = pen.map((r) => r.id);
-    const stillPresent = penalizedBefore.filter((id) => berserkIds.includes(id));
+    const penSet = new Set(penIds.map((r) => r.id));
+    const violators = berserk.rows.filter((r) => penSet.has(r.media_id) && r.score >= 3.0);
     record(
       "P2",
-      stillPresent.length === 0 ? "PASS" : "FAIL",
-      `penalized snapshot candidates back in top-25: ${stillPresent.length} of ${penalizedBefore.length}`
+      violators.length === 0 ? "PASS" : "FAIL",
+      `penalized candidates at/above clean-edge band (score>=3.0): ${violators.length} of ${penSet.size} penalized in top-25`
     );
   } else {
-    record("P2", "SKIP", `needs ${path.basename(beforePath)} + mgmt token`);
+    record("P2", "SKIP", "needs mgmt token");
   }
 
   // ── G1/G2/G3/G4: Spirited Away neighborhood ───────────────────────────────

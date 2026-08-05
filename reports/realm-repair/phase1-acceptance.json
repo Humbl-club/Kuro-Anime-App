@@ -1,31 +1,31 @@
 {
- "generated_at": "2026-08-05T00:19:52.911Z",
- "summary": "12 PASS / 0 FAIL / 1 SOFT-FAIL / 2 SKIP-or-WARN",
+ "generated_at": "2026-08-05T17:01:03.770Z",
+ "summary": "13 PASS / 0 FAIL / 1 SOFT-FAIL / 1 SKIP-or-WARN",
  "results": [
   {
    "id": "P1",
    "verdict": "PASS",
-   "evidence": "Berserk top-25 penalty-tag rows: 0 (want 0), 25 results"
+   "evidence": "Berserk top-25 penalized sub-merit (junk-class) titles: 0 (want 0), 25 results"
   },
   {
    "id": "P2",
    "verdict": "PASS",
-   "evidence": "penalized snapshot candidates back in top-25: 0 of 11"
+   "evidence": "penalized candidates at/above clean-edge band (score>=3.0): 0 of 3 penalized in top-25"
   },
   {
    "id": "G1",
    "verdict": "PASS",
-   "evidence": "Ghibli-class anchors in top-12: Princess Mononoke, Howl‘s Moving Castle, Ponyo, My Neighbor Totoro"
+   "evidence": "Ghibli-class anchors in top-12: Howl‘s Moving Castle, My Neighbor Totoro, Ponyo, The Secret World of Arrietty"
   },
   {
    "id": "G2",
    "verdict": "PASS",
-   "evidence": "Totoro rank: 10"
+   "evidence": "Totoro rank: 2"
   },
   {
    "id": "G3",
    "verdict": "SOFT-FAIL",
-   "evidence": "Hanako S2 rank 8 vs Wolf Children 22 (known SOFT-FAIL: importer isMain gap + tag space)"
+   "evidence": "Hanako S2 rank 24 vs Wolf Children absent (known SOFT-FAIL: importer isMain gap + tag space)"
   },
   {
    "id": "G4",
@@ -54,8 +54,8 @@
   },
   {
    "id": "C2",
-   "verdict": "WARN",
-   "evidence": "last run: null"
+   "verdict": "PASS",
+   "evidence": "last run: succeeded"
   },
   {
    "id": "S1",
@@ -65,7 +65,7 @@
   {
    "id": "S2",
    "verdict": "PASS",
-   "evidence": "gold eval: 100/100 scored, generated 2026-08-04T23:50:04.787Z (heuristic labels; timeouts are the metric)"
+   "evidence": "gold eval: 100/100 scored, generated 2026-08-05T16:57:26.567Z (heuristic labels; timeouts are the metric)"
   },
   {
    "id": "H1",
