@@ -848,7 +848,7 @@ struct TasteDeckTests {
         }
         """
         let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
-        #expect(card.metaChips == ["24 EP", "2 SEASONS", "DUB"])
+        #expect(card.metaChips == ["ANIME", "24 EP", "2 SEASONS", "DUB"])
     }
 
     @Test("Meta chips: singular forms stay singular")
@@ -860,7 +860,7 @@ struct TasteDeckTests {
         }
         """
         let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
-        #expect(card.metaChips == ["1 EP", "1 SEASON"])
+        #expect(card.metaChips == ["ANIME", "1 EP", "1 SEASON"])
     }
 
     @Test("Meta chips: sub only when no dub is known")
@@ -872,7 +872,7 @@ struct TasteDeckTests {
         }
         """
         let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
-        #expect(card.metaChips == ["12 EP", "1 SEASON", "SUB"])
+        #expect(card.metaChips == ["ANIME", "12 EP", "1 SEASON", "SUB"])
     }
 
     @Test("Meta chips: no language chip when availability is unknown or negative")
@@ -891,8 +891,8 @@ struct TasteDeckTests {
         """
         let unknown = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(unknownJSON.data(using: .utf8)))
         let negative = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(negativeJSON.data(using: .utf8)))
-        #expect(unknown.metaChips == ["12 EP", "1 SEASON"])
-        #expect(negative.metaChips == ["12 EP", "1 SEASON"])
+        #expect(unknown.metaChips == ["ANIME", "12 EP", "1 SEASON"])
+        #expect(negative.metaChips == ["ANIME", "12 EP", "1 SEASON"])
     }
 
     @Test("Meta chips: movie reads as FILM plus language")
@@ -904,7 +904,7 @@ struct TasteDeckTests {
         }
         """
         let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
-        #expect(card.metaChips == ["FILM", "DUB"])
+        #expect(card.metaChips == ["ANIME", "FILM", "DUB"])
     }
 
     @Test("Meta chips: non-TV anime formats show episodes only")
@@ -913,7 +913,7 @@ struct TasteDeckTests {
         { "media_type": "ANIME", "media_id": 7, "title": "X", "format": "OVA", "episodes": 6 }
         """
         let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
-        #expect(card.metaChips == ["6 EP"])
+        #expect(card.metaChips == ["ANIME", "6 EP"])
     }
 
     @Test("Meta chips: manga prefers volumes, falls back to chapters")
@@ -926,17 +926,17 @@ struct TasteDeckTests {
         """
         let withVolumes = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(volumesJSON.data(using: .utf8)))
         let chaptersOnly = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(chaptersJSON.data(using: .utf8)))
-        #expect(withVolumes.metaChips == ["VOL 14"])
-        #expect(chaptersOnly.metaChips == ["1 CH"])
+        #expect(withVolumes.metaChips == ["MANGA", "VOL 14"])
+        #expect(chaptersOnly.metaChips == ["MANGA", "1 CH"])
     }
 
-    @Test("Meta chips: empty when nothing is known")
+    @Test("Meta chips: medium chip only when nothing else is known")
     func testMetaChipsEmpty() throws {
         let json = """
         { "media_type": "ANIME", "media_id": 10, "title": "X", "format": "TV" }
         """
         let card = try JSONDecoder().decode(TasteDeckCard.self, from: try #require(json.data(using: .utf8)))
-        #expect(card.metaChips.isEmpty)
+        #expect(card.metaChips == ["ANIME"])
     }
 
     @Test("Stable key follows the MediaDisplayable format")
