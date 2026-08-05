@@ -638,3 +638,10 @@ Phase 0 artifacts: `docs/superpowers/specs/2026-07-31-phase0-full-system-check.m
 - **Phase 3 Round 0:** 12 site dossiers written (`reports/critique-pilot/dossiers/`), slate PROPOSED not blessed; Round 1 title shortlist DRAFT only. Round 2 (fetch/parse) does not start until owner blesses sites + titles.
 - Owner security follow-up: rotate IMPORT_SECRET + move out of cron-command literal (Vault/GUC); decide weekly-vs-nightly similar-store re-stale; flag ramp decision (both realm flags still 0%).
 
+
+## Edges-first serving + critique ingestion Round 2 (2026-08-05)
+
+- **Edges-first fork SHIPPED + measured**: gold gated P@10 0.512 → **0.823** (raw ceiling 0.850). Builder ranks community edges first, safety gates demote, cosine backfills; store `src` column; RPC unchanged; revert = restore 140000 builder body. Harness P1/P2 re-scoped to junk-class intent; 13 PASS / 0 FAIL.
+- **393 realm corrections live** via conditional-ordering override layer (absorption-tracked); realm audit evidence in `reports/realm-audit/`.
+- **Round 2 pilot STARTED** (owner blessed slate by direction 2026-08-05): schema migration + parse pilot on compliant sites (Wrong Every Time, Manga Bookshelf, Fujitsu column). Medium = owner-session lane only; Japan Powered pending permission email (draft in `reports/critique-pilot/kincaid-permission-email.md`).
+- Owner items unchanged: veto pass (tool f026a849…), IMPORT_SECRET rotation, flag ramp, re-stale cadence, mahou-shoujo realm proposal (`reports/realm-audit/mahou-shoujo-realm-proposal.md`).
