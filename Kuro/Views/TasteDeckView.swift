@@ -77,11 +77,31 @@ final class TasteDeckModel {
     private(set) var undoCandidate: TasteDeckOutcome? = nil
     var removalDirection: TasteDeckExitDirection = .up
 
+    /// A signal whose record RPC failed; retried once on the next commit and
+    /// once on appear. In-memory only — deck signals are taste hints, and the
+    /// queue never outlives the session.
+    private struct PendingSignal {
+        let mediaType: String
+        let mediaId: Int
+        let action: TasteDeckAction
+        /// Total failed delivery attempts (initial try + retries).
+        var failures: Int
+    }
+
     private var dealtKeys: Set<String> = []
     private var isFetchingBatch = false
     private var batchExhausted = false
     private var undoClearTask: Task<Void, Never>? = nil
     private var fetchTask: Task<Void, Never>? = nil
+    private var pendingSignals: [PendingSignal] = []
+    private var isFlushingSignals = false
+    /// True once a signal has failed delivery three times (initial + two
+    /// retries); the view surfaces a transient banner. Resets when the queue
+    /// fully drains, so one outage = one banner.
+    private(set) var signalsNeedAttention = false
+    /// Set when a batch fetch fails with an empty queue — the view swaps the
+    /// loading shimmer for a quiet retry state instead of shimmering forever.
+    private(set) var initialLoadFailed = false
 
     var current: TasteDeckCard? { queue.first }
     var upcomingCards: [TasteDeckCard] { Array(queue.dropFirst().prefix(3)) }
@@ -95,8 +115,13 @@ final class TasteDeckModel {
     func loadInitial(using service: SupabaseService) async {
         phase = .loading
         batchExhausted = false
+        initialLoadFailed = false
+        // Appear retry: queued (previously failed) signals get one more shot.
+        await flushPendingSignals(using: service)
         await fetchNextBatch(using: service)
-        if phase == .loading {
+        // A failed initial fetch keeps the loading phase so the view can show
+        // its retry state; a genuinely empty catalog still lands on .empty.
+        if phase == .loading && !(initialLoadFailed && queue.isEmpty) {
             phase = queue.isEmpty ? .empty : .dealing
         }
     }
@@ -116,10 +141,9 @@ final class TasteDeckModel {
         undoCandidate = TasteDeckOutcome(card: card, action: action)
         scheduleUndoClear()
 
-        // Fire-and-forget; the deck never waits on the write.
-        let mediaType = card.mediaType
-        let mediaId = card.mediaId
-        Task { await service.recordTasteDeckSignal(mediaType: mediaType, mediaId: mediaId, action: action) }
+        // Fire-and-forget; the deck never waits on the write. Failures queue
+        // and retry on the next commit/appear instead of vanishing.
+        recordSignal(mediaType: card.mediaType, mediaId: card.mediaId, action: action, using: service)
 
         if queue.isEmpty && batchExhausted {
             phase = .empty
@@ -138,13 +162,12 @@ final class TasteDeckModel {
         lastSignalAt = Date()
         queue.insert(outcome.card, at: 0)
         phase = .dealing
-        Task {
-            await service.recordTasteDeckSignal(
-                mediaType: outcome.card.mediaType,
-                mediaId: outcome.card.mediaId,
-                action: .retract
-            )
-        }
+        recordSignal(
+            mediaType: outcome.card.mediaType,
+            mediaId: outcome.card.mediaId,
+            action: .retract,
+            using: service
+        )
     }
 
     func cancelPendingWork() {
@@ -154,10 +177,65 @@ final class TasteDeckModel {
         fetchTask = nil
     }
 
+    /// Fire-and-forget record with a safety net: the pending queue is flushed
+    /// first (older signals replay in order), then this signal is recorded; a
+    /// failure is queued for retry instead of being dropped.
+    private func recordSignal(mediaType: String, mediaId: Int, action: TasteDeckAction, using service: SupabaseService) {
+        Task {
+            await flushPendingSignals(using: service)
+            let recorded = await service.recordTasteDeckSignal(mediaType: mediaType, mediaId: mediaId, action: action)
+            guard !recorded else { return }
+            #if DEBUG
+            print("⚠️ taste signal queued for retry: \(action.rawValue) \(mediaType)-\(mediaId)")
+            #endif
+            pendingSignals.append(PendingSignal(mediaType: mediaType, mediaId: mediaId, action: action, failures: 1))
+        }
+    }
+
+    /// Serially retries every queued signal once. Failures stay queued with an
+    /// incremented count; after the third failed delivery the deck flags it so
+    /// the view can show the transient "didn't save" banner.
+    private func flushPendingSignals(using service: SupabaseService) async {
+        guard !isFlushingSignals, !pendingSignals.isEmpty else { return }
+        isFlushingSignals = true
+        defer { isFlushingSignals = false }
+        // Snapshot + clear so signals enqueued mid-flush are never lost.
+        let batch = pendingSignals
+        pendingSignals = []
+        var stillPending: [PendingSignal] = []
+        for var signal in batch {
+            let recorded = await service.recordTasteDeckSignal(
+                mediaType: signal.mediaType,
+                mediaId: signal.mediaId,
+                action: signal.action
+            )
+            guard !recorded else { continue }
+            signal.failures += 1
+            if signal.failures >= 3 {
+                signalsNeedAttention = true
+            }
+            stillPending.append(signal)
+        }
+        pendingSignals.append(contentsOf: stillPending)
+        if pendingSignals.isEmpty {
+            signalsNeedAttention = false
+        }
+    }
+
     private func scheduleUndoClear() {
         undoClearTask?.cancel()
+        // VoiceOver users need time to locate the chip — double the window for
+        // them rather than keeping it persistent, so the quiet chrome contract
+        // (and the visual tie to the exited card) holds for everyone else.
+        let windowNs: UInt64 = {
+            #if canImport(UIKit)
+            return UIAccessibility.isVoiceOverRunning ? 8_000_000_000 : 4_000_000_000
+            #else
+            return 4_000_000_000
+            #endif
+        }()
         undoClearTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            try? await Task.sleep(nanoseconds: windowNs)
             guard !Task.isCancelled else { return }
             self?.undoCandidate = nil
         }
@@ -178,10 +256,15 @@ final class TasteDeckModel {
         defer { isFetchingBatch = false }
         guard let rows = await service.fetchTasteDeckBatch(limit: batchSize) else {
             // Transport/server error: not proof of exhaustion. Leave the phase alone so
-            // the offline/loading UI (and reconnect retry) can recover.
-            if queue.isEmpty && phase == .dealing { phase = .loading }
+            // the offline/loading UI (and reconnect retry) can recover; flag empty-queue
+            // failures so the view can offer a retry instead of shimmering forever.
+            if queue.isEmpty {
+                initialLoadFailed = true
+                if phase == .dealing { phase = .loading }
+            }
             return
         }
+        initialLoadFailed = false
         let fresh = rows.filter { dealtKeys.insert($0.stableKey).inserted }
         if fresh.isEmpty {
             batchExhausted = true
@@ -309,8 +392,8 @@ private struct TasteDeckCardSurface: View {
             }
             .offset(dragOffset)
             .rotationEffect(.degrees(reduceMotion ? 0 : dragTilt))
+            .gesture(flickGesture(cardWidth: geo.size.width))
         }
-        .gesture(flickGesture)
         .kuroSwipeExclusionZone()
     }
 
@@ -378,6 +461,10 @@ private struct TasteDeckCardSurface: View {
                     .foregroundColor(.kuroWhite)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+                    // VoiceOver affordance for the long-press synopsis gesture.
+                    .accessibilityAction(named: Text("Read synopsis")) {
+                        onSynopsis()
+                    }
 
                 if !card.captionLine.isEmpty {
                     Text(card.captionLine)
@@ -426,7 +513,9 @@ private struct TasteDeckCardSurface: View {
             Text("I KNOW THIS")
                 .font(.kuroCaption(weight: .light))
                 .tracking(1.2)
-                .foregroundColor(.kuroWhite60)
+                // kuroWhite80: 60% white on the onImage glass failed contrast
+                // over bright cover art.
+                .foregroundColor(.kuroWhite80)
                 .lineLimit(1)
                 .padding(.vertical, KuroDesignSpacing.sm + 4)
                 .padding(.horizontal, KuroDesignSpacing.xs)
@@ -455,12 +544,16 @@ private struct TasteDeckCardSurface: View {
 
     // MARK: Flick (right = calls to me, left = pass, up = I know this)
 
-    private var flickGesture: some Gesture {
+    private func flickGesture(cardWidth: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 10, coordinateSpace: .local)
             .onChanged { value in
+                // Drags starting in the outer screen-edge margin are leave-the-deck
+                // swipes owned by the root pager — never turn them into judgments.
+                guard !Self.isPagerEdgeStart(value.startLocation, cardWidth: cardWidth) else { return }
                 dragOffset = value.translation
             }
             .onEnded { value in
+                guard !Self.isPagerEdgeStart(value.startLocation, cardWidth: cardWidth) else { return }
                 guard let action = flickAction(for: value) else {
                     withAnimation(KuroMotion.resolve(KuroAnimation.editorial)) {
                         dragOffset = .zero
@@ -471,6 +564,13 @@ private struct TasteDeckCardSurface: View {
                 // finger position; the next card deals with fresh state.
                 onCommit(action)
             }
+    }
+
+    /// The card is full-bleed, so local x maps 1:1 to screen x and the pager's
+    /// edge margin can be checked against the card width directly.
+    private static func isPagerEdgeStart(_ start: CGPoint, cardWidth: CGFloat) -> Bool {
+        let margin = KuroGesturePolicy.edgeMarginPt
+        return start.x <= margin || start.x >= cardWidth - margin
     }
 
     /// Commit at ~90pt of travel, or earlier on a fast flick (predicted end).
@@ -502,6 +602,8 @@ struct TasteDeckView: View {
     @State private var exhaustedRevealStep = 0
     @State private var exhaustedRevealTask: Task<Void, Never>? = nil
     @State private var glassHeight: CGFloat = 0
+    @State private var loadingStalled = false
+    @State private var loadingWatchdogTask: Task<Void, Never>? = nil
 
     /// Bottom safe-area inset, plumbed from the root pager: the art continues to
     /// the screen's bottom edge while the glass floats above the home indicator.
@@ -516,11 +618,13 @@ struct TasteDeckView: View {
             content
         }
         .task {
+            startLoadingWatchdog()
             await model.loadInitial(using: supabaseService)
             prefetchUpcoming()
         }
         .onDisappear {
             model.cancelPendingWork()
+            stopLoadingWatchdog()
             exhaustedRevealTask?.cancel()
             exhaustedRevealTask = nil
         }
@@ -532,9 +636,18 @@ struct TasteDeckView: View {
             }
         }
         .onChange(of: model.phase) { _, newPhase in
+            if newPhase == .loading {
+                startLoadingWatchdog()
+            } else {
+                stopLoadingWatchdog()
+            }
             if newPhase == .empty && model.totalJudged > 0 {
                 runExhaustedReveal()
             }
+        }
+        .onChange(of: model.signalsNeedAttention) { _, needsAttention in
+            guard needsAttention else { return }
+            supabaseService.showTransientBanner("Signal didn't save — will retry")
         }
         .sheet(isPresented: $showLeaningsSheet) {
             TasteLeaningsSheet(latestSignalAt: model.lastSignalAt)
@@ -792,15 +905,77 @@ struct TasteDeckView: View {
 
     // MARK: Loading / Empty / Offline
 
+    @ViewBuilder
     private var loadingState: some View {
-        Color.kuroSecondaryBackground
-            .kuroShimmer()
-            .overlay(
-                Text("DEALING")
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(2.4)
-                    .foregroundColor(.kuroTextTertiary)
-            )
+        if model.initialLoadFailed || loadingStalled {
+            loadingRetryState
+        } else {
+            Color.kuroSecondaryBackground
+                .kuroShimmer()
+                .overlay(
+                    Text("DEALING")
+                        .font(.kuroMicro(weight: .medium))
+                        .tracking(2.4)
+                        .foregroundColor(.kuroTextTertiary)
+                )
+        }
+    }
+
+    /// Quiet retry after ~8s of unresolved loading or an immediate batch
+    /// failure — same voice as the offline state (serif line + RETRY capsule).
+    private var loadingRetryState: some View {
+        VStack(spacing: KuroDesignSpacing.lg) {
+            Spacer()
+            VStack(spacing: KuroDesignSpacing.sm + 2) {
+                Text("The deck is taking longer than it should.")
+                    .font(.kuroHeadline(weight: .light))
+                    .foregroundColor(.kuroBlack80)
+                    .multilineTextAlignment(.center)
+                Text("The catalog didn't answer — try again.")
+                    .font(.kuroCaption(weight: .light))
+                    .foregroundColor(.kuroTextSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, KuroDesignSpacing.xl)
+            Button {
+                startLoadingWatchdog()
+                Task {
+                    await model.retry(using: supabaseService)
+                    prefetchUpcoming()
+                }
+            } label: {
+                Text("RETRY")
+                    .font(.kuroCaption(weight: .medium))
+                    .tracking(1.6)
+                    .foregroundColor(.kuroWhite)
+                    .padding(.horizontal, KuroDesignSpacing.lg)
+                    .padding(.vertical, KuroDesignSpacing.sm + 4)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.kuroBlack)
+                    )
+            }
+            .buttonStyle(.plain)
+            Spacer()
+        }
+    }
+
+    /// After ~8s stuck in the loading phase, swap the shimmer for the retry
+    /// state (an immediate batch failure flips there without waiting).
+    private func startLoadingWatchdog() {
+        loadingWatchdogTask?.cancel()
+        loadingStalled = false
+        loadingWatchdogTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 8_000_000_000)
+            guard !Task.isCancelled else { return }
+            loadingStalled = true
+        }
+    }
+
+    private func stopLoadingWatchdog() {
+        loadingWatchdogTask?.cancel()
+        loadingWatchdogTask = nil
+        loadingStalled = false
     }
 
     private var emptyState: some View {
@@ -876,7 +1051,10 @@ struct TasteDeckView: View {
     private func prefetchUpcoming() {
         let urls = model.upcomingCards.compactMap(\.imageURL)
         guard !urls.isEmpty else { return }
-        Task { await ImagePipeline.shared.prefetch(urls: urls) }
+        // Downsample prefetches like the card does (1100pt × screen scale, which
+        // clamps to the pipeline's 1200px cap) so prefetched images land in the
+        // memory cache at display size instead of full resolution.
+        Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 1200) }
     }
 }
 

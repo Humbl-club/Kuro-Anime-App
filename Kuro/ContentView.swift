@@ -155,7 +155,7 @@ struct KuroMainView: View {
             : [.concierge, .discover, .browse, .collection, .clubs]
     }
     private let swipeThreshold: CGFloat = 40
-    private let swipeEdgeMargin: CGFloat = 24
+    private let swipeEdgeMargin: CGFloat = KuroGesturePolicy.edgeMarginPt
 
     private var conciergeEditorialV1Enabled: Bool {
         // Concierge has fully migrated to the editorial shell.
@@ -312,11 +312,16 @@ struct KuroMainView: View {
                         if shouldManageSuppression && suppressCardTaps {
                             scheduleTapSuppressionReset()
                         }
-                        guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
-                        guard !KuroGestureCoordinator.shared.recentlyDraggedRail(withinMs: KuroGesturePolicy.postSwipeTapCooldownMs) else { return }
-
-                        let excluded = isSwipeExcluded(start: value.startLocation)
-                        if excluded && !isFastFlingOverride(value) { return }
+                        // Fast intentional flings override BOTH the rail-drag guards
+                        // and the exclusion zones — checked first so a full-page
+                        // exclusion zone (the deck card rail-marks every horizontal
+                        // drag) can never trap paging.
+                        let fastFling = isFastFlingOverride(value)
+                        if !fastFling {
+                            guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
+                            guard !KuroGestureCoordinator.shared.recentlyDraggedRail(withinMs: KuroGesturePolicy.postSwipeTapCooldownMs) else { return }
+                            guard !isSwipeExcluded(start: value.startLocation) else { return }
+                        }
 
 	                    let dx = value.translation.width
 	                    let dy = value.translation.height
