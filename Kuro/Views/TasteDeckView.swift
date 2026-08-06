@@ -339,11 +339,16 @@ private struct TasteDeckCardSurface: View {
     var onSynopsis: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var dragOffset: CGSize = .zero
 
     private let commitDistance: CGFloat = 90
     private let commitPredictedDistance: CGFloat = 240
     private let maxDragTilt: Double = 8
+
+    /// Accessibility text sizes blow the one-line action labels past their
+    /// capsules ("NOT F…"); only then do the labels wrap/shrink (see actions).
+    private var isAccessibilityTextSize: Bool { dynamicTypeSize >= .accessibility1 }
 
     var body: some View {
         GeometryReader { geo in
@@ -496,7 +501,9 @@ private struct TasteDeckCardSurface: View {
                 .font(.kuroCaption(weight: .medium))
                 .tracking(1.4)
                 .foregroundColor(.kuroWhite90)
-                .lineLimit(1)
+                .lineLimit(isAccessibilityTextSize ? 2 : 1)
+                .minimumScaleFactor(isAccessibilityTextSize ? 0.8 : 1.0)
+                .multilineTextAlignment(isAccessibilityTextSize ? .center : .leading)
                 .padding(.horizontal, KuroDesignSpacing.sm + 6)
                 .padding(.vertical, KuroDesignSpacing.sm + 4)
                 .overlay(
@@ -516,7 +523,9 @@ private struct TasteDeckCardSurface: View {
                 // kuroWhite80: 60% white on the onImage glass failed contrast
                 // over bright cover art.
                 .foregroundColor(.kuroWhite80)
-                .lineLimit(1)
+                .lineLimit(isAccessibilityTextSize ? 2 : 1)
+                .minimumScaleFactor(isAccessibilityTextSize ? 0.8 : 1.0)
+                .multilineTextAlignment(isAccessibilityTextSize ? .center : .leading)
                 .padding(.vertical, KuroDesignSpacing.sm + 4)
                 .padding(.horizontal, KuroDesignSpacing.xs)
         }
@@ -530,7 +539,9 @@ private struct TasteDeckCardSurface: View {
                 .font(.kuroCaption(weight: .medium))
                 .tracking(1.4)
                 .foregroundColor(.kuroBlack)
-                .lineLimit(1)
+                .lineLimit(isAccessibilityTextSize ? 2 : 1)
+                .minimumScaleFactor(isAccessibilityTextSize ? 0.8 : 1.0)
+                .multilineTextAlignment(isAccessibilityTextSize ? .center : .leading)
                 .padding(.horizontal, KuroDesignSpacing.sm + 6)
                 .padding(.vertical, KuroDesignSpacing.sm + 4)
                 .background(

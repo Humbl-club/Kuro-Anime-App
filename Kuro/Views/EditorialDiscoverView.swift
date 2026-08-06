@@ -56,6 +56,12 @@ struct EditorialDiscoverView: View {
     var body: some View {
         GeometryReader { geo in
             let currentWidth = max(320, geo.size.width)
+            // Hero slot (One Thing / skeleton / FEATURED fallback) is tuned for
+            // phone widths: the 4:5 crop derives height = width x 1.25, so an
+            // uncapped iPad/landscape width scales it into a full-screen
+            // monster. Cap at the app's 520 max-content-width idiom; the card
+            // is centered via .frame(maxWidth: .infinity) at the call sites.
+            let heroWidth = min(currentWidth - 40, 520)
             ScrollView(.vertical, showsIndicators: false) {
                 if isLoadingSections && !hasAnyContent {
                     EditorialLoadingView()
@@ -134,14 +140,17 @@ struct EditorialDiscoverView: View {
                        (selectedMediaType == .all
                         || (selectedMediaType == .anime && feature.kind == .anime)
                         || (selectedMediaType == .manga && feature.kind == .manga)) {
-                        DiscoverOneThingCard(feature: feature, width: currentWidth - 40)
+                        DiscoverOneThingCard(feature: feature, width: heroWidth)
                             .padding(.horizontal, 20)
+                            .frame(maxWidth: .infinity)
                     } else if !vm.dailyFeatureResolved && selectedMediaType != .manga {
-                        DiscoverOneThingSkeleton(width: currentWidth - 40)
+                        DiscoverOneThingSkeleton(width: heroWidth)
                             .padding(.horizontal, 20)
+                            .frame(maxWidth: .infinity)
                     } else if let featured = vm.featured, (selectedMediaType == .all || selectedMediaType == .anime) {
-                        KuroHeroCard(media: featured, width: currentWidth - 40)
+                        KuroHeroCard(media: featured, width: heroWidth)
                             .padding(.horizontal, 20)
+                            .frame(maxWidth: .infinity)
                     }
 
                     if !vm.airingToday.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
@@ -209,10 +218,11 @@ struct EditorialDiscoverView: View {
                         || (selectedMediaType == .manga && gem.kind == .manga)) {
                         DiscoverOneThingCard(
                             feature: gem,
-                            width: currentWidth - 40,
+                            width: heroWidth,
                             eyebrow: "HIDDEN GEM"
                         )
                         .padding(.horizontal, 20)
+                        .frame(maxWidth: .infinity)
                     }
 
                     if !vm.newToYouManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {

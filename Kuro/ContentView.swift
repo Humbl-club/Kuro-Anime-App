@@ -254,7 +254,7 @@ struct KuroMainView: View {
 	        }
             .onAppear {
                 // Debug support: launch directly into Concierge for screenshots or manual QA.
-                // Example: `xcrun simctl launch booted com.kuro.app --args --kuro-start=concierge`
+                // Example: `xcrun simctl launch booted com.Kuro.app --args --kuro-start=concierge`
                 guard !didApplyStartArgument else { return }
                 didApplyStartArgument = true
                 let args = ProcessInfo.processInfo.arguments
