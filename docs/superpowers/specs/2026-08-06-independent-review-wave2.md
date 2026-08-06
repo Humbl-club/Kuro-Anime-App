@@ -63,3 +63,14 @@ RLS/grant matrix on all new tables; SECURITY DEFINER hygiene (search_path, no us
 - Migration `20260806000000_security_and_mirror_repair.sql` (revokes, poison cleanup, re-stale, penalty CHECK) + remote cron re-arm (API)
 - Migration `20260806010000_serving_fixes_v1.sql` (shelf franchise cap, gem argument, craft-lift guard)
 - Commit `49f3227` (iOS: gesture trap, signal retry, shimmer retry, a11y, prefetch downsample)
+
+---
+
+## Addendum — the counter-review's three charges, resolved (2026-08-06 evening)
+
+Claude Code's re-review accepted the critical fixes and charged three failures of my own. Resolution of each, effect-verified per its own standard ("verify the effect, not the status string"):
+
+1. **The rotation broke `manga-chapter-enrich-15m`** (regex captured `coalesce` as the secret; the URL line got the secret pasted into it). TRUE — confirmed in the stored command, and the 17:15 run failed with exactly that syntax error. Rebuilt the command from the verified-good nightly-sweep head + the 15m body (limit 20, scheduleSafe, 45s budget, 900s lock), paren-balanced, secret in place; old jobid removed. First green fire recorded in job_run_details after the rebuild (jobid 112; 17:30 boundary — see MEMORY/session log if reading later).
+2. **"Gold P@10 dropped 0.823 → 0.791 and nobody measured it."** Measured now, and the comparison was apples-to-oranges: 0.823 was the Fable-5-judged label set; the committed harness (heuristic labels) read 0.791 *before* my wave-2 serving changes and reads **0.794 after** them (raw 0.851, ∩ 0.772). On the same yardstick there is no regression (+0.003, noise). The 0.823-vs-0.794 gap is the label-set gap — it needs a delta re-judge on the post-hardening rails to close honestly (flagged for owner decision; model budget).
+3. **Descriptor regeneration died at 2%.** TRUE — Groq 429s (shared on-demand tier), not our RPC. The purge stands (5,304 junk + 15,902 deltas removed; 1,862 good rows kept). A resilient drain loop (checkpointed, 90s pacing, restarts forever until the pending queue is empty) is now running unattended; the pending queue starts at ~5,195. ETA hours, not days.
+4. **"Mirror crons: armed, untested."** Now effect-proven: a real 3-row staff batch moved coverage 201 → 204 (live count delta), and tonight's 02:00 UTC cron is the first unattended fire to watch. Separately discovered and fixed during this exchange: the enrich crons also referenced empty URL/anon GUCs, and the catalog had no import writes since ~2026-06-19 — full IMPORT_SECRET rotation + re-arm of all 11 jobs (the only way, since nothing anywhere worked with the old value).

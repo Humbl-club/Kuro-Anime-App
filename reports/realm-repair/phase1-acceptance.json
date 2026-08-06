@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-08-05T21:24:06.860Z",
+ "generated_at": "2026-08-06T16:56:31.961Z",
  "summary": "13 PASS / 0 FAIL / 1 SOFT-FAIL / 1 SKIP-or-WARN",
  "results": [
   {
@@ -10,7 +10,7 @@
   {
    "id": "P2",
    "verdict": "PASS",
-   "evidence": "penalized candidates at/above clean-edge band (score>=3.0): 0 of 3 penalized in top-25"
+   "evidence": "penalized candidates at/above clean-edge band (score>=3.0): 0 of 2 penalized in top-25"
   },
   {
    "id": "G1",
@@ -65,7 +65,7 @@
   {
    "id": "S2",
    "verdict": "PASS",
-   "evidence": "gold eval: 100/100 scored, generated 2026-08-05T17:10:05.096Z (heuristic labels; timeouts are the metric)"
+   "evidence": "gold eval: 100/100 scored, generated 2026-08-06T01:37:48.549Z (heuristic labels; timeouts are the metric)"
   },
   {
    "id": "H1",

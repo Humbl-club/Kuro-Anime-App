@@ -3,13 +3,13 @@
     "n_seeds": 100,
     "n_scored": 100,
     "mean_p10_raw": 0.8509999999999995,
-    "mean_p10_gated": 0.7909999999999999,
+    "mean_p10_gated": 0.794,
     "mean_p10_intersect": 0.772,
-    "delta_intersect_minus_gated": -0.018999999999999906,
+    "delta_intersect_minus_gated": -0.02200000000000002,
     "ship_threshold": 0.05,
     "ship_edges_into_ranking": false,
     "note": "Judgments are heuristic-bootstrap unless owner-replaced. Do not ship on heuristic alone.",
-    "generated_at": "2026-08-06T01:37:48.549Z"
+    "generated_at": "2026-08-06T17:18:31.462Z"
   },
   "rows": [
     {
@@ -493,7 +493,7 @@
       "n_relevant": 12,
       "n_edges": 13,
       "p10_raw": 0.8,
-      "p10_gated": 0.8,
+      "p10_gated": 0.9,
       "p10_intersect": 0.8
     },
     {
@@ -614,7 +614,7 @@
       "n_relevant": 21,
       "n_edges": 25,
       "p10_raw": 1,
-      "p10_gated": 0.8,
+      "p10_gated": 0.9,
       "p10_intersect": 0.6
     },
     {
@@ -647,7 +647,7 @@
       "n_relevant": 9,
       "n_edges": 8,
       "p10_raw": 0.4,
-      "p10_gated": 0.5,
+      "p10_gated": 0.6,
       "p10_intersect": 0.2
     },
     {

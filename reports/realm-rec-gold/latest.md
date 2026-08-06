@@ -1,16 +1,16 @@
 # Realm rec-edges gold-set eval
 
-Generated: 2026-08-06T01:37:48.549Z
+Generated: 2026-08-06T17:18:31.462Z
 
 ## Summary
 
 | Arm | Mean P@10 |
 |---|---|
 | (a) raw AniList | 0.851 |
-| (b) realm-gated | 0.791 |
+| (b) realm-gated | 0.794 |
 | (c) edges ∩ gate | 0.772 |
 
-Δ(c−b) = **-0.019** (ship if ≥ 0.05 on **owner** judgments)
+Δ(c−b) = **-0.022** (ship if ≥ 0.05 on **owner** judgments)
 
 Ship decision (auto): **NO — keep edges advisory**
 
