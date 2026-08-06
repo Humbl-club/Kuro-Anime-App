@@ -1,10 +1,10 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-06
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 93 app Swift files in `/Kuro`; 222 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 93 app Swift files in `/Kuro`; 231 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -2141,6 +2141,20 @@ This single command:
 
 ## 14) Change Log (append-only)
 
+### 2026-08-06 — Independent deep review (2 waves) + same-day fix wave
+
+Two adversarial external review waves ran against the `kuro/taste-overhaul` branch (11 agents total, every claim re-verified live against the remote — nothing taken on trust from prior docs). Full reports: `docs/superpowers/specs/2026-08-06-independent-review.md` (wave 1) and `docs/superpowers/specs/2026-08-06-independent-review-wave2.md` (wave 2). Headline: engineering record is honest (row counts reproduce exactly), but the 0.512 → 0.823 quality numbers are model self-graded with zero human vetoes, and 77% of the 5,548-row realm-descriptor corpus is template junk.
+
+New migrations (both applied to remote; backend commit `ae89ced`):
+- `supabase/migrations/20260806000000_security_and_mirror_repair.sql` — revokes the leftover `authenticated` grant on `upsert_rec_edges` (proven exploitable end-to-end: any signed-up user could inject rating-100000 edges that flowed into edges-first serving; one injected edge was pinning a false #1 on A Silent Voice's rail), deletes the poison rows and restores 16→15 to its true rating (6003), re-stales the seed-16 store rows for rebuild, purges `audit-*` buckets, adds a CHECK constraint enforcing the penalty-sign convention (a positive penalty silently becomes a boost without it), and revokes `rate_limit_hit` from anon+authenticated (all callers are definer functions; verified PGRST202). Its header documents the remote cron re-arm below.
+- `supabase/migrations/20260806010000_serving_fixes_v1.sql` — tonight's-shelf franchise cap ≤2 per cluster via `media_franchise_components` (was 6/12 AoT slots for the demo profile), hidden-gem argument sentence-trim + capitalization (was raw scraper text; residual wart: HTML tags can still survive — iOS must sanitize like the deck), craft lift now requires own score ≥70 (was promoting a 63-score title to "acclaimed" via director lineage).
+
+Remote-only change (no migration — literals intentionally kept out of git): all 5 `mirror-images` and both `manga-chapter-enrich` pg_cron jobs re-armed via the Supabase Management API, with literals transplanted from `kuro-import-anime-hourly`. They had been 401ing since Jul 31 because they read `app.settings.import_secret` / `supabase_url` / `supabase_anon_key` GUCs that are empty in this project — mirror coverage was flat for 5 days and chapter enrichment was silently dead (the era-1 "convergence unblocked" claim was untrue until now). Owner follow-up: IMPORT_SECRET rotation still pending (literal in 4 import-cron commands).
+
+iOS (commit `49f3227`): deck gesture-trap fix (edge-origin drags, 24pt, page out instead of recording NOT FOR ME; fast-fling check moved before rail guards), taste-signal retry queue + transient banner, loading watchdog + retry state, accessibility (contrast, VoiceOver undo window 8s, synopsis action), prefetch image downsampling.
+
+Repo inventory after this wave: 93 app Swift files, 231 SQL migrations (headers updated; `check_docs_current_state.py` green again). Also corrected the false 2026-02-06 baseline-capture claim (see its entry below). Open items from the review are recorded under **Open Questions / Unknowns**.
+
 ### 2026-03-06 — Detail CTA copy fallback cleanup
 
 Updated detail-page link copy so the CTA note reflects actual data availability instead of pretending we know more than we do.
@@ -2831,7 +2845,7 @@ Documentation updated in this pass:
 - 2026-02-06: Deleted legacy edge functions `Bulk-import-anime` (capital B, v7) and `manga-bulk-import-` (trailing dash, v5). Active functions now: 8.
 - 2026-02-06: Concierge UI polish: signal badges (MASTERPIECE/CLASSIC/MATCH) now visible on recommendation cards, serif title fonts, editorial divider on rail headers, larger import candidate hit targets (10→12px), serif CONCIERGE header + editorial divider on intro card.
 - 2026-02-06: Curated rail expansion: +366 editorial picks (90 classics_anime, 97 classics_manga, 75 gateway_anime, 104 gateway_manga). All picks verified: no Ecchi/Hentai genres, score >= 76 (classics) / >= 78 (gateway). Removed problematic picks from initial draft (ecchi-tagged, low-score). Fixed candidate generation script criteria. Migration: `20260206120000_curated_rails_expansion.sql`.
-- 2026-02-06: Baseline schema SQL captured in `supabase/migrations/20250109_remote_applied_placeholder.sql`: consolidates legacy root SQL (02-14) **plus** remote-only objects (`import_runs`, `import_locks`, lock RPCs, 7 materialized views incl. `mv_anime_current_season`, and the `kuro-refresh-matviews` pg_cron job). Defensive fixes for `tags.kitsu_id` and `comments.user_id` type drift. Original SQL files moved to `legacy_sql/`.
+- 2026-02-06: **(Entry corrected 2026-08-06 — the original claim below was false.)** Original claim: "Baseline schema SQL captured in `supabase/migrations/20250109_remote_applied_placeholder.sql`: consolidates legacy root SQL (02-14) **plus** remote-only objects (`import_runs`, `import_locks`, lock RPCs, 7 materialized views incl. `mv_anime_current_season`, and the `kuro-refresh-matviews` pg_cron job). Defensive fixes for `tags.kitsu_id` and `comments.user_id` type drift. Original SQL files moved to `legacy_sql/`." — **Correction:** the placeholder file is comment-only (4 lines, zero SQL); none of that consolidation ever happened. The baseline was never captured: the legacy root SQL lives only in `legacy_sql/`, and the remote-only objects exist solely on the remote database. Consequence (verified 2026-08-06): the migration chain cannot be replayed from scratch — it dies at migration #16. Fix direction: capture a full schema dump via the Management API as a real baseline migration; until then, treat "rebuild from migrations" as impossible.
 - 2026-02-06: Removed iOS dead code: `ConciergeOverlay.swift`, `KuroChanMascot.swift`, `getByMood()`, `#if false SearchViewNew` block (~500 lines total).
 - 2026-02-06: Concierge modes expanded to 14 (v3) and deployed: added `short_one_season`, `movie_night`, `romance_serious`, `romcom`, `fantasy_non_isekai`, `isekai`. Enriched synonyms (incl. German) across all modes. Migration: `20260206100000_concierge_modes_v3_expanded.sql`. Edge function deployed: `supabase/functions/concierge-recommend/index.ts`.
 - 2026-02-05: Concierge recommend perf: reuse shared candidate pools + media context across rails to reduce DB queries/latency. Commit: `ca671d5`
@@ -2856,6 +2870,12 @@ Documentation updated in this pass:
 - **Clubs dark flags**: `clubs_realtime_v1`, `clubs_pace_sync_v1`, `clubs_notifications_v1` re-seeded at 0% (`ON CONFLICT DO NOTHING` — rows that already existed kept their prior values; verify live values before assuming 0%). Ramp plan TBD.
 - **`affiliate_links_v1`**: seeded OFF; legal/compliance review precedes any flip. `outbound_link_events` collects the click ledger in the meantime.
 - **Taste deck signal semantics**: `deck_known` (+0.25) currently counts as a positive signal — watch for false-positive profile drift from users marking familiar titles they don't actually like.
+- **Similar-titles store coverage gap (2026-08-06)**: only 28/75 sampled score≥70 pool seeds serve from `media_similar_titles`; the other ~63% fall back to the 1.5–3.1s live scorer with no entry-point mapping and no own-franchise exclusion. This contradicts `media_similar_seed_state` showing 7,537 seeds / 0 stale — the table is service-role-only, so resolve with a service-role check (`count(*) from media_similar_seed_state where built_at is not null` vs pool count) plus a look at driver batch failures. Until then, "p95 ≤105ms" and entry-point canonicalization hold only for the covered slice.
+- **Migration chain unreproducible (2026-08-06)**: the baseline catalog schema was never captured in a migration (see the corrected 2026-02-06 change-log entry) — a fresh replay dies at migration #16 and 4 hollowed Feb migrations remain hollow. Capture a baseline via a Management-API schema dump as a real migration; no gate replays the chain today.
+- **Hidden-gem argument HTML (2026-08-06)**: sentence-trim + capitalization shipped in `20260806010000_serving_fixes_v1.sql`, but raw HTML tags from scraper text can still survive into the argument — iOS must sanitize it the way the deck already does (or strip server-side).
+- **Owner veto pass pending (2026-08-06)**: the headline quality numbers (0.512 → 0.823) rest entirely on model self-judgment with zero human vetoes — treat the scoreboard as self-graded until the owner veto pass happens.
+- **Descriptor corpus quality (2026-08-06)**: 77% of the 5,548-row realm-descriptor corpus is template junk (bulk-writer artifact; Groq wrote only 1.5%). Hide or regenerate before any user-visible surface reads it.
+- **Realm refresh crons need SET-first guards (2026-08-06)**: the realm-membership/affinity refresh pg_cron jobs need `set statement_timeout='600s';` as their own first statement — the postgres role's 2-min default cannot be re-armed from inside a function via `SET LOCAL` (same failure class as the 2026-08-04 tier-refresh timeouts).
 
 ---
 

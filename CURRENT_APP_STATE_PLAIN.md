@@ -1,10 +1,10 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-07-31
+**Last updated:** 2026-08-06
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 93 app Swift files and 222 SQL migrations are in the repo today.
+**Current inventory:** 93 app Swift files and 231 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -528,6 +528,7 @@ A batch of lower-priority production improvements was completed across the backe
 
 ## 18) Change Log (append-only)
 
+- 2026-08-06: **Independent deep review + same-day fixes**: An outside reviewer ran two adversarial audit waves (11 agents, everything re-checked live against the real backend) and found the engineering record honest — but also real problems, fixed the same day. **Security**: a leftover permission let any signed-up user inject fake recommendation edges (one fake edge was pinning a wrong #1 pick on A Silent Voice's page); the permission is revoked and the poisoned data removed. Also closed: a rate-limit function anyone could call to drain shared quotas, and a missing guard that could have let an editorial "penalty" silently become a boost. **Quality**: the nightly Shelf now shows at most 2 titles per franchise (it was showing 6 Attack on Titan entries), the Hidden Gem pick no longer shows raw scraped text as its reason, and "craft" promotion now requires a title to score at least 70 on its own merits. **Ops**: five image-mirroring jobs and both chapter-enrichment jobs had been silently failing since Jul 31 because they were reading empty settings — all seven are re-armed. Rotating the import secret is still on the owner's to-do list. **On the phone** (already in the app): swiping away from the taste deck no longer accidentally records a "not for me" vote, failed taste signals retry automatically, the deck recovers from stuck loading, and accessibility (contrast, VoiceOver) improved. **Honest unknowns now on record**: many quality-pool titles may lack precomputed similar-titles (needs an owner-level check), the quality scoreboard is self-graded until the owner does a veto pass, and most auto-generated realm descriptions are filler text that must be hidden or regenerated before users see them. Full reports: `docs/superpowers/specs/2026-08-06-independent-review.md` and `2026-08-06-independent-review-wave2.md`. 93 Swift files, 231 migrations.
 - 2026-08-02: **Realm descriptors without burning agent quota** — Kuro can now write short editorial descriptions (what a title is / who it's for) for the visible catalog using the same Groq stack as Concierge narration, instead of expensive agent swarms. Already-generated swarm leftovers were salvaged first; a background worker is filling the rest. Taste "craft indicators" (great animation / weak story) stay for a later project.
 - 2026-08-02 (cont.): The fill-in worker is deliberately slow (one title at a time with long pauses) so it doesn’t trip Groq rate limits or edge-function timeouts. About 1.6k titles done, ~5.5k still queued — multi-day unless we raise the Groq plan.
 - 2026-08-02 (later): **Groq is out for realm descriptors.** You asked the agent to write them instead — Groq drain stopped; new rows come from agent batches via the fetch/submit scripts (Kimi master plan §6).
