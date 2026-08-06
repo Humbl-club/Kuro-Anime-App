@@ -4,7 +4,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 93 app Swift files in `/Kuro`; 231 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 93 app Swift files in `/Kuro`; 232 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -2153,7 +2153,7 @@ Remote-only change (no migration — literals intentionally kept out of git): al
 
 iOS (commit `49f3227`): deck gesture-trap fix (edge-origin drags, 24pt, page out instead of recording NOT FOR ME; fast-fling check moved before rail guards), taste-signal retry queue + transient banner, loading watchdog + retry state, accessibility (contrast, VoiceOver undo window 8s, synopsis action), prefetch image downsampling.
 
-Repo inventory after this wave: 93 app Swift files, 231 SQL migrations (headers updated; `check_docs_current_state.py` green again). Also corrected the false 2026-02-06 baseline-capture claim (see its entry below). Open items from the review are recorded under **Open Questions / Unknowns**.
+Repo inventory after this wave: 93 app Swift files, 232 SQL migrations (headers updated; `check_docs_current_state.py` green again). Also corrected the false 2026-02-06 baseline-capture claim (see its entry below). Open items from the review are recorded under **Open Questions / Unknowns**.
 
 ### 2026-03-06 — Detail CTA copy fallback cleanup
 
@@ -18236,3 +18236,9 @@ Autonomous run per `docs/superpowers/plans/2026-08-04-claude-code-autonomous-pha
 - **Critique schema live** (`20260805130000`): critic_sources (5 seeded, 3 agent-blessed) · critic_reviews (no-prose-by-construction) · media_critic_claims (axis/verdict 0-4/verbatim quote ≤300/flags) · media_craft_scores + tier-weighted rebuild fn · media_content_notes (deadpan) · verdict_voice (30 EN labels) · atomic validated `upsert_critic_review_claims` (service-role, structured DETAILs).
 - **Pilot parsed**: 25 reviews / 55 claims / 5 content notes / 25 titles scored, from Wrong Every Time (8), Manga Bookshelf (14, 4 named critics), Fujitsu column (3, JP). **Quote fidelity 100% mechanically enforced**; 0 misattributions; edition/season mismatches skipped, never guessed. Gate verdict (`reports/critique-pilot/gate.md`): parser PROVEN, coverage structural (21%) — scale levers: ANN re-admission (WET's real reviews live there), Medium owner-session lane, Kincaid permission, (url, media_id) key widening for multi-title essays.
 - **Entry-point canonicalization** (`20260805140000` + `150000`): rails recommend franchises via entry points (media_franchise_entry_points, 2,946 entries; format→year→id selection; upward/equal-tier substitution). Named failures fixed (TR → MHA S1 + WIND BREAKER S1; Death Parade → Danganronpa: The Animation via a documented editorial bridge — AniList lacks the edge). SA/Berserk byte-identical; 380 rows remapped / 95 gold stores; acceptance 13 PASS. Full catalog converges via nightly re-stale.
+
+### 2026-08-06 (later): Deep-review fix-up wave 2
+- `20260806020000_serving_hardening_v1.sql`: own-franchise exclusion at the similar-titles read path (AoT Final P2 rail now zero-leak, live-verified), compilation bridges (AoT/Haikyuu/Mob recaps, SIDE_STORY + source='editorial'), hidden-gem argument HTML sanitization, edge floor 2.6→2.4, SET-first timeout guards on membership/affinity refresh crons, discover_rail_impressions added to delete_user_concierge_data (GDPR).
+- IMPORT_SECRET rotated; all 11 secret-gated crons re-armed via Management API (they were 401ing on empty GUCs/stale literals — mirror flat 5 days, enrich dead, catalog imports silent since ~Jun 19). Owner: set the new IMPORT_SECRET in local env before running import scripts.
+- Purged 5,304 template-junk descriptors + 15,902 inherited delta rows; Groq regeneration pass running for the purged set.
+- Similarity store truth: 7,534/7,537 seeds built (wave-2's "63% missing" was a pre-rebuild measurement).

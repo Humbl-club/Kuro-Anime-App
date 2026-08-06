@@ -4,7 +4,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 93 app Swift files and 231 SQL migrations are in the repo today.
+**Current inventory:** 93 app Swift files and 232 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -1082,3 +1082,6 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 ### 2026-08-05 (night) — Real critics are in the database now, and sequels stopped hijacking rails
 - The "what critics say" layer exists: 25 real reviews from named critics (English and Japanese) parsed into structured verdicts with exact quotes — every quote mechanically verified against the original article, nothing misattributed, nothing stored as full text. Small on purpose: the pilot proved the machine works; coverage grows with more approved sources.
 - Rails now recommend franchises by their proper starting point — "similar to Tokyo Revengers" suggests My Hero Academia season 1, not a mid-franchise movie.
+
+### 2026-08-06 (later) — fix-up wave 2
+Fixed after the deep review: franchise sequels no longer leak into their own "more like this" rails; recap movies are linked into their series; a secret key used by the nightly jobs was rotated and every job re-armed (they had been silently failing for days); junk auto-generated descriptions were deleted and are being rewritten properly; deleted accounts now also erase Discover impression history.
