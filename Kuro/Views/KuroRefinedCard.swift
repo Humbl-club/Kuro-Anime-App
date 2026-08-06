@@ -5,14 +5,16 @@
 import SwiftUI
 
 // MARK: - Refined Score Badge
+// Monochrome glass chip (Discover P1 color-law cleanup): quiet dark scrim,
+// white text, subtle hairline. One recipe shared by every Discover/Browse card.
 struct KuroScoreBadge: View {
     let score: Double?
-    
+
     private var displayScore: String {
         guard let score = score, score > 0 else { return "--" }
         return String(format: "%.1f", score)
     }
-    
+
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: "star.fill")
@@ -20,16 +22,16 @@ struct KuroScoreBadge: View {
             Text(displayScore)
                 .font(.system(size: 9, weight: .semibold))
         }
-        .foregroundColor(.white)
+        .foregroundColor(.kuroWhite)
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
         .background(
-            Capsule()
-                .fill(Color.black.opacity(0.8))
+            Capsule(style: .continuous)
+                .fill(Color.kuroBlack45)
         )
         .overlay(
-            Capsule()
-                .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+            Capsule(style: .continuous)
+                .stroke(Color.kuroWhite20, lineWidth: 0.5)
         )
     }
 }

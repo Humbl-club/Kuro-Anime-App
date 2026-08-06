@@ -1,10 +1,10 @@
 # Kuro — Current State (Plain English)
 
-**Last updated:** 2026-03-29
+**Last updated:** 2026-07-31
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 88 app Swift files and 169 SQL migrations are in the repo today.
+**Current inventory:** 93 app Swift files and 222 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -23,11 +23,12 @@ If you need the *literal code* in one place for another model to read, see:
 
 ## 2) What Kuro is (in one paragraph)
 
-Kuro is a curated anime + manga app. It lets users browse premium picks, keep lists, create private clubs with friends, and use a "Concierge" chat to import their watch list or get recommendations. The app is fast, clean, and focuses on high‑quality discovery.
+Kuro is a curated anime + manga app. It lets users browse premium picks, keep lists, create private clubs with friends, teach Kuro their taste through a simple card ritual, and use a "Concierge" chat to import their watch list or get recommendations. The app is fast, clean, and focuses on high‑quality discovery.
 
 **At a glance**
 - Clean editorial design
 - No adult content by default
+- Taste Deck: a calm one-card-at-a-time ritual teaches Kuro what you love, know, and don't want — your picks already shape which cards you get dealt next, and a fully personalized New to You rail is staged behind a flag
 - Private clubs for watching together with friends
 - Concierge uses deterministic routing first, with optional AI for ambiguity and narration
 - On-device AI for smart search, description condensing, and disambiguation support
@@ -42,21 +43,25 @@ Kuro is a curated anime + manga app. It lets users browse premium picks, keep li
 
 The app has 5 swipeable pages that follow a natural discovery flow:
 
-1. **Concierge** (swipe left from Discover): An inline concierge page for importing from your library/clipboard and asking for recommendations. First-time visitors see an expanded hint explaining what you can do (import lists, get mood-based picks with a concrete example). After your first interaction, the hint collapses to a slim one-liner.
-2. **Discover** (main page, opens by default): Shows 6 curated sections on first load (your personalized picks, what's airing today, essentials, trending, and manga counterparts). A "Show More" button reveals 7 additional sections (classics, current season, top rated, just added, etc.). Once you expand, it stays expanded across launches. The `New to You` rail now rotates per user on the server, so it stops repeating the same titles all the time. By default, ancillary anime entries like specials, music videos, and TV shorts are hidden from normal discovery.
+1. **Taste** (swipe left from Discover): the Taste Deck — a calm, full-screen ritual that shows one title at a time. You tap NOT FOR ME, I KNOW THIS, or CALLS TO ME (long-press for a synopsis, undo if you change your mind). After 12 cards, a quiet "Kuro is listening." summary confirms your signals were heard, and a "Your leanings" sheet shows what Kuro has learned so far. Since the taste-math upgrade (July 31, 2026, evening), these signals build a real taste profile on the server — a weighted sketch of the genres, themes, and tones you lean toward and the ones you avoid, where your distinctive tastes count for more than generic ones, recent signals count for more than old ones, and no single title or franchise can dominate. The deck already uses it: each session deliberately mixes safe ground with new territory (well-known canon, acclaimed picks, and hidden gems across different genre families), explores a little on purpose, and never re-deals anything you've listed, judged, or passed. A fully personalized `New to You` rail on Discover is built and verified, but still staged behind a flag. The Concierge used to live here; it moved (see below).
+2. **Discover** (main page, opens by default): Shows 6 curated sections on first load (your personalized picks, what's airing today, essentials, trending, and manga counterparts). A "Show More" button reveals 7 additional sections (classics, current season, top rated, just added, etc.). Once you expand, it stays expanded across launches. The `New to You` rail now rotates per user on the server, so it stops repeating the same titles all the time; a fully taste-personalized version of this rail — matching candidates against your taste sketch while the editors' picks always keep most of the vote — is built, verified against live data, and staged behind a feature flag (`personalized_new_to_you_v1`, currently off). By default, ancillary anime entries like specials, music videos, and TV shorts are hidden from normal discovery.
 3. **Browse** (swipe right from Discover): Explore the full catalog with filters (genre, status, length, decade, format, sort).
-4. **Collection** (swipe right from Browse): Your personal list of anime/manga. The live app uses status filters, type filters, search, and sorting. The newer provider/language availability filtering work remains staged behind `streaming_availability_v1` at 0% and is not part of the default-on production path.
-5. **Clubs** (rightmost page): Private groups (2–20 members) for watching together. Create a club, invite friends with a code, share curated watchlists (rails), see weekly highlights, vote in polls, and react to items (fire/heart/eyes/100). Club owners control privacy settings. The club list shows member counts, recent activity previews, and unread dots. When sharing is set to "progress", you'll see pace tracking ("3 ep behind the group"). Milestone cards celebrate when all members finish a title. Updates appear in real-time. Club activity also shows up on anime/manga detail pages. You can add anime/manga directly to a club rail from the Rails tab or via the "Add to Club..." context menu on any card. **Social activity**: when you open an anime or manga detail page, you can now see which of your club friends are also tracking that title, read their comments, and react with thumbs up/down. This replaces the old club chat tab with more relevant, title-level conversations. **Shared streaming**: a new "SHARED" toggle on club rails shows which titles are available on streaming services that all members share. Coverage text tells you how many members have set up their services.
+4. **Collection** (swipe right from Browse): Your personal list of anime/manga. The live app uses status filters, type filters, search, and sorting — including natural language search of *your own collection* ("show me action anime from 2020") via on-device AI. The newer provider/language availability filtering work remains staged behind `streaming_availability_v1` at 0% and is not part of the default-on production path.
+5. **Clubs** (rightmost page): Private groups (2–20 members) for watching together. Create a club, invite friends with a code or a `kuro://join/...` link (opens the join sheet pre-filled), share curated watchlists (rails), see weekly highlights, vote in polls, and react to items (fire/heart/eyes/100). Club owners control privacy settings, and friend-activity visibility now strictly follows those settings on the server (a privacy gap was closed in July 2026). The club list shows member counts, recent activity previews, and unread dots. When sharing is set to "progress", you'll see pace tracking ("3 ep behind the group") once a club has at least 3 members — duo clubs see an honest "Activity unlocks at 3 members" note. Milestone cards celebrate when all members finish a title. Club activity also shows up on anime/manga detail pages. You can add anime/manga directly to a club rail from the Rails tab or via the "Add to Club..." context menu on any card. **Social activity**: when you open an anime or manga detail page, you can now see which of your club friends are also tracking that title, read their comments, and react with thumbs up/down. This replaces the old club chat tab with more relevant, title-level conversations. **Shared streaming** (staged): a "SHARED" toggle on club rails that shows titles available on services all members share is built but remains behind the `streaming_availability_v1` flag at 0%.
 
-**Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page. It supports natural language queries like "show me action anime from 2020" using on-device AI. Default anime search now also hides ancillary formats like specials, music videos, and TV shorts so the mainline results come first.
+**Concierge** is no longer a pager page. It lives in two places now: a Concierge row in the Profile sheet, and the `kuro://concierge` link — both open it as a sheet, and a pre-filled prompt still works. Everything it did before (list imports, mood recommendations, undo) is unchanged.
 
-Profile is a small menu in the top-right corner. You can set your streaming subscriptions here (Crunchyroll, Netflix, Funimation, HIDIVE, etc.) so the app knows where you can watch or read. Clubs is also accessible from the Profile sheet as a secondary shortcut.
+**Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page. It is a structured catalog search (title/keyword with filters); natural-language understanding ("show me action anime from 2020") applies to searching *your Collection*, not the global search sheet. Default anime search now also hides ancillary formats like specials, music videos, and TV shorts so the mainline results come first.
+
+Profile is a small menu in the top-right corner with Concierge and Clubs shortcuts. (Setting your streaming subscriptions — Crunchyroll, Netflix, Funimation, HIDIVE, etc. — is built but still staged behind the `streaming_availability_v1` flag at 0%, so it is not visible in the live app yet.)
+
+**Onboarding** (first launch): a short intro ends with a "Teach Kuro your taste" card that drops new users straight into the Taste Deck, so the app starts learning from the very first session.
 
 **Header today:**
 - Left: KURO wordmark
 - Center: current page name in an animated window, with 5 dot indicators below
 - Right: search icon + profile menu
-- When on Concierge, a small chat icon appears next to the title.
+- When on Concierge (legacy layout), a small chat icon appears next to the title.
 
 ### How to push a new TestFlight build
 
@@ -92,7 +97,7 @@ The concierge stack handles four things:
 Long plot summaries from AniList are often several paragraphs. The app now automatically condenses them into short, spoiler-free 2-sentence hooks using on-device AI. This makes browsing feel faster and cleaner.
 
 ### Smart Search
-Instead of tapping through genre filters and dropdowns, you can now type things like "show me action anime from 2020" or "short comedy manga" and the app understands what you mean. This uses the on-device AI to interpret your query.
+Instead of tapping through genre filters and dropdowns, you can now type things like "show me action anime from 2020" or "short comedy manga" when searching *your own collection*, and the app understands what you mean. This uses the on-device AI to interpret your query. (The global search sheet from the header uses structured catalog search, not natural language.)
 
 ### What to Watch/Read Next
 When you open an anime or manga detail page, there is now a personalized "Next Up" section. It looks at your progress and suggests what episode or chapter to continue with, so you spend less time figuring out where you left off.
@@ -231,14 +236,20 @@ There are two main ways the database is populated:
 
 This means posters are fast, stable, and don’t rely on AniList’s servers at runtime.
 
+**Mirroring backlog unblocked (2026-07-31):** coverage was stuck at fixed ceilings (anime 2.8%, manga 1.4%, characters 0.2%, staff 0.5% — measured July 31). Three fixes landed: the mirror jobs now only queue images that are actually still remote (instead of re-scanning the same fixed windows), a database safeguard prevents imports from ever replacing a mirrored image with a remote URL again, and viewing a title can bump its images to the front of the queue. Coverage should now climb steadily on its own.
+
 ---
 
 ## 7) Scheduled jobs (automated maintenance)
 
-Right now, the only built-in scheduled job is:
-- **Concierge housekeeping**: runs daily to delete old logs/metrics.
+Automated jobs that run on a schedule:
+- **Concierge housekeeping**: daily, deletes old logs/metrics (90-day retention for club telemetry).
+- **Image mirroring**: 5 jobs spaced 15 minutes apart every night (anime/manga in three windows, then characters, then staff) — copies remote images into our CDN.
+- **Taste profile drain**: every 15 minutes, recomputes queued users' taste profiles from their latest signals (small batches, errors captured per user).
+- **Outbound link ledger cleanup**: daily, deletes click-ledger rows older than 90 days.
+- **Bulk AniList imports**: scheduled catalog refreshes (run with a secret key for safety).
 
-Other imports (like image mirroring or AniList ingestion) are currently run manually or by external scripts.
+Manual runs are still possible for image mirroring and imports when needed.
 
 ---
 
@@ -262,12 +273,14 @@ Supabase also runs the Concierge server logic and provides secure APIs.
 
 - A **profile** row (your account basics)
 - Your **anime/manga list** entries (status, progress, rating)
-- Your **streaming subscriptions** (which services you use — Crunchyroll, Netflix, etc.)
+- Your **taste signals and taste profile** (deck choices and list activity, condensed into weighted likes/dislikes; only you can read your profile)
+- Your **streaming subscriptions** (which services you use — Crunchyroll, Netflix, etc.; staged feature, not yet visible in the app)
 - Concierge **import sessions** (so you can undo)
 - Concierge **logs** (for improving the parser and debugging)
 - **Club memberships** and your activity within clubs
+- **Outbound link taps** (which watch/read/provider links you tap, kept 90 days — this is the click ledger that may later power affiliate links; no ads, ever)
 
-No one else can read your private list data because of row‑level security. Club data is shared only with club members, and the club owner controls exactly what is visible. Your streaming subscription data is deleted when you delete your account (GDPR compliant).
+No one else can read your private list data because of row‑level security. Club data is shared only with club members, and the club owner controls exactly what is visible — and the server now strictly enforces those sharing settings for friend activity (fixed July 2026). Your streaming subscription data is deleted when you delete your account (GDPR compliant).
 
 ---
 
@@ -394,7 +407,7 @@ flowchart TD
 
 ## 12) Operator checklist (plain English)
 
-- If images look slow: run image mirroring. Note that only ~2.7% of images are currently mirrored — this is a known backlog.
+- If images look slow: run image mirroring. Coverage was measured at 2.8% (anime) / 1.4% (manga) / 0.2% (characters) / 0.5% (staff) on 2026-07-31 — the pipeline was unblocked that day (remote-only queuing + anti-overwrite safeguard + priority queue), so coverage should climb on its own; check the trend, not just the snapshot.
 - If Concierge seems broken: check its usage limits and logs.
 - If recommendations look bad: verify the recommendation tables and see if imports are stale.
 - If imports stop: check the import cursor and re-run import scripts.
@@ -458,7 +471,7 @@ These items were identified during the production-readiness review but require m
 
 - **Disable email confirmations** (1 step — required so new sign-ups are authenticated immediately):
   1. Auth → Email → turn OFF "Confirm email" (email verification is no longer required for sign-up)
-- **Image mirroring backlog**: Only about 2.7% of catalog images have been mirrored to our CDN so far. This is a long-running data task that will take time to fully catch up.
+- **Image mirroring backlog**: Only a small fraction of catalog images have been mirrored to our CDN so far (anime 2.8%, manga 1.4%, characters 0.2%, staff 0.5% as of 2026-07-31). The pipeline was unblocked on 2026-07-31 (see section 6), so this is now a matter of letting the nightly jobs catch up over time.
 
 ---
 
@@ -514,6 +527,13 @@ A batch of lower-priority production improvements was completed across the backe
 ---
 
 ## 18) Change Log (append-only)
+
+- 2026-08-02: **Realm descriptors without burning agent quota** — Kuro can now write short editorial descriptions (what a title is / who it's for) for the visible catalog using the same Groq stack as Concierge narration, instead of expensive agent swarms. Already-generated swarm leftovers were salvaged first; a background worker is filling the rest. Taste "craft indicators" (great animation / weak story) stay for a later project.
+- 2026-08-02 (cont.): The fill-in worker is deliberately slow (one title at a time with long pauses) so it doesn’t trip Groq rate limits or edge-function timeouts. About 1.6k titles done, ~5.5k still queued — multi-day unless we raise the Groq plan.
+- 2026-08-02 (later): **Groq is out for realm descriptors.** You asked the agent to write them instead — Groq drain stopped; new rows come from agent batches via the fetch/submit scripts (Kimi master plan §6).
+- 2026-08-02 (Stage 2 close): Descriptors finished for the visible pool. Low-confidence salvage rows were rewritten. The app can now nudge each title’s realm weights by up to ±0.2 from those descriptors (with reasons logged). Spirited Away’s similar titles still lead with Ghibli/folklore peers.
+- 2026-08-02 (A+B+C): Spirited Away gate tightened so Re:ZERO/JJK no longer leak. AniList “also liked” edges stayed **advisory** after a first gold-set score (don’t fold them into ranking yet). Discover gained The Shelf + Hidden Gem behind a 0% flag.
+- 2026-08-02 (curation research → ingest): After a real EN+JP pass of industry/niche lists, Kuro imported more peer awards (日本漫画家協会賞), more Annecy prizes, Manga Taishō runners-up, and Kono Manga #2/#3. Opaque “Critic Consensus” was split into Paste / Time Out / A.V. Club. Seasonal desks (Filmarks, 次にくるマンガ大賞, EN yearlists) now feed Hidden Gem without becoming forever-canon. Owner still needs to hand-judge the recommendation gold set.
 
 - 2026-03-13: **Safety pagination limits on club bundle**: Added safety limits to the database function that loads all club data (members, rails, polls) in one call. Members capped at 50 rows (club max is 20, so this is just a safety net), rail items capped at 50 per rail, polls capped at 20. Rails and poll options are left unbounded since clubs rarely have more than 10 rails and polls typically have 2-6 options. No visible behavior change — these limits only kick in if the data is somehow corrupted or abused beyond normal use.
 - 2026-02-28: **FM-Powered Intent Classification**: The Concierge now uses Apple's on-device Foundation Models as its primary intent classifier on supported devices (iOS 26+). When you type something like "Watched jujutsu kaisen halfway through", the FM model understands the intent (import) from context instead of relying on keyword matching. This handles nuances that keywords can't — for example, "I watched something great, recommend me more" correctly routes to recommendations even though it contains the word "watched". The FM classifies into 6 intents (import, recommend by vibe, recommend by seed title, library query, club action, unknown) with a confidence score. If the model is unsure (below 65% confidence), unavailable, or times out, it falls back to the existing keyword matching — so there's zero regression risk. On older devices without FM, keyword routing works exactly as before. Analytics now track whether each routing decision came from FM or keywords so we can compare accuracy. The keyword matching logic (`looksLikeImport`) was also extracted from ConciergeView into `TextNormalization` so it can be unit-tested — 14 unit tests now cover keyword detection for status words, past tense, German, progress patterns, and more. A UI test verifies that typing "Watched Jujutsu Kaisen halfway through" in Concierge routes to the import flow (not recommendations). The KuroTests unit test target was also wired into the Xcode scheme so `xcodebuild test` actually runs it.
@@ -1001,3 +1021,63 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 - This is not feature code. It is the rulebook for how personalization must be built so it cannot be implemented loosely or sloppily.
 - It defines what Kuro is allowed to personalize first (`New to You`), what must stay non-personalized in v1 (Search and Browse), which user signals count, how imports are discounted, and what counts as “done” for each sprint, plus ticket-style deliverables inside each sprint.
 - It also includes rollback rules, review questions, fixture users, and validation checklists so the work stays curated and does not drift into noisy recommendation logic.
+
+### 2026-07-30 — Personalization Sprint 01: taste signal capture
+- Backend-only: list mutations now write durable taste events. No Discover/Search/Browse ranking yet.
+- New tables: `taste_signal_events`, `taste_profile_recompute_queue`, `taste_import_context`.
+- Triggers on `anime_user_lists` / `manga_user_lists` emit semantic events (planned, watching/reading, completed, dropped, rewatch/reread, meaningful progress, high/low rating, verdicts). No-op updates are suppressed.
+- `user_id` stays TEXT on list tables; triggers cast safely to UUID and never break list writes on bad IDs.
+- Live rating scale is **1–10** (DB check constraints). High `>= 8`, low `<= 4`. Older docs that said 10–100 for list ratings were wrong.
+- Import-origin marking: `concierge-apply` sets a short-lived `taste_import_context` row (PostgREST-safe substitute for `SET LOCAL`); events get `is_import=true` + session id. No new list column.
+- Migration: `20260730160000_taste_signal_events_v1.sql`. Next: Sprint 02 profile computation.
+
+### 2026-07-31 — KIMI K3 overnight Agent Swarm prompt written
+- Added a full overnight prompt/spec at `docs/superpowers/specs/2026-07-31-kimi-k3-agent-swarm-overnight-epic.md` for KIMI K3 to run unattended.
+- It tells the swarm to audit the whole backend, fix image CDN mirroring so covers actually land in Storage over time, replace the left Concierge chat page with a Tinder-style yes/no taste deck, map swipe signals into real taste profiles/clusters, and audit/fix clubs invites + friend visibility — while leaving the in-progress Auth redesign UI alone.
+- Spec/prompt only; no app behavior changed yet.
+
+### 2026-07-31 — Overnight prompt deepened (taste + money)
+- Same prompt now locks how taste should work: swipes/lists build a profile, that maps to a few named “neighborhoods,” and only certain lists change (especially `New to You`) while Browse/Search stay tools.
+- It also adds an ad-free money plan: Kuro Plus subscription for software value, plus careful affiliate links for buying/reading/watching/merch — never ads, never paid ranking.
+- Still prompt/spec only.
+
+### 2026-07-31 — Overnight prompt made creativity-first
+- Rewrote the KIMI prompt so the first job is a full check of the app (including design) and a real creative idea deck with competing options — not “build exactly this Tinder clone.”
+- Your hunches are still in there as problems to solve; the swarm has to invent better answers, fight them, then ship the winners overnight.
+
+### 2026-07-31 — Overnight swarm shipped: Taste Deck, taste profiles, image fixes, club fixes
+- **Taste Deck (new first page)**: the leftmost page is now a calm one-card-at-a-time ritual — PASS, I KNOW THIS, or CALLS TO ME on 12 titles per session, with undo and long-press synopses. Your choices build a real taste profile on the server (weighted likes/dislikes with sensible caps so no single title or franchise dominates). The Concierge moved out of the pager into the Profile sheet and the `kuro://concierge` link — everything it did still works, including pre-filled prompts.
+- **Onboarding**: the intro now ends with a "Teach Kuro your taste" card that drops new users into the deck.
+- **Personalized New to You (staged)**: a version of the Discover `New to You` rail that blends your taste profile with the editorial picks is built but stays off (0% flag) until we choose to ramp it; the editorial order always stays dominant.
+- **Image mirroring unblocked**: coverage was stuck at fixed ceilings (anime 2.8%, manga 1.4%, characters 0.2%, staff 0.5%). Mirror jobs now only queue still-remote images, imports can no longer overwrite mirrored images, and viewing a title can prioritize its images — coverage should now climb on its own.
+- **Club fixes**: emoji reactions on club items work again (the server was rejecting every reaction the app sent); friend activity on detail pages now strictly follows each club's privacy settings (a real privacy hole, closed); club invites now include a `kuro://join/<code>` link that opens a pre-filled join sheet; duo clubs honestly say "Activity unlocks at 3 members" instead of showing empty pace text; the "You were removed" message no longer appears for people who were never members.
+- **Click ledger (monetization groundwork)**: taps on WATCH/READ buttons, provider picks, and external reference links are recorded (120/hour cap, 90-day retention, only you can read your rows). No ads, ever; affiliate decoration stays off pending a compliance review.
+- Backend: 6 new migrations (all in production), 2 edge functions redeployed (image mirror + AniList import auth gate). iOS: 3 new files (Taste Deck screen + two service extensions), flag-aware pager, deep-link fixes, green build + unit tests (13 new).
+- **Taste Deck v1.1 (2026-07-31, later)**: the deck's image now shows only a small modern strip — how many episodes, how many seasons (or FILM / VOL / CH for movies and manga), and DUB or SUB only when we actually know. Title, the quiet genre/year line, the three decisions and the "3 / 12" counter moved below the image. You can now also flick the picture: right = calls to me, left = pass, up = I know this (buttons stay). New database columns for episodes/seasons/dub/sub are in migration `20260731050000_taste_deck_meta_v1.sql` — not pushed to production yet.
+
+### 2026-07-31 (evening) — Taste Math v2: Kuro's taste sketch became real math, verified with live users
+- **What changed:** Kuro's taste profile is no longer a pile of scores — every title and every user now lives in the same "taste space," where each genre/theme/tone is a dimension and rare, distinctive tastes weigh more than common ones. Your profile is built from your signals with a half-life (recent months count more), grows more trustworthy as evidence accumulates (Kuro stays humble for your first ~dozen judgments — that's deliberate), and can't be hijacked by one title or franchise. A genre is only marked "avoided" if the overall pattern is truly negative, so one bad mood can't exile something you love.
+- **The deck got smarter:** each 12-card session is now deliberately balanced — half anime, half manga, spread across six genre families and three fame levels (canon, acclaimed, hidden gems) — with a little purposeful exploration early on, variety guarantees (no cluster or franchise can fill a session), and no repeats of anything you've listed, judged, or passed. The left button is now honestly labeled **NOT FOR ME** (it always was a dislike; a separate neutral "just pass" exists on the server for future use).
+- **Verified with real users, not just code review:** the team created throwaway accounts through the public API and checked everything end-to-end — signals recorded exactly, profiles computed exactly (including the avoidance rules), the personalized rail reproducible card-for-card, and the deck itself dealing fresh, varied, never-repeated cards with real cover art. Two live bugs were caught and fixed the same evening (the deck was briefly down for everyone; an internal maintenance function was accidentally callable by any signed-in user — both closed).
+- **Still off:** the personalized `New to You` rail stays behind its flag (0%) until the team watches the pipeline for a bit; everything else is live. Open follow-ups include one unexplained impression-tracking anomaly (did not recur), zero unit-test coverage for deck actions, and continued watching of the "I know this" button for false-positive drift.
+- 2026-07-31 (deck v2): **Taste Deck redesign: full-screen art, no more interruptions, one honest leanings** — the deck's cover art now fills the whole screen edge-to-edge, with a frosted monochrome glass card floating on top that holds the title, a one-line summary (genres, year, format) and the three choices (NOT FOR ME / I KNOW THIS / CALLS TO ME). The "Kuro is listening." pause every 12 swipes is gone — the deck simply keeps dealing new titles, with a quiet running count of how many you've judged sitting next to the LEANINGS button; you only see an end screen when you've genuinely judged everything Kuro has. "Your leanings" now always shows the same server-computed profile (with an "updated N min ago" stamp and a gentle note when your newest swipes are still being digested), so it no longer changes when you swipe away and come back. Every card is now clearly labeled ANIME or MANGA as the first chip, so you always know which medium you're judging.
+- 2026-07-31 (discover P1): **Discover starts becoming a magazine, not a warehouse** — the old "FEATURED" box is replaced by **The One Thing**: one hand-picked title per day with a real sentence or two about why it deserves your attention, presented as a full-width cover with the title in elegant serif on frosted glass. The "New to You" row can now become **"Because You Loved …"** — recommendations built from what you actually loved, with the reason printed right under the heading in italic serif (it only appears once Kuro knows at least a couple of your favorites; otherwise you keep the old row). Posters in the horizontal rows grew about 20% so each title has more presence, and the little star-rating chips are now quiet monochrome glass instead of loud badges. The new server pieces are written and tested but not switched on yet — the app gracefully shows the old hero until they go live.
+
+### 2026-08-04/05 (overnight) — The recommendation engine got its repair night
+- **The "penalty" system works again.** For months a guard that quietly demotes harem/isekai filler had been broken twice over (first inverted into a bonus, then zeroed out). It's restored the way it was originally designed — junk stopped leaking into lists like Berserk's neighbors.
+- **Gates became judgment calls.** Titles are no longer executed for missing an arbitrary cutoff by a hair: being in a related realm now just costs a little score instead of banishment. My Neighbor Totoro is back among Spirited Away's neighbors (#10) — it had been excluded partly because its database entry was missing ALL its credits (no Miyazaki, no Ghibli!). We fixed Totoro's and found 60 more famous titles with the same hole.
+- **Recommendations are ~40x faster.** Similar-titles used to be computed from scratch on every request (2–4 seconds, often timing out). Kuro now precomputes everyone's 30 nearest neighbors overnight and serves them instantly (~40–100 milliseconds). A safety valve still computes live for obscure titles.
+- **Honest incident report:** during the overnight build the database was accidentally overloaded once and was down for ~25 minutes (a memory setting multiplied badly on our small instance). Found, fixed, documented — and the same class of mistake is now guarded against.
+- **Security cleanup:** a leftover internal function that could read a secret out of the job scheduler was removed, and three database views no longer bypass permission checks. The security scanner's error count went from 3 to 0. One item needs the owner: rotate the import secret and store it properly.
+- **Critique-site scouting done (nothing ingested):** 12 dossiers on niche anime/manga critique sites (7 English, 5 Japanese) with honest notes on which ones even allow automated reading — several famous ones don't. The owner picks the 3–4 pilot sites; nothing was fetched or blessed.
+- Nothing user-visible changed by itself: the realm rails and personalized rows stay switched off until the owner flips them.
+
+### 2026-08-05 (later) — Similar-titles got dramatically better, and it's measured
+- **393 wrongly-filed titles corrected** (double-checked by two independent judges each): Perfect Blue is finally a psychological thriller, ARIA is healing slice-of-life, Free! is sports. Corrections auto-retire once the deeper fix lands.
+- **The recommendation engine now leads with what real fans recommend** (community recommendation data), with Kuro's quality/realm gates demoting the junk instead of computing neighbors from tags alone. Spirited Away's "more like this" is now literally the Miyazaki shelf; Berserk's is Vinland Saga, Vagabond, Claymore.
+- **Quality is measured, not claimed**: on the 100-seed gold benchmark, similar-titles precision jumped from 51% to **82%** (the theoretical ceiling of the data is 85%).
+- Also fixed: the daily hero's description no longer renders in all-lowercase.
+
+### 2026-08-05 (night) — Real critics are in the database now, and sequels stopped hijacking rails
+- The "what critics say" layer exists: 25 real reviews from named critics (English and Japanese) parsed into structured verdicts with exact quotes — every quote mechanically verified against the original article, nothing misattributed, nothing stored as full text. Small on purpose: the pilot proved the machine works; coverage grows with more approved sources.
+- Rails now recommend franchises by their proper starting point — "similar to Tokyo Revengers" suggests My Hero Academia season 1, not a mid-franchise movie.

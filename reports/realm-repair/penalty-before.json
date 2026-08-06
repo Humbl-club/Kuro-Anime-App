@@ -1,0 +1,360 @@
+{
+ "note": "pre-fix snapshot before Phase 1 repair migrations (penalty operator + gates)",
+ "sa_seed": 111,
+ "captured_at": "2026-08-04T17:46:55.816669+00:00",
+ "berserk_seed": 5,
+ "berserk_top25": [
+  {
+   "score": 0.683786,
+   "media_id": 6,
+   "average_score": 84,
+   "overlap_count": 35,
+   "title_english": "Attack on Titan"
+  },
+  {
+   "score": 0.516135,
+   "media_id": 9,
+   "average_score": 84,
+   "overlap_count": 19,
+   "title_english": "Tokyo Ghoul"
+  },
+  {
+   "score": 0.510146,
+   "media_id": 115,
+   "average_score": 81,
+   "overlap_count": 23,
+   "title_english": "Claymore"
+  },
+  {
+   "score": 0.496203,
+   "media_id": 332,
+   "average_score": 80,
+   "overlap_count": 19,
+   "title_english": "Devilman"
+  },
+  {
+   "score": 0.49192,
+   "media_id": 86,
+   "average_score": 86,
+   "overlap_count": 21,
+   "title_english": "Dorohedoro"
+  },
+  {
+   "score": 0.462417,
+   "media_id": 78,
+   "average_score": 79,
+   "overlap_count": 27,
+   "title_english": "Fire Punch"
+  },
+  {
+   "score": 0.459554,
+   "media_id": 91,
+   "average_score": 89,
+   "overlap_count": 22,
+   "title_english": "Land of the Lustrous"
+  },
+  {
+   "score": 0.451685,
+   "media_id": 7,
+   "average_score": 91,
+   "overlap_count": 31,
+   "title_english": "One Piece"
+  },
+  {
+   "score": 0.424405,
+   "media_id": 2236,
+   "average_score": 76,
+   "overlap_count": 17,
+   "title_english": null
+  },
+  {
+   "score": 0.423907,
+   "media_id": 15,
+   "average_score": 79,
+   "overlap_count": 21,
+   "title_english": "The Promised Neverland"
+  },
+  {
+   "score": 0.420937,
+   "media_id": 108,
+   "average_score": 87,
+   "overlap_count": 22,
+   "title_english": "Witch Hat Atelier"
+  },
+  {
+   "score": 0.419249,
+   "media_id": 517,
+   "average_score": 84,
+   "overlap_count": 21,
+   "title_english": "Overlord"
+  },
+  {
+   "score": 0.412934,
+   "media_id": 4178,
+   "average_score": 75,
+   "overlap_count": 19,
+   "title_english": "Clevatess"
+  },
+  {
+   "score": 0.410199,
+   "media_id": 2221,
+   "average_score": 90,
+   "overlap_count": 23,
+   "title_english": null
+  },
+  {
+   "score": 0.40964,
+   "media_id": 132,
+   "average_score": 85,
+   "overlap_count": 18,
+   "title_english": "Made in Abyss"
+  },
+  {
+   "score": 0.405673,
+   "media_id": 414,
+   "average_score": 78,
+   "overlap_count": 15,
+   "title_english": null
+  },
+  {
+   "score": 0.403876,
+   "media_id": 524,
+   "average_score": 82,
+   "overlap_count": 18,
+   "title_english": "Leviathan"
+  },
+  {
+   "score": 0.403015,
+   "media_id": 142,
+   "average_score": 76,
+   "overlap_count": 22,
+   "title_english": "The God of High School"
+  },
+  {
+   "score": 0.391805,
+   "media_id": 90,
+   "average_score": 89,
+   "overlap_count": 20,
+   "title_english": "Fullmetal Alchemist"
+  },
+  {
+   "score": 0.38933,
+   "media_id": 191,
+   "average_score": 81,
+   "overlap_count": 14,
+   "title_english": "D.Gray-man"
+  },
+  {
+   "score": 0.382144,
+   "media_id": 77,
+   "average_score": 82,
+   "overlap_count": 20,
+   "title_english": "Tower of God"
+  },
+  {
+   "score": 0.381448,
+   "media_id": 2556,
+   "average_score": 86,
+   "overlap_count": 20,
+   "title_english": "A Certain Magical Index NT"
+  },
+  {
+   "score": 0.381088,
+   "media_id": 85,
+   "average_score": 79,
+   "overlap_count": 15,
+   "title_english": "Uzumaki: Spiral into Horror"
+  },
+  {
+   "score": 0.379964,
+   "media_id": 159,
+   "average_score": 81,
+   "overlap_count": 19,
+   "title_english": "Magi: The Labyrinth of Magic"
+  },
+  {
+   "score": 0.374467,
+   "media_id": 291,
+   "average_score": 76,
+   "overlap_count": 18,
+   "title_english": "So I'm a Spider, So What?"
+  }
+ ],
+ "spirited_away_top25": [
+  {
+   "score": 0.80022,
+   "media_id": 200,
+   "average_score": 85,
+   "overlap_count": 10,
+   "title_english": "Princess Mononoke"
+  },
+  {
+   "score": 0.629825,
+   "media_id": 161,
+   "average_score": 85,
+   "overlap_count": 10,
+   "title_english": "Howl\u2018s Moving Castle"
+  },
+  {
+   "score": 0.505644,
+   "media_id": 1413,
+   "average_score": 77,
+   "overlap_count": 9,
+   "title_english": "The Boy and the Heron"
+  },
+  {
+   "score": 0.428328,
+   "media_id": 1259,
+   "average_score": 76,
+   "overlap_count": 10,
+   "title_english": "xxxHOLiC"
+  },
+  {
+   "score": 0.427067,
+   "media_id": 182,
+   "average_score": 80,
+   "overlap_count": 8,
+   "title_english": "Noragami Aragoto"
+  },
+  {
+   "score": 0.404086,
+   "media_id": 2759,
+   "average_score": 82,
+   "overlap_count": 7,
+   "title_english": "Natsume's Book of Friends the Movie: Ephemeral Bond"
+  },
+  {
+   "score": 0.396287,
+   "media_id": 2768,
+   "average_score": 74,
+   "overlap_count": 7,
+   "title_english": "InuYasha the Movie 2: The Castle Beyond the Looking Glass"
+  },
+  {
+   "score": 0.384898,
+   "media_id": 1630,
+   "average_score": 77,
+   "overlap_count": 8,
+   "title_english": "The Eccentric Family"
+  },
+  {
+   "score": 0.366312,
+   "media_id": 435,
+   "average_score": 80,
+   "overlap_count": 7,
+   "title_english": "Kamisama Kiss"
+  },
+  {
+   "score": 0.351125,
+   "media_id": 2142,
+   "average_score": 79,
+   "overlap_count": 8,
+   "title_english": "Toilet-bound Hanako-kun Season 2"
+  },
+  {
+   "score": 0.350932,
+   "media_id": 376,
+   "average_score": 81,
+   "overlap_count": 10,
+   "title_english": "Suzume"
+  },
+  {
+   "score": 0.335935,
+   "media_id": 4466,
+   "average_score": 75,
+   "overlap_count": 6,
+   "title_english": "Okko's Inn"
+  },
+  {
+   "score": 0.331914,
+   "media_id": 15673,
+   "average_score": 82,
+   "overlap_count": 7,
+   "title_english": "MUSHI-SHI The Next Passage Special - Path of Thorns"
+  },
+  {
+   "score": 0.329837,
+   "media_id": 858,
+   "average_score": 77,
+   "overlap_count": 6,
+   "title_english": "The Secret World of Arrietty"
+  },
+  {
+   "score": 0.326743,
+   "media_id": 363,
+   "average_score": 86,
+   "overlap_count": 10,
+   "title_english": "Fruits Basket Season 2"
+  },
+  {
+   "score": 0.323219,
+   "media_id": 730,
+   "average_score": 80,
+   "overlap_count": 7,
+   "title_english": "Natsume's Book of Friends Season 1"
+  },
+  {
+   "score": 0.320709,
+   "media_id": 4850,
+   "average_score": 76,
+   "overlap_count": 5,
+   "title_english": "Hozuki\u2019s Coolheadedness 2: Part II"
+  },
+  {
+   "score": 0.319324,
+   "media_id": 1181,
+   "average_score": 79,
+   "overlap_count": 7,
+   "title_english": "The Ancient Magus' Bride: Those Awaiting a Star"
+  },
+  {
+   "score": 0.317848,
+   "media_id": 1322,
+   "average_score": 81,
+   "overlap_count": 9,
+   "title_english": "Secrets of the Silent Witch"
+  },
+  {
+   "score": 0.31423,
+   "media_id": 2890,
+   "average_score": 81,
+   "overlap_count": 4,
+   "title_english": null
+  },
+  {
+   "score": 0.310213,
+   "media_id": 168,
+   "average_score": 82,
+   "overlap_count": 7,
+   "title_english": "Bakemonogatari"
+  },
+  {
+   "score": 0.304837,
+   "media_id": 2212,
+   "average_score": 79,
+   "overlap_count": 9,
+   "title_english": "The Ancient Magus' Bride Season 2 Part 2"
+  },
+  {
+   "score": 0.298021,
+   "media_id": 334,
+   "average_score": 83,
+   "overlap_count": 7,
+   "title_english": "Wolf Children"
+  },
+  {
+   "score": 0.297724,
+   "media_id": 5322,
+   "average_score": 75,
+   "overlap_count": 7,
+   "title_english": "Ne Zha"
+  },
+  {
+   "score": 0.291777,
+   "media_id": 6128,
+   "average_score": 75,
+   "overlap_count": 5,
+   "title_english": "Cool-headed Hoozuki OVA"
+  }
+ ]
+}

@@ -502,9 +502,16 @@ struct ClubDetailView: View {
     }
 
     private func handleMembershipLoss() {
+        // A loaded bundle means the user was a member and lost access;
+        // no bundle (e.g. initial load via kuro://club/<uuid>) means they were never a member.
+        let wasKnownMember = bundle != nil
         bundle = nil
-        loadPhase = .failedInitial(message: "You're no longer a member of this club.")
-        showToast(.error, title: "Access updated", subtitle: "You were removed from this club.")
+        loadPhase = .failedInitial(message: wasKnownMember
+            ? "You're no longer a member of this club."
+            : "You're not a member of this club yet — ask for an invite.")
+        showToast(.error, title: "Access updated", subtitle: wasKnownMember
+            ? "You were removed from this club."
+            : "You're not a member of this club yet — ask for an invite.")
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 500_000_000)
             dismiss()

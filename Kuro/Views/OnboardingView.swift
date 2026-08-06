@@ -3,8 +3,13 @@ import SwiftUI
 // MARK: - First-Launch Onboarding (5-card horizontal pager)
 // Shown once between auth and ContentView. Uses UserDefaults flag.
 
+enum OnboardingDestination {
+    case home
+    case tasteDeck
+}
+
 struct OnboardingView: View {
-    let onComplete: () -> Void
+    let onComplete: (OnboardingDestination) -> Void
 
     @State private var currentPage = 0
     @State private var appeared = false
@@ -69,26 +74,50 @@ struct OnboardingView: View {
                         }
                         .buttonStyle(.plain)
 
-                        Button(action: { completeOnboarding() }) {
+                        Button(action: { completeOnboarding(.home) }) {
                             Text(isGermanLocale ? "Überspringen" : "Skip")
                                 .font(Font.kuroCaption(weight: .medium))
                                 .foregroundColor(.kuroTextTertiary)
                         }
                         .buttonStyle(.plain)
                     } else {
-                        Button(action: { completeOnboarding() }) {
-                            Text(isGermanLocale ? "LOS GEHT'S" : "GET STARTED")
-                                .font(Font.kuroCaption(weight: .medium))
-                                .tracking(2.0)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    Capsule(style: .continuous)
-                                        .fill(Color.black.opacity(0.88))
-                                )
+                        if FeatureFlags.shared.tasteDeckV1Enabled {
+                            // Deck owns index 0: the last card's primary CTA lands on it.
+                            Button(action: { completeOnboarding(.tasteDeck) }) {
+                                Text(isGermanLocale ? "ZEIG KURO DEINEN GESCHMACK" : "TEACH KURO YOUR TASTE")
+                                    .font(Font.kuroCaption(weight: .medium))
+                                    .tracking(2.0)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(
+                                        Capsule(style: .continuous)
+                                            .fill(Color.black.opacity(0.88))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+
+                            Button(action: { completeOnboarding(.home) }) {
+                                Text(isGermanLocale ? "Überspringen" : "Skip")
+                                    .font(Font.kuroCaption(weight: .medium))
+                                    .foregroundColor(.kuroTextTertiary)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
+                            Button(action: { completeOnboarding(.home) }) {
+                                Text(isGermanLocale ? "LOS GEHT'S" : "GET STARTED")
+                                    .font(Font.kuroCaption(weight: .medium))
+                                    .tracking(2.0)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 16)
+                                    .background(
+                                        Capsule(style: .continuous)
+                                            .fill(Color.black.opacity(0.88))
+                                    )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 32)
@@ -104,10 +133,10 @@ struct OnboardingView: View {
         }
     }
 
-    private func completeOnboarding() {
+    private func completeOnboarding(_ destination: OnboardingDestination) {
         KuroAccessibility.impactHaptic(.light)
         UserDefaults.standard.set(true, forKey: "kuro_onboarding_completed")
-        onComplete()
+        onComplete(destination)
     }
 }
 
@@ -124,13 +153,13 @@ private struct OnboardingPage {
 
     static let allPages: [OnboardingPage] = [
         OnboardingPage(
-            systemImage: "bubble.left.and.bubble.right",
-            titleEN: "Start with Concierge",
-            titleDE: "Starte mit Concierge",
-            subtitleEN: "CONCIERGE",
-            subtitleDE: "CONCIERGE",
-            bodyEN: "Paste a list or describe a mood. Concierge shapes the first pass before you ever leave the shell.",
-            bodyDE: "Fuge eine Liste ein oder beschreibe eine Stimmung. Concierge formt den ersten Vorschlag, noch bevor du die Shell verlässt."
+            systemImage: "rectangle.stack",
+            titleEN: "Teach Kuro your taste",
+            titleDE: "Zeig Kuro deinen Geschmack",
+            subtitleEN: "TASTE",
+            subtitleDE: "GESCHMACK",
+            bodyEN: "A quiet ritual of yes and no — pass, know, or love, and Kuro learns what you love.",
+            bodyDE: "Ein stilles Ritual aus Ja und Nein — und Kuro lernt, was du liebst."
         ),
         OnboardingPage(
             systemImage: "sparkles",

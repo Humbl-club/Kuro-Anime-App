@@ -178,7 +178,7 @@ Default page on launch: **Discover** (index 1).
 
 ### Feature Flags (staged rollout)
 Server-controlled via `feature_flags` DB table, cached in UserDefaults, deterministic hash rollout.
-All 15 flags defined in `FeatureFlags.swift`:
+Flags defined in `FeatureFlags.swift` (selected):
 - `rag_assist_v1` — RAG retrieval assist
 - `fm_assist_v1` — Apple Foundation Models assist
 - `clarify_v2` — improved clarification flow
@@ -194,6 +194,9 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `clubs_notifications_v1` (100%) — in-app badges
 - `streaming_availability_v1` (0%) — where-to-watch/read provider filters and shared availability UI
 - `credits_cast_v1` (100%) — characters, staff, studios, authors on detail pages
+- `taste_deck_v1` (100%) — Taste Deck at pager index 0
+- `personalized_new_to_you_v1` (0%) — Because-You / personalized NTY
+- `discover_realm_rails_v1` (0%) — Discover Shelf + Hidden Gem (realm Stage 4)
 - Debug override: `--ff-on=flag_name` / `--ff-off=flag_name` launch args
 
 ### Deep Linking
@@ -241,7 +244,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 
 ## FILE MAP (exact, current as of 2026-03-24)
 
-### iOS app — 88 Swift files in `Kuro/`
+### iOS app — 93 Swift files in `Kuro/`
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + SupabaseService injection, `.onOpenURL` deep link handler
@@ -316,7 +319,7 @@ All 15 flags defined in `FeatureFlags.swift`:
 - `SupabaseModels.swift` — all Supabase data models
 - `DiscoverBundle.swift` — discover bundle response model
 
-### Supabase — 162 migration files in repo, 15 deployed edge functions (as of 2026-03-18)
+### Supabase — 176 migration files in repo, 15 deployed edge functions (as of 2026-07-31)
 
 **Edge functions (15):**
 - `concierge-parse` — deterministic NLP parser, title candidate search

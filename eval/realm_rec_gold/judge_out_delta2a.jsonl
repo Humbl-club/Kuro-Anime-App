@@ -1,0 +1,151 @@
+{"seed_key":"ANIME:11","id":720,"v":"relevant","why":"Classic long-form shounen adventure epic; canonical pairing","conf":0.9}
+{"seed_key":"ANIME:11","id":6,"v":"relevant","why":"Big-tent shounen action-adventure; same crowd","conf":0.8}
+{"seed_key":"ANIME:11","id":937,"v":"relevant","why":"Long-running Jump action-comedy that grows into battle epic","conf":0.75}
+{"seed_key":"ANIME:11","id":994,"v":"relevant","why":"90s Jump classic; adventure-action register fits","conf":0.6}
+{"seed_key":"ANIME:11","id":447,"v":"relevant","why":"Jump battle-adventure classic; same lineage","conf":0.8}
+{"seed_key":"ANIME:11","id":1561,"v":"relevant","why":"Fairy Tail is the One Piece-alike; sequel entry docks","conf":0.6}
+{"seed_key":"ANIME:91","id":5,"v":"relevant","why":"Modern shounen battle flagship; same audience","conf":0.85}
+{"seed_key":"ANIME:91","id":509,"v":"relevant","why":"Magic-guild shounen, closest cousin; sequel-season entry docks","conf":0.65}
+{"seed_key":"ANIME:91","id":289,"v":"relevant","why":"Magic-system shounen adventure; strong fit","conf":0.85}
+{"seed_key":"ANIME:3","id":14,"v":"relevant","why":"Foundational shounen battle epic; same crowd","conf":0.85}
+{"seed_key":"ANIME:3","id":519,"v":"not_relevant","why":"Talky NisiOisin stylization, minimal action; register mismatch","conf":0.55}
+{"seed_key":"ANIME:3","id":92,"v":"relevant","why":"Supernatural action shounen with heart; fits","conf":0.7}
+{"seed_key":"ANIME:3","id":229,"v":"relevant","why":"Ufotable supernatural spectacle; same visual appeal","conf":0.7}
+{"seed_key":"ANIME:3","id":222,"v":"relevant","why":"Period swordplay action; different tone, quality fits","conf":0.6}
+{"seed_key":"ANIME:5","id":447,"v":"relevant","why":"Direct spiritual ancestor; curse-battle lineage","conf":0.9}
+{"seed_key":"ANIME:5","id":22,"v":"relevant","why":"Psychic battles, elite animation, dark humor","conf":0.85}
+{"seed_key":"ANIME:5","id":189,"v":"relevant","why":"Same dark-Jump wave, same MAPPA energy","conf":0.9}
+{"seed_key":"ANIME:5","id":9,"v":"relevant","why":"Dark supernatural body-horror action; same cohort","conf":0.8}
+{"seed_key":"ANIME:5","id":255,"v":"relevant","why":"Modern Jump monster-action; compatible register","conf":0.75}
+{"seed_key":"ANIME:5","id":258,"v":"relevant","why":"MHA fits JJK crowd; mid-season entry docks","conf":0.6}
+{"seed_key":"ANIME:2","id":31,"v":"relevant","why":"Bleak visceral action; same modern dark cohort","conf":0.85}
+{"seed_key":"ANIME:2","id":333,"v":"not_relevant","why":"AoT-lite premise, weaker execution, mid-series entry","conf":0.55}
+{"seed_key":"ANIME:2","id":5,"v":"relevant","why":"Dark blockbuster action juggernaut; same audience","conf":0.8}
+{"seed_key":"ANIME:2","id":170,"v":"relevant","why":"Dark blockbuster pairing strong; mid-arc entry docks","conf":0.55}
+{"seed_key":"ANIME:9","id":2,"v":"relevant","why":"Canonical dark tragedy-action pairing","conf":0.85}
+{"seed_key":"ANIME:9","id":146,"v":"relevant","why":"Horror-mystery register; shared dark cohort","conf":0.65}
+{"seed_key":"ANIME:9","id":126,"v":"relevant","why":"Edgy dark thriller; same fan cohort","conf":0.7}
+{"seed_key":"ANIME:93","id":471,"v":"relevant","why":"High-stakes games and psychology; strong fit","conf":0.75}
+{"seed_key":"ANIME:93","id":109,"v":"relevant","why":"Genius strategist mind-games; canonical pairing","conf":0.75}
+{"seed_key":"ANIME:93","id":112,"v":"relevant","why":"Games with existential stakes; darker but fits","conf":0.65}
+{"seed_key":"ANIME:93","id":223,"v":"relevant","why":"Smug-genius power-fantasy comedy overlap","conf":0.6}
+{"seed_key":"ANIME:189","id":2,"v":"relevant","why":"Brutal dark action with mystery; fits","conf":0.75}
+{"seed_key":"ANIME:189","id":412,"v":"relevant","why":"Grim period violence and body horror; fits","conf":0.7}
+{"seed_key":"ANIME:229","id":1519,"v":"relevant","why":"Nasuverse ufotable film; final-chapter entry docks","conf":0.6}
+{"seed_key":"ANIME:229","id":10401,"v":"franchise","why":"Fate franchise anniversary special","conf":0.85}
+{"seed_key":"ANIME:229","id":369,"v":"not_relevant","why":"Spectacle overlap only; final-arc sequel, wrong neighborhood","conf":0.5}
+{"seed_key":"ANIME:102","id":22397,"v":"relevant","why":"Historical war epic pairing; season-three entry docks","conf":0.65}
+{"seed_key":"ANIME:102","id":189,"v":"relevant","why":"Brutal period action with philosophical undertow","conf":0.65}
+{"seed_key":"ANIME:233","id":162,"v":"relevant","why":"Sharp-minded sleuth, quiet everyday mysteries; excellent fit","conf":0.85}
+{"seed_key":"ANIME:233","id":975,"v":"relevant","why":"Wits-driven period dialogue drama; strong pairing","conf":0.8}
+{"seed_key":"ANIME:233","id":2304,"v":"relevant","why":"Thoughtful craft-detail fantasy; unaired but fits","conf":0.6}
+{"seed_key":"ANIME:98","id":6768,"v":"relevant","why":"Same author, lyrical duty-and-emotion fantasy; unaired","conf":0.6}
+{"seed_key":"ANIME:98","id":722,"v":"relevant","why":"Period healing romance drama; emotional register fits","conf":0.7}
+{"seed_key":"ANIME:153","id":557,"v":"relevant","why":"Historical action adventure; tonally lighter but fits","conf":0.6}
+{"seed_key":"ANIME:153","id":412,"v":"relevant","why":"Cursed wandering swordsman, dark period fantasy; ideal","conf":0.85}
+{"seed_key":"ANIME:23","id":473,"v":"relevant","why":"Artistic passion and youth drama; strong fit","conf":0.8}
+{"seed_key":"ANIME:23","id":921,"v":"relevant","why":"Music-driven youth drama; canonical pairing","conf":0.9}
+{"seed_key":"ANIME:160","id":376,"v":"relevant","why":"Emotional film cohort; grief themes, less romance","conf":0.55}
+{"seed_key":"ANIME:160","id":166,"v":"relevant","why":"Emotional romance film; same audience","conf":0.75}
+{"seed_key":"ANIME:167","id":1043,"v":"relevant","why":"Deadpan absurdist comedy; register fits","conf":0.7}
+{"seed_key":"ANIME:167","id":340,"v":"relevant","why":"Rapid-fire school gag comedy; excellent fit","conf":0.85}
+{"seed_key":"ANIME:167","id":853,"v":"relevant","why":"Supernatural gag shounen; same humor style","conf":0.7}
+{"seed_key":"ANIME:167","id":299,"v":"relevant","why":"Escalating absurdist comedy; same crowd","conf":0.8}
+{"seed_key":"ANIME:416","id":1489,"v":"relevant","why":"Iyashikei gold standard; perfect register","conf":0.9}
+{"seed_key":"ANIME:416","id":1871,"v":"relevant","why":"Rural iyashikei ideal pairing; season-three entry docks","conf":0.7}
+{"seed_key":"ANIME:416","id":1226,"v":"relevant","why":"Gentle school slice of life; fits","conf":0.7}
+{"seed_key":"ANIME:104","id":211,"v":"relevant","why":"School rom-com with couple momentum","conf":0.75}
+{"seed_key":"ANIME:104","id":794,"v":"relevant","why":"Sincere school romance; modern register match","conf":0.85}
+{"seed_key":"ANIME:104","id":4562,"v":"relevant","why":"Wholesome opposites rom-com; unaired but fits","conf":0.7}
+{"seed_key":"ANIME:336","id":331,"v":"not_relevant","why":"Tearjerker overlap only; gentle folk romance versus war tragedy","conf":0.55}
+{"seed_key":"ANIME:336","id":153,"v":"relevant","why":"Children enduring wartime cruelty; thematic kinship","conf":0.6}
+{"seed_key":"ANIME:336","id":501,"v":"relevant","why":"Devastating war-adjacent grief drama; fits","conf":0.65}
+{"seed_key":"ANIME:493","id":29,"v":"relevant","why":"VN-adaptation thriller drama; cohort overlap","conf":0.6}
+{"seed_key":"ANIME:493","id":324,"v":"relevant","why":"Girls-with-guns academy overlap; tonal gap","conf":0.5}
+{"seed_key":"ANIME:4","id":158,"v":"relevant","why":"Cat-and-mouse justice thriller; canonical pairing","conf":0.95}
+{"seed_key":"ANIME:4","id":930,"v":"relevant","why":"High-stakes psychological gambits; strong fit","conf":0.8}
+{"seed_key":"ANIME:4","id":1533,"v":"relevant","why":"Ruthless mind-games; famous Death Note-alike","conf":0.85}
+{"seed_key":"ANIME:4","id":471,"v":"relevant","why":"Manipulation-driven psychological games; fits","conf":0.75}
+{"seed_key":"ANIME:4","id":29,"v":"relevant","why":"Genius-protagonist thriller cohort; fits","conf":0.8}
+{"seed_key":"ANIME:181","id":468,"v":"relevant","why":"Elegant crime psychology; flashier, still fits","conf":0.65}
+{"seed_key":"ANIME:24","id":934,"v":"relevant","why":"Child-abuse trauma plus dark sci-fi twist; strong","conf":0.8}
+{"seed_key":"ANIME:24","id":129,"v":"not_relevant","why":"Uneven supernatural dramedy; twist alone insufficient","conf":0.55}
+{"seed_key":"ANIME:162","id":233,"v":"relevant","why":"Observant sleuth, low-key mysteries; excellent fit","conf":0.85}
+{"seed_key":"ANIME:162","id":917,"v":"relevant","why":"Quiet school atmosphere, gentle intimacy; fits","conf":0.7}
+{"seed_key":"ANIME:162","id":445,"v":"not_relevant","why":"Verbose supernatural debate; lacks quiet youth register","conf":0.5}
+{"seed_key":"ANIME:162","id":165,"v":"relevant","why":"KyoAni school melancholy-comedy; adjacent register","conf":0.65}
+{"seed_key":"ANIME:162","id":215,"v":"not_relevant","why":"KyoAni link only; action fantasy, wrong neighborhood","conf":0.55}
+{"seed_key":"ANIME:162","id":351,"v":"relevant","why":"Introspective school drama; reasonable fit","conf":0.6}
+{"seed_key":"ANIME:141","id":186,"v":"relevant","why":"Beautiful cruel journey, emotional devastation; strong","conf":0.8}
+{"seed_key":"ANIME:141","id":898,"v":"relevant","why":"Cute-sinister dark mystery world; fits","conf":0.7}
+{"seed_key":"ANIME:146","id":9,"v":"relevant","why":"Dark horror cohort; action-heavier but fits","conf":0.65}
+{"seed_key":"ANIME:112","id":24,"v":"relevant","why":"Somber human-stakes thriller; same cohort","conf":0.7}
+{"seed_key":"ANIME:112","id":744,"v":"relevant","why":"Judging minds, procedural mystery; fits","conf":0.7}
+{"seed_key":"ANIME:118","id":2189,"v":"relevant","why":"Elite girls' academy intensity, unhinged passion overlap","conf":0.6}
+{"seed_key":"ANIME:118","id":1274,"v":"relevant","why":"Camp excess and violence; same absurd register","conf":0.6}
+{"seed_key":"ANIME:118","id":780,"v":"relevant","why":"Deception thriller, escalating mind games; fits","conf":0.7}
+{"seed_key":"ANIME:118","id":6027,"v":"relevant","why":"Death-game stakes premise; unaired but fits","conf":0.6}
+{"seed_key":"ANIME:118","id":199,"v":"relevant","why":"Ego-mad high-stakes competition faces; fits","conf":0.65}
+{"seed_key":"ANIME:241","id":129,"v":"relevant","why":"Bittersweet supernatural teen drama; same tear cohort","conf":0.65}
+{"seed_key":"ANIME:241","id":300,"v":"relevant","why":"Tearjerker romance drama benchmark; fits","conf":0.7}
+{"seed_key":"ANIME:241","id":2771,"v":"relevant","why":"Melancholy AI-ethics sci-fi; direct thematic kin","conf":0.65}
+{"seed_key":"ANIME:429","id":222,"v":"relevant","why":"Episodic wandering-outlaw action-comedy; canonical pairing","conf":0.85}
+{"seed_key":"ANIME:429","id":831,"v":"relevant","why":"Same author's kinetic action-comedy; sequel entry docks","conf":0.7}
+{"seed_key":"ANIME:429","id":3322,"v":"relevant","why":"Buffoon-hiding-genius sci-fi comedy; era fits","conf":0.6}
+{"seed_key":"ANIME:109","id":1829,"v":"relevant","why":"Political mecha drama; season-two entry docks","conf":0.6}
+{"seed_key":"ANIME:109","id":158,"v":"relevant","why":"Systemic justice thriller; strong pairing","conf":0.8}
+{"seed_key":"ANIME:109","id":213,"v":"relevant","why":"Genius-versus-state thriller; fits","conf":0.7}
+{"seed_key":"ANIME:109","id":29,"v":"relevant","why":"Genius-protagonist thriller cohort; fits","conf":0.75}
+{"seed_key":"ANIME:110","id":1746,"v":"relevant","why":"Foundational mecha Eva deconstructs; dated but essential","conf":0.65}
+{"seed_key":"ANIME:110","id":412,"v":"relevant","why":"90s bleak psychological masterwork cohort","conf":0.6}
+{"seed_key":"ANIME:110","id":1092,"v":"relevant","why":"Experimental despair-laden psychological work; strong kin","conf":0.75}
+{"seed_key":"ANIME:117","id":1091,"v":"relevant","why":"Space-western outlaw; reimagining still fits","conf":0.7}
+{"seed_key":"ANIME:158","id":388,"v":"relevant","why":"AI society sci-fi with philosophical action","conf":0.7}
+{"seed_key":"ANIME:15","id":501,"v":"relevant","why":"Sweeping emotional fantasy film; same audience","conf":0.7}
+{"seed_key":"ANIME:15","id":24,"v":"relevant","why":"Time-slip emotional mystery; fits","conf":0.7}
+{"seed_key":"ANIME:28","id":303,"v":"relevant","why":"Timeline despair thriller; sequel entry docks","conf":0.65}
+{"seed_key":"ANIME:28","id":384,"v":"relevant","why":"Loop horror despair; canonical pairing","conf":0.85}
+{"seed_key":"ANIME:28","id":388,"v":"relevant","why":"Redo-the-timeline mission structure; fits","conf":0.65}
+{"seed_key":"ANIME:28","id":180,"v":"relevant","why":"Despair-loop dark fantasy; strong pairing","conf":0.8}
+{"seed_key":"ANIME:28","id":1116,"v":"relevant","why":"Webnovel dark-fantasy intrigue overlap; no loops","conf":0.5}
+{"seed_key":"ANIME:200","id":22204,"v":"not_relevant","why":"Three-minute art short; wrong format and experience","conf":0.65}
+{"seed_key":"ANIME:200","id":1141,"v":"relevant","why":"Gorgeous period action film; fits","conf":0.75}
+{"seed_key":"ANIME:424","id":499,"v":"relevant","why":"Dark gorgeous urban-fantasy film; franchise-entry burden","conf":0.6}
+{"seed_key":"ANIME:424","id":1364,"v":"relevant","why":"Atmospheric supernatural art film; classic pairing","conf":0.7}
+{"seed_key":"ANIME:424","id":178,"v":"not_relevant","why":"Frantic mainstream romp versus contemplative art film","conf":0.5}
+{"seed_key":"ANIME:424","id":4282,"v":"not_relevant","why":"Experimental anthology; auteur overlap thin, unrelated substance","conf":0.5}
+{"seed_key":"ANIME:12","id":254,"v":"relevant","why":"Mature fantasy war of ideals; season-two entry docks","conf":0.6}
+{"seed_key":"ANIME:20","id":379,"v":"relevant","why":"Dystopian societal sins and dread; strong fit","conf":0.8}
+{"seed_key":"ANIME:20","id":4227,"v":"relevant","why":"Historical violence overlap; comedic register, finale entry","conf":0.5}
+{"seed_key":"ANIME:22","id":1565,"v":"relevant","why":"Stylized action-comedy with heart; fits","conf":0.7}
+{"seed_key":"ANIME:22","id":258,"v":"relevant","why":"Superpower action overlap; mainstream, mid-season entry","conf":0.55}
+{"seed_key":"ANIME:22","id":92,"v":"relevant","why":"Supernatural action-comedy with sincerity; fits","conf":0.7}
+{"seed_key":"ANIME:94","id":1293,"v":"relevant","why":"Perfect-student masks rom-com; historical kin","conf":0.8}
+{"seed_key":"ANIME:94","id":973,"v":"relevant","why":"Teasing romance battles; sequel-season entry docks","conf":0.65}
+{"seed_key":"ANIME:94","id":833,"v":"relevant","why":"Sharp witty modern rom-com; fits","conf":0.75}
+{"seed_key":"ANIME:96","id":738,"v":"relevant","why":"Bickering height-gap rom-com classic; ideal","conf":0.85}
+{"seed_key":"ANIME:96","id":452,"v":"relevant","why":"Wholesome earnest rom-com; fits","conf":0.75}
+{"seed_key":"ANIME:96","id":278,"v":"relevant","why":"Sweet couple fluff; lacks Toradora's drama","conf":0.55}
+{"seed_key":"ANIME:135","id":30,"v":"relevant","why":"Hype competition energy; same shounen crowd","conf":0.7}
+{"seed_key":"ANIME:135","id":1650,"v":"not_relevant","why":"Gentle Fate spinoff; needs franchise context, wrong register","conf":0.55}
+{"seed_key":"ANIME:135","id":2851,"v":"not_relevant","why":"Culinary school, but kids' shoujo register mismatch","conf":0.5}
+{"seed_key":"ANIME:135","id":6114,"v":"relevant","why":"Over-the-top cooking battles; direct formula ancestor","conf":0.7}
+{"seed_key":"ANIME:135","id":337,"v":"relevant","why":"Food-obsessed creativity; fantasy register, still fits","conf":0.6}
+{"seed_key":"ANIME:135","id":2327,"v":"not_relevant","why":"Gentle food iyashikei; no competition hype, sequel entry","conf":0.5}
+{"seed_key":"ANIME:30","id":1095,"v":"relevant","why":"Youth sports drama, heavier register; fits","conf":0.7}
+{"seed_key":"ANIME:30","id":1391,"v":"relevant","why":"Team sports drama, quieter register; fits","conf":0.7}
+{"seed_key":"ANIME:139","id":1562,"v":"relevant","why":"Underdog team-sports grind; strong fit","conf":0.8}
+{"seed_key":"ANIME:139","id":282,"v":"relevant","why":"Sports passion and polish; solo-sport variation","conf":0.7}
+{"seed_key":"ANIME:139","id":1436,"v":"relevant","why":"Team competition fervor; classic pairing, sequel entry","conf":0.65}
+{"seed_key":"ANIME:139","id":536,"v":"relevant","why":"Sports classic, underdog training grind; fits","conf":0.75}
+{"seed_key":"ANIME:220","id":791,"v":"relevant","why":"School girls' music ensemble; same neighborhood","conf":0.8}
+{"seed_key":"ANIME:220","id":1936,"v":"relevant","why":"Girls' band descendant; weaker first season","conf":0.6}
+{"seed_key":"ANIME:172","id":220,"v":"relevant","why":"KyoAni cozy ensemble comedy warmth; fits","conf":0.7}
+{"seed_key":"ANIME:172","id":13046,"v":"relevant","why":"Dangerous-housemate domestic comedy; structural kin","conf":0.6}
+{"seed_key":"ANIME:172","id":753,"v":"relevant","why":"Fantasy fish-out-of-water comedy; fits","conf":0.6}
+{"seed_key":"ANIME:177","id":94,"v":"relevant","why":"Witty romance comedy; school versus office gap","conf":0.7}
+{"seed_key":"ANIME:177","id":16391,"v":"relevant","why":"Gentle adult workplace comedy; strong fit","conf":0.7}
+{"seed_key":"ANIME:177","id":278,"v":"relevant","why":"Established-couple wholesome romance; fits","conf":0.65}
+{"seed_key":"ANIME:159","id":1829,"v":"relevant","why":"Political mecha drama; season-two entry docks","conf":0.6}
+{"seed_key":"ANIME:159","id":213,"v":"relevant","why":"Genius-versus-state thriller; fits","conf":0.7}
+{"seed_key":"ANIME:159","id":777,"v":"not_relevant","why":"Gag comedy register; no strategic-drama overlap, mid-series","conf":0.6}

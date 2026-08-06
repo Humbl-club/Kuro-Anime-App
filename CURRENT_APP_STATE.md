@@ -1,10 +1,10 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
-**Last updated:** 2026-03-29
+**Last updated:** 2026-07-31
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 88 app Swift files in `/Kuro`; 169 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 93 app Swift files in `/Kuro`; 222 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -116,14 +116,14 @@ This file is a **contract**. It must be updated **after every single change** to
 
 ## 2.1) Auto-generated inventory (exhaustive file lists)
 
-Generated: **2026-03-26T16:16:10.625Z**  (git: `a8b9f78` on `main`)
+Generated: **2026-07-31T04:08:20.318Z**  (git: `10f3c9a` on `main`)
 
 This section is auto-generated. Rebuild it after any repo change:
 ```bash
 node scripts/generate_app_state_inventory.js
 ```
 
-### iOS (Swift) files (count: 88)
+### iOS (Swift) files (count: 91)
 - `Kuro/ContentView.swift`
 - `Kuro/Design/Color+Hex.swift`
 - `Kuro/Design/KuroDesignSystem.swift`
@@ -145,9 +145,11 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Services/SupabaseService+Clubs.swift`
 - `Kuro/Services/SupabaseService+Collection.swift`
 - `Kuro/Services/SupabaseService+Concierge.swift`
+- `Kuro/Services/SupabaseService+Monetization.swift`
 - `Kuro/Services/SupabaseService+Recommendations.swift`
 - `Kuro/Services/SupabaseService+Social.swift`
 - `Kuro/Services/SupabaseService+Streaming.swift`
+- `Kuro/Services/SupabaseService+Taste.swift`
 - `Kuro/Services/SupabaseService+UserLists.swift`
 - `Kuro/Services/SupabaseService.swift`
 - `Kuro/Services/TextNormalization.swift`
@@ -211,9 +213,10 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/ProfileFreshnessCard.swift`
 - `Kuro/Views/ProfileView.swift`
 - `Kuro/Views/QuickVerdictActionCard.swift`
+- `Kuro/Views/TasteDeckView.swift`
 - `Kuro/Views/UIComponents.swift`
 
-### Supabase migrations (count: 169)
+### Supabase migrations (count: 181)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql`
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -383,6 +386,18 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260324213000_discover_airing_today_berlin_day.sql`
 - `supabase/migrations/20260326221000_discover_new_to_you_rotation.sql`
 - `supabase/migrations/20260326234000_exclude_ancillary_anime_from_default_surfaces.sql`
+- `supabase/migrations/20260730160000_taste_signal_events_v1.sql`
+- `supabase/migrations/20260731010000_taste_deck_v1.sql`
+- `supabase/migrations/20260731011000_taste_profile_recompute_v1.sql`
+- `supabase/migrations/20260731012000_personalized_nty_and_flags_v1.sql`
+- `supabase/migrations/20260731020000_image_convergence_v1.sql`
+- `supabase/migrations/20260731030000_outbound_link_ledger_v1.sql`
+- `supabase/migrations/20260731040000_clubs_trust_pack_v1.sql`
+- `supabase/migrations/20260731050000_taste_deck_meta_v1.sql`
+- `supabase/migrations/20260731060000_taste_math_v2.sql`
+- `supabase/migrations/20260731070000_taste_math_v2_hotfix.sql`
+- `supabase/migrations/20260731080000_taste_math_v2_fix2.sql`
+- `supabase/migrations/20260731090000_taste_deck_pass_memory.sql`
 
 ### Supabase Edge Functions (index.ts) (count: 15)
 - `supabase/functions/auth-callback/index.ts`
@@ -519,16 +534,18 @@ node scripts/generate_app_state_inventory.js
 ### Main navigation
 - File: `Kuro/ContentView.swift`
 - Root: `ContentView -> KuroRootView -> KuroMainView`
-- Swipe order (left to right):
-  1. **Concierge**
+- **Pager is flag-aware** (2026-07-31): with `taste_deck_v1` ON (100%), swipe order (left to right):
+  1. **Taste** (Taste Deck)
   2. **Discover**
   3. **Browse**
   4. **Collection**
   5. **Clubs**
+- Legacy order when `taste_deck_v1` is OFF: **Concierge** ← Discover → Browse → Collection → Clubs (unchanged legacy path).
+- **Concierge archived from the pager** (ADR `2026-07-31-adr-leftmost-surface-and-concierge-archive.md`): code + backend fully preserved; entry points are the Profile row (`ProfileView` Concierge sheet) and the `kuro://concierge` deep link (presented as a sheet; `?prompt=` injection preserved via `ConciergeView.initialPrompt`). `--kuro-start=concierge` launch arg also presents the sheet when the flag is on.
 - **Search** is not a page — it opens as a sheet from the magnifying glass icon in the header, available from any page.
 - **Offline handling**: Monochrome "OFFLINE" text banner (9pt, tracked) at top of `RootView` when disconnected. Plus: cache-fallback in detail fetches (`fetchAnimeById`/`fetchMangaById` return disk cache on network failure), "SHOWING CACHED DATA" stale indicators (Discover, Collection), offline error states with retry (Browse, Collection, detail sheets), write-action guards (Concierge send, Add to List save/remove, club create rail/poll disabled when offline), auto-refresh on reconnect (Discover/Collection/Clubs via `reconnectionGeneration` observer in `ContentView`).
 - **App lifecycle**: `scenePhase` tracked in `KuroApp.swift` for background/foreground transitions.
-- **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.collection`, `.discover`, `.concierge(prompt:)`, `.authCallback(accessToken:, refreshToken:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links. Auth callbacks are intercepted at `KuroApp` level (before auth gate) and call `handleAuthCallback()` to set session immediately.
+- **Deep linking**: `KuroApp.swift` handles `.onOpenURL` events, passes `pendingDeepLink` binding to `ContentView`. `DeepLinkRouter.swift` defines `enum DeepLink` with cases: `.anime(id:)`, `.manga(id:)`, `.club(id:)`, `.joinClub(code:)`, `.collection`, `.discover`, `.concierge(prompt:)`, `.authCallback(accessToken:, refreshToken:)`. Parses `kuro://` scheme URLs. `ContentView` navigates to the target page for page-level links, or presents a detail sheet for anime/manga/club links. `kuro://join/<code>` routes to the Clubs page with the join sheet prefilled (`pendingJoinCode`, consumed by `ClubsView`); `kuro://concierge?prompt=...` presents Concierge as a sheet when `taste_deck_v1` is on (page navigation when off). Deep links stashed while logged out are now consumed via `onAppear` after sign-in (fixed 2026-07-31). Auth callbacks are intercepted at `KuroApp` level (before auth gate) and call `handleAuthCallback()` to set session immediately.
 - **Auth flow (signup + sign-in)**:
   1. User enters email and password in `AuthView.swift`.
   2. **Inline validation (sign-up mode)**: Real-time email format check (regex on keystroke), debounced 500ms uniqueness check via `check_email_exists` RPC, password minimum length check. Two enums drive state: `EmailStatus` (.empty, .invalidFormat, .checking, .taken, .available) and `PasswordStatus` (.empty, .tooShort, .valid). Inline hint text + checkmarks displayed inside fields. `canSubmit` gates on validation state.
@@ -542,13 +559,21 @@ node scripts/generate_app_state_inventory.js
 ### Header (top bar)
 - Left: **KURO** wordmark only (no concierge icon next to it).
 - Center: animated section title window (shows section name).
-- On Concierge page only: a small **chat icon** appears next to the section title.
+- On Concierge page only: a small **chat icon** appears next to the section title (legacy pager mode only — Concierge is a sheet, not a page, when `taste_deck_v1` is on).
 - Right: **Profile menu** (circle with initial). Dropdown contains:
   - Profile (sheet)
   - Sign Out
 
+### Taste Deck (pager index 0, `taste_deck_v1` = 100%)
+- File: `Kuro/Views/TasteDeckView.swift` (1002 lines). Client: `Kuro/Services/SupabaseService+Taste.swift`.
+- Full-bleed, tap-to-decide taste ritual: one title at a time, three choices — **NOT FOR ME** (`deck_skip`, −0.45) / **I KNOW THIS** (`deck_known`, +0.25) / **CALLS TO ME** (`deck_love`, +0.55). (Relabeled from PASS 2026-07-31 evening per the "continuous liking/disliking" product decision — the left action is a real dislike, not a neutral skip.)
+- 12-card sessions (`fetch_taste_deck_batch` v3, 2026-07-31 evening: half anime / half manga, 2-axis stratified dealing across 6 genre clusters × 3 popularity strata — canon / acclaimed / hidden gems — no adult/Ecchi/Hentai, no ancillary formats, never repeats a listed, signaled, or passed title; explore ratio max(0.25, 0.75·e^(−n/50)) with UCB explore slots; MMR λ = 0.7 diversity, ≤ 4/12 per cluster, ≤ 2/12 per franchise; negative-space probe p = 0.10 from the avoided list only), then a calm "Kuro is listening." summary.
+- "Your leanings" sheet reads `fetch_my_taste_profile` (top weighted tags/genres once the profile exists).
+- Undo (retract last signal), long-press for synopsis, grain hero per the one-hero-grammar design law, `KuroAnimation` tokens only, Reduce Motion honored.
+- Server rules (migrations `20260731010000_taste_deck_v1.sql`, v2 `20260731060000_taste_math_v2.sql` + hotfixes, `20260731090000_taste_deck_pass_memory.sql`): one deck signal per user/media (latest action wins — changing your mind works), retract supported, 300 signals/day cap. A fourth server-side action `pass` (`deck_pass`, strength 0.00) is durable memory only — no stats/evidence/recompute — and excludes the title from future deals (no iOS UI sends it yet; the in-app left action is the NOT FOR ME dislike).
+
 ### Concierge
-- Full left page (no floating launcher in header).
+- **Archived from the pager** (2026-07-31): no longer the leftmost page when `taste_deck_v1` is on. Opens as a sheet from the Profile row, `kuro://concierge` deep link, or `--kuro-start=concierge` launch arg. All code + backend fully preserved; everything below still applies to the sheet.
 - **Inline chat architecture** (no full-screen takeovers, no state machine):
   - Typing indicator for loading states
 - Inline confirm bubble for import preview (grouped: NEW / UPDATE / UNCHANGED)
@@ -586,6 +611,8 @@ node scripts/generate_app_state_inventory.js
 - **Secondary sections** (behind "Show More"): Classics → Current Season → Top Rated → Just Added → Manga Classics → Trending Manga → Top Rated Manga.
 - "Show More" button: monochrome editorial style (stroked rounded rect, chevron down, "N MORE SECTIONS" label). One-way UserDefaults flag (`kuro_discover_show_more`) — once expanded, stays expanded across launches.
 - Data fetching unchanged — all 14 arrays still load via `fetchDiscoverBundle()`. This is UI-only progressive disclosure.
+- **Personalized New to You** (2026-07-31, flag `personalized_new_to_you_v1` at 0%): when the flag is on, the anime NEW TO YOU rail uses `fetch_personalized_new_to_you` v2 (evening: fit = cosine similarity between the user's IDF-weighted taste vector and the title's tag vector; blend `final = (1−w)×editorial_prior + w×fit` with smooth shrinkage w = 0.20·n/(n+20), n = weighted evidence — editorial dominant by construction; avoided-genre penalty narrowed to `genre:` keys / Genre-category tags; 7-day impression rotation) instead of the `discover_bundle` rail. Flag off = unchanged bundle rail.
+- Hero title uses the design-system token (`.kuroTitle`) — fixed 2026-07-31.
 - Cards are two-column + compact horizontal rails
 - Cards show rating pill + metadata line (YEAR · EPS/CH)
 - **Per-rail error state** (P2): `@State loadError` with inline retry view when `fetchDiscoverBundle()` fails on first load. Accessibility label on error state.
@@ -627,16 +654,18 @@ Key responsibilities (file: `Kuro/Services/SupabaseService.swift`):
 - **Debug logging**: all 127+ `print()` statements wrapped in `#if DEBUG`.
 - **Config error handling**: `init()` sets `configError` instead of `fatalError` when credentials are missing; UI gate in `KuroApp.RootView` prevents any code path from reaching uninitialized `client`.
 - **Memory pressure**: `trimCachesForMemoryPressure()` sheds all entity, detail, discover, and concierge caches plus `ImagePipeline` memory cache without touching user-facing state.
+- **Taste** (`SupabaseService+Taste.swift`, 2026-07-31): `fetchTasteDeckBatch`, `recordTasteDeckSignal` (love/known/skip/retract), `fetchMyTasteProfile`, `fetchPersonalizedNewToYou` — all thin wrappers over the taste RPCs.
+- **Monetization ledger** (`SupabaseService+Monetization.swift`, 2026-07-31): `recordOutboundLink(mediaType:mediaId:linkKind:provider:)` — fire-and-forget `record_outbound_link` RPC call from WATCH/READ CTAs, provider sheets, and external reference links. No affiliate decoration (flag `affiliate_links_v1` OFF).
 
 <!-- BEGIN AUTO-IOS-MAP -->
 
 ## 3.2) Auto iOS backend usage index
 
-Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
+Generated: **2026-07-31T04:08:20.387Z** (git: `10f3c9a`)
 
-- Swift files scanned: **88** (all `Kuro/**/*.swift`)
+- Swift files scanned: **91** (all `Kuro/**/*.swift`)
 
-### RPCs used by iOS (count: 40)
+### RPCs used by iOS (count: 45)
 - `add_club_rail_item`
 - `batch_provider_availability_for_media_v2`
 - `batch_providers_for_media`
@@ -663,6 +692,9 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - `fetch_friend_activity_for_title`
 - `fetch_my_clubs_enriched`
 - `fetch_my_clubs_loading`
+- `fetch_my_taste_profile`
+- `fetch_personalized_new_to_you`
+- `fetch_taste_deck_batch`
 - `get_manga_chapter_status`
 - `get_media_availability_status`
 - `get_media_ladder`
@@ -670,6 +702,8 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - `join_club`
 - `leave_club`
 - `recommend_ids_similar_to_seeds`
+- `record_outbound_link`
+- `record_taste_deck_signal`
 - `save_user_streaming_services`
 - `search_anime_page`
 - `search_manga_page`
@@ -743,6 +777,11 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - Metadata line shows `YEAR · EPS/CH` under title
 - Poster corners rounded (8–12pt depending on card type)
 
+**Design law (ADR `2026-07-31-adr-design-direction.md`, 2026-07-31)**
+- One hero grammar: full-bleed heroes use the club-hero grain recipe (blurred artwork + grain overlay + gradient fades + serif italic title) — Taste Deck hero follows it.
+- `KuroAnimation` tokens only for motion; no ad-hoc springs/durations on new UI.
+- One placeholder spec for new UI (shared fallback treatment, no per-screen improvisations).
+
 ---
 
 ## 5) Image + CDN pipeline
@@ -767,6 +806,15 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
   - `skipIfMirrored` (default true)
   - `cacheControl` (default 604800)
   - `timeBudgetMs` (default 90000)
+
+### Image convergence v1 (migration `20260731020000_image_convergence_v1.sql`, 2026-07-31)
+- **Remote-only selection**: mirror candidates are now assets whose live column is still a remote URL — the old fixed-window re-scan ceilings are gone.
+- **Anti-unmirror triggers**: `protect_mirrored_image_columns` BEFORE UPDATE triggers on `anime`/`manga` (`cover_image_large/medium`, `banner_image`) and `characters`/`staff` (`image_large`) — once a column holds a storage URL, imports can't overwrite it with a remote URL or NULL.
+- **Priority queue (mirror-on-view)**: `image_mirror_state.priority_at` + partial index; `enqueue_image_mirror(p_media_type, p_media_id)` RPC (authenticated, 60/day via `rate_limit_hit`). Each `mirror-images` run drains up to 50 priority rows first.
+- **Visibility ordering**: `image_mirror_character_candidates` / `image_mirror_staff_candidates` views (service_role) order characters/staff by catalog join count so high-visibility images mirror first.
+- **Coverage metrics**: `image_mirror_coverage` view (service_role) — total/mirrored/% per media type + pending priority count.
+- **Baseline measured 2026-07-31 (via REST)**: anime 602/21668 (2.8%), manga 600/41721 (1.4%), characters 200/97800 (0.2%), staff 201/41220 (0.5%) — exactly the old fixed-window ceilings; convergence is now unblocked.
+- **Cron windows rescheduled** (same job names/times, actionable windows): anime-manga offsets 0/600/1200 (limit 200), character/staff limit 300.
 
 ### Storage bucket
 - Public bucket name used by default: `media`
@@ -846,6 +894,24 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - RPCs (5): `upsert_title_comment`, `delete_title_comment`, `toggle_comment_reaction`, `fetch_friend_activity_for_title`, `count_friends_tracking`
 - Rate limits: 10 comments per 5 minutes, 30 reactions per minute
 - Feature flag: `social_activity_v1` (100% rollout)
+- **Sharing-level enforcement fix** (migration `20260731040000_clubs_trust_pack_v1.sql`, 2026-07-31): `fetch_friend_activity_for_title` + `count_friends_tracking` now apply club sharing semantics per subject member — effective rank = min(club level, member self-downgrade) across shared non-archived clubs; eff_rank 0 excluded entirely, 1 = status only (progress/rating NULLed), 2 = full detail. Previously these RPCs bypassed sharing levels (privacy hole, now closed).
+
+### Taste / personalization (2026-07-30 → 2026-07-31; v2 math live since 2026-07-31 evening)
+- `taste_signal_events` (RLS select-own; writes via SECURITY DEFINER only) — durable semantic events from list triggers + deck signals (`deck_love` +0.55 / `deck_known` +0.25 / `deck_skip` −0.45 / `deck_pass` 0.00 memory-only, added evening).
+- `taste_profile_recompute_queue` (service_role only; `last_error` jsonb column added 2026-07-31).
+- `taste_import_context` + `begin_taste_import_context` / `clear_taste_import_context` (import-origin marking).
+- `media_tag_vectors` matview (v2, migration `20260731060000_taste_math_v2.sql`) — per (media_type, media_id, tag) IDF-weighted tag space: w = (rank/100) × IDF, `IDF = ln(1 + N/(1+df))`; genres folded in as `genre:` pseudo-tags; per-media L2 norm. Refreshed nightly by pg_cron `taste-tag-vectors-refresh` (03:50). Built uniqueness-by-construction (max-rank tag collapse, distinct genre unnest) because prod has case-variant tag rows + duplicated `genres` arrays.
+- `taste_tag_stats` (v2) — per-user per-tag α/β posteriors (Beta(1,1) prior) powering the deck's deterministic UCB explore slots; weekly ×0.95 decay via pg_cron `taste-tag-stats-decay` (Sun 04:10).
+- `user_taste_profiles` (pre-existing from concierge core; written by `recompute_user_taste_profile` v3 — user vector in the same IDF space: events × title tag vectors, 180-day half-life decay, import ×0.25, weighted evidence n (strong = 1.0 / weak = 0.5), smooth shrinkage w = 0.20·n/(n+20) replacing the old tier-step weights, symmetric absolute-mass caps, per-title cap 8%, per-franchise cap 15% via `media_relations` family, genre weight 1.2×√IDF, stored vector = top-60 tag keys by abs mass + ALL `genre:` keys with abs(w) > 0.001, per-name negative floor −1.0; avoided tags: ≥2 negative events or cumulative ≤ −0.8 AND net-negative sentiment — the net-negative guard fixes loved-yet-avoided artifacts).
+- RPCs: `fetch_taste_deck_batch` (v3: 2-axis stratified dealing, 6 genre clusters × 3 popularity strata; explore ratio max(0.25, 0.75·e^(−n/50)); UCB explore slots; MMR λ = 0.7; ≤ 4/12 per cluster, ≤ 2/12 per franchise; negative-space probe p = 0.10 from avoided list), `record_taste_deck_signal` (300/day incl. passes, latest action wins, retract supported, `pass` accepted server-side), `fetch_my_taste_profile`, `recompute_user_taste_profile`, `drain_taste_recompute_queue` (internal-only — EXECUTE revoked from public/anon/authenticated on 12 internal/definer functions in hotfix `20260731070000`; tier-2 helpers stay authenticated-callable because SECURITY INVOKER RPCs call them as the caller), `fetch_personalized_new_to_you` (v2: cosine fit + w blend) (+ SECURITY DEFINER impression helpers `_taste_recent_impressed_ids` / `_taste_stamp_impressions`; RLS now enabled on `discover_rail_impressions`), `recommend_ids_similar_to_seeds` (v2: full cosine + L3 craft multiplier × ≤ 2, popularity removed from similarity).
+- Ops view: `taste_pipeline_status` v2 (service_role).
+- Feature flags: `taste_deck_v1` (100%), `personalized_new_to_you_v1` (0% — ramp criteria: drain telemetry sane + staff rail check).
+
+### Monetization ledger (migration `20260731030000_outbound_link_ledger_v1.sql`, 2026-07-31)
+- `outbound_link_events` (bigserial id, user_id FK CASCADE, media_type ANIME/MANGA, media_id, link_kind CHECK(watch/read/provider_sheet/external_reference), provider, created_at).
+- RLS: select-own only; writes exclusively via `record_outbound_link` RPC (SECURITY DEFINER, 120 events/user/hour).
+- Retention: `purge_outbound_link_events` + daily 04:40 cron (90-day retention).
+- Posture (ADR `2026-07-31-adr-monetization-posture.md`): no ads ever; click ledger now, affiliate decoration later behind `affiliate_links_v1` (seeded OFF, compliance review precedes any flip); Kuro Selects + Patron as roadmap.
 
 ### Ops / metrics
 - `concierge_metrics_hourly`
@@ -931,7 +997,7 @@ Clubs are private groups (2-20 members) for sharing anime/manga watch activity. 
 6. `cast_club_vote` -- SECURITY DEFINER; validates membership + open poll + option belongs to poll; delete+reinsert for re-vote
 7. `create_club_rail` -- SECURITY DEFINER; membership check, title 1-120 chars, auto sort_order; returns {rail_id, title}
 8. `create_club_poll` -- SECURITY DEFINER; membership check, question 1-200 chars, 2-10 options; returns {poll_id, question}
-9. `toggle_club_reaction` -- SECURITY DEFINER; membership check, toggle insert/delete; returns {action, emoji}
+9. `toggle_club_reaction` -- SECURITY DEFINER; membership check, toggle insert/delete; returns {action, emoji}. **Fixed 2026-07-31** (`20260731040000_clubs_trust_pack_v1.sql`): emoji allowlist aligned to the client's canonical keys (`fire`/`heart`/`eyes`/`100`) — the previous server allowlist didn't match what the app sends, so reactions were API-dead; rate limit 30/min preserved
 10. `fetch_my_clubs_enriched` -- SECURITY DEFINER; returns caller's clubs with member_count, last_activity_at, activity_preview, ordered by activity
 11. `send_club_message` -- SECURITY DEFINER; membership check, 280 char max, rate-limited (20/min); returns {message_id, created_at}
 12. `fetch_club_messages` -- SECURITY DEFINER; membership check, paginated newest-first (max 100/page); returns messages
@@ -973,6 +1039,12 @@ Clubs are private groups (2-20 members) for sharing anime/manga watch activity. 
 - Last-seen stored in local UserDefaults per club (`com.kuro.clubLastSeen.*`).
 - Badge dot on Clubs page indicator in header when unseen activity exists.
 - Badge cleared when navigating to Clubs page.
+
+### Clubs trust pack v1 (migration `20260731040000_clubs_trust_pack_v1.sql`, 2026-07-31)
+- `toggle_club_reaction` allowlist fixed to client canonical keys (`fire`/`heart`/`eyes`/`100`) — reactions were API-dead before (server rejected every client emoji).
+- `fetch_friend_activity_for_title` + `count_friends_tracking` now enforce sharing levels (see Social activity section) — privacy hole closed.
+- Flags re-seeded (`ON CONFLICT DO NOTHING`, remotely flippable): `clubs_reactions_v1` + `clubs_list_enriched_v1` at 100%; `clubs_realtime_v1`, `clubs_pace_sync_v1`, `clubs_notifications_v1` at 0% (dark until ramped).
+- iOS (2026-07-31): club share text now includes `kuro://join/<code>` (deep link → prefilled join sheet); fixed "You were removed" copy for never-members; duo clubs show honest "Activity unlocks at 3 members" copy.
 
 ---
 
@@ -1017,6 +1089,18 @@ Client + edge functions rely on these RPCs:
   - `batch_providers_for_media(p_media_type, p_media_ids)` — returns streaming/reading providers for a batch of media IDs, joined against user's selected services
   - `club_shared_providers(p_club_id)` — returns providers shared by all members of a club (intersection)
   - `save_user_streaming_services(p_service_ids, p_language)` — upserts user's selected streaming services + language preference
+- **Taste RPCs** (2026-07-31; v2 math live since evening):
+  - `fetch_taste_deck_batch(p_limit)` — SECURITY INVOKER; v3: one-title-at-a-time deck, half anime/half manga, 2-axis stratified (6 genre clusters × 3 popularity strata), UCB explore slots, MMR λ = 0.7 (≤ 4/12 per cluster, ≤ 2/12 per franchise), negative-space probe p = 0.10, never repeats listed/signaled/passed titles
+  - `record_taste_deck_signal(...)` — writes `deck_love`/`deck_known`/`deck_skip`/`deck_pass` (+0.55/+0.25/−0.45/0.00 memory-only); latest action wins; retract supported; 300/day cap
+  - `fetch_my_taste_profile()` — caller reads their own `user_taste_profiles` row
+  - `recompute_user_taste_profile(p_user_id)` — SECURITY DEFINER; v3: user vector in the `media_tag_vectors` IDF space (180-day half-life, weighted evidence n, shrinkage w = 0.20·n/(n+20), symmetric absolute-mass caps, genre weight 1.2×√IDF, top-60 tags + all genre keys > 0.001 stored, net-negative avoidance guard)
+  - `drain_taste_recompute_queue()` — pure-SQL drain, 50 users/run, per-user error capture (pg_cron `taste-profile-drain-15m`); internal-only (EXECUTE revoked from public/anon/authenticated)
+  - `fetch_personalized_new_to_you(p_limit, p_media_type)` — SECURITY INVOKER; v2: cosine fit + (1−w)×prior + w×fit blend, avoided-genre penalty (genre keys only), 7-day impression rotation
+- **Monetization ledger RPCs** (2026-07-31):
+  - `record_outbound_link(p_media_type, p_media_id, p_link_kind, p_provider)` — SECURITY DEFINER, 120/hr per user; only write path into `outbound_link_events`
+  - `purge_outbound_link_events()` — 90-day retention, daily 04:40 cron
+- **Image pipeline RPCs** (2026-07-31):
+  - `enqueue_image_mirror(p_media_type, p_media_id)` — SECURITY DEFINER, authenticated, 60/day; marks remote assets priority for the next mirror run
 - **Ops functions**:
   - `check_mirror_health()` — returns JSONB with mirror run stats (total runs, successes, failures, consecutive failures, alert boolean). Used for operational health monitoring.
 
@@ -1024,7 +1108,7 @@ Client + edge functions rely on these RPCs:
 
 ## 7.1) Auto migration map (objects by migration)
 
-Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
+Generated: **2026-07-31T04:08:20.387Z** (git: `10f3c9a`)
 
 Each migration is summarized by the objects it defines. For full SQL, open the file.
 
@@ -1551,6 +1635,38 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
 - Functions (5): `public.browse_anime_page`, `public.browse_manga_page`, `public.discover_bundle`, `public.search_anime_page`, `public.search_manga_page`
 - Indexes (1): `discover_rail_impressions_lookup_idx`
 
+### supabase/migrations/20260730160000_taste_signal_events_v1.sql
+- Tables (3): `public.taste_import_context`, `public.taste_profile_recompute_queue`, `public.taste_signal_events`
+- Functions (8): `public._taste_emit_event`, `public._taste_enqueue_recompute`, `public._taste_meaningful_progress`, `public._taste_parse_user_id`, `public.begin_taste_import_context`, `public.clear_taste_import_context`, `public.taste_bump_list_updated_at`, `public.taste_capture_list_mutation`
+- Indexes (3): `taste_signal_events_type_idx`, `taste_signal_events_user_created_idx`, `taste_signal_events_user_media_idx`
+- Triggers (4): `taste_bump_anime_user_lists_updated_at`, `taste_bump_manga_user_lists_updated_at`, `taste_capture_anime_user_lists`, `taste_capture_manga_user_lists`
+
+### supabase/migrations/20260731010000_taste_deck_v1.sql
+- Functions (3): `public.fetch_my_taste_profile`, `public.fetch_taste_deck_batch`, `public.record_taste_deck_signal`
+
+### supabase/migrations/20260731011000_taste_profile_recompute_v1.sql
+- Functions (2): `public.drain_taste_recompute_queue`, `public.recompute_user_taste_profile`
+
+### supabase/migrations/20260731012000_personalized_nty_and_flags_v1.sql
+- Views (1): `public.taste_pipeline_status`
+- Functions (3): `public._taste_recent_impressed_ids`, `public._taste_stamp_impressions`, `public.fetch_personalized_new_to_you`
+
+### supabase/migrations/20260731020000_image_convergence_v1.sql
+- Views (3): `public.image_mirror_character_candidates`, `public.image_mirror_coverage`, `public.image_mirror_staff_candidates`
+- Functions (2): `public.enqueue_image_mirror`, `public.protect_mirrored_image_columns`
+- Indexes (1): `idx_image_mirror_state_priority_at`
+- Triggers (4): `protect_mirrored_image_columns_anime`, `protect_mirrored_image_columns_characters`, `protect_mirrored_image_columns_manga`, `protect_mirrored_image_columns_staff`
+- Cron (5): `mirror-images-anime-manga-0 @ 0 2 * * *`, `mirror-images-anime-manga-200 @ 15 2 * * *`, `mirror-images-anime-manga-400 @ 30 2 * * *`, `mirror-images-character @ 45 2 * * *`, `mirror-images-staff @ 0 3 * * *`
+
+### supabase/migrations/20260731030000_outbound_link_ledger_v1.sql
+- Tables (1): `public.outbound_link_events`
+- Functions (2): `public.purge_outbound_link_events`, `public.record_outbound_link`
+- Policies (1): `public.outbound_link_events:outbound_link_events_select`
+- Cron (1): `outbound-link-ledger-retention @ 40 4 * * *`
+
+### supabase/migrations/20260731040000_clubs_trust_pack_v1.sql
+- Functions (3): `public.count_friends_tracking`, `public.fetch_friend_activity_for_title`, `public.toggle_club_reaction`
+
 
 <!-- END AUTO-MIGRATION-MAP -->
 
@@ -1568,6 +1684,15 @@ Each migration is summarized by the objects it defines. For full SQL, open the f
   - Warmup endpoint: `concierge-parse?warmup=true` returns 204 immediately (used by iOS on view appear)
   - Import reconciliation: returns `existing_entry` per item after candidate resolution; proposes Add/Update/Skip actions
   - Items processed in parallel via `Promise.all`
+
+### AniList import
+- `concierge-import-anilist` Edge Function
+  - Imports a user's AniList list into concierge import sessions
+  - **Auth hardened 2026-07-31**: added explicit `auth.getUser()` 401 gate — unauthenticated calls are rejected before any work
+
+### Concierge product posture (2026-07-31)
+- Concierge UI is archived from the pager (Taste Deck owns index 0; see section 3). Entry points: Profile row, `kuro://concierge` deep link (sheet, prompt preserved), `--kuro-start=concierge`. All concierge backend functions, RPCs, budgets, and iOS code remain live and unchanged in behavior.
+- `concierge-apply` begins/clears `taste_import_context` around session upserts so list writes from imports mark taste events `is_import=true` (best-effort).
 
 ### Disambiguation
 - `concierge-resolve` Edge Function
@@ -1681,7 +1806,7 @@ Response JSON:
 
 ## 8.2) Auto edge-function map (contracts + dependencies)
 
-Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
+Generated: **2026-07-31T04:08:20.387Z** (git: `10f3c9a`)
 
 ### auth-callback
 - Source: `supabase/functions/auth-callback/index.ts`
@@ -1701,7 +1826,7 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 ### concierge-apply
 - Source: `supabase/functions/concierge-apply/index.ts`
 - Env vars: `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
-- RPCs: `check_concierge_rate_limit`, `log_concierge_run`
+- RPCs: `begin_taste_import_context`, `check_concierge_rate_limit`, `clear_taste_import_context`, `log_concierge_run`
 - Tables touched: `anime`, `anime_user_lists`, `episodes`, `import_session_items`, `import_sessions`, `manga`, `manga_user_lists`, `title_aliases`
 
 ### concierge-import-anilist
@@ -1765,7 +1890,7 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - Source: `supabase/functions/mirror-images/index.ts`
 - Env vars: `IMPORT_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`
 - RPCs: `acquire_import_lock`, `release_import_lock`
-- Tables touched: `anime`, `characters`, `image_mirror_state`, `manga`, `mirror_runs`, `staff`
+- Tables touched: `anime`, `characters`, `image_mirror_character_candidates`, `image_mirror_staff_candidates`, `image_mirror_state`, `manga`, `mirror_runs`, `staff`
 
 
 <!-- END AUTO-EDGE-MAP -->
@@ -1807,6 +1932,14 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 **Mirror cron jobs** (P1-16: fixed contention — was 58% skip rate):
 - 5 `pg_cron` mirror jobs, spaced 15 min apart (02:00, 02:15, 02:30, 02:45, 03:00)
 - Batch size: 200 (was 500), per-batch lock keys, 120s TTL (was 1800s)
+- **Rescheduled 2026-07-31** (`20260731020000_image_convergence_v1.sql`): same job names/times, actionable remote-only windows — anime/manga offsets 0/600/1200 (limit 200 each), `mirror-images-character` + `mirror-images-staff` limit 300. Selection is remote-only, character/staff ordered by catalog join-count visibility, and each run drains up to 50 `priority_at` rows first.
+
+**Taste pipeline cron** (2026-07-31):
+- `taste-profile-drain-15m` — `*/15 * * * *`, pure SQL (`select public.drain_taste_recompute_queue();`), 50 users per run, per-user error capture into `taste_profile_recompute_queue.last_error`. No HTTP/GUC pattern.
+- **Added evening (v2):** `taste-tag-vectors-refresh` (03:50 nightly — refreshes the `media_tag_vectors` matview) and `taste-tag-stats-decay` (Sunday 04:10 — weekly ×0.95 decay on `taste_tag_stats` α/β posteriors so old evidence re-widens into exploration).
+
+**Outbound link ledger cron** (2026-07-31):
+- `outbound-link-ledger-retention` — `40 4 * * *` daily, `select public.purge_outbound_link_events();` (90-day retention).
 
 **Bulk import cron jobs** (P0-4: auth added):
 - 4 `pg_cron` bulk import jobs send `x-import-secret` header for auth
@@ -1826,6 +1959,8 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
   - `llm_usage_daily_totals`
   - `rate_limit_recent_top`
 - Mirror health: `check_mirror_health()` function returns JSONB with run stats, consecutive failures, and alert boolean
+- Image coverage: `image_mirror_coverage` view (service_role) — total/mirrored/% per media type + pending priority rows (2026-07-31)
+- Taste pipeline: `taste_pipeline_status` view v2 (service_role) — recompute queue depth, last processed_at, events by type (24h), users with profiles, avg confidence (2026-07-31; v2 evening)
 - Ops doc: `supabase/CONCIERGE_OPS.md`
 - Scripts:
   - `scripts/check_cron_health.js`
@@ -1893,19 +2028,21 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 
 ---
 
-## 12) Current UI state (Concierge + Header + Clubs)
+## 12) Current UI state (Taste Deck + Header + Clubs)
 
-- Concierge is a **full page** (left swipe). Uses **inline chat architecture** — no state machine, no full-screen takeovers.
+- **Taste Deck** (`taste_deck_v1` = 100%) owns pager index 0: full-bleed tap-to-decide card (NOT FOR ME / I KNOW THIS / CALLS TO ME — left action relabeled from PASS to its true dislike semantics 2026-07-31 evening), 12-card stratified sessions (v3 dealing: genre clusters × popularity strata, explore UCB, MMR diversity), "Kuro is listening." summary, Your leanings sheet, undo, long-press synopsis, grain hero, Reduce Motion honored. `TasteDeckView.swift` + `SupabaseService+Taste.swift`.
+- Concierge is **archived from the pager** (2026-07-31) — opens as a sheet from the Profile row, `kuro://concierge`, or `--kuro-start=concierge` (prompt injection preserved). Uses **inline chat architecture** — no state machine, no full-screen takeovers.
   - `ConciergeDisplayState` enum deleted. Everything renders inline in the chat scroll: typing indicator for loading, inline confirm bubble for imports, editorial rails for recommendations, toast+undo for completion.
   - All UI components use `KuroDesignSystem` tokens (`Font.kuroBody()`, `.kuroCaption()`, `KuroRadius.sm/md/lg`, `KuroAnimation.editorial/fast`, `KuroDesignSpacing.*`).
   - `ConciergeRecCard`: `KuroCachedAsyncImage` + `KuroScoreBadge` overlay, `contextMenu` for save/hide, press state `scaleEffect(0.98)`, KURO watermark on failure. Cards: 130x195pt.
   - `ConciergeConfirmBubble`: inline import review with curated section labels (`NEW`, `UPDATE`, `UNCHANGED`) and concise action summary.
   - Auto-apply: high-confidence imports (all items score >= 0.85, no ambiguous adaptations) auto-apply with undo toast.
 - Header left is **only KURO text**.
-- A small **chat icon** appears next to the section title **only on Concierge page**.
-- Profile is a **top-right menu** (not a dedicated page).
-- **Swipe pager**: 5 pages in order: Concierge (0) ← **Discover** (1, default) → Browse (2) → Collection (3) → Clubs (4). Natural discovery funnel: find → collect → share.
-- **Clubs** is the 5th page (rightmost). Profile sheet also has a "Clubs" shortcut. Club list cards show member count, activity preview, and unread dot. Club detail has 3 tabs (Rails/This Week/Polls — chat tab removed). Reactions (fire/heart/eyes/100) on rail items. Pace tracking on This Week. Milestone celebrations. Realtime updates. Badge dot on Clubs page indicator for unseen activity. Cards have "Add to Club..." context menu. Friend activity indicators on cards show how many friends are tracking each title.
+- A small **chat icon** appears next to the section title **only on Concierge page** (legacy pager mode).
+- Profile is a **top-right menu** (not a dedicated page). Profile sheet rows include **Concierge** (sheet) and Clubs.
+- **Swipe pager** (flag-aware): with `taste_deck_v1` on: Taste (0) ← **Discover** (1, default) → Browse (2) → Collection (3) → Clubs (4). Legacy order when off: Concierge (0) ← Discover (1) → Browse (2) → Collection (3) → Clubs (4).
+- **Onboarding**: final card is now a "Teach Kuro your taste" CTA that completes into the Taste Deck (flag-gated); card copy updated EN/DE. No longer a pure marketing tour.
+- **Clubs** is the rightmost page. Profile sheet also has a "Clubs" shortcut. Club list cards show member count, activity preview, and unread dot. Club detail has 3 tabs (Rails/This Week/Polls — chat tab removed). Reactions (fire/heart/eyes/100) on rail items (server allowlist fixed 2026-07-31 — reactions work again). Pace tracking on This Week. Milestone celebrations. Badge dot on Clubs page indicator for unseen activity. Cards have "Add to Club..." context menu. Friend activity indicators on cards show how many friends are tracking each title (sharing levels enforced server-side since 2026-07-31). Club share text includes a `kuro://join/<code>` deep link that opens the join sheet prefilled; duo clubs show honest "Activity unlocks at 3 members" copy.
 - **Browse** is a first-class page (3rd position), no longer a sheet modal.
 - **Search** remains a global sheet accessible from the header magnifying-glass icon on any page.
 - **Performance**: distance-based page mounting (current ± 1 neighbors mounted, distant pages use placeholder). `.snappy(duration: 0.22)` pager animation. 120fps ProMotion enabled via `CADisableMinimumFrameDurationOnPhone`. Exclusion zone filtering limited to viewport.
@@ -1913,6 +2050,7 @@ Generated: **2026-03-26T16:16:10.704Z** (git: `a8b9f78`)
 - **Detail views** (AnimeDetailView, MangaDetailView):
   - **Synopsis condenser**: descriptions > 200 chars are condensed to 2-sentence hooks via `fmService.condenseSynopsis()` on supported devices; falls back to full description on non-FM devices.
   - **Next Up picks**: `NextUpSection` (anime) and `MangaNextUpSection` (manga) show personalized next episode/chapter recommendations based on user progress.
+  - **Outbound click ledger** (2026-07-31): WATCH/READ CTAs, provider sheet picks, and external reference links fire `record_outbound_link` (`watch`/`read`/`provider_sheet`/`external_reference`) via `SupabaseService+Monetization.swift`. Ledger only — no affiliate decoration (`affiliate_links_v1` OFF).
 - **Offline banner**: monochrome "OFFLINE" text at top of `RootView` when `networkMonitor.isConnected == false`.
 
 ---
@@ -2714,6 +2852,10 @@ Documentation updated in this pass:
 - Materialized view definitions in the foundation migration are inferred from usage (discover_bundle RPC + Swift client). If the remote MV definitions differ (e.g., different LIMIT, extra WHERE clauses), update the foundation to match.
 - v8 modes (23 total) are deployed; if you add new modes later, deploy with `supabase db push --linked` + `supabase functions deploy concierge-recommend --linked`.
 - **Apple FM availability**: `AppleFMService` gracefully degrades on non-FM devices via `StubFMProvider`. The `condenseSynopsis` cache is in-memory only (lost on app restart); consider persisting to disk if cache hit rates are low.
+- **`personalized_new_to_you_v1` ramp**: flag seeded at 0% (2026-07-31). Ramp criteria (canary %, confidence thresholds) not yet defined — decide before flipping.
+- **Clubs dark flags**: `clubs_realtime_v1`, `clubs_pace_sync_v1`, `clubs_notifications_v1` re-seeded at 0% (`ON CONFLICT DO NOTHING` — rows that already existed kept their prior values; verify live values before assuming 0%). Ramp plan TBD.
+- **`affiliate_links_v1`**: seeded OFF; legal/compliance review precedes any flip. `outbound_link_events` collects the click ledger in the meantime.
+- **Taste deck signal semantics**: `deck_known` (+0.25) currently counts as a positive signal — watch for false-positive profile drift from users marking familiar titles they don't actually like.
 
 ---
 
@@ -16872,6 +17014,66 @@ grant execute on function public.admin_schema_snapshot() to service_role;
 
 ## Change Log
 
+### 2026-08-02: Realm descriptor Groq pipeline (Stage 2b) — salvage + edge function + drain
+
+Finished the Realm Graph Stage 2b writer path without agent-swarm spend.
+
+**Shipped / applied:**
+- Design: `docs/superpowers/specs/2026-08-02-realm-descriptor-groq-pipeline-design.md`
+- Edge function `realm-describe` (IMPORT_SECRET gate, `--no-verify-jwt`): loads title context, calls Groq (`GROQ_MODEL_REALM` default `llama-3.3-70b-versatile`), validates against `upsert_media_realm_llm` contract, batch mode ≤25 with one upsert/call.
+- Scripts: `realm_llm_salvage_swarm.js`, `realm_descriptor_worker.js` (checkpointed), `realm_descriptor_validate_selftest.js`; reuse `realm_llm_pass_fetch.js` / `realm_llm_pass_submit.js`.
+- Migrations: `20260802010000` enqueue + ops helpers + drain cron; `20260802013000` resolve import secret from `kuro-import-*` cron literals when GUC empty; `20260802014000` upsert rate budget 60→600/hr; `20260802015000` pause 2m cron while worker owns TPM.
+- Salvage: 1510 valid `/tmp/realm_out_*.jsonl` rows submitted (`kimi-swarm-2026-08`).
+- Live smoke: Llama descriptors writing; Spirited Away similarity still Ghibli-class after earlier penalty clamp.
+- Drain: checkpointed worker running against `media_realm_llm_pending` (Groq on_demand TPM-limited; overnight catch-up via worker rounds).
+
+- Security follow-up applied: `upsert_media_realm_llm` revoked from `authenticated` (service_role / realm-describe only); dropped `_ops_peek_import_secret` + `_ops_list_import_crons`.
+**Out of scope (deferred):** craft taste indicators; LLM membership ±0.2 apply; gold-set edges eval; Stage 4 Discover Shelf/Hidden Gem.
+
+### 2026-08-02 (cont.): Drain pacing under Groq TPM + edge idle timeout
+
+- Redeployed `realm-describe` with 429 “try again in Xs” parse + harder backoff.
+- Worker only checkpoints successes; exponential cool-down on 429/zero-progress (45s→5m); yields after streak ≥6.
+- Durable Mac drain restarted at **batch-size 1** (batch 2 hit Supabase Functions `IDLE_TIMEOUT` 150s while Groq slept inside the request).
+- Cron `realm-describe-drain-*` stays unscheduled (`20260802120000`) so it does not fight the Mac worker for TPM.
+- Live counts ~1618 done / ~5548 pending (mostly salvage); throughput capped by Groq on_demand ~8k TPM — expect multi-day drain unless tier bumped.
+
+### 2026-08-02 (cont.): Groq descriptor drain abandoned — agent-written pass
+
+- Product decision: **stop using Groq** for Stage 2b descriptors. Mac `realm_descriptor_worker` / `realm-describe` Groq path stopped; cron stays off.
+- Writer path returns to `realm_llm_pass_fetch.js` → agent-authored JSONL → `realm_llm_pass_submit.js` with `SUPABASE_SERVICE_ROLE_KEY` (authenticated upsert remains revoked).
+- Model id for this pass: `kimi-k3-max-2026-08`. Operating from Kimi master plan §6 (not the Groq design doc).
+- **Descriptor drain complete 2026-08-02:** `media_realm_llm_pending` = 0; ~7166 rows in `media_realm_llm` (~5548 `kimi-k3-max-2026-08`).
+- `realm-describe` edge function may remain deployed but is **not** the active writer.
+
+### 2026-08-02 (cont.): Stage 2 membership deltas + QA — DONE
+
+- Migrations: `20260802123000_media_realm_membership_delta_v1` (delta table + `media_realm_membership_effective` view + `recompute_media_realm_llm_deltas` + similarity gates on effective), `20260802124000` / `20260802125000` (float4 ±0.2 clamp/CHECK fix).
+- Scripts: `scripts/realm_llm_apply_deltas.js`, `scripts/realm_llm_qa_fetch.js`.
+- QA: rewrote all **208** `confidence < 0.7` rows (all were `kimi-swarm-2026-08`) → model `kimi-k3-max-2026-08-qa`; low-conf count now **0**. Spirited Away upgraded off Groq to the same QA model.
+- Deltas: `recompute_media_realm_llm_deltas(0.7)` → **~20,986** overlay rows. Rules matview unchanged; similarity reads effective.
+- Spirited Away neighbors (spot-check): Mononoke, Howl’s, Kiki’s, Boy and the Heron, Ponyo, xxxHOLiC, Noragami Aragoto, Natsume movie… — Ghibli/folklore-heavy top. Residual LN/shounen leakage (e.g. Re:ZERO S4, JJK) still in the long tail via affinity — Stage 3 gate polish, not delta infra.
+### 2026-08-02 (cont.): Tracks A+B+C — gate harden, gold eval, Stage 4 rails
+
+- **Spirited Away gate harden** (`20260802140000`): canon seeds use membership ≥ 0.35 for S + shared-pass requires candidate top ∈ S; affinity vetoes battle-shounen↔yokai and isekai↔auteur. Re:ZERO/JJK gone from top-20. Report: `reports/realm-acceptance/2026-08-02-spirited-away.md`.
+- **canon_seed.blessed** (`20260802141000`, default true) + merit floor honors blessed. Owner can veto without deleting citations.
+- **Stage 3 gold harness**: `scripts/eval_realm_rec_gold.js` + `eval/realm_rec_gold/{seeds,judgments}.jsonl` (100 seeds). Heuristic P@10 (47/100 scored): raw 0.81 / gated 0.25 / ∩ 0.19 — **do not ship edges into ranking** (Δ∩−gated = −0.06; needs owner judgments). Report: `reports/realm-rec-gold/latest.md`.
+- **Stage 4 Discover rails** (flag `discover_realm_rails_v1` @ 0%): RPCs `fetch_tonight_shelf`, `fetch_realm_hidden_gem`; iOS wired in Discover behind the flag. Smoke-tested on demo account (horror-dread shelf + Umineko gem).
+- Still deferred: owner gold judgments, taste indicators, realm maintenance cron, Bridge/This Week.
+
+### 2026-08-02 (cont.): Curation sources expand (EN+JP research → ingest)
+
+- Research writeup: `docs/superpowers/specs/2026-08-02-curation-sources-research.md`.
+- Migration `20260802150000_curation_sources_expand_v1` (pushed):
+  - New Tier-A `canon_seed`: **Japan Cartoonists Association Award** (21), Annecy expansion (source renamed from `Annecy Cristal`; 13 total), Manga Taishō ≥80-pt nominees (+4 → 23), Kono Manga #2/#3 (→ 66).
+  - Split opaque **Critic Consensus** into named desks (**Paste Magazine** 19, **Time Out** 15, **The A.V. Club** 6) then deleted Critic Consensus rows.
+  - New table `curation_seasonal_signal` (18 rows): Filmarks H1 rankings, 次にくるマンガ大賞, EN yearlist exemplars — **not** canon.
+  - `fetch_realm_hidden_gem` prefers seasonal-signal titles inside tonight's realm pool.
+- Tooling: `scripts/compile_curation_ingest.js` + `scripts/data/curation_ingest_candidates.json`; reports in `reports/curation-ingest/`.
+- Owner gold scaffolding: `scripts/realm_gold_owner_shortlist.js` → `eval/realm_rec_gold/owner_shortlists.jsonl` + `owner_judgments.template.jsonl` (100 seeds). Owner still must fill judgments before Stage 3 ship.
+- Note: matview refresh timed out inside the migration txn — rely on pg_cron / manual `refresh materialized view concurrently public.media_realm_tier`.
+
+
 ### 2026-02-24 — Fix Detail Page Scrolling Issues
 - **Vertical dead zone fix**: Added `.padding(.bottom, -safeTop)` after `.offset(y: -safeTop)` on hero sections in both `AnimeDetailView.swift` and `MangaDetailView.swift`. The offset is visual-only and didn't shrink the layout frame, creating a phantom gap at the bottom of the scroll content equal to `safeTop` (~59pt). The negative bottom padding compensates.
 - **Horizontal scroll fix**: Removed `.kuroSwipeExclusionZone()` from `SimilarSection` (AnimeDetailView:332) and `MangaSimilarSection` (MangaDetailView:289). These sections only appear inside `.sheet()` presentations where the root pager's gesture doesn't apply. The exclusion zone added a competing `DragGesture(minimumDistance: 4)` that fought with the native horizontal ScrollView gesture and the `.kuroDeliberateTap` gesture on each card, preventing horizontal scrolling.
@@ -17888,3 +18090,129 @@ Replaced KuroGlassCard-based club rows with clean editorial entries (serif typog
   - only durable list-state signals are allowed in v1
   - editorial prior remains structurally dominant
 - This surface is intentionally written to constrain LLM execution: every sprint now has allowed/forbidden surfaces, required artifacts, validation commands, failure conditions, rollback paths, and a brutal `Done only if` checklist.
+
+### 2026-07-30: Personalization Sprint 01 — durable taste signal capture
+
+- Applied migration `20260730160000_taste_signal_events_v1.sql` (linked remote):
+  - `public.taste_signal_events` (+ RLS select-own; writes via security definer only)
+  - `public.taste_profile_recompute_queue` (service_role only; enqueued on emit)
+  - `public.taste_import_context` + `begin_taste_import_context` / `clear_taste_import_context`
+  - AFTER triggers `taste_capture_anime_user_lists` / `taste_capture_manga_user_lists`
+- Design locks vs live DB:
+  - list `rating` CHECK is **1–10** (not 10–100); thresholds `>=8` / `<=4`
+  - list `user_id` remains TEXT; `_taste_parse_user_id` never blocks list writes
+  - import origin via `taste_import_context` (PostgREST cannot span `SET LOCAL` across upserts); no new list column
+- `concierge-apply` begins/clears import context around session upserts (best-effort).
+- Out of scope (unchanged): Discover UI, Search/Browse ranking, profile computation, streaming flag, CDN mirror.
+- SQL transition checks passed: insert→planned_add, no-op suppressed, status/rating/verdict/lifecycle events, bad UUID write succeeds without events, import context sets `is_import=true`.
+
+### 2026-07-31: KIMI K3 Agent Swarm overnight epic prompt authored
+
+- Added planning/prompt surface: `docs/superpowers/specs/2026-07-31-kimi-k3-agent-swarm-overnight-epic.md`.
+- Scope for unattended overnight run: full backend audit; CDN/`mirror-images` convergence; Tinder-style taste swipe deck replacing leftmost Concierge page (archive Concierge UI); taste profile/cluster mapping; clubs invite + shared-club social audit/fix.
+- Hard freeze: do not touch in-progress Auth light redesign (`AuthView`, KuroMark/KuroSceneryLoop assets, auth redesign spec).
+- No product code shipped in this initiative — prompt/spec only.
+
+### 2026-07-31: Overnight prompt expanded — taste doctrine + monetization
+
+- Expanded same spec with §4B taste product doctrine (signals → profile → explainable neighborhoods → per-surface list jobs; Discover default; personalize `New to You` first; portrayal rules per surface).
+- Added §4C re-verified revamp backlog (CDN, club bundle weight, design drift, Sprint 02 gap, user_id debt, secret hygiene) with “don’t boil the ocean” limits.
+- Added §4D ad-free monetization: Kuro Plus (StoreKit) primary; affiliate read/buy/watch/merch via tagged `external_links`; explicit bans on ads and paid ranking injection; overnight scaffold expectations.
+
+### 2026-07-31: Overnight prompt rewritten for creativity-first
+
+- Replaced prescription-heavy overnight prompt with creativity-first Agent Swarm brief in `docs/superpowers/specs/2026-07-31-kimi-k3-agent-swarm-overnight-epic.md`.
+- Phase 0 is mandatory first: full-system check (incl. design) + creative ideation deck (≥3 competing concepts per problem space) + Red Team + ADRs before any feature coding.
+- Human priors (swipe deck, CDN, clubs, ad-free money) reframed as problems/hunches, not the answer key; swarm must invent/improve.
+
+### 2026-07-31: KIMI K3 swarm overnight ship — Taste Deck, taste profiles, image convergence, clubs trust pack, monetization ledger
+
+Overnight swarm executed the epic. Shipped to production (build + KuroTests green; all migrations applied to linked remote).
+
+**Docs produced (Phase 0):**
+- `docs/superpowers/specs/2026-07-31-phase0-full-system-check.md`, `2026-07-31-creative-ideation-deck.md`
+- 6 ADRs: `2026-07-31-adr-taste-learning-and-representation.md`, `-adr-leftmost-surface-and-concierge-archive.md`, `-adr-image-cdn-strategy.md`, `-adr-clubs-overnight-posture.md`, `-adr-monetization-posture.md`, `-adr-design-direction.md`
+
+**Migrations (6, all applied to production):**
+- `20260731010000_taste_deck_v1.sql` — RPCs `fetch_taste_deck_batch` (half anime/half manga, score ≥70, no adult/Ecchi/Hentai, no ancillary formats, never repeats listed/signaled), `record_taste_deck_signal` (`deck_love` +0.55 / `deck_known` +0.25 / `deck_skip` −0.45; 300/day; latest action wins; retract supported), `fetch_my_taste_profile`.
+- `20260731011000_taste_profile_recompute_v1.sql` — `recompute_user_taste_profile` (events × tag rank/100 + genres ×0.6; import ×0.25; confidence tiers 0.05–0.20; title cap 8%, franchise cap 15% via `media_relations`; avoidance floors ≥2 negatives or ≤−0.8 cumulative, per-name floor −1.0), `drain_taste_recompute_queue`, pg_cron `taste-profile-drain-15m` (*/15, pure SQL, 50 users/run), `taste_profile_recompute_queue.last_error`.
+- `20260731012000_personalized_nty_and_flags_v1.sql` — `fetch_personalized_new_to_you` (editorial_prior×0.8 + fit×confidence, editorial stays dominant; avoided-tag penalty; 7-day impression rotation via 2 SECURITY DEFINER helpers), flags `taste_deck_v1` (100%) + `personalized_new_to_you_v1` (0%), RLS enabled on `discover_rail_impressions`, `taste_pipeline_status` view (service_role).
+- `20260731020000_image_convergence_v1.sql` — `protect_mirrored_image_columns` triggers (anime/manga/characters/staff image columns: storage URLs can't be overwritten by remote/NULL), `image_mirror_state.priority_at` + index, `enqueue_image_mirror` RPC (60/day), `image_mirror_coverage` view (service_role), character/staff candidate views by join-count visibility, mirror crons rescheduled (anime-manga offsets 0/600/1200 limit 200; char/staff limit 300).
+- `20260731030000_outbound_link_ledger_v1.sql` — `outbound_link_events` (RLS select-own; writes via RPC only), `record_outbound_link` (120/hr), `purge_outbound_link_events` + daily 04:40 cron (90-day retention), `affiliate_links_v1` flag seeded OFF.
+- `20260731040000_clubs_trust_pack_v1.sql` — `toggle_club_reaction` allowlist fixed to client keys (fire/heart/eyes/100; reactions were API-dead), `fetch_friend_activity_for_title` + `count_friends_tracking` enforce sharing levels (eff_rank 0 excluded, 1=status only, 2=full — privacy hole closed), flags seeded `ON CONFLICT DO NOTHING`: `clubs_reactions_v1`/`clubs_list_enriched_v1` 100%, `clubs_realtime_v1`/`clubs_pace_sync_v1`/`clubs_notifications_v1` 0% (remotely flippable).
+
+**Edge functions deployed:**
+- `mirror-images` — remote-only selection, character/staff visibility ordering, 50-row priority drain per run.
+- `concierge-import-anilist` — added `auth.getUser()` 401 gate.
+
+**iOS (build + KuroTests green):**
+- NEW `Kuro/Views/TasteDeckView.swift` (914 lines) — full-bleed tap-to-decide taste ritual at pager index 0: PASS / I KNOW THIS / CALLS TO ME, 12-card sessions, "Kuro is listening." summary, Your leanings sheet, undo, long-press synopsis, grain hero, `KuroAnimation` tokens only, Reduce Motion honored.
+- NEW `Kuro/Services/SupabaseService+Taste.swift` (289 lines), `Kuro/Services/SupabaseService+Monetization.swift` (`recordOutboundLink`, fire-and-forget).
+- `ContentView.swift` — pager flag-aware: `[taste, discover, browse, collection, clubs]` with `taste_deck_v1` (legacy order with concierge when off); `kuro://concierge` deep link + `--kuro-start=concierge` present ConciergeView as sheet (prompt injection preserved); `kuro://join/<code>` → clubs page + prefilled join sheet; deep links stashed while logged out now consumed via `onAppear`.
+- `ProfileView` — Concierge row added. `OnboardingView` — final card "Teach Kuro your taste" CTA + updated copy (EN/DE).
+- `EditorialDiscoverView` — hero title token fix (`kuroTitle`); NEW TO YOU rail uses `fetchPersonalizedNewToYou` when `personalized_new_to_you_v1` on.
+- `FeatureFlags` — `tasteDeckV1Enabled`, `personalizedNewToYouV1Enabled`.
+- `AnimeDetailView`/`MangaDetailView`/`ExternalLinksSection` — outbound click instrumentation (`watch`/`read`/`provider_sheet`/`external_reference`).
+- `ClubDetailSheets` — share text includes `kuro://join/<code>`; `ClubDetailView` — fixed "You were removed" copy for never-members; `ClubDetailTabComponents` — honest "Activity unlocks at 3 members" for duo clubs.
+- `KuroTests` — +TasteDeckTests (8), +DeepLinkRouterTests (5).
+
+**Image coverage baseline (measured 2026-07-31 via REST):** anime 602/21668 (2.8%), manga 600/41721 (1.4%), characters 200/97800 (0.2%), staff 201/41220 (0.5%) — exactly the old fixed-window ceilings; convergence now unblocked (remote-only selection + anti-unmirror trigger + priority queue).
+
+**Key product decisions (ADRs):**
+- Concierge archived from pager (code + backend fully preserved; entry via Profile row + `kuro://concierge`).
+- Monetization: no ads ever; click ledger now, affiliate decoration later (`affiliate_links_v1` OFF, compliance review first), Kuro Selects + Patron roadmap.
+- Design law: one hero grammar (club-hero grain recipe), `KuroAnimation` tokens only, one placeholder spec for new UI.
+
+**Totals:** 91 Swift files (+3), 176 migrations (+7 incl. Sprint 01), 15 edge functions (2 redeployed).
+
+### 2026-07-31 (later): Taste Deck v1.1 — meta strip on the image, flick gestures
+
+- Deck redesign per owner direction: the image now carries ONLY a modern meta strip (sans capsules: `24 EP` / `2 SEASONS` / `FILM` / `VOL 14` / `1 CH` + `DUB`/`SUB` on positive knowledge only, scrim `kuroBlack45`); serif title, genres·year·format caption, the three actions and quiet `3 / 12` progress moved to a panel below the image (74/26 split); in-card TASTE eyebrow + on-image progress removed. Real flicks on the image (right = calls to me, left = pass, up = I know this; ~90pt or fast-flick commit, ≤8° tilt, spring-back cancel, Reduce Motion → crossfade exit); image registered as pager swipe-exclusion (`kuroSwipeExclusionZone`), pager still swipes from panel + screen edges. `TasteDeckCard` gains `episodes`/`chapters`/`volumes`/`seasonsCount`/`hasDub`/`hasSub` + `metaChips`. Migration `20260731050000_taste_deck_meta_v1.sql` (NOT yet pushed): `fetch_taste_deck_batch` recreated (drop + create; name/params unchanged) with the new columns — `seasons_count` via recursive PREQUEL/SEQUEL walk over `media_relations` (depth ≤10, visited-array guard, TV-only count + self), `has_dub`/`has_sub` tri-state from `provider_availability` (NULL when no rows), plus `provider_availability_public_read` RLS policy (SECURITY INVOKER needs it; catalog-level data). KuroTests +9 (meta decoding + chips).
+
+### 2026-07-31 (evening): Taste Math v2 shipped + live-verified — vector-space profiles, stratified deck, pass memory, NOT FOR ME
+
+Taste-math v2 spec (`docs/superpowers/specs/2026-07-31-taste-math-v2-critical-review.md`) implemented, pushed to production, hotfixed twice against live failures, then verified end-to-end with real throwaway users. No git commits (out of scope).
+
+**Migrations (4, all applied to production):**
+- `20260731060000_taste_math_v2.sql` — `media_tag_vectors` matview (IDF-weighted tag space, genres folded as `genre:` pseudo-tags, per-media L2 norm), `taste_tag_stats` (per-user per-tag α/β posteriors), `recompute_user_taste_profile` v3 (user vector in same space: 180-day half-life, weighted evidence n strong = 1.0 / weak = 0.5, smooth shrinkage w = 0.20·n/(n+20) replacing tier-step weights, cosine fit, avoidance floors), `fetch_taste_deck_batch` v3 (2-axis stratified dealing: 6 genre clusters × 3 popularity strata; explore ratio max(0.25, 0.75·e^(−n/50)); UCB explore slots; MMR λ = 0.7; ≤ 4/12 per cluster, ≤ 2/12 per franchise; negative-space probe p = 0.10), `fetch_personalized_new_to_you` v2 (cosine + w blend), `recommend_ids_similar_to_seeds` v2 (full cosine + craft multiplier × ≤ 2, popularity removed from similarity), crons `taste-tag-vectors-refresh` (03:50) + `taste-tag-stats-decay` (Sun 04:10), `taste_pipeline_status` v2. Initial push FAILED on tag/genre duplicate keys (prod has case-variant tag rows + duplicated `genres` arrays) → fixed with uniqueness-by-construction (max-rank collapse, distinct unnest) and re-pushed clean.
+- `20260731070000_taste_math_v2_hotfix.sql` — live verification found: P0 deck 100% down (`pg_safeupdate` blocked bare DELETE on temp table); P2 `drain_taste_recompute_queue` callable by any authenticated user (Postgres default EXECUTE-to-PUBLIC → explicit revokes from public/anon/authenticated on 12 internal/definer functions; tier-2 helpers kept authenticated-callable because SECURITY INVOKER RPCs call them as the caller); P3 profile vector inverted personas (positive-only caps + IDF-drowned genres — a Fantasy lover's vector was 87% negative with `genre:fantasy` negative) → symmetric absolute-mass caps, genre weight 1.2×√IDF, top-80, NTY penalty narrowed to genre keys/Genre-category.
+- `20260731080000_taste_math_v2_fix2.sql` — P0 STILL down (two bare UPDATEs without WHERE survived; fixed), genre retention (top-60 tags + ALL `genre:` keys with abs > 0.001 — genres were being truncated out), avoidance net-sentiment guard (avoided only if ≥2 negatives or ≤−0.8 AND net-negative — fixes loved-yet-avoided Drama artifact), + profile re-enqueue wave.
+- `20260731090000_taste_deck_pass_memory.sql` — `pass` action (`deck_pass`, strength 0.00, no stats/evidence/recompute, excluded from future deals — live-verified: 2/12 of one batch 2 were batch-1 passes). iOS: left action restored to DISLIKE semantics and relabeled **NOT FOR ME** (`deck_skip` −0.45) per the "continuous liking/disliking" product decision; `.pass` remains supported server-side.
+
+**iOS:** `TasteDeckView.swift` (now 1002 lines) — NOT FOR ME label + dislike semantics on the left action; `SupabaseService+Taste.swift` (now 335 lines) — `.pass` case in `TasteDeckAction`. No new Swift files.
+
+**Live verification (3 runs; 4 throwaway users created+deleted via public auth API — signup autoconfirm is ON; exercised via curl against REST/RPC, not the iOS UI):** signal contract exact; α/β stats 141/141 and 118/118 exact; evidence/event_count exact; avoidance sets exact incl. guard; profile negative-mass ratio 87% → 14%; genres retained with correct signs; ramp w verified at n = 0/5.5/6.5 (taste ~4% of ranking at 5.5 evidence — by design); NTY replicated 20/20 positionally ×3; deck VERIFIED LIVE: 12 cards 6/6 anime-manga, stratified (head/mid/gems spread, not the popularity chart), 12/12 mirrored covers, zero repeats vs signaled titles, meta fields (episodes/seasons_count) populated; drain cron fired on two */15 boundaries; delete-account cascades clean.
+
+**Open items:** (1) run-2 phantom `discover_rail_impressions` anomaly (20 foreign rows hid top-20 from one fresh user; did not recur; needs one service-role SQL query to close — prime suspect: deploy-window activity 15:55–16:10 UTC); (2) `taste_pipeline_status` contents + `cron.job` registration unverifiable without service-role access (403 correctly enforced); (3) positive-mass caps vs small profiles — watch as data grows; (4) KuroTests has zero deck-action coverage; (5) `deck_known` false-positive watch continues; (6) `personalized_new_to_you_v1` flag still 0% — ramp criteria: drain telemetry sane + staff rail check.
+
+**Totals:** 91 Swift files (unchanged), 181 migrations (+5: 050000 was previously uncounted, +4 evening), 15 edge functions (unchanged).
+- 2026-07-31 (deck v2): **Taste Deck v2 — full-page glass, endless, single-source leanings** — deck art now fills the entire page body edge-to-edge (root pager ignores the bottom safe area and passes the inset through; every other page restores it as padding) with a floating monochrome glass container (`KuroGlassCard` new `.onImage` tone: `kuroBlack65` fill, white gradient hairline, no color tint) carrying the serif title, caption line and the three actions (NOT FOR ME hairline / I KNOW THIS text / CALLS TO ME solid white). The 12-card session boundary and the "Kuro is listening." interstitial are gone: the deck is endless (batch prefetch at ≤3 remaining), progress is a quiet total-judged count inside a persistent top-right LEANINGS capsule, and a genuinely exhausted catalog is the only summary left. "Your leanings" reads the server profile exclusively (local per-session genre tally deleted): it stamps computed_at as "UPDATED N MIN AGO" and adds a quiet "Kuro is still thinking about your latest swipes" note when deck signals are newer than the profile. Meta strip gains an ANIME/MANGA chip in first position (manga keeps VOL/CH, anime keeps EP/SEASONS/FILM/DUB/SUB). Undo chip (4s retract) re-anchored above the measured glass height; long-press synopsis restyled as dimmed art + glass sheet. Files: `Kuro/Views/TasteDeckView.swift` (rewritten), `Kuro/Views/KuroGlass.swift` (tone), `Kuro/Services/SupabaseService+Taste.swift` (metaChips), `Kuro/ContentView.swift` (pager inset plumbing). Build green; layout verified via simulator screenshot.
+- 2026-07-31 (discover P1): **Discover P1 — The One Thing, Because-You rail, glass/chrome pass, monochrome score chips** — migration `20260731100000_discover_p1.sql` (NOT pushed; lead pushes): `fetch_daily_feature()` (SECURITY INVOKER; rotates eligible `editorial_boosts` by day-of-year mod pool; argument = boost label else synopsis sentence-trimmed to ≤320 chars via new `_discover_sentence_trim`; adds `editorial_boosts_authenticated_read` RLS policy — table was service_role-only) and `fetch_because_you_rail(p_limit)` (top-3 positive seeds by summed strength from own `taste_signal_events`, ≥2 required else 0 rows; `recommend_ids_similar_to_seeds` v2 per seed media type, interleaved when both; deck-signal exclusion added on top of the RPC's list exclusion; every row carries `reason_title` = #1 seed title). iOS: `SupabaseService+Discover.swift` (new: `DailyFeature`, `BecauseYouCard`, both fetches, `toMedia()`); `DiscoverOneThingCard.swift` (new hero: 4:5 crop banner??cover, grain + dual gradient + bottom `KuroGlassCard` `.onImage` with THE ONE THING eyebrow / serif title / 5-line argument / quiet chevron → MediaDetailSheet; shimmer skeleton; nil RPC → legacy `KuroHeroCard` fallback kept); `EditorialDiscoverView` hero block replaced, BECAUSE YOU LOVED rail (flag `personalized_new_to_you_v1`, ≥4 cards, mixed feed shown under ALL filter) replaces NEW TO YOU with italic serif reason line (`DiscoverReasonLine` slot added to all four section components), horizontal rail cards ~19% larger via `largeCards` param (divisor 2.8→2.35, clamp 112–144→132–170; Discover call sites only, GenreHub untouched), root spacing tokenized to `KuroDesignSpacing.lg/xl`; `KuroScoreBadge` is now a monochrome glass chip (`kuroBlack45` scrim, white text, `kuroWhite20` hairline — kills the last colored/drift badge look on Discover+Browse rails; `CompactAnimeCard`'s hand-rolled chip deleted). Route `animeBecauseYou` added. Build green; visuals verified on iPhone 17 Pro sim (fixture-driven hero shot + shipped fallback shot). RPCs verified against a local scratch Postgres (auth/rotation/interleave/floors) — remote returns PGRST202 until the lead pushes.
+
+### 2026-08-04/05 (overnight): Realm repair Phase 1 — penalty restored, gates→costs, tier split-brain closed, precomputed similarity serving, hygiene
+
+Autonomous run per `docs/superpowers/plans/2026-08-04-claude-code-autonomous-phase123-prompt.md`, executing `docs/superpowers/specs/2026-08-04-realm-repair-and-critique-plan.md` §3. Seven migrations (`20260804100000`–`150000`), all applied to production AND committed; every fix went through implement → live-verify → defect-first review (all APPROVE). Evidence: `reports/realm-repair/m1-verify.md` (all SQL + per-check verdicts), `reports/realm-repair/phase1-acceptance.{md,json}` (harness: `scripts/realm_repair/run_phase1_acceptance.js` — 13 PASS / 0 FAIL / 1 documented SOFT-FAIL).
+
+- **Fix 1 (`100000`)** — `recommend_ids_similar_to_seeds` penalty operator restored to the Feb convention: `+ coalesce(penalty, 0)` with values staying NEGATIVE (`editorial_penalty_tags` untouched). History: Feb `+negative` guard → July realm rewrite flipped to `−` (penalties became boosts, the "+28 band") → Aug 1 clamp `greatest(0, …)` zeroed the term entirely. Guard is live again: Berserk top-25 junk-free, zero penalty-tagged titles.
+- **Fix 2 (`100000`)** — realm gates became costs: hard exclusion ONLY tier-distance > 1 or (no shared family AND affinity < 0.6); ladder ×1.0 (top realm ∈ S) / ×0.85 (affinity ≥ 0.6) / ×0.65 (family only); membership cliffs → smooth `mem_term` (floor 0.5, anchor 0.35); the 2 Spirited-Away-specific affinity-veto override rows deleted; NULL candidate tier coalesced to 'solid' (no more silent drops). Totoro re-entered SA's list at **#10** after `110000` backfilled its missing credits (Miyazaki `Original Creator` + Studio Ghibli, ids resolved from sibling rows — Totoro had ZERO staff/studio rows; **60 canon anime share that hole**, early-import id cohort ~160–230). G3 (Hanako-kun S2 above Wolf Children) is a documented SOFT-FAIL: AniList's studio-edge `isMain` was never captured at import (29,830/30,005 role-NULL rows) + tag-space proximity — importer work + Phase 5 regrade, not RPC mechanics.
+- **Fix 3+4 (`120000`, `121000`)** — `media_realm_tier` converted matview → RLS table built FROM `media_realm_membership_effective` (split-brain closed: tier and similarity now read the same membership), seeded from the outgoing matview (no empty committed state), rebuilt by `rebuild_media_realm_tier()` (SECURITY DEFINER, pg_temp-hardened, TRUNCATE+INSERT swap, EMPTY_STAGE guard, service_role-only after `121000` closed the default-privileges EXECUTE trap). Root cause of the 0/4 dead cron: the postgres role's 2-min `statement_timeout` cannot be re-armed by in-function `SET LOCAL`; the new job runs `set statement_timeout = '600s';` as its own statement first (pg_cron simple protocol re-arms per statement). Green run 136.3s. T1 = 0 missing tiers (the ~600 tier-less visible titles are covered); ~57,310 tier rows.
+- **Fix 5 (`130000`, `131000`, `132000`, `140000`)** — precomputed serving: `media_similar_titles` (top-30 neighbors per visible seed; 225,541 rows / 7,519 seeds; 7,537 tracked, 18 legitimately empty — no tag vectors), chunked builder `rebuild_media_similar_titles(p_batch)` with advisory-lock claiming, self-healing `realm-similar-drive-5m` cron + `realm-similar-nightly` re-stale (05:10). RPC is now an indexed read with multi-seed blend (sum score, franchise `DISTINCT ON` via new `media_franchise_components` table — single label source for builder AND read path), per-user `user_lists` exclusion at read time, verbatim M1 scorer preserved as `_recommend_ids_similar_to_seeds_live` (service-role-only) fallback for un-precomputed seeds; `p_allow_gimmicks=true` routes live (baked scores contain penalties). **Measured: p50 36–93ms / p95 42–105ms authenticated (was p50 1.91s / p95 3.61s; pre-M1: 53/100 gold seeds timed out). Gold eval now 100/100, zero timeouts.** Seed-111 output byte-identical to the live scorer.
+- **Fix 6 (`150000`)** — hygiene: `_ops_import_secret_from_cron()` + sole caller `enqueue_realm_describe_batch()` dropped (secret-scraper family fully gone); 3 SECURITY DEFINER view advisors cleared via `ALTER VIEW … SET (security_invoker = true)` (byte-identical bodies) + grant trims (`media_realm_profile` loses anon; `realm_affinity_effective` service_role-only). **Security advisor ERRORs: 3 → 0.**
+- **Incidents (on the record):** (1) the builder's `work_mem='256MB'` override × ~14 hash joins OOM'd the 1GB Micro instance — **~25min production outage 19:20–19:45 UTC, forced restart**; fixed by `131000` (default work_mem, disk spill is safe). (2) 200-seed manga batches exceeded the 600s ceiling under drained burst-IO — 10 failed driver runs 21:05–22:55 UTC; fixed by `132000` (batch 100). (3) CORRECTIVE NOTE: `131000`'s header blames a "Management-API-mangled cron command" — superseded; the `"SET"`-tagged run rows are a pg_cron run-details display artifact (details recorded per-statement while the command continues). Do not institutionalize that comment's root-cause claim.
+- **Carried forward (tuning/import backlog):** penalty magnitudes (−3…−37) on a 0–2.5 score scale act as hard bans — collateral: Attack on Titan (Reincarnation tag) off Berserk's list, Boy and the Heron off SA's; Phase 2 gold eval should decide scaling. Vending-machine title holds `acclaimed` within isekai-reincarnation (within-realm percentile artifact). Genre-overlap cliff still structurally blocks Kon films from SA's neighborhood. Several One Piece entries have zero `media_relations` rows (franchise dedupe can't see them). Importer gaps: studio-edge `isMain`, the 60-title zero-credits cohort. **Owner security items: rotate IMPORT_SECRET and move it out of cron-command literals (Vault/GUC) — the scraping tooling is gone but the literal remains; consider dropping anon's live-fallback compute path.**
+- **Watch:** first natural `realm-tier-refresh` fire 04:50 UTC + nightly re-stale/drain cycle 05:10 (one green confirmation pending). Nightly full re-stale takes ~1–6h of driver fires on the Micro — owner decision: weekly cadence or compute bump.
+- **Phase 2/3 state:** owner gold judgments still absent (`owner_judgments.jsonl` — the Stage 3 ship gate); Round 0 critique-site dossiers written (12: 7 EN + 5 JP) in `reports/critique-pilot/dossiers/` — robots forensics: Sakuga Blog/THEM/AniFem/マンバ通信/Filmarks block or 403 AI fetchers; fully green: ANN review desk, Manga Bookshelf, Wrong Every Time, Fujitsu column (ClaudeBot explicitly permitted), WEBアニメスタイル; JP manga desk = open gap. NO sites blessed (owner-only). Flags unchanged: `discover_realm_rails_v1` 0%, `personalized_new_to_you_v1` 0%.
+
+### 2026-08-05 (later): Realm corrections applied + edges-first serving fork — similar-rails quality 0.512 → 0.823 P@10
+
+- **393 double-judged realm corrections live** (`20260805110000` + `112000`): `realm_audit_overrides` table + conditional-ordering weight swap in `media_realm_membership_effective` (swap only while demote outranks promote — absorbed overrides no-op and become deletable; absorption count 0 at ship). 84 fiat memberships on record. Tier re-realmed (Perfect Blue → psychological-thriller/canon, ARIA → iyashikei, Free! → sports-competition, Demon Slayer manga → battle-shounen). Audit basis: 6-agent sweep of 3,000 most-served titles, 13.4% misfiled, all corrections second-judged (`reports/realm-audit/`).
+- **Edges-first serving** (`20260805120000`, owner-decided fork): `rebuild_media_similar_titles` now ranks AniList community edges first (per-seed min-max rating → score 3.0–4.0, penalties clamp to 2.6 floor), realm/tier/franchise/merit checks as safety demotion, cosine backfill to depth 30 (score ≤2.5, always below edges); store gains `src` column; RPC/blend/exclusions unchanged; revert = restore 140000 builder body. Store: 91.9% of top-10 slots are edge-sourced across gold seeds. SA rail is now the Miyazaki list (Howl, Totoro #2, Kiki, Ponyo, Mononoke…); Berserk rail = Vinland Saga/Vagabond/Claymore/Kingdom.
+- **Measured**: gold gated P@10 0.512 → **0.823** (raw ceiling 0.850) after delta-judging 302 newly-surfaced edge candidates (85.5% relevant). Acceptance harness 13 PASS / 0 FAIL; P1/P2 re-scoped to junk-class intent (penalized AND sub-merit-75; demotion-below-clean-band check) — canon titles with community tags (AoT/LotL/HxH) are demoted, not vanished. G2 improved: Totoro #2.
+- One Thing lowercase-argument bug fixed (`20260805100000` — display fallback was the lowercased search column). Full-catalog propagation of all of the above rides the 05:10 nightly re-stale.
+- Backlog fed by tonight's evidence: entry-point canonicalization (other-franchise sequels in rails), mahou-shoujo realm proposal, low-w1 re-review queue, 3 held corrections, edges coverage for seeds with zero surviving edges (2/100).
+
+### 2026-08-05 (night): Critique ingestion pilot live + entry-point canonicalization
+
+- **Critique schema live** (`20260805130000`): critic_sources (5 seeded, 3 agent-blessed) · critic_reviews (no-prose-by-construction) · media_critic_claims (axis/verdict 0-4/verbatim quote ≤300/flags) · media_craft_scores + tier-weighted rebuild fn · media_content_notes (deadpan) · verdict_voice (30 EN labels) · atomic validated `upsert_critic_review_claims` (service-role, structured DETAILs).
+- **Pilot parsed**: 25 reviews / 55 claims / 5 content notes / 25 titles scored, from Wrong Every Time (8), Manga Bookshelf (14, 4 named critics), Fujitsu column (3, JP). **Quote fidelity 100% mechanically enforced**; 0 misattributions; edition/season mismatches skipped, never guessed. Gate verdict (`reports/critique-pilot/gate.md`): parser PROVEN, coverage structural (21%) — scale levers: ANN re-admission (WET's real reviews live there), Medium owner-session lane, Kincaid permission, (url, media_id) key widening for multi-title essays.
+- **Entry-point canonicalization** (`20260805140000` + `150000`): rails recommend franchises via entry points (media_franchise_entry_points, 2,946 entries; format→year→id selection; upward/equal-tier substitution). Named failures fixed (TR → MHA S1 + WIND BREAKER S1; Death Parade → Danganronpa: The Animation via a documented editorial bridge — AniList lacks the edge). SA/Berserk byte-identical; 380 rows remapped / 95 gold stores; acceptance 13 PASS. Full catalog converges via nightly re-stale.

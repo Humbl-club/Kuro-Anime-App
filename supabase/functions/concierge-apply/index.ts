@@ -161,6 +161,16 @@ serve(async (req) => {
     }
     const sessionId: string = sessionRow.id;
 
+    // Mark subsequent list upserts as import-origin for taste_signal_events triggers.
+    try {
+      await client.rpc("begin_taste_import_context", {
+        p_session_id: sessionId,
+        p_ttl_seconds: 600,
+      });
+    } catch {
+      // Best-effort: list writes must still succeed if taste context is unavailable.
+    }
+
     const applied: any[] = [];
     const skipped: any[] = [];
     const conflicts: any[] = [];
@@ -460,6 +470,12 @@ serve(async (req) => {
     }).eq("id", sessionId);
 
     try {
+      await client.rpc("clear_taste_import_context");
+    } catch {
+      // Best-effort cleanup.
+    }
+
+    try {
       await client.rpc("log_concierge_run", {
         p_kind: "apply",
         p_status: errors.length ? "error" : "success",
@@ -472,6 +488,21 @@ serve(async (req) => {
 
     return json({ success: errors.length === 0 && conflicts.length === 0, sessionId, applied, skipped, conflicts, errors });
   } catch (e) {
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY");
+      const supabaseService = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      const supabaseKey = supabaseAnon ?? supabaseService;
+      const authHeader = req.headers.get("Authorization") ?? "";
+      if (supabaseUrl && supabaseKey) {
+        const cleanup = createClient(supabaseUrl, supabaseKey, {
+          global: { headers: authHeader ? { Authorization: authHeader } : {} },
+        });
+        await cleanup.rpc("clear_taste_import_context");
+      }
+    } catch {
+      // ignore
+    }
     const err = e as Error;
     return json(
       {

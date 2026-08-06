@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import sys
 
-ROOT = Path("/Applications/Kuro")
+ROOT = Path(__file__).resolve().parents[2]
 APP_SWIFT_COUNT = len(list((ROOT / "Kuro").rglob("*.swift")))
 MIGRATION_COUNT = len(list((ROOT / "supabase" / "migrations").glob("*.sql")))
 

@@ -39,6 +39,9 @@ final class FeatureFlags {
     var isSocialActivityV1Enabled: Bool { evaluate("social_activity_v1") }
     var isStreamingAvailabilityV1Enabled: Bool { evaluate("streaming_availability_v1") }
     var isCreditsCastV1Enabled: Bool { evaluate("credits_cast_v1") }
+    var tasteDeckV1Enabled: Bool { evaluate("taste_deck_v1") }
+    var personalizedNewToYouV1Enabled: Bool { evaluate("personalized_new_to_you_v1") }
+    var discoverRealmRailsV1Enabled: Bool { evaluate("discover_realm_rails_v1") }
 
     // MARK: - Init
 

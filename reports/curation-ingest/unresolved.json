@@ -1,0 +1,55 @@
+[
+  {
+    "bucket": "canon",
+    "media_type": "MANGA",
+    "title": "Fuuunji-tachi",
+    "title_alt": [
+      "風雲児たち",
+      "The Wind of Fuunji"
+    ],
+    "source": "Japan Cartoonists Association Award",
+    "year": 2020,
+    "category": "Grand Prize — Comic",
+    "source_detail": "第49回（2020）大賞コミック部門 · https://nihonmangakakyokai.or.jp/about/about07",
+    "reason": "no_catalog_hit"
+  },
+  {
+    "bucket": "canon",
+    "media_type": "MANGA",
+    "title": "Helpman!",
+    "title_alt": [
+      "ヘルプマン！"
+    ],
+    "source": "Japan Cartoonists Association Award",
+    "year": 2011,
+    "category": "Grand Prize — Comic",
+    "source_detail": "第40回（2011）大賞コミック部門 · https://nihonmangakakyokai.or.jp/about/about07",
+    "reason": "no_catalog_hit"
+  },
+  {
+    "bucket": "canon",
+    "media_type": "MANGA",
+    "title": "Kamakura Monogatari",
+    "title_alt": [
+      "鎌倉ものがたり"
+    ],
+    "source": "Japan Cartoonists Association Award",
+    "year": 2009,
+    "category": "Grand Prize",
+    "source_detail": "第38回（2009）大賞 · https://nihonmangakakyokai.or.jp/about/about07",
+    "reason": "no_catalog_hit"
+  },
+  {
+    "bucket": "canon",
+    "media_type": "MANGA",
+    "title": "Danmitsu",
+    "title_alt": [
+      "ダンミツ"
+    ],
+    "source": "Kono Manga ga Sugoi!",
+    "year": 2026,
+    "category": "#2 — Male Readers",
+    "source_detail": "2026 edition · https://www.animenewsnetwork.com/news/2025-12-22/kono-manga-ga-sugoi-editors-unveil-full-list-of-top-2026-manga/.232368",
+    "reason": "no_catalog_hit"
+  }
+]

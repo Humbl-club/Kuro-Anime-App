@@ -108,10 +108,12 @@ struct KuroMainView: View {
     @Environment(NetworkMonitor.self) private var networkMonitor
 
     enum Section: Int, CaseIterable {
-        case concierge, discover, browse, collection, clubs
+        case taste, concierge, discover, browse, collection, clubs
 
         var title: String {
             switch self {
+            case .taste:
+                return "TASTE"
             case .concierge:
                 return "CONCIERGE"
             case .discover:
@@ -140,10 +142,18 @@ struct KuroMainView: View {
     @State private var deepLinkAnimeId: Int? = nil
     @State private var deepLinkMangaId: Int? = nil
     @State private var deepLinkClubId: String? = nil
+    @State private var pendingJoinCode: String? = nil
     @State private var pendingConciergePrompt: String? = nil
     @State private var pendingPromptClearTask: Task<Void, Never>? = nil
-	// Five-page discovery funnel: Concierge ← [Discover] → Browse → Collection → Clubs
-    private let swipeOrder: [Section] = [.concierge, .discover, .browse, .collection, .clubs]
+    @State private var showConciergeSheet = false
+    @State private var conciergeSheetPrompt: String? = nil
+	// Taste-flagged funnel: [Taste] ← [Discover] → Browse → Collection → Clubs.
+    // Flag off restores the legacy order with Concierge at index 0 (one DB UPDATE rollback).
+    private var swipeOrder: [Section] {
+        FeatureFlags.shared.tasteDeckV1Enabled
+            ? [.taste, .discover, .browse, .collection, .clubs]
+            : [.concierge, .discover, .browse, .collection, .clubs]
+    }
     private let swipeThreshold: CGFloat = 40
     private let swipeEdgeMargin: CGFloat = 24
 
@@ -153,11 +163,14 @@ struct KuroMainView: View {
     }
 
     private var hidesHeaderForConcierge: Bool {
-        selection == .concierge && conciergeEditorialV1Enabled
+        // With the Deck at index 0 the header returns to standard behavior;
+        // the concierge hide rule only applies to the legacy (flag-off) pager.
+        !FeatureFlags.shared.tasteDeckV1Enabled && selection == .concierge && conciergeEditorialV1Enabled
     }
 
     private func sectionFromLaunchArgument(_ raw: String) -> Section? {
         switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "taste": return .taste
         case "concierge": return .concierge
         case "discover": return .discover
         case "browse": return .browse
@@ -213,15 +226,22 @@ struct KuroMainView: View {
                 }
 
                 // Header-driven pager: keeps sections mounted once visited.
-	                KuroSectionPager(
-	                    selection: $selection,
-	                    mountedSections: $mountedSections,
-	                    order: swipeOrder,
-                        suppressCardTaps: suppressCardTaps,
-                        pendingConciergePrompt: pendingConciergePrompt
-	                )
-	                .offset(x: edgeBounceOffset)
-	                .background(Color.clear)
+	                GeometryReader { pagerProxy in
+	                    KuroSectionPager(
+	                        selection: $selection,
+	                        mountedSections: $mountedSections,
+	                        order: swipeOrder,
+                            suppressCardTaps: suppressCardTaps,
+                            pendingConciergePrompt: pendingConciergePrompt,
+                            pendingJoinCode: $pendingJoinCode,
+                            bottomInset: pagerProxy.safeAreaInsets.bottom
+	                    )
+	                    .offset(x: edgeBounceOffset)
+	                    .background(Color.clear)
+	                    // Full-bleed for the Deck: the pager reaches the screen's
+	                    // bottom edge; other sections restore the inset as padding.
+	                    .ignoresSafeArea(.container, edges: .bottom)
+	                }
 	            }
 	        }
 	        .coordinateSpace(name: "kuro_root")
@@ -239,14 +259,25 @@ struct KuroMainView: View {
                 didApplyStartArgument = true
                 let args = ProcessInfo.processInfo.arguments
                 if let kv = args.first(where: { $0.hasPrefix("--kuro-start=") }),
-                   let value = kv.split(separator: "=", maxSplits: 1).last,
-                   let target = sectionFromLaunchArgument(String(value))
+                   let value = kv.split(separator: "=", maxSplits: 1).last
                 {
-                    selection = target
-                    mountedSections.insert(target)
+                    let raw = String(value).trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                    if raw == "concierge" && FeatureFlags.shared.tasteDeckV1Enabled {
+                        // Archived concierge opens as a sheet when the Deck owns index 0.
+                        conciergeSheetPrompt = nil
+                        showConciergeSheet = true
+                    } else if let target = sectionFromLaunchArgument(raw) {
+                        selection = target
+                        mountedSections.insert(target)
+                    }
                 } else if args.contains("--kuro-start-concierge") {
-                    selection = .concierge
-                    mountedSections.insert(.concierge)
+                    if FeatureFlags.shared.tasteDeckV1Enabled {
+                        conciergeSheetPrompt = nil
+                        showConciergeSheet = true
+                    } else {
+                        selection = .concierge
+                        mountedSections.insert(.concierge)
+                    }
                 }
             }
 	        .simultaneousGesture(
@@ -373,7 +404,7 @@ struct KuroMainView: View {
                         await supabaseService.fetchCollectionFeed(status: nil)
                     case .clubs:
                         await supabaseService.checkClubNotifications()
-                    case .concierge, .browse:
+                    case .concierge, .browse, .taste:
                         break
                     }
                 }
@@ -382,6 +413,14 @@ struct KuroMainView: View {
                 guard let link else { return }
                 pendingDeepLink = nil
                 handleDeepLink(link)
+            }
+            .onAppear {
+                // Consume a link stashed while logged out (or before this view existed);
+                // onChange does not fire for a value that was already set.
+                if let link = pendingDeepLink {
+                    pendingDeepLink = nil
+                    handleDeepLink(link)
+                }
             }
             .sheet(isPresented: Binding(
                 get: { deepLinkAnimeId != nil },
@@ -412,9 +451,25 @@ struct KuroMainView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showConciergeSheet) {
+                NavigationStack {
+                    ConciergeView(assistantEnabled: true, initialPrompt: conciergeSheetPrompt)
+                        .environment(supabaseService)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showConciergeSheet = false }
+                                    .font(.kuroBody(weight: .light))
+                            }
+                        }
+                }
+            }
             .fullScreenCover(isPresented: $showOnboarding) {
-                OnboardingView {
+                OnboardingView { destination in
                     showOnboarding = false
+                    if destination == .tasteDeck && FeatureFlags.shared.tasteDeckV1Enabled {
+                        selection = .taste
+                        mountedSections.insert(.taste)
+                    }
                 }
             }
             if let transientBannerMessage = supabaseService.transientBannerMessage {
@@ -443,16 +498,28 @@ struct KuroMainView: View {
         case .discover:
             selection = .discover
         case .concierge(let prompt):
-            selection = .concierge
-            mountedSections.insert(.concierge)
-            pendingConciergePrompt = prompt
-            // Clear after next runloop so ConciergeView can consume it once
-            pendingPromptClearTask?.cancel()
-            pendingPromptClearTask = Task { @MainActor in
-                try? await Task.sleep(nanoseconds: 500_000_000)
-                guard !Task.isCancelled else { return }
-                pendingConciergePrompt = nil
+            if FeatureFlags.shared.tasteDeckV1Enabled {
+                // Archived: present Concierge as a sheet; prompt injection is preserved
+                // via ConciergeView's initialPrompt (consumed once on appear).
+                conciergeSheetPrompt = prompt
+                showConciergeSheet = true
+            } else {
+                selection = .concierge
+                mountedSections.insert(.concierge)
+                pendingConciergePrompt = prompt
+                // Clear after next runloop so ConciergeView can consume it once
+                pendingPromptClearTask?.cancel()
+                pendingPromptClearTask = Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    guard !Task.isCancelled else { return }
+                    pendingConciergePrompt = nil
+                }
             }
+        case .joinClub(let code):
+            // ClubsView consumes pendingJoinCode and opens the join sheet prefilled.
+            selection = .clubs
+            mountedSections.insert(.clubs)
+            pendingJoinCode = code
         case .authCallback:
             break // Handled at app level in KuroApp.swift, never reaches here
         }
@@ -468,6 +535,10 @@ private struct KuroSectionPager: View {
     let order: [Section]
     let suppressCardTaps: Bool
     var pendingConciergePrompt: String?
+    @Binding var pendingJoinCode: String?
+    /// Bottom safe-area inset captured before the pager ignores it. The Deck's art
+    /// runs edge-to-edge; every other page gets the inset back as padding.
+    var bottomInset: CGFloat = 0
 
     private var selectionIndex: Int {
         order.firstIndex(of: selection) ?? 0
@@ -481,6 +552,9 @@ private struct KuroSectionPager: View {
             HStack(spacing: 0) {
                 ForEach(order, id: \.self) { section in
                     page(for: section)
+                        // The Deck keeps the full height (its art reaches the screen's
+                        // bottom edge); other pages restore their safe-area edge here.
+                        .padding(.bottom, section == .taste ? 0 : bottomInset)
                         .frame(width: width, height: height)
                 }
             }
@@ -502,6 +576,8 @@ private struct KuroSectionPager: View {
 
         if shouldMount {
             switch section {
+            case .taste:
+                TasteDeckView(bottomInset: bottomInset, onDone: { selection = .discover })
             case .concierge:
                 ConciergeView(assistantEnabled: true, initialPrompt: pendingConciergePrompt)
             case .discover:
@@ -511,7 +587,7 @@ private struct KuroSectionPager: View {
             case .collection:
                 EditorialCollectionView()
             case .clubs:
-                ClubsView()
+                ClubsView(pendingJoinCode: $pendingJoinCode)
             }
         } else {
             // Placeholder keeps layout stable without triggering `.task` in heavy pages.
@@ -527,7 +603,11 @@ struct KuroHeaderNew: View {
     @Binding var showSearchSheet: Bool
     @Environment(SupabaseService.self) private var supabaseService
 
-    private let swipeOrder: [KuroMainView.Section] = [.concierge, .discover, .browse, .collection, .clubs]
+    private var swipeOrder: [KuroMainView.Section] {
+        FeatureFlags.shared.tasteDeckV1Enabled
+            ? [.taste, .discover, .browse, .collection, .clubs]
+            : [.concierge, .discover, .browse, .collection, .clubs]
+    }
 
     private static let windowTextPaddingX: CGFloat = 14
     private static let windowTextPaddingY: CGFloat = 7

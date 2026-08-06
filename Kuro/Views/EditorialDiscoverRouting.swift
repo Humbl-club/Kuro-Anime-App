@@ -4,6 +4,7 @@ enum EditorialDiscoverRoute: Identifiable {
     case animeEssentials
     case animeClassics
     case animeNewToYou
+    case animeBecauseYou
     case animeAiringToday
     case animeCurrentSeason
     case animeTrending
@@ -18,6 +19,7 @@ enum EditorialDiscoverRoute: Identifiable {
         case .animeEssentials: return "animeEssentials"
         case .animeClassics: return "animeClassics"
         case .animeNewToYou: return "animeNewToYou"
+        case .animeBecauseYou: return "animeBecauseYou"
         case .animeAiringToday: return "animeAiringToday"
         case .animeCurrentSeason: return "animeCurrentSeason"
         case .animeTrending: return "animeTrending"
@@ -34,6 +36,7 @@ enum EditorialDiscoverRoute: Identifiable {
         case .animeEssentials: return "ESSENTIAL ANIME"
         case .animeClassics: return "CLASSICS"
         case .animeNewToYou: return "NEW TO YOU"
+        case .animeBecauseYou: return "BECAUSE YOU LOVED"
         case .animeAiringToday: return "AIRING TODAY"
         case .animeCurrentSeason: return "CURRENT SEASON"
         case .animeTrending: return "TRENDING"
