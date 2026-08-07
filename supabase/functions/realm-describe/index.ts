@@ -319,7 +319,7 @@ async function callGroq(
   model: string,
   system: string,
   user: string,
-): Promise<string> {
+): Promise<{ text: string; model: string }> {
   // Fail-fast on 429 — do NOT sleep inside the edge request. Supabase Functions
   // idle-timeout is 150s; sleeping here caused IDLE_TIMEOUT 504s while the Mac
   // worker already owns cool-down. Transient empty responses get one short retry.
@@ -343,13 +343,19 @@ async function callGroq(
     });
     const body = await res.json().catch(() => null);
     if (res.status === 429) {
+      // Model-level rate limit (shared on-demand tier): fall back to the lighter
+      // model instead of dying — the drain loop keeps full pacing control.
+      const fallback = Deno.env.get("GROQ_MODEL_REALM_FALLBACK") || "llama-3.1-8b-instant";
+      if (model !== fallback) {
+        return callGroq(apiKey, fallback, system, user);
+      }
       throw new Error(`Groq HTTP 429: ${JSON.stringify(body)?.slice(0, 220)}`);
     }
     if (!res.ok) {
       throw new Error(`Groq HTTP ${res.status}: ${JSON.stringify(body)?.slice(0, 300)}`);
     }
     const content = body?.choices?.[0]?.message?.content;
-    if (typeof content === "string" && content.trim()) return content;
+    if (typeof content === "string" && content.trim()) return { text: content, model };
     lastErr = "Groq returned empty content";
     await new Promise((r) => setTimeout(r, 800));
   }
@@ -374,8 +380,11 @@ async function generateOne(
       ? user
       : `${user}\n\nPrevious output failed validation: ${lastErrors.join("; ")}. Return ONLY valid JSON matching the schema.`;
     let raw: string;
+    let usedModel = groqModel;
     try {
-      raw = await callGroq(groqKey, groqModel, system, nudge);
+      const resp = await callGroq(groqKey, groqModel, system, nudge);
+      raw = resp.text;
+      usedModel = resp.model;
     } catch (e) {
       // Propagate rate-limits immediately (no validation retry burn).
       throw e;
@@ -387,7 +396,7 @@ async function generateOne(
       lastErrors = [(e as Error).message];
       continue;
     }
-    const result = validateDescriptor(mediaType, mediaId, parsed, realmNames, modelId);
+    const result = validateDescriptor(mediaType, mediaId, parsed, realmNames, `groq-${usedModel}`);
     if (result.ok) return result.row;
     lastErrors = result.errors;
   }
