@@ -58,7 +58,7 @@ export default function KuroSchemaCrossref() {
       <Grid columns={4} gap={12}>
         <Stat value="108" label="Live tables (stats)" tone="info" />
         <Stat value="49/49" label="Client RPCs in migrations" tone="success" />
-        <Stat value="2" label="Map type nuances" tone="warning" />
+        <Stat value="3" label="Map type nuances" tone="warning" />
         <Stat value="33" label="Live tables maps omitted" />
       </Grid>
 
@@ -86,8 +86,8 @@ export default function KuroSchemaCrossref() {
           [
             "media_realm_tier",
             "Often implied as matview",
-            "LIVE table (also rebuild path uses tier_next)",
-            "Listed in live table-stats — OK",
+            "MATERIALIZED VIEW (migrations)",
+            "Maps should say matview; listed in table-stats after refresh",
           ],
           [
             "anime_comments / manga_comments",
@@ -142,6 +142,7 @@ export default function KuroSchemaCrossref() {
           ["mv_anime_current_season", "Seasonal"],
           ["media_tag_vectors", "Taste / similarity math"],
           ["media_realm_membership / realm_affinity", "Realm graph"],
+          ["media_realm_tier", "Realm tiering"],
         ]}
       />
 
