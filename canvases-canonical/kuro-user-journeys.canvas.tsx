@@ -177,13 +177,33 @@ export default function KuroMap3Journeys() {
       <CollapsibleSection title="J1 non-happy" defaultOpen>
         <BranchTable
           rows={[
-            ["Missing Supabase config", "Configuration Error full screen", "Deep links ignored"],
-            ["Offline auth", "Typed: no internet / lost / timeout / can't reach server", "Retry online"],
-            ["Bad credentials", "Incorrect email or password…", "Re-enter / Forgot password"],
-            ["Email taken / weak password", "Taken / min length", "Client ≥8 vs server ≥6 mismatch possible"],
-            ["Email unconfirmed (if dashboard on)", "Please check your email…", "Verify → callback"],
-            ["Bad auth callback", "Verification failed… or silent ignore", "New link"],
-            ["Apple credential/nonce fail", "Unexpected credential / missing token…", "Retry Apple"],
+            ["Missing Supabase config", "Configuration Error", "Deep links ignored"],
+            [
+              "Offline auth",
+              "No internet connection… / The network connection was lost… / The request timed out… / Can't reach the server…",
+              "Retry online",
+            ],
+            ["Bad credentials", "Incorrect email or password. Please try again.", "Re-enter / Forgot password"],
+            [
+              "Email taken / weak password",
+              "An account with this email already exists… / Password needs at least 8 characters. (client) vs Password must be at least 6 characters. (server map)",
+              "Fix password / sign in",
+            ],
+            [
+              "Email unconfirmed (if dashboard on)",
+              "Please check your email to verify your account.",
+              "Verify → callback",
+            ],
+            [
+              "Bad auth callback",
+              "Verification failed. Please request a new link.",
+              "New link",
+            ],
+            [
+              "Apple credential/nonce fail",
+              "Unexpected credential type. / Missing nonce. Please try again.",
+              "Retry Apple",
+            ],
             ["taste_deck_v1 OFF", "GET STARTED only; Concierge pager page", "Legacy layout"],
             ["Skip Taste CTA", "Discover without teaching", "Open Taste later via pager"],
           ]}
@@ -213,9 +233,21 @@ export default function KuroMap3Journeys() {
         <BranchTable
           rows={[
             ["Offline, no card", "The deck is quiet without a connection.", "RETRY; auto on reconnect"],
-            ["Load stall ~8s / fail", "The deck is taking longer than it should.", "RETRY"],
-            ["Empty never-judged", "Deck empty — catalog grows", "Back to Discover"],
-            ["Exhausted after judging", "THE DECK IS EMPTY + count", "Leanings / BACK TO DISCOVER"],
+            [
+              "Load stall ~8s / fail",
+              "The deck is taking longer than it should. / The catalog didn't answer — try again.",
+              "RETRY",
+            ],
+            [
+              "Empty never-judged",
+              "The deck is empty — Kuro will deal more as the catalog grows.",
+              "Back to Discover",
+            ],
+            [
+              "Exhausted after judging",
+              "THE DECK IS EMPTY · You've seen everything / Kuro has — for now. · N titles judged",
+              "Leanings / BACK TO DISCOVER",
+            ],
             ["Signal RPC fail", "Signal didn't save — will retry", "Queued; flagged after 3 fails"],
             ["Undo expires", "Chip clears", "Judgment sticks"],
           ]}
@@ -259,7 +291,11 @@ export default function KuroMap3Journeys() {
             ["Save/progress fail", "Couldn't save / Update failed…", "Retry toast"],
             ["Link open fail", "Couldn't open link", "Other link"],
             ["No friends tracking", "No friends tracking this yet", "Need shared club"],
-            ["Comment fail", "Could not save/delete comment", "Retry; delete confirms"],
+            [
+              "Comment fail",
+              "Could not save comment. / Could not delete comment.",
+              "Retry; delete confirms",
+            ],
             ["Personalized/realm OFF", "Standard NTY; no Shelf/Gem", "Not an error — staged"],
           ]}
         />
@@ -299,11 +335,19 @@ export default function KuroMap3Journeys() {
         <BranchTable
           rows={[
             ["Browse offline empty", "COULDN'T LOAD + RETRY", "Reconnect auto-retry"],
-            ["Filters too tight", "NO MATCHES / CLEAR FILTERS", "Widen"],
-            ["Browse refresh fail", "Couldn't refresh…", "Stale grid kept"],
+            [
+              "Filters too tight",
+              "NO MATCHES or NO MATCHES FOR N FILTERS + Try different filters + CLEAR FILTERS",
+              "Widen",
+            ],
+            ["Browse refresh fail", "Couldn't refresh. Try again.", "Stale grid kept"],
             ["Search idle", "Begin your search for the extraordinary", "Type/chips"],
-            ["Search no hits", "NO RESULTS + suggestions", "Change query"],
-            ["Search service fail", "Often empty UI; service may set Search failed…", "Retry"],
+            ["Search no hits", "NO RESULTS (+ suggestions UI)", "Change query"],
+            [
+              "Search service fail",
+              "Search failed: {localizedDescription} (service); UI often empty",
+              "Retry",
+            ],
           ]}
         />
       </CollapsibleSection>
@@ -340,9 +384,21 @@ export default function KuroMap3Journeys() {
             ["Search no hits", "NO RESULTS", "Change query"],
             ["Load error online", "COULDN'T LOAD COLLECTION", "RETRY"],
             ["Load error offline", "YOU'RE OFFLINE…", "Reconnect; cached strip if data"],
-            ["Batch remove partial", "Removed N of M — K failed", "Retry remaining"],
-            ["Batch remove total fail", "Couldn't remove items…", "Reconnect"],
-            ["Batch remove confirm", "Remove N item(s)…?", "Cancel / destructive"],
+            [
+              "Batch remove partial",
+              "Removed N of M — K failed",
+              "Retry remaining",
+            ],
+            [
+              "Batch remove total fail",
+              "Couldn't remove items — check your connection",
+              "Reconnect",
+            ],
+            [
+              "Batch remove confirm",
+              "Remove N item(s) from collection?",
+              "Cancel / destructive",
+            ],
             ["Streaming filters OFF", "No SERVICE/LANG UI", "Staged — not broken"],
           ]}
         />
@@ -395,7 +451,11 @@ export default function KuroMap3Journeys() {
             ["Empty clipboard/library", "Toast EN/DE", "Add content first"],
             ["Nothing selected", "No items selected", "Select"],
             ["Apply success=false", "Failed to apply items + detail", "Fix/retry"],
-            ["Conflicts", "N conflict(s) — review needed + UNDO", "Review/undo"],
+            [
+              "Conflicts",
+              "N conflict(s) -- review needed (double hyphen) + UNDO; Profile AniList: N conflict(s) still need review.",
+              "Review/undo",
+            ],
             [">200 titles", "Partial import — first 200", "Another pass"],
             ["Undo fail", "Undo failed / Try again", "Retry"],
             ["Open title fail", "Couldn't find that anime/manga…", "Stay in Concierge"],
@@ -458,18 +518,26 @@ export default function KuroMap3Journeys() {
       <CollapsibleSection title="J8 non-happy — create/join" defaultOpen>
         <BranchTable
           rows={[
-            ["Empty list", "Watch together. Private by design.", "CREATE / JOIN"],
+            ["Empty list", "Watch together. Private by design. (two-line UI)", "CREATE / JOIN"],
             ["INVALID_NAME", "Name must be 1-80 characters.", "Fix"],
-            ["DESCRIPTION_TOO_LONG", "≤500 characters.", "Shorten"],
-            ["RATE_LIMITED create", "Too many create attempts…", "Wait"],
+            ["DESCRIPTION_TOO_LONG", "Description must be 500 characters or fewer.", "Shorten"],
+            ["RATE_LIMITED create", "Too many create attempts. Please wait a moment.", "Wait"],
             ["TOO_MANY_CLUBS", "You've reached the club limit.", "Leave another"],
             ["INVALID_CODE", "Invalid invite code.", "Recheck"],
-            ["CODE_EXPIRED", "Invite code has expired.", "New code"],
-            ["CODE_EXHAUSTED", "Usage limit reached.", "Ask owner"],
-            ["CLUB_ARCHIVED", "Club no longer active.", "Stop"],
-            ["CLUB_FULL", "Club is full.", "Max 20"],
-            ["ALREADY_MEMBER", "Already a member.", "Open list"],
-            ["RATE_LIMITED join", "Too many attempts…", "Wait"],
+            ["CODE_EXPIRED", "This invite code has expired.", "New code"],
+            [
+              "CODE_EXHAUSTED",
+              "This invite code has reached its usage limit.",
+              "Ask owner",
+            ],
+            ["CLUB_ARCHIVED", "This club is no longer active.", "Stop"],
+            ["CLUB_FULL", "This club is full.", "Max 20"],
+            ["ALREADY_MEMBER", "You're already a member of this club.", "Open list"],
+            [
+              "RATE_LIMITED join",
+              "Too many attempts. Please wait a moment and try again.",
+              "Wait",
+            ],
             ["UI vs deep link length", "Sheet needs exactly 8; link 6–12", "Use matching path"],
             ["Bad join URL", "Silent drop — no toast", "User sees nothing"],
           ]}
@@ -480,22 +548,34 @@ export default function KuroMap3Journeys() {
           rows={[
             ["Load offline/timeout", "You're offline. Reconnect to load this club.", "Retry"],
             ["Club gone", "This club no longer exists.", "Back"],
-            ["Stale refresh", "Refresh delayed / Offline + Retry", "Retry"],
-            ["DUPLICATE_ITEM", "Already in this rail", "Other title"],
-            ["RAIL_LOCKED", "Locked; admins only", "Ask admin"],
-            ["NOT_A_MEMBER", "No longer a member", "Rejoin"],
-            ["MEDIA_NOT_FOUND", "Not found in catalog", "Other title"],
-            ["NOTE_TOO_LONG", "Under 280 characters", "Shorten"],
-            ["RAIL_NOT_FOUND", "Rail no longer available", "Refresh"],
-            ["UNAUTHENTICATED", "Sign in again", "Re-auth"],
-            ["Search fail/empty", "Search failed… / No anime/manga found", "Retry"],
-            ["Vote fail", "Vote failed / Please try again.", "Retry"],
+            ["Stale refresh", "Refresh delayed / Offline (+ Retry)", "Retry"],
+            ["DUPLICATE_ITEM", "This title is already in this rail.", "Other title"],
+            ["RAIL_LOCKED", "This rail is locked. Only admins can add items.", "Ask admin"],
+            ["NOT_A_MEMBER", "You're no longer a member of this club.", "Rejoin"],
+            ["MEDIA_NOT_FOUND", "This title was not found in the catalog.", "Other title"],
+            ["NOTE_TOO_LONG", "Note is too long. Keep it under 280 characters.", "Shorten"],
+            ["RAIL_NOT_FOUND", "This rail is no longer available.", "Refresh"],
+            ["UNAUTHENTICATED", "Please sign in again to continue.", "Re-auth"],
+            [
+              "Search fail/empty",
+              "Search failed. Check your connection and try again. / No anime found / No manga found",
+              "Retry",
+            ],
+            ["Vote fail", "Vote failed + Please try again.", "Retry"],
             ["Rail/poll create error", "Raw localizedDescription", "Retry"],
             ["Poll create offline", "CTA disabled", "Reconnect"],
-            ["Duo Active tab", "Activity unlocks at 3 members…", "Invite"],
+            [
+              "Duo Active tab",
+              "Activity unlocks at 3 members — invite one more friend.",
+              "Invite",
+            ],
             ["Leave confirm", "Rejoin code / sole delete / ownership transfer note", "Cancel/Leave"],
-            ["Leave fail", "No longer a member / Could not leave", "Refresh"],
-            ["Add to Club from detail fail", "Could not load/add rails / No rails yet", "Ask admin"],
+            ["Leave fail", "Could not leave club. Please try again.", "Refresh"],
+            [
+              "Add to Club from detail fail",
+              "Could not load rails. / No rails yet. Ask an admin to create one. / No rails yet",
+              "Ask admin",
+            ],
           ]}
         />
       </CollapsibleSection>
