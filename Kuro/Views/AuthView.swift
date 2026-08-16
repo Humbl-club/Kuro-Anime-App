@@ -165,10 +165,6 @@ struct AuthView: View {
 
                 Spacer()
             }
-
-            AuthZenTV(height: bannerH)
-                .ignoresSafeArea(edges: .top)
-                .allowsHitTesting(false)
         }
     }
 
@@ -1340,36 +1336,6 @@ private struct AuthSceneryLoop: View {
         }
         .clipped()
         .allowsHitTesting(false)
-    }
-}
-
-// MARK: - Zen TV (static brand reveal at the foot of the loop)
-
-/// A photoreal vintage TV standing on a rock outcrop at the bottom edge of
-/// the scenery, the Kuro mark glowing on its screen like a broadcast ident.
-/// Fully static on purpose: the only motion in the sky band is the scenery
-/// loop drifting behind it.
-private struct AuthZenTV: View {
-    let height: CGFloat
-
-    var body: some View {
-        let tvWidth = min(height * 0.62, 240)
-        VStack {
-            Spacer()
-            ZStack(alignment: .bottom) {
-                // soft contact shadow so the rock grounds into the mist
-                Ellipse()
-                    .fill(Color(red: 0.16, green: 0.19, blue: 0.22).opacity(0.10))
-                    .frame(width: tvWidth * 0.66, height: tvWidth * 0.07)
-                    .blur(radius: 8)
-                Image("KuroZenTV")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: tvWidth)
-            }
-            .padding(.bottom, height * 0.07)
-        }
-        .frame(height: height)
     }
 }
 
