@@ -1,0 +1,4 @@
+{
+  "name": "Kuro",
+  "install": "npm ci --no-audit --no-fund"
+}
