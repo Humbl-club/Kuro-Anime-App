@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import os
 import re
 import sys
 
-ROOT = Path("/Applications/Kuro")
+# Resolve the repo root portably: honor an explicit override, otherwise derive
+# it from this file's location (scripts/quality-gates/ -> repo root). This keeps
+# the check working outside the original developer's machine.
+ROOT = Path(os.environ.get("KURO_ROOT") or Path(__file__).resolve().parents[2])
 APP_SWIFT_COUNT = len(list((ROOT / "Kuro").rglob("*.swift")))
 MIGRATION_COUNT = len(list((ROOT / "supabase" / "migrations").glob("*.sql")))
 
