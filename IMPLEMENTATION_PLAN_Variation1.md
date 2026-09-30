@@ -647,3 +647,8 @@ Phase 0 artifacts: `docs/superpowers/specs/2026-07-31-phase0-full-system-check.m
 - **393 realm corrections live** via conditional-ordering override layer (absorption-tracked); realm audit evidence in `reports/realm-audit/`.
 - **Round 2 pilot STARTED** (owner blessed slate by direction 2026-08-05): schema migration + parse pilot on compliant sites (Wrong Every Time, Manga Bookshelf, Fujitsu column). Medium = owner-session lane only; Japan Powered pending permission email (draft in `reports/critique-pilot/kincaid-permission-email.md`).
 - Owner items unchanged: veto pass (tool f026a849…), IMPORT_SECRET rotation, flag ramp, re-stale cadence, mahou-shoujo realm proposal (`reports/realm-audit/mahou-shoujo-realm-proposal.md`).
+
+
+### 2026-09-30 — Portable screen canvas
+
+Added `tools/screen-canvas/index.html` with 52 representative layout captures, bundled PNGs, offline data and source provenance. Open after downloading/cloning; no Simulator or localhost server needed for viewing. `scripts/export_screen_canvas.py` exports completed captures and rejects incomplete or missing assets. Capture, export, commit and push alongside UI changes to refresh GitHub. Initial captures include local original-app edits not bundled into this canvas-only commit. Anonymous/sample states and scroll/dialog coverage limits remain labeled. No app source or production changes. Validation: 52 unique frames, local asset references and Python/JavaScript syntax checked. Direct file opening could not be browser-tested because the browser tool blocks file URLs.

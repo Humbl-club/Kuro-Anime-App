@@ -1085,3 +1085,8 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 
 ### 2026-08-06 (later) — fix-up wave 2
 Fixed after the deep review: franchise sequels no longer leak into their own "more like this" rails; recap movies are linked into their series; a secret key used by the nightly jobs was rotated and every job re-armed (they had been silently failing for days); junk auto-generated descriptions were deleted and are being rewritten properly; deleted accounts now also erase Discover impression history.
+
+
+### 2026-09-30 — Portable screen canvas
+
+Added `tools/screen-canvas/index.html` with 52 representative layout captures, bundled PNGs, offline data and source provenance. Open after downloading/cloning; no Simulator or localhost server needed for viewing. `scripts/export_screen_canvas.py` exports completed captures and rejects incomplete or missing assets. Capture, export, commit and push alongside UI changes to refresh GitHub. Initial captures include local original-app edits not bundled into this canvas-only commit. Anonymous/sample states and scroll/dialog coverage limits remain labeled. No app source or production changes. Validation: 52 unique frames, local asset references and Python/JavaScript syntax checked. Direct file opening could not be browser-tested because the browser tool blocks file URLs.

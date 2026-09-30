@@ -1,0 +1,323 @@
+{
+  "source": "Current original checkout (includes local edits at capture time)",
+  "version": "11cca7897963e73edcdeefb8e538e176cfe068f21d59b26e9047497f964fa775",
+  "generation": "11cca7897963-1790731290",
+  "capturedAt": "2026-09-30 03:23:24",
+  "status": "Saved snapshot",
+  "frames": [
+    {
+      "id": "welcome",
+      "title": "Welcome",
+      "image": "welcome.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "signin",
+      "title": "Sign in",
+      "image": "signin.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "signup",
+      "title": "Create account",
+      "image": "signup.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "onboarding",
+      "title": "Onboarding",
+      "image": "onboarding.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "taste",
+      "title": "Taste",
+      "image": "taste.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "discover",
+      "title": "Discover",
+      "image": "discover.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "browse",
+      "title": "Browse",
+      "image": "browse.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "collection",
+      "title": "Collection \u00b7 anonymous",
+      "image": "collection.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "clubs",
+      "title": "Clubs \u00b7 anonymous",
+      "image": "clubs.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "search",
+      "title": "Search",
+      "image": "search.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "profile",
+      "title": "Profile \u00b7 anonymous",
+      "image": "profile.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "concierge",
+      "title": "Concierge",
+      "image": "concierge.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "createclub",
+      "title": "Create club",
+      "image": "createclub.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "joinclub",
+      "title": "Join club",
+      "image": "joinclub.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "rail",
+      "title": "Create club shelf",
+      "image": "rail.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "poll",
+      "title": "Create poll",
+      "image": "poll.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "filters",
+      "title": "Browse filters",
+      "image": "filters.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "services",
+      "title": "Streaming preferences",
+      "image": "services.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "genre",
+      "title": "Genre hub",
+      "image": "genre.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "onboarding1",
+      "title": "Onboarding \u00b7 2",
+      "image": "onboarding1.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "onboarding2",
+      "title": "Onboarding \u00b7 3",
+      "image": "onboarding2.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "onboarding3",
+      "title": "Onboarding \u00b7 4",
+      "image": "onboarding3.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "onboarding4",
+      "title": "Onboarding \u00b7 5",
+      "image": "onboarding4.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "genie",
+      "title": "Authentication \u00b7 Genie",
+      "image": "genie.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "browse-manga",
+      "title": "Browse \u00b7 Manga",
+      "image": "browse-manga.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "taste-manga",
+      "title": "Taste \u00b7 Manga",
+      "image": "taste-manga.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "club-rails",
+      "title": "Club \u00b7 rails \u00b7 sample",
+      "image": "club-rails.png",
+      "note": "Actual SwiftUI \u00b7 local sample club"
+    },
+    {
+      "id": "club-active",
+      "title": "Club \u00b7 active \u00b7 sample",
+      "image": "club-active.png",
+      "note": "Actual SwiftUI \u00b7 local sample club"
+    },
+    {
+      "id": "club-polls",
+      "title": "Club \u00b7 polls \u00b7 sample",
+      "image": "club-polls.png",
+      "note": "Actual SwiftUI \u00b7 local sample club"
+    },
+    {
+      "id": "club-settings",
+      "title": "Club \u00b7 settings \u00b7 sample",
+      "image": "club-settings.png",
+      "note": "Actual SwiftUI \u00b7 local sample club"
+    },
+    {
+      "id": "railitem",
+      "title": "Add title to club shelf",
+      "image": "railitem.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "import",
+      "title": "AniList import",
+      "image": "import.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "anime",
+      "title": "Anime detail",
+      "image": "anime.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "manga",
+      "title": "Manga detail",
+      "image": "manga.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "addanime",
+      "title": "Add anime to list",
+      "image": "addanime.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "addmanga",
+      "title": "Add manga to list",
+      "image": "addmanga.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "episodes",
+      "title": "Episodes",
+      "image": "episodes.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "chapters",
+      "title": "Chapters",
+      "image": "chapters.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "character",
+      "title": "Character detail",
+      "image": "character.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "staff",
+      "title": "Staff detail",
+      "image": "staff.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "studio",
+      "title": "Studio detail",
+      "image": "studio.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "author",
+      "title": "Author detail",
+      "image": "author.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "credits",
+      "title": "All credits",
+      "image": "credits.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "verdict",
+      "title": "Quick verdict",
+      "image": "verdict.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "cast",
+      "title": "Character directory",
+      "image": "cast.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "genres",
+      "title": "Genre picker",
+      "image": "genres.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "leanings",
+      "title": "Taste leanings",
+      "image": "leanings.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "providers",
+      "title": "Provider links \u00b7 empty",
+      "image": "providers.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "addclub",
+      "title": "Add to club \u00b7 anonymous",
+      "image": "addclub.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "quickactions",
+      "title": "Quick title actions",
+      "image": "quickactions.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "franchise",
+      "title": "Franchise path",
+      "image": "franchise.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    },
+    {
+      "id": "why",
+      "title": "Why this title \u00b7 sample explanation",
+      "image": "why.png",
+      "note": "Actual SwiftUI \u00b7 isolated anonymous preview"
+    }
+  ],
+  "limitations": "Initial viewports only. Club detail uses an empty local sample. Populated collections, deeper scroll positions, dialogs and account-specific states are not captured. Anonymous previews do not prove account behavior. Saved snapshot; GitHub changes only after refreshed captures are committed and pushed.",
+  "sourceHead": "697a5bc4548cc6b6492113f8481fb8bc8403030c"
+}

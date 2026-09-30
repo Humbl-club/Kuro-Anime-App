@@ -18242,3 +18242,8 @@ Autonomous run per `docs/superpowers/plans/2026-08-04-claude-code-autonomous-pha
 - IMPORT_SECRET rotated; all 11 secret-gated crons re-armed via Management API (they were 401ing on empty GUCs/stale literals — mirror flat 5 days, enrich dead, catalog imports silent since ~Jun 19). Owner: set the new IMPORT_SECRET in local env before running import scripts.
 - Purged 5,304 template-junk descriptors + 15,902 inherited delta rows; Groq regeneration pass running for the purged set.
 - Similarity store truth: 7,534/7,537 seeds built (wave-2's "63% missing" was a pre-rebuild measurement).
+
+
+### 2026-09-30 — Portable screen canvas
+
+Added `tools/screen-canvas/index.html` with 52 representative layout captures, bundled PNGs, offline data and source provenance. Open after downloading/cloning; no Simulator or localhost server needed for viewing. `scripts/export_screen_canvas.py` exports completed captures and rejects incomplete or missing assets. Capture, export, commit and push alongside UI changes to refresh GitHub. Initial captures include local original-app edits not bundled into this canvas-only commit. Anonymous/sample states and scroll/dialog coverage limits remain labeled. No app source or production changes. Validation: 52 unique frames, local asset references and Python/JavaScript syntax checked. Direct file opening could not be browser-tested because the browser tool blocks file URLs.
