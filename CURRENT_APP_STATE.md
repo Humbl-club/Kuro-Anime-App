@@ -18247,3 +18247,8 @@ Autonomous run per `docs/superpowers/plans/2026-08-04-claude-code-autonomous-pha
 ### 2026-09-30 — Portable screen canvas
 
 Added `tools/screen-canvas/index.html` with 52 representative layout captures, bundled PNGs, offline data and source provenance. Open after downloading/cloning; no Simulator or localhost server needed for viewing. `scripts/export_screen_canvas.py` exports completed captures and rejects incomplete or missing assets. Capture, export, commit and push alongside UI changes to refresh GitHub. Initial captures include local original-app edits not bundled into this canvas-only commit. Anonymous/sample states and scroll/dialog coverage limits remain labeled. No app source or production changes. Validation: 52 unique frames, local asset references and Python/JavaScript syntax checked. Direct file opening could not be browser-tested because the browser tool blocks file URLs.
+
+
+### 2026-09-30 — Copyable canvas screen references
+
+Each of the 52 canvas frames now has Copy reference (screen name/ID, SwiftUI source, screenshot path, capture fingerprint and edit instruction), Copy image (PNG clipboard) and Save PNG. Text clipboard denial opens a selectable reference; unsupported image copying points to Save PNG. All frame IDs have explicit source mappings. Updated both localhost template and portable export. Verified sign-in text clipboard contents and image/png clipboard entry in browser; JavaScript syntax passes. No native app source changes.

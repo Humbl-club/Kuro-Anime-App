@@ -16,3 +16,7 @@ The canvas shows its capture time. `manifest.json` records the captured source f
 4. Commit `tools/screen-canvas/` together with the corresponding UI changes, then push.
 
 `--watch` on the capture command refreshes local native captures when source files change. Export, commit and push are still required to update the copy on GitHub. Newly introduced routes need capture-registry entries. See `tools/live-preview/README.md` for the optional live localhost viewer.
+
+## Referencing a screen in another chat
+
+Use **Copy reference** to paste the screen identity, source file and screenshot path, then describe your changes. Use **Copy image** to paste the screenshot, or **Save PNG** to attach it where clipboard images are unsupported. Browser clipboard restrictions may require manually copying the selectable reference or using the PNG download.
