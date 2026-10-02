@@ -1,5 +1,7 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
+**Current local design study (2026-10-02):** Home v29 saves the owner-selected Artwork tab treatment: only a white Season N marker on main Anime images and an S-number stamp on mapped Also watching covers. Numbered season rows are removed from both sizes. Tapping the marker/compact cover opens the existing full season overview; episode progress remains separate. The comparison board marks Artwork tab as selected and reflects the same simplification. Approval applies to this season treatment, not the complete Home or implementation plan. Browser prototype only; no native/backend deployment.
+
 **Last updated:** 2026-08-06
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
@@ -18242,3 +18244,11 @@ Autonomous run per `docs/superpowers/plans/2026-08-04-claude-code-autonomous-pha
 - IMPORT_SECRET rotated; all 11 secret-gated crons re-armed via Management API (they were 401ing on empty GUCs/stale literals — mirror flat 5 days, enrich dead, catalog imports silent since ~Jun 19). Owner: set the new IMPORT_SECRET in local env before running import scripts.
 - Purged 5,304 template-junk descriptors + 15,902 inherited delta rows; Groq regeneration pass running for the purged set.
 - Similarity store truth: 7,534/7,537 seeds built (wave-2's "63% missing" was a pre-rebuild measurement).
+
+### 2026-10-02 — Selected artwork season markers
+
+Home v29 saves the owner-selected Artwork tab treatment: only a white Season N marker on main Anime images and an S-number stamp on mapped Also watching covers. Numbered season rows are removed from both sizes. Tapping the marker/compact cover opens the existing full season overview; episode progress remains separate. The comparison board marks Artwork tab as selected and reflects the same simplification. Approval applies to this season treatment, not the complete Home or implementation plan. Browser prototype only; no native/backend deployment. Checked 320/390/768px fit, main targets at least 44px high and small-cover targets 44×66px, correct full-season counts in details, preview independent of tracking, compact progress/Undo, and Manga preservation. Liked detail/Manga helper/progress functions remain identical. JS syntax and diff checks pass. No new/deleted repository files; design directory remains 65 files.
+
+### 2026-10-02 — Scoped Home design checkpoint
+
+Prepared a scoped local Git checkpoint of the selected v29 Home prototype, required sample data/artwork, linked reference board and focused run instructions (`tools/design-directions/INSTRUMENT_README.md`). Only relevant current-state/plan documentation is staged; unrelated working-tree changes remain local. No push or deployment. One run-instructions file added; design directory now contains 66 local files.

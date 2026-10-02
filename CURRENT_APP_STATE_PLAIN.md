@@ -1,5 +1,7 @@
 # Kuro — Current State (Plain English)
 
+**Current visual preview (2 October, v29):** Saved the selected artwork design. Main Anime images show only the white Season 1/2 tab; small covers show S1/S2. Removed all season-number rows from these cards. Tap to see the full season overview. This season treatment is selected; the wider plan remains incomplete. Local browser prototype only.
+
 **Last updated:** 2026-08-06
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
@@ -1085,3 +1087,11 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 
 ### 2026-08-06 (later) — fix-up wave 2
 Fixed after the deep review: franchise sequels no longer leak into their own "more like this" rails; recap movies are linked into their series; a secret key used by the nightly jobs was rotated and every job re-armed (they had been silently failing for days); junk auto-generated descriptions were deleted and are being rewritten properly; deleted accounts now also erase Discover impression history.
+
+### 2026-10-02 — Artwork season design selected
+
+Kept the white current-season label on images and removed the extra number rows on main and small cards. Full season lists remain in details. Saved this as the chosen season treatment. Checked phone/tablet fit, tapping through and progress/Undo; no native or backend release.
+
+### 2026-10-02 — Scoped Home design checkpoint
+
+Prepared a scoped local Git checkpoint of the selected v29 Home prototype, required sample data/artwork, linked reference board and focused run instructions (`tools/design-directions/INSTRUMENT_README.md`). Only relevant current-state/plan documentation is staged; unrelated working-tree changes remain local. No push or deployment. One run-instructions file added; design directory now contains 66 local files.

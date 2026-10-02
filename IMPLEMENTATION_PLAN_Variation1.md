@@ -1,5 +1,9 @@
 # Concierge "Modes Router" Plan (Variation 1)
 
+**Home research status (2026-10-02):** Home v29 saves the owner-selected Artwork tab treatment: only a white Season N marker on main Anime images and an S-number stamp on mapped Also watching covers. Numbered season rows are removed from both sizes. Tapping the marker/compact cover opens the existing full season overview; episode progress remains separate. The comparison board marks Artwork tab as selected and reflects the same simplification. Approval applies to this season treatment, not the complete Home or implementation plan. Browser prototype only; no native/backend deployment.
+
+**Home design status (2026-10-02):** Owner selected Artwork tab, simplified to current-season markers only on main/compact images. Applied to browser Home v29 and saved as the season-design decision. Liked detail overview preserved. Series draft INCOMPLETE; both implementation waves NOT STARTED.
+
 This file documents the idea of routing free-text "vibe" prompts into curated recommendation rails (modes), with the LLM used only as an optional presentation layer.
 
 ## Current status (as of 2026-08-06)
@@ -647,3 +651,11 @@ Phase 0 artifacts: `docs/superpowers/specs/2026-07-31-phase0-full-system-check.m
 - **393 realm corrections live** via conditional-ordering override layer (absorption-tracked); realm audit evidence in `reports/realm-audit/`.
 - **Round 2 pilot STARTED** (owner blessed slate by direction 2026-08-05): schema migration + parse pilot on compliant sites (Wrong Every Time, Manga Bookshelf, Fujitsu column). Medium = owner-session lane only; Japan Powered pending permission email (draft in `reports/critique-pilot/kincaid-permission-email.md`).
 - Owner items unchanged: veto pass (tool f026a849…), IMPORT_SECRET rotation, flag ramp, re-stale cadence, mahou-shoujo realm proposal (`reports/realm-audit/mahou-shoujo-realm-proposal.md`).
+
+### 2026-10-02 — Selected artwork season markers
+
+Home v29 saves the owner-selected Artwork tab treatment: only a white Season N marker on main Anime images and an S-number stamp on mapped Also watching covers. Numbered season rows are removed from both sizes. Tapping the marker/compact cover opens the existing full season overview; episode progress remains separate. The comparison board marks Artwork tab as selected and reflects the same simplification. Approval applies to this season treatment, not the complete Home or implementation plan. Browser prototype only; no native/backend deployment. Checked 320/390/768px fit, main targets at least 44px high and small-cover targets 44×66px, correct full-season counts in details, preview independent of tracking, compact progress/Undo, and Manga preservation. Liked detail/Manga helper/progress functions remain identical. JS syntax and diff checks pass. No new/deleted repository files; design directory remains 65 files.
+
+### 2026-10-02 — Scoped Home design checkpoint
+
+Prepared a scoped local Git checkpoint of the selected v29 Home prototype, required sample data/artwork, linked reference board and focused run instructions (`tools/design-directions/INSTRUMENT_README.md`). Only relevant current-state/plan documentation is staged; unrelated working-tree changes remain local. No push or deployment. One run-instructions file added; design directory now contains 66 local files.
