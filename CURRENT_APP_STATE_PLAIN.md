@@ -1,14 +1,117 @@
 # Kuro — Current State (Plain English)
 
+**Codebase reorganized on this Mac (5 October 2026):** The modular plan was carried out locally (not committed, not released, nothing changed on the live servers); the "has not started" note in the entry below is out of date. The old all-in-one data file (`SupabaseService`, 13 files) is gone. Each area of the app (sign-in, saved titles, catalogue, Discover, search, Collection, releases, providers, friends' activity, clubs, imports, Concierge, Taste, telemetry) now has one clear owner in its own folder, all connected in one place, and saved titles live in a small tested package. What users may notice once this ships: ratings save correctly again (the app used to send 10–100 where the database only accepts 1–10); an import never applies itself automatically to a title you already track, and cannot be applied until your list has loaded (this closes a gap where it could overwrite an existing entry); leaving or losing access to a club clears that club's private data on your phone; signing out stops the old account's work before anything else, and deleting your account clears the phone only after the server confirms. Screens now open details, the list editor and club pages through one shared navigation path, and the detail pages share their common parts; this has only been checked by tests of the rules, not by tapping through on a simulator or phone. Prepared but not deployed: safer server-side account deletion and imports, and three club privacy fixes. Still open: a few owner decisions (club privacy, user-id format, club error codes), screen/phone testing, and any capacity testing; the Home/detail plan's own goals are not met by this work. Exact test results and check status: [execution ledger](docs/plans/2026-10-05-modular-architecture-execution-ledger.md).
+
+**Modular codebase execution brief (2026-10-05):** [Claude Code execution brief](docs/plans/2026-10-05-modular-architecture-plan.md) now starts with the prompt to implement the full architecture using several coordinated specialist agents and an independent reviewer. Priorities are safe/correct behavior 35%, maintainability 25%, compatibility 20%, useful verification 10% and simplicity 10%. Every required success gate must pass; a score cannot excuse a failure. Account-switch safety comes first, followed by clear ownership, one Library writer, useful modules, actual screen/backend integration and retirement of the old shared service. Testing targets important failures and runs broader checks on the final integrated code, rather than repeatedly testing everything. Includes no work-duration estimates or schedules. This updates the execution instructions only; app refactoring and its checks have not started.
+
+**Production handout (2026-10-05):** Created a start-ready Claude Code document for the selected Home and detail redesign. It first requires a database/call audit, then the same two larger waves. It includes thousands-of-users tests, safe fast/offline edits, club-removal privacy, faithful AniList/MyAnimeList imports and exact visual-reference files. This is the implementation contract, not a completed app update; no native/backend work or production release happened.
+
+**Home/detail master plan finalized (2026-10-04):** The existing master plan is ready for another executor: first build the data/import/sync foundation, then wire and qualify Home and both detail pages. It includes every control, real personalized import results, season/source matching, story copy, music, private-club comments, offline progress, errors and tests. The design stays as currently selected. Planning is complete for this scope; the native app/database work has not started and nothing was released.
+
+**Master-plan retention (2026-10-04):** At Max’s request, the existing singular series/Home master plan now explicitly lists ID-based Anime/Manga matching and real Manga story overview copy in its decision register. Existing detailed requirements and success criteria are retained. Documentation-only; no prototype/native/backend changes. v0.8 remains INCOMPLETE, exactly two waves/16 tasks, native/backend NOT STARTED.
+
+**Manga story overview (2026-10-04):** All six books in the local Library preview now have a short introduction to their actual story. Longer context stays behind About this story. The liked homepage stays as it is. Checked the six pages, opening/closing without changing chapters, and the existing anime season descriptions. Anime-to-manga matching should use verified source IDs and adaptation links; names only help search. The importer has part of this foundation, but missing links still need a safe retry path. This is a browser prototype change, not a native app or database release; the two-wave plan remains incomplete.
+
+**iPad preview recovery (2026-10-03, 21:34 Berlin):** Owner reported the replacement link did not work. The previous8814 listener and temporary binary were absent; the cage-sustained-copy-when link did not resolve. Restored the same45-file allowlisted preview with official Cloudflare2026.9.3 in the visualization runtime folder, using a detached subprocess rather than a foreground chat-terminal session. Current link: https://ratio-yarn-raise-scholarships.trycloudflare.com/instrument.html?switch=poster&medium=manga. Original automatic stop remains4October02:39 Europe/Berlin; no renewed duration, recurring service or expanded public files. Fresh HTTP200 for HTML/CSS/Instrument/Library modules and404 for .env/current-state docs. Browser tool is currently unavailable, so no new screenshot, Safari or iPad visual proof claimed. No UI/native/backend source changes; two-wave v0.8 implementation plan remains INCOMPLETE and unstarted.
+
+**Temporary preview restored (2026-10-03):** Browser/app restart stopped the earlier preview and removed its temporary binary/screenshot. The old trees-marc-amongst-obtain link is unavailable. Restored the same45-file design-only allowlist via official Cloudflare2026.9.3; current link: https://cage-sustained-copy-when.trycloudflare.com/instrument.html?switch=poster&medium=manga&embed=1. Only the remaining authorized duration is used, still stopping4October02:39 Europe/Berlin. No account/backend data, share-scope expansion, recurring automation or TTL renewal. Replacement public page and loaded artwork verified; original Coming Up local/browser checks remain valid.
+
+**Coming Up is visible sooner (3 October 2026):** Added a small illustrated Coming Up strip beneath the Anime/Manga switch, before your current titles. It shows what is next and how many releases are in the calendar. Tap once to reach the full calendar below. Your six reads and chapter buttons keep their size. Unknown dates stay labelled pending; empty accounts and Taste show no invented schedule. Checked small and regular phone browser sizes, keyboard access and busy/unknown-date states. The same temporary phone link reflects the change after refresh. This is a browser design preview; the native app and backend are unchanged. Your review of the new strip is still open.
+
+**Temporary iPhone preview (3 October 2026):** Shared the current sample design through a temporary public link: https://trees-marc-amongst-obtain.trycloudflare.com/instrument.html?switch=poster&medium=manga&embed=1. It shows the phone layout directly and supports the current detail pages. Only preview files/artwork/fonts are shared. Checked public loading and phone-width rendering. It stops by4October02:39 Berlin time, or earlier if the studio Mac/server stops. Native app/backend unchanged.
+
+**Library tracking reworked for review (3 October 2026):** Removed the chosen-book bar and repeated Open buttons. Each book now has its own chapter counter and advance button beneath equal artwork. Its cover and title open details. You can update any book immediately without selecting it or leaving Home. Checked local phone fit, correct pages, independent updates, failure/completion/Undo and empty/caught-up states. The new proposal still needs your review; native app/backend unchanged.
+
+**Choose and open are independent (3 October 2026):** Tap any part of a book to choose its chapter controls without leaving Home. Every book has a separate generous Open button beneath it, so its details are nearby. Opening another book does not change your chosen read or chapter. Closing returns focus to its Open button. This adds a little shelf height. Checked local phone layouts, independent selection/navigation, keyboard/focus and chapter failure/completion/Undo. Native app/backend unchanged; physical-device touch testing remains open.
+
+**Open a book directly (3 October 2026):** Tap anywhere on a book—cover, title or chapter—to open its detail page. The shared chapter controls follow the book you opened. Closing returns you to that book without changing progress. The bar’s Details button remains an optional shortcut. Checked phone fit, correct pages, keyboard/focus return and chapter failure/completion/Undo in the local browser prototype. Native app and backend unchanged; physical touch gestures still need device testing.
+
+**Library is easier to tap (3 October 2026):** A book’s cover, name and chapter now all do the same thing: select its reading controls. Details is a separate labelled button beside the selected name. This removes the need to aim at nearby areas with different actions. Checked small and regular phone layouts, detail opening/focus return, keyboard selection, chapter failure, completion and Undo. This is a local browser preview; native app/backend unchanged.
+
+**Library is the selected Manga direction (3 October 2026):** You chose Library. It is now the default Manga Home in the local Instrument preview. Covers keep equal sizes, with aligned title/chapter labels and a clearer selection frame. The shared controls have a readable Next button and show the available chapter total when known. Arrow keys choose another cover without changing progress. Checked phone fit, title selection, failure, completion, Undo, unknown totals, details/clubs/navigation and reduced motion. Open `manga-library.html`. This is browser design work; the native app and backend have not changed.
+
+**Four genuinely different Manga Home proposals (3 October 2026):** You rejected Crosscut's offset and unequal artwork. The new comparison uses equal artwork frames in each option: Library with one shared chapter control area, Chapter Board for tracking several reads at once, Reading Journal organised by sample recency, and Club Room for shared versus solo reading. Each works with chapter updates, failure, completion, Undo, title details and private club access. Checked phone fit and reduced motion. The expandable comparison notes explain the purpose and tradeoff for each. Recency/activity is fictional. These remain proposals; the native app, backend and default Home have not changed.
+
+**New Manga composition for review (3 October 2026):** You rejected the previous Edition, Contact and Index choices. The new local Crosscut proposal changes the composition: artwork panels alternate in width, with chapter controls fitted into their edges and names/readers in the white space below. Poster, Anime and Sunday Club keep their existing design. Preview `manga-crosscut.html`; previous choices are marked rejected. Checked small-phone fit, chapter updates, failure, completion and Undo, unknown chapter totals, busy releases, empty accounts and reduced motion. This is a new proposal, not an approved native redesign or backend change.
+
+**Three complete Manga Home choices (3 October 2026):** Built Edition, Contact and Index as local previews you can compare side by side. Edition gives two priority reads a publication spread; Contact makes all six artworks a dark gallery; Index makes a longer reading list quick to scan. Each has chapter controls, upcoming releases, Sunday Club, existing details and Taste. Tested narrow-phone fit, failed chapter changes, completion and Undo, busy release dates, new accounts and caught-up states. They are proposals for review. The existing default Home, native app and backend are unchanged.
+
+**Fresh design inspiration (3 October 2026):** Added a visual reference board with actual examples from mymind, !Boring, Panels, MusicHarbor and Sublime. Each example explains one idea for Kuro: distinctive artwork, satisfying chapter changes, readable collections, multiple releases and private club thoughts. The board works at phone widths and opens the original sources. The existing Home has not changed; this is research for the next design decision, not a finished app redesign. Videos and images need internet, and native touch/haptics have not been tested.
+
+**Manga reading jackets (2026-10-02, v53):** The two lead covers have more room, with chapter controls attached as small paper bookmarks. The other four reads fit into two compact columns, making more of the library visible at once. Artwork, chapter progress, new chapters and club readers stay connected. Phone fit, failure/undo, caught-up and empty-account behavior passed local checks. This remains a design proposal; the released app is unchanged.
+
+**Lighter Manga reading layout (2026-10-02, v52):** The large dark shelf was rejected. Manga Home now pairs two full covers with chapter numbers and a small update key in the margin. The other four reads form a compact list below. The composition uses spacing, cover proportions and chapter placement rather than a colored block. Coming Up and Sunday Club stay available afterward. Narrow phone fit, progress, undo, failed updates and club access passed local checks. This is a new visual proposal; the released application is unchanged.
+
+**Manga ink shelf proposal (2026-10-02, v51):** You rejected the previous Manga spreads. This version presents all current reads together on one continuous dark shelf, with full artwork, a chapter action and club readers for each title. The shelf reaches the page edges; Anime retains its existing design. Phone fit, failed changes, completion, undo, unknown chapter totals and club access passed local checks. This is a new proposal awaiting your review, and it has not changed the released app.
+
+**New Manga proposal (2026-10-02, v50):** Manga now uses reading spreads with a full cover beside your chapter number, new-chapter notice and club readers. The chapter action remains one tap; local failure, completion, undo and phone-size checks passed. Anime keeps its existing layout. The artwork inside the Anime/Manga words is currently taken from the first fixed sample title, so it is not yet different for each real user. A stable pick from each person's active list is proposed for the real app. This is a local design proposal awaiting review; the released app is unchanged.
+
+**Poster selected and polished (2026-10-02, v49):** You chose the Poster direction. The preview now opens with its artwork-filled Anime/Manga lettering. The type is slightly larger, the other medium stays readable, the selection line is finer, and card/button corners are more consistent. Anime and Manga still have distinct layouts. Phone-width, switching, keyboard, reduced-motion and Home/Taste checks passed locally. This polish is ready for your review; it has not changed the released app.
+
+**Five different visual styles (2026-10-02, v48):** The comparison now shows five directions: a dark cinematic Home, bold artwork-filled lettering, a glass control on the artwork, vertical page-edge tabs, and compact tactile keys. Each is interactive and scrollable, with reasoning tucked under the preview. All five work with Anime and Manga at narrow phone width and support keyboard selection and reduced motion. These are local proposals awaiting your choice; the released app is unchanged.
+
+**Frames and pages material study (2026-10-02, v47):** The switch now has two custom forms: smoked glass for Anime and folded paper for Manga. They sit on the page without toggle boxes; the chosen form settles into place and its label stays clear. Labels and buttons work even when the generated image fails. Local phone fit, selection, reduced motion and image failure/recovery checks passed. New artwork and its prompt are saved in the project. This remains an unapproved browser proposal; the released app is unchanged.
+
+**Five compact switch options (2026-10-02, v46):** The rejected header switch is replaced in the comparison by five approaches: Margin, Exposure, Relay, Interlock and Signature. Each sits below navigation, keeps both media one tap away and uses a different material or layout. Brief reasoning is available beneath each preview. All five passed local phone-fit, tap/keyboard and reduced-motion checks. These are proposals for review; the released app is unchanged.
+
+**Compact Home switch (2026-10-02, v45):** Anime/Manga now share one small control in the header, leaving more space for titles below. The separate selector row is removed. Phone fit, equal tap targets, keyboard switching, Taste navigation and reduced-motion behavior were checked locally. This remains a design proposal, not a change to the released iOS app.
+
+**Two replacement switch choices (2026-10-02, v44):** The rejected generated banner is replaced in the comparison by Shelf and Masthead. Shelf gathers sample title covers into two choices; Masthead gives the current medium a larger editorial name. Both switch between Anime and Manga. Phone-width, keyboard and reduced-motion checks passed locally. These remain proposals; the iOS app and backend are unchanged.
+
+**Custom editorial switch (2026-10-02, v43):** The switch now uses an original generated scene that changes from painted Anime to inked Manga, with editorial typography and real text buttons. Phone sizing, selection and missing-image recovery were checked. The new artwork, fonts, license and generation prompt are saved in the project. This remains a local design proposal.
+
+**New Manga Home direction (2026-10-02, v42):** Manga now opens like a folio: two full covers, chapter controls attached as bookmarks, your club readers beneath, and compact rows for the rest of your list. The other medium is a small edge tab beside the page heading. Sunday Club is retained. Phone layouts and simulated progress failures were checked. This is a local design proposal awaiting review.
+
+**New switch choices (2026-10-02, v41):** The three rejected switches have been replaced with a film-and-paper ribbon, a turning media dial, and expanding artwork windows. Each is interactive in the local comparison. Phone fit, taps and keyboard access were checked. These are design proposals awaiting your review, not changes to the released app.
+
+**Manga desk and switch studies (2026-10-02, v40):** Local Manga Home now uses wide reading cards with full-cover artwork, prominent bookmark counts and club-reader context. Coming-up material refined; Sunday Club rendering retained. Added `tools/design-directions/switch-options.html` with three live proposed switch styles: Splice, Fold and Lens. Query parameters select each style; none is owner-approved yet. Moved the existing page-swipe handlers inside the prototype closure to fix their inaccessible state references. Checked 320px fit, matched main heights, chapter failure/retry/Undo, all three medium tap paths and Fold keyboard arrows. Browser proposal only; no native/backend change.
+
+**Manga materials and motion (2026-10-02, v39):** Local Manga Home adds a low-opacity wash from the two featured artwork palettes, softer card/control outlines, bookmark-shaped chapter accents, settling cover presses and a restrained chapter-number page-turn animation. Shelf artwork receives a once-per-session reveal through the existing observer; Reduce Motion disables nonessential motion. Checked 320px fit, chapter increment/Undo and reduced-motion CSS; JavaScript syntax/diff checks passed. Browser prototype only.
+
+**Manga Home shelf refinement (2026-10-02, v38):** Local Manga Home replaces the plain shared spread with two matched individual book frames, artwork-derived paper materials, inset chapter controls and coordinated compact shelf tiles. Covers retain their full composition; reader/new-chapter context remains available. Anime unchanged. Browser checks: equal main-card heights, no horizontal overflow at 320/390px, 44px main progress targets, simulated failure/retry/Undo. Prototype only; native/backend/offline execution remains planned.
+
+**Horizontal detail and offline plan (2026-10-02, v37):** Corrected the owner request to a shallow full-width Anime image, rather than a taller portrait header. Manga retains a compact book opening and refined bookmark/next-chapter controls. Plan v0.8 remains INCOMPLETE with the same two waves; adds durable account-scoped progress outbox, idempotent revision-checked server writes, reconnect/backoff, account isolation, Undo and conflict criteria. Inspected native progress writes have no durable queue; offline support is planned, not implemented. Local browser checks: 320px Anime/Manga fit and simulated chapter failure/retry/Undo; no native/backend changes.
+
+**Home/Taste and import planning (2026-10-02, v36):** Local detail artwork is larger and joined to the Anime header; Manga uses a larger book-like cover. Existing recommendation cards now live on a separate Taste view, with Home reserved for tracking, upcoming and clubs. New-account Home has an honest import-first empty state. The existing two-wave plan is extended to v0.7 (INCOMPLETE) with structured resumable import, incremental Home revisions, release evidence/precision, provider permission and coverage gates, data contracts and failure/performance criteria. AniList current published terms restrict competing tracker use; expansion requires resolving permission. No native/backend execution or release.
+
+**Anime opening polish (2026-10-02, v35):** Local Instrument Anime details now give the cover up to 160px of width, retain the artwork-derived header colour, and show one season-specific hook before an expandable synopsis. Manga presentation is unchanged. Verified 320/390px dialog fit, synopsis disclosure and season-specific copy switching; JavaScript syntax and diff checks pass. Browser prototype only, not native or deployed. The existing two-wave plan remains INCOMPLETE.
+
+**Artwork continuity and Manga structure (2026-10-02, v34):** Local Instrument now shares saved artwork palettes between Home and details, preserving the approved AoT blue and Demon Slayer teal. Added deterministic `build_art_materials.py` and generated `instrument-art-materials.js` (24 artwork palettes; minimum measured white/base contrast 7.41:1). Manga has chapter bookmarks without Parts navigation. Jujutsu Kaisen links Anime and Manga internally; the finished-season guide never changes reading or anime progress. Missing season images use series artwork; chapter mappings remain unverified. Existing plan v0.6 stays INCOMPLETE with native/backend waves NOT STARTED. No native changes or deployment.
+
+**Detail refinement (2026-10-02, v33):** Local prototype introductions now follow the inspected season/part. Club presentation is artwork-led with “Between us.”, expandable member statuses, retained spoiler disclosures and a redesigned “Leave a thought” entry. Source review confirms flat shared-club title comments/editing/reactions, not reply threads or individual-club rooms; persisted season spoiler scope remains planned. Existing plan v0.5 stays INCOMPLETE. No native/backend changes.
+
+**Detail clubs and manga handoff (2026-10-02, v32):** Local detail prototype now separates shared-club watching/reading/finished activity from club-only comments, with collapsed spoilers and a local-only editable comment preview. Season manga guides distinguish start, end and recommended continuation; unverified chapters remain unknown. Existing two-wave plan is v0.4 and INCOMPLETE. Browser checks covered 320/390/768px fit, empty comment validation, save/edit, failure/retry, spoiler disclosure, new-account omission and reduced-motion navigation. Native/backend/privacy enforcement and exact chapter mappings remain unimplemented by this change.
+
+**Detail polish (2026-10-02, v31):** Local browser detail mockups now have a compact artwork-lit opening, connected season content, next-episode/chapter-first rows, separate completion action, floating Undo and portrait/bio feedback. Extra copy expands on demand; Manga keeps paper styling. Existing series plan extended to v0.3, still INCOMPLETE with two waves. Cover thumbnails and OP/ED stamps are honest artwork fallbacks; no verified chapter mapping or new ingestion. Approved Home markers retained. Native/backend unchanged.
+
+**Detail preview and plan extension (2026-10-02, v30):** Extended the existing [Series and Home rebuild draft](docs/plans/2026-10-02-series-and-home-rebuild-DRAFT.md) to v0.2, still INCOMPLETE with the same two waves and 16 tasks. Added season-scoped detail hierarchy, cast/credits, music source verification, manga continuation mapping, bounded enrichment/caching and failure-path success criteria. Browser cards now open richer details; Jujutsu Kaisen and Chainsaw Man are the main examples. New `instrument-detail-data.js` and seven public catalogue character images support fixtures. Spotify buttons are labelled search links; exact continuation chapters remain unverified. Approved Home markers retained. No native/backend/production implementation.
+
+**iPad review (1 October):** The new !Boring reference board shows screens and animated examples from Calculator, Habits, Timer, Weather and Camera. The existing Home is also available through an approved temporary link for 12 hours. Selected reference ideas are now applied in the Home browser prototype; the native app remains unchanged.
+
 **Current visual preview (2 October, v29):** Saved the selected artwork design. Main Anime images show only the white Season 1/2 tab; small covers show S1/S2. Removed all season-number rows from these cards. Tap to see the full season overview. This season treatment is selected; the wider plan remains incomplete. Local browser prototype only.
 
-**Last updated:** 2026-08-06
+**Series rebuild planning (2026-10-02):** [Series and Home rebuild draft](docs/plans/2026-10-02-series-and-home-rebuild-DRAFT.md) is explicitly **INCOMPLETE**, with 16 tasks in exactly two waves: catalogue/import foundation, then UI integration and staged delivery. Both waves are NOT STARTED. The draft includes dependencies, success criteria, failure cases, open decisions and space for further owner requirements. No execution or deployment is authorized by the draft.
+
+**Latest review (26 September):** [Read the short visual brief](docs/research/2026-09-26-kuro-plan/MAX_BRIEF.pdf) or [the complete research and plan](docs/research/2026-09-26-kuro-plan/KURO_FULL_REVIEW.pdf). The new audit covers the app, server functions, database and maintenance workers. Small list edits trigger broad reloads; account changes and failed requests need better isolation; background recommendation jobs do substantial repeated work. Some data needed for trustworthy releases/music is missing or stale. The execution prompt is a draft until the screens are agreed. Nothing was implemented or deployed.
+
+**Latest owner direction — 26 September 2026:** Animation belongs to welcome/authentication only. Preserve top navigation and swiping; persist Anime/Manga selection across screens and requests; make Home distinct from Discover/search. Collection is a visual shelf with statuses and optional named shelves. Social relationships are club-only; profiles show identity by default and activity only when enabled. Earlier first-login, Home, agenda, Collection and email concepts, including the moving-landscape Home, are withdrawn. Exact screen layouts and navigation order remain to agree. No implementation or rollout is authorized by these planning documents.
+
+**Approved welcome reference (2026-09-25):** Max confirmed GitHub `b943e457` on `codex/kuro-onboarding-no-tv` as the intended welcome/onboarding: painted scene, grouped wordmark/headline, TV removed. Preserve that composition; the separate local 72%-height composition edits remain untouched and are not the approved baseline. Email/auth logic matches the reference; improvement proposals concern the form and signed-in experience. The GitHub upload is verified, while TestFlight/public release and installed visual equivalence remain unverified. The detailed review now consolidates market, monetization and design decisions; no app implementation.
+
+**Last updated:** 2026-10-05 (codebase reorganized locally, not committed or deployed; Home browser prototype 2026-10-02; installed-app status is separate)
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 93 app Swift files and 232 SQL migrations are in the repo today.
+**Current inventory:** 129 app Swift files, 14 package Swift files and 235 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
+
+**Revised research for Max:** Start with [the two-page visual brief](docs/research/2026-09-25-anime-tracking/MAX_VISUAL_BRIEF.pdf): product priorities first, revenue second. The [47-page detailed report](docs/research/2026-09-25-anime-tracking/RESEARCH_AND_DECISIONS.pdf) draws on 110 source records across 37 hosting domains, with 18 product and 10 monetization decisions. Six research lanes broadened coverage beyond AniList to MAL, MyAniList, Anime-Planet, MangaBaka, Kitsu, LiveChart, other forums and app reviews. Proposed direction: dependable history, easy daily use and optional depth; keep Kuro free and test useful book referrals or clearly labelled publisher-funded samples. Revenue examples are assumptions, not earnings forecasts. No features or partnerships were launched.
+
+
+**Earlier design review:** retained as evidence. The previous screen studies are withdrawn; use the current brief linked above. Approved welcome stays, animation stops at authentication, and signed-in screens need a new agreed visual pass.
+
+**What the fresh checks found:** Taste and club/friend features are enabled, while personalized discovery, extra realm shelves and provider filters remain switched off for normal rollout. The catalogue is large, but upcoming-release information is sparse: only five future anime dates, none within a week, and no manga schedule dates. This needs a data-quality investigation before a reliable personal calendar can launch. Existing progress/list functions also need targeted checks, including a rating-scale mismatch that can cause saves to fail. The phone has build 19; the source says build 17, so they cannot be assumed identical. Its screen preview remained black, and current TestFlight/public-release status was not verified. No app behavior or live data was changed.
 
 ---
 
@@ -37,7 +140,7 @@ Kuro is a curated anime + manga app. It lets users browse premium picks, keep li
 - Local Mac synopsis worker continuously improves weak descriptions and writes enhanced copy back to the backend (without overwriting raw source text)
 - Separate local Mac catalog-safety worker scans catalog records for pornographic signals and writes safety states/open-gap reports (independent from synopsis pipeline)
 - Images are mirrored to a CDN for speed
-- Works offline (shows a banner when you lose internet)
+- Shows cached content with an offline banner; this is not a promise that list edits can be saved offline
 
 ---
 
@@ -398,7 +501,7 @@ flowchart TD
 
 - **App UI code:** `Kuro/Views/`
 - **Main navigation:** `Kuro/ContentView.swift`
-- **Data + API calls:** `Kuro/Services/SupabaseService.swift`
+- **Data + API calls:** one folder per area since 5 October 2026: `Kuro/Identity/` (sign-in, sign-out, account deletion), `Kuro/Library/` + `Packages/KuroModules/` (your saved titles), `Kuro/Catalog/`, `Kuro/Discovery/`, `Kuro/Search/`, `Kuro/Collection/`, `Kuro/Releases/`, `Kuro/Providers/`, `Kuro/Social/`, `Kuro/Clubs/`, `Kuro/Imports/`, `Kuro/Concierge/`, `Kuro/Taste/`, `Kuro/Telemetry/`. Everything is connected in one place: `Kuro/Composition/AppComposition.swift`. The old all-in-one `SupabaseService.swift` no longer exists. Map and how-to: `docs/modules/README.md`.
 - **Backend SQL changes:** `supabase/migrations/`
 - **Legacy DB fixes:** `supabase/migrations/20260206143000_fix_legacy_tags_and_comments.sql`
 - **Foundation schema:** `supabase/migrations/20250109_remote_applied_placeholder.sql` (baseline core tables; already in prod migration history)                                                                                        
@@ -443,6 +546,14 @@ Before code changes are committed, automated checks run to catch common problems
 
 These run automatically so that problems are caught before they reach users.
 
+Since 5 October 2026 the check list (`scripts/quality-gates/run_all.sh`) also includes:
+- **Structure check** (`check_architecture.sh`): stops anyone from bringing back the old all-in-one service, reading feature switches through a global shortcut, letting screens talk to the database library directly, or writing saved-title changes outside the one Library writer.
+- **Library package tests** (`test_packages.sh`): fast tests of the saved-titles rules and account switching that run on the Mac without a simulator.
+- **Concierge rules run for real**: the import parser and mood router checks now run the actual backend rules instead of a copy.
+- **Count check**: also counts the files in the new `Packages/` folder.
+
+A separate, safe database check (`scripts/db/run_local_db_tests.sh`) builds a throwaway database on the Mac, checks who may read or change what, and then deletes it. It refuses to run against the real (production) database. It uses a reviewed copy of the database layout, not a full rebuild from every historical change, so it does not prove the live database matches.
+
 ---
 
 ## 15) Security hardening (production-readiness session)
@@ -474,6 +585,12 @@ These items were identified during the production-readiness review but require m
 - **Disable email confirmations** (1 step — required so new sign-ups are authenticated immediately):
   1. Auth → Email → turn OFF "Confirm email" (email verification is no longer required for sign-up)
 - **Image mirroring backlog**: Only a small fraction of catalog images have been mirrored to our CDN so far (anime 2.8%, manga 1.4%, characters 0.2%, staff 0.5% as of 2026-07-31). The pipeline was unblocked on 2026-07-31 (see section 6), so this is now a matter of letting the nightly jobs catch up over time.
+- **Codebase reorganization follow-ups (5 October 2026)** — prepared but NOT deployed, each needs an explicit go-ahead:
+  - Safer account deletion on the server: it reports failure instead of "success" when a cleanup step fails, can be retried, and also removes old comments. Needs a few read-only checks on the live database first, otherwise every deletion could fail.
+  - Safer imports on the server: an import update no longer wipes your rating or notes (one kept exception: an import line with a season/episode but no notes still writes "S1E5"-style text into anime notes), and adds or status updates without an episode number, which most likely failed until now, will succeed; Undo only reverts what the import changed. This changes import results visibly and needs approval.
+  - Three club privacy fixes in the database: members can no longer promote themselves to owner, only owners/admins can create rails, and strangers can no longer react to comments.
+- **Owner decisions still open**: whether club members should be able to see each other's raw votes and reactions directly; whether leaving or being removed from a club should stop the same invite code from working again (today it does not); a read-only check of how user ids are stored (upper- vs lower-case) before changing what the app sends; and how to make the club error codes reach the app (a library mismatch currently drops one kind of error detail).
+- **Not tested yet**: tapping through the screens on a simulator or a phone (16 navigation smoke journeys are listed in `docs/modules/README.md`), real sign-in/sign-out against the live service, live updates after leaving a club, and any load or capacity testing.
 
 ---
 
@@ -529,6 +646,12 @@ A batch of lower-priority production improvements was completed across the backe
 ---
 
 ## 18) Change Log (append-only)
+
+- 2026-09-25, design review: Added the full current-product review, two-page visual brief and clickable phone proposals. Checked live feature settings and catalogue coverage, identified tracking/auth/source issues, and distinguished phone build 19 from source build 17. No app implementation, deployment or account changes.
+
+- 2026-09-25: Added the detailed anime/manga tracking-market research and a one-page visual brief for Max. Both include source links and separate reported problems from proposed changes. Corrected the existing local migration-file count to 235. No app behavior or live services changed.
+
+- 2026-09-25, revised edition 02: Rebuilt the research with six sub-agents, much broader site coverage and a dedicated free-to-user monetization assessment. The two-page brief replaces the first one-page version; the full report explains 28 proposed decisions, partner terms, realistic financial assumptions and remaining access/permission gaps. The earlier paid-feature suggestion is withdrawn. No app behavior, live services or external accounts changed.
 
 - 2026-08-06: **Independent deep review + same-day fixes**: An outside reviewer ran two adversarial audit waves (11 agents, everything re-checked live against the real backend) and found the engineering record honest — but also real problems, fixed the same day. **Security**: a leftover permission let any signed-up user inject fake recommendation edges (one fake edge was pinning a wrong #1 pick on A Silent Voice's page); the permission is revoked and the poisoned data removed. Also closed: a rate-limit function anyone could call to drain shared quotas, and a missing guard that could have let an editorial "penalty" silently become a boost. **Quality**: the nightly Shelf now shows at most 2 titles per franchise (it was showing 6 Attack on Titan entries), the Hidden Gem pick no longer shows raw scraped text as its reason, and "craft" promotion now requires a title to score at least 70 on its own merits. **Ops**: five image-mirroring jobs and both chapter-enrichment jobs had been silently failing since Jul 31 because they were reading empty settings — all seven are re-armed. Rotating the import secret is still on the owner's to-do list. **On the phone** (already in the app): swiping away from the taste deck no longer accidentally records a "not for me" vote, failed taste signals retry automatically, the deck recovers from stuck loading, and accessibility (contrast, VoiceOver) improved. **Honest unknowns now on record**: many quality-pool titles may lack precomputed similar-titles (needs an owner-level check), the quality scoreboard is self-graded until the owner does a veto pass, and most auto-generated realm descriptions are filler text that must be hidden or regenerated before users see them. Full reports: `docs/superpowers/specs/2026-08-06-independent-review.md` and `2026-08-06-independent-review-wave2.md`. 93 Swift files, 231 migrations.
 - 2026-08-02: **Realm descriptors without burning agent quota** — Kuro can now write short editorial descriptions (what a title is / who it's for) for the visible catalog using the same Groq stack as Concierge narration, instead of expensive agent swarms. Already-generated swarm leftovers were salvaged first; a background worker is filling the rest. Taste "craft indicators" (great animation / weak story) stay for a later project.
@@ -1088,10 +1211,541 @@ Fixed the highest-priority issues identified during the pre-ship audit:
 ### 2026-08-06 (later) — fix-up wave 2
 Fixed after the deep review: franchise sequels no longer leak into their own "more like this" rails; recap movies are linked into their series; a secret key used by the nightly jobs was rotated and every job re-armed (they had been silently failing for days); junk auto-generated descriptions were deleted and are being rewritten properly; deleted accounts now also erase Discover impression history.
 
+- 2026-09-25, owner correction: Withdrew the incorrect welcome replacement and condensed introduction from the design proposal. Existing welcome remains unchanged; visual alignment of authentication is pending the correct reference.
+
+
+### 2026-09-25 — Approved GitHub welcome and consolidated review
+
+Pinned the owner-approved welcome to `b943e457`, separated it from local composition edits, rechecked auth/collection/home source differences, and continued the review of authentication, phone home, lists, releases, friends and free-core monetization. Updated detailed review, two-page brief and browser concepts. GitHub branch/manual release facts verified; no deployment or current phone rendering claimed. No app source or backend changed; inventory remains 93 app Swift files and 235 migrations.
+
+### 2026-09-25 — Visual concepts withdrawn after owner critique
+
+Owner rejected all five proposed email/first-login/Home/Collection/Agenda layouts and specified that the approved animation sets the visual direction. Replaced browser proposal with an unapproved two-screen animation-led study; updated brief/review to withdraw old layouts. Research requirements remain proposals; first-login/Collection/Agenda visuals remain unresolved. No app source/backend changes.
+
+
+### 2026-09-26 — Design contract and every-call architecture audit (documentation only)
+
+Recorded auth-only animation, retained top swipe, persistent media scope, Home/Discover separation, optional shelves and club-only opt-in activity. Added the complete review, concise visual brief, comprehensive draft execution prompt, five call registers, coverage inventories and sanitized hosted evidence under `docs/research/2026-09-26-kuro-plan/`. Withdrew earlier moving-Home prototype. Source remains 93 Swift files and 235 migrations; existing AuthView edits preserved. Sixteen sampled function bodies match live; runtime, full schema replay and deployment equivalence remain unverified. No app/backend/flags/jobs changed; no implementation commit created.
+
+Validation for this documentation initiative: current-state gate PASS (93 Swift / 235 migrations); all 93 Swift source hashes unchanged; CSV source locations valid; two-page brief and 143-page full report checked for page bounds and sampled visually. No new app build/runtime or deployment proof.
+
+### 2026-09-27 — Discover reads like an issue
+
+Discover no longer opens as a stack of poster rails. It opens as one issue: Anime or Manga, a large title on a single color taken from the cover, and a short teaser. Further titles are a name and one sentence, then two color blocks. There are no numbered contents and no episode counts. Tap a title to open it; swipe sideways to turn to the next one; Details still opens the full title page. A pager swipe does not open a title. Reduce Motion keeps a short fade instead of the swipe travel. The big field, the two blocks, and the page you open all show the real cover. Every title after the lead is a picture with one line under it. Home is unchanged. A written brief for carrying that frame across the rest of the app is in `docs/research/2026-09-27-issue-style/EXECUTION_PROMPT.md`.
+
+### 2026-09-27 — The same frame on Browse, Search, Collection, the title page, and club rails
+
+A title is now a picture, then the name, then at most one line, on a color taken from the cover. That block is shared. Discover’s first title can still keep two short lines and the word OPEN. Browse and Search use the same block. Collection does too, and a current title can add one episode or chapter. The number changes only after the save succeeds. If the save fails, the old number stays and the phone does not buzz. The title page starts with the picture and the line; saving a progress count there uses the same lock, and there is no extra +1 on that page. A club rail starts with the picture. Your profile and the welcome screen are the same as before. After sign-in you still land on Discover, without the welcome scene.
+
+Manga says Reading where anime says Watching. Searching your collection can find a title that was not on the first page. What is still the older look: the See All grids, the extra lines under a title page (score, genres), similar titles, Taste, and Concierge’s own rails. Nothing was deployed.
+
+### 2026-09-28 — A route, a plate, and official songs
+
+Discover is a line of stops. The picture in front is the stop you are on. Drag it sideways to move. Tap a title to open the real page. Pressing a picture on Discover, Browse, Search, Collection, or a club rail brightens it. On a show you are watching, each saved episode or chapter adds a mark on the picture, and only after the save works. On a title page, dragging the picture moves between the wide image and the cover when both exist. Anime can list openings and endings once that switch is on. Play opens the official link. Kuro does not play the song itself, and manga does not get a soundtrack from the anime. The navigation bar is the same. This is not deployed.
+
+### 2026-09-28 — Taste shows a few titles
+
+The Taste page on the left is no longer the long yes-or-no deck. It shows up to four anime or four manga you have not put on your list. If the account already has taste to go on, those four sit close to that. Otherwise they are a few strong titles you have not really looked at. The other pages stay as they were.
+
+### 2026-09-30 — Local live-window viewer
+
+Added `tools/live-preview/index.html` and `scripts/serve_live_preview.py`. Localhost-only server at port8799 serves only its page (other paths404). Browser window-sharing displays the selected Simulator window with requested60fps and measured presentation rate; no recording/upload or backend changes. User must select the window; actual stream/framerate not yet verified. This is a live current-window mirror, not an all-screens gallery or automatic Swift rebuild. Original app edits preserved; no scheduled automation added. Validation: HTTP200 page, non-page404; browser page opens.
+
+
+### 2026-09-30 — Current original-project screen canvas
+
+Supersedes the single-window viewer above. `tools/live-preview/index.html` now renders simultaneous phone captures with pan, zoom, Fit all, search and full-size inspection. `scripts/capture_screen_canvas.py` snapshots current original source (including local edits), builds a separate `com.Kuro.canvaspreview` app and captures registered SwiftUI screens; `--watch` rebuilds on source fingerprint changes. `scripts/serve_live_preview.py` serves only the viewer, manifest and PNG captures on loopback port 8799. Instructions: `tools/live-preview/README.md`.
+
+The original app's Swift files/designs are unchanged by this initiative. Capture-only routing and local club sample injection occur in a disposable `/tmp` source copy. No account credentials, deployments, scheduled automations or backend writes were added. Account-dependent screens are anonymous; club detail is a labeled empty local sample. This is a screen-review canvas, not exhaustive scroll/alert/state coverage or instant Swift hot reload. Build failures retain previous captures with a stale warning. Initial 16-frame native build/capture and browser search, enlargement and Fit all verified; expanded capture verification is recorded below when complete.
+
+
+### 2026-09-30 — Portable screen canvas
+
+Added `tools/screen-canvas/index.html` with 52 representative layout captures, bundled PNGs, offline data and source provenance. Open after downloading/cloning; no Simulator or localhost server needed for viewing. `scripts/export_screen_canvas.py` exports completed captures and rejects incomplete or missing assets. Capture, export, commit and push alongside UI changes to refresh GitHub. Initial captures include local original-app edits not bundled into this canvas-only commit. Anonymous/sample states and scroll/dialog coverage limits remain labeled. No app source or production changes. Validation: 52 unique frames, local asset references and Python/JavaScript syntax checked. Direct file opening could not be browser-tested because the browser tool blocks file URLs.
+
+
+### 2026-09-30 — Copyable canvas screen references
+
+Each of the 52 canvas frames now has Copy reference (screen name/ID, SwiftUI source, screenshot path, capture fingerprint and edit instruction), Copy image (PNG clipboard) and Save PNG. Text clipboard denial opens a selectable reference; unsupported image copying points to Save PNG. All frame IDs have explicit source mappings. Updated both localhost template and portable export. Verified sign-in text clipboard contents and image/png clipboard entry in browser; JavaScript syntax passes. No native app source changes.
+
+
+### 2026-09-30 — Three editorial design directions
+
+Three clickable design options are available locally at http://127.0.0.1:8803/: The Edition, The Index and The Gallery. Compare Home and Taste with the same titles; try progress, list actions and sample club notes. Anime and Manga are separate. These are design prototypes with sample dates and people, not an app release. The original application is unchanged. The main demo interactions were checked in the browser.
+
+
+### 2026-09-30 — Reduce prototype text
+
+Simplified all three local design directions following user feedback: removed introductory slogans, duplicate labels, main-feed descriptions and comparison essays. Home now emphasizes covers, titles, progress, upcoming dates and compact club signals. Taste keeps only a short vibe phrase; fuller descriptions appear on title tap. Core demo controls remain. Prototype-only change; native application and backend unchanged.
+
+
+### 2026-09-30 — Folio design study
+
+User rejected the initial prototypes as generic. Added `tools/design-directions/folio.html` with a new shared visual composition across Home, Taste and Title: offset numbered artwork, progress marks, compact release spines and staggered selections. Earlier concepts remain available. Progress/Undo, current-title switch, save, Anime/Manga and protected club notes were browser-checked. Design review remains pending; this is local sample-data HTML, with no app/backend/deployment changes. Prototype folder now has 13 files.
+
+
+### 2026-09-30 — Personal Home replaces numbered Folio
+
+The user rejected decorative numbering and asked for a more useful, distinctive Home. Rebuilt `tools/design-directions/folio.html` around current titles with immediate progress controls, a followed-release horizon, a compact club conversation, and a route into Taste. Two previews distinguish anime and manga; Returning / Caught up / New here show different content states. No decorative ordinals or padded counts. Meaningful episode/chapter progress remains. Progress/Undo, medium isolation, list access, title/save, spoiler reveal and first-visit behavior verified locally in the browser. Current folder remains 13 files. Design acceptance is pending; no SwiftUI, backend or deployment change.
+
+
+### 2026-09-30 — Sharp artwork and direct Home interaction
+
+Refined the accepted-for-further-exploration Personal Home direction in `tools/design-directions/folio.html`: four bundled 1800–1900 px catalogue banners replace stretched thumbnail art in the primary presentation; compact covers preserve proportions. Current titles switch through artwork swipe, thumbnail tap or keyboard. Progress targets the selected title, provides animated confirmation and Undo; title detail uses the same visual composition. Browser verified pointer drag, keyboard/tap switching, progress recovery, medium isolation, source dimensions and no console errors. AniList extraLarge cover lookup returned 403; no full-resolution cover upgrade is claimed. Prototype folder: 17 files. Native haptics, source-image ingestion improvements and final design approval remain pending. No SwiftUI, hosted data or release changes.
+
+
+### 2026-09-30 — Panels alternative Home study
+
+User rejected the latest visual treatment; it is not approved. Added `tools/design-directions/panels.html`, preserving the previous Home. Unequal artwork panels put both current titles and progress controls in view; releases occupy a compact band and club comments sit within their title artwork. No decorative numbering. Added two sourced high-resolution club banners; prototype folder now has 20 files. Browser checks covered per-title progress/Undo, medium isolation, detail routing, protected club comments and save/Undo. This is an unapproved local sample-data design study; no SwiftUI, hosted backend or deployment change.
+
+
+### 2026-09-30 — Distinct medium layouts in one Home
+
+User requires Anime and Manga to have different layouts within a coherent app. `tools/design-directions/panels.html` now opens one Home preview: Anime is scene/episode/schedule-led; Manga is book/bookmark/chapter/edition-led. Both retain the same navigation and common controls. Optional Compare layouts is review-only. Medium selection persists only under a localhost prototype key; progress is sample memory state. Browser checked medium persistence, independent progress with Undo, reading-title switching, different structural layouts, image loading and no console errors. Design approval remains pending. No SwiftUI, backend or deployment changes; prototype folder remains 20 files.
+
+
+### 2026-09-30 — Personal context in the Home design prototype
+
+Status: local design hypothesis, awaiting review. `tools/design-directions/panels.html` now derives Home from one coherent fictional account in new `home-profile.js`: list status/progress, saved titles, followed releases, shared-club relevance and manga edition language. Anime and Manga retain distinct compositions. Compact summary, saved-title start, paused-manga resume, follow-filtered releases and an inspectable context panel add useful information without long feed copy. Returning/new-member fixtures are explicitly labelled; no real account connection, recommendation engine or verified release/news feed is claimed. Medium preference alone persists; account changes reset on reload.
+
+Browser checks: episode count responds to progress and caps at sample availability; progress/Undo and start/Undo restore list state, with previous primary title restored; resuming manga retains chapter 12 and Undo restores paused state; German hides English-only releases; unfollow removes the title's release card; a new account has no invented club/continue activity, and saving from Taste creates a personal queue entry. Both layouts inspected; all 13 displayed images loaded and no console errors observed. Cover-only titles avoid landscape stretching. New prototype folder count: 21 files. Original SwiftUI, backend and release state unchanged. Native integration, haptics, real recommendation quality and production behavior remain unverified.
+
+
+### 2026-09-30 — Interactive scenes and open-shelf Home study
+
+A new local Home proposal is available at `http://127.0.0.1:8803/interlude.html`. Anime artwork can be browsed like scenes; manga books can be brought forward from a small shelf. The chosen title exposes progress, future releases and shared-club context without putting all of that text on screen at once. Progress, starting/resuming, follow updates and Undo work against a fictional sample account. The previous proposal is preserved for comparison.
+
+Checked the main interactions and missing-information states in the browser. No real account data or installed app changed. This direction still needs the user's design review; native gestures/haptics and real data integration are not delivered.
+
+
+### 2026-09-30 — Home for multiple titles at once
+
+The new local study is `http://127.0.0.1:8803/flow.html`. Four current shows/books are visible together, each with its own progress control. Days can hold several releases, followed by a separate New releases section and club artwork. The rejected context tabs and single-title hero are gone. Everything is reached by vertical scrolling; optional details expand in the feed. Earlier studies remain available.
+
+Checked independent progress, Undo, multiple release groups, saving, follow filtering, absent language data, image loading and no browser console errors. All activity, dates and new-release examples are fictional; no actual app or account changed. This proposal still needs design review.
+
+
+### 2026-09-30 — Three Home directions to compare
+
+Flow was rejected as boring. The new local comparison at `http://127.0.0.1:8803/studies.html` presents Thread (illustrated timeline), Cut (interlocking artwork) and Journal (alternating covers and annotations). Each keeps multiple current titles, grouped releases and new releases in a vertical scroll. Open any direction at phone size; switch Anime/Manga with the review controls. Progress, saving and Undo work with sample data.
+
+These are unapproved local studies. No installed app or real account changed. The dates and release examples are fictional. Previous studies remain available.
+
+
+### 2026-10-01 — Real visual references before another redesign
+
+The latest Home studies were rejected. A new reference board at `http://127.0.0.1:8803/references.html` shows real promotional screenshots from MUBI, Cosmos, Sofa and Sequel, with short notes on what could help Kuro. Click images to enlarge. All eight images loaded and enlargement was checked. They require internet. Mobbin's library was not accessible in the logged-out session.
+
+This is a reference board, not a new app design or proof of better retention. Earlier studies remain unapproved. No installed app, account or hosted backend changed.
+
+
+### 2026-10-01 — Try the new personal Home
+
+Open `http://127.0.0.1:8803/journal.html`. Anime and Manga sit side by side, with different artwork layouts and matching controls. Scroll either phone to see followed releases, new releases, suggestions and club activity. Tap artwork for details; update progress or save a title and use Undo. Review controls demonstrate Busy, Quiet, New member and Missing information accounts, plus a save failure.
+
+Checked the interactions, missing-data behavior, independent Anime/Manga progress and phone-width layout. All activity and release information is fictional. This is a local design for review, not a released app change; native haptics and real account data are not connected. Earlier studies remain preserved.
+
+
+### 2026-10-01 — Try the living-world concept
+
+Open `http://127.0.0.1:8803/world.html`. Anime lives in a night-time island landscape; Manga in a paper-and-ink world. Drag or scroll to explore, use Overview or zoom, tap a title, and update progress directly. Arrivals supports several releases together. Clubs has protected comments. Saving a discovery adds a place; completed titles remain as history. Undo, empty-account and failed-save cases work locally.
+
+The two landscapes were generated for this prototype. Checked the main interactions, map movement and narrow-phone controls, fixing tap and notification overlap issues. This is an experiment with sample data; the scenery does not generate dynamically from your account. No installed app changed. Native haptics, pinch zoom, audio and production-scale behavior are not delivered.
+
+
+### 2026-10-01 — Three modern Home options
+
+The world/map experiment was rejected. Compare Shelf, Screen and Today at `http://127.0.0.1:8803/modern.html`. Shelf prioritizes your covers, Screen uses a quieter dark surface with larger artwork, and Today prioritizes new episodes/chapters. All show the same six ongoing titles, multiple releases and club context. Open each full size, switch Anime/Manga, update progress, Undo, save a title or try a failed save.
+
+Main interactions and phone-width layouts were checked locally. Data is illustrative and these are design options awaiting your feedback; the installed app and backend are unchanged. Native haptics and real account integration are not delivered by these prototypes.
+
+
+### 2026-10-01 — A different Home and medium switch
+
+Open `http://127.0.0.1:8803/aperture.html`. Tap or swipe the artwork beside Anime/Manga to change medium. Anime uses staggered frames; Manga presents open volumes with controls in the page margins. Six ongoing titles, upcoming/new releases and club comments are included. Progress, Undo, failure behavior, saving, swipe switching and phone-width layout checked locally. This is a new design experiment awaiting feedback, using fictional activity. The installed app is unchanged.
+
+
+### 2026-10-01 — More tactile Aperture
+
+Updated the same `http://127.0.0.1:8803/aperture.html` preview with richer Anime mounts, paper layers and bookmarks for Manga, textured backgrounds and a more detailed artwork switch. Buttons press inward; progress springs back; details open from the artwork and close smoothly. Main interactions, failure/Undo and narrow-phone layout were rechecked. Reduced-motion styling disables entrance effects. This remains a local design prototype with sample data; no installed app/backend change or native haptic validation.
+
+
+### 2026-10-01 — Compare three Pinterest-informed colour directions
+
+Aperture now offers Oxblood/parchment, Ink/powder blue and Olive/butter. Switch colours with the swatches, including on a narrow phone preview. The same account remains intact while comparing. Pinterest references informed the stronger colour contrast, readable full-cover groups and quieter surfaces; source links are available in the desktop review panel. Main interactions, failed saves, phone fit and reduced-motion styling were checked. This is a local prototype awaiting your design feedback, not an installed-app update.
+
+
+### 2026-10-01 — Why the Home experiments are not working yet
+
+The latest colours and composition were rejected. A visual review at `http://127.0.0.1:8803/composition-review.html` compares the saved original Kuro screen, current Aperture and three app references. The medium switch is too dominant, decorative frames take too much room, and releases/club updates are buried below six ongoing titles. The next design should test compact controls, several recognisable titles and earlier personal updates on a neutral background. These are proposed targets, not an approved redesign. The review images and enlargement were checked locally; the installed app and backend were not changed.
+
+
+### 2026-10-01 — A different reference shortlist
+
+MUBI and Sequel are no longer the direction; Cosmos is only a partial fit. Open `http://127.0.0.1:8803/reference-atlas.html` for new examples from Savee, Family, Not Boring and Gentler Streak, including colour relationships and playable motion clips. Each example names a specific idea for Kuro. The recommendation is to combine stronger image composition with more carefully made controls, not copy an entire app. Images, clips, enlargement and phone fit were checked. This is research awaiting feedback; no change to the installed app or current Home prototype.
+
+
+### 2026-10-01 — Built the !Boring-inspired Home
+
+The user chose !Boring as the primary reference. The new local study is `http://127.0.0.1:8803/instrument.html`: a tactile Anime/Manga rocker, recessed artwork, dimensional progress controls, four active titles upfront, then releases and club context. Manga has its own lighter row layout. Try the + controls, Undo, covers, club notes and scenario dropdown. Progress limits, failed saves, empty/quiet accounts, phone fit and reduced motion were checked in the browser. Activity/releases are fictional, changes reset on reload, and the installed app/backend were not changed. This is a design study for feedback, not a released app update.
+
+
+### 2026-10-01 — Reworked the rejected material study
+
+The current [Home preview](http://127.0.0.1:8803/instrument.html) now shows all six Anime titles together on a dark contact sheet. Manga uses larger book covers on a light surface. Progress buttons sit under the artwork; marking an episode or chapter moves the cover and control together. The oversized counters and separate bulky card containers are gone. Upcoming releases, club notes, later announcements and list saving remain below.
+
+Checked updates, Undo, failed saves, new/caught-up accounts, reduced motion and narrow-phone fit. Manga needs more scrolling because the covers are larger. This is still a fictional local design study, awaiting your judgment—not the installed app, a native haptics implementation or a released change.
+
+
+### 2026-10-01 — Calmer sections and more deliberate buttons
+
+Kept the material direction you liked. Progress numbers are now separate from the buttons. Upcoming releases and later announcements sit on one visible timeline. Club updates show who did what beside the relevant title, and recommendations carry short vibe descriptions. The controls use consistent, shallower depth and a clear pressed/saved state.
+
+Checked progress and list saving, Undo, failed changes, spoiler protection, new/caught-up accounts and narrow phones. This remains the [local sample preview](http://127.0.0.1:8803/instrument.html), not a native or released app change. Your judgment of the design is still pending.
+
+
+### 2026-10-01 — Less decorative depth
+
+Kept the member names, upcoming timeline and Sunday Club arrangement you liked. Replaced chunky buttons and glossy switching with smaller-looking tonal controls, fine borders and softer surfaces. Touch areas stay large. Removed cover flipping and bouncy feedback; saved states remain clear.
+
+Checked progress, Undo, failed updates, spoilers, saving and narrow-phone layouts. This is still the local design preview, awaiting your judgment—not an installed or released app change.
+
+
+### 2026-10-01 — Porcelain surfaces and direct medium selection
+
+Owner requested a broader polish of the underlying color, depth, buttons and Anime/Manga switch. Revised existing `tools/design-directions/instrument.{html,css,js}` in place; no new design files (58 remain). Consolidated CSS into one surface system: cool porcelain base, one ink tray for six anime covers, lighter bound-book manga surfaces, gentle contact shadows and a quieter white club panel. Member names, three tomorrow releases, three later announcements, Sunday Club and brief recommendation copy remain.
+
+Replaced the prior small toggle with typographic Anime/Manga labels and a draggable selection rail. Tap and arrow keys also work; horizontal threshold/capture and vertical rejection prevent accidental mode changes while scrolling. Progress actions retain 44px targets and show a real known-total ring; unknown chapter totals have a dashed track with no false percentage. Save controls use filled bookmark confirmation. Removed obsolete illustrative percentage styling. Scoped selector rendering to buttons so medium dataset attributes on containers cannot be mistaken for controls. Reduced motion removes transitions and animated ring updates.
+
+Local checks: 390px visual inspection of both media and club panel; both media fit 320px with no horizontal document overflow and 44px visible progress targets. Tap, bidirectional drag, vertical rejection and arrow switching checked. Episode cap, Undo, failed update preserving prior count/ring, uncapped unknown-total chapter update, new-account save/Undo, club-context details and spoiler reveal/hide passed. Six active titles, three releases and three later announcements retained. Images loaded; captured browser warning/error log empty. Reduced-motion counter animation is none and ring/selector transitions are 0s; viewport/media emulation reset. JavaScript syntax and whitespace checks passed. Screenshots: `/tmp/kuro-porcelain-anime.png`, `/tmp/kuro-porcelain-manga.png`, `/tmp/kuro-porcelain-clubs.png`.
+
+All data/actions are local fixtures; only medium persists across reload. This is an unapproved visual iteration, not native, backend, live-account, haptic, comprehensive accessibility or release proof. No native/backend changes or deployment; unrelated edits preserved.
+
+
+### 2026-10-01 — Extend the porcelain/ink Home idea
+
+Owner requested continuing the current direction after reviewing screenshots on iPad. Updated existing `instrument.html`, `instrument.css`, and `instrument.js` under `tools/design-directions/`; no files added/removed. Upcoming titles share a white day tray, with time/volume labels beneath artwork. Selecting a cover expands one inline release summary; selecting it again collapses it. Selection uses `aria-expanded` / `aria-controls`, clears on medium/account reset, and survives progress rerenders. Three later announcements stay in the continuous scroll.
+
+Compact title sheets now pair artwork with title/vibe, one progress control, and named club context when entered from a club action. Anime uses ink and manga paper/book depth. Removed duplicate progress readouts. Added exact source-control restoration when a mutation replaces the original DOM node. Club-title touch target increased to 44px and spoiler control uses the shared subtle-depth treatment. Tablet preview shell fits 768px without overflow.
+
+Local browser verification: release open/change/collapse, anime episode and manga volume summaries, progress cap/Undo, failed save leaving count unchanged, unknown-total chapter increment/Undo, new-account detail save/Undo, Escape and close dismissal, exact release-origin focus after rerender. Both media and long-title sheets fit 320px without horizontal overflow; detail progress target 44px. 390px visual checks and 768px document fit passed. Reduced-motion chevron/selector transitions 0s; shared JS animation helper retains reduced-motion guard. Captured browser warning/error log empty; JS syntax and diff checks passed. Emulation reset. Screenshots: `/tmp/kuro-next-release-tray.png`, `/tmp/kuro-next-anime-sheet.png`, `/tmp/kuro-next-manga-sheet.png`.
+
+Prototype scope only: release dates/numbers, activity and mutations are sample fixtures. Screenshots are provided directly in chat for iPad; localhost is still bound to the Mac and no external hosting was created. No native/backend/deployment changes; unrelated edits preserved. Final design acceptance, native haptics and comprehensive accessibility/device-performance validation remain pending.
+
+
+### 2026-10-01 — Initial Home polish; further flows deferred
+
+Owner corrected the previous scope expansion: polish the initial page's containers, buttons, scroll animations, visuals and hierarchy before developing subsequent interactions. Existing detail/release interactions are retained but were not expanded this pass. Modified only `tools/design-directions/instrument.{html,css,js}` plus documentation; no new design files (58 remain).
+
+Refined the initial Anime/Manga selector alignment and recessed rail; artwork trays use softer layered edges and controlled contact shadows. Titles now allow two lines, including Fullmetal Alchemist, with stable metadata spacing. Each card's progress readout and 44px action share a subtle recessed dock. Manga club badges move onto the cover to avoid uneven metadata heights. Recommendation covers/copy/save controls now share one quiet surface. Lower sections have a clearer spacing rhythm; the slim Home header remains visible with a translucent scroll state.
+
+Native overflow scrolling is preserved. One IntersectionObserver rooted in the phone applies a 10px / 340ms entrance to upcoming/club/recommendation sections once per medium/account mode. Content is never hidden waiting for JavaScript. Rerenders disconnect the old observer and preserve seen-section keys; no repeating animation on mutations. A passive, requestAnimationFrame-coalesced scroll listener toggles the header state. Reduced motion skips entrances and cancels any current Home animation; pagehide disconnects the observer and cancels pending work.
+
+Local verification: 390px visual inspection of both initial Homes and lower Home sections; six active fixtures retained. Known chapter cap/Undo and failed episode save preserving its prior count passed. Club rerender reports settled motion rather than replay. Reduced-motion sections report static, header/progress transitions 0s. Both media have no document/tray horizontal overflow at 320px and retain 44px progress targets; 768px preview fits. Images loaded; JS syntax/diff checks passed. Browser emulation reset. Screenshots `/tmp/kuro-home-polish-anime.png`, `/tmp/kuro-home-polish-manga.png`, `/tmp/kuro-home-polish-lower.png` show Home only, cropped to the app viewport rather than review controls.
+
+No new native/backend/deployment work or claim of final visual acceptance. Scroll verification is local browser evidence, not physical iPad/iPhone frame-rate or native haptic proof. All release/activity data remain fictional fixtures. Unrelated dirty native files preserved.
+
+
+### 2026-10-01 — !Boring research and approved temporary iPad preview
+
+Added `tools/design-directions/boring-study.html` and `scripts/serve_design_share.py`. Studied official Calculator, Habits, Timer, Weather and Camera pages plus the maker's checkbox breakdown. The board distinguishes observed publisher behavior from proposed Kuro adaptations. Its focus is the initial Home: consistent depth and lighting, complete press/cancel/commit/settle states, image-led hierarchy, direct scrolling, coherent Anime/Manga selection and quiet feedback. Exact reference timings, physical haptics and native frame rates were not measured. No native application, backend, account or Home design changes in this pass; unrelated dirty work preserved.
+
+Temporary public base: https://criterion-vice-contributions-thinking.trycloudflare.com
+- Research: `/boring-study.html`; current Home: `/instrument.html`.
+- Owner explicitly approved public sharing of only these preview files and sample artwork for 12 hours.
+- Started 2026-10-01 14:44 UTC; scheduled stop 2026-10-02 02:44 UTC (04:44 CEST). Availability depends on the Mac and tunnel remaining online. This is not durable hosting or a released app.
+- Loopback port 8814; 21-file allowlist; no directory browsing; no repository documents, accounts or backend access. Refresh reads current allowed files. No cron or recurring automation created.
+- Official Cloudflare executable resides temporarily at `/tmp/kuro-preview-bin/cloudflared`. Supervisor invocation: `python3 scripts/serve_design_share.py --cloudflared /tmp/kuro-preview-bin/cloudflared --hours 12`. A future public run requires authorization for that run's scope/duration.
+
+Verification: all 21 allowlisted resources returned HTTP 200; `.git/config`, `CURRENT_APP_STATE.md`, encoded traversal to Info.plist, the assets directory and AGENTS.md returned 404. Both public pages returned HTTP 200. At 768px browser width, research and Home fit without document overflow; Home switched to Manga and exposed Currently reading. Reference image loading was checked for Weather/Camera; the embedded checkbox recording played and paused. Browser viewport override reset. Python source compiles. These are browser/HTTP checks, not a physical iPad test. Screenshot: `/tmp/kuro-boring-research-board.png`.
+
+
+### 2026-10-01 — Build out reference-led initial Home
+
+Updated `tools/design-directions/instrument.html`, `instrument.css`, `instrument.js`, and the research board's implementation notes. No new files; 59 design-directory files remain. Added a shared sliding selector with small film/book material symbols, coherent monochrome surfaces, distinct graphite anime and paper manga stages, and restrained local progress-control depth. Kept multiple active titles, simultaneous releases and club context. Removed the IntersectionObserver/fade-rise entrances; content stays static and readable while scrolling adjusts header depth. Reduced Motion disables transitions and feedback animation.
+
+Press state follows pointer contact and clears on release, movement, cancellation or blur. A movement threshold suppresses the resulting click; keyboard activation remains available. Successful mutations settle locally; failed saves preserve their prior value and show a dashed failed control plus an explicit message. Existing cap/Undo and medium persistence behavior retained. No expansion of subsequent screens or changes to Swift/backend/auth. Native dirty work preserved.
+
+Verification on the public temporary preview: anime cap/disabled state, Undo, failed progress save; manga unknown-total increment/Undo; new-account failed list save, retry and Undo; caught-up state; pointer drag away from a progress action left its count unchanged; horizontal selector drag and keyboard arrows switched medium. Both media fit 320px; progress targets are 44x44. At 768px all artwork loaded and no document overflow occurred. Reduced-motion emulation showed zero selector transition and static sections; emulation reset. Console warning/error capture empty; `node --check` and `git diff --check` passed. Screenshots: `/tmp/kuro-material-home-anime.png`, `/tmp/kuro-material-home-manga.png`, `/tmp/kuro-material-home-releases.png`.
+
+Native touch-event injection was unsupported by the in-app browser. Pointer-drag checks do not establish physical iPad/iPhone gesture behavior, haptics or frame-rate quality. Final design acceptance is pending. Existing public link remains under the original 12-hour approval, ending approximately 2026-10-02 02:44 UTC; no new tunnel, timer or automation created.
+
+
+### 2026-10-01 — Fluid direction after rejection of raised materials
+
+Owner said the material v8 direction was wrong and selected “fluid and just more creative.” Reworked `instrument.html`, `instrument.css`, and `instrument.js` around a continuous artwork composition. Anime has a three-column staggered rhythm; Manga has wider paired covers. Six active titles appear together in each medium. Removed the shared graphite tray, faux hardware symbols, beveled controls and per-title dial appearance. Thin progress traces and compact 44px actions sit below the covers. Releases share a light date rule; club context and suggestions remain in the same scroll.
+
+Medium switching maps cover positions between layouts with a 460ms transform transition; title/control text settles separately. Rapid switching cancels prior reflow animations. Reduced Motion disables the reflow and CSS transitions. Existing local mutation failure handling, progress caps, Undo, keyboard switching and cancelled-press guard retained. No native/backend changes, no new product flows. Saved the prior study in `tools/design-directions/archive/material-v8/` (HTML/CSS/JS with adjusted local asset references and separate medium preference). Current design folder now has 62 files.
+
+Checks: public preview loaded; anime cap and Undo; failed progress write preserved count; keyboard medium switching; visible intermediate cover transform and settled layout; Reduced Motion reports no cover transform and 0s selector transition; six active entries per medium; 320px layouts have no document overflow and retain 44px progress targets; 768px fits with all artwork loaded. Warning/error log empty. JS syntax and diff checks pass. Screenshot: `/tmp/kuro-fluid-home-anime.png`. Physical iPad/iPhone gestures, native haptics and frame-rate quality are not established by these browser checks; user design acceptance pending.
+
+Previous local/public servers had stopped. Restarted local port 8803 and restored the same approved 21-file public preview, without adding the archive or extending access time. New base: https://checked-hospitals-clocks-asset.trycloudflare.com ; Home `/instrument.html`, board `/boring-study.html`. Supervisor started 2026-10-01 19:05 UTC with only the time remaining until 2026-10-02 02:44 UTC (04:44 CEST). Old `criterion-vice-contributions-thinking` URL no longer resolves. No cron or recurring automation created. Mac/tunnel must stay online.
+
+### 2026-10-01 — Home v10: soft forms and action detail (browser prototype)
+
+Changed `tools/design-directions/instrument.html`, `instrument.css`, and `instrument.js`. Artwork containers have a curved opening for a 44px progress control; only the backing is masked, so cover artwork and touch targets remain intact. Anime uses six staggered compact covers; Manga uses six larger paired covers. New-release actions get stronger monochrome contrast. The selected Anime/Manga surface morphs during direct manipulation, while existing artwork reflow remains cancellable. Confirmation briefly replaces the plus with a check; failed mutations preserve state and offer explicit feedback. Progress traces now measure against their own track, correcting premature apparent completion; unknown chapter totals hide the trace. Releases, recommendations and club notes use related soft shapes with restrained depth. Club-title target increased to 44px. All Web Animations are tracked for cancellation; offscreen covers skip reflow.
+
+Preserved v9 in three files under `tools/design-directions/archive/fluid-v9/`, with corrected asset paths and a separate stored medium preference. Design directory inventory: 65 files. No native, auth or backend edits for this initiative. The public allowlisted prototype URL is https://checked-hospitals-clocks-asset.trycloudflare.com/instrument.html, with the original authorized expiry of 2026-10-02 02:44 UTC (04:44 CEST), dependent on the Mac/tunnel remaining online.
+
+Verified browser fixtures: 16 artwork images load; six active titles per medium; no horizontal document overflow at 320/390/768px; all six progress targets remain 44px at 320px; cap and Undo; failed progress mutation; cancelled selector drag and cancelled progress press; unknown-total chapter increment/Undo; release preview; new-account failed save, retry and Undo; keyboard and rapid medium switching. Reduced Motion produces no cover transforms and a 0s selector transition. Warning/error log empty; JavaScript syntax and whitespace checks pass. Screenshot: `/tmp/kuro-soft-home-anime.png`. These checks do not establish physical iPad gesture quality, native haptics, backend correctness or owner design approval.
+
+### 2026-10-01 — Home v11: aligned composition and deliberate controls
+
+Owner requested the studio/reference board in the sidebar and questioned the mismatched banner arrangement. Interpreted that as staggered card rows and inconsistent container corners; aligned active and recommended titles, normalized release/club corner radii, and straightened the club artwork. Preserved curved progress openings and distinct six-title Anime/Manga layouts. Extended cancellable contact feedback to club art/title/secondary rows, release-detail, close and Undo controls. Replaced progress overshoot with a 180ms settle, clarified enabled secondary actions, and made selector dragging use its actual half-width travel. Removed decorative inactive Home arrows. Studio now links directly to `boring-study.html`; reference summary updated.
+
+Changed only `tools/design-directions/instrument.html`, `instrument.css`, `instrument.js`, `boring-study.html`, the design README and required state/plan documentation. No new repository files (65 design files); pre-edit v10 copies at `/tmp/kuro-home-v10-before-refinement/`. Existing local studio tab was stale and was refreshed. Board opened in the sidebar; public preview verified serving v11 with original expiry unchanged. Browser checks: aligned equal-height Manga row pairs, 16 loaded images, no 320px overflow in either medium, six 44px progress targets, cap/Undo, failed progress preserving count, spoiler expand/collapse, no warning/error logs. JavaScript syntax and whitespace checks pass. Screenshot `/tmp/kuro-home-aligned-refinement.png`. This is prototype evidence only, not native haptic/physical iPad or release proof; visual approval remains pending.
+
+### 2026-10-01 — Home v12: continuous artwork surface
+
+Implemented the proposed Home-only composition in `tools/design-directions/instrument.html`, `instrument.css`, and `instrument.js`. Ongoing covers share one rounded white surface rather than individual masked card backings. Each progress well responds to contact; successful updates add a 620ms edge highlight alongside the count/check. Reduced Motion removes the highlight and transitions. Action targets stay fixed and 44px. Anime keeps a six-title compact grid; Manga retains larger paired artwork. Upcoming groups follow a fine date spine with room for three simultaneous releases. Club artwork, identity and comment share an open composition, and recommendations no longer have separate white backings.
+
+Browser checks: cap at 5, Undo, failed progress preserving count at 4, cancelled vertical drag preserving count, inline release expansion, club spoiler expand/collapse, both media at 320px without horizontal overflow or progress-label/button overlap, six 44px Manga progress targets, and 768px layout with all 16 images loaded. Reduced Motion reported highlight animation none and 0s transitions while the count updated. Warning/error log empty; JS syntax and diff whitespace checks pass. Public URL verified serving v12; original approved expiry unchanged (2026-10-02 02:44 UTC). Screenshot: `/tmp/kuro-home-continuous-phone.png`. Pre-edit v11 copies: `/tmp/kuro-home-v11-before-surface/`. No new repo files (design inventory65); required documentation updated. No native/backend changes or physical iPad/haptic proof; owner review pending.
+
+### 2026-10-01 — Home v13: foreground and ongoing composition
+
+Owner clarified that visual hierarchy and the overall experience needed a substantive rethink. Changed `tools/design-directions/instrument.html`, `instrument.css`, and `instrument.js`: reduced the opening headline, emphasized two available titles with larger artwork, and moved four ongoing titles into a compact two-column layout. Anime gets dark artwork framing and Manga gets light print-like margins. The existing release timeline and open club composition retain different visual roles. All six titles have direct 44px progress controls; compact club shortcuts remain visible over the artwork edge. The new heading derives singular/plural availability from the two featured fixtures and falls back to Keep watching/reading when caught up. Featured slots remain fixed during progress updates.
+
+Browser proof: both media at 320px have no document overflow or progress-label/button overlap; Manga has six 44px progress targets. At 390px, a direct pointer tap updated progress 4→5 and heading 2→1, while all six card coordinates and scrollTop=0 remained unchanged. Semantic browser clicks were observed to auto-scroll 13px before interaction; the direct pointer check separates that automation behavior from app reflow. Undo restored progress/header, failure preserved both, club shortcut opened the correct title context, caught-up fixture disabled all known-total Anime actions, and new-account fixture showed two suggestions with no active cards. Reduced Motion yielded no artwork transforms. At 768px, no horizontal overflow and all16 images loaded. JS syntax and whitespace checks pass; warning/error log empty. Public preview verified v13 with2 featured/4 compact entries; original sharing expiry unchanged. Screenshots: `/tmp/kuro-composition-anime.png`, `/tmp/kuro-composition-manga.png`.
+
+Pre-edit v12 files preserved at `/tmp/kuro-home-v12-before-composition/`. No new repo files (65 design files). Updated the reference summary, README and three required state/plan documents. Native/backend files untouched. Physical-device/haptic feel and owner acceptance remain unverified. This fixture study is not a complete availability ranking algorithm: a production Home must handle additional new titles in the ongoing group and use genuine release metadata.
+
+### 2026-10-01 — Home v14: story discovery and complete control pass
+
+Owner asked for more deliberate UI across every element and a short story sentence only on new recommendations. Updated `tools/design-directions/instrument.html`, `instrument.css`, and `instrument.js`: recommendations now immediately follow ongoing titles; their cards combine artwork, title, format and a concise premise into one opening target, with separate 44px Plan to watch/read toggles. Planned state is visibly filled and reversible. Ongoing title names now open details with cancellable press feedback; no premise is shown on ongoing cards or their tracked-title sheet. Internal arrows use forward chevrons. Static avatar decoration became plain For Max identity text. New-account content starts directly with recommendations, removing repeated empty-state headings/artwork. Notifications now have a 44px dismiss action that restores focus to the triggering control. Found and corrected four compact cover targets that were39px wide at320px.
+
+Verification: all visible Home buttons in both Anime and Manga meet44px width/height at320px, with no horizontal overflow. Both story layouts retain19–35px between premise and save control at320px. Verified save/remove/Undo, failed save preserving false state, failed progress→retry→cap→Undo, notification dismissal/focus return, full story opening, tappable ongoing title, no tracked-title premise, keyboard Enter/Escape with correct focus restoration, cancelled title drag, release expansion/detail opening, spoiler reveal/conceal, reduced-motion0s story image transition, and768px layout with all16 images loaded. Console warning/error log empty; JavaScript syntax and diff checks passed. Public allowlisted link servesv14; original expiry2026-10-02 02:44UTC unchanged. Screenshots `/tmp/kuro-home-v14.png` and `/tmp/kuro-story-cards-v14.png`. Public verification tab closed to preserve the user's single-tab workspace.
+
+Saved pre-editv13 files at `/tmp/kuro-home-v13-before-story-cards/`. No new repository files (65 design files). Required docs/README/reference summary updated; no native/backend edits. Story copy is four manually authored, publisher-checked fixture sentences, not a production generation pipeline. Physical iPad/native haptics and owner design acceptance remain unverified.
+
+### 1 October — Scenes and pages preview
+
+Built separate Anime and Manga layouts throughout Home, including artwork framing, progress buttons, recommendations with short story sentences, upcoming releases and club notes. Both keep six ongoing titles visible in the scroll. Buttons stay fixed while artwork makes a short entrance. Failed saves preserve the previous state; Undo, dismissal and protected spoilers were checked. No small-phone overflow or undersized Home buttons found.
+
+New iPad link: https://graduate-sullivan-aside-floyd.trycloudflare.com/instrument.html . It expires at the original 04:44 CEST time on 2 October, subject to the Mac remaining online. The installed app, authentication and backend were untouched. Physical iPad feel and final design approval still need review.
+
+
+### 1 October — Refined the Home direction you liked
+
+V16 preserves the wide Anime scenes and the Manga reading spread. Manga titles and chapter buttons now line up, Anime captions have matching spacing, small text is clearer, and button depth is quieter. The progress controls show how much is available when known, then settle into a checkmark when caught up. Saving, progress, Undo and spoilers update in place without rebuilding the feed. The medium switch reveals the new artwork while keeping controls easy to tap.
+
+Checked narrow phones, tablet-sized preview, cancelled presses, failed saves and retry, Undo, keyboard switching, hidden spoilers and reduced motion. The public preview serves v16 at https://graduate-sullivan-aside-floyd.trycloudflare.com/instrument.html until the original stop time,2 October04:44CEST, while the Mac/tunnel stays online. This did not install or release a new app. Real-account data and physical-device/haptic testing still need native implementation and verification. No new files or artwork were added.
+
+
+### 1 October — Matching Manga frames and chapter/reader context
+
+Both featured Manga covers now have identical frames and padding. Their artwork stays uncropped. New-chapter labels and club-reader names appear together on featured cards and relevant smaller shelf cards. Names open the matching title's reader context. Catching up changes the update label but leaves those people visible; Undo restores the update. Unknown chapter totals do not create guessed notifications. Anime is unchanged.
+
+Checked small-phone and tablet preview layouts, reader links, completion, Undo, failure and the difference between unread backlog and new releases. The temporary iPad link servesv17 with the original2 October04:44CEST expiry. This remains a sample-data browser preview, not an update to the installed app.
+
+### 2 October 2026 — Clearer controls, more releases, a place for the club
+
+The Anime/Manga switch now spans the page with two clear choices. Progress buttons share one quieter tactile style; planning buttons keep their label. Coming up groups releases by date, showing three entries first and opening the rest without leaving Home. Later dates load in small batches, and announcements without dates stay separate. Sunday Club has its own dark enclosure, member initials and a lighter conversation card, with spoilers still hidden until tapped.
+
+Checked 48 sample releases across eight dates, narrow-phone and tablet layouts, progress failure/retry/Undo, list planning, club details and reduced motion. All sample releases were reachable. The temporary iPad link serves v18 until the original 2 October 04:44 CEST expiry, while the Mac/tunnel stays online. This is a design preview awaiting review; it does not establish real release accuracy, production capacity or native touch/haptic quality. No new artwork or app/backend changes.
+
+
+### 2026-10-02 — Series plan stays incomplete; season design preview added
+
+Created a living draft with 16 tasks in two waves: safely organize catalogue/imports, then bring the grouping into the app's screens. Both waves remain unstarted, with room for the next requirements. Browser Home now shows small season numbers on large and compact Anime cards and an optional Manga part marker. Tapping opens an overview; it does not change progress or assume previous seasons were finished.
+
+Checked narrow-phone/tablet sizing, opening the correct title, progress changes, Undo and simulated failure. The approved temporary iPad preview servesv19 until the original 2 October 04:44 CEST expiry while the Mac/tunnel stays online. All season groupings/account data are illustrative. The native app and backend are unchanged by this initiative.
+
+
+### 2026-10-02 — More deliberate season controls
+
+The Home preview now gives Anime an inset season rail and Manga paper-like part tabs. Larger panels in the overview let you inspect another season without changing the one you are watching. Current progress controls stay tied to the current season. Checked narrow-phone/tablet layouts, browsing, Undo, failed updates, keyboard return and reduced motion. The existing iPad link serves v20 within its original expiry. The plan is still incomplete; native app and backend are unchanged.
+
+
+### 2026-10-02 — Simpler Home season identity; detail design retained
+
+Removed the separate boxed season controls from Anime Home cards. Numbers now sit under the title, with the current season underlined. The title opens the larger detail selector you liked. Checked narrow and tablet layouts, large/compact entry points, progress and Undo. Manga and the detail design are preserved; the implementation plan remains incomplete and the native app/backend are unchanged.
+
+### 2026-10-02 — Rejected list withdrawn
+
+Restored two columns while clarifying how much season information should appear on small cards. This is not an approved replacement design. Detail pages are unchanged.
+
+### 2026-10-02 — New Also watching proposal
+
+Larger artwork, integrated season index and connected progress controls replace the loose miniature numbers. Checked phone/tablet fit, progress update, Undo and failed-save behavior. Manga and detail design unchanged; nothing released to the native app.
+
+### 2026-10-02 — Minimal season line
+
+Returned Also watching to its original size. Seasons share the episode-progress area; tested small screens, Undo and failed updates. Details and Manga are unchanged. Browser prototype only.
+
+### 2026-10-02 — Centered seasons on main cards
+
+Applied the minimal number treatment to the large cards as well as compact ones. Phone/tablet fit and tracking controls checked. Manga and detail pages unchanged; no native-app release.
+
+### 2026-10-02 — Seasons integrated into the card edge
+
+Replaced the rejected detached row with a current-season cut-out in each main Anime card. Kept the smaller cards compact. Checked phone/tablet fit, opening seasons without changing tracking, progress, Undo and failed saves. Details and Manga unchanged; browser prototype only.
+
+### 2026-10-02 — Three ways to label seasons
+
+Created three visual comparisons on matching main and compact cards. Checked small-screen fit, opening seasons, progress and Undo. No label design has been chosen; native app and backend unchanged.
+
+
+### 2026-10-02 — Local preview server restored
+
+Restarted the stopped local design preview. The page and script respond successfully again. Refresh the existing browser tab; the design itself is unchanged.
+
 ### 2026-10-02 — Artwork season design selected
 
 Kept the white current-season label on images and removed the extra number rows on main and small cards. Full season lists remain in details. Saved this as the chosen season treatment. Checked phone/tablet fit, tapping through and progress/Undo; no native or backend release.
 
+
 ### 2026-10-02 — Scoped Home design checkpoint
 
 Prepared a scoped local Git checkpoint of the selected v29 Home prototype, required sample data/artwork, linked reference board and focused run instructions (`tools/design-directions/INSTRUMENT_README.md`). Only relevant current-state/plan documentation is staged; unrelated working-tree changes remain local. No push or deployment. One run-instructions file added; design directory now contains 66 local files.
+
+- 2026-10-02 — Extended the existing incomplete two-wave series plan and added v30 interactive Anime/Manga detail mockups. Selected-season context, characters, music search, creator credits, source handoff and club presentation are local design fixtures; no ingestion, native or production changes.
+
+- 2026-10-02 — v31 detail visual/interaction polish in the local prototype; existing plan updated in place. Checked responsive fit, touch targets, season isolation, next-unit progress/Undo/failure and manga caught-up behavior. No native, hosted or released claim.
+
+- 2026-10-02 — v32 local detail club roster/comments and season-first manga guide; plan v0.4 remains incomplete. Browser-only checks recorded above; no native or hosted changes.
+
+- 2026-10-02 — v33 season-specific editorial copy and artwork-led club detail refinement; source social capabilities audited, no live/backend claims.
+
+- 2026-10-02 — v34 saved artwork materials, linked adaptation guide and Manga bookmark structure. Local checks: 320/390/768px fit, Home/detail colour equality, chapter update/Undo/failure, guide progress isolation, fallback/evidence guards and deterministic palette generation. No native/backend/live proof.
+
+- 2026-10-02 — v35 Anime detail: larger cover, single visible hook, expandable story; local responsive and interaction checks passed. No native/backend changes.
+
+- 2026-10-02 — v36 local visuals/Taste separation and plan v0.7 research. Browser verified 320px Anime/Manga/long-title fit, recommendation isolation, new-account Taste entry. Source findings distinguish chapter indexes from release evidence and current text/capped import from planned durable import. No live data writes.
+
+- 2026-10-02 — v37 corrected horizontal Anime opening, compact Manga refinement and detailed offline-progress plan. Browser fixture checks only; durable native queue and backend receipts remain future work.
+
+- 2026-10-02 — v38 Manga Home visual shelf refinement and focused browser checks. No native/backend change or deployment.
+
+- 2026-10-02 — v39 Manga Home artwork wash, softened outlines and chapter/cover motion; focused local checks passed. No native/backend change.
+
+- 2026-10-02 — v40 Manga reading desk, three interactive switch proposals and scoped gesture fix. One HTML review board added. Native waves remain NOT STARTED.
+
+- 2026-10-02 — v41 replaces rejected switch studies with Ribbon, Dial and Window; local responsive/interaction checks passed. Existing two-wave native plan remains INCOMPLETE and NOT STARTED.
+
+- 2026-10-02 — v42 page-edge medium control and Manga reading folio proposal; local phone/interaction checks passed. No native changes or deployment.
+
+- 2026-10-02 — v43 generated editorial switch, bundled fonts and graceful image fallback; local checks passed. Six asset/provenance files added. Native/backend unchanged.
+
+- 2026-10-02 — v44 replaces rejected generated switch comparison with Shelf and Masthead; local responsive, tap/keyboard and reduced-motion checks passed. No new files or native/backend changes. Owner review pending.
+
+- 2026-10-02 — v45 compact medium control integrated into Home header; local fit, tap/keyboard, Taste navigation and reduced-motion checks passed. No new files or native/backend changes.
+
+- 2026-10-02 — v46 five compact medium-switch proposals beneath navigation; local responsive, tap/keyboard and reduced-motion checks passed for every option. Owner review pending; no new files or native/backend change.
+
+- 2026-10-02 — v47 custom glass/paper material selector; local responsive, selection, reduced-motion and blocked-image recovery checks passed. Two asset/provenance files added. Owner review pending; no native/backend changes.
+
+- 2026-10-02 — v48: five local visual families and independently interactive comparison; phone fit, selection and reduced-motion verified locally, no shipping changes.
+
+- 2026-10-02 — v49: owner selected Poster; local typography, selection line, button/card edge polish and phone interaction checks; no release changes.
+
+- 2026-10-02 — v50: Poster Manga reading-spread proposal, explicit fixture-header artwork provenance and local chapter control checks.
+
+- 2026-10-02 — v51: replaced rejected Manga spreads with a continuous artwork shelf; local progress/error/undo and narrow-screen checks passed.
+
+- 2026-10-02 — Instrument v52: rejected v51 cabinet replaced by chapter margins and compact reading index; local checks passed, owner review pending.
+
+- 2026-10-02 — Instrument v53: attached chapter bookmarks, larger lead art and two-column current-read index; local reader-flow checks passed, design review pending.
+
+- 2026-10-03 — Added five-source local visual reference board; current Home unchanged, next Manga design pending review.
+
+- 2026-10-03 — Added three opt-in Manga Home compositions and live comparison; local checks passed, owner selection pending.
+
+
+### 2026-10-03 — Rejected study checkpoint and Crosscut proposal
+
+**New Manga composition for review (3 October 2026):** You rejected the previous Edition, Contact and Index choices. The new local Crosscut proposal changes the composition: artwork panels alternate in width, with chapter controls fitted into their edges and names/readers in the white space below. Poster, Anime and Sunday Club keep their existing design. Preview `manga-crosscut.html`; previous choices are marked rejected. Checked small-phone fit, chapter updates, failure, completion and Undo, unknown chapter totals, busy releases, empty accounts and reduced motion. This is a new proposal, not an approved native redesign or backend change.
+
+
+### 2026-10-03 — Equal artwork and four Manga Home philosophies
+
+**Four genuinely different Manga Home proposals (3 October 2026):** You rejected Crosscut's offset and unequal artwork. The new comparison uses equal artwork frames in each option: Library with one shared chapter control area, Chapter Board for tracking several reads at once, Reading Journal organised by sample recency, and Club Room for shared versus solo reading. Each works with chapter updates, failure, completion, Undo, title details and private club access. Checked phone fit and reduced motion. The expandable comparison notes explain the purpose and tradeoff for each. Recency/activity is fictional. These remain proposals; the native app, backend and default Home have not changed.
+
+
+### 2026-10-03 — Library selection and polish
+
+**Library is the selected Manga direction (3 October 2026):** You chose Library. It is now the default Manga Home in the local Instrument preview. Covers keep equal sizes, with aligned title/chapter labels and a clearer selection frame. The shared controls have a readable Next button and show the available chapter total when known. Arrow keys choose another cover without changing progress. Checked phone fit, title selection, failure, completion, Undo, unknown totals, details/clubs/navigation and reduced motion. Open `manga-library.html`. This is browser design work; the native app and backend have not changed.
+
+
+### 2026-10-03 — Library unified touch targets
+
+**Library is easier to tap (3 October 2026):** A book’s cover, name and chapter now all do the same thing: select its reading controls. Details is a separate labelled button beside the selected name. This removes the need to aim at nearby areas with different actions. Checked small and regular phone layouts, detail opening/focus return, keyboard selection, chapter failure, completion and Undo. This is a local browser preview; native app/backend unchanged.
+
+
+### 2026-10-03 — Library direct detail access
+
+**Open a book directly (3 October 2026):** Tap anywhere on a book—cover, title or chapter—to open its detail page. The shared chapter controls follow the book you opened. Closing returns you to that book without changing progress. The bar’s Details button remains an optional shortcut. Checked phone fit, correct pages, keyboard/focus return and chapter failure/completion/Undo in the local browser prototype. Native app and backend unchanged; physical touch gestures still need device testing.
+
+
+### 2026-10-03 — Library independent selection/navigation
+
+**Choose and open are independent (3 October 2026):** Tap any part of a book to choose its chapter controls without leaving Home. Every book has a separate generous Open button beneath it, so its details are nearby. Opening another book does not change your chosen read or chapter. Closing returns focus to its Open button. This adds a little shelf height. Checked local phone layouts, independent selection/navigation, keyboard/focus and chapter failure/completion/Undo. Native app/backend unchanged; physical-device touch testing remains open.
+
+
+### 2026-10-03 — Library per-book tracking proposal
+
+**Library tracking reworked for review (3 October 2026):** Removed the chosen-book bar and repeated Open buttons. Each book now has its own chapter counter and advance button beneath equal artwork. Its cover and title open details. You can update any book immediately without selecting it or leaving Home. Checked local phone fit, correct pages, independent updates, failure/completion/Undo and empty/caught-up states. The new proposal still needs your review; native app/backend unchanged.
+
+
+### 2026-10-03 — Temporary phone preview
+
+**Temporary iPhone preview (3 October 2026):** Shared the current sample design through a temporary public link: https://trees-marc-amongst-obtain.trycloudflare.com/instrument.html?switch=poster&medium=manga&embed=1. It shows the phone layout directly and supports the current detail pages. Only preview files/artwork/fonts are shared. Checked public loading and phone-width rendering. It stops by4October02:39 Berlin time, or earlier if the studio Mac/server stops. Native app/backend unchanged.
+
+
+### 2026-10-03 — Coming Up first-viewport summary
+
+**Coming Up is visible sooner (3 October 2026):** Added a small illustrated Coming Up strip beneath the Anime/Manga switch, before your current titles. It shows what is next and how many releases are in the calendar. Tap once to reach the full calendar below. Your six reads and chapter buttons keep their size. Unknown dates stay labelled pending; empty accounts and Taste show no invented schedule. Checked small and regular phone browser sizes, keyboard access and busy/unknown-date states. The same temporary phone link reflects the change after refresh. This is a browser design preview; the native app and backend are unchanged. Your review of the new strip is still open.
+
+
+### 2026-10-03 — Restore remaining phone-preview session
+
+**Temporary preview restored (2026-10-03):** Browser/app restart stopped the earlier preview and removed its temporary binary/screenshot. The old trees-marc-amongst-obtain link is unavailable. Restored the same45-file design-only allowlist via official Cloudflare2026.9.3; current link: https://cage-sustained-copy-when.trycloudflare.com/instrument.html?switch=poster&medium=manga&embed=1. Only the remaining authorized duration is used, still stopping4October02:39 Europe/Berlin. No account/backend data, share-scope expansion, recurring automation or TTL renewal. Replacement public page and loaded artwork verified; original Coming Up local/browser checks remain valid.
+
+
+### 2026-10-03 — iPad preview recovery
+
+**iPad preview recovery (2026-10-03, 21:34 Berlin):** Owner reported the replacement link did not work. The previous8814 listener and temporary binary were absent; the cage-sustained-copy-when link did not resolve. Restored the same45-file allowlisted preview with official Cloudflare2026.9.3 in the visualization runtime folder, using a detached subprocess rather than a foreground chat-terminal session. Current link: https://ratio-yarn-raise-scholarships.trycloudflare.com/instrument.html?switch=poster&medium=manga. Original automatic stop remains4October02:39 Europe/Berlin; no renewed duration, recurring service or expanded public files. Fresh HTTP200 for HTML/CSS/Instrument/Library modules and404 for .env/current-state docs. Browser tool is currently unavailable, so no new screenshot, Safari or iPad visual proof claimed. No UI/native/backend source changes; two-wave v0.8 implementation plan remains INCOMPLETE and unstarted.
+
+
+### 2026-10-04 — Reopen local studio preview
+
+Restarted the loopback-only design server on8803 (detached PID70343) and visibly opened manga-library.html in the Codex browser. Confirmed the embedded current Library/Coming Up renders. No UI/native/backend changes, public tunnel renewal, commit or deployment. Series/Home plan remains INCOMPLETE; native/backend waves unstarted.
+
+
+### Change Log — 4 October 2026: Manga story overview
+
+**Manga story overview (2026-10-04):** All six books in the local Library preview now have a short introduction to their actual story. Longer context stays behind About this story. The liked homepage stays as it is. Checked the six pages, opening/closing without changing chapters, and the existing anime season descriptions. Anime-to-manga matching should use verified source IDs and adaptation links; names only help search. The importer has part of this foundation, but missing links still need a safe retry path. This is a browser prototype change, not a native app or database release; the two-wave plan remains incomplete.
+
+
+### Change Log — 4 October 2026: Master-plan retention
+
+Retained adaptation matching and story-overview requirements in the single master plan; no execution status changed.
+
+
+### Change Log — 4 October 2026: Home/detail execution specification v1.0
+
+**Home/detail master plan finalized (2026-10-04):** The existing master plan is ready for another executor: first build the data/import/sync foundation, then wire and qualify Home and both detail pages. It includes every control, real personalized import results, season/source matching, story copy, music, private-club comments, offline progress, errors and tests. The design stays as currently selected. Planning is complete for this scope; the native app/database work has not started and nothing was released.
+
+
+### Change Log — 5 October 2026: Production executor handout v1.1
+
+**Production handout (2026-10-05):** Created a start-ready Claude Code document for the selected Home and detail redesign. It first requires a database/call audit, then the same two larger waves. It includes thousands-of-users tests, safe fast/offline edits, club-removal privacy, faithful AniList/MyAnimeList imports and exact visual-reference files. This is the implementation contract, not a completed app update; no native/backend work or production release happened.
+
+### Change Log — 5 October 2026: Modular architecture and measured migration plan
+
+**Modular codebase plan (2026-10-05):** [Modular architecture and migration plan](docs/plans/2026-10-05-modular-architecture-plan.md) explains how to give each feature clear ownership and make the app easier to navigate and maintain. The native app has 94 Swift files; 34 exceed 600 lines. Many screens still depend on one shared service. The plan sets file/module size limits, practical exceptions, tests and a gradual migration. It estimates 11–19 engineer weeks for the full architectural scope, to be revised after the first audit. This is a measured local source assessment and a plan; the refactor has not started and the current design/released app is unchanged.
+
+### Change Log — 5 October 2026: Judgment based modularity review policy
+
+**Modular codebase plan (2026-10-05, revised policy):** [Modular architecture and migration plan](docs/plans/2026-10-05-modular-architecture-plan.md) now treats line counts as prompts for review, rather than strict limits. The rules focus on clear ownership, understandable workflows, safe dependencies and behavior. A review can keep a large cohesive module, split it at a useful boundary, or defer a demonstrated issue with a named follow-up. The expanded plan explains the first extractions, practical review examples and how to avoid delaying Home with unrelated work. The measured native inventory and provisional 11–19 engineer-week estimate are unchanged. The refactor has not started; current app/design/release behavior is unchanged.
+
+### Change Log — 5 October 2026: Autonomous modular architecture execution brief
+
+**Modular codebase execution brief (2026-10-05):** [Claude Code execution brief](docs/plans/2026-10-05-modular-architecture-plan.md) now starts with the prompt to implement the full architecture using several coordinated specialist agents and an independent reviewer. Priorities are safe/correct behavior 35%, maintainability 25%, compatibility 20%, useful verification 10% and simplicity 10%. Every required success gate must pass; a score cannot excuse a failure. Account-switch safety comes first, followed by clear ownership, one Library writer, useful modules, actual screen/backend integration and retirement of the old shared service. Testing targets important failures and runs broader checks on the final integrated code, rather than repeatedly testing everything. Includes no work-duration estimates or schedules. This updates the execution instructions only; app refactoring and its checks have not started.
+
+### Change Log — 5 October 2026: Codebase reorganized locally
+
+**Codebase reorganization (2026-10-05):** Carried out the modular plan on this Mac with several specialist agents and independent reviewers (not committed, not released, nothing changed on the live servers). The old all-in-one data service is gone; each app area has one owner in its own folder under `Kuro/`, everything is wired together in `Kuro/Composition/AppComposition.swift`, and the saved-titles rules live in the tested package `Packages/KuroModules`. Repairs along the way: ratings use the database's 1–10 scale everywhere (three save paths sent 10–100 and could fail); changing an episode no longer re-sends your rating, notes or status; "save" never resets an existing entry; imports wait for your list and never auto-apply to titles you already track; leaving or losing access to a club clears its private data; account switches, sign-out and deletion follow one safe order so the old account's data cannot reappear. Screens now open details, the list editor and club pages through one shared navigation path; shared cards have their own folder; the detail pages share their common parts and one place decides watch/read links; Concierge's routing and import pre-selection rules are plain, tested rules. New checks: package tests, a structure check, a throwaway local database for permission tests, and backend rule tests. Prepared but NOT deployed (needs approval): safer server account deletion, safer server imports (visible behaviour changes) and three club privacy fixes. Still open: owner decisions on club privacy and invite codes, a read-only user-id check, the club error-code library mismatch, screen/phone testing and capacity testing; the Home/detail plan's offline/product/capacity goals are not met by this work. Exact test numbers and check status: the [execution ledger](docs/plans/2026-10-05-modular-architecture-execution-ledger.md). Inventory: 129 app Swift files, 14 package Swift files, 235 migrations (+3 prepared, not deployed).
+
+### Change Log — 5 October 2026: Import, club and limiter follow-up
+
+**Still not finished (2026-10-05):** A later pass connected the prepared import result to the screens, pointed club live updates at the new signal tables while keeping today's live updates working until that database change is approved, made the remaining assistant limits fail closed, and stopped a cancelled account switch from showing an error toast. A review then found that Profile could not actually undo a partial import, that a lost network response could not safely retry, and that a fully rejected import could look finished. Those are repaired in a follow-up: Profile now offers Undo, a lost response retries the same import, and a rejected import is shown as a failure. Nothing was deployed. The architecture is not complete, and that follow-up has not been independently accepted. A later review found three leftovers: editing the chosen title could resend the old one, Profile could miss a committed import by checking the library first, and a slow Undo could put a dismissed card back. Those are repaired. Profile now has a Retry control for the lost import, and Undo does not restore a card the user already dismissed. Still not independently accepted, and still not a finished architecture. A plain local release script no longer deploys to the live servers unless that is turned on on purpose. Worker scripts find this checkout instead of assuming the app lives in /Applications/Kuro. The synopsis, catalog-safety, and provider workers can be exercised offline. Bulk import, chapter enrich, source review, and image mirroring each have a local testable run. None of that is on the live servers. The test app uses a fake server configuration, and the automatic checks include the important backend tests. The AniList import can be rehearsed offline, including a cut-off list and a failed lookup. A shortened synopsis is remembered separately for anime and manga, so the same number cannot swap their text. Devices without Apple's on-device model still get no synopsis assist. Manga chapter matching, the MangaDex lookup, and the database writes are now separate local pieces behind the same job. That job was not deployed. The media-relations worker can be checked offline and does not start its installed job. Updating several saved titles refreshes the collection once. An export that cannot find a title names it instead of leaving it blank. The unused genre screen is gone, and the sign-in screen still shows trending anime. The extra hidden copy of your saved titles is no longer loaded. An unused provider request type was removed. The genre picker used by a local screen-capture script is still there. Screens are checked so they cannot create the database client themselves. Other feature boundaries inside the app are still a convention. An AniList import can be checked offline: a cut-off cached list is labeled cut off, and a failed lookup does not invent titles. That import was not deployed. Saving a title refreshes the collection list you see, and the extra hidden card copy is gone. A later review found eight leftovers in that work: an image download can stall, a bulk import can run without a lock or skip a failed save, the collection list can refresh twice, anime and manga can share a shortened synopsis, three worker scripts still point at another folder, credentials can be mixed, and a manga lookup can run past its time limit. Those are being repaired and are not finished. The three worker launchers now use this checkout, and a database URL is no longer paired with a key from a different file. Three local status pages can still look in the old folder. A bulk catalog import no longer runs when its lock fails, and a failed save does not skip ahead. An image download and a manga chapter lookup now stop when their time limit runs out, including while the file is still arriving. Updating several saved titles refreshes the collection once. A shortened anime synopsis is not reused for the manga with the same description. Live checks on the real Kuro project signed in disposable accounts and deleted them through the app's delete function. Their uploaded pictures were still on the public media link afterward, and a rejected login token could still upload. A club member received a live update and a non-member did not. Three test images are still there because this check had no admin key to remove them. A later deploy of the deletion barrier removed those three images, and a new disposable account's files were gone after deletion. A login token that GoTrue had already rejected could not upload another file.
