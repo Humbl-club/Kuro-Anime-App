@@ -100,7 +100,7 @@ struct HomeView: View {
                     (.manga, 11, .planning)
                 ]
                 for sample in samples {
-                    let outcome = await library.save(MediaKey(kind: sample.0, id: sample.1), status: sample.2)
+                    let outcome = await libraryActions.save(MediaKey(kind: sample.0, id: sample.1), status: sample.2)
                     if case .failed(let error) = outcome {
                         print("Home sample \(sample.1) was not saved: \(error)")
                     }

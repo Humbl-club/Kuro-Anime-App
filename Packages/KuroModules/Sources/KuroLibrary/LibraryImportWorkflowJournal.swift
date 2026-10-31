@@ -110,7 +110,7 @@ extension LibraryImportPageJournal {
         try saveWorkflow(manifest)
         let account = try canonicalAccount(manifest.accountId)
         let folder = try workflowDirectory(account, manifest.actionId, create: false)
-        var saved = try loadWorkflow(accountId: account, actionId: manifest.actionId)!
+        guard var saved = try loadWorkflow(accountId: account, actionId: manifest.actionId) else { throw Failure.invalidCheckpoint }
         let receipt = try acknowledgeTerminal(saved, folder: folder)
         saved.decisions = nil; saved.appliedDecisionCount = 0
         try atomicWrite(try encoded(saved), to: folder.appendingPathComponent("manifest.json"))
@@ -169,7 +169,7 @@ extension LibraryImportPageJournal {
         var scannedBytes = 0
         do {
             try pruneCandidates(&state, remaining: &remaining)
-            for action in actions where state.cursor == nil || action.lastPathComponent > state.cursor! {
+            for action in actions where state.cursor.map({ action.lastPathComponent > $0 }) ?? true {
                 guard remaining > 0, scannedBytes < Self.maxActiveAccountBytes else { throw Failure.cleanupLimit }
                 remaining -= 1
                 let manifestFile = action.appendingPathComponent("manifest.json")
@@ -215,8 +215,7 @@ extension LibraryImportPageJournal {
         state.candidates.sort {
             $0.acknowledgedAt == $1.acknowledgedAt ? $0.actionId > $1.actionId : $0.acknowledgedAt > $1.acknowledgedAt
         }
-        while state.candidates.count > 10 {
-            let old = state.candidates.last!
+        while state.candidates.count > 10, let old = state.candidates.last {
             let folder = try workflowDirectory(state.accountId, old.actionId, create: false)
             if let value = try? loadWorkflow(accountId: state.accountId, actionId: old.actionId), acknowledgedTerminal(value) {
                 guard try cleanPayload(folder, remaining: &remaining), remaining >= 2 else { throw Failure.cleanupLimit }
@@ -294,7 +293,7 @@ extension LibraryImportPageJournal {
         // consuming the same bounded scan. Unknown legacy files are preserved, not guessed away.
         let legacy = try children(directory).filter { $0.pathExtension == "json" }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
-            .filter { progress.legacyCursor == nil || $0.lastPathComponent > progress.legacyCursor! }
+            .filter { file in progress.legacyCursor.map { file.lastPathComponent > $0 } ?? true }
         var scannedBytes = 0
         for file in legacy {
             if remaining == 0 || scannedBytes >= 32 * 1024 * 1024 {

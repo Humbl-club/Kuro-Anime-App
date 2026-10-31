@@ -113,7 +113,9 @@ final class MALNativeAccountConnector: NSObject, AccountScopedState, ASWebAuthen
         defer { if connecting == connectionId { connecting = nil; anchor = nil } }
         let attempt = LibraryOAuthAttempt(accountId: context.userId, generation: context.generation,
             state: try Self.randomValue(), verifier: try Self.randomValue(), method: registration.challengeMethod)
-        var components = URLComponents(url: registration.authorizationURL, resolvingAgainstBaseURL: false)!
+        guard var components = URLComponents(url: registration.authorizationURL, resolvingAgainstBaseURL: false) else {
+            throw MALConnectionError.registrationUnavailable
+        }
         components.queryItems = [
             URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "client_id", value: registration.clientId),
@@ -267,8 +269,7 @@ final class MALNativeAccountConnector: NSObject, AccountScopedState, ASWebAuthen
             try await withCheckedThrowingContinuation { continuation in
                 let session = ASWebAuthenticationSession(url: url, callbackURLScheme: "kuro") { callback, error in
                     Task { @MainActor in
-                        guard self.browser?.id == id else { return }
-                        let flow = self.browser!
+                        guard let flow = self.browser, flow.id == id else { return }
                         self.browser = nil
                         if let callback { flow.continuation.resume(returning: callback) }
                         else { flow.continuation.resume(throwing: error ?? CancellationError()) }
@@ -284,8 +285,7 @@ final class MALNativeAccountConnector: NSObject, AccountScopedState, ASWebAuthen
             }
         } onCancel: {
             Task { @MainActor in
-                guard self.browser?.id == id else { return }
-                let flow = self.browser!
+                guard let flow = self.browser, flow.id == id else { return }
                 self.browser = nil
                 flow.session.cancel()
                 flow.continuation.resume(throwing: CancellationError())
@@ -302,8 +302,12 @@ final class MALNativeAccountConnector: NSObject, AccountScopedState, ASWebAuthen
         request.timeoutInterval = 30
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
-        request.httpBody = Data(values.sorted(by: { $0.key < $1.key }).map {
-            "\($0.key.addingPercentEncoding(withAllowedCharacters: allowed)!)=\($0.value.addingPercentEncoding(withAllowedCharacters: allowed)!)"
+        request.httpBody = Data(try values.sorted(by: { $0.key < $1.key }).map { field -> String in
+            guard let name = field.key.addingPercentEncoding(withAllowedCharacters: allowed),
+                  let value = field.value.addingPercentEncoding(withAllowedCharacters: allowed) else {
+                throw MALConnectionError.invalidCallback
+            }
+            return "\(name)=\(value)"
         }.joined(separator: "&").utf8)
         let (data, response) = try await transport.data(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {

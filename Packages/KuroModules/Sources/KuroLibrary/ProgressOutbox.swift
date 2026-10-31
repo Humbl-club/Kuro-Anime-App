@@ -196,7 +196,7 @@ public final class ProgressOutbox: @unchecked Sendable {
         try await run {
             try self.transaction {
                 try self.exec("update intents set state = 'pending', claimed_at = null where account_id = '\(self.sql(accountId))' and state = 'in_flight' and claimed_at < \(Date().timeIntervalSince1970 - 120)")
-                let rows = try self.pendingSync(accountId: accountId, limit: limit).filter { mutationIds == nil || mutationIds!.contains($0.mutationId) }
+                let rows = try self.pendingSync(accountId: accountId, limit: limit).filter { row in mutationIds?.contains(row.mutationId) ?? true }
                 try self.markSync(rows.map(\.mutationId), state: "in_flight")
                 return rows
             }

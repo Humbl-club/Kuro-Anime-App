@@ -613,9 +613,12 @@ final class HomeStore: AccountScopedState {
         let session = accountSession
         library.configureProgress(outbox: storage, acceptsWrites: acceptsWrites) { intents, account in
             guard let sender else { throw MissingSupabaseConfiguration() }
-            let mutations = intents.map { item in
-                RPCProgressMutationsParams.Mutation(mutation_id: item.mutationId.uuidString, medium: item.medium,
-                    media_id: item.mediaId, lifecycle_id: item.lifecycleId!.uuidString, base_revision: item.baseRevision!,
+            // The drain marks intents without a lifecycle/revision invalid before sending. Never invent
+            // either value: a skipped intent gets no receipt and takes the drain's unresolved path.
+            let mutations = intents.compactMap { item -> RPCProgressMutationsParams.Mutation? in
+                guard let lifecycleId = item.lifecycleId, let baseRevision = item.baseRevision else { return nil }
+                return RPCProgressMutationsParams.Mutation(mutation_id: item.mutationId.uuidString, medium: item.medium,
+                    media_id: item.mediaId, lifecycle_id: lifecycleId.uuidString, base_revision: baseRevision,
                     position: item.writesPosition ? item.position : nil, position_label: item.writesPosition ? item.positionLabel : nil,
                     unit_id: item.writesPosition ? item.unitId?.uuidString : nil,
                     status: item.status.map { value in
@@ -625,6 +628,7 @@ final class HomeStore: AccountScopedState {
                         }
                     })
             }
+            guard !mutations.isEmpty else { return [] }
             let result = try await session.withCredentialLease(for: account) { try await sender.apply(mutations) }
             return result.items.compactMap { item in
                 guard let id = UUID(uuidString: item.mutationId) else { return nil }

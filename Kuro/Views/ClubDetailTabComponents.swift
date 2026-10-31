@@ -695,7 +695,7 @@ struct JournalActivityContent: View {
             }
             groups[key, default: []].append(entry)
         }
-        return order.map { (date: $0, entries: groups[$0]!) }
+        return order.compactMap { key in groups[key].map { (date: key, entries: $0) } }
     }
 
     var body: some View {

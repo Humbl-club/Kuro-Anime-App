@@ -135,5 +135,8 @@ public struct MALAccountImportCursor: Codable, Equatable, Sendable {
         guard [cursor.anime, cursor.manga].compactMap({ $0 }).allSatisfy({ $0 >= 0 && $0 < MALAccountList.maximumOffset && $0 % MALAccountList.pageSize == 0 }) else { throw MALAccountList.Failure.unsafeCursor }
         return cursor
     }
-    public func encode() throws -> String { String(data: try JSONEncoder().encode(self), encoding: .utf8)! }
+    public func encode() throws -> String {
+        guard let text = String(data: try JSONEncoder().encode(self), encoding: .utf8) else { throw MALAccountList.Failure.unsafeCursor }
+        return text
+    }
 }

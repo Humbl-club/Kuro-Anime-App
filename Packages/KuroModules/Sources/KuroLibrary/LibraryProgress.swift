@@ -78,8 +78,8 @@ extension LibraryStore {
             let conflicts = try await state.outbox.conflicts(accountId: account.userId.lowercased(), afterSequence: cursor)
             guard context == account, activeBindingEpoch == epoch else { throw LibraryError.notAuthenticated }
             if conflicts.contains(where: { keys.contains(progressKey($0)) }) { return true }
-            if conflicts.count < 50 { return pendingTracking(for: keys) }
-            cursor = conflicts.last!.localSequence
+            guard conflicts.count >= 50, let last = conflicts.last else { return pendingTracking(for: keys) }
+            cursor = last.localSequence
         }
     }
 
@@ -302,7 +302,8 @@ extension LibraryStore {
                 return loadState != .loaded
             }
             if !conflicts.isEmpty || page.count < 50 { break }
-            conflictCursor = page.last!.localSequence
+            guard let last = page.last else { break }
+            conflictCursor = last.localSequence
         }
         guard context == account, activeBindingEpoch == epoch, progressState === state, state.generation == version else { return }
         func current(_ intent: ProgressIntent) -> Bool {
@@ -385,11 +386,12 @@ extension LibraryStore {
                         let key = progressKey(source)
                         switch receipt.outcome {
                         case "applied", "already_applied":
-                            guard let position = receipt.position, position >= 0, let revision = receipt.revision, revision >= (source.baseRevision ?? 0) else { continue }
+                            guard let position = receipt.position, position >= 0, let revision = receipt.revision, revision >= (source.baseRevision ?? 0),
+                                  let lifecycle = source.lifecycleId else { continue }
                             try await state.outbox.acknowledge(receipt.mutationId, revision: revision, position: position)
                             guard context == account, activeBindingEpoch == epoch, state.drainToken == token else { throw CancellationError() }
                             state.generation += 1
-                            adoptServerProgress(key: key, account: account, lifecycleId: source.lifecycleId!, progress: position, revision: revision,
+                            adoptServerProgress(key: key, account: account, lifecycleId: lifecycle, progress: position, revision: revision,
                                 status: source.status.flatMap(ListStatus.init(rawValue:)), mutationId: source.mutationId,
                                 progressLabel: source.positionLabel, unitId: source.unitId, writesPosition: source.writesPosition)
                             var ack = source; ack.baseRevision = revision; ack.position = position

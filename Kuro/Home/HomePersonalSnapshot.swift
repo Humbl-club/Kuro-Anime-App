@@ -72,11 +72,11 @@ struct HomePersonalSnapshot: Codable, Sendable {
         for card in active {
             guard card.mediaId > 0, card.progress >= 0, card.serverRevision >= 0,
                   let lifecycle = UUID(uuidString: card.lifecycleId),
-                  card.unitId == nil || UUID(uuidString: card.unitId!) != nil,
+                  card.unitId.map({ UUID(uuidString: $0) != nil }) ?? true,
                   let row = tracking.first(where: { $0.mediaId == card.mediaId }), row.lifecycle == lifecycle,
                   row.rowId > 0, row.progress == card.progress, row.revision == card.serverRevision,
                   row.label == card.progressLabel, row.unitId == card.unitId.flatMap(UUID.init(uuidString:)),
-                  row.rating == nil || UserRating(value: row.rating!) != nil else { return false }
+                  row.rating.map({ UserRating(value: $0) != nil }) ?? true else { return false }
         }
         return true
     }

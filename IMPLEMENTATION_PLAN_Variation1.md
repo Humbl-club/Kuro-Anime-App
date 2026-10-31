@@ -1,5 +1,7 @@
 # Concierge "Modes Router" Plan (Variation 1)
 
+> **Repository checkpoint, 31 October — OCTOBER WORK COMMITTED LOCALLY; GATES PASS.** Five grouped local commits on `codex/integrated-testflight` (not pushed) plus backup ref `refs/backup/kuro-snapshot-20261031`. Architecture, docs-count and migration gates pass; runtime force unwraps guarded. Native design visual acceptance still open; no deployment or flag change.
+
 > **Native design polish, 9 October — FULL POSTER HOME; VISUAL ACCEPTANCE OPEN.** Empty invitation unchanged. Saved Anime is shallow scenes with a white foot. Saved Manga is the equal-cover library with the chapter ticket on the cover. Acceptance is still open.
 
 > **Native design polish, 9 October — EMPTY AND SAVED HOME SPLIT; VISUAL ACCEPTANCE OPEN.** Invitation keeps the picture. A saved medium uses the white shelf. Acceptance is still open.

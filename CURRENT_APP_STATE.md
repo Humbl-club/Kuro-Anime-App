@@ -145,11 +145,11 @@
 
 **Approved welcome reference (2026-09-25):** Max confirmed GitHub `b943e457` on `codex/kuro-onboarding-no-tv` as the intended welcome/onboarding: painted scene, grouped wordmark/headline, TV removed. Preserve that composition; the separate local 72%-height composition edits remain untouched and are not the approved baseline. Email/auth logic matches the reference; improvement proposals concern the form and signed-in experience. The GitHub upload is verified, while TestFlight/public release and installed visual equivalence remain unverified. The detailed review now consolidates market, monetization and design decisions; no app implementation.
 
-**Last updated:** 2026-10-05 (modular-architecture migration executed locally, uncommitted and not deployed; Home browser prototype 2026-10-02; native/backend snapshots retain their stated evidence dates)
+**Last updated:** 2026-10-31 (October work committed locally on `codex/integrated-testflight`, not pushed; gate cleanup; earlier: modular-architecture migration 2026-10-05; Home browser prototype 2026-10-02; native/backend snapshots retain their stated evidence dates)
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 160 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 164 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -911,6 +911,7 @@ node scripts/generate_app_state_inventory.js
 ### Main navigation
 - File: `Kuro/ContentView.swift`
 - Root: `ContentView -> KuroRootView -> KuroMainView`
+- **Current pager (verified against source 2026-10-31, `KuroMainView.pagerOrder`):** with `series_home_native_v1` effective (also needs `series_foundation_v1` and post-sign-in hydration) the order is **Taste ← Home → Discover → Collection → Clubs** and the Taste page renders `TastePicksView`; Browse and Concierge are not pages then. `selection` starts on Discover and switches to Home after `bootstrapAfterAuth`. Last recorded live values of both `series_*` flags (2026-10-08) are 0%, so real installs use the `taste_deck_v1` order below; the new Home is seen only on the Debug simulator via `--ff-on`. The bullets below describe the `taste_deck_v1` / legacy orders.
 - **Pager is flag-aware** (2026-07-31): with `taste_deck_v1` ON (100%), swipe order (left to right):
   1. **Taste** (Taste Deck)
   2. **Discover**
@@ -19599,3 +19600,11 @@ Empty Home keeps its words. The cover sentence uses light display serif, tight t
 ### Change Log — 9 October 2026: Picture through header
 
 The white band above Home was app chrome (`Color.kuroBackground` + opaque `KuroHeaderNew`) sitting above the pager. When `selection == .home`, `KuroMainView` now pins shared `HomePagePicture` full-screen with `.ignoresSafeArea()` behind the header and pager; other pages keep the white field. On Home, `KuroHeaderNew` clears its fill, shadow and divider. `HomeView` drops the scrolling duplicate picture and the white.opacity(0.92) cut; soft wash stays over the lower type; the medium word uses `HomePagePictureFill`. New file: `Kuro/Views/Home/HomePagePicture.swift`. `HomeCompositionSnapshotTests` re-rendered; Debug reinstalled on `7FC4B58A-430C-457D-A017-6B0095723F3F`; evidence `home-picture-through-header.png`. Visual acceptance remains open. No backend, flag, commit or TestFlight change.
+
+### Change Log — 31 October 2026: Snapshot, commits and gate cleanup
+
+Saved the uncommitted October work: full-tree backup ref `refs/backup/kuro-snapshot-20261031` (`1f13f56`) and archive `~/Kuro-backups/kuro-snapshot-20261031-1f13f56.tar.gz`, then five grouped local commits on `codex/integrated-testflight` (`076eed2` iOS, `cd65c05` backend, `a055e11` tooling, `9580268` docs/evidence, `a21a867` design tools); not pushed. `.gitignore` now ignores `*.xcresult/` and `__pycache__/`. Secret scan over all previously untracked text files: no keys/tokens (only `mailbox.invalid` probe addresses, public anon key, public MAL client id).
+
+Gate cleanup: `HomeView` DEBUG sample seeding writes through `LibraryActions.save` (architecture gate PASS); inventory 164 app Swift files (docs gate PASS); migrations tracked (migration gate PASS). Force unwraps on runtime data replaced with guards that take each function's existing failure exit (`HomeStore` progress send skips intents lacking lifecycle/revision — unreachable because `drainProgress` already marks them `invalid_target`; import journal, `LibraryStore`, `LibraryProgress`, `ProgressOutbox`, `MALAccountList`, `MALNativeAccountConnector` (registration URL now throws `.registrationUnavailable`), `ClubDetailTabComponents`, `ImportWorkflowSheet`, `ConciergeImportCards`, `HomePersonalSnapshot`). Accepted: URL/static literals and the type-safe `try!` in `LibraryImportBatch.payloadHash`. Package tests 96/96; generic simulator build succeeded. `CLAUDE.md` resynced (navigation, file map, flags, warnings, migration-history caveat, memory path).
+
+Open, not changed (pre-existing in deployed code): signed-out `kuro://auth/callback` adopts any supplied session (login-CSRF; needs flow binding/PKCE); `concierge-parse` per-IP limit trusts first `x-forwarded-for` entry. Also stale: `supabase/tests/pending_migrations.txt`, duplicate replay of nine `20261005*` files in `scripts/db/replay_migrations.sh`, missing deploy receipt for `concierge-import-anilist` v6. No deployment, simulator install or flag change.

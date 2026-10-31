@@ -297,7 +297,7 @@ struct ImportConfirmCard: View {
 
             // Reasoning tooltip (auto-selected only)
             if isAutoSelected && showReasoningTooltip {
-                ReasoningTooltip(reason: autoReason?.isEmpty == false ? autoReason! : "Selected based on your text")
+                ReasoningTooltip(reason: autoReason.flatMap { $0.isEmpty ? nil : $0 } ?? "Selected based on your text")
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .padding(.top, 8)
             }

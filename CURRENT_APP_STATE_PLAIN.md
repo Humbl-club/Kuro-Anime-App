@@ -147,11 +147,11 @@
 
 **Approved welcome reference (2026-09-25):** Max confirmed GitHub `b943e457` on `codex/kuro-onboarding-no-tv` as the intended welcome/onboarding: painted scene, grouped wordmark/headline, TV removed. Preserve that composition; the separate local 72%-height composition edits remain untouched and are not the approved baseline. Email/auth logic matches the reference; improvement proposals concern the form and signed-in experience. The GitHub upload is verified, while TestFlight/public release and installed visual equivalence remain unverified. The detailed review now consolidates market, monetization and design decisions; no app implementation.
 
-**Last updated:** 2026-10-05 (codebase reorganized locally, not committed or deployed; Home browser prototype 2026-10-02; installed-app status is separate)
+**Last updated:** 2026-10-31 (October work saved as local commits, not pushed; codebase reorganized 2026-10-05; Home browser prototype 2026-10-02; installed-app status is separate)
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 160 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 164 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -1981,3 +1981,7 @@ The opening sentence is set like a cover line, with a short black rule under it.
 ### Change Log — 9 October 2026: Picture through header
 
 The clock and KURO / HOME bar no longer sit on a white strip above the mountain. On Home, that same picture continues behind the top of the phone; the header letters and icons stay readable on it. Other pages keep their white header. Fresh screenshots and the owned simulator install are ready for review. Visual acceptance is still open.
+
+### Change Log — 31 October 2026: Work saved and checks fixed
+
+All the October work that only existed on the Mac is now saved: a full backup copy (inside git and as a separate archive file in `~/Kuro-backups/`) plus five tidy local commits. Nothing was uploaded to GitHub. The three failing automatic checks now pass, a set of places where the app could in theory crash on missing data now handle it safely, and the project rules file (`CLAUDE.md`) describes the app as it really is today. Two older security weaknesses were found and written down for a separate decision: an email-style sign-in link could sign a signed-out phone into someone else's account, and one assistant service's rate limit can be dodged. No live server, app install or setting was changed.

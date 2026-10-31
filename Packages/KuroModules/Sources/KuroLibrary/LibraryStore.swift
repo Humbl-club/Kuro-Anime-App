@@ -221,7 +221,7 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
     public func adoptServerProgress(key: MediaKey, account: AccountContext, lifecycleId: UUID,
                                     progress: Int, revision: Int64, status: ListStatus? = nil, mutationId: UUID? = nil, progressLabel: String? = nil, unitId: UUID? = nil, writesPosition: Bool = true) {
         guard context == account else { return }
-        var state = inFlight[key]
+        let state = inFlight[key]
         guard var entry = state?.confirmed ?? entries[key], entry.lifecycleId == lifecycleId,
               revision >= (entry.revision ?? 0) else { return }
         let previous = entry
@@ -232,10 +232,10 @@ public final class LibraryStore: LibraryReading, LibraryWriting {
         if let status { entry.status = status }
         entry.revision = revision
         entry.updatedAt = now()
-        if state != nil {
-            state!.confirmed = entry
-            inFlight[key] = state
-            publish(key, state!.projection(for: key))
+        if var flight = state {
+            flight.confirmed = entry
+            inFlight[key] = flight
+            publish(key, flight.projection(for: key))
         } else { publish(key, entry) }
         if changed, let mutationId {
             let change = LibraryChange(key: key,kind: .updated,previous: previous,current: entry,

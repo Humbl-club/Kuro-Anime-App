@@ -364,7 +364,7 @@ enum ImportFieldCopy {
         case .status: return values.status ?? "Not provided"
         case .progress: return values.progress.map { "\($0)\(values.progressLabel.map { " (\($0))" } ?? "")" } ?? "Not provided"
         case .score: return values.scoreRaw.map { "\($0) / \(values.scoreScale ?? "source scale") · Kuro \(values.normalizedRating.map(String.init) ?? "unrated")" } ?? values.normalizedRating.map { "Kuro \($0); no stored source score" } ?? "Not provided"
-        case .notes: return values.notes?.isEmpty == false ? values.notes! : "No supplied note; keep Kuro"
+        case .notes: return values.notes.flatMap { $0.isEmpty ? nil : $0 } ?? "No supplied note; keep Kuro"
         case .privacy: return values.isPrivate.map { $0 ? "Private" : "Public" } ?? "Not provided"
         case .volumes: return values.volumesProgress.map(String.init) ?? "Not provided"
         case .repeats: return values.repeatCount.map(String.init) ?? "Not provided"
