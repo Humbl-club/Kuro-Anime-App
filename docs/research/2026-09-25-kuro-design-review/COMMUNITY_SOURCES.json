@@ -1,0 +1,112 @@
+[
+  {
+    "id": "RT01",
+    "title": "How do you keep track of the anime you’re watching and stay updated about new episodes or news?",
+    "url": "https://www.reddit.com/r/Animesuggest/comments/1oob4pk/how_do_you_keep_track_of_the_anime_youre_watching/",
+    "date": "2025-11-04; replies 2025-11-04–05",
+    "observation": "OP wants a more personal watching journey. Replies counter that MAL, AniList and LiveChart already cover tracking and release alerts; one values only the airing day because Japan-time countdowns do not reflect accessible streams.",
+    "limitations": "Builder-research OP; substantial satisfaction counterevidence. No proof existing products universally lack reminders. Exact dates from indexed thread; direct post/comments read.",
+    "access": "Direct web post and replies, plus dated indexed thread",
+    "platform": "Cross-platform: MAL, AniList, LiveChart"
+  },
+  {
+    "id": "RT02",
+    "title": "Useful Anime Tracker Apps",
+    "url": "https://www.reddit.com/r/anime/comments/1ivusmu/useful_anime_tracker_apps/",
+    "date": "2025-02-22",
+    "observation": "User wants a calendar limited to their shows and an easier way to follow future seasons without repeatedly searching and adding separate entries. Replies suggest AniList/AniChart and general TV trackers.",
+    "limitations": "Tested apps unnamed; proposed alternatives not confirmed as solving the exact request. Supports franchise-following need, not claim all trackers lack personalized calendars.",
+    "access": "Direct web post and replies; exact date corroborated by indexed thread/footer",
+    "platform": "General anime tracker workflow"
+  },
+  {
+    "id": "RT03",
+    "title": "Is there a way to create custom lists (or an alternative site with this feature)?",
+    "url": "https://www.reddit.com/r/anilist/comments/1sf0b9u/is_there_a_way_to_create_custom_lists_or_an/",
+    "date": "2026-04-07",
+    "observation": "User wants ordered favorites like Backloggd. Replies point to Settings→Lists, then distinguish available custom groups from unavailable arbitrary ordering; favorite-heart reordering is offered as a workaround.",
+    "limitations": "A request about ordering is not evidence custom lists are absent. Implementation intention has no ETA; current completion unverified.",
+    "access": "Direct web post and replies; exact indexed date",
+    "platform": "AniList website"
+  },
+  {
+    "id": "RT04",
+    "title": "What’s missing from anilist?",
+    "url": "https://www.reddit.com/r/anilist/comments/1s7z3e3/whats_missing_from_anilist/",
+    "date": "2026-03-30; relevant replies through 2026-04-01",
+    "observation": "Requests include own-list tag filtering while retaining scores, status visibility inside custom lists, curation without declaring reading intent, privacy controls, and comparing friends' lists. A reply explains title-level friend activity and one-person comparison already exist.",
+    "limitations": "Prompted wishlist with mixed demands and praise of existing site; not representative prevalence. Existing friend capabilities must be acknowledged. Some later comments excluded.",
+    "access": "Direct post/replies plus indexed full reply chains",
+    "platform": "AniList website/mobile web"
+  },
+  {
+    "id": "RT05",
+    "title": "Made a monthly calendar view for your AniList watching list",
+    "url": "https://www.reddit.com/r/anilist/comments/1upxnio/made_a_monthly_calendar_view_for_your_anilist/",
+    "date": "2026-07-07; replies through 2026-07-10",
+    "observation": "Third-party calendar uses a public username. User reports duplicated episode entries; maker fixes duplicate custom-list records and user confirms, saying it can replace their Discord note of airing weekdays.",
+    "limitations": "Promotional post and one self-reported successful workflow. No independent product benchmark or usage/retention measurement. Cross-list deduplication fixed in thread.",
+    "access": "Direct web post and developer/user replies; dated indexed thread",
+    "platform": "Third-party AniList/MAL calendar"
+  },
+  {
+    "id": "RT06",
+    "title": "Neko update: the AniList forum inside, push notifications for episodes, custom lists and much more",
+    "url": "https://www.reddit.com/r/anilist/comments/1w53tfr/neko_update_the_anilist_forum_inside_push/",
+    "date": "2026-09-02",
+    "observation": "User praises Next up, Because you've watched, and list-relevant forum threads. Others request reachable search and customizable list layouts. Multiple replies criticize navigation slowness; maker acknowledges slowness but cannot reproduce one freeze report.",
+    "limitations": "Developer promotion with genuine-looking user replies; no independent performance test. Do not adopt claimed installs or most-requested ranking as verified. Date from indexed result; direct relative timestamps vary.",
+    "access": "Direct web post and replies; exact indexed date",
+    "platform": "Neko Android third-party AniList client"
+  },
+  {
+    "id": "RT07",
+    "title": "On-site Notification Center for New Releases",
+    "url": "https://support.simkl.org/forums/264009-top-ideas-from-the-community/suggestions/50393190-on-site-notification-center-for-new-releases",
+    "date": "2025-08-28",
+    "observation": "SIMKL user requests a persistent, searchable release inbox with read/unread state, because email can be buried and push dismissed. Page shows 47 votes when accessed.",
+    "limitations": "Suggestion, not shipped feature or evidence of retention lift. No visible resolution/comments; voting system allows multiple votes per person, so 47 votes is not 47 users.",
+    "access": "Direct official feedback page; visible publication date",
+    "platform": "SIMKL official user-feedback forum"
+  },
+  {
+    "id": "RT08",
+    "title": "Aluminium for AniList — custom-list and friend-tab review exchanges",
+    "url": "https://play.google.com/store/apps/details?hl=en_NZ&id=moe.emi.aluminium",
+    "date": "2025-03-23; 2025-09-26–28",
+    "observation": "March reviewer praises custom lists but initially thinks creation requires a website detour, then edits to say it exists in Experimental; developer agrees it is buried. September exchange praises uncluttered UI; developer says a Friends tab has now shipped.",
+    "limitations": "Third-party client, not AniList website. Historical discoverability issue, not current missing functionality. Store locale variants return different review subsets; NZ indexed/retrieved page used.",
+    "access": "Google Play listing plus indexed review/developer-response text",
+    "platform": "Aluminium Android third-party AniList client"
+  },
+  {
+    "id": "RT09",
+    "title": "Resolved — Removing anime in your watchlist from all anime browsing",
+    "url": "https://www.anime-planet.com/forum/threads/removing-anime-in-your-watchlist-from-all-anime-browsing.354179/",
+    "date": "2025-01-13; resolved by requester 2025-01-24",
+    "observation": "New user asks to exclude already-categorized titles from discovery. Reply supplies existing unmarked-only filter; requester confirms it solves the problem and moderator supplies location guidance.",
+    "limitations": "Resolved discoverability/onboarding friction, not absent filtering. Full four-post text available through search index; direct forum fetch failed. Moderator screenshot location not visually inspected.",
+    "access": "Indexed full four-post forum exchange; direct fetch failed",
+    "platform": "Anime-Planet forum / website"
+  },
+  {
+    "id": "RT10",
+    "title": "Upcoming Features & suggestions",
+    "url": "https://www.reddit.com/r/animexplore/comments/1wanrr1/upcoming_features_suggestions/",
+    "date": "2026-09-08; replies through 2026-09-11",
+    "observation": "Darshaka maker says release notices currently check Watching; optional automation moves Plan to watch into Watching on release to receive notices. Another user anticipates manga chapter notices to replace repeated manual checking.",
+    "limitations": "Promotional roadmap, not verified delivered manga notifications. User accepts offered workaround; treating automatic status change as undesirable is a design judgment, not stated complaint.",
+    "access": "Direct web post and replies; exact indexed dates",
+    "platform": "Darshaka third-party AniList/MAL client"
+  },
+  {
+    "id": "RT11",
+    "title": "A suggested tool for anilist",
+    "url": "https://www.reddit.com/r/anilist/comments/1rb8jkz/a_suggested_tool_for_anilist/",
+    "date": "2026-02-22; replies 2026-02-22–23",
+    "observation": "User wants shareable, curated thematic lists such as cyberpunk or existentialism. Response promises eventual work with no ETA and points to existing custom lists; another user prefers collaborative tags and dislikes the proposal.",
+    "limitations": "Demand is contested, so curated public lists are not universal necessity. Custom groups already exist; shareability/searchability is the distinction. Roadmap completion unverified.",
+    "access": "Direct web post and replies; exact date in indexed thread and Reddit footer",
+    "platform": "AniList website"
+  }
+]

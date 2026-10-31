@@ -1,0 +1,87 @@
+{
+  "evidence_layer": "actual live administrative read-only SQL via authenticated Supabase dashboard; UI result transcribed",
+  "captured_at": "2026-10-07T20:12:28.149801+00:00",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "project_name": "AniThing is Possible",
+  "dashboard_health": "Healthy",
+  "region": "eu-central-1",
+  "access": "existing GitHub sign-in; browser administration, not a CLI/MCP token or captured credentials",
+  "queries": 2,
+  "transaction": "BEGIN READ ONLY; SET LOCAL statement_timeout=5s; SELECT aggregate/catalog data; ROLLBACK",
+  "contract_audit": {
+    "anime_id_audit": {
+      "invalid": 0,
+      "noncanonical": 0
+    },
+    "manga_id_audit": {
+      "invalid": 0,
+      "noncanonical": 0
+    },
+    "required_functions": null,
+    "feature_override_table": null
+  },
+  "compatibility_audit": {
+    "home_flags": null,
+    "legacy_policies": [
+      {
+        "name": "Users can manage their own lists",
+        "check": "((( SELECT auth.uid() AS uid))::text = user_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "anime_user_lists",
+        "using": "((( SELECT auth.uid() AS uid))::text = user_id)",
+        "command": "ALL"
+      },
+      {
+        "name": "Users can manage their own lists",
+        "check": "((( SELECT auth.uid() AS uid))::text = user_id)",
+        "roles": [
+          "authenticated"
+        ],
+        "table": "manga_user_lists",
+        "using": "((( SELECT auth.uid() AS uid))::text = user_id)",
+        "command": "ALL"
+      }
+    ],
+    "anime_collision_groups": 0,
+    "manga_collision_groups": 0
+  },
+  "confirmed_absent_native_home_functions": [
+    "home_bundle_v1",
+    "series_detail_bundle_v1",
+    "series_units_page_v1",
+    "series_editions_page_v1",
+    "home_events_page_v1",
+    "home_pending_page_v1"
+  ],
+  "other_absent_names_looked_up_not_native_writer_contracts": [
+    "library_apply_progress_v1",
+    "library_revision_snapshot_v1"
+  ],
+  "writer_contract_limit": "Actual library writer names are apply_progress_mutations_v1/apply_remove_mutations_v1; those were not checked by these two queries.",
+  "edge_function_inventory_count": 16,
+  "edge_function_slugs": [
+    "auth-callback",
+    "bulk-import-anime",
+    "bulk-import-manga",
+    "concierge-apply",
+    "concierge-import-anilist",
+    "concierge-parse",
+    "concierge-recommend",
+    "concierge-resolve",
+    "concierge-retrieve-assist",
+    "concierge-retrieve-feedback",
+    "concierge-undo",
+    "delete-account",
+    "manga-chapter-enrich",
+    "manga-source-review-action",
+    "mirror-images",
+    "realm-describe"
+  ],
+  "edge_function_version_limit": "Dashboard inventory displays slugs/updated age, not pinned version/source identities; these were not verified.",
+  "customer_ids_or_content_returned": false,
+  "customer_data_schema_or_flag_changes": false,
+  "native_or_Auth_Storage_Realtime_behavior_qualification": false,
+  "case_repair_decision": "No observed noncanonical/malformed/colliding rows; no customer rewrite performed."
+}

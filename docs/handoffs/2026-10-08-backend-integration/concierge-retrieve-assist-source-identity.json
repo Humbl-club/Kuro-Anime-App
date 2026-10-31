@@ -1,0 +1,33 @@
+{
+  "slug": "concierge-retrieve-assist",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "captured_at": "2026-10-07T22:44:42.819Z",
+  "code_url": "https://supabase.com/dashboard/project/bkdifromsqxkndnllmdj/functions/concierge-retrieve-assist/code",
+  "method": "Visible file tree; select/copy from deployed Code editor; no deployment",
+  "files": [
+    {
+      "deployed_name": "index.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/concierge-retrieve-assist/index.ts",
+      "bytes": 2689,
+      "sha256": "f9459c16ed334be9e24678d94db40dd1ff917b56eef8efe8ab9ae4fecba8e152"
+    },
+    {
+      "deployed_name": "../_shared/rate_limit_gate.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/concierge-retrieve-assist/_shared/rate_limit_gate.ts",
+      "bytes": 3625,
+      "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+    },
+    {
+      "deployed_name": "run.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/concierge-retrieve-assist/run.ts",
+      "bytes": 7829,
+      "sha256": "6a144bd6126a5044fc5fd9be86f14a50cf1ad163877e89df064a399929a310a0"
+    },
+    {
+      "deployed_name": "../_shared/normalization.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/concierge-retrieve-assist/_shared/normalization.ts",
+      "bytes": 6954,
+      "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+    }
+  ]
+}

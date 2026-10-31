@@ -1,0 +1,12 @@
+Check file:///Users/max/Kuro-Anime-App/supabase/functions/concierge-import-anilist/run_test.ts
+running 7 tests from ./supabase/functions/concierge-import-anilist/run_test.ts
+cached import returns truncated true in the declared shape and does not fetch ... ok (1ms)
+fresh import pages under the cap and truncates at the cap ... ok (7ms)
+a provider failure does not invent lines ... ok (0ms)
+publicListOnly is returned unchanged ... ok (0ms)
+stream imports all 5000 anime and manga rows without repeating or skipping provider ids ... ok (18ms)
+stream cursor is bound to provider selection and failure never returns partial success ... ok (0ms)
+original score scale and ordered custom shelves survive the structured stream ... ok (0ms)
+
+ok | 7 passed | 0 failed (31ms)
+

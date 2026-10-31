@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "suite": "HomeCompositionSnapshotTests",
+  "passed": 6,
+  "failed": 0,
+  "skipped": 0,
+  "xcresult": "/private/tmp/kuro-home-detail-fidelity-20261008-r3/HomeSnapshots.xcresult",
+  "postTestChangedInputs": [
+    "Kuro/Views/Home/SeriesDetailViews.swift"
+  ],
+  "reason": "Only explicit white Anime Close / monochrome Manga Close foreground labels changed after affected suite. Final exact source compiled; grouping/layout/progress contracts unchanged. Actual final UI readback belongs to lead."
+}

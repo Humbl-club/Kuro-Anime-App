@@ -1,0 +1,15 @@
+{
+  "rows": 381,
+  "by_kind": {
+    "request": 76,
+    "SDK event listener (not request)": 1,
+    "realtime control": 3,
+    "view call": 228,
+    "image surface": 35,
+    "edge request": 7,
+    "supplemental wrapper/stream": 24,
+    "SDK accessor (conditional request)": 7
+  },
+  "swift_files": 93,
+  "delegated_files": 6
+}

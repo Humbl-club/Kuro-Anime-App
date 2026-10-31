@@ -1,0 +1,15 @@
+UNIT_CURSOR_PRECISION_AND_LEGACY_DECODE: PASS
+HomeDrain/HomeRepairRepro.swift:84: Precondition failed: Lost-response retry changed its immutable payload
+Traceback (most recent call last):
+  File "/Users/max/Kuro-Anime-App/scripts/test_home_repair_drain.py", line 68, in <module>
+    main()
+    ~~~~^^
+  File "/Users/max/Kuro-Anime-App/scripts/test_home_repair_drain.py", line 64, in main
+    subprocess.run([str(executable)], cwd=ROOT, check=True,
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                   env={**os.environ, 'DYLD_LIBRARY_PATH':str(build)})
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.12_1/Frameworks/Python.framework/Versions/3.13/lib/python3.13/subprocess.py", line 577, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['/var/folders/yd/3pjw741x09g15ftwx7kkpxvw0000gn/T/kuro-home-drain-1vkm2uow/HomeDrain']' died with <Signals.SIGTRAP: 5>.

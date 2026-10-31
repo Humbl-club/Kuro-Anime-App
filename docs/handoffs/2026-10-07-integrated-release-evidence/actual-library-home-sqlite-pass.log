@@ -1,0 +1,8 @@
+UNIT_CURSOR_PRECISION_AND_LEGACY_DECODE: PASS
+HOME_LIFECYCLE_ISOLATION: PASS old103 new1
+HOME_ACCOUNT_PUBLICATION: PASS
+HOME_RAPID_TAPS: PASS taps100 initial3 expected103 actual103
+HOME_RAPID_TAPS: persisted-row-count=3
+HOME_ACTUAL_DRAIN: PASS lost response after commit, immutable retry, 100 taps, ACK successor, unloaded Library, tap-after-ACK
+PERSONAL_HOME_OFFLINE_RESTORE: PASS title, coherent revision, active membership/lifecycle, durable fractional unit, account isolation, club exclusion, partial knowledge, expiry, deletion/late-write isolation
+HOME_CONFLICT_CONTROL_IDENTITY: PASS newer conflict and newer disk admission survive stale controls

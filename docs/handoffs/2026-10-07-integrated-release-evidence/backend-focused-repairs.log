@@ -1,0 +1,95 @@
+Backend focused repairs — 2026-10-07
+Evidence layer: source and local offline Deno functions with controlled service boundaries. No hosted proof, deployment, real Apple/Groq calls, or local Supabase stack.
+
+Previously observed production seam probes (before repairs; original probe source preserved at /private/tmp/kuro-backend-semantic-review/probes.ts):
+- Alias memory rejected a,b: returned a,b, aliasHit=false.
+- persistVerifyState failed both database updates: returned normally, writes=2.
+- delete_user_concierge_data reply data=null,error=null: kind=ok. Latest SQL 20260806020000_serving_hardening_v1.sql:1737 returns success:true.
+- ragSeed malformed confidence not-a-score: seed accepted. Lead repaired separately.
+- Apple held headers: still pending after25ms, no AbortSignal.
+- Groq held headers: still pending after25ms, no AbortSignal.
+These historical outcomes are observations, not a re-execution against the repaired source.
+
+Completed test command (no rerun merely to produce this log):
+deno test --frozen --cached-only --no-prompt supabase/functions/manga-chapter-enrich/run_test.ts supabase/functions/delete-account/handler_test.ts supabase/functions/concierge-recommend/handler_test.ts
+First attempt failed type-checking on3 union narrowing assertions in tests; repaired assertions, no no-check bypass. Second complete run observed:
+supabase/functions/manga-chapter-enrich/run_test.ts
+  pure matcher resolves nothing for an ambiguous title with no network ... ok
+  ambiguous strict title matches stay unresolved and are queued for review ... ok
+  provider failure records the candidate error and still releases the import lock ... ok
+  actual run honors rejected aliases before single external, collision, or title matching ... ok
+  actual run retains accepted alias selection among colliding external ids ... ok
+  actual run stops before remapping when verification deactivation cannot be persisted ... ok
+  a held MangaDex body expires at the run deadline and only an acquired lock is released ... ok
+supabase/functions/delete-account/handler_test.ts
+  handler: non-POST is 405 and touches nothing ... ok
+  handler: missing env is 500 'Missing env vars' ... ok
+  handler: invalid/missing JWT is 401 and nothing is deleted ... ok
+  handler: success body is exactly { success: true } with status 200 (client contract) ... ok
+  handler: a user_id in the request body is ignored; only the JWT-derived id is deleted ... ok
+  handler: required cleanup failure is a non-2xx response with an error string and NO success flag ... ok
+  handler: RPC refusal maps to 403, RPC error to 500, with the previous error strings ... ok
+  handler: retry through the handler after a partial failure succeeds ... ok
+  handler: Apple revocation runs only for Apple users WITH a code, before deletion, and never blocks deletion ... ok
+  adapters: errors from every client call are surfaced, not dropped ... ok
+  adapters: storage is addressed as media/<userId> with offset 0 ... ok
+  adapters: RPC mapping (ok / error / refused) and the JWT-bound client is used ... ok
+  handler + adapters: a missing or malformed concierge cleanup acknowledgment keeps Auth intact ... ok
+  actual Apple adapter: held headers or token body abort within one deadline and deletion proceeds ... ok
+  adapters: auth deletion treats 'user already gone' as success but surfaces other errors ... ok
+  adapters: the barrier and club RPCs run as the service role with the JWT id and fail unless they answer success: true ... ok
+  adapters: TEXT-table deletes filter user_id IN the given spellings ... ok
+  createPlatform: missing env => no scope; with env, the user client carries the caller's Authorization header and the admin client the service key ... ok
+  createPlatform: authenticate() returns null for an auth error or missing user ... ok
+  end to end through handler + real adapters + real policy: client errors can no longer produce success ... ok
+  handler: barrier RPC failure is a 500 before anything is deleted (no table, storage, profile or auth call) ... ok
+  handler: partial cleanup (club step fails) is a 500 that keeps the auth user; the retry through the handler finishes ... ok
+supabase/functions/concierge-recommend/handler_test.ts
+  actual narration transport bounds held headers and body, then releases only its two reservations ... ok
+  explicit rate denial is 429 with Retry-After and no catalog, cache or narration work ... ok
+  F32: a limiter error fails closed as a retryable 503 with no catalog, search or paid narration call ... ok
+  mode cache: a fresh entry decides the primary rail; a stale one is re-routed and overwritten ... ok
+  F73: each rail is built once: the primary plus each secondary candidate, no duplicate fallback build ... ok
+  F76: a non-numeric limit falls back to the default 8; a numeric one is still clamped and honored ... ok
+  narration failure keeps the deterministic recommendations unchanged (no blurbs, error only under debug) ... ok
+  budget accounting: a held reservation is released exactly once, with 0 tokens when the provider fails ... ok
+  budget denial or error never calls the provider and releases only the reservation actually taken ... ok
+
+ok | 38 passed | 0 failed (8s)
+Chapter7, deletion22, recommend9. Expected injected error-path console output was emitted. This is a transcribed complete result/test-name inventory from the tool output, not a saved raw stdout/stacktrace file. Only comments/indentation were adjusted after that successful run.
+
+Important regression proofs:
+- Rejected aliases before single external, all external, and title matching never map/fetch aggregate; accepted alias collision remains selected.
+- Operational deactivation failure and failed missing-column fallback record candidate error, stop remapping/chapter writes, retain lock release. Valid legacy fallback persists inactive.
+- null/empty/false/string RPC acknowledgment refuses success before Auth cleanup.
+- Actual Apple/Groq headers/body deadline10ms controlled overrides abort signal and return; late Apple token does not start revoke. Apple handler deletes, Groq releases both acquired reservations once with actual0. Production defaults5s/8s.
+
+Final SHA256 source identities:
+77e149f668c5059df7c54d55ecd82b832039900f6eaadb46f6faec9240236a64  supabase/functions/manga-chapter-enrich/run.ts
+dd4f66a4431194f6a96548f6deb00d2913aa7b9c6edbb838e7a4c2c5ea4a686a  supabase/functions/manga-chapter-enrich/repository.ts
+72666acd4a4874b7e56109f1b5ba53e25d79a95492691494895dd31831bede02  supabase/functions/manga-chapter-enrich/run_test.ts
+1f1a6c5ad3606f6e8c6e6b45596740b12ce86b4098d1271326853868996c4e71  supabase/functions/delete-account/adapters.ts
+86f0623d248adddbe516278b966f1ec443e3d4b93fd28d2e492a5a64789de6fd  supabase/functions/delete-account/handler_test.ts
+82816758dc0fb0eb5dbe5ee4a932c7f6a18a9f1d3a4ba7d3c67d5d4d83db69ea  supabase/functions/concierge-recommend/narration.ts
+eba0a188c89107c8eda6b4c4063ab07e55f70b3d5a388c4bcfbe2ce87eac55c0  supabase/functions/concierge-recommend/handler_test.ts
+
+Remaining limitations: independent review is separate; SQL, real service deadlines/token revocation/provider accounting, and deployed bundle parity require their own evidence. Existing alias lookup error fallback retained for compatibility; missing verification columns may skip optional metadata when no status mutation is required. No broad suites were added or run.
+
+Final F51 read-failure repair follow-up:
+Actual helper pre-repair probe observed {probe:"failed existing-mapping read",result:null,reads:2} for08006 database unavailable on both attempts. This was failure-to-absence and enabled remapping in run.ts:403–429.
+Repair: only PGRST204/42703 may use legacy select. Operational/fallback errors throw. Explicit successful data:null is legitimateabsence; malformed required provider_media_id or undefined/array body throws. Actual run regression proves no network/mapping/chapter writes, acquiredlockreleased. Valid legacy row and successful no-row response retained.
+Affected-only command: deno test --frozen --cached-only --no-prompt supabase/functions/manga-chapter-enrich/run_test.ts
+First type-check attempt caught fake answer error union mismatch, repaired; no bypass. Complete run result: 8 passed, 0 failed (8s). Recommend9/deletion22 unaffected and not rerun.39 distinct tests covered across final focused suite results, not39in one run.
+Final replacement hashes (supersede earlier identity for these two files):
+971481704278609b07a08da82d31ab7b2d2821dc038b4c9d4c3084c4cf7e47f1  supabase/functions/manga-chapter-enrich/repository.ts
+1f02db2b5baee33f7cce68279125d187fdd82eecf9ab730fb98bfa30d7ff1d3b  supabase/functions/manga-chapter-enrich/run_test.ts
+
+Final production source check earlier: deno check --frozen --no-remote on chapter run/delete-account adapters/recommend narration => exit0. An initial check invocation used unsupported cached-only flag, then corrected; no external network.
+
+Final alias-read identity-safety repair (supersedes earlier retained alias-error assumption):
+Independent review ruled lookup failure MUST FIX: treating unknown decision memory as empty could reselect an identity with a stored rejection. filterMatchesWithAliasMemory now throws every lookup error, including absent table/schema; requires successful array response and nonempty string provider_media_id plus one of accepted/rejected_collision/rejected_conflict. Successful [] establishes no aliases. Existing actual-run regression injects08006,42P01,null/object replies and null/emptyid/unknown-or-missingdecision rows: candidate errors1, no map/chapter/alias writes, no aggregates, acquiredlockreleased. Accepted alias and ordinary successfulempty-array matching remain exercised.
+Affected-only suite: deno test --frozen --cached-only --no-prompt supabase/functions/manga-chapter-enrich/run_test.ts => 8 passed,0failed(8s). No broader rerun.
+Source check: deno check --frozen --no-remote supabase/functions/manga-chapter-enrich/run.ts => exit0. No hosted calls or deployment. Independent final-delta review requested.
+Final replacement hashes (supersede earlier identities for these two files):
+267b34313dcdef332d3344b3e295e1ba7676f8030f041e40a759e68c1184bc39  supabase/functions/manga-chapter-enrich/repository.ts
+38fb4cccb6de6914c9e933b71653982f451291b9de757e3f5015a9945e1233eb  supabase/functions/manga-chapter-enrich/run_test.ts

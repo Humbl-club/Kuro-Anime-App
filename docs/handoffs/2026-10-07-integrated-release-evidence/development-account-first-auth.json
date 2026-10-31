@@ -1,0 +1,38 @@
+{
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "scope": "One ordinary retained development account, authorized by owner; not a deletion-test account",
+  "created_at": "2026-10-07T21:46:34.201263+00:00",
+  "status": "API AUTH PASS; INSTALLED UI VERIFICATION PENDING",
+  "calls": [
+    {
+      "path": "/auth/v1/settings",
+      "status": 200
+    },
+    {
+      "path": "/auth/v1/signup",
+      "status": 200
+    },
+    {
+      "path": "/auth/v1/token",
+      "status": 200
+    },
+    {
+      "path": "/auth/v1/user",
+      "status": 200
+    }
+  ],
+  "ui_password_form_exercised": false,
+  "secret_output": false,
+  "signup_available": true,
+  "email_auto_confirm": true,
+  "account_created_this_attempt": true,
+  "user_id": "9625cae4-cd7c-44ff-9783-595b53464146",
+  "ordinary_role": "authenticated",
+  "password_sign_in": "PASS",
+  "authenticated_user": "PASS",
+  "simulator_callback_exit": 0,
+  "credential_storage": "Private local mode0600 file outside repository; password/tokens not emitted",
+  "retained_by_owner_request": true,
+  "cleanup": "NOT APPLICABLE: persistent development account intentionally retained",
+  "no_deploy_flags_admin_grants": true
+}

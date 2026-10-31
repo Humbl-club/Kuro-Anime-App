@@ -1,0 +1,858 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project Kuro.xcodeproj -scheme Kuro -destination "platform=iOS Simulator,id=B9BC0BAE-3BBA-49C9-9591-B24BC5612804" -parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 1 test "-only-testing:KuroTests/SessionSDKTests" -resultBundlePath .codex-artifacts/simulator-recovery/auth-repaired.xcresult
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  swift-asn1: https://github.com/apple/swift-asn1.git @ 1.5.0
+  swift-http-types: https://github.com/apple/swift-http-types.git @ 1.5.1
+  swift-crypto: https://github.com/apple/swift-crypto.git @ 3.15.1
+  Supabase: https://github.com/supabase/supabase-swift.git @ 2.54.1
+  xctest-dynamic-overlay: https://github.com/pointfreeco/xctest-dynamic-overlay @ 1.7.0
+  swift-concurrency-extras: https://github.com/pointfreeco/swift-concurrency-extras @ 1.3.2
+  swift-clocks: https://github.com/pointfreeco/swift-clocks @ 1.0.6
+  KuroModules: /Users/max/Kuro-Anime-App/Packages/KuroModules @ local
+
+Writing result bundle at path:
+	/Users/max/Kuro-Anime-App/.codex-artifacts/simulator-recovery/auth-repaired.xcresult
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (37 targets)
+    Target 'KuroUITests' in project 'Kuro'
+        ➜ Explicit dependency on target 'Kuro' in project 'Kuro'
+    Target 'KuroTests' in project 'Kuro'
+        ➜ Explicit dependency on target 'Kuro' in project 'Kuro'
+    Target 'Kuro' in project 'Kuro'
+        ➜ Explicit dependency on target 'Auth-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Supabase-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'KuroCore-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroSupabase-product' in project 'KuroModules'
+    Target 'KuroSupabase-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroSupabase' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+    Target 'KuroSupabase' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+    Target 'KuroLibrary-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroLibrary' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroLibrary' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroCore-product' in project 'KuroModules'
+        ➜ Explicit dependency on target 'KuroCore' in project 'KuroModules'
+    Target 'KuroCore' in project 'KuroModules' (no dependencies)
+    Target 'Supabase-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Supabase' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Supabase' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Storage-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Storage' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Realtime-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Realtime' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'RealtimeV2' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'PostgREST-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'PostgREST' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Functions-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Functions' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Auth-product' in project 'Supabase'
+        ➜ Explicit dependency on target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Auth' in project 'Supabase'
+        ➜ Explicit dependency on target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'Crypto-product' in project 'swift-crypto'
+    Target 'Crypto-product' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+    Target 'Crypto' in project 'swift-crypto'
+        ➜ Explicit dependency on target 'swift-crypto_Crypto' in project 'swift-crypto'
+    Target 'swift-crypto_Crypto' in project 'swift-crypto' (no dependencies)
+    Target 'Helpers' in project 'Supabase'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'XCTestDynamicOverlay-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'XCTestDynamicOverlay' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+    Target 'XCTestDynamicOverlay' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+    Target 'Clocks-product' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'Clocks' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'Clocks' in project 'swift-clocks'
+        ➜ Explicit dependency on target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+    Target 'IssueReporting-product' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReporting' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+    Target 'IssueReporting' in project 'xctest-dynamic-overlay'
+        ➜ Explicit dependency on target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay'
+    Target 'IssueReportingPackageSupport' in project 'xctest-dynamic-overlay' (no dependencies)
+    Target 'HTTPTypes-product' in project 'swift-http-types'
+        ➜ Explicit dependency on target 'HTTPTypes' in project 'swift-http-types'
+    Target 'HTTPTypes' in project 'swift-http-types' (no dependencies)
+    Target 'ConcurrencyExtras-product' in project 'swift-concurrency-extras'
+        ➜ Explicit dependency on target 'ConcurrencyExtras' in project 'swift-concurrency-extras'
+    Target 'ConcurrencyExtras' in project 'swift-concurrency-extras' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+    cd /Users/max/Kuro-Anime-App/Kuro.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -o /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+
+note: Disabling hardened runtime with ad-hoc codesigning. (in target 'Kuro' from project 'Kuro')
+SwiftDriver Kuro normal arm64 com.apple.xcode.tools.swift.compiler (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Kuro -Onone @/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64 -c -j12 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro_const_extract_protocols.json -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-generated-files.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-own-target-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro-9e69441a50a1923f7000d48988b3c66f-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-project-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/DerivedSources-normal/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/DerivedSources/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro-Swift.h -working-directory /Users/max/Kuro-Anime-App -experimental-emit-module-separately -disable-cmo
+
+SwiftCompile normal arm64 Compiling\ AppComposition.swift /Users/max/Kuro-Anime-App/Kuro/Composition/AppComposition.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/Composition/AppComposition.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile AppComposition.swift
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ Kuro (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    
+
+/Users/max/Kuro-Anime-App/Kuro/Clubs/ClubsStore.swift:759:18: warning: main actor-isolated conformance of 'ClubActivityCheckResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+ 757 |             let resp: ClubActivityCheckResponse = try await client
+ 758 |                 .rpc("check_club_activity_since", params: params)
+ 759 |                 .execute()
+     |                  `- warning: main actor-isolated conformance of 'ClubActivityCheckResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+ 760 |                 .value
+ 761 |             guard accountSession.isCurrent(context) else { return }
+
+/Users/max/Kuro-Anime-App/Kuro/Collection/CollectionStore.swift:515:86: warning: main actor-isolated conformance of 'Page' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+513 |             let page: Page = try await accountSession.withCredentialLease(for: context) {
+514 |                 try await client.rpc("collection_series_children_v1", params: Params(p_medium: scope.medium, p_group_key: groupKey,
+515 |                     p_status: scope.status,p_query: scope.query,p_after_id: cursor)).execute().value
+    |                                                                                      `- warning: main actor-isolated conformance of 'Page' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+516 |             }
+517 |             guard generation == seriesGeneration, accountSession.isCurrent(context),
+
+/Users/max/Kuro-Anime-App/Kuro/Identity/AuthService.swift:146:67: warning: main actor-isolated conformance of 'DeleteResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+144 |             body["apple_authorization_code"] = appleAuthorizationCode
+145 |         }
+146 |         let response: DeleteResponse = try await client.functions.invoke(
+    |                                                                   `- warning: main actor-isolated conformance of 'DeleteResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+147 |             "delete-account",
+148 |             options: .init(body: body)
+
+/Users/max/Kuro-Anime-App/Kuro/Providers/ProviderAvailabilityStore.swift:574:22: warning: main actor-isolated conformance of 'ProviderAvailabilityStore.ClubSharedProvidersResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+572 |                 try await client
+573 |                     .rpc("club_shared_providers", params: Params(p_club_id: clubId))
+574 |                     .execute()
+    |                      `- warning: main actor-isolated conformance of 'ProviderAvailabilityStore.ClubSharedProvidersResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+575 |                     .value
+576 |             }
+
+/Users/max/Kuro-Anime-App/Kuro/Releases/ReminderScheduler.swift:186:18: warning: main actor-isolated conformance of 'Row' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+184 |                 .eq("id", value: animeId)
+185 |                 .single()
+186 |                 .execute()
+    |                  `- warning: main actor-isolated conformance of 'Row' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+187 |                 .value
+188 |         } catch {
+
+/Users/max/Kuro-Anime-App/Kuro/Services/FeatureFlags.swift:36:65: warning: call to main actor-isolated initializer 'init()' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 34 |     @ObservationIgnored private let launchArguments: [String]
+ 35 |     /// Thread-safe copy of `series_foundation_v1` for the library writer, which is not on the main actor.
+ 36 |     @ObservationIgnored nonisolated private let revisionFence = RevisionFenceSwitch()
+    |                                                                 `- warning: call to main actor-isolated initializer 'init()' in a synchronous nonisolated context [#ActorIsolatedCall]
+ 37 | 
+ 38 |     // MARK: - Convenience accessors
+    :
+322 | 
+323 | /// Cross-actor snapshot of whether progress writes must use the revision fence.
+324 | final class RevisionFenceSwitch: @unchecked Sendable {
+    |             `- note: calls to initializer 'init()' from outside of its actor context are implicitly asynchronous
+325 |     private let lock = NSLock()
+326 |     private var on = false
+
+/Users/max/Kuro-Anime-App/Kuro/Social/SocialActivityStore.swift:161:134: warning: main actor-isolated conformance of 'SocialActivityStore.FriendActivityResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+159 |                     }
+160 |                     return try await client.rpc("friend_activity_page_v1", params: Page(p_media_type: mediaType, p_media_id: mediaId,
+161 |                         p_after_comment_at: commentCursor?.at, p_after_comment_id: commentCursor?.id, p_after_friend: friendCursor)).execute().value
+    |                                                                                                                                      `- warning: main actor-isolated conformance of 'SocialActivityStore.FriendActivityResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+162 |                 }
+163 |                 return try await client.rpc("fetch_friend_activity_for_title", params: params).execute().value
+
+/Users/max/Kuro-Anime-App/Kuro/Social/SocialActivityStore.swift:163:96: warning: main actor-isolated conformance of 'SocialActivityStore.FriendActivityResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+161 |                         p_after_comment_at: commentCursor?.at, p_after_comment_id: commentCursor?.id, p_after_friend: friendCursor)).execute().value
+162 |                 }
+163 |                 return try await client.rpc("fetch_friend_activity_for_title", params: params).execute().value
+    |                                                                                                `- warning: main actor-isolated conformance of 'SocialActivityStore.FriendActivityResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+164 |             }
+165 |             // Derived from this account's club memberships at that time: never handed out after the
+
+/Users/max/Kuro-Anime-App/Kuro/Social/SocialActivityStore.swift:183:186: warning: main actor-isolated conformance of 'SocialActivityStore.UpsertCommentResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+181 |             if let spoilerScope {
+182 |                 struct Scoped: Encodable { let p_media_type: String; let p_media_id: Int; let p_text: String; let p_spoiler_scope: String }
+183 |                 return try await client.rpc("upsert_title_comment_scoped_v1", params: Scoped(p_media_type: mediaType, p_media_id: mediaId, p_text: text, p_spoiler_scope: spoilerScope)).execute().value
+    |                                                                                                                                                                                          `- warning: main actor-isolated conformance of 'SocialActivityStore.UpsertCommentResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+184 |             }
+185 |             return try await client
+
+/Users/max/Kuro-Anime-App/Kuro/Social/SocialActivityStore.swift:187:18: warning: main actor-isolated conformance of 'SocialActivityStore.UpsertCommentResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+185 |             return try await client
+186 |                 .rpc("upsert_title_comment", params: params)
+187 |                 .execute()
+    |                  `- warning: main actor-isolated conformance of 'SocialActivityStore.UpsertCommentResponse' to 'Decodable' cannot be used in @concurrent context; this is an error in the Swift 6 language mode [#IsolatedConformances]
+188 |                 .value
+189 |         }
+
+[#ActorIsolatedCall]: <https://docs.swift.org/compiler/documentation/diagnostics/actor-isolated-call>
+[#IsolatedConformances]: <https://docs.swift.org/compiler/documentation/diagnostics/isolated-conformances>
+SwiftDriverJobDiscovery normal arm64 Compiling AppComposition.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 Compiling\ ConciergeImportCards.swift /Users/max/Kuro-Anime-App/Kuro/Views/ConciergeImportCards.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/Views/ConciergeImportCards.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile ConciergeImportCards.swift
+
+SwiftCompile normal arm64 Compiling\ BrowseComponents.swift /Users/max/Kuro-Anime-App/Kuro/Views/BrowseComponents.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/Views/BrowseComponents.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile BrowseComponents.swift
+
+SwiftCompile normal arm64 Compiling\ ConciergeRecommendationRails.swift /Users/max/Kuro-Anime-App/Kuro/Views/ConciergeRecommendationRails.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/Views/ConciergeRecommendationRails.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile ConciergeRecommendationRails.swift
+
+SwiftCompile normal arm64 Compiling\ EditorialCollectionComponents.swift /Users/max/Kuro-Anime-App/Kuro/Views/EditorialCollectionComponents.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/Views/EditorialCollectionComponents.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile EditorialCollectionComponents.swift
+
+SwiftCompile normal arm64 Compiling\ EditorialSearchView.swift /Users/max/Kuro-Anime-App/Kuro/Views/EditorialSearchView.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/Views/EditorialSearchView.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile EditorialSearchView.swift
+
+SwiftCompile normal arm64 Compiling\ EditorialDiscoverView.swift /Users/max/Kuro-Anime-App/Kuro/Views/EditorialDiscoverView.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/Views/EditorialDiscoverView.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile EditorialDiscoverView.swift
+
+SwiftCompile normal arm64 Compiling\ ConciergeView.swift /Users/max/Kuro-Anime-App/Kuro/Views/ConciergeView.swift (in target 'Kuro' from project 'Kuro')
+/Users/max/Kuro-Anime-App/Kuro/Views/ConciergeView.swift:1145:17: warning: initialization of immutable value 'conflictCount' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+1143 |             let serverAddCount = presented.addCount
+1144 |             let serverUpdateCount = presented.updateCount
+1145 |             let conflictCount = presented.conflictCount
+     |                 `- warning: initialization of immutable value 'conflictCount' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+1146 | 
+1147 |             var summaryParts: [String] = []
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/Views/ConciergeView.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile ConciergeView.swift
+
+SwiftCompile normal arm64 Compiling\ TasteDeckView.swift /Users/max/Kuro-Anime-App/Kuro/Views/TasteDeckView.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/Views/TasteDeckView.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile TasteDeckView.swift
+
+SwiftCompile normal arm64 Compiling\ ConciergeInputField.swift /Users/max/Kuro-Anime-App/Kuro/Views/ConciergeInputField.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/Views/ConciergeInputField.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile ConciergeInputField.swift
+
+SwiftCompile normal arm64 Compiling\ KuroApp.swift /Users/max/Kuro-Anime-App/Kuro/KuroApp.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/KuroApp.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile KuroApp.swift
+
+SwiftCompile normal arm64 Compiling\ ContentView.swift /Users/max/Kuro-Anime-App/Kuro/ContentView.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/Kuro/ContentView.swift (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile ContentView.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling ConciergeInputField.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ConciergeRecommendationRails.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling EditorialSearchView.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ConciergeImportCards.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling BrowseComponents.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling KuroApp.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling EditorialCollectionComponents.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling TasteDeckView.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling EditorialDiscoverView.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ConciergeView.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ContentView.swift (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for Kuro (in target 'Kuro' from project 'Kuro')
+
+SwiftDriver\ Compilation\ Requirements Kuro normal arm64 com.apple.xcode.tools.swift.compiler (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Kuro -Onone @/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64 -c -j12 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro_const_extract_protocols.json -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-generated-files.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-own-target-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro-9e69441a50a1923f7000d48988b3c66f-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-project-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/DerivedSources-normal/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/DerivedSources/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro-Swift.h -working-directory /Users/max/Kuro-Anime-App -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver\ Compilation Kuro normal arm64 com.apple.xcode.tools.swift.compiler (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name Kuro -Onone @/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.SwiftFileList -DDEBUG -default-isolation\=MainActor -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64 -c -j12 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro_const_extract_protocols.json -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-generated-files.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-own-target-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro-9e69441a50a1923f7000d48988b3c66f-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-project-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/DerivedSources-normal/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/DerivedSources/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro-Swift.h -working-directory /Users/max/Kuro-Anime-App -experimental-emit-module-separately -disable-cmo
+
+Copy /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.swiftmodule (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.swiftmodule /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.swiftmodule/arm64-apple-ios-simulator.swiftdoc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.swiftdoc (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.swiftdoc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.abi.json (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.abi.json /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.swiftsourceinfo (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.swiftsourceinfo /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+SwiftDriver KuroTests normal arm64 com.apple.xcode.tools.swift.compiler (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name KuroTests -Onone @/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.SwiftFileList -DDEBUG -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/Developer/Library/Frameworks -c -j12 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests_const_extract_protocols.json -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-generated-files.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-own-target-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro-9e69441a50a1923f7000d48988b3c66f-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-project-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/DerivedSources-normal/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/DerivedSources/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests-Swift.h -working-directory /Users/max/Kuro-Anime-App -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib normal (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios26.0-simulator -dynamiclib -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -O0 -Xlinker -no_warn_duplicate_libraries -L/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -F/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -filelist /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.LinkFileList -install_name @rpath/Kuro.debug.dylib -Xlinker -rpath -Xlinker @loader_path -Xlinker -rpath -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -Xlinker -dependency_info -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro_dependency_info.dat -fobjc-link-runtime -fprofile-instr-generate -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.swiftmodule -lsqlite3 -Xlinker -alias -Xlinker _main -Xlinker ___debug_main_executable_dylib_entry_point -Xlinker -no_adhoc_codesign -o /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib
+
+SwiftCompile normal arm64 Compiling\ AccountLifecycleTests.swift,\ AssistantContractTests.swift /Users/max/Kuro-Anime-App/KuroTests/AccountLifecycleTests.swift /Users/max/Kuro-Anime-App/KuroTests/AssistantContractTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/AccountLifecycleTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile AccountLifecycleTests.swift
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/AssistantContractTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile AssistantContractTests.swift
+
+SwiftCompile normal arm64 Compiling\ CredentialLeaseTests.swift /Users/max/Kuro-Anime-App/KuroTests/CredentialLeaseTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/CredentialLeaseTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile CredentialLeaseTests.swift
+
+SwiftCompile normal arm64 Compiling\ DetailProviderLinksTests.swift /Users/max/Kuro-Anime-App/KuroTests/DetailProviderLinksTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/DetailProviderLinksTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile DetailProviderLinksTests.swift
+
+SwiftCompile normal arm64 Compiling\ LibraryFacadeTests.swift /Users/max/Kuro-Anime-App/KuroTests/LibraryFacadeTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/LibraryFacadeTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile LibraryFacadeTests.swift
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ KuroTests (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    
+
+SwiftCompile normal arm64 Compiling\ MultiUserPageOrchestrationTests.swift /Users/max/Kuro-Anime-App/KuroTests/MultiUserPageOrchestrationTests.swift (in target 'KuroTests' from project 'Kuro')
+/Users/max/Kuro-Anime-App/KuroTests/MultiUserPageOrchestrationTests.swift:41:52: warning: main actor-isolated static property 'userA' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+ 19 | @Suite("Multi-user page orchestration (Layer B)", .timeLimit(.minutes(2)))
+ 20 | struct MultiUserPageOrchestrationTests {
+ 21 |     static let userA = LifecycleFixtures.userA
+    |                `- note: static property declared here
+ 22 |     static let userB = LifecycleFixtures.userB
+ 23 |     /// Third concurrent graph (not in LifecycleFixtures).
+    :
+ 39 |                     return .json(#"{"error":"Invalid import"}"#, status: 400)
+ 40 |                 }
+ 41 |                 var rows = aBackend.rows(for: Self.userA)
+    |                                                    `- warning: main actor-isolated static property 'userA' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+ 42 |                 for item in items {
+ 43 |                     guard let id = item["mediaId"] as? Int, item["mediaType"] as? String == "ANIME" else {
+
+/Users/max/Kuro-Anime-App/KuroTests/MultiUserPageOrchestrationTests.swift:51:64: warning: main actor-isolated static property 'userA' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+ 19 | @Suite("Multi-user page orchestration (Layer B)", .timeLimit(.minutes(2)))
+ 20 | struct MultiUserPageOrchestrationTests {
+ 21 |     static let userA = LifecycleFixtures.userA
+    |                `- note: static property declared here
+ 22 |     static let userB = LifecycleFixtures.userB
+ 23 |     /// Third concurrent graph (not in LifecycleFixtures).
+    :
+ 49 |                     rows[key] = row
+ 50 |                 }
+ 51 |                 aBackend.setRows(Array(rows.values), for: Self.userA)
+    |                                                                `- warning: main actor-isolated static property 'userA' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+ 52 |                 let response: [String: Any] = [
+ 53 |                     "success": true, "sessionId": "s-a", "status": "applied",
+
+/Users/max/Kuro-Anime-App/KuroTests/MultiUserPageOrchestrationTests.swift:60:55: warning: main actor-isolated static property 'userA' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+ 19 | @Suite("Multi-user page orchestration (Layer B)", .timeLimit(.minutes(2)))
+ 20 | struct MultiUserPageOrchestrationTests {
+ 21 |     static let userA = LifecycleFixtures.userA
+    |                `- note: static property declared here
+ 22 |     static let userB = LifecycleFixtures.userB
+ 23 |     /// Third concurrent graph (not in LifecycleFixtures).
+    :
+ 58 |             if request.resource == "rpc/collection_feed_page" {
+ 59 |                 let limit = request.jsonObject?["p_limit"] as? Int ?? 90
+ 60 |                 let entries = aBackend.rows(for: Self.userA).values.sorted { $0.key.id < $1.key.id }
+    |                                                       `- warning: main actor-isolated static property 'userA' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+ 61 |                 return ListRowJSON.response(entries.prefix(limit).enumerated().map { index, entry in
+ 62 |                     var row = CollectionPages.feedRow(index)
+
+/Users/max/Kuro-Anime-App/KuroTests/MultiUserPageOrchestrationTests.swift:98:64: warning: main actor-isolated static property 'userB' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+ 20 | struct MultiUserPageOrchestrationTests {
+ 21 |     static let userA = LifecycleFixtures.userA
+ 22 |     static let userB = LifecycleFixtures.userB
+    |                `- note: static property declared here
+ 23 |     /// Third concurrent graph (not in LifecycleFixtures).
+ 24 |     static let userC = "C0D1E2F3-A4B5-6789-C0D1-E2F3A4B56789"
+    :
+ 96 |                 let clubId = request.jsonObject?["p_club_id"] as? String ?? "club-private"
+ 97 |                 return .json(ClubJSON.bundle(clubId: clubId, mediaId: 501, role: "owner")
+ 98 |                     .replacingOccurrences(of: "m1", with: Self.userB.lowercased()))
+    |                                                                `- warning: main actor-isolated static property 'userB' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+ 99 |             default:
+100 |                 return .emptyArray
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/MultiUserPageOrchestrationTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile MultiUserPageOrchestrationTests.swift
+
+SwiftCompile normal arm64 Compiling\ StubPostgREST.swift /Users/max/Kuro-Anime-App/KuroTests/StubPostgREST.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/StubPostgREST.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile StubPostgREST.swift
+
+SwiftCompile normal arm64 Compiling\ FixtureHostTests.swift /Users/max/Kuro-Anime-App/KuroTests/FixtureHostTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/FixtureHostTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile FixtureHostTests.swift
+
+SwiftCompile normal arm64 Compiling\ LibraryHTTPContractTests.swift /Users/max/Kuro-Anime-App/KuroTests/LibraryHTTPContractTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/LibraryHTTPContractTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile LibraryHTTPContractTests.swift
+
+SwiftCompile normal arm64 Compiling\ SharedInfrastructureTests.swift /Users/max/Kuro-Anime-App/KuroTests/SharedInfrastructureTests.swift (in target 'KuroTests' from project 'Kuro')
+macro expansion @Test:13:144: warning: main actor-isolated static property 'retryCases' cannot be accessed from outside of the actor; this is an error in the Swift 6 language mode
+`- /Users/max/Kuro-Anime-App/KuroTests/SharedInfrastructureTests.swift:87:6: note: expanded code originates here
+ 60 |     ]
+ 61 | 
+ 62 |     @Test("withRetry retries URLError only, at most twice, after 500 ms then 1 s; anything else is thrown at once",
+    |     `- note: in expansion of macro 'Test' on instance method 'retryPolicy' here
+ 63 |           arguments: retryCases)
+ 64 |     func retryPolicy(_ testCase: RetryCase) async {
+    :
+ 85 |         #expect(attempts == testCase.attempts)
+ 86 |         #expect(backoff == testCase.backoff)
+ 87 |     }
+    +--- macro expansion @Test -----------------------------------------
+    |11 |   in: RetryAndTimedCacheTests.self,
+    |12 |   xcTestCompatibleSelector: nil,
+    |13 |   displayName: "withRetry retries URLError only, at most twice, after 500 ms then 1 s; anything else is thrown at once",traits: [],arguments: {retryCases},sourceBounds: Testing.__SourceBounds(__uncheckedLowerBound: Testing.SourceLocation(__uncheckedFileID: "KuroTests/SharedInfrastructureTests.swift", filePath: "/Users/max/Kuro-Anime-App/KuroTests/SharedInfrastructureTests.swift", line: 62, column: 6), upperBound: (87, 6)),
+    |   |                                                                                                                                                `- warning: main actor-isolated static property 'retryCases' cannot be accessed from outside of the actor; this is an error in the Swift 6 language mode
+    |14 |   parameters: [(firstName: "_",secondName: "testCase",type: (RetryCase).self)],
+    |15 |   testFunction: $s9KuroTests018RetryAndTimedCacheB0V11retryPolicy4TestfMp_17Z26b1c2693f06fad7fMu_
+    +-------------------------------------------------------------------
+ 88 | 
+ 89 |     @Test("trimTimedCache keeps the newest maxEntries and evicts the oldest; under the limit it is a no-op")
+
+/Users/max/Kuro-Anime-App/KuroTests/SharedInfrastructureTests.swift:114:68: warning: main actor-isolated static property 'bundleJSON' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+102 |     }
+103 | 
+104 |     static let bundleJSON = """
+    |                `- note: static property declared here
+105 |         {"anime":{"essentials":[],"classics":[],"new_to_you":[],"trending":[],"top_rated":[],
+106 |          "newly_added":[],"airing_today":[],"current_season":[]},
+    :
+112 |     func ownerTTL(age: Double, requests: Int) async throws {
+113 |         let harness = try PublicDataHarness { request in
+114 |             request.resource == "rpc/discover_bundle" ? .json(Self.bundleJSON) : .emptyArray
+    |                                                                    `- warning: main actor-isolated static property 'bundleJSON' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+115 |         }
+116 |         let discovery = harness.service.discovery
+
+macro expansion @Test:16:133: warning: main actor-isolated static property 'rolloutCases' cannot be accessed from outside of the actor; this is an error in the Swift 6 language mode
+`- /Users/max/Kuro-Anime-App/KuroTests/SharedInfrastructureTests.swift:196:6: note: expanded code originates here
+183 |     ]
+184 | 
+185 |     @Test("Stable-hash rollout is unchanged (cached flags, per-user buckets, no user = out below 100%)",
+    |     `- note: in expansion of macro 'Test' on instance method 'rolloutBuckets' here
+186 |           arguments: rolloutCases)
+187 |     func rolloutBuckets(_ testCase: RolloutCase) throws {
+    :
+194 |         }
+195 |         store.tearDown()
+196 |     }
+    +--- macro expansion @Test -----------------------------------------
+    |14 |   in: RuntimeFlagsTests.self,
+    |15 |   xcTestCompatibleSelector: nil,
+    |16 |   displayName: "Stable-hash rollout is unchanged (cached flags, per-user buckets, no user = out below 100%)",traits: [],arguments: {rolloutCases},sourceBounds: Testing.__SourceBounds(__uncheckedLowerBound: Testing.SourceLocation(__uncheckedFileID: "KuroTests/SharedInfrastructureTests.swift", filePath: "/Users/max/Kuro-Anime-App/KuroTests/SharedInfrastructureTests.swift", line: 185, column: 6), upperBound: (196, 6)),
+    |   |                                                                                                                                     `- warning: main actor-isolated static property 'rolloutCases' cannot be accessed from outside of the actor; this is an error in the Swift 6 language mode
+    |17 |   parameters: [(firstName: "_",secondName: "testCase",type: (RolloutCase).self)],
+    |18 |   testFunction: $s9KuroTests012RuntimeFlagsB0V14rolloutBuckets4TestfMp_17Z4390d9db0de9e991fMu_
+    +-------------------------------------------------------------------
+197 | 
+198 |     struct OverrideCase: Sendable, CustomTestStringConvertible {
+
+macro expansion @Test:16:112: warning: main actor-isolated static property 'overrideCases' cannot be accessed from outside of the actor; this is an error in the Swift 6 language mode
+`- /Users/max/Kuro-Anime-App/KuroTests/SharedInfrastructureTests.swift:224:6: note: expanded code originates here
+212 |     ]
+213 | 
+214 |     @Test("DEBUG launch-argument overrides win over the server rows, per instance", arguments: overrideCases)
+    |     `- note: in expansion of macro 'Test' on instance method 'debugOverrides' here
+215 |     func debugOverrides(_ testCase: OverrideCase) throws {
+216 |         let store = try TestDefaults()
+    :
+222 |                 "another instance never sees these arguments")
+223 |         store.tearDown()
+224 |     }
+    +--- macro expansion @Test -----------------------------------------
+    |14 |   in: RuntimeFlagsTests.self,
+    |15 |   xcTestCompatibleSelector: nil,
+    |16 |   displayName: "DEBUG launch-argument overrides win over the server rows, per instance",traits: [],arguments: {overrideCases},sourceBounds: Testing.__SourceBounds(__uncheckedLowerBound: Testing.SourceLocation(__uncheckedFileID: "KuroTests/SharedInfrastructureTests.swift", filePath: "/Users/max/Kuro-Anime-App/KuroTests/SharedInfrastructureTests.swift", line: 214, column: 6), upperBound: (224, 6)),
+    |   |                                                                                                                `- warning: main actor-isolated static property 'overrideCases' cannot be accessed from outside of the actor; this is an error in the Swift 6 language mode
+    |17 |   parameters: [(firstName: "_",secondName: "testCase",type: (OverrideCase).self)],
+    |18 |   testFunction: $s9KuroTests012RuntimeFlagsB0V14debugOverrides4TestfMp_17Z16daf8d9e96dc415fMu_
+    +-------------------------------------------------------------------
+225 | 
+226 |     @Test("Server refresh reads feature_flags and caches into the instance's own store only")
+
+/Users/max/Kuro-Anime-App/KuroTests/SharedInfrastructureTests.swift:230:74: warning: main actor-isolated static property 'flag' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+159 | @Suite("Shared infrastructure: injected runtime flags", .timeLimit(.minutes(1)))
+160 | struct RuntimeFlagsTests {
+161 |     static let flag = "kuro_test_rollout_v1"
+    |                `- note: static property declared here
+162 | 
+163 |     struct RolloutCase: Sendable, CustomTestStringConvertible {
+    :
+228 |         let server = StubServer()
+229 |         server.respond { request in
+230 |             request.resource == "feature_flags" ? .json("[\(flagRow(Self.flag, rollout: 50))]") : .emptyArray
+    |                                                                          `- warning: main actor-isolated static property 'flag' can not be referenced from a Sendable closure; this is an error in the Swift 6 language mode
+231 |         }
+232 |         let store = try TestDefaults()
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/SharedInfrastructureTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile SharedInfrastructureTests.swift
+
+SwiftCompile normal arm64 Compiling\ ClubsContractTests.swift /Users/max/Kuro-Anime-App/KuroTests/ClubsContractTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/ClubsContractTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile ClubsContractTests.swift
+
+SwiftCompile normal arm64 Compiling\ HomeCompositionSnapshotTests.swift /Users/max/Kuro-Anime-App/KuroTests/HomeCompositionSnapshotTests.swift (in target 'KuroTests' from project 'Kuro')
+/Users/max/Kuro-Anime-App/KuroTests/HomeCompositionSnapshotTests.swift:134:20: warning: 'init(frame:)' was deprecated in iOS 26.0: Use init(windowScene:) instead. [#DeprecatedDeclaration]
+132 |         let height = width * 2.2
+133 |         let host = UIHostingController(rootView: view.frame(width: width, height: height))
+134 |         let window=UIWindow(frame:CGRect(x:0,y:0,width:width,height:height))
+    |                    `- warning: 'init(frame:)' was deprecated in iOS 26.0: Use init(windowScene:) instead. [#DeprecatedDeclaration]
+135 |         window.rootViewController=host; window.isHidden=false
+136 |         defer { window.isHidden=true; window.rootViewController=nil }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/HomeCompositionSnapshotTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile HomeCompositionSnapshotTests.swift
+
+ConstructStubExecutorLinkFileList /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-ExecutorLinkFileList-normal-arm64.txt (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    construct-stub-executor-link-file-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor_no_swift_entry_point.a /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor.a --output /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-ExecutorLinkFileList-normal-arm64.txt
+note: Using stub executor library with Swift entry point. (in target 'Kuro' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling StubPostgREST.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 Compiling\ IdentityCompositionTests.swift /Users/max/Kuro-Anime-App/KuroTests/IdentityCompositionTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftCompile normal arm64 /Users/max/Kuro-Anime-App/KuroTests/IdentityCompositionTests.swift (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-SwiftPerFileCompile IdentityCompositionTests.swift
+
+Ld /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro normal (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios26.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -O0 -Xlinker -no_warn_duplicate_libraries -L/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -F/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -Xlinker -rpath -Xlinker @executable_path -Xlinker -rpath -Xlinker @loader_path -Xlinker -rpath -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -e ___debug_blank_executor_main -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_dylib -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-DebugDylibPath-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_instlnm -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-DebugDylibInstallName-normal-arm64.txt -Xlinker -filelist -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro-ExecutorLinkFileList-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro.app-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro.app-Simulated.xcent.der /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib -Xlinker -no_adhoc_codesign -o /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro
+
+SwiftDriverJobDiscovery normal arm64 Compiling FixtureHostTests.swift (in target 'KuroTests' from project 'Kuro')
+
+ExtractAppIntentsMetadata (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name Kuro --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk --xcode-version 27A266a --platform-family iOS --deployment-target 26.0 --bundle-identifier com.Kuro.app --output /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app --target-triple arm64-apple-ios26.0-simulator --binary-file /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro --dependency-file /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro_dependency_info.dat --stringsdata-file /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.SwiftFileList --metadata-file-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro.DependencyMetadataFileList --static-metadata-file-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro.DependencyStaticMetadataFileList --swift-const-vals-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Objects-normal/arm64/Kuro.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-10-07 22:30:53.543 appintentsmetadataprocessor[22252:51910227] Starting appintentsmetadataprocessor export
+2026-10-07 22:30:53.547 appintentsmetadataprocessor[22252:51910227] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+CopySwiftLibs /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-swiftStdLibTool --copy --verbose --sign - --scan-executable /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Frameworks --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/SystemExtensions --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+
+SwiftDriverJobDiscovery normal arm64 Compiling CredentialLeaseTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling LibraryHTTPContractTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling HomeCompositionSnapshotTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling SharedInfrastructureTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling DetailProviderLinksTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling LibraryFacadeTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling MultiUserPageOrchestrationTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for KuroTests (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriver\ Compilation\ Requirements KuroTests normal arm64 com.apple.xcode.tools.swift.compiler (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name KuroTests -Onone @/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.SwiftFileList -DDEBUG -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/Developer/Library/Frameworks -c -j12 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests_const_extract_protocols.json -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-generated-files.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-own-target-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro-9e69441a50a1923f7000d48988b3c66f-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-project-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/DerivedSources-normal/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/DerivedSources/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests-Swift.h -working-directory /Users/max/Kuro-Anime-App -experimental-emit-module-separately -disable-cmo
+
+Copy /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/KuroTests.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.swiftsourceinfo (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.swiftsourceinfo /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/KuroTests.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+Copy /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/KuroTests.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.abi.json (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.abi.json /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/KuroTests.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+SwiftDriverJobDiscovery normal arm64 Compiling IdentityCompositionTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling ClubsContractTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriverJobDiscovery normal arm64 Compiling AccountLifecycleTests.swift, AssistantContractTests.swift (in target 'KuroTests' from project 'Kuro')
+
+SwiftDriver\ Compilation KuroTests normal arm64 com.apple.xcode.tools.swift.compiler (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name KuroTests -Onone @/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.SwiftFileList -DDEBUG -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-bare-slash-regex -enable-upcoming-feature DisableOutwardActorInference -enable-upcoming-feature InferSendableFromCaptures -enable-upcoming-feature GlobalActorIsolatedTypesUsability -enable-upcoming-feature MemberImportVisibility -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios26.0-simulator -g -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -profile-coverage-mapping -profile-generate -enable-testing -index-store-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/Developer/Library/Frameworks -c -j12 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/max/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/max/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /Users/max/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests_const_extract_protocols.json -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-generated-files.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-own-target-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro-9e69441a50a1923f7000d48988b3c66f-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests-project-headers.hmap -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/DerivedSources-normal/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/DerivedSources/arm64 -Xcc -I/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests-Swift.h -working-directory /Users/max/Kuro-Anime-App -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/KuroTests normal (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios26.0-simulator -bundle -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -O0 -Xlinker -no_warn_duplicate_libraries -L/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -L/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk/Developer/Library/Frameworks -filelist /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.LinkFileList -Xlinker -rpath -Xlinker @loader_path -Xlinker -rpath -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/PackageFrameworks -Xlinker -rpath -Xlinker @loader_path/Frameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -dead_strip -bundle_loader /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro -Xlinker -object_path_lto -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -debug_variant -Xlinker -dependency_info -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests_dependency_info.dat -fobjc-link-runtime -fprofile-instr-generate -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.swiftmodule -lsqlite3 -Xlinker -needed_framework -Xlinker XCTest -framework XCTest -Xlinker -needed-lXCTestSwiftSupport -lXCTestSwiftSupport /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib -Xlinker -no_adhoc_codesign -o /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/KuroTests
+
+CopySwiftLibs /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-swiftStdLibTool --copy --verbose --sign - --scan-executable /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/KuroTests --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/Frameworks --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/PlugIns --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/SystemExtensions --scan-folder /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/Extensions --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/Frameworks --strip-bitcode --scan-executable /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libXCTestSwiftSupport.dylib --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+
+ExtractAppIntentsMetadata (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name KuroTests --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk --xcode-version 27A266a --platform-family iOS --deployment-target 26.0 --bundle-identifier Lazy.KuroTests --output /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest --target-triple arm64-apple-ios26.0-simulator --binary-file /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest/KuroTests --dependency-file /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests_dependency_info.dat --stringsdata-file /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.SwiftFileList --metadata-file-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests.DependencyMetadataFileList --static-metadata-file-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/KuroTests.DependencyStaticMetadataFileList --swift-const-vals-list /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/KuroTests.build/Objects-normal/arm64/KuroTests.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-10-07 22:31:00.133 appintentsmetadataprocessor[24410:51912566] Starting appintentsmetadataprocessor export
+2026-10-07 22:31:00.135 appintentsmetadataprocessor[24410:51912566] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+CodeSign /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest (in target 'KuroTests' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/PlugIns/KuroTests.xctest
+
+CodeSign /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/Kuro.debug.dylib
+
+CodeSign /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/__preview.dylib (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/__preview.dylib
+/Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app/__preview.dylib: replacing existing signature
+
+CodeSign /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    
+    Signing Identity:     "Sign to Run Locally"
+    
+    /usr/bin/codesign --force --sign - --entitlements /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/Kuro.build/Debug-iphonesimulator/Kuro.build/Kuro.app.xcent --timestamp\=none --generate-entitlement-der /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app
+
+Validate /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app (in target 'Kuro' from project 'Kuro')
+    cd /Users/max/Kuro-Anime-App
+    builtin-validationUtility /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Products/Debug-iphonesimulator/Kuro.app -shallow-bundle -infoplist-subpath Info.plist
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/SDKExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /Users/max/Library/Developer/Xcode/DerivedData/Kuro-etidmxdvktpnbcexjajugmajetbu/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+2026-10-07 22:31:37.270 xcodebuild[22133:51909515] [MT] IDETestOperationsObserverDebug: 36.707 elapsed -- Testing started completed.
+2026-10-07 22:31:37.270 xcodebuild[22133:51909515] [MT] IDETestOperationsObserverDebug: 0.000 sec, +0.000 sec -- start
+2026-10-07 22:31:37.271 xcodebuild[22133:51909515] [MT] IDETestOperationsObserverDebug: 36.707 sec, +36.707 sec -- end
+
+Test session results, code coverage, and logs:
+	/Users/max/Kuro-Anime-App/.codex-artifacts/simulator-recovery/auth-repaired.xcresult
+
+** TEST SUCCEEDED **
+
+Testing started
+Test suite 'SessionSDKTests' started on 'Clone 1 of iPhone 17 Pro - Kuro (27800)'
+Test case 'SessionSDKTests/failedEmailSignInPublishesOnlyTheMessage()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.210 seconds)
+Test case 'SessionSDKTests/expiredSavedSessionRestore(offline:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.253 seconds)
+Test case 'SessionSDKTests/initialSessionReconcilesRegistrationGap()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.293 seconds)
+Test case 'SessionSDKTests/appleSignInThroughTheSDK()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.314 seconds)
+Test case 'SessionSDKTests/signUpThroughTheSDK()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.317 seconds)
+Test case 'SessionSDKTests/foreignCallbackSendsNothing()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.322 seconds)
+Test case 'SessionSDKTests/emailSignInGoesThroughTheFunnel()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.327 seconds)
+Test case 'SessionSDKTests/deletionEndsTheSessionOnlyWhenConfirmed(deletion:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.341 seconds)
+Test case 'SessionSDKTests/deletionEndsTheSessionOnlyWhenConfirmed(deletion:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.346 seconds)
+Test case 'SessionSDKTests/signOutEndsStateBeforeTheSDKCall()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.352 seconds)
+Test case 'SessionSDKTests/sdkEventMapping()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.356 seconds)
+Test case 'SessionSDKTests/signOutReachesTheSDKBeforeTheChannelTeardown()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.357 seconds)
+Test case 'SessionSDKTests/staleFailedSignInLeavesTheNewerAccount()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.362 seconds)
+Test case 'SessionSDKTests/staleSuccessfulSignInNeverInstallsBehindTheNewerAccount()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.368 seconds)
+Test case 'SessionSDKTests/launchRestoreThroughTheSDK()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.367 seconds)
+Test case 'SessionSDKTests/deletionReachesTheSDKBeforeTheChannelTeardown()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.379 seconds)
+Test case 'SessionSDKTests/staleAccountConfirmationCannotEndNewAccount()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.381 seconds)
+Test case 'SessionSDKTests/sameUserCallbackSetSession()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.386 seconds)
+Test case 'SessionSDKTests/deletionEndsTheSessionOnlyWhenConfirmed(deletion:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.387 seconds)
+Test case 'SessionSDKTests/credentialEndSerializesWithNewSignIn(deletion:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.394 seconds)
+Test case 'SessionSDKTests/credentialEndSerializesWithNewSignIn(deletion:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.397 seconds)
+Test case 'SessionSDKTests/lateRefreshOfAnotherAccountFailsClosed()' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (0.400 seconds)
+Test case 'SessionSDKTests/expiredSavedSessionRestore(offline:)' passed on 'Clone 1 of iPhone 17 Pro - Kuro (27800)' (1.184 seconds)

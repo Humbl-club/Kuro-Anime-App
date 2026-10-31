@@ -1,0 +1,11 @@
+=== Layer A leftovers verify (manual agent run 2026-10-07) ===
+Claims: none for G0-G7 / 16 journeys / App Store / rag_assist_v1
+
+[build] PASS (xcodebuild Kuro iPhone 17 Pro)
+[MultiUserPageOrchestrationTests] PASS (see Layer B; also wired into test_leftovers_verify.sh)
+[deno retrieve-assist] PASS 5/0
+[deno parser corpus] PASS 8/0 (107 corpus cases intended outcome)
+[local DB] not re-run this pass (optional; BLOCKED-or-PASS via test_leftovers_verify.sh when initdb present)
+
+Layer A script: scripts/quality-gates/test_leftovers_verify.sh
+Layer B script: scripts/quality-gates/test_multi_user_pages.sh

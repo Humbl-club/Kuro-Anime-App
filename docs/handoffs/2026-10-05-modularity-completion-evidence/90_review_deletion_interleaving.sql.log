@@ -1,0 +1,5 @@
+psql:/private/tmp/kuro-sql-deep-review/supabase/tests/rls/90_review_deletion_interleaving.sql:12: NOTICE:  TEST ok: REPRO: concurrent post-cleanup insert survives auth deletion
+psql:/private/tmp/kuro-sql-deep-review/supabase/tests/rls/90_review_deletion_interleaving.sql:19: NOTICE:  TEST ok: REPRO: surviving TEXT row accepts notes-only update under deleted-user claims
+psql:/private/tmp/kuro-sql-deep-review/supabase/tests/rls/90_review_deletion_interleaving.sql:25: NOTICE:  TEST ok: orphan sweep observes zero members
+psql:/private/tmp/kuro-sql-deep-review/supabase/tests/rls/90_review_deletion_interleaving.sql:31: NOTICE:  TEST ok: different user joined between count and delete
+psql:/private/tmp/kuro-sql-deep-review/supabase/tests/rls/90_review_deletion_interleaving.sql:33: NOTICE:  TEST ok: REPRO: stale orphan decision deletes other user membership

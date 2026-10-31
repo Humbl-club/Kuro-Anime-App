@@ -1,0 +1,573 @@
+{
+  "ok": false,
+  "status": "FAIL",
+  "exitCode": 1,
+  "runId": "20261008T002329713Z-78370f44",
+  "target": "https://bkdifromsqxkndnllmdj.supabase.co",
+  "clubId": "6014a853-9d9d-4b53-8749-428a9e7a12f7",
+  "memberEvents": 1,
+  "ownerEvents": 2,
+  "outsiderEvents": 0,
+  "membershipEvents": 0,
+  "subscriberIdentities": {
+    "owner": "d1c7a995-a083-42e4-8168-41221f072403",
+    "member": "711a8573-1dcf-403a-98a8-2cb687baa508",
+    "outsider": "3738e81b-e89f-4211-802f-7c41bf3cb571"
+  },
+  "signalEvents": {
+    "owner": [
+      {
+        "schema": "public",
+        "table": "club_activity_signals",
+        "commit_timestamp": "2026-10-08T00:23:31.524Z",
+        "eventType": "UPDATE",
+        "new": {
+          "club_id": "6014a853-9d9d-4b53-8749-428a9e7a12f7",
+          "revision": 5,
+          "changed_at": "2026-10-08T00:23:31.511792+00:00"
+        },
+        "old": {
+          "club_id": "6014a853-9d9d-4b53-8749-428a9e7a12f7"
+        },
+        "errors": null,
+        "receivedAt": "2026-10-08T00:23:31.722Z",
+        "observedTable": "club_activity_signals",
+        "subscriberUserId": "d1c7a995-a083-42e4-8168-41221f072403",
+        "observedFilter": "club_id=eq.6014a853-9d9d-4b53-8749-428a9e7a12f7"
+      },
+      {
+        "schema": "public",
+        "table": "club_activity_signals",
+        "commit_timestamp": "2026-10-08T00:23:33.271Z",
+        "eventType": "UPDATE",
+        "new": {
+          "club_id": "6014a853-9d9d-4b53-8749-428a9e7a12f7",
+          "revision": 6,
+          "changed_at": "2026-10-08T00:23:33.260992+00:00"
+        },
+        "old": {
+          "club_id": "6014a853-9d9d-4b53-8749-428a9e7a12f7"
+        },
+        "errors": null,
+        "receivedAt": "2026-10-08T00:23:33.312Z",
+        "observedTable": "club_activity_signals",
+        "subscriberUserId": "d1c7a995-a083-42e4-8168-41221f072403",
+        "observedFilter": "club_id=eq.6014a853-9d9d-4b53-8749-428a9e7a12f7"
+      }
+    ],
+    "member": [
+      {
+        "schema": "public",
+        "table": "club_activity_signals",
+        "commit_timestamp": "2026-10-08T00:23:31.524Z",
+        "eventType": "UPDATE",
+        "new": {
+          "club_id": "6014a853-9d9d-4b53-8749-428a9e7a12f7",
+          "revision": 5,
+          "changed_at": "2026-10-08T00:23:31.511792+00:00"
+        },
+        "old": {
+          "club_id": "6014a853-9d9d-4b53-8749-428a9e7a12f7"
+        },
+        "errors": null,
+        "receivedAt": "2026-10-08T00:23:31.723Z",
+        "observedTable": "club_activity_signals",
+        "subscriberUserId": "711a8573-1dcf-403a-98a8-2cb687baa508",
+        "observedFilter": "club_id=eq.6014a853-9d9d-4b53-8749-428a9e7a12f7"
+      }
+    ],
+    "outsider": [],
+    "membership": []
+  },
+  "rls": {
+    "outsiderSelectHidden": true,
+    "beforeRevision": 4,
+    "afterRevision": 5
+  },
+  "error": "Own membership removal delivery: no matching event before deadline",
+  "requestCount": 20,
+  "protocol": [
+    {
+      "method": "POST",
+      "path": "/auth/v1/signup",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:29.752Z",
+      "requestBody": {
+        "email": "kuro-probe-signal-owner-20261008T002329713Z-78370f44@mailbox.invalid"
+      },
+      "status": 200,
+      "responseBody": {
+        "expires_in": 3600,
+        "expires_at": 1791422609,
+        "user": {
+          "id": "d1c7a995-a083-42e4-8168-41221f072403",
+          "aud": "authenticated",
+          "role": "authenticated",
+          "email": "kuro-probe-signal-owner-20261008t002329713z-78370f44@mailbox.invalid",
+          "email_confirmed_at": "2026-10-08T00:23:29.938084724Z",
+          "phone": "",
+          "last_sign_in_at": "2026-10-08T00:23:29.942935097Z",
+          "app_metadata": {
+            "provider": "email",
+            "providers": [
+              "email"
+            ]
+          },
+          "user_metadata": {
+            "email": "kuro-probe-signal-owner-20261008t002329713z-78370f44@mailbox.invalid",
+            "email_verified": true,
+            "phone_verified": false,
+            "sub": "d1c7a995-a083-42e4-8168-41221f072403"
+          },
+          "identities": [
+            {
+              "identity_id": "6334f3d4-ff5c-4997-9107-f03aaf6e8027",
+              "id": "d1c7a995-a083-42e4-8168-41221f072403",
+              "user_id": "d1c7a995-a083-42e4-8168-41221f072403",
+              "identity_data": {
+                "email": "kuro-probe-signal-owner-20261008t002329713z-78370f44@mailbox.invalid",
+                "email_verified": true,
+                "phone_verified": false,
+                "sub": "d1c7a995-a083-42e4-8168-41221f072403"
+              },
+              "provider": "email",
+              "last_sign_in_at": "2026-10-08T00:23:29.932352155Z",
+              "created_at": "2026-10-08T00:23:29.932408Z",
+              "updated_at": "2026-10-08T00:23:29.932408Z",
+              "email": "kuro-probe-signal-owner-20261008t002329713z-78370f44@mailbox.invalid"
+            }
+          ],
+          "created_at": "2026-10-08T00:23:29.926644Z",
+          "updated_at": "2026-10-08T00:23:29.959987Z",
+          "is_anonymous": false
+        }
+      },
+      "endedAt": "2026-10-08T00:23:29.986Z"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/v1/signup",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:29.987Z",
+      "requestBody": {
+        "email": "kuro-probe-signal-member-20261008T002329713Z-78370f44@mailbox.invalid"
+      },
+      "status": 200,
+      "responseBody": {
+        "expires_in": 3600,
+        "expires_at": 1791422610,
+        "user": {
+          "id": "711a8573-1dcf-403a-98a8-2cb687baa508",
+          "aud": "authenticated",
+          "role": "authenticated",
+          "email": "kuro-probe-signal-member-20261008t002329713z-78370f44@mailbox.invalid",
+          "email_confirmed_at": "2026-10-08T00:23:30.122981031Z",
+          "phone": "",
+          "last_sign_in_at": "2026-10-08T00:23:30.129843775Z",
+          "app_metadata": {
+            "provider": "email",
+            "providers": [
+              "email"
+            ]
+          },
+          "user_metadata": {
+            "email": "kuro-probe-signal-member-20261008t002329713z-78370f44@mailbox.invalid",
+            "email_verified": true,
+            "phone_verified": false,
+            "sub": "711a8573-1dcf-403a-98a8-2cb687baa508"
+          },
+          "identities": [
+            {
+              "identity_id": "4c6b9e19-8336-464c-9906-e697e600c43b",
+              "id": "711a8573-1dcf-403a-98a8-2cb687baa508",
+              "user_id": "711a8573-1dcf-403a-98a8-2cb687baa508",
+              "identity_data": {
+                "email": "kuro-probe-signal-member-20261008t002329713z-78370f44@mailbox.invalid",
+                "email_verified": true,
+                "phone_verified": false,
+                "sub": "711a8573-1dcf-403a-98a8-2cb687baa508"
+              },
+              "provider": "email",
+              "last_sign_in_at": "2026-10-08T00:23:30.118055613Z",
+              "created_at": "2026-10-08T00:23:30.118104Z",
+              "updated_at": "2026-10-08T00:23:30.118104Z",
+              "email": "kuro-probe-signal-member-20261008t002329713z-78370f44@mailbox.invalid"
+            }
+          ],
+          "created_at": "2026-10-08T00:23:30.115007Z",
+          "updated_at": "2026-10-08T00:23:30.137942Z",
+          "is_anonymous": false
+        }
+      },
+      "endedAt": "2026-10-08T00:23:30.176Z"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/v1/signup",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:30.188Z",
+      "requestBody": {
+        "email": "kuro-probe-signal-out-20261008T002329713Z-78370f44@mailbox.invalid"
+      },
+      "status": 200,
+      "responseBody": {
+        "expires_in": 3600,
+        "expires_at": 1791422610,
+        "user": {
+          "id": "3738e81b-e89f-4211-802f-7c41bf3cb571",
+          "aud": "authenticated",
+          "role": "authenticated",
+          "email": "kuro-probe-signal-out-20261008t002329713z-78370f44@mailbox.invalid",
+          "email_confirmed_at": "2026-10-08T00:23:30.294648611Z",
+          "phone": "",
+          "last_sign_in_at": "2026-10-08T00:23:30.298855741Z",
+          "app_metadata": {
+            "provider": "email",
+            "providers": [
+              "email"
+            ]
+          },
+          "user_metadata": {
+            "email": "kuro-probe-signal-out-20261008t002329713z-78370f44@mailbox.invalid",
+            "email_verified": true,
+            "phone_verified": false,
+            "sub": "3738e81b-e89f-4211-802f-7c41bf3cb571"
+          },
+          "identities": [
+            {
+              "identity_id": "edb421b4-233f-4a6d-8274-4ef3e286f0a2",
+              "id": "3738e81b-e89f-4211-802f-7c41bf3cb571",
+              "user_id": "3738e81b-e89f-4211-802f-7c41bf3cb571",
+              "identity_data": {
+                "email": "kuro-probe-signal-out-20261008t002329713z-78370f44@mailbox.invalid",
+                "email_verified": true,
+                "phone_verified": false,
+                "sub": "3738e81b-e89f-4211-802f-7c41bf3cb571"
+              },
+              "provider": "email",
+              "last_sign_in_at": "2026-10-08T00:23:30.291286753Z",
+              "created_at": "2026-10-08T00:23:30.291345Z",
+              "updated_at": "2026-10-08T00:23:30.291345Z",
+              "email": "kuro-probe-signal-out-20261008t002329713z-78370f44@mailbox.invalid"
+            }
+          ],
+          "created_at": "2026-10-08T00:23:30.287179Z",
+          "updated_at": "2026-10-08T00:23:30.302244Z",
+          "is_anonymous": false
+        }
+      },
+      "endedAt": "2026-10-08T00:23:30.340Z"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/create_club",
+      "actorUserId": "d1c7a995-a083-42e4-8168-41221f072403",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:30.390Z",
+      "requestBody": {
+        "p_name": "Probe 20261008T002329713Z-78370f44",
+        "p_sharing_level": "status"
+      },
+      "credentialSha256": "f4575b80e45ad7ac1bd7b0aaa51aebcc49a45ab34b0e28145ff7e7faa3fc2d95",
+      "status": 200,
+      "responseBody": {
+        "name": "Probe 20261008T002329713Z-78370f44",
+        "club_id": "6014a853-9d9d-4b53-8749-428a9e7a12f7",
+        "invite_code": "htoD5qG0"
+      },
+      "endedAt": "2026-10-08T00:23:30.547Z"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/join_club",
+      "actorUserId": "711a8573-1dcf-403a-98a8-2cb687baa508",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:30.592Z",
+      "requestBody": {
+        "p_invite_code": "htoD5qG0"
+      },
+      "credentialSha256": "91903357e54131b3baf3e30f5d3de5acd02e9ca386f952bc7f666653e5e9c262",
+      "status": 200,
+      "responseBody": {
+        "role": "member",
+        "club_id": "6014a853-9d9d-4b53-8749-428a9e7a12f7",
+        "club_name": "Probe 20261008T002329713Z-78370f44"
+      },
+      "endedAt": "2026-10-08T00:23:30.644Z"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/club_activity_signals?club_id=eq.6014a853-9d9d-4b53-8749-428a9e7a12f7&select=revision,changed_at",
+      "actorUserId": "711a8573-1dcf-403a-98a8-2cb687baa508",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:30.793Z",
+      "credentialSha256": "91903357e54131b3baf3e30f5d3de5acd02e9ca386f952bc7f666653e5e9c262",
+      "status": 200,
+      "responseBody": [
+        {
+          "revision": 4,
+          "changed_at": "2026-10-08T00:23:30.618983+00:00"
+        }
+      ],
+      "endedAt": "2026-10-08T00:23:30.830Z"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/club_activity_signals?club_id=eq.6014a853-9d9d-4b53-8749-428a9e7a12f7&select=revision,changed_at",
+      "actorUserId": "3738e81b-e89f-4211-802f-7c41bf3cb571",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:30.994Z",
+      "credentialSha256": "acd4ef53e0f4530662d630d234f69c362a0e84f44396fd574a63155126783992",
+      "status": 200,
+      "responseBody": [],
+      "endedAt": "2026-10-08T00:23:31.027Z"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/create_club_rail",
+      "actorUserId": "d1c7a995-a083-42e4-8168-41221f072403",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:31.454Z",
+      "requestBody": {
+        "p_club_id": "6014a853-9d9d-4b53-8749-428a9e7a12f7",
+        "p_title": "Probe positive control"
+      },
+      "credentialSha256": "f4575b80e45ad7ac1bd7b0aaa51aebcc49a45ab34b0e28145ff7e7faa3fc2d95",
+      "status": 200,
+      "responseBody": {
+        "title": "Probe positive control",
+        "rail_id": "f4a6ee62-17f4-43be-a924-85e40f7b3cde",
+        "sort_order": 0
+      },
+      "endedAt": "2026-10-08T00:23:31.539Z"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/club_activity_signals?club_id=eq.6014a853-9d9d-4b53-8749-428a9e7a12f7&select=revision,changed_at",
+      "actorUserId": "711a8573-1dcf-403a-98a8-2cb687baa508",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:31.655Z",
+      "credentialSha256": "91903357e54131b3baf3e30f5d3de5acd02e9ca386f952bc7f666653e5e9c262",
+      "status": 200,
+      "responseBody": [
+        {
+          "revision": 5,
+          "changed_at": "2026-10-08T00:23:31.511792+00:00"
+        }
+      ],
+      "endedAt": "2026-10-08T00:23:31.686Z"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/remove_club_member",
+      "actorUserId": "d1c7a995-a083-42e4-8168-41221f072403",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:33.239Z",
+      "requestBody": {
+        "p_club_id": "6014a853-9d9d-4b53-8749-428a9e7a12f7",
+        "p_user_id": "711a8573-1dcf-403a-98a8-2cb687baa508"
+      },
+      "credentialSha256": "f4575b80e45ad7ac1bd7b0aaa51aebcc49a45ab34b0e28145ff7e7faa3fc2d95",
+      "status": 200,
+      "responseBody": {
+        "removed": true,
+        "success": true
+      },
+      "endedAt": "2026-10-08T00:23:33.284Z"
+    },
+    {
+      "method": "POST",
+      "path": "/functions/v1/delete-account",
+      "actorUserId": "3738e81b-e89f-4211-802f-7c41bf3cb571",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:48.289Z",
+      "requestBody": {
+        "confirm": "true"
+      },
+      "credentialSha256": "acd4ef53e0f4530662d630d234f69c362a0e84f44396fd574a63155126783992",
+      "status": 200,
+      "responseBody": {
+        "success": true
+      },
+      "endedAt": "2026-10-08T00:23:48.964Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "actorUserId": "3738e81b-e89f-4211-802f-7c41bf3cb571",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:48.964Z",
+      "credentialSha256": "acd4ef53e0f4530662d630d234f69c362a0e84f44396fd574a63155126783992",
+      "status": 403,
+      "responseBody": {
+        "code": 403,
+        "error_code": "user_not_found",
+        "msg": "User from sub claim in JWT does not exist"
+      },
+      "endedAt": "2026-10-08T00:23:49.020Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/3738e81b-e89f-4211-802f-7c41bf3cb571",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:23:49.166Z",
+      "status": 404,
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:23:49.214Z"
+    },
+    {
+      "method": "POST",
+      "path": "/functions/v1/delete-account",
+      "actorUserId": "711a8573-1dcf-403a-98a8-2cb687baa508",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:49.367Z",
+      "requestBody": {
+        "confirm": "true"
+      },
+      "credentialSha256": "91903357e54131b3baf3e30f5d3de5acd02e9ca386f952bc7f666653e5e9c262",
+      "status": 200,
+      "responseBody": {
+        "success": true
+      },
+      "endedAt": "2026-10-08T00:23:49.810Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "actorUserId": "711a8573-1dcf-403a-98a8-2cb687baa508",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:49.810Z",
+      "credentialSha256": "91903357e54131b3baf3e30f5d3de5acd02e9ca386f952bc7f666653e5e9c262",
+      "status": 403,
+      "responseBody": {
+        "code": 403,
+        "error_code": "user_not_found",
+        "msg": "User from sub claim in JWT does not exist"
+      },
+      "endedAt": "2026-10-08T00:23:49.847Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/711a8573-1dcf-403a-98a8-2cb687baa508",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:23:50.011Z",
+      "status": 404,
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:23:50.047Z"
+    },
+    {
+      "method": "POST",
+      "path": "/functions/v1/delete-account",
+      "actorUserId": "d1c7a995-a083-42e4-8168-41221f072403",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:50.211Z",
+      "requestBody": {
+        "confirm": "true"
+      },
+      "credentialSha256": "f4575b80e45ad7ac1bd7b0aaa51aebcc49a45ab34b0e28145ff7e7faa3fc2d95",
+      "status": 200,
+      "responseBody": {
+        "success": true
+      },
+      "endedAt": "2026-10-08T00:23:50.759Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "actorUserId": "d1c7a995-a083-42e4-8168-41221f072403",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:23:50.759Z",
+      "credentialSha256": "f4575b80e45ad7ac1bd7b0aaa51aebcc49a45ab34b0e28145ff7e7faa3fc2d95",
+      "status": 403,
+      "responseBody": {
+        "code": 403,
+        "error_code": "user_not_found",
+        "msg": "User from sub claim in JWT does not exist"
+      },
+      "endedAt": "2026-10-08T00:23:50.818Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/d1c7a995-a083-42e4-8168-41221f072403",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:23:50.960Z",
+      "status": 404,
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:23:50.995Z"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/clubs?id=eq.6014a853-9d9d-4b53-8749-428a9e7a12f7&select=id",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:23:51.161Z",
+      "status": 200,
+      "responseBody": [],
+      "endedAt": "2026-10-08T00:23:51.281Z"
+    }
+  ],
+  "resources": {
+    "accounts": [
+      {
+        "email": "kuro-probe-signal-owner-20261008T002329713Z-78370f44@mailbox.invalid",
+        "userId": "d1c7a995-a083-42e4-8168-41221f072403"
+      },
+      {
+        "email": "kuro-probe-signal-member-20261008T002329713Z-78370f44@mailbox.invalid",
+        "userId": "711a8573-1dcf-403a-98a8-2cb687baa508"
+      },
+      {
+        "email": "kuro-probe-signal-out-20261008T002329713Z-78370f44@mailbox.invalid",
+        "userId": "3738e81b-e89f-4211-802f-7c41bf3cb571"
+      }
+    ],
+    "clubs": [
+      "6014a853-9d9d-4b53-8749-428a9e7a12f7"
+    ],
+    "journals": [],
+    "objects": []
+  },
+  "cleanup": [
+    {
+      "type": "account",
+      "email": "kuro-probe-signal-out-20261008T002329713Z-78370f44@mailbox.invalid",
+      "userId": "3738e81b-e89f-4211-802f-7c41bf3cb571",
+      "status": "PASS"
+    },
+    {
+      "type": "account",
+      "email": "kuro-probe-signal-member-20261008T002329713Z-78370f44@mailbox.invalid",
+      "userId": "711a8573-1dcf-403a-98a8-2cb687baa508",
+      "status": "PASS"
+    },
+    {
+      "type": "account",
+      "email": "kuro-probe-signal-owner-20261008T002329713Z-78370f44@mailbox.invalid",
+      "userId": "d1c7a995-a083-42e4-8168-41221f072403",
+      "status": "PASS"
+    },
+    {
+      "type": "club",
+      "clubId": "6014a853-9d9d-4b53-8749-428a9e7a12f7",
+      "status": "PASS"
+    }
+  ]
+}

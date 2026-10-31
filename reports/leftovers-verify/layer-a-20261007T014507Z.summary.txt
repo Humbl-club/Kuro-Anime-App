@@ -1,0 +1,21 @@
+=== Layer A leftovers verify (20261007T014507Z) ===
+Report: /Users/max/Kuro-Anime-App/reports/leftovers-verify/layer-a-20261007T014507Z.summary.txt
+Claims: none for G0-G7 / 16 journeys / App Store / rag_assist_v1
+
+[1/5] iOS build
+  PASS build
+[2/5] KuroTests leftovers filters (destination: platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2)
+  PASS targeted KuroTests
+[3/5] deno concierge-retrieve-assist (offline; rag_assist_v1 not touched)
+  PASS retrieve-assist
+[4/5] deno concierge-parse rules corpus
+  PASS parser corpus
+[5/5] local DB clubs privacy + import apply/undo (optional)
+  PASS db --only 20_clubs
+  PASS db --only 63_club_privacy
+  PASS db --only 64_club_privacy
+  PASS db --only 65_club_membership
+  BLOCKED db --only 66_club_realtime (exit 4; not a pass)
+  PASS db --only 70_import_apply
+
+Layer A: PASS with BLOCKED scopes (see summary). Not a claim that G0-G7 passed.

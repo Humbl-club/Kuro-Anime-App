@@ -1,0 +1,12 @@
+{
+  "evidence_layer": "actual simulator SDK run; incomplete",
+  "verdict": "INCOMPLETE / NOT ACCEPTED",
+  "native_bundle": "/Users/max/Kuro-Anime-App/.codex-artifacts/native-unit/unit-20261007T193742Z-TQCvgu/tests.xcresult",
+  "observed_failed_cases": [
+    "ConciergeContractTests/warmupAndFeedbackRequestShapes()",
+    "SocialActivityContractTests/lateFriendActivityIsNotHandedOut()"
+  ],
+  "review": "Outdated fixture assumptions; corrected without removing wire/privacy assertions. Independent source acceptance.",
+  "focused_rerun": "3PASS,0FAIL",
+  "runner": "Logged test-host PID exited. Runner did not finalize; interrupted then terminated exact owned xcodebuild PID64718. No complete count or whole-native pass."
+}

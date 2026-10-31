@@ -1,0 +1,26 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:56: NOTICE:  TEST ok: legit: any member creates a poll via create_club_poll
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:61: NOTICE:  TEST ok: legit: member votes via cast_club_vote
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:62: NOTICE:  TEST ok: legit: member re-votes (single choice, replaces own vote)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:63: NOTICE:  TEST ok: legit: member reacts via toggle_club_reaction
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:64: NOTICE:  TEST ok: legit: toggling the same emoji again removes it
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:69: NOTICE:  TEST ok: private bundle: members list contains ONLY the caller
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:70: NOTICE:  TEST ok: private bundle: ...and it is the caller
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:71: NOTICE:  TEST ok: private bundle: member_count is the full count (aggregate)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:73: NOTICE:  TEST ok: private bundle: poll vote counts aggregate all 3 voters
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:74: NOTICE:  TEST ok: private bundle: my_vote_option_id is the caller's (re-)vote
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:75: NOTICE:  TEST ok: private bundle: reactions are anonymous aggregate counts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:76: NOTICE:  TEST ok: private bundle: my_reactions lists only the caller's
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:77: NOTICE:  TEST ok: private bundle: plain member does not get the invite code
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:81: NOTICE:  TEST ok: R4: in the PRIVATE club a member reads only their own vote row directly
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:83: NOTICE:  TEST ok: R4: ...only their own reaction row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:85: NOTICE:  TEST ok: R4: ...and only their own membership row (the bundle shows only the caller as well)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:101: NOTICE:  TEST ok: progress bundle (4 members): members list contains all 4
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:103: NOTICE:  TEST ok: R4/finding 3: progress club member_statuses expose the 3 tracking members (deliberate, per sharing level)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:110: NOTICE:  TEST ok: small club (<3 members): bundle members list contains only the caller even at progress level
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:117: NOTICE:  TEST ok: R4: fetch_club_bundle_loading member_count is the full count (4)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:120: NOTICE:  TEST ok: R4: fetch_club_bundle is SECURITY DEFINER (authorized aggregate)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:123: NOTICE:  TEST ok: R4: the member-wide SELECT policies are gone
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:129: NOTICE:  TEST ok: R5: member 3 leaves via leave_club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:132: NOTICE:  TEST ok: R5: the departed member's vote is excluded from the bundle counts (3 -> 2)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:135: NOTICE:  TEST ok: R5: a voluntary leaver re-joins with the still-valid club invite code (leave dialog copy must say so)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/63_club_privacy_levels_and_open_items.sql:138: NOTICE:  TEST ok: R5: after rejoining, their earlier vote counts again (it was kept, not deleted)

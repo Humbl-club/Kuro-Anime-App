@@ -1,0 +1,9 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_library_import_counts.sql:19: NOTICE:  TEST ok: zero items add nothing
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_library_import_counts.sql:27: NOTICE:  TEST ok: one private row is added
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_library_import_counts.sql:29: NOTICE:  TEST ok: score 0 stays unset
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_library_import_counts.sql:31: NOTICE:  TEST ok: private note is retained on the owner-only list
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_library_import_counts.sql:33: NOTICE:  TEST ok: private note is not a club comment
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_library_import_counts.sql:37: NOTICE:  TEST ok: changed terminal item payload cannot masquerade as retry (raised: IDEMPOTENCY_CONFLICT)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_library_import_counts.sql:39: NOTICE:  TEST ok: rejected replay leaves the committed first item unchanged
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_library_import_counts.sql:47: NOTICE:  TEST ok: a later source omission does not delete the local title
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/81_library_import_counts.sql:61: NOTICE:  TEST ok: fifty items are counted

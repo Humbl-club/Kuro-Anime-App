@@ -1,0 +1,9 @@
+{
+  "captured_at": "2026-10-07T21:38:08.357105+00:00",
+  "kuro_sign_in": "Actual native form inspected; fields empty; normal Passwords action supplied no login; no sign-in attempted",
+  "myanimelist": "Exact existing apiconfig/create tab blocked by browser site-security policy; cannot be overridden by general user permission; no circumvention",
+  "registration_values": "Checked native callback/public client contract; legal applicant name and actual homepage unavailable",
+  "external_changes": false,
+  "source_or_config_changes": false,
+  "handoff": "simulator-sign-in-mal-handoff.md"
+}

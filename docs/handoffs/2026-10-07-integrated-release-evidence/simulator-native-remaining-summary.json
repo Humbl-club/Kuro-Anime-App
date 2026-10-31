@@ -1,0 +1,80 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "B9BC0BAE-3BBA-49C9-9591-B24BC5612804",
+        "deviceName" : "iPhone 17 Pro",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23A5326a",
+        "osVersion" : "26.0",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 3,
+      "passedTests" : 897,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ],
+  "environmentDescription" : "Kuro · Built with macOS 27.0.1",
+  "expectedFailures" : 0,
+  "failedTests" : 3,
+  "finishTime" : 1791407946.577,
+  "passedTests" : 359,
+  "result" : "Failed",
+  "runtimeWarnings" : [
+
+  ],
+  "skippedTests" : 0,
+  "startTime" : 1791407776.37,
+  "statistics" : [
+    {
+      "subtitle" : "614 test runs",
+      "title" : "76 tests ran with dynamic parameters"
+    }
+  ],
+  "testFailures" : [
+    {
+      "failureText" : "Expectation failed: feed.bearerSubject?.lowercased() == Self.userB.lowercased()\nfeed.bearerSubject?.lowercased() → nil\nSelf.userB.lowercased() → \"0b9e8d7c-6a5b-4c3d-8e2f-1a0b9c8d7e6f\"",
+      "targetName" : "KuroTests",
+      "testIdentifier" : 335,
+      "testIdentifierString" : "CollectionContractTests/batchAccountSwitchKeepsNewAccountScope()",
+      "testIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/batchAccountSwitchKeepsNewAccountScope()",
+      "testName" : "A held batch cannot dispatch its second edit as B or end B's Collection/Home removal scope"
+    },
+    {
+      "failureText" : "Expectation failed: clubs.myClubs.map(\\.id) == [\"club-2\"]\nclubs.myClubs.map(\\.id) → []",
+      "targetName" : "KuroTests",
+      "testIdentifier" : 357,
+      "testIdentifierString" : "ClubsRealtimeTests/membershipSignalRevokesThroughTheBoundedReRead()",
+      "testIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/ClubsRealtimeTests/membershipSignalRevokesThroughTheBoundedReRead()",
+      "testName" : "F42 membership signal: an event on the open club's channel (a club_members change) re-reads the bundle; a NOT_A_MEMBER answer revokes the club (bundle, my-clubs row, friend projection) and closes its channel; a later event of that channel schedules nothing"
+    },
+    {
+      "failureText" : "Expectation failed: harness.notifications.scheduled == [\"airing-42-start\", \"airing-42-1h\"]\nharness.notifications.scheduled → []",
+      "targetName" : "KuroTests",
+      "testIdentifier" : 127,
+      "testIdentifierString" : "LibraryFacadeTests/releasesReArmReminders()",
+      "testIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/releasesReArmReminders()",
+      "testName" : "Releases: a change that leaves an anime tracked re-arms its reminders, manga never; removal cancels"
+    }
+  ],
+  "title" : "Test - Kuro",
+  "topInsights" : [
+    {
+      "category" : "Common Failures",
+      "impact" : "33% of failures",
+      "text" : "2 runs of 1 test failed with Expectation failed: harness.notifications.scheduled.count == 4"
+    },
+    {
+      "category" : "Longest Test Runs",
+      "impact" : "3% of duration",
+      "text" : "2 longest test runs with outlier durations exceeding 8.94s (three standard deviations)"
+    }
+  ],
+  "totalTestCount" : 362
+}

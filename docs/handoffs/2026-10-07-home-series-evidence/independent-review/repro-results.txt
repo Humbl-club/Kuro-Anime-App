@@ -1,0 +1,37 @@
+Observed tool output, 7 October 2026; actual-source local reproductions. Not hosted proof.
+
+SQLite reproduction:
+COALESCED_UNIT_ON_DISK: latest-position=3 unit-is-latest=false unit-is-old=true
+COALESCED_UNIT_RETURN: latest-position=3 unit-is-latest=true unit-is-old=false
+FAILED_SEND_SAME_PROCESS: pending=0 stored=1
+REOPEN: pending=1
+INJECTED_WRITE: storage("injected write failure")
+NEXT_WRITE: storage("cannot start a transaction within a transaction")
+
+HomeStore reproduction (macOS no-Supabase branch, no network Library backend):
+HOME_RAPID_TAPS: taps=20 initial=3 expected=23 actual=4
+HOME_RAPID_TAPS: persisted-row-count=1
+
+Selected package test output:
+Test groupingRequiresReviewedContinuityAndIgnoresCalendarSeasons passed.
+Test malExportKeepsRawScoreNotesAndRejectsEntities passed.
+Test outboxDrainStaysInsideTheAccount passed.
+Test importBatchCollapsesDuplicatesAndDropsPrivateNotesAndZeroScores passed.
+Test twentyTapsCollapseToTheLatestPositionAndSurviveReopen passed.
+Test run with 5 tests in 0 suites passed after 0.009 seconds.
+
+Fresh database rerun:
+scripts/db/run_local_db_tests.sh --only 81_import_session_receipt --report-dir /private/tmp/kuro-home-review-db-20261007
+Exit 3 before tests executed; environment guard passed; prepared migrations enumerated.
+cluster setup failed (attempt 40)
+FATAL: could not create shared memory segment: No space left on device
+DETAIL: Failed system call was shmget(key=677396006, size=56, 03600).
+HINT: This does not mean disk space is exhausted; host System V memory IDs/limits are exhausted.
+teardown: throwaway cluster stopped and /tmp/kuro-db-test.cSksbX removed
+
+Documentation check after current-inventory label correction:
+PASS
+- app_swift=133
+- package_swift=20
+- migrations=245
+git diff --check on the touched tracked documentation: exit0.

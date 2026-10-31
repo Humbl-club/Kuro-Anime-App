@@ -1,0 +1,159 @@
+REPRESENTATIVE_LOCAL_HOME_QUERY_NOT_SERVICE_OR_CAPACITY_PROOF
+Dataset: one disposable authenticated fixture account,50 tracked anime,10 two-season continuities,50 current palettes,30 future release rows;12 active/20 events requested.
+Time: 0.034 ms
+              make_user               
+--------------------------------------
+ abcdef00-0000-4000-8000-000000000610
+(1 row)
+
+Time: 2.109 ms
+Time: 4.466 ms
+Time: 0.224 ms
+Time: 0.344 ms
+Time: 0.832 ms
+Time: 0.939 ms
+Time: 6.719 ms
+Time: 0.408 ms
+Time: 0.873 ms
+Time: 0.548 ms
+Time: 0.206 ms
+Time: 0.172 ms
+Time: 0.233 ms
+ as_user 
+---------
+ 
+(1 row)
+
+Time: 0.130 ms
+FIRST_COMPLETE_HOME_BUNDLE_QUERY
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Result  (cost=0.00..0.26 rows=1 width=32) (actual time=10.822..10.822 rows=1 loops=1)
+   Buffers: shared hit=2418 read=74 dirtied=3 written=37
+ Settings: search_path = '"$user", public, extensions'
+ Planning Time: 0.004 ms
+ Execution Time: 10.826 ms
+(5 rows)
+
+Time: 11.043 ms
+SUBSEQUENT_COMPLETE_HOME_BUNDLE_AND_RETURNED_COUNTS
+ active_returned | events_returned | event_total | uncompressed_json_bytes 
+-----------------+-----------------+-------------+-------------------------
+              12 |              20 |          30 |                   13582
+(1 row)
+
+Time: 2.621 ms
+EXACT_CURRENT_ACTIVE_CTE_INNER_QUERY
+FOUNDATION_SOURCE_SHA256=9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651
+                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1465.43..1478.01 rows=1 width=417) (actual time=0.234..0.304 rows=12 loops=1)
+   Buffers: shared hit=206
+   CTE resume_page
+     ->  Limit  (cost=1436.85..1436.85 rows=1 width=385) (actual time=0.223..0.225 rows=12 loops=1)
+           Buffers: shared hit=134
+           ->  Sort  (cost=1436.85..1436.85 rows=1 width=385) (actual time=0.223..0.224 rows=12 loops=1)
+                 Sort Key: l_1.updated_at DESC, l_1.anime_id DESC
+                 Sort Method: top-N heapsort  Memory: 31kB
+                 Buffers: shared hit=134
+                 ->  Subquery Scan on l_1  (cost=1435.96..1436.84 rows=1 width=385) (actual time=0.187..0.210 rows=40 loops=1)
+                       Filter: (l_1.user_id = 'abcdef00-0000-4000-8000-000000000610'::text)
+                       Buffers: shared hit=134
+                       ->  Unique  (cost=1435.96..1436.21 rows=50 width=425) (actual time=0.186..0.194 rows=40 loops=1)
+                             Buffers: shared hit=134
+                             InitPlan 1
+                               ->  Result  (cost=0.00..0.03 rows=1 width=16) (actual time=0.002..0.002 rows=1 loops=1)
+                             InitPlan 2
+                               ->  Result  (cost=0.00..0.03 rows=1 width=16) (actual time=0.001..0.001 rows=1 loops=1)
+                             ->  Sort  (cost=1435.90..1436.02 rows=50 width=425) (actual time=0.186..0.188 rows=50 loops=1)
+                                   Sort Key: (COALESCE((sp_1.series_id)::text, ('entry:'::text || (l_2.anime_id)::text))), (CASE WHEN ((intent.resume_medium = 'anime'::text) AND (intent.resume_media_id = l_2.anime_id)) THEN 0 ELSE 1 END), (CASE WHEN (l_2.list_type = 'WATCHING'::text) THEN 0 ELSE 1 END), l_2.updated_at DESC, l_2.anime_id DESC
+                                   Sort Method: quicksort  Memory: 33kB
+                                   Buffers: shared hit=134
+                                   ->  Nested Loop Left Join  (cost=4.49..1434.49 rows=50 width=425) (actual time=0.014..0.156 rows=50 loops=1)
+                                         Join Filter: (intent.series_id = sp_1.series_id)
+                                         Buffers: shared hit=134
+                                         ->  Nested Loop Left Join  (cost=0.29..1419.92 rows=50 width=401) (actual time=0.009..0.143 rows=50 loops=1)
+                                               Buffers: shared hit=133
+                                               ->  Seq Scan on anime_user_lists l_2  (cost=0.00..5.50 rows=50 width=385) (actual time=0.005..0.049 rows=50 loops=1)
+                                                     Filter: ((list_type = ANY ('{WATCHING,PLANNING}'::text[])) AND (((InitPlan 1).col1)::text = user_id) AND (user_id = ((COALESCE(NULLIF(current_setting('request.jwt.claim.sub'::text, true), ''::text), ((NULLIF(current_setting('request.jwt.claims'::text, true), ''::text))::jsonb ->> 'sub'::text)))::uuid)::text))
+                                                     Buffers: shared hit=3
+                                               ->  Limit  (cost=0.29..28.28 rows=1 width=16) (actual time=0.002..0.002 rows=0 loops=50)
+                                                     Buffers: shared hit=130
+                                                     ->  Nested Loop  (cost=0.29..28.28 rows=1 width=16) (actual time=0.002..0.002 rows=0 loops=50)
+                                                           Buffers: shared hit=130
+                                                           ->  Nested Loop  (cost=0.15..14.76 rows=1 width=32) (actual time=0.001..0.001 rows=0 loops=50)
+                                                                 Buffers: shared hit=90
+                                                                 ->  Seq Scan on series_entry_spans sp_1  (cost=0.00..1.25 rows=1 width=32) (actual time=0.001..0.001 rows=0 loops=50)
+                                                                       Filter: (anime_id = l_2.anime_id)
+                                                                       Rows Removed by Filter: 16
+                                                                       Buffers: shared hit=50
+                                                                 ->  Index Scan using series_pkey on series sr_1  (cost=0.15..8.17 rows=1 width=16) (actual time=0.000..0.000 rows=1 loops=20)
+                                                                       Index Cond: (id = sp_1.series_id)
+                                                                       Filter: (grouping_state = 'approved'::text)
+                                                                       Buffers: shared hit=40
+                                                           ->  Index Scan using series_sections_pkey on series_sections sec_1  (cost=0.15..8.17 rows=1 width=16) (actual time=0.000..0.000 rows=1 loops=20)
+                                                                 Index Cond: (id = sp_1.section_id)
+                                                                 Filter: (state = 'approved'::text)
+                                                                 Buffers: shared hit=40
+                                         ->  Materialize  (cost=4.19..11.33 rows=3 width=84) (actual time=0.000..0.000 rows=0 loops=50)
+                                               Buffers: shared hit=1
+                                               ->  Result  (cost=4.19..11.31 rows=3 width=84) (actual time=0.003..0.003 rows=0 loops=1)
+                                                     One-Time Filter: (((InitPlan 2).col1)::text = ((InitPlan 1).col1)::text)
+                                                     Buffers: shared hit=1
+                                                     ->  Bitmap Heap Scan on user_series_intent intent  (cost=4.19..11.31 rows=3 width=84) (actual time=0.001..0.001 rows=0 loops=1)
+                                                           Recheck Cond: (user_id = ((InitPlan 1).col1)::text)
+                                                           Buffers: shared hit=1
+                                                           ->  Bitmap Index Scan on user_series_intent_pkey  (cost=0.00..4.18 rows=3 width=0) (actual time=0.001..0.001 rows=0 loops=1)
+                                                                 Index Cond: (user_id = ((InitPlan 1).col1)::text)
+                                                                 Buffers: shared hit=1
+   ->  Limit  (cost=28.58..41.15 rows=1 width=417) (actual time=0.234..0.303 rows=12 loops=1)
+         Buffers: shared hit=206
+         ->  Nested Loop Left Join  (cost=28.58..41.15 rows=1 width=417) (actual time=0.234..0.302 rows=12 loops=1)
+               Buffers: shared hit=206
+               ->  Nested Loop Left Join  (cost=28.44..40.67 rows=1 width=396) (actual time=0.232..0.291 rows=12 loops=1)
+                     Buffers: shared hit=182
+                     ->  Nested Loop Left Join  (cost=28.29..32.46 rows=1 width=344) (actual time=0.231..0.289 rows=12 loops=1)
+                           Buffers: shared hit=182
+                           ->  Nested Loop  (cost=0.00..4.15 rows=1 width=312) (actual time=0.228..0.265 rows=12 loops=1)
+                                 Join Filter: (l.anime_id = a.id)
+                                 Rows Removed by Join Filter: 522
+                                 Buffers: shared hit=170
+                                 ->  CTE Scan on resume_page l  (cost=0.00..0.03 rows=1 width=120) (actual time=0.224..0.226 rows=12 loops=1)
+                                       Filter: ((list_type = ANY ('{WATCHING,PLANNING}'::text[])) AND (user_id = 'abcdef00-0000-4000-8000-000000000610'::text))
+                                       Buffers: shared hit=134
+                                 ->  Seq Scan on anime a  (cost=0.00..3.50 rows=50 width=196) (actual time=0.001..0.002 rows=44 loops=12)
+                                       Buffers: shared hit=36
+                           ->  Limit  (cost=28.29..28.29 rows=1 width=188) (actual time=0.002..0.002 rows=0 loops=12)
+                                 Buffers: shared hit=12
+                                 ->  Sort  (cost=28.29..28.29 rows=1 width=188) (actual time=0.002..0.002 rows=0 loops=12)
+                                       Sort Key: ss.sort_order, sp.id
+                                       Sort Method: quicksort  Memory: 25kB
+                                       Buffers: shared hit=12
+                                       ->  Nested Loop  (cost=0.29..28.28 rows=1 width=188) (actual time=0.001..0.001 rows=0 loops=12)
+                                             Buffers: shared hit=12
+                                             ->  Nested Loop  (cost=0.15..14.76 rows=1 width=48) (actual time=0.001..0.001 rows=0 loops=12)
+                                                   Buffers: shared hit=12
+                                                   ->  Seq Scan on series_entry_spans sp  (cost=0.00..1.25 rows=1 width=48) (actual time=0.001..0.001 rows=0 loops=12)
+                                                         Filter: (anime_id = l.anime_id)
+                                                         Rows Removed by Filter: 20
+                                                         Buffers: shared hit=12
+                                                   ->  Index Scan using series_pkey on series sr  (cost=0.15..8.17 rows=1 width=16) (never executed)
+                                                         Index Cond: (id = sp.series_id)
+                                                         Filter: (grouping_state = 'approved'::text)
+                                             ->  Index Scan using series_sections_pkey on series_sections ss  (cost=0.15..8.17 rows=1 width=20) (never executed)
+                                                   Index Cond: (id = sp.section_id)
+                                                   Filter: (state = 'approved'::text)
+                     ->  Index Scan using series_sections_pkey on series_sections sec  (cost=0.15..8.17 rows=1 width=84) (actual time=0.000..0.000 rows=0 loops=12)
+                           Index Cond: (id = sp.section_id)
+               ->  Index Scan using artwork_materials_current_image_uq on artwork_materials mat  (cost=0.14..0.48 rows=1 width=103) (actual time=0.001..0.001 rows=1 loops=12)
+                     Index Cond: (image_url = COALESCE(a.banner_image, a.cover_image_large))
+                     Buffers: shared hit=24
+ Settings: search_path = '"$user", public, extensions'
+ Planning:
+   Buffers: shared hit=3
+ Planning Time: 0.510 ms
+ Execution Time: 0.342 ms
+(106 rows)
+
+Time: 1.259 ms
+Time: 0.540 ms

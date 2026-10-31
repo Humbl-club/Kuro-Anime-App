@@ -1,0 +1,735 @@
+{
+  "ok": true,
+  "status": "PASS",
+  "exitCode": 0,
+  "runId": "20261008T002901553Z-fc11d213",
+  "target": "https://bkdifromsqxkndnllmdj.supabase.co",
+  "clubId": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+  "memberEvents": 1,
+  "ownerEvents": 3,
+  "outsiderEvents": 0,
+  "membershipEvents": 1,
+  "subscriberIdentities": {
+    "owner": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+    "member": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+    "outsider": "527ac029-8480-4498-b76e-ce790d076f8c"
+  },
+  "signalEvents": {
+    "owner": [
+      {
+        "schema": "public",
+        "table": "club_activity_signals",
+        "commit_timestamp": "2026-10-08T00:29:03.328Z",
+        "eventType": "UPDATE",
+        "new": {
+          "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+          "revision": 5,
+          "changed_at": "2026-10-08T00:29:03.324461+00:00"
+        },
+        "old": {
+          "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22"
+        },
+        "errors": null,
+        "receivedAt": "2026-10-08T00:29:03.861Z",
+        "observedTable": "club_activity_signals",
+        "subscriberUserId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+        "observedFilter": "club_id=eq.4042c299-d606-4dd5-9bb0-7a01ac52af22"
+      },
+      {
+        "schema": "public",
+        "table": "club_activity_signals",
+        "commit_timestamp": "2026-10-08T00:29:05.428Z",
+        "eventType": "UPDATE",
+        "new": {
+          "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+          "revision": 6,
+          "changed_at": "2026-10-08T00:29:05.423223+00:00"
+        },
+        "old": {
+          "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22"
+        },
+        "errors": null,
+        "receivedAt": "2026-10-08T00:29:05.972Z",
+        "observedTable": "club_activity_signals",
+        "subscriberUserId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+        "observedFilter": "club_id=eq.4042c299-d606-4dd5-9bb0-7a01ac52af22"
+      },
+      {
+        "schema": "public",
+        "table": "club_activity_signals",
+        "commit_timestamp": "2026-10-08T00:29:06.222Z",
+        "eventType": "UPDATE",
+        "new": {
+          "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+          "revision": 7,
+          "changed_at": "2026-10-08T00:29:06.220092+00:00"
+        },
+        "old": {
+          "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22"
+        },
+        "errors": null,
+        "receivedAt": "2026-10-08T00:29:06.522Z",
+        "observedTable": "club_activity_signals",
+        "subscriberUserId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+        "observedFilter": "club_id=eq.4042c299-d606-4dd5-9bb0-7a01ac52af22"
+      }
+    ],
+    "member": [
+      {
+        "schema": "public",
+        "table": "club_activity_signals",
+        "commit_timestamp": "2026-10-08T00:29:03.328Z",
+        "eventType": "UPDATE",
+        "new": {
+          "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+          "revision": 5,
+          "changed_at": "2026-10-08T00:29:03.324461+00:00"
+        },
+        "old": {
+          "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22"
+        },
+        "errors": null,
+        "receivedAt": "2026-10-08T00:29:03.862Z",
+        "observedTable": "club_activity_signals",
+        "subscriberUserId": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+        "observedFilter": "club_id=eq.4042c299-d606-4dd5-9bb0-7a01ac52af22"
+      }
+    ],
+    "outsider": [],
+    "membership": [
+      {
+        "schema": "public",
+        "table": "club_membership_signals",
+        "commit_timestamp": "2026-10-08T00:29:05.428Z",
+        "eventType": "UPDATE",
+        "new": {
+          "state": "removed",
+          "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+          "user_id": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+          "revision": 3,
+          "changed_at": "2026-10-08T00:29:05.423223+00:00"
+        },
+        "old": {
+          "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+          "user_id": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b"
+        },
+        "errors": null,
+        "receivedAt": "2026-10-08T00:29:05.975Z",
+        "observedTable": "club_membership_signals",
+        "subscriberUserId": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+        "observedFilter": "user_id=eq.9bea5fea-40dc-482a-b3a4-c1434dc0b67b"
+      }
+    ]
+  },
+  "rls": {
+    "outsiderSelectHidden": true,
+    "beforeRevision": 4,
+    "afterRevision": 5
+  },
+  "finalRevision": 7,
+  "delivery": "PASS",
+  "membershipDelivery": "PASS",
+  "revocation": "PASS",
+  "negativeObservationMs": 1500,
+  "nativeSubscriptionLifecycle": "NOT_RUN",
+  "requestCount": 23,
+  "protocol": [
+    {
+      "method": "POST",
+      "path": "/auth/v1/signup",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:01.587Z",
+      "requestBody": {
+        "email": "kuro-probe-signal-owner-20261008T002901553Z-fc11d213@mailbox.invalid"
+      },
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "expires_in": 3600,
+        "expires_at": 1791422941,
+        "user": {
+          "id": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+          "aud": "authenticated",
+          "role": "authenticated",
+          "email": "kuro-probe-signal-owner-20261008t002901553z-fc11d213@mailbox.invalid",
+          "email_confirmed_at": "2026-10-08T00:29:01.792406397Z",
+          "phone": "",
+          "last_sign_in_at": "2026-10-08T00:29:01.796705742Z",
+          "app_metadata": {
+            "provider": "email",
+            "providers": [
+              "email"
+            ]
+          },
+          "user_metadata": {
+            "email": "kuro-probe-signal-owner-20261008t002901553z-fc11d213@mailbox.invalid",
+            "email_verified": true,
+            "phone_verified": false,
+            "sub": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0"
+          },
+          "identities": [
+            {
+              "identity_id": "00ffd798-3f66-4698-81ac-e20f474abcd8",
+              "id": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+              "user_id": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+              "identity_data": {
+                "email": "kuro-probe-signal-owner-20261008t002901553z-fc11d213@mailbox.invalid",
+                "email_verified": true,
+                "phone_verified": false,
+                "sub": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0"
+              },
+              "provider": "email",
+              "last_sign_in_at": "2026-10-08T00:29:01.787402172Z",
+              "created_at": "2026-10-08T00:29:01.787452Z",
+              "updated_at": "2026-10-08T00:29:01.787452Z",
+              "email": "kuro-probe-signal-owner-20261008t002901553z-fc11d213@mailbox.invalid"
+            }
+          ],
+          "created_at": "2026-10-08T00:29:01.782366Z",
+          "updated_at": "2026-10-08T00:29:01.807419Z",
+          "is_anonymous": false
+        }
+      },
+      "endedAt": "2026-10-08T00:29:01.831Z"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/v1/signup",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:01.831Z",
+      "requestBody": {
+        "email": "kuro-probe-signal-member-20261008T002901553Z-fc11d213@mailbox.invalid"
+      },
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "expires_in": 3600,
+        "expires_at": 1791422941,
+        "user": {
+          "id": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+          "aud": "authenticated",
+          "role": "authenticated",
+          "email": "kuro-probe-signal-member-20261008t002901553z-fc11d213@mailbox.invalid",
+          "email_confirmed_at": "2026-10-08T00:29:01.936201247Z",
+          "phone": "",
+          "last_sign_in_at": "2026-10-08T00:29:01.939759708Z",
+          "app_metadata": {
+            "provider": "email",
+            "providers": [
+              "email"
+            ]
+          },
+          "user_metadata": {
+            "email": "kuro-probe-signal-member-20261008t002901553z-fc11d213@mailbox.invalid",
+            "email_verified": true,
+            "phone_verified": false,
+            "sub": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b"
+          },
+          "identities": [
+            {
+              "identity_id": "5afa5615-262e-4d14-8df2-6a1e682e7a2d",
+              "id": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+              "user_id": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+              "identity_data": {
+                "email": "kuro-probe-signal-member-20261008t002901553z-fc11d213@mailbox.invalid",
+                "email_verified": true,
+                "phone_verified": false,
+                "sub": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b"
+              },
+              "provider": "email",
+              "last_sign_in_at": "2026-10-08T00:29:01.931893812Z",
+              "created_at": "2026-10-08T00:29:01.931938Z",
+              "updated_at": "2026-10-08T00:29:01.931938Z",
+              "email": "kuro-probe-signal-member-20261008t002901553z-fc11d213@mailbox.invalid"
+            }
+          ],
+          "created_at": "2026-10-08T00:29:01.928674Z",
+          "updated_at": "2026-10-08T00:29:01.941877Z",
+          "is_anonymous": false
+        }
+      },
+      "endedAt": "2026-10-08T00:29:01.956Z"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/v1/signup",
+      "actorUserId": null,
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:02.031Z",
+      "requestBody": {
+        "email": "kuro-probe-signal-out-20261008T002901553Z-fc11d213@mailbox.invalid"
+      },
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "expires_in": 3600,
+        "expires_at": 1791422942,
+        "user": {
+          "id": "527ac029-8480-4498-b76e-ce790d076f8c",
+          "aud": "authenticated",
+          "role": "authenticated",
+          "email": "kuro-probe-signal-out-20261008t002901553z-fc11d213@mailbox.invalid",
+          "email_confirmed_at": "2026-10-08T00:29:02.1374737Z",
+          "phone": "",
+          "last_sign_in_at": "2026-10-08T00:29:02.141970817Z",
+          "app_metadata": {
+            "provider": "email",
+            "providers": [
+              "email"
+            ]
+          },
+          "user_metadata": {
+            "email": "kuro-probe-signal-out-20261008t002901553z-fc11d213@mailbox.invalid",
+            "email_verified": true,
+            "phone_verified": false,
+            "sub": "527ac029-8480-4498-b76e-ce790d076f8c"
+          },
+          "identities": [
+            {
+              "identity_id": "98378dd9-de78-47ba-bf2d-cc01f409006b",
+              "id": "527ac029-8480-4498-b76e-ce790d076f8c",
+              "user_id": "527ac029-8480-4498-b76e-ce790d076f8c",
+              "identity_data": {
+                "email": "kuro-probe-signal-out-20261008t002901553z-fc11d213@mailbox.invalid",
+                "email_verified": true,
+                "phone_verified": false,
+                "sub": "527ac029-8480-4498-b76e-ce790d076f8c"
+              },
+              "provider": "email",
+              "last_sign_in_at": "2026-10-08T00:29:02.134213041Z",
+              "created_at": "2026-10-08T00:29:02.134258Z",
+              "updated_at": "2026-10-08T00:29:02.134258Z",
+              "email": "kuro-probe-signal-out-20261008t002901553z-fc11d213@mailbox.invalid"
+            }
+          ],
+          "created_at": "2026-10-08T00:29:02.130761Z",
+          "updated_at": "2026-10-08T00:29:02.150422Z",
+          "is_anonymous": false
+        }
+      },
+      "endedAt": "2026-10-08T00:29:02.165Z"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/create_club",
+      "actorUserId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:02.232Z",
+      "requestBody": {
+        "p_name": "Probe 20261008T002901553Z-fc11d213",
+        "p_sharing_level": "status"
+      },
+      "credentialSha256": "50b46b0491c68bd7139ee78816ffd16d94c5b7a62fef66aef8e2262c62104cbd",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "name": "Probe 20261008T002901553Z-fc11d213",
+        "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+        "invite_code": "KBjnyVv5"
+      },
+      "endedAt": "2026-10-08T00:29:02.303Z"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/join_club",
+      "actorUserId": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:02.434Z",
+      "requestBody": {
+        "p_invite_code": "KBjnyVv5"
+      },
+      "credentialSha256": "66fb9f6e087246f983adcae79dd9b3e98aa17090ae4d6602300dd45634ebe4e6",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "role": "member",
+        "club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+        "club_name": "Probe 20261008T002901553Z-fc11d213"
+      },
+      "endedAt": "2026-10-08T00:29:02.476Z"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/club_activity_signals?club_id=eq.4042c299-d606-4dd5-9bb0-7a01ac52af22&select=revision,changed_at",
+      "actorUserId": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:02.635Z",
+      "credentialSha256": "66fb9f6e087246f983adcae79dd9b3e98aa17090ae4d6602300dd45634ebe4e6",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": [
+        {
+          "revision": 4,
+          "changed_at": "2026-10-08T00:29:02.458762+00:00"
+        }
+      ],
+      "endedAt": "2026-10-08T00:29:02.671Z"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/club_activity_signals?club_id=eq.4042c299-d606-4dd5-9bb0-7a01ac52af22&select=revision,changed_at",
+      "actorUserId": "527ac029-8480-4498-b76e-ce790d076f8c",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:02.836Z",
+      "credentialSha256": "a3845c773d900ad5859ee94ca9a6c3d97bdd6f979f99247a23713274b92f472b",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": [],
+      "endedAt": "2026-10-08T00:29:02.867Z"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/create_club_rail",
+      "actorUserId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:03.267Z",
+      "requestBody": {
+        "p_club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+        "p_title": "Probe positive control"
+      },
+      "credentialSha256": "50b46b0491c68bd7139ee78816ffd16d94c5b7a62fef66aef8e2262c62104cbd",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "title": "Probe positive control",
+        "rail_id": "5470ec0a-7978-4f93-b52a-63bffc285d42",
+        "sort_order": 0
+      },
+      "endedAt": "2026-10-08T00:29:03.340Z"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/club_activity_signals?club_id=eq.4042c299-d606-4dd5-9bb0-7a01ac52af22&select=revision,changed_at",
+      "actorUserId": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:03.468Z",
+      "credentialSha256": "66fb9f6e087246f983adcae79dd9b3e98aa17090ae4d6602300dd45634ebe4e6",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": [
+        {
+          "revision": 5,
+          "changed_at": "2026-10-08T00:29:03.324461+00:00"
+        }
+      ],
+      "endedAt": "2026-10-08T00:29:03.498Z"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/remove_club_member",
+      "actorUserId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:05.406Z",
+      "requestBody": {
+        "p_club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+        "p_user_id": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b"
+      },
+      "credentialSha256": "50b46b0491c68bd7139ee78816ffd16d94c5b7a62fef66aef8e2262c62104cbd",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "removed": true,
+        "success": true
+      },
+      "endedAt": "2026-10-08T00:29:05.440Z"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/club_activity_signals?club_id=eq.4042c299-d606-4dd5-9bb0-7a01ac52af22&select=revision,changed_at",
+      "actorUserId": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:06.001Z",
+      "credentialSha256": "66fb9f6e087246f983adcae79dd9b3e98aa17090ae4d6602300dd45634ebe4e6",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": [],
+      "endedAt": "2026-10-08T00:29:06.033Z"
+    },
+    {
+      "method": "POST",
+      "path": "/rest/v1/rpc/create_club_rail",
+      "actorUserId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:06.202Z",
+      "requestBody": {
+        "p_club_id": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+        "p_title": "Probe after removal"
+      },
+      "credentialSha256": "50b46b0491c68bd7139ee78816ffd16d94c5b7a62fef66aef8e2262c62104cbd",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "title": "Probe after removal",
+        "rail_id": "84b55f05-086e-4ec2-9fc4-96b4e128f8d9",
+        "sort_order": 1
+      },
+      "endedAt": "2026-10-08T00:29:06.235Z"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/club_activity_signals?club_id=eq.4042c299-d606-4dd5-9bb0-7a01ac52af22&select=revision,changed_at",
+      "actorUserId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:06.402Z",
+      "credentialSha256": "50b46b0491c68bd7139ee78816ffd16d94c5b7a62fef66aef8e2262c62104cbd",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": [
+        {
+          "revision": 7,
+          "changed_at": "2026-10-08T00:29:06.220092+00:00"
+        }
+      ],
+      "endedAt": "2026-10-08T00:29:06.432Z"
+    },
+    {
+      "method": "POST",
+      "path": "/functions/v1/delete-account",
+      "actorUserId": "527ac029-8480-4498-b76e-ce790d076f8c",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:08.035Z",
+      "requestBody": {
+        "confirm": "true"
+      },
+      "credentialSha256": "a3845c773d900ad5859ee94ca9a6c3d97bdd6f979f99247a23713274b92f472b",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "success": true
+      },
+      "endedAt": "2026-10-08T00:29:08.418Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "actorUserId": "527ac029-8480-4498-b76e-ce790d076f8c",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:08.418Z",
+      "credentialSha256": "a3845c773d900ad5859ee94ca9a6c3d97bdd6f979f99247a23713274b92f472b",
+      "status": 403,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 403,
+        "error_code": "user_not_found",
+        "msg": "User from sub claim in JWT does not exist"
+      },
+      "endedAt": "2026-10-08T00:29:08.447Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/527ac029-8480-4498-b76e-ce790d076f8c",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:29:08.619Z",
+      "status": 404,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:29:08.648Z"
+    },
+    {
+      "method": "POST",
+      "path": "/functions/v1/delete-account",
+      "actorUserId": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:08.820Z",
+      "requestBody": {
+        "confirm": "true"
+      },
+      "credentialSha256": "66fb9f6e087246f983adcae79dd9b3e98aa17090ae4d6602300dd45634ebe4e6",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "success": true
+      },
+      "endedAt": "2026-10-08T00:29:09.311Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "actorUserId": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:09.311Z",
+      "credentialSha256": "66fb9f6e087246f983adcae79dd9b3e98aa17090ae4d6602300dd45634ebe4e6",
+      "status": 403,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 403,
+        "error_code": "user_not_found",
+        "msg": "User from sub claim in JWT does not exist"
+      },
+      "endedAt": "2026-10-08T00:29:09.337Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:29:09.512Z",
+      "status": 404,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:29:09.539Z"
+    },
+    {
+      "method": "POST",
+      "path": "/functions/v1/delete-account",
+      "actorUserId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:09.712Z",
+      "requestBody": {
+        "confirm": "true"
+      },
+      "credentialSha256": "50b46b0491c68bd7139ee78816ffd16d94c5b7a62fef66aef8e2262c62104cbd",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "success": true
+      },
+      "endedAt": "2026-10-08T00:29:10.201Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "actorUserId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+      "administrative": false,
+      "startedAt": "2026-10-08T00:29:10.201Z",
+      "credentialSha256": "50b46b0491c68bd7139ee78816ffd16d94c5b7a62fef66aef8e2262c62104cbd",
+      "status": 403,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 403,
+        "error_code": "user_not_found",
+        "msg": "User from sub claim in JWT does not exist"
+      },
+      "endedAt": "2026-10-08T00:29:10.230Z"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:29:10.402Z",
+      "status": 404,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-08T00:29:10.432Z"
+    },
+    {
+      "method": "GET",
+      "path": "/rest/v1/clubs?id=eq.4042c299-d606-4dd5-9bb0-7a01ac52af22&select=id",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-08T00:29:10.603Z",
+      "status": 200,
+      "cacheHeaders": {
+        "cf-cache-status": "DYNAMIC"
+      },
+      "responseBody": [],
+      "endedAt": "2026-10-08T00:29:10.654Z"
+    }
+  ],
+  "resources": {
+    "accounts": [
+      {
+        "email": "kuro-probe-signal-owner-20261008T002901553Z-fc11d213@mailbox.invalid",
+        "userId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0"
+      },
+      {
+        "email": "kuro-probe-signal-member-20261008T002901553Z-fc11d213@mailbox.invalid",
+        "userId": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b"
+      },
+      {
+        "email": "kuro-probe-signal-out-20261008T002901553Z-fc11d213@mailbox.invalid",
+        "userId": "527ac029-8480-4498-b76e-ce790d076f8c"
+      }
+    ],
+    "clubs": [
+      "4042c299-d606-4dd5-9bb0-7a01ac52af22"
+    ],
+    "journals": [],
+    "objects": []
+  },
+  "cleanup": [
+    {
+      "type": "account",
+      "email": "kuro-probe-signal-out-20261008T002901553Z-fc11d213@mailbox.invalid",
+      "userId": "527ac029-8480-4498-b76e-ce790d076f8c",
+      "status": "PASS"
+    },
+    {
+      "type": "account",
+      "email": "kuro-probe-signal-member-20261008T002901553Z-fc11d213@mailbox.invalid",
+      "userId": "9bea5fea-40dc-482a-b3a4-c1434dc0b67b",
+      "status": "PASS"
+    },
+    {
+      "type": "account",
+      "email": "kuro-probe-signal-owner-20261008T002901553Z-fc11d213@mailbox.invalid",
+      "userId": "a9fa948f-7a52-4c74-ab05-3ce5b2e4d7a0",
+      "status": "PASS"
+    },
+    {
+      "type": "club",
+      "clubId": "4042c299-d606-4dd5-9bb0-7a01ac52af22",
+      "status": "PASS"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+  "supabase/prepared-migrations/20261007130000_series_account_lifecycle.sql": "8cfb01f295f013dc2562b8a8f74ce865ffe7fe9c5bae071b7f15617d5f73b777",
+  "supabase/tests/rls/94_series_home_review_repairs.sql": "2f074eceec43fd85ee27ec8e305843774ff065c3ab651caa77f180a63ecaa241",
+  "scripts/db/run_local_db_tests.sh": "ec8ea967cb17cb04877da0a615fd660e331be51091c51dd727d0a7814500ce71"
+}

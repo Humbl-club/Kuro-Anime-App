@@ -1,0 +1,358 @@
+{
+  "devices" : [
+    {
+      "architecture" : "arm64",
+      "deviceId" : "B9BC0BAE-3BBA-49C9-9591-B24BC5612804",
+      "deviceName" : "iPhone 17 Pro",
+      "modelName" : "iPhone 17 Pro",
+      "osBuildNumber" : "23A5326a",
+      "osVersion" : "26.0",
+      "platform" : "iOS Simulator"
+    }
+  ],
+  "testNodes" : [
+    {
+      "children" : [
+        {
+          "children" : [
+            {
+              "children" : [
+                {
+                  "duration" : "0,046s",
+                  "durationInSeconds" : 0.046080827713012695,
+                  "name" : "Subscribe -> event -> one club re-read; session end tears the channel down; late events schedule nothing; B re-subscribes and its events refresh B",
+                  "nodeIdentifier" : "ClubsRealtimeTests/channelLifecycleAcrossAccounts()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/ClubsRealtimeTests/channelLifecycleAcrossAccounts()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0075s",
+                  "durationInSeconds" : 0.007519960403442383,
+                  "name" : "Club change: opening club-2 removes club-1's channel; club-1's late event is dropped",
+                  "nodeIdentifier" : "ClubsRealtimeTests/clubChangeDropsTheOldChannelsEvents()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/ClubsRealtimeTests/clubChangeDropsTheOldChannelsEvents()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,014s",
+                  "durationInSeconds" : 0.013543844223022461,
+                  "name" : "F42 membership signal: an event on the open club's channel (a club_members change) re-reads the bundle; a NOT_A_MEMBER answer revokes the club (bundle, my-clubs row, friend projection) and closes its channel; a later event of that channel schedules nothing",
+                  "nodeIdentifier" : "ClubsRealtimeTests/membershipSignalRevokesThroughTheBoundedReRead()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/ClubsRealtimeTests/membershipSignalRevokesThroughTheBoundedReRead()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0069s",
+                  "durationInSeconds" : 0.006946086883544922,
+                  "name" : "F42 rejoin after a revocation: the revoked channel's teardown (held) completes before the rejoined club's channel is made, and never drops the new channel; the old channel's late event is dropped",
+                  "nodeIdentifier" : "ClubsRealtimeTests/rejoinAfterRevocationKeepsTheNewChannel()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/ClubsRealtimeTests/rejoinAfterRevocationKeepsTheNewChannel()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Clubs: realtime channel",
+              "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/ClubsRealtimeTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            },
+            {
+              "children" : [
+                {
+                  "duration" : "0,016s",
+                  "durationInSeconds" : 0.015604734420776367,
+                  "name" : "Keyset continuity: page 2 carries page 1's last cursor and appends without a duplicate or a gap",
+                  "nodeIdentifier" : "CollectionContractTests/keysetCursorContinuity()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/keysetCursorContinuity()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0,011s",
+                      "durationInSeconds" : 0.010801076889038086,
+                      "name" : ".loadMoreFailure",
+                      "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/accountSwitchClearsAndCancels(inFlight:)?args=563d3390307b90a1fb7e6f8f2b8089ee45ca505100945ae5dc580806007a6cbe",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0,011s",
+                      "durationInSeconds" : 0.01112675666809082,
+                      "name" : ".loadMoreRows",
+                      "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/accountSwitchClearsAndCancels(inFlight:)?args=a796c4b6614b33cdc88a14b2fbbb2c96c0da7bc277a68505ac27e7a8d111b92b",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0,012s",
+                      "durationInSeconds" : 0.011733293533325195,
+                      "name" : ".refetch",
+                      "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/accountSwitchClearsAndCancels(inFlight:)?args=2ce8371803096b37323f0f7ace440aa534abb27c2575f852acde0fdfaccae06e",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "duration" : "0,011s",
+                  "durationInSeconds" : 0.011220375696818033,
+                  "name" : "A -> B through the session funnel: A's pages, cursors, flags, filter and error are cleared at once, A's in-flight fetches are cancelled and no late A page, success or failure, publishes into B; B's own pages land",
+                  "nodeIdentifier" : "CollectionContractTests/accountSwitchClearsAndCancels(inFlight:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/accountSwitchClearsAndCancels(inFlight:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "duration" : "0,0081s",
+                      "durationInSeconds" : 0.00811004638671875,
+                      "name" : ".failure",
+                      "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/lateAnswerIsRejectedByItsContext(outcome:)?args=3045b5c998d76c75f480b2e91388b6adef07205004129c0b8dffee745b4aa77e",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    },
+                    {
+                      "duration" : "0,0089s",
+                      "durationInSeconds" : 0.008924245834350586,
+                      "name" : ".success",
+                      "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/lateAnswerIsRejectedByItsContext(outcome:)?args=68e7a69974a641064a6a5ae8b1a00997939a325ec585a49e9fe82b386a21726a",
+                      "nodeType" : "Arguments",
+                      "result" : "Passed"
+                    }
+                  ],
+                  "duration" : "0,0085s",
+                  "durationInSeconds" : 0.008517146110534668,
+                  "name" : "Stale guard: A's feed answer that arrives after B became current (nothing cancelled it) publishes nothing, restores nothing and writes no error",
+                  "nodeIdentifier" : "CollectionContractTests/lateAnswerIsRejectedByItsContext(outcome:)",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/lateAnswerIsRejectedByItsContext(outcome:)",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0059s",
+                  "durationInSeconds" : 0.005904197692871094,
+                  "name" : "Latest wins: a second fetchCollectionFeed(status:) supersedes the first; the first's request is stopped, its cancellation is not surfaced and the second's filter and rows win",
+                  "nodeIdentifier" : "CollectionContractTests/secondFetchSupersedesFirst()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/secondFetchSupersedesFirst()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0097s",
+                  "durationInSeconds" : 0.00966024398803711,
+                  "name" : "Latest wins: a load-more superseded by a new feed fetch publishes nothing and leaves the loading flag to the new generation",
+                  "nodeIdentifier" : "CollectionContractTests/supersededLoadMoreKeepsTheNewFlag()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/supersededLoadMoreKeepsTheNewFlag()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,024s",
+                  "durationInSeconds" : 0.023855924606323242,
+                  "name" : "Library sink: a second change while the first feed refresh is in flight cancels it (latest wins); the first feed is stopped and the second runs once",
+                  "nodeIdentifier" : "CollectionContractTests/sinkRefreshIsLatestWins()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/sinkRefreshIsLatestWins()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0071s",
+                  "durationInSeconds" : 0.007135868072509766,
+                  "name" : "Library sink: a skipRefresh removal inside a deferred batch keeps the batch's single page refresh",
+                  "nodeIdentifier" : "CollectionContractTests/skippedRemovalInsideDeferredBatch()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/skippedRemovalInsideDeferredBatch()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,01s",
+                  "durationInSeconds" : 0.010181427001953125,
+                  "name" : "Batch status: the screen's workflow writes each item, keeps one failure, and refreshes the visible feed once",
+                  "nodeIdentifier" : "CollectionContractTests/batchStatusRefreshesTheVisibleFeedOnce()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/batchStatusRefreshesTheVisibleFeedOnce()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "children" : [
+                    {
+                      "name" : "Expectation failed: harness.server.requests.filter { $0.resource == Self.feed }.isEmpty\nharness.server.requests.filter { $0.resource == Self.feed } → [POST rpc/collection_feed_page? {\"p_limit\":90}, POST rpc/collection_feed_page? {\"p_limit\":90}]\nisEmpty → false",
+                      "nodeType" : "Failure Message",
+                      "sourceLocation" : {
+                        "filePath" : "/Users/max/Kuro-Anime-App/KuroTests/CollectionContractTests.swift",
+                        "lineNumber" : 597
+                      }
+                    },
+                    {
+                      "name" : "Expectation failed: feeds.count == 1\nfeeds.count → 3: only B's batch refreshes the feed",
+                      "nodeType" : "Failure Message",
+                      "sourceLocation" : {
+                        "filePath" : "/Users/max/Kuro-Anime-App/KuroTests/CollectionContractTests.swift",
+                        "lineNumber" : 604
+                      }
+                    },
+                    {
+                      "name" : "Expectation failed: feed.bearerSubject?.lowercased() == Self.userB.lowercased()\nfeed.bearerSubject?.lowercased() → \"6f1c4c3e-0a7b-4d7e-9c55-3d2a1b0c9e8a\"\nSelf.userB.lowercased() → \"0b9e8d7c-6a5b-4c3d-8e2f-1a0b9c8d7e6f\"",
+                      "nodeType" : "Failure Message",
+                      "sourceLocation" : {
+                        "filePath" : "/Users/max/Kuro-Anime-App/KuroTests/CollectionContractTests.swift",
+                        "lineNumber" : 606
+                      }
+                    },
+                    {
+                      "name" : "Expectation failed: feed.jsonObject?[\"p_list_type_anime\"] as? String == \"PAUSED\"\nfeed.jsonObject?[\"p_list_type_anime\"] as? String → nil",
+                      "nodeType" : "Failure Message",
+                      "sourceLocation" : {
+                        "filePath" : "/Users/max/Kuro-Anime-App/KuroTests/CollectionContractTests.swift",
+                        "lineNumber" : 607
+                      }
+                    },
+                    {
+                      "name" : "Test exceeded execution time allowance of 1 minute",
+                      "nodeType" : "Failure Message"
+                    }
+                  ],
+                  "duration" : "1m",
+                  "durationInSeconds" : 60,
+                  "name" : "A held batch cannot dispatch its second edit as B or end B's Collection/Home removal scope",
+                  "nodeIdentifier" : "CollectionContractTests/batchAccountSwitchKeepsNewAccountScope()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests/batchAccountSwitchKeepsNewAccountScope()",
+                  "nodeType" : "Test Case",
+                  "result" : "Failed"
+                }
+              ],
+              "name" : "Collection: feed",
+              "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/CollectionContractTests",
+              "nodeType" : "Test Suite",
+              "result" : "Failed"
+            },
+            {
+              "children" : [
+                {
+                  "duration" : "0,029s",
+                  "durationInSeconds" : 0.029064178466796875,
+                  "name" : "Reading the store inside an observation scope is invalidated by a LibraryActions write",
+                  "nodeIdentifier" : "LibraryFacadeTests/forwardersRegisterObservation()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/forwardersRegisterObservation()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,012s",
+                  "durationInSeconds" : 0.012397050857543945,
+                  "name" : "A write that outlives its account is rejected, publishes nothing and never lands as B's state",
+                  "nodeIdentifier" : "LibraryFacadeTests/accountSwitchMidWriteIsRejected()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/accountSwitchMidWriteIsRejected()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,014s",
+                  "durationInSeconds" : 0.014497041702270508,
+                  "name" : "toggleInCollection flips synchronously, keeps the flip on success and rolls back on failure",
+                  "nodeIdentifier" : "LibraryFacadeTests/toggleFlipsSynchronously()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/toggleFlipsSynchronously()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,019s",
+                  "durationInSeconds" : 0.0187222957611084,
+                  "name" : "Change sinks fire once per applied change; the Collection sink never re-reads the list tables",
+                  "nodeIdentifier" : "LibraryFacadeTests/changeSinksFireOncePerAppliedChange()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/changeSinksFireOncePerAppliedChange()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,019s",
+                  "durationInSeconds" : 0.018624067306518555,
+                  "name" : "Session funnel: sign-in binds and refreshes; sign-out drops the projection before suspending",
+                  "nodeIdentifier" : "LibraryFacadeTests/sessionFunnelBindsAndResets()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/sessionFunnelBindsAndResets()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,0095s",
+                  "durationInSeconds" : 0.009470224380493164,
+                  "name" : "N1: a sign-in during the old session's teardown tail keeps the new account's reminders",
+                  "nodeIdentifier" : "LibraryFacadeTests/oldTeardownTailKeepsNewAccountReminders()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/oldTeardownTailKeepsNewAccountReminders()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,056s",
+                  "durationInSeconds" : 0.05578207969665527,
+                  "name" : "Concierge apply and undo re-read the Library projection after the server-side write",
+                  "nodeIdentifier" : "LibraryFacadeTests/conciergeWritersRefreshLibrary()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/conciergeWritersRefreshLibrary()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,018s",
+                  "durationInSeconds" : 0.018486976623535156,
+                  "name" : "Releases: progress patches avoid reminder reads; status changes re-arm tracked anime, manga never; removal cancels",
+                  "nodeIdentifier" : "LibraryFacadeTests/releasesReArmReminders()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/releasesReArmReminders()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,013s",
+                  "durationInSeconds" : 0.013304948806762695,
+                  "name" : "A refresh after a server-side write never joins a read that started before the write",
+                  "nodeIdentifier" : "LibraryFacadeTests/serverWriteRefreshIsFresh()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/serverWriteRefreshIsFresh()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,011s",
+                  "durationInSeconds" : 0.010657072067260742,
+                  "name" : "Cancelling a caller (e.g. the realtime debounce) never cancels the Library refresh it started",
+                  "nodeIdentifier" : "LibraryFacadeTests/cancelledCallerDoesNotCancelRefresh()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/cancelledCallerDoesNotCancelRefresh()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                },
+                {
+                  "duration" : "0,016s",
+                  "durationInSeconds" : 0.0164337158203125,
+                  "name" : "Batch removal: cards leave the pages at once; ONE page refresh for the batch, none for skipRefresh",
+                  "nodeIdentifier" : "LibraryFacadeTests/batchRemovalRefreshesPagesOnce()",
+                  "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests/batchRemovalRefreshesPagesOnce()",
+                  "nodeType" : "Test Case",
+                  "result" : "Passed"
+                }
+              ],
+              "name" : "Library facade: forwarders, writes, sinks and session funnel",
+              "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests/LibraryFacadeTests",
+              "nodeType" : "Test Suite",
+              "result" : "Passed"
+            }
+          ],
+          "name" : "KuroTests",
+          "nodeIdentifierURL" : "test://com.apple.xcode/Kuro/KuroTests",
+          "nodeType" : "Unit test bundle",
+          "result" : "Failed"
+        }
+      ],
+      "name" : "Kuro",
+      "nodeType" : "Test Plan",
+      "result" : "Failed"
+    }
+  ],
+  "testPlanConfigurations" : [
+    {
+      "configurationId" : "1",
+      "configurationName" : "Test Scheme Action"
+    }
+  ]
+}

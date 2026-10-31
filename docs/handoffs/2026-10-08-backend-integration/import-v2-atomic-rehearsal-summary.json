@@ -1,0 +1,77 @@
+{
+  "verdict": "PASS: independently accepted exact source and disposable SQL fixture only",
+  "bundle_sha256": "ca18fb6931c3afac3f8eec9fe85e0de9c9a903132780dbdb2448cf62a3a11fd8",
+  "bundle_bytes": 662555,
+  "assertions": {
+    "install_history_data": 10,
+    "SQL81": 40,
+    "SQL94": 69,
+    "SQL95": 49,
+    "SQL96": 14,
+    "SQL97": 83
+  },
+  "total_assertions": 265,
+  "log_sha256": "47be2ac19a0430d34b9ef2c114176569bd7072bfc8ff9bc8c87b5be020c6a495",
+  "historical_replay": {
+    "baseline_first": {
+      "applied": 193,
+      "failed": 62
+    },
+    "strict": {
+      "applied": 145,
+      "failed": 110
+    }
+  },
+  "cleanup": "throwaway cluster /tmp/kuro-db-test.WmzRx7 stopped and removed",
+  "live": "NOT DEPLOYED; no hosted acceptance",
+  "source_pins": [
+    {
+      "path": "docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql",
+      "sha256": "ca18fb6931c3afac3f8eec9fe85e0de9c9a903132780dbdb2448cf62a3a11fd8"
+    },
+    {
+      "id": "20261007040000",
+      "path": "supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql",
+      "sha256": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261007130000",
+      "path": "supabase/prepared-migrations/20261007130000_series_account_lifecycle.sql",
+      "sha256": "8cfb01f295f013dc2562b8a8f74ce865ffe7fe9c5bae071b7f15617d5f73b777",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261008100000",
+      "path": "supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql",
+      "sha256": "af22886f86a23d7e5314f49de59b63185a28b3c5b47c98a4f84f2a00b7f4eccd",
+      "decision": "Forward repair only; lifecycle-safe exact-progress Apply/Undo; unknown historical lifecycle skipped"
+    },
+    {
+      "id": "20261008110000",
+      "path": "supabase/prepared-migrations/20261008110000_import_review_recovery_v2.sql",
+      "sha256": "552fcafe1e98d98ce9ec23e59c627f3ccfdbd3261517e4cff74c86a472cd2e6d",
+      "decision": "Forward review/recovery contracts; existing job/item storage; guarded immutable application and compensation, latest ten terminal details"
+    },
+    {
+      "path": "supabase/tests/rls/81_import_session_receipt.sql",
+      "sha256": "85f4f43302a551ce5f9039c1fe1fb2c8df0e91d8789d7a7ed4396dbdd7bcb4d6"
+    },
+    {
+      "path": "supabase/tests/rls/94_series_home_review_repairs.sql",
+      "sha256": "2f074eceec43fd85ee27ec8e305843774ff065c3ab651caa77f180a63ecaa241"
+    },
+    {
+      "path": "supabase/tests/rls/95_series_producers_disclosure.sql",
+      "sha256": "8b2d157d2ceec86494253fd508fdcf1fdf9f509582c5dbf31525ed7a56edae17"
+    },
+    {
+      "path": "supabase/tests/rls/96_series_account_lifecycle.sql",
+      "sha256": "9e4967bbc4177056f87bceb2153777c1d8559bb7b804b63bd9ec4aea458b3b0e"
+    },
+    {
+      "path": "supabase/tests/rls/97_import_review_recovery_v2.sql",
+      "sha256": "57cbb0b109d738a41b63944ede46dc59568880109b1b86950f21ecb24d5fa9e3"
+    }
+  ]
+}

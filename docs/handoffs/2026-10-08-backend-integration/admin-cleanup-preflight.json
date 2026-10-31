@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "status": "PASS",
+  "exitCode": 0,
+  "runId": "20261007T225511983Z-0d1e4bdd",
+  "target": "https://bkdifromsqxkndnllmdj.supabase.co",
+  "administrativePreflight": "Auth absent-user lookup and empty-prefix media list passed; no resources created",
+  "requestCount": 2,
+  "protocol": [
+    {
+      "method": "GET",
+      "path": "/auth/v1/admin/users/b24f2e64-2cf0-43da-8c8e-9daf5c74bd61",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-07T22:55:11.985Z",
+      "status": 404,
+      "responseBody": {
+        "code": 404,
+        "error_code": "user_not_found",
+        "msg": "User not found"
+      },
+      "endedAt": "2026-10-07T22:55:12.237Z"
+    },
+    {
+      "method": "POST",
+      "path": "/storage/v1/object/list/media",
+      "actorUserId": null,
+      "administrative": true,
+      "startedAt": "2026-10-07T22:55:12.237Z",
+      "requestBody": {
+        "prefix": "kuro-preflight-20261007T225511983Z-0d1e4bdd/",
+        "limit": 1
+      },
+      "status": 200,
+      "responseBody": [],
+      "endedAt": "2026-10-07T22:55:12.350Z"
+    }
+  ],
+  "resources": {
+    "accounts": [],
+    "clubs": [],
+    "journals": [],
+    "objects": []
+  },
+  "cleanup": []
+}

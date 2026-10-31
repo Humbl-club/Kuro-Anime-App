@@ -1,0 +1,19 @@
+{
+  "result": "Failed",
+  "totalTestCount": 388,
+  "passedTests": 104,
+  "failedTests": 284,
+  "skippedTests": 0,
+  "evidence_layer": "actual simulator SDK test host; failed initial run",
+  "distinct_failure_texts": [
+    "Crash: Kuro at <deduplicated_symbol>"
+  ],
+  "diagnosed_cause": "Snapshot render roots omitted LibraryActions; production root injects it. Independent reviewer confirmed exported crash diagnostic.",
+  "native_result_bundle": "/Users/max/Kuro-Anime-App/.codex-artifacts/native-unit/unit-20261007T192930Z-ZnF4If/tests.xcresult",
+  "fixed_files": [
+    "Kuro/Imports/ImportsService+MALAccount.swift",
+    "Kuro/KuroApp.swift",
+    "KuroTests/HomeCompositionSnapshotTests.swift"
+  ],
+  "no_hosted_or_device_qualification": true
+}

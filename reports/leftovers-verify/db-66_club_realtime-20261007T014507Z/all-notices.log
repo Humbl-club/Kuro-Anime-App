@@ -1,0 +1,29 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:47: NOTICE:  TEST ok: club creation creates its activity signal row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:49: NOTICE:  TEST ok: creator's membership signal is member
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:63: NOTICE:  TEST ok: join bumps the club revision
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:66: NOTICE:  TEST ok: rail creation bumps
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:69: NOTICE:  TEST ok: rail item add bumps
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:73: NOTICE:  TEST ok: poll creation bumps
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:75: NOTICE:  TEST ok: a vote bumps (other members learn "something changed", never who voted)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:77: NOTICE:  TEST ok: a reaction bumps
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:80: NOTICE:  TEST ok: a club settings change bumps
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:84: NOTICE:  TEST ok: member reads the club activity signal
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:86: NOTICE:  TEST ok: member reads ONLY their own membership signal rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:88: NOTICE:  TEST ok: nobody writes activity signals through the table API (denied: permission denied for table club_activity_signals)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:90: NOTICE:  TEST ok: nobody writes membership signals through the table API (denied: permission denied for table club_membership_signals)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:92: NOTICE:  TEST ok: outsider reads no activity signal
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:94: NOTICE:  TEST ok: anon has no SELECT on club_activity_signals (denied: permission denied for table club_activity_signals)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:95: NOTICE:  TEST ok: anon has no SELECT on club_membership_signals (denied: permission denied for table club_membership_signals)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:104: NOTICE:  TEST ok: F42: the removed member receives a revocation signal (state removed)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:105: NOTICE:  TEST ok: F42: ...and immediately loses the club activity signal (RLS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:107: NOTICE:  TEST ok: leave_club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:108: NOTICE:  TEST ok: F42: a leaver's signal is state left
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:111: NOTICE:  TEST ok: another member cannot see who was removed or left
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:116: NOTICE:  TEST ok: F42: club deletion signals every former member (state club_deleted)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:118: NOTICE:  TEST ok: the deleted club's activity row is gone with it
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:126: NOTICE:  TEST ok: membership signal rows of a deleted user are removed by the cascade
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:131: NOTICE:  TEST ok: both signal tables are in supabase_realtime
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:133: NOTICE:  TEST ok: club_members itself stays OUT of the publication (no global DELETE broadcast of membership row ids)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:136: NOTICE:  TEST ok: activity signal payload carries no user identifier
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:138: NOTICE:  TEST ok: both signal tables have RLS enabled
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/66_club_realtime_signals.sql:141: NOTICE:  TEST BLOCKED: Realtime delivery of club_activity_signals / club_membership_signals to subscribers -- no Realtime server in this fixture (publication membership + per-subscriber RLS are proven here); recovery: local Supabase stack (supabase start, needs Docker) or an approved non-production project, subscribe as two users and run the removal/leave/club-delete steps above

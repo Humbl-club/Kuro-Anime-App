@@ -1,0 +1,12 @@
+{
+  "supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+  "supabase/prepared-migrations/20261007120000_feature_flag_overrides.sql": "c4abf009f6e36d835506f83531dee99aa4e040239a0313ea757213e7c0d7909d",
+  "supabase/prepared-migrations/20261007130000_series_account_lifecycle.sql": "8cfb01f295f013dc2562b8a8f74ce865ffe7fe9c5bae071b7f15617d5f73b777",
+  "scripts/db/run_local_db_tests.sh": "ec8ea967cb17cb04877da0a615fd660e331be51091c51dd727d0a7814500ce71",
+  "supabase/tests/rls/94_series_home_review_repairs.sql": "948c32f3cc74ee47fa755137c968d3b943ed234b70199c7e4ba924efbe87b3cf",
+  "supabase/tests/rls/95_feature_flag_overrides.sql": "293500a018f80d9b5359e9fd17522e94b82dbb48fc7fb746db8b0ff60b535b2c",
+  "supabase/tests/rls/95_series_producers_disclosure.sql": "8b2d157d2ceec86494253fd508fdcf1fdf9f509582c5dbf31525ed7a56edae17",
+  "supabase/tests/rls/96_series_account_lifecycle.sql": "9e4967bbc4177056f87bceb2153777c1d8559bb7b804b63bd9ec4aea458b3b0e",
+  "supabase/tests/concurrency/92_series_progress_race.sql": "d829413851b1e5a24d8bd38b0e79ed2a3d139a347dff34d8191b82d1b52a9fb8",
+  "supabase/tests/concurrency/93_series_fence_races.sql": "c5d3df8c42512d9ea4244dade2a9ba759ba8f0f879213f7ee4b62fb4ab20e55d"
+}

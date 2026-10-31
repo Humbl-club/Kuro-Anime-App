@@ -1,0 +1,19 @@
+{
+  "build": "17",
+  "bundleIdentifier": "com.Kuro.app",
+  "bundleTreeSHA256": "dd5304ded6b5ebb2d8a62e36c35ff80ed08367b00d5e719648c1ae18964079df",
+  "debugDylibSHA256": "49ee785bd2e7e88603d71589d4f88ae927a4ba3b16a826bc62f57a5b270ed037",
+  "deviceId": "7FC4B58A-430C-457D-A017-6B0095723F3F",
+  "evidenceLayer": "simulator install only",
+  "executableSHA256": "1960147f3298abb820021ff82b680017d4709af3127b4b4f0fe4feb681470c6a",
+  "existingDataErased": false,
+  "infoPlistSHA256": "bda6299ce62ee851bb4b7c34a42e1a77aa9621a0d84399e1bf4c1a32a320c1a9",
+  "installedPath": "/Users/max/Library/Developer/CoreSimulator/Devices/7FC4B58A-430C-457D-A017-6B0095723F3F/data/Containers/Bundle/Application/C008C087-237A-4F0A-B4A6-7ECBF92698EA/Kuro.app",
+  "launchArguments": [],
+  "launched": false,
+  "matchesTestedBundle": true,
+  "recordedAt": "2026-10-08T00:08:52.735974+00:00",
+  "simctlInstallExit": 0,
+  "status": "PASS",
+  "version": "1.0"
+}

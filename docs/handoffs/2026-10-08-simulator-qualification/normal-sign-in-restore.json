@@ -1,0 +1,13 @@
+{
+  "captured_at": "2026-10-07T22:25:50.835850+00:00",
+  "simulator": "B9BC0BAE-3BBA-49C9-9591-B24BC5612804 / iPhone17Pro iOS26.0",
+  "target_bundle": "com.Kuro.app",
+  "bundle_sha256": "e0caff88ccb7266c2669c9edaa9f01d011d35438a59b50a2771ac4306b21d0c2",
+  "normal_password_form": "PASS",
+  "ordinary_restart": "PASS",
+  "identity_after_restart": "Same retained development email verified in Profile, including current MAL-file UI",
+  "screenshot": "restored-profile.png",
+  "screenshot_sha256": "89538d4921e9e63bc6d3e4fdbc47e0bb536cad176a825f860848c3cceba67933",
+  "fixture_or_auth_bypass": false,
+  "limitations": "Original simulator contains a second kuro URL handler. Do not use it to qualify external callbacks."
+}

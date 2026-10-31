@@ -1,0 +1,49 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:14: NOTICE:  TEST ok: catalogue change enqueues exactly one source job
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:17: NOTICE:  TEST ok: unclaimed null lease cannot finish
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:18: NOTICE:  TEST ok: unclaimed job did not write story
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:21: NOTICE:  TEST ok: claim is bounded to one
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:24: NOTICE:  TEST ok: wrong lease cannot publish
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:26: NOTICE:  TEST ok: failed extraction schedules retry without deleting last good
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:29: NOTICE:  TEST ok: retry starts at sixty seconds
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:33: NOTICE:  TEST ok: retry gets a new claim token
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:35: NOTICE:  TEST ok: old claim is rejected after reclaim
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:40: NOTICE:  TEST ok: low-contrast material rejected (raised: INVALID_MATERIAL)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:44: NOTICE:  TEST ok: current claim publishes sourced copy and material
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:46: NOTICE:  TEST ok: material identity is current exactly once
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:48: NOTICE:  TEST ok: themes remain search candidates rather than invented Spotify IDs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:50: NOTICE:  TEST ok: finish cannot reuse consumed claim
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:55: NOTICE:  TEST ok: reviewed story takes priority over source bridge
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:56: NOTICE:  TEST ok: end user cannot claim enrichment jobs (denied: permission denied for function claim_series_enrichment_v1)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:57: NOTICE:  TEST ok: enrichment job payload not readable by user (denied: permission denied for table series_enrichment_jobs)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:62: NOTICE:  TEST ok: source change schedules fresh extraction
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:64: NOTICE:  TEST ok: old source snapshot cannot replace new story
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:66: NOTICE:  TEST ok: pending enrichment retains approved copy
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:74: NOTICE:  TEST ok: unknown theme match retains prior bridge row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:79: NOTICE:  TEST ok: known empty authoritative set retires old producer themes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:81: NOTICE:  TEST ok: known empty set preserves reviewed links
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:89: NOTICE:  TEST ok: cross-URL digest cannot mutate prior artwork identity (raised: INVALID_MATERIAL_IDENTITY)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:92: NOTICE:  TEST ok: separate URL and digest retain distinct current palettes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:95: NOTICE:  TEST ok: new catalogue title queues a producer job
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:98: NOTICE:  TEST ok: catalogue deletion removes its queued job
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:99: NOTICE:  TEST ok: deleted title cannot consume a subsequent claim
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:109: NOTICE:  TEST ok: edition index is bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:110: NOTICE:  TEST ok: edition overflow gives independent keyset
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:112: NOTICE:  TEST ok: remaining editions are reachable
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:114: NOTICE:  TEST ok: unit cursor retains exact decimal string
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:115: NOTICE:  TEST ok: cursor JSON type is string
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:118: NOTICE:  TEST ok: no fractional unit is skipped by subsequent cursor
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:120: NOTICE:  TEST ok: initial detail uses one source edition
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:122: NOTICE:  TEST ok: initial detail edition index bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:143: NOTICE:  TEST ok: default null member level inherits club for direct reads
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:147: NOTICE:  TEST ok: private discussion first page bounded
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:148: NOTICE:  TEST ok: own comment is pinned outside first page
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:149: NOTICE:  TEST ok: pinned own reaction count is real
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:150: NOTICE:  TEST ok: status visibility hides episode count
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:158: NOTICE:  TEST ok: private list entry removed from friend tracking
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:161: NOTICE:  TEST ok: list privacy notifies the viewers own metadata row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:163: NOTICE:  TEST ok: viewer cannot read peer metadata signal
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:168: NOTICE:  TEST ok: direct RLS hides downgraded peer comment
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:171: NOTICE:  TEST ok: paged private discussion also hides downgraded peer
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:176: NOTICE:  TEST ok: removed user has no remaining membership authority
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:178: NOTICE:  TEST ok: removed user loses the club discussion
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/95_series_producers_disclosure.sql:181: NOTICE:  TEST ok: removed user receives terminal membership signal

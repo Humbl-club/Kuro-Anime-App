@@ -1,0 +1,10 @@
+[0m[32mCheck[0m file:///Users/max/Kuro-Anime-App/supabase/functions/concierge-retrieve-assist/run_test.ts
+[0m[38;5;245mrunning 5 tests from ./supabase/functions/concierge-retrieve-assist/run_test.ts[0m
+sanitizeInput strips injection phrases and caps length ... [0m[32mok[0m [0m[38;5;245m(0ms)[0m
+generateCacheKey is stable for the same inputs ... [0m[32mok[0m [0m[38;5;245m(0ms)[0m
+runRetrieveAssist rejects an empty query ... [0m[32mok[0m [0m[38;5;245m(0ms)[0m
+runRetrieveAssist returns a cached body without calling the RPC ... [0m[32mok[0m [0m[38;5;245m(6ms)[0m
+runRetrieveAssist maps RPC rows and never fabricates on RPC failure ... [0m[32mok[0m [0m[38;5;245m(0ms)[0m
+
+[0m[32mok[0m | 5 passed | 0 failed [0m[38;5;245m(9ms)[0m
+

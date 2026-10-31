@@ -1,0 +1,401 @@
+{
+  "schema": 1,
+  "status": "DRAFT / NOT APPROVED / NOT DEPLOYED",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "scope": "Review-only local inspection inputs; no inferred live parity or deployment authorization",
+  "migrations": [
+    {
+      "id": "20261005120000",
+      "path": "supabase/prepared-migrations/20261005120000_club_members_role_column_guard.sql",
+      "sha256": "1cb636b6e502ef7678cc42eac97e1316f55be10c90d4fae048276212154d4d17",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261005120100",
+      "path": "supabase/prepared-migrations/20261005120100_club_rails_insert_admin_only.sql",
+      "sha256": "394556ec8349de14766c81ec2f6b0381b4ba0f19c41f330001c640802b7f4f60",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261005120200",
+      "path": "supabase/prepared-migrations/20261005120200_toggle_comment_reaction_visibility.sql",
+      "sha256": "7383906f97852e2a9175c74a8312b565aa8a56b15ea12a3eeeeec331ed3c3815",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261005130000",
+      "path": "supabase/prepared-migrations/20261005130000_import_apply_undo_transactions.sql",
+      "sha256": "05f7c9f1b42b5ea4bc8a948dcf9f268ff9a1cfd602008bef28f9e484eb5fe45f",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261005140000",
+      "path": "supabase/prepared-migrations/20261005140000_account_deletion_write_barrier.sql",
+      "sha256": "55d6cb6330635ac830392160001d91fb088ef54b056b447459fd174bf7bb6355",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261005150000",
+      "path": "supabase/prepared-migrations/20261005150000_club_membership_lifecycle_and_privacy.sql",
+      "sha256": "5328c0849ca2114f222acd83ad741da5847c314a4f8aad2403a92cc46e4fa112",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261005160000",
+      "path": "supabase/prepared-migrations/20261005160000_club_realtime_signals.sql",
+      "sha256": "d06296bc802f3533408d058ecc08357b20de676eeb0c1ac76649c24d18d6943c",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261005170000",
+      "path": "supabase/prepared-migrations/20261005170000_user_lists_view_security_invoker.sql",
+      "sha256": "e7e423553633689b6f160f97536e2a336decdc7615bc3bdee0c90d601a10be2b",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261005180000",
+      "path": "supabase/prepared-migrations/20261005180000_list_user_id_canonical_case.sql",
+      "sha256": "382602438c61957663f8eda66cce06537b9912ea6740928fd0c07c690f17dbac",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261007040000",
+      "path": "supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql",
+      "sha256": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261007120000",
+      "path": "supabase/prepared-migrations/20261007120000_feature_flag_overrides.sql",
+      "sha256": "c4abf009f6e36d835506f83531dee99aa4e040239a0313ea757213e7c0d7909d",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    },
+    {
+      "id": "20261007130000",
+      "path": "supabase/prepared-migrations/20261007130000_series_account_lifecycle.sql",
+      "sha256": "8cfb01f295f013dc2562b8a8f74ce865ffe7fe9c5bae071b7f15617d5f73b777",
+      "decision": "Inspect applied history; changed already-applied identity requires new forward migration"
+    }
+  ],
+  "functions": {
+    "concierge-parse": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/_shared/alias_normalization.ts",
+          "sha256": "7a416b06a67f1ba17cb9da6a14981cb9490a573c4f9b9620819659f807497673"
+        },
+        {
+          "path": "supabase/functions/_shared/normalization.ts",
+          "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+        },
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/handler.ts",
+          "sha256": "8303c891879839cbe9ac0613f797d257e67c5c19e6324ff769bae82653c054d3"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/index.ts",
+          "sha256": "8a1f5ef2daa7261382ff2df4000112934374b8879bf7b69d54e604e5a15b0cfc"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/parse_repository.ts",
+          "sha256": "248dacd964388c905f6924b2d8219fd6cc63496cb8e6b79e0b6d40b661c72c41"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/rules.ts",
+          "sha256": "9750d2134cb72944d0593974b3cd269a3ec3ce8840ee332c479321bc55ed27e9"
+        },
+        {
+          "path": "supabase/functions/concierge-parse/search_plan.ts",
+          "sha256": "f6ed30f6306074d5a63195cc7a5546106a9fb6a63bdff371e899d8ed74019276"
+        }
+      ]
+    },
+    "concierge-recommend": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/catalog_repository.ts",
+          "sha256": "22ace7dc146ec8581af758e9b77450c775fc60d146c1fc77f689d15ddf3540b9"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/curated_copy.ts",
+          "sha256": "c55efd7793bde02286b332f6dc3662bd8bf959c9acd99bfcbaf9fafedf8325c7"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/handler.ts",
+          "sha256": "d1fc5049f31f21c8ed0144d3e4a9b76e7530ff1bff31452d9926b26edc63d2fb"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/index.ts",
+          "sha256": "56a9d5c8585f05ae7afec08619d52a24e246c3f708745dcd8390231ec78d1e31"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/narration.ts",
+          "sha256": "82816758dc0fb0eb5dbe5ee4a932c7f6a18a9f1d3a4ba7d3c67d5d4d83db69ea"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/rail_policy.ts",
+          "sha256": "fade1f331f125e05a12733993cf99a8c0a678e4cf7e007b0976e689ccff29141"
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/router.ts",
+          "sha256": "f6ac6d0940deef4969e34909e93060586427230d989e86588d1bdab2ebff0921"
+        }
+      ]
+    },
+    "concierge-apply": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/_shared/alias_normalization.ts",
+          "sha256": "7a416b06a67f1ba17cb9da6a14981cb9490a573c4f9b9620819659f807497673"
+        },
+        {
+          "path": "supabase/functions/_shared/normalization.ts",
+          "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+        },
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+        },
+        {
+          "path": "supabase/functions/concierge-apply/apply_plan.ts",
+          "sha256": "2ef2247d571f02febf9e9a8b090131af9a16466b928950c7fe692d83aa34f655"
+        },
+        {
+          "path": "supabase/functions/concierge-apply/handler.ts",
+          "sha256": "409043384141788fea811c9826f5dc5e236e7e944e895a1715f061b0960a9512"
+        },
+        {
+          "path": "supabase/functions/concierge-apply/index.ts",
+          "sha256": "be6b186335461eba8caa2f82277466b43c5d394d97e669531e6519cf15d3d8c5"
+        }
+      ]
+    },
+    "concierge-undo": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+        },
+        {
+          "path": "supabase/functions/concierge-undo/handler.ts",
+          "sha256": "ec5e68dc20356dd900ef9fc9a6c134207e47d2aaac15aae4298bbd1ffe420913"
+        },
+        {
+          "path": "supabase/functions/concierge-undo/index.ts",
+          "sha256": "8f937a8c7f0c0c315501b56206c5607fa4609b76712f4d0a37e3de5d2cef8387"
+        },
+        {
+          "path": "supabase/functions/concierge-undo/undo_plan.ts",
+          "sha256": "ddb6cb59ec5a263ea2584bb9cb332d6f3ea57cfbe05592ab1a08736e55e41a0a"
+        }
+      ]
+    },
+    "concierge-import-anilist": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/index.ts",
+          "sha256": "1cd8f4cb4ef314c85347d3f9a47e28d3c4b0ddb3e5aec62628ec9f00d82161e7"
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/lines.ts",
+          "sha256": "0f988dc500f5f4f014a1cc87909da884311cc359ba1cb1783b5793dffb1bca72"
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/list_policy.ts",
+          "sha256": "57e5f9cddea5be249148b48bba9193de6b4f939959aad26726c69088cd1f088d"
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/paging.ts",
+          "sha256": "f7243e0d95adfa96a24bbde653b09bea1f35dd5b4c9bafff3eca071fee83d08d"
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/run.ts",
+          "sha256": "c31985c03f227a795f281db8d26443bfb1b01491037bf9074c6232b9a9e170f4"
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/structured.ts",
+          "sha256": "0832cd7c5f265a5caefaf45f27106595a7e125797ea0d32ec1fb135bbfa63061"
+        }
+      ]
+    },
+    "delete-account": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/delete-account/adapters.ts",
+          "sha256": "1f1a6c5ad3606f6e8c6e6b45596740b12ce86b4098d1271326853868996c4e71"
+        },
+        {
+          "path": "supabase/functions/delete-account/deletion.ts",
+          "sha256": "598d5f73d5a9a9030df26cc87587819fd8418a685cc7b8426702eee5f4b7faf2"
+        },
+        {
+          "path": "supabase/functions/delete-account/handler.ts",
+          "sha256": "cc4a0c800b302efb38e3eb8c69eecef39e2bec12ec958f4abee809c59c9d791f"
+        },
+        {
+          "path": "supabase/functions/delete-account/index.ts",
+          "sha256": "b96437247b724f89347f4209c8fbbcb78fa05f39d2069c3116bdde6313c09659"
+        }
+      ]
+    },
+    "bulk-import-anime": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/bulk-import-anime/anilist.ts",
+          "sha256": "32fb9ab979a304d930870f2a73c9e085c3474301219cb7702c2e60a261995eb0"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/handler.ts",
+          "sha256": "5604a9163c328f9ebd46502fdaee637ba0a8e33c2735ddcd942c7a289385575d"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/index.ts",
+          "sha256": "290902e64672db78cd5d0bff53297ecdcd31053d17b4473e49ca7f0e26c24eb1"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/mapping.ts",
+          "sha256": "8f2978a05b317957ed55e6d147ae4c9573ced7867c0afa7f8f93eeda1d628375"
+        },
+        {
+          "path": "supabase/functions/bulk-import-anime/persistence.ts",
+          "sha256": "265dce41bf789dfb7d0862a6de3b271014606cff5b55431f493f8fe3109c4f0e"
+        }
+      ]
+    },
+    "bulk-import-manga": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/bulk-import-anime/persistence.ts",
+          "sha256": "265dce41bf789dfb7d0862a6de3b271014606cff5b55431f493f8fe3109c4f0e"
+        },
+        {
+          "path": "supabase/functions/bulk-import-manga/anilist.ts",
+          "sha256": "5b3a58d7feaa42251119e04cca71f28b6c48f8c3333ace1bff7bc896eec415f3"
+        },
+        {
+          "path": "supabase/functions/bulk-import-manga/handler.ts",
+          "sha256": "f7ce06e53270e56d29803bbcb2c612a51b25ed06a59e9fcf1448549ccca37925"
+        },
+        {
+          "path": "supabase/functions/bulk-import-manga/index.ts",
+          "sha256": "81de1bbb8a8153219ace2b33861d6437fc0b1ec7c4cc69fea8cc9fc2ecc561a0"
+        },
+        {
+          "path": "supabase/functions/bulk-import-manga/mapping.ts",
+          "sha256": "30128ad154fcc4c3fd839093c87548630cd1715ad343fc41d10c01ba132710ec"
+        }
+      ]
+    },
+    "manga-chapter-enrich": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/_shared/normalization.ts",
+          "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+        },
+        {
+          "path": "supabase/functions/manga-chapter-enrich/index.ts",
+          "sha256": "115ff385b8dbff8bfa64753d6b1cf1449787b203b177e67079498487a630861e"
+        },
+        {
+          "path": "supabase/functions/manga-chapter-enrich/mangadex.ts",
+          "sha256": "5d75598cf9257cc390f162b803d109ad8b0ab9df44836728bb87c1908c7c40e0"
+        },
+        {
+          "path": "supabase/functions/manga-chapter-enrich/matching.ts",
+          "sha256": "79d39a62b53d6a9ccfd732220c161b9d36a2310b44bf36fcf1a12153030253ad"
+        },
+        {
+          "path": "supabase/functions/manga-chapter-enrich/repository.ts",
+          "sha256": "267b34313dcdef332d3344b3e295e1ba7676f8030f041e40a759e68c1184bc39"
+        },
+        {
+          "path": "supabase/functions/manga-chapter-enrich/run.ts",
+          "sha256": "77e149f668c5059df7c54d55ecd82b832039900f6eaadb46f6faec9240236a64"
+        }
+      ]
+    },
+    "manga-source-review-action": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/manga-source-review-action/handler.ts",
+          "sha256": "43aed586d4c2280275e1e511eb21f5a122a652cedc003cee20b90ed44a403741"
+        },
+        {
+          "path": "supabase/functions/manga-source-review-action/index.ts",
+          "sha256": "4d2f330e8728daee5814181d738e02f661608ed4423e1f32b483545c0b9d30ae"
+        }
+      ]
+    },
+    "mirror-images": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/mirror-images/index.ts",
+          "sha256": "0d8d0816e877e4215ae268eb991b0c38d4a03da6baa2bd67a40ab7fdba79c4af"
+        },
+        {
+          "path": "supabase/functions/mirror-images/mirror_repository.ts",
+          "sha256": "a7ed14139c5d27dcf50087cadbb38273517394f5b7d9b0080d27c06469f4fb95"
+        },
+        {
+          "path": "supabase/functions/mirror-images/mirror_run.ts",
+          "sha256": "556ba56533f22580594f655c4752743de791f650b50068092a17407ff1040adb"
+        },
+        {
+          "path": "supabase/functions/mirror-images/mirror_storage.ts",
+          "sha256": "890e066f43595f58098b895cda4a77e7ef98d86ba06a6553399921817739192e"
+        },
+        {
+          "path": "supabase/functions/mirror-images/source_fetch.ts",
+          "sha256": "5194d97a488306b4f8b235dc06c966f860f2fcc85deb5a451897af426dbe00d3"
+        }
+      ]
+    },
+    "auth-callback": {
+      "decision": "Compare effective deployed source; deploy only changed approved closure",
+      "files": [
+        {
+          "path": "supabase/functions/auth-callback/index.ts",
+          "sha256": "bc718486267943a763e1753266d9fd4061de73f32146d29530e8ab220bf0fa4f"
+        }
+      ]
+    }
+  },
+  "excluded": [
+    "opt-in historical list backfill",
+    "Resolve activation",
+    "retrieval activation",
+    "realm activation",
+    "old-session backfill",
+    "deletion-barrier cron"
+  ],
+  "prerequisites": [
+    "administrative read-only effective live inventory",
+    "F16 aggregate casing/collision audit",
+    "exact missing forward delta SQL rehearsal",
+    "reviewed tester cohort and disable/recovery",
+    "applicable deployment approval"
+  ]
+}

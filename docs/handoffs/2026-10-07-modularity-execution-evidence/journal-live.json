@@ -1,0 +1,65 @@
+{
+  "ok": true,
+  "status": "PASS",
+  "exitCode": 0,
+  "runId": "20261007T145047466Z-faac1dfe",
+  "target": "https://bkdifromsqxkndnllmdj.supabase.co",
+  "sessionId": "7a838ea7-c75a-4928-9275-3d1078fb36a3",
+  "mediaId": 2,
+  "apply": "PASS",
+  "tables": {
+    "import_sessions": {
+      "ownerSelect": "PASS",
+      "outsiderSelect": "PASS",
+      "insert": "42501",
+      "update": "42501",
+      "delete": "42501",
+      "unchanged": true
+    },
+    "import_session_items": {
+      "ownerSelect": "PASS",
+      "outsiderSelect": "PASS",
+      "insert": "42501",
+      "update": "42501",
+      "delete": "42501",
+      "unchanged": true
+    }
+  },
+  "undo": "PASS",
+  "resources": {
+    "accounts": [
+      {
+        "email": "kuro-probe-journal-owner-20261007T145047466Z-faac1dfe@mailbox.invalid",
+        "userId": "27e9f9cf-65ff-4af6-9ae7-9e222111b2a9"
+      },
+      {
+        "email": "kuro-probe-journal-out-20261007T145047466Z-faac1dfe@mailbox.invalid",
+        "userId": "a46f6cde-3899-4725-905b-871b964de756"
+      }
+    ],
+    "clubs": [],
+    "journals": [
+      {
+        "sessionId": "7a838ea7-c75a-4928-9275-3d1078fb36a3",
+        "userId": "27e9f9cf-65ff-4af6-9ae7-9e222111b2a9",
+        "itemIds": [
+          "d12b7ed8-c197-437e-84eb-d5eb9744108d"
+        ]
+      }
+    ]
+  },
+  "cleanup": [
+    {
+      "type": "account",
+      "email": "kuro-probe-journal-out-20261007T145047466Z-faac1dfe@mailbox.invalid",
+      "userId": "a46f6cde-3899-4725-905b-871b964de756",
+      "status": "PASS"
+    },
+    {
+      "type": "account",
+      "email": "kuro-probe-journal-owner-20261007T145047466Z-faac1dfe@mailbox.invalid",
+      "userId": "27e9f9cf-65ff-4af6-9ae7-9e222111b2a9",
+      "status": "PASS"
+    }
+  ]
+}

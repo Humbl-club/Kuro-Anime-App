@@ -1,0 +1,305 @@
+{
+  "functions": {
+    "concierge-import-anilist": {
+      "files": [
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236",
+          "bytes": 3625
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/index.ts",
+          "sha256": "1cd8f4cb4ef314c85347d3f9a47e28d3c4b0ddb3e5aec62628ec9f00d82161e7",
+          "bytes": 2477
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/lines.ts",
+          "sha256": "0f988dc500f5f4f014a1cc87909da884311cc359ba1cb1783b5793dffb1bca72",
+          "bytes": 4693
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/list_policy.ts",
+          "sha256": "57e5f9cddea5be249148b48bba9193de6b4f939959aad26726c69088cd1f088d",
+          "bytes": 1065
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/paging.ts",
+          "sha256": "f7243e0d95adfa96a24bbde653b09bea1f35dd5b4c9bafff3eca071fee83d08d",
+          "bytes": 3640
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/run.ts",
+          "sha256": "c31985c03f227a795f281db8d26443bfb1b01491037bf9074c6232b9a9e170f4",
+          "bytes": 6947
+        },
+        {
+          "path": "supabase/functions/concierge-import-anilist/structured.ts",
+          "sha256": "0832cd7c5f265a5caefaf45f27106595a7e125797ea0d32ec1fb135bbfa63061",
+          "bytes": 2251
+        }
+      ],
+      "decision": "Deploy complete source closure only; preserve slug/auth settings; no flag activation"
+    },
+    "concierge-apply": {
+      "files": [
+        {
+          "path": "supabase/functions/_shared/alias_normalization.ts",
+          "sha256": "7a416b06a67f1ba17cb9da6a14981cb9490a573c4f9b9620819659f807497673",
+          "bytes": 7479
+        },
+        {
+          "path": "supabase/functions/_shared/normalization.ts",
+          "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398",
+          "bytes": 6954
+        },
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236",
+          "bytes": 3625
+        },
+        {
+          "path": "supabase/functions/concierge-apply/apply_plan.ts",
+          "sha256": "2ef2247d571f02febf9e9a8b090131af9a16466b928950c7fe692d83aa34f655",
+          "bytes": 14633
+        },
+        {
+          "path": "supabase/functions/concierge-apply/handler.ts",
+          "sha256": "409043384141788fea811c9826f5dc5e236e7e944e895a1715f061b0960a9512",
+          "bytes": 10079
+        },
+        {
+          "path": "supabase/functions/concierge-apply/index.ts",
+          "sha256": "be6b186335461eba8caa2f82277466b43c5d394d97e669531e6519cf15d3d8c5",
+          "bytes": 1594
+        }
+      ],
+      "decision": "Deploy complete source closure only; preserve slug/auth settings; no flag activation"
+    },
+    "concierge-undo": {
+      "files": [
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236",
+          "bytes": 3625
+        },
+        {
+          "path": "supabase/functions/concierge-undo/handler.ts",
+          "sha256": "ec5e68dc20356dd900ef9fc9a6c134207e47d2aaac15aae4298bbd1ffe420913",
+          "bytes": 5323
+        },
+        {
+          "path": "supabase/functions/concierge-undo/index.ts",
+          "sha256": "8f937a8c7f0c0c315501b56206c5607fa4609b76712f4d0a37e3de5d2cef8387",
+          "bytes": 1585
+        },
+        {
+          "path": "supabase/functions/concierge-undo/undo_plan.ts",
+          "sha256": "ddb6cb59ec5a263ea2584bb9cb332d6f3ea57cfbe05592ab1a08736e55e41a0a",
+          "bytes": 3427
+        }
+      ],
+      "decision": "Deploy complete source closure only; preserve slug/auth settings; no flag activation"
+    },
+    "delete-account": {
+      "files": [
+        {
+          "path": "supabase/functions/delete-account/adapters.ts",
+          "sha256": "1f1a6c5ad3606f6e8c6e6b45596740b12ce86b4098d1271326853868996c4e71",
+          "bytes": 8300
+        },
+        {
+          "path": "supabase/functions/delete-account/deletion.ts",
+          "sha256": "598d5f73d5a9a9030df26cc87587819fd8418a685cc7b8426702eee5f4b7faf2",
+          "bytes": 11394
+        },
+        {
+          "path": "supabase/functions/delete-account/handler.ts",
+          "sha256": "cc4a0c800b302efb38e3eb8c69eecef39e2bec12ec958f4abee809c59c9d791f",
+          "bytes": 3453
+        },
+        {
+          "path": "supabase/functions/delete-account/index.ts",
+          "sha256": "b96437247b724f89347f4209c8fbbcb78fa05f39d2069c3116bdde6313c09659",
+          "bytes": 914
+        }
+      ],
+      "decision": "Deploy complete source closure only; preserve slug/auth settings; no flag activation"
+    },
+    "concierge-recommend": {
+      "files": [
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236",
+          "bytes": 3625
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/catalog_repository.ts",
+          "sha256": "22ace7dc146ec8581af758e9b77450c775fc60d146c1fc77f689d15ddf3540b9",
+          "bytes": 15314
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/curated_copy.ts",
+          "sha256": "c55efd7793bde02286b332f6dc3662bd8bf959c9acd99bfcbaf9fafedf8325c7",
+          "bytes": 10927
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/handler.ts",
+          "sha256": "d1fc5049f31f21c8ed0144d3e4a9b76e7530ff1bff31452d9926b26edc63d2fb",
+          "bytes": 26916
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/index.ts",
+          "sha256": "56a9d5c8585f05ae7afec08619d52a24e246c3f708745dcd8390231ec78d1e31",
+          "bytes": 1232
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/narration.ts",
+          "sha256": "82816758dc0fb0eb5dbe5ee4a932c7f6a18a9f1d3a4ba7d3c67d5d4d83db69ea",
+          "bytes": 14008
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/rail_policy.ts",
+          "sha256": "fade1f331f125e05a12733993cf99a8c0a678e4cf7e007b0976e689ccff29141",
+          "bytes": 24023
+        },
+        {
+          "path": "supabase/functions/concierge-recommend/router.ts",
+          "sha256": "f6ac6d0940deef4969e34909e93060586427230d989e86588d1bdab2ebff0921",
+          "bytes": 47640
+        }
+      ],
+      "decision": "Deploy complete source closure only; preserve slug/auth settings; no flag activation"
+    },
+    "concierge-retrieve-assist": {
+      "files": [
+        {
+          "path": "supabase/functions/_shared/normalization.ts",
+          "sha256": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398",
+          "bytes": 6954
+        },
+        {
+          "path": "supabase/functions/_shared/rate_limit_gate.ts",
+          "sha256": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236",
+          "bytes": 3625
+        },
+        {
+          "path": "supabase/functions/concierge-retrieve-assist/index.ts",
+          "sha256": "f9459c16ed334be9e24678d94db40dd1ff917b56eef8efe8ab9ae4fecba8e152",
+          "bytes": 2689
+        },
+        {
+          "path": "supabase/functions/concierge-retrieve-assist/run.ts",
+          "sha256": "6dc1ba575f5ac4297f2a679bab9a68c5b7e71a2a85c3358de21d1ca4333b22e7",
+          "bytes": 9047
+        }
+      ],
+      "decision": "Deploy complete source closure only; preserve slug/auth settings; no flag activation"
+    }
+  },
+  "rpc_dependencies": {
+    "check_concierge_rate_limit": [
+      "supabase/functions/concierge-import-anilist/index.ts",
+      "supabase/functions/_shared/rate_limit_gate.ts",
+      "supabase/functions/concierge-apply/handler.ts",
+      "supabase/functions/_shared/rate_limit_gate.ts",
+      "supabase/functions/concierge-undo/handler.ts",
+      "supabase/functions/_shared/rate_limit_gate.ts",
+      "supabase/functions/concierge-recommend/handler.ts",
+      "supabase/functions/_shared/rate_limit_gate.ts",
+      "supabase/functions/concierge-retrieve-assist/index.ts",
+      "supabase/functions/_shared/rate_limit_gate.ts"
+    ],
+    "log_concierge_run": [
+      "supabase/functions/concierge-apply/handler.ts",
+      "supabase/functions/concierge-undo/handler.ts",
+      "supabase/functions/concierge-recommend/catalog_repository.ts",
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "apply_import_session": [
+      "supabase/functions/concierge-apply/handler.ts"
+    ],
+    "undo_import_session": [
+      "supabase/functions/concierge-undo/handler.ts"
+    ],
+    "delete_user_concierge_data": [
+      "supabase/functions/delete-account/adapters.ts"
+    ],
+    "is_flag_enabled": [
+      "supabase/functions/concierge-recommend/narration.ts"
+    ],
+    "llm_budget_reserve": [
+      "supabase/functions/concierge-recommend/narration.ts"
+    ],
+    "llm_global_budget_reserve": [
+      "supabase/functions/concierge-recommend/narration.ts"
+    ],
+    "llm_budget_finalize": [
+      "supabase/functions/concierge-recommend/narration.ts"
+    ],
+    "llm_global_budget_finalize": [
+      "supabase/functions/concierge-recommend/narration.ts"
+    ],
+    "get_concierge_config": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "search_titles": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "recommend_ids_premium": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "recommend_ids_similar_to_seeds": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "curated_rail_cards": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "rag_retrieve_candidates": [
+      "supabase/functions/concierge-retrieve-assist/run.ts"
+    ]
+  },
+  "table_dependencies": {
+    "title_aliases": [
+      "supabase/functions/concierge-apply/handler.ts",
+      "supabase/functions/concierge-apply/handler.ts"
+    ],
+    "episodes": [
+      "supabase/functions/concierge-apply/handler.ts"
+    ],
+    "anime": [
+      "supabase/functions/concierge-apply/handler.ts",
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "manga": [
+      "supabase/functions/concierge-apply/handler.ts",
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "profiles": [
+      "supabase/functions/delete-account/adapters.ts"
+    ],
+    "tags": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "editorial_tag_boosts": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "feature_flags": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "user_lists": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "concierge_mode_cache": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts",
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "editorial_boosts": [
+      "supabase/functions/concierge-recommend/catalog_repository.ts"
+    ],
+    "rag_retrieval_cache": [
+      "supabase/functions/concierge-retrieve-assist/run.ts",
+      "supabase/functions/concierge-retrieve-assist/run.ts"
+    ]
+  },
+  "limitations": "Static literals; injected repositories and dynamic target tables also mapped in dependency review"
+}

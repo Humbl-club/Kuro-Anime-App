@@ -1,0 +1,15 @@
+{
+  "slug": "concierge-recommend",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "captured_at": "2026-10-07T22:44:07.643Z",
+  "code_url": "https://supabase.com/dashboard/project/bkdifromsqxkndnllmdj/functions/concierge-recommend/code",
+  "method": "Visible file tree; select/copy from deployed Code editor; no deployment",
+  "files": [
+    {
+      "deployed_name": "index.ts",
+      "local_archive": "/Users/max/Kuro-Anime-App/.codex-artifacts/backend-integration/deployed/concierge-recommend/index.ts",
+      "bytes": 115455,
+      "sha256": "99438d41796a9240daafd88e0ffd70f660268e8af93e9c2926ac20d04f929a86"
+    }
+  ]
+}

@@ -1,0 +1,209 @@
+guard: environment clean; guard unit check passed
+pending: fixture INCLUDES 10 prepared-NOT-DEPLOYED migration(s) (supabase/tests/pending_migrations.txt); use --exclude-pending for the deployed-chain state:
+           20261005120000_club_members_role_column_guard.sql
+           20261005120100_club_rails_insert_admin_only.sql
+           20261005120200_toggle_comment_reaction_visibility.sql
+           20261005130000_import_apply_undo_transactions.sql
+           20261005140000_account_deletion_write_barrier.sql
+           20261005150000_club_membership_lifecycle_and_privacy.sql
+           20261005160000_club_realtime_signals.sql
+           20261005170000_user_lists_view_security_invoker.sql
+           20261005180000_list_user_id_canonical_case.sql
+           20261007040000_series_home_foundation_v1.sql
+target: throwaway PostgreSQL 17.10 (Homebrew) on unix socket /tmp/kuro-db-test.vJ8AO6 (port label 54329), TCP disabled, data_directory=/private/tmp/kuro-db-test.vJ8AO6/data
+
+================ migration replay (supabase/migrations, 245 files) ================
+replay[strict]: 145 files applied, 110 files failed (details: /tmp/kuro-db-test.vJ8AO6/reports/replay-strict.tsv)
+replay[baseline-post]: 7 files applied, 16 files failed (details: /tmp/kuro-db-test.vJ8AO6/reports/replay-baseline-post.tsv)
+replay[baseline-first]: 193 files applied, 62 files failed; baseline PRE-APPLY: PASS (details: /tmp/kuro-db-test.vJ8AO6/reports/replay-baseline-first.tsv)
+
+---- baseline-post (baseline, then only later files): object counts in kuro_baseline_post ----
+public tables: 27
+public matviews: 7
+public policies: 24
+public constraints (all types): 105
+baseline declares 26 distinct policies; baseline-post has 24 of them.
+not created in baseline-post (the baseline dependency-guards them on tables/functions that only the pre-baseline chain creates, e.g. club tables and is_club_member):
+    club_rail_item_reactions|club_reactions_insert_member
+    club_rail_item_reactions|club_reactions_select_member
+expected here: README_baseline_capture.md's 106 constraints / 26 policies are reached only once club_rail_items and is_club_member exist.
+In baseline-post they do not (pre-baseline chain files create them), so the baseline's own guards (to_regclass('public.club_rail_items'))
+skip exactly 1 FK (club_rail_item_reactions_rail_item_id_fkey) and 2 policies (club_reactions_*): 105 constraints / 24 policies is the consistent result.
+
+---- baseline-post per-file result ----
+PASS 20260807000000_baseline_capture_v1.sql 
+FAIL 20260807010000_leftover_repairs_v1.sql ERROR:  function public.delete_user_concierge_data(text) does not exist
+FAIL 20260810120000_clubs_trust_flags_promote_100.sql ERROR:  relation "public.feature_flags" does not exist
+FAIL 20261005120000_club_members_role_column_guard.sql ERROR:  relation "public.club_members" does not exist
+FAIL 20261005120000_club_members_role_column_guard.sql ERROR:  relation "public.club_members" does not exist
+FAIL 20261005120100_club_rails_insert_admin_only.sql ERROR:  relation "public.club_rails" does not exist
+FAIL 20261005120100_club_rails_insert_admin_only.sql ERROR:  relation "public.club_rails" does not exist
+PASS 20261005120200_toggle_comment_reaction_visibility.sql 
+PASS 20261005120200_toggle_comment_reaction_visibility.sql 
+FAIL 20261005130000_import_apply_undo_transactions.sql ERROR:  import_apply_undo_transactions: a prerequisite table is missing (import_sessions, import_session_items, anime_user_lists, manga_user_lists, taste_import_context)
+FAIL 20261005130000_import_apply_undo_transactions.sql ERROR:  import_apply_undo_transactions: a prerequisite table is missing (import_sessions, import_session_items, anime_user_lists, manga_user_lists, taste_import_context)
+FAIL 20261005140000_account_deletion_write_barrier.sql ERROR:  relation "public.club_analytics" does not exist
+FAIL 20261005140000_account_deletion_write_barrier.sql ERROR:  relation "public.club_analytics" does not exist
+FAIL 20261005150000_club_membership_lifecycle_and_privacy.sql ERROR:  relation "public.clubs" does not exist
+FAIL 20261005150000_club_membership_lifecycle_and_privacy.sql ERROR:  relation "public.clubs" does not exist
+FAIL 20261005160000_club_realtime_signals.sql ERROR:  relation "public.clubs" does not exist
+FAIL 20261005160000_club_realtime_signals.sql ERROR:  relation "public.clubs" does not exist
+PASS 20261005170000_user_lists_view_security_invoker.sql 
+PASS 20261005170000_user_lists_view_security_invoker.sql 
+PASS 20261005180000_list_user_id_canonical_case.sql 
+PASS 20261005180000_list_user_id_canonical_case.sql 
+FAIL 20261006120000_import_sessions_select_only.sql ERROR:  relation "public.import_sessions" does not exist
+FAIL 20261007040000_series_home_foundation_v1.sql ERROR:  relation "public.club_members" does not exist
+
+---- strict (empty DB, filename order): failures grouped by first error ----
+ 104 ERROR:  relation "…" does not exist
+   2 ERROR:  import_apply_undo_transactions: a prerequisite table is missing (import_sessions, import_session_items, anime_user_lists, manga_user_lists, taste_import_context)
+   2 ERROR:  function public.current_season_name(timestamp with time zone) does not exist
+   1 ERROR:  function public.rebuild_media_realm_tier() does not exist
+   1 ERROR:  column "…" of relation "…" does not exist
+
+---- baseline-first (FIXTURE build): failing files ----
+FAIL  20260203183000_concierge_recommend_rpc.sql
+        ERROR:  relation "public.user_lists" does not exist
+FAIL  20260203190000_editorial_recommend_engine.sql
+        ERROR:  insert or update on table "editorial_penalty_tags" violates foreign key constraint "editorial_penalty_tags_tag_id_fkey"
+FAIL  20260203191500_recommend_focus_tags.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260203194500_recommend_focus_filter.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260203201000_editorial_story_boosts.sql
+        ERROR:  insert or update on table "editorial_tag_boosts" violates foreign key constraint "editorial_tag_boosts_tag_id_fkey"
+FAIL  20260203203000_recommend_seed_similarity.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260203223000_scale_perf_bundle_and_indexes.sql
+        ERROR:  relation "public.user_lists" does not exist
+FAIL  20260203235500_search_rpc_keyset.sql
+        ERROR:  function similarity(text, text) does not exist
+FAIL  20260204233000_recommend_seed_similarity_allow_anon.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260204234500_recommend_seed_similarity_ranked_tags.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260204235500_recommend_seed_similarity_genre_gate.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260205231000_curated_rails.sql
+        ERROR:  relation "public.user_lists" does not exist
+FAIL  20260205234000_curated_rails_seed.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260205235000_discover_bundle_use_curated_rails.sql
+        ERROR:  function public.current_season_name(timestamp with time zone) does not exist
+FAIL  20260206120000_curated_rails_expansion.sql
+        ERROR:  relation "public.curated_rail_items" does not exist
+FAIL  20260206150000_security_hardening_rls_and_views.sql
+        ERROR:  relation "public.editorial_boosts" does not exist
+FAIL  20260206162329_curated_rails_expansion.sql
+        ERROR:  relation "public.curated_rail_items" does not exist
+FAIL  20260206164200_security_hardening_rls_and_views.sql
+        ERROR:  relation "public.editorial_boosts" does not exist
+FAIL  20260207011000_curated_rails_vibes_seed.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260207020000_curated_rails_more_vibes_seed.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260208022035_phase0_remove_sequels.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208022110_add_sports_mode.sql
+        ERROR:  relation "curated_rails" does not exist
+FAIL  20260208022136_phase0_remove_misclassified.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208022153_add_scifi_mode.sql
+        ERROR:  relation "curated_rails" does not exist
+FAIL  20260208022239_add_horror_supernatural_mode.sql
+        ERROR:  relation "curated_rails" does not exist
+FAIL  20260208022250_phase0_dedup_rails.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208022326_phase0_slim_and_rerank.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208022342_add_demographic_rails.sql
+        ERROR:  relation "curated_rails" does not exist
+FAIL  20260208022404_phase0_fix_classics.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208023052_phase0_backfill_underpopulated_rails.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208023221_phase0_dedup_backfilled_rails.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208023331_phase0_final_backfill.sql
+        ERROR:  relation "curated_rail_items" does not exist
+FAIL  20260208090000_refine_short_and_fantasy_rails.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260208091500_curated_rails_premium_picks_seed.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260209120000_new_vibe_rails.sql
+        ERROR:  relation "public.curated_rails" does not exist
+FAIL  20260211162000_reduce_school_shoujo_overlap.sql
+        ERROR:  relation "public.curated_rail_items" does not exist
+FAIL  20260324213000_discover_airing_today_berlin_day.sql
+        ERROR:  function public.current_season_name(timestamp with time zone) does not exist
+FAIL  20260731060000_taste_math_v2.sql
+        ERROR:  relation "public.editorial_penalty_tags" does not exist
+FAIL  20260731070000_taste_math_v2_hotfix.sql
+        ERROR:  function public._taste_deck_apply_tag_stats(uuid, text, integer, text, integer) does not exist
+FAIL  20260731100000_discover_p1.sql
+        ERROR:  relation "public.editorial_boosts" does not exist
+FAIL  20260731150000_realm_graph_v1.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260731160000_realm_gate_calibration.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260731170000_media_realm_llm_v1.sql
+        ERROR:  relation "public.media_realm_tier" does not exist
+FAIL  20260731180000_similarity_inclusion_fix.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260731194000_debug_sim_v42.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260731200000_penalty_clamp_and_debug_cleanup.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260802123000_media_realm_membership_delta_v1.sql
+        ERROR:  relation "public.media_realm_membership" does not exist
+FAIL  20260802125000_membership_delta_check_float4.sql
+        ERROR:  relation "public.media_realm_membership_delta" does not exist
+FAIL  20260802140000_spirited_away_gate_harden.sql
+        ERROR:  relation "public.realm_affinity_overrides" does not exist
+FAIL  20260802141000_canon_bless_and_discover_realm_rails.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260802150000_curation_sources_expand_v1.sql
+        ERROR:  column "blessed" of relation "canon_seed" does not exist
+FAIL  20260804100000_similarity_penalty_and_costs.sql
+        ERROR:  relation "public.realm_affinity_overrides" does not exist
+FAIL  20260804120000_tier_from_effective_and_cron.sql
+        ERROR:  relation "public.media_realm_tier" does not exist
+FAIL  20260804121000_rebuild_tier_execute_service_role_only.sql
+        ERROR:  function public.rebuild_media_realm_tier() does not exist
+FAIL  20260804130000_media_similar_titles_precompute.sql
+        ERROR:  relation "public.media_tag_vectors" does not exist
+FAIL  20260804150000_hygiene_ops_fn_and_view_advisors.sql
+        ERROR:  relation "public.realm_affinity_effective" does not exist
+FAIL  20260805110000_realm_audit_overrides.sql
+        ERROR:  relation "public.media_realm_membership" does not exist
+FAIL  20260805112000_realm_audit_override_conditional_swap.sql
+        ERROR:  relation "public.media_realm_membership" does not exist
+FAIL  20260805120000_edges_first_serving.sql
+        ERROR:  relation "public.media_similar_titles" does not exist
+FAIL  20260806000000_security_and_mirror_repair.sql
+        ERROR:  relation "public.media_similar_seed_state" does not exist
+FAIL  20260806020000_serving_hardening_v1.sql
+        ERROR:  relation "public.media_similar_seed_state" does not exist
+FAIL  20260807010000_leftover_repairs_v1.sql
+        ERROR:  relation "public.media_similar_seed_state" does not exist
+replay reports copied to /Users/max/Kuro-Anime-App/reports/leftovers-verify/db-65_club_membership-20261007T014507Z
+
+================ RLS / authorization tests on kuro_baseline_first ================
+FIXTURE: audited schema fixture (stubs + baseline-first application). NOT a complete migration replay.
+         NOT Supabase Auth / Realtime / Storage / PostgREST / pg_cron / pg_net.
+PASS  65_club_membership_lifecycle.sql          48 assertions, 0 blocked markers, 0 findings
+
+---- findings (observed behavior; NOT fixed here) ----
+
+---- BLOCKED (not faked; reason + recovery) ----
+
+================ SUMMARY (three separate verdicts) ================
+REPLAY      : INCOMPLETE -- baseline-first applied 193, failed 62; strict applied 145, failed 110 (the fixture is an audited schema, not a replay)
+PREPARED    : every non-excluded supabase/prepared-migrations/*.sql applied to the fixture build
+SETUP       : 0 test file(s) BLOCKED (not run), 0 scope(s) BLOCKED by missing fixture objects, 0 in-file BLOCKED marker(s)
+TESTS       : 1 test files, 48 assertions passed, 0 finding markers -> PASS (executed tests only)
+PROVEN: RLS/RPC/transaction behavior on the tables listed in supabase/tests/README.md, for the schema this fixture contains.
+NOT PROVEN: full migration replay; production schema equality; Supabase Auth/Realtime/Storage/PostgREST behavior; edge functions; any file listed as FAIL above; every BLOCKED item.
+RESULT      : PASS
+teardown: throwaway cluster stopped and /tmp/kuro-db-test.vJ8AO6 removed

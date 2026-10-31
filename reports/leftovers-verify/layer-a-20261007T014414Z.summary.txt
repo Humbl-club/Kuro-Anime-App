@@ -1,0 +1,7 @@
+=== Layer A leftovers verify (20261007T014414Z) ===
+Report: /Users/max/Kuro-Anime-App/reports/leftovers-verify/layer-a-20261007T014414Z.summary.txt
+Claims: none for G0-G7 / 16 journeys / App Store / rag_assist_v1
+
+[1/5] iOS build
+  PASS build
+[2/5] KuroTests leftovers filters (destination: platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2)

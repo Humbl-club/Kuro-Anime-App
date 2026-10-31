@@ -1,0 +1,475 @@
+{
+  "schema": 1,
+  "recordedAt": "2026-10-08T00:19:07.021638+00:00",
+  "project": "bkdifromsqxkndnllmdj",
+  "evidenceLayer": "Read-only local source/artifact hashes plus live CLI migration/function identity inventory; no deployment or live behavior qualification",
+  "status": "PASS",
+  "manifestSHA256": "47a4288078e9eb15d9e5cf69450749e0c8a33b2311e1f8eda6d80da5b054b2af",
+  "checks": [
+    {
+      "name": "sql:20261007040000",
+      "status": "PASS",
+      "path": "supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql",
+      "expected": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+      "actual": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651"
+    },
+    {
+      "name": "sql:20261007130000",
+      "status": "PASS",
+      "path": "supabase/prepared-migrations/20261007130000_series_account_lifecycle.sql",
+      "expected": "8cfb01f295f013dc2562b8a8f74ce865ffe7fe9c5bae071b7f15617d5f73b777",
+      "actual": "8cfb01f295f013dc2562b8a8f74ce865ffe7fe9c5bae071b7f15617d5f73b777"
+    },
+    {
+      "name": "sql:20261008100000",
+      "status": "PASS",
+      "path": "supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql",
+      "expected": "af22886f86a23d7e5314f49de59b63185a28b3c5b47c98a4f84f2a00b7f4eccd",
+      "actual": "af22886f86a23d7e5314f49de59b63185a28b3c5b47c98a4f84f2a00b7f4eccd"
+    },
+    {
+      "name": "sql:20261008110000",
+      "status": "PASS",
+      "path": "supabase/prepared-migrations/20261008110000_import_review_recovery_v2.sql",
+      "expected": "552fcafe1e98d98ce9ec23e59c627f3ccfdbd3261517e4cff74c86a472cd2e6d",
+      "actual": "552fcafe1e98d98ce9ec23e59c627f3ccfdbd3261517e4cff74c86a472cd2e6d"
+    },
+    {
+      "name": "atomic_bundle",
+      "status": "PASS",
+      "path": "docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql",
+      "expected": "ca18fb6931c3afac3f8eec9fe85e0de9c9a903132780dbdb2448cf62a3a11fd8",
+      "actual": "ca18fb6931c3afac3f8eec9fe85e0de9c9a903132780dbdb2448cf62a3a11fd8",
+      "bytes": 662555
+    },
+    {
+      "name": "closure_manifest:concierge-import-anilist",
+      "status": "PASS"
+    },
+    {
+      "name": "closure_complete:concierge-import-anilist",
+      "status": "PASS",
+      "missing": [],
+      "extra": [],
+      "externalImports": [
+        " && cachedText.length > 0) {\n    const { text, itemCount } = dedupeAndJoinLines(cachedText.split(/\\r?\\n/));\n    return {\n      kind: ",
+        ";\n\nexport type ListSource =\n  | {\n    kind: ",
+        ";\n  const cachedText = String(raw.text ?? raw.cachedText ?? ",
+        ";\n  username: string;\n  stream?: boolean;\n  cursor?: string;\n  types?: AniListMediaType[];\n  statuses?: AniListStatus[];\n  maxItems?: number;\n  perPage?: number;\n  text?: string;\n  cachedText?: string;\n  publicListOnly?: boolean;\n  truncated?: boolean;\n};\n\nconst STATUSES: readonly AniListStatus[] = [\n  ",
+        "https://deno.land/std@0.168.0/http/server.ts",
+        "https://esm.sh/@supabase/supabase-js@2"
+      ]
+    },
+    {
+      "name": "edge_file:supabase/functions/_shared/rate_limit_gate.ts",
+      "status": "PASS",
+      "actual": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236",
+      "expected": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-import-anilist/index.ts",
+      "status": "PASS",
+      "actual": "1cd8f4cb4ef314c85347d3f9a47e28d3c4b0ddb3e5aec62628ec9f00d82161e7",
+      "expected": "1cd8f4cb4ef314c85347d3f9a47e28d3c4b0ddb3e5aec62628ec9f00d82161e7"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-import-anilist/lines.ts",
+      "status": "PASS",
+      "actual": "0f988dc500f5f4f014a1cc87909da884311cc359ba1cb1783b5793dffb1bca72",
+      "expected": "0f988dc500f5f4f014a1cc87909da884311cc359ba1cb1783b5793dffb1bca72"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-import-anilist/list_policy.ts",
+      "status": "PASS",
+      "actual": "57e5f9cddea5be249148b48bba9193de6b4f939959aad26726c69088cd1f088d",
+      "expected": "57e5f9cddea5be249148b48bba9193de6b4f939959aad26726c69088cd1f088d"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-import-anilist/paging.ts",
+      "status": "PASS",
+      "actual": "f7243e0d95adfa96a24bbde653b09bea1f35dd5b4c9bafff3eca071fee83d08d",
+      "expected": "f7243e0d95adfa96a24bbde653b09bea1f35dd5b4c9bafff3eca071fee83d08d"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-import-anilist/run.ts",
+      "status": "PASS",
+      "actual": "c31985c03f227a795f281db8d26443bfb1b01491037bf9074c6232b9a9e170f4",
+      "expected": "c31985c03f227a795f281db8d26443bfb1b01491037bf9074c6232b9a9e170f4"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-import-anilist/structured.ts",
+      "status": "PASS",
+      "actual": "0832cd7c5f265a5caefaf45f27106595a7e125797ea0d32ec1fb135bbfa63061",
+      "expected": "0832cd7c5f265a5caefaf45f27106595a7e125797ea0d32ec1fb135bbfa63061"
+    },
+    {
+      "name": "closure_manifest:concierge-apply",
+      "status": "PASS"
+    },
+    {
+      "name": "closure_complete:concierge-apply",
+      "status": "PASS",
+      "missing": [],
+      "extra": [],
+      "externalImports": [
+        ", ",
+        "https://deno.land/std@0.168.0/http/server.ts",
+        "https://esm.sh/@supabase/supabase-js@2"
+      ]
+    },
+    {
+      "name": "edge_file:supabase/functions/_shared/alias_normalization.ts",
+      "status": "PASS",
+      "actual": "7a416b06a67f1ba17cb9da6a14981cb9490a573c4f9b9620819659f807497673",
+      "expected": "7a416b06a67f1ba17cb9da6a14981cb9490a573c4f9b9620819659f807497673"
+    },
+    {
+      "name": "edge_file:supabase/functions/_shared/normalization.ts",
+      "status": "PASS",
+      "actual": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398",
+      "expected": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+    },
+    {
+      "name": "edge_file:supabase/functions/_shared/rate_limit_gate.ts",
+      "status": "PASS",
+      "actual": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236",
+      "expected": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-apply/apply_plan.ts",
+      "status": "PASS",
+      "actual": "2ef2247d571f02febf9e9a8b090131af9a16466b928950c7fe692d83aa34f655",
+      "expected": "2ef2247d571f02febf9e9a8b090131af9a16466b928950c7fe692d83aa34f655"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-apply/handler.ts",
+      "status": "PASS",
+      "actual": "409043384141788fea811c9826f5dc5e236e7e944e895a1715f061b0960a9512",
+      "expected": "409043384141788fea811c9826f5dc5e236e7e944e895a1715f061b0960a9512"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-apply/index.ts",
+      "status": "PASS",
+      "actual": "be6b186335461eba8caa2f82277466b43c5d394d97e669531e6519cf15d3d8c5",
+      "expected": "be6b186335461eba8caa2f82277466b43c5d394d97e669531e6519cf15d3d8c5"
+    },
+    {
+      "name": "closure_manifest:concierge-undo",
+      "status": "PASS"
+    },
+    {
+      "name": "closure_complete:concierge-undo",
+      "status": "PASS",
+      "missing": [],
+      "extra": [],
+      "externalImports": [
+        "https://deno.land/std@0.168.0/http/server.ts",
+        "https://esm.sh/@supabase/supabase-js@2"
+      ]
+    },
+    {
+      "name": "edge_file:supabase/functions/_shared/rate_limit_gate.ts",
+      "status": "PASS",
+      "actual": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236",
+      "expected": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-undo/handler.ts",
+      "status": "PASS",
+      "actual": "ec5e68dc20356dd900ef9fc9a6c134207e47d2aaac15aae4298bbd1ffe420913",
+      "expected": "ec5e68dc20356dd900ef9fc9a6c134207e47d2aaac15aae4298bbd1ffe420913"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-undo/index.ts",
+      "status": "PASS",
+      "actual": "8f937a8c7f0c0c315501b56206c5607fa4609b76712f4d0a37e3de5d2cef8387",
+      "expected": "8f937a8c7f0c0c315501b56206c5607fa4609b76712f4d0a37e3de5d2cef8387"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-undo/undo_plan.ts",
+      "status": "PASS",
+      "actual": "ddb6cb59ec5a263ea2584bb9cb332d6f3ea57cfbe05592ab1a08736e55e41a0a",
+      "expected": "ddb6cb59ec5a263ea2584bb9cb332d6f3ea57cfbe05592ab1a08736e55e41a0a"
+    },
+    {
+      "name": "closure_manifest:delete-account",
+      "status": "PASS"
+    },
+    {
+      "name": "closure_complete:delete-account",
+      "status": "PASS",
+      "missing": [],
+      "extra": [],
+      "externalImports": [
+        "https://esm.sh/@supabase/supabase-js@2"
+      ]
+    },
+    {
+      "name": "edge_file:supabase/functions/delete-account/adapters.ts",
+      "status": "PASS",
+      "actual": "1f1a6c5ad3606f6e8c6e6b45596740b12ce86b4098d1271326853868996c4e71",
+      "expected": "1f1a6c5ad3606f6e8c6e6b45596740b12ce86b4098d1271326853868996c4e71"
+    },
+    {
+      "name": "edge_file:supabase/functions/delete-account/deletion.ts",
+      "status": "PASS",
+      "actual": "598d5f73d5a9a9030df26cc87587819fd8418a685cc7b8426702eee5f4b7faf2",
+      "expected": "598d5f73d5a9a9030df26cc87587819fd8418a685cc7b8426702eee5f4b7faf2"
+    },
+    {
+      "name": "edge_file:supabase/functions/delete-account/handler.ts",
+      "status": "PASS",
+      "actual": "cc4a0c800b302efb38e3eb8c69eecef39e2bec12ec958f4abee809c59c9d791f",
+      "expected": "cc4a0c800b302efb38e3eb8c69eecef39e2bec12ec958f4abee809c59c9d791f"
+    },
+    {
+      "name": "edge_file:supabase/functions/delete-account/index.ts",
+      "status": "PASS",
+      "actual": "b96437247b724f89347f4209c8fbbcb78fa05f39d2069c3116bdde6313c09659",
+      "expected": "b96437247b724f89347f4209c8fbbcb78fa05f39d2069c3116bdde6313c09659"
+    },
+    {
+      "name": "closure_manifest:concierge-recommend",
+      "status": "PASS"
+    },
+    {
+      "name": "closure_complete:concierge-recommend",
+      "status": "PASS",
+      "missing": [],
+      "extra": [],
+      "externalImports": [
+        "https://deno.land/std@0.168.0/http/server.ts",
+        "https://esm.sh/@supabase/supabase-js@2"
+      ]
+    },
+    {
+      "name": "edge_file:supabase/functions/_shared/rate_limit_gate.ts",
+      "status": "PASS",
+      "actual": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236",
+      "expected": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-recommend/catalog_repository.ts",
+      "status": "PASS",
+      "actual": "22ace7dc146ec8581af758e9b77450c775fc60d146c1fc77f689d15ddf3540b9",
+      "expected": "22ace7dc146ec8581af758e9b77450c775fc60d146c1fc77f689d15ddf3540b9"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-recommend/curated_copy.ts",
+      "status": "PASS",
+      "actual": "c55efd7793bde02286b332f6dc3662bd8bf959c9acd99bfcbaf9fafedf8325c7",
+      "expected": "c55efd7793bde02286b332f6dc3662bd8bf959c9acd99bfcbaf9fafedf8325c7"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-recommend/handler.ts",
+      "status": "PASS",
+      "actual": "d1fc5049f31f21c8ed0144d3e4a9b76e7530ff1bff31452d9926b26edc63d2fb",
+      "expected": "d1fc5049f31f21c8ed0144d3e4a9b76e7530ff1bff31452d9926b26edc63d2fb"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-recommend/index.ts",
+      "status": "PASS",
+      "actual": "56a9d5c8585f05ae7afec08619d52a24e246c3f708745dcd8390231ec78d1e31",
+      "expected": "56a9d5c8585f05ae7afec08619d52a24e246c3f708745dcd8390231ec78d1e31"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-recommend/narration.ts",
+      "status": "PASS",
+      "actual": "82816758dc0fb0eb5dbe5ee4a932c7f6a18a9f1d3a4ba7d3c67d5d4d83db69ea",
+      "expected": "82816758dc0fb0eb5dbe5ee4a932c7f6a18a9f1d3a4ba7d3c67d5d4d83db69ea"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-recommend/rail_policy.ts",
+      "status": "PASS",
+      "actual": "fade1f331f125e05a12733993cf99a8c0a678e4cf7e007b0976e689ccff29141",
+      "expected": "fade1f331f125e05a12733993cf99a8c0a678e4cf7e007b0976e689ccff29141"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-recommend/router.ts",
+      "status": "PASS",
+      "actual": "f6ac6d0940deef4969e34909e93060586427230d989e86588d1bdab2ebff0921",
+      "expected": "f6ac6d0940deef4969e34909e93060586427230d989e86588d1bdab2ebff0921"
+    },
+    {
+      "name": "closure_manifest:concierge-retrieve-assist",
+      "status": "PASS"
+    },
+    {
+      "name": "closure_complete:concierge-retrieve-assist",
+      "status": "PASS",
+      "missing": [],
+      "extra": [],
+      "externalImports": [
+        ", ",
+        "https://deno.land/std@0.168.0/http/server.ts",
+        "https://esm.sh/@supabase/supabase-js@2"
+      ]
+    },
+    {
+      "name": "edge_file:supabase/functions/_shared/normalization.ts",
+      "status": "PASS",
+      "actual": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398",
+      "expected": "4551526eacbf7eb1a1abb5bbb21012c35b6d0fcf2f0689b9263b2712bf6a9398"
+    },
+    {
+      "name": "edge_file:supabase/functions/_shared/rate_limit_gate.ts",
+      "status": "PASS",
+      "actual": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236",
+      "expected": "08d7148a3e350a28117bae81e5759535f73a9a12ecb6204fc8594054e783c236"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-retrieve-assist/index.ts",
+      "status": "PASS",
+      "actual": "f9459c16ed334be9e24678d94db40dd1ff917b56eef8efe8ab9ae4fecba8e152",
+      "expected": "f9459c16ed334be9e24678d94db40dd1ff917b56eef8efe8ab9ae4fecba8e152"
+    },
+    {
+      "name": "edge_file:supabase/functions/concierge-retrieve-assist/run.ts",
+      "status": "PASS",
+      "actual": "6dc1ba575f5ac4297f2a679bab9a68c5b7e71a2a85c3358de21d1ca4333b22e7",
+      "expected": "6dc1ba575f5ac4297f2a679bab9a68c5b7e71a2a85c3358de21d1ca4333b22e7"
+    },
+    {
+      "name": "deployed_function_baseline:concierge-apply",
+      "status": "PASS",
+      "differences": {}
+    },
+    {
+      "name": "deployed_function_baseline:concierge-undo",
+      "status": "PASS",
+      "differences": {}
+    },
+    {
+      "name": "deployed_function_baseline:concierge-recommend",
+      "status": "PASS",
+      "differences": {}
+    },
+    {
+      "name": "deployed_function_baseline:concierge-retrieve-assist",
+      "status": "PASS",
+      "differences": {}
+    },
+    {
+      "name": "deployed_function_baseline:delete-account",
+      "status": "PASS",
+      "differences": {}
+    },
+    {
+      "name": "deployed_function_baseline:concierge-import-anilist",
+      "status": "PASS",
+      "differences": {}
+    },
+    {
+      "name": "remote_migration_baseline",
+      "status": "PASS",
+      "baselineCount": 245,
+      "observedCount": 245,
+      "added": [],
+      "removed": []
+    },
+    {
+      "name": "approved_migrations_not_yet_applied",
+      "status": "PASS",
+      "present": []
+    },
+    {
+      "name": "native_source_pins",
+      "status": "PASS",
+      "inputCount": 222,
+      "changed": [],
+      "added": [],
+      "removed": []
+    },
+    {
+      "name": "tested_bundle",
+      "status": "PASS",
+      "fileCount": 25,
+      "changed": []
+    },
+    {
+      "name": "installed_bundle",
+      "status": "PASS",
+      "fileCount": 25,
+      "changed": []
+    },
+    {
+      "name": "copied_install_and_artifact_receipts",
+      "status": "PASS"
+    }
+  ],
+  "observedFunctions": [
+    {
+      "slug": "concierge-apply",
+      "id": "2e7ddb4c-b2ae-4330-97ce-7a65cb00fa7d",
+      "version": 26,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1791307448447,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_2e7ddb4c-b2ae-4330-97ce-7a65cb00fa7d_26/source/supabase/functions/concierge-apply/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "4bda34076df747ba379b3f300066b3efcb27ab6e5e2dada476e511ace4d77b93"
+    },
+    {
+      "slug": "concierge-undo",
+      "id": "ce2779b0-b0e9-42ce-a10e-2c7bd11f0942",
+      "version": 17,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1791307449403,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_ce2779b0-b0e9-42ce-a10e-2c7bd11f0942_17/source/supabase/functions/concierge-undo/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "785637fe28c3267811417cacfa377148f5b872834cf361f3664add21c3cf72e6"
+    },
+    {
+      "slug": "concierge-recommend",
+      "id": "4ba43353-970d-4844-aa40-505aca90c814",
+      "version": 49,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1771975460222,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_4ba43353-970d-4844-aa40-505aca90c814_47/source/supabase/functions/concierge-recommend/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "4e8ab4ad531ff1d1b74391438d4f0418b0f4015685c498a6314094a4f3de43de"
+    },
+    {
+      "slug": "concierge-retrieve-assist",
+      "id": "d977eaa3-bf4c-4a43-97ef-0acff7f99734",
+      "version": 8,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1791326346418,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_d977eaa3-bf4c-4a43-97ef-0acff7f99734_8/source/supabase/functions/concierge-retrieve-assist/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "48694da79dffa42c4a9a6092906a193ad4c397607166d68bb2c04b2f3abaebb6"
+    },
+    {
+      "slug": "delete-account",
+      "id": "94797f3c-2f58-4e8a-9fd6-5ff26a86ffba",
+      "version": 9,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1791231404866,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_94797f3c-2f58-4e8a-9fd6-5ff26a86ffba_9/source/supabase/functions/delete-account/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "181843edf93a6475cc468ff13cf95efb5a31ccd7cc35de1705686513a137e8a0"
+    },
+    {
+      "slug": "concierge-import-anilist",
+      "id": "65b2ae20-2127-4b02-b5b4-7de23ee5344c",
+      "version": 5,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1785470452678,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_65b2ae20-2127-4b02-b5b4-7de23ee5344c_3/source/supabase/functions/concierge-import-anilist/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "895275077b1fdab7b956075d68cddf4b092b86c58a3a4c238967c63e74a22298"
+    }
+  ],
+  "limitations": [
+    "CLI identity does not prove deployed source closure matches the candidate; those functions are deliberately pending replacement.",
+    "No current SQL policy/function-definition probe here; lead owns exact live SQL preconditions.",
+    "Remote migration list supplies identities only, not remote SQL statement checksum equivalence.",
+    "Debug simulator artifact and install only; no TestFlight or physical-device proof.",
+    "External Deno imports remain remote refs; this is complete local runtime closure verification."
+  ]
+}

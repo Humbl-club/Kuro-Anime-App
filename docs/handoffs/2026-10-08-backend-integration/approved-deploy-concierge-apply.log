@@ -1,0 +1,10 @@
+Deployed Functions on project bkdifromsqxkndnllmdj: concierge-apply
+You can inspect your deployment in the Dashboard: https://supabase.com/dashboard/project/bkdifromsqxkndnllmdj/functions
+Uploading asset (concierge-apply): supabase/functions/concierge-apply/index.ts
+Uploading asset (concierge-apply): supabase/functions/concierge-apply/handler.ts
+Uploading asset (concierge-apply): supabase/functions/concierge-apply/apply_plan.ts
+Uploading asset (concierge-apply): supabase/functions/_shared/rate_limit_gate.ts
+Uploading asset (concierge-apply): supabase/functions/_shared/alias_normalization.ts
+Uploading asset (concierge-apply): supabase/functions/_shared/normalization.ts
+A new version of Supabase CLI is available: v2.120.0 (currently installed v2.78.1)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

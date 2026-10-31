@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-08T00:36:51.565896+00:00",
+  "read_only": true,
+  "http_status": 201,
+  "result": [
+    {
+      "table_name": "manga_user_lists",
+      "column_name": "volumes_progress"
+    }
+  ],
+  "source_defect": "Fenced Anime SELECT erroneously includes Manga-only volumes_progress; prevents Home foundation hydration"
+}

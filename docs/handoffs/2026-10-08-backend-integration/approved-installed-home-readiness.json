@@ -1,0 +1,39 @@
+{
+  "status": "HOME_AND_MEDIUM_SELECTION_PASS / MAL_TEST_ACCOUNT_UNAVAILABLE / FULL_IMPORT_JOURNEYS_PENDING",
+  "deviceId": "7FC4B58A-430C-457D-A017-6B0095723F3F",
+  "build": "1.0(17) Debug",
+  "installedReceipt": "home-medium-switch-install-receipt.json",
+  "localDebugFlags": [
+    "series_foundation_v1",
+    "series_home_native_v1"
+  ],
+  "globalRollout": "unchanged; bothHomeflagsfalse0",
+  "observed": [
+    "SDK-restored development account",
+    "Home default after Library readiness",
+    "honest empty Anime Library/schedule/clubs",
+    "Home import entrypoint opens Profile",
+    "registered MAL OAuth opens official login",
+    "Installed reviewed Manga correction preserves deliberate Anime to Manga selection",
+    "MAL login dismissed; no provider credentials or consent entered"
+  ],
+  "notProven": [
+    "MAL consent/callback/provider list ingestion",
+    "actualAniList/XMLreview/application/restart/results/Undo",
+    "populated live Home/detail/projection journeys"
+  ],
+  "screenshots": [
+    "approved-installed-home-anime.png",
+    "approved-installed-mal-login.png",
+    "approved-installed-home-manga.png"
+  ],
+  "accountDataChanged": false,
+  "finalMediumFixArtifact": {
+    "status": "BUILD_AND_EXACT_INSTALL_PASS",
+    "identity": "home-medium-switch-built-identity.json",
+    "sourceInputs": 223,
+    "sourceInputsUnchanged": true,
+    "installationHold": null
+  },
+  "providerBlocker": "A controlled MAL user account and its OAuth grant are unavailable. This blocks real MAL account qualification only; unrelated Home, Library, AniList and XML checks can proceed."
+}

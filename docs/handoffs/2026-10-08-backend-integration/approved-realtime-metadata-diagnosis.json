@@ -1,0 +1,77 @@
+{
+  "at": "2026-10-08T00:26:20.135031+00:00",
+  "read_only": true,
+  "http_status": 201,
+  "result": [
+    {
+      "category": "publication",
+      "data": [
+        {
+          "tablename": "club_activity_signals"
+        },
+        {
+          "tablename": "club_membership_signals"
+        }
+      ]
+    },
+    {
+      "category": "triggers",
+      "data": [
+        {
+          "tgname": "account_deletion_barrier",
+          "relname": "club_members",
+          "definition": "CREATE TRIGGER account_deletion_barrier BEFORE INSERT ON public.club_members FOR EACH ROW EXECUTE FUNCTION account_deletion_write_barrier('user_id')"
+        },
+        {
+          "tgname": "club_members_lifecycle",
+          "relname": "club_members",
+          "definition": "CREATE TRIGGER club_members_lifecycle AFTER DELETE ON public.club_members FOR EACH ROW EXECUTE FUNCTION club_members_lifecycle()"
+        },
+        {
+          "tgname": "club_members_set_updated_at",
+          "relname": "club_members",
+          "definition": "CREATE TRIGGER club_members_set_updated_at BEFORE UPDATE ON public.club_members FOR EACH ROW EXECUTE FUNCTION set_updated_at()"
+        },
+        {
+          "tgname": "club_realtime_signal",
+          "relname": "club_members",
+          "definition": "CREATE TRIGGER club_realtime_signal AFTER INSERT OR DELETE OR UPDATE ON public.club_members FOR EACH ROW EXECUTE FUNCTION club_realtime_signal()"
+        },
+        {
+          "tgname": "series_club_disclosure",
+          "relname": "club_members",
+          "definition": "CREATE TRIGGER series_club_disclosure AFTER INSERT OR DELETE OR UPDATE OF sharing_level ON public.club_members FOR EACH ROW EXECUTE FUNCTION club_disclosure_signal_v1()"
+        }
+      ]
+    },
+    {
+      "category": "policies",
+      "data": [
+        {
+          "qual": "(user_id = ( SELECT auth.uid() AS uid))",
+          "roles": [
+            "authenticated"
+          ],
+          "policyname": "club_membership_signals_select_own"
+        }
+      ]
+    },
+    {
+      "category": "functions",
+      "data": [
+        {
+          "proname": "remove_club_member",
+          "definition": "CREATE OR REPLACE FUNCTION public.remove_club_member(p_club_id uuid, p_user_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'extensions'\nAS $function$\nDECLARE\n  _uid uuid;\n  _my_role text;\n  _target_role text;\nBEGIN\n  _uid := auth.uid();\n  IF _uid IS NULL THEN\n    RAISE EXCEPTION 'UNAUTHENTICATED' USING ERRCODE = 'P0001';\n  END IF;\n  IF p_user_id IS NULL OR p_user_id = _uid THEN\n    RAISE EXCEPTION 'CANNOT_REMOVE_SELF' USING ERRCODE = 'P0001', HINT = 'CANNOT_REMOVE_SELF';\n  END IF;\n  -- same lock order as every membership change: club row first\n  PERFORM 1 FROM public.clubs WHERE id = p_club_id FOR UPDATE;\n  SELECT role INTO _my_role FROM public.club_members WHERE club_id = p_club_id AND user_id = _uid;\n  IF _my_role IS NULL OR _my_role NOT IN ('owner', 'admin') THEN\n    RAISE EXCEPTION 'NOT_ADMIN' USING ERRCODE = 'P0001', HINT = 'NOT_ADMIN';\n  END IF;\n  SELECT role INTO _target_role FROM public.club_members WHERE club_id = p_club_id AND user_id = p_user_id;\n  IF _target_role IS NULL THEN\n    RAISE EXCEPTION 'NOT_A_MEMBER' USING ERRCODE = 'P0001';\n  END IF;\n  IF _target_role = 'owner' OR (_target_role = 'admin' AND _my_role <> 'owner') THEN\n    RAISE EXCEPTION 'NOT_ADMIN' USING ERRCODE = 'P0001', HINT = 'NOT_ADMIN';\n  END IF;\n  DELETE FROM public.club_members WHERE club_id = p_club_id AND user_id = p_user_id;\n  RETURN jsonb_build_object('success', true, 'removed', true);\nEND;\n$function$\n"
+        },
+        {
+          "proname": "club_realtime_signal",
+          "definition": "CREATE OR REPLACE FUNCTION public.club_realtime_signal()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'extensions'\nAS $function$\ndeclare\n  v_row record;\n  v_club uuid;\n  v_actor uuid := auth.uid();\n  v_state text;\nbegin\n  if tg_op = 'DELETE' then v_row := old; else v_row := new; end if;\n\n  if tg_table_name = 'clubs' then\n    v_club := v_row.id;\n  elsif tg_table_name in ('club_rails', 'club_polls', 'club_members') then\n    v_club := v_row.club_id;\n  elsif tg_table_name = 'club_rail_items' then\n    select cr.club_id into v_club from public.club_rails cr where cr.id = v_row.rail_id;\n  elsif tg_table_name = 'club_votes' then\n    select cp.club_id into v_club from public.club_polls cp where cp.id = v_row.poll_id;\n  elsif tg_table_name = 'club_rail_item_reactions' then\n    select cr.club_id into v_club\n      from public.club_rail_items cri join public.club_rails cr on cr.id = cri.rail_id\n     where cri.id = v_row.rail_item_id;\n  end if;\n\n  perform public._club_activity_bump(v_club);\n\n  if tg_table_name = 'club_members' then\n    -- the auth user is being deleted (FK cascade): its signal rows go with it\n    if exists (select 1 from auth.users where id = v_row.user_id) then\n      if tg_op = 'INSERT' then\n        v_state := 'member';\n      elsif tg_op = 'DELETE' then\n        v_state := case\n          when not exists (select 1 from public.clubs where id = old.club_id) then 'club_deleted'\n          when v_actor is not null and v_actor <> old.user_id then 'removed'\n          else 'left'\n        end;\n      end if;\n      if v_state is not null then\n        insert into public.club_membership_signals as s (user_id, club_id, state, revision, changed_at)\n        values (v_row.user_id, v_row.club_id, v_state, 1, now())\n        on conflict (user_id, club_id) do update\n          set state = excluded.state, revision = s.revision + 1, changed_at = now();\n      end if;\n    end if;\n  end if;\n  return null;\nend;\n$function$\n"
+        },
+        {
+          "proname": "club_disclosure_signal_v1",
+          "definition": "CREATE OR REPLACE FUNCTION public.club_disclosure_signal_v1()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'public', 'extensions'\nAS $function$\ndeclare cid uuid; member record;\nbegin\n if TG_TABLE_NAME='clubs' then cid:=new.id; else cid:=coalesce(new.club_id,old.club_id); end if;\n for member in select user_id from public.club_members where club_id=cid loop\n   insert into public.club_membership_signals as signal(user_id,club_id,state,revision,changed_at)\n   values(member.user_id,cid,'member',1,now()) on conflict(user_id,club_id) do update set\n     state='member',revision=signal.revision+1,changed_at=now();\n end loop;\n return null;\nend; $function$\n"
+        }
+      ]
+    }
+  ]
+}

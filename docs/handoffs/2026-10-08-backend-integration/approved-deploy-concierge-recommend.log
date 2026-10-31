@@ -1,0 +1,12 @@
+Deployed Functions on project bkdifromsqxkndnllmdj: concierge-recommend
+You can inspect your deployment in the Dashboard: https://supabase.com/dashboard/project/bkdifromsqxkndnllmdj/functions
+Uploading asset (concierge-recommend): supabase/functions/concierge-recommend/index.ts
+Uploading asset (concierge-recommend): supabase/functions/concierge-recommend/handler.ts
+Uploading asset (concierge-recommend): supabase/functions/concierge-recommend/router.ts
+Uploading asset (concierge-recommend): supabase/functions/concierge-recommend/rail_policy.ts
+Uploading asset (concierge-recommend): supabase/functions/concierge-recommend/narration.ts
+Uploading asset (concierge-recommend): supabase/functions/concierge-recommend/curated_copy.ts
+Uploading asset (concierge-recommend): supabase/functions/concierge-recommend/catalog_repository.ts
+Uploading asset (concierge-recommend): supabase/functions/_shared/rate_limit_gate.ts
+A new version of Supabase CLI is available: v2.120.0 (currently installed v2.78.1)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

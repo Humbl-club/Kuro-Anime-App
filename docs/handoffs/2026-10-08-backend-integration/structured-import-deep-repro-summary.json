@@ -1,0 +1,177 @@
+{
+  "verdict": "6 candidate defects reproduced locally; not repaired; not hosted incidents",
+  "execution": "Observation-only qualification SQL, no broad suite or tracked edits",
+  "source_pin": "/private/tmp/kuro-structured-import-deep-repro-pin.json",
+  "changed_sources": [],
+  "sql": "/private/tmp/kuro-structured-import-deep-repro.sql",
+  "log": "/private/tmp/kuro-structured-import-deep-repro.log",
+  "cases": [
+    {
+      "id": "MAL_STATUS_UNDERSCORES",
+      "observed": {
+        "case": "official_underscore_statuses",
+        "response": {
+          "added": 0,
+          "applied": 0,
+          "updated": 0,
+          "conflict": 0,
+          "unchanged": 0,
+          "unmatched": 3
+        },
+        "dispositions": [
+          {
+            "detail": "unsupported status",
+            "medium": "anime",
+            "disposition": "unmatched",
+            "external_id": "998101"
+          },
+          {
+            "detail": "unsupported status",
+            "medium": "manga",
+            "disposition": "unmatched",
+            "external_id": "998102"
+          },
+          {
+            "detail": "unsupported status",
+            "medium": "anime",
+            "disposition": "unmatched",
+            "external_id": "998103"
+          }
+        ]
+      },
+      "desired": "Accept official plan_to_watch, plan_to_read and on_hold spellings as PLANNING/PAUSED, or normalize at a documented typed boundary; do not silently mark valid provider entries unmatched."
+    },
+    {
+      "id": "STRUCTURED_IMPORT_PRECISE_TRACKING",
+      "before": {
+        "row": {
+          "label": "4.5",
+          "unit_id": "98198198-1981-4981-8981-981981981981",
+          "progress": 4,
+          "revision": 1
+        },
+        "case": "precision_before"
+      },
+      "observed": {
+        "row": {
+          "label": "4.5",
+          "unit_id": "98198198-1981-4981-8981-981981981981",
+          "progress": 7,
+          "revision": 2
+        },
+        "case": "precision_after"
+      },
+      "desired": "Apply an intentional progress change through the authoritative tracking policy: supplied integer7 must not leave incompatible old selected-unit/label4.5. Omitted progress must preserve exact metadata."
+    },
+    {
+      "id": "ZERO_SCORE_SCALE_PAIR",
+      "before": {
+        "row": {
+          "raw": 80,
+          "scale": "POINT_100",
+          "rating": 8,
+          "revision": 1
+        },
+        "case": "score_before"
+      },
+      "observed": {
+        "row": {
+          "raw": 80,
+          "scale": "MAL_10",
+          "rating": 8,
+          "revision": 2
+        },
+        "case": "score_after"
+      },
+      "desired": "Unset incoming score0 preserves existing raw80 and its POINT_100 scale together; never relabel retained score with a new scale."
+    },
+    {
+      "id": "IDENTICAL_REIMPORT_NOOP",
+      "before": {
+        "row": {
+          "notes": "same",
+          "status": "WATCHING",
+          "progress": 3,
+          "revision": 1
+        },
+        "case": "identical_first",
+        "response": {
+          "added": 1,
+          "applied": 1,
+          "updated": 0,
+          "conflict": 0,
+          "unchanged": 0,
+          "unmatched": 0
+        },
+        "home_revision": 2
+      },
+      "observed": {
+        "row": {
+          "notes": "same",
+          "status": "WATCHING",
+          "progress": 3,
+          "revision": 2
+        },
+        "case": "identical_reimport",
+        "response": {
+          "added": 0,
+          "applied": 1,
+          "updated": 1,
+          "conflict": 0,
+          "unchanged": 0,
+          "unmatched": 0
+        },
+        "home_revision": 3
+      },
+      "desired": "A new import job with identical effective fields reports unchanged; no entry revision or personalized Home revision bump. Same-job retry already has a separate replay path."
+    },
+    {
+      "id": "PREBASELINE_OVERWRITE_POLICY",
+      "before": {
+        "row": {
+          "notes": "deliberate Kuro note",
+          "rating": 9,
+          "status": "WATCHING",
+          "progress": 12,
+          "revision": 1
+        },
+        "case": "prebaseline_before"
+      },
+      "observed": {
+        "row": {
+          "notes": "provider note",
+          "rating": 4,
+          "status": "PLANNING",
+          "progress": 1,
+          "revision": 2
+        },
+        "case": "prebaseline_after"
+      },
+      "response": {
+        "case": "precision_score_prebaseline_response",
+        "response": {
+          "added": 0,
+          "applied": 3,
+          "updated": 3,
+          "conflict": 0,
+          "unchanged": 0,
+          "unmatched": 0
+        }
+      },
+      "desired": "Define and enforce the agreed existing-title conflict/overwrite policy. The RPC currently overwrites edits already present when the job starts; it only protects changes after its baseline. UI consent behavior was not exercised."
+    },
+    {
+      "id": "EXTERNAL_ID_INT32_OVERFLOW",
+      "observed": {
+        "case": "external_id_overflow",
+        "state": "22003",
+        "message": "value \"3000000000\" is out of range for type integer"
+      },
+      "desired": "Validate accepted external ID range or map as a typed provider reference without an unchecked int32 cast; return an honest typed disposition/error without an opaque cast failure."
+    }
+  ],
+  "accepted_apply_undo_repair": "Still included. New forward migration does not replace apply_import_chunk_v1, so these structured-import findings survive it.",
+  "historical_replay": "INCOMPLETE: baseline-first196/62; strict148/110",
+  "teardown": "guarded private cluster stopped and removed",
+  "live": "NOT PROVEN; no hosted writes or deployment"
+}

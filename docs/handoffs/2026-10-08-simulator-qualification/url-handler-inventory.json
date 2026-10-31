@@ -1,0 +1,14 @@
+[
+  {
+    "bundle_id": "com.Kuro.canvaspreview",
+    "URL_schemes": [
+      "kuro"
+    ]
+  },
+  {
+    "bundle_id": "com.Kuro.app",
+    "URL_schemes": [
+      "kuro"
+    ]
+  }
+]

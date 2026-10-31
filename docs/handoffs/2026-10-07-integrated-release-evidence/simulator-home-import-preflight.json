@@ -1,0 +1,194 @@
+{
+  "evidence_layer": "actual live administrative read-only SQL via authenticated browser; UI results transcribed",
+  "project_ref": "bkdifromsqxkndnllmdj",
+  "captured_at": "2026-10-07T20:25:38.193122+00:00",
+  "new_tracking_import_home_functions_present": [],
+  "checked_new_function_names": [
+    "apply_progress_mutations_v1",
+    "apply_remove_mutations_v1",
+    "start_library_import_v1",
+    "apply_import_chunk_v1",
+    "finish_library_import_v1",
+    "import_job_status_v1",
+    "home_bundle_v1",
+    "series_detail_bundle_v1"
+  ],
+  "migration_versions_present": [
+    "20261005120000",
+    "20261005120100",
+    "20261005120200",
+    "20261005130000",
+    "20261005140000",
+    "20261005150000",
+    "20261005160000",
+    "20261005170000",
+    "20261005180000",
+    "20261006120000"
+  ],
+  "admin_auth_select_privilege": true,
+  "checked_foundation_tables_present": [],
+  "checked_table_names": [
+    "series",
+    "series_sections",
+    "provider_entry_refs",
+    "catalogue_units",
+    "mutation_receipts",
+    "library_import_jobs",
+    "home_publications",
+    "list_entry_tombstones"
+  ],
+  "legacy_list_row_counts": {
+    "anime": 37,
+    "manga": 11
+  },
+  "existing_compatibility_function_identities": [
+    {
+      "name": "apply_import_session",
+      "args": "p_user_id uuid, p_session_id uuid, p_idempotency_key text, p_items jsonb",
+      "source_md5": "72da060181d02595cbca791552e35ca7"
+    },
+    {
+      "name": "undo_import_session",
+      "args": "p_user_id uuid, p_session_id uuid",
+      "source_md5": "a44265f0f6c5418e00946555c57de0e3"
+    },
+    {
+      "name": "fetch_club_bundle",
+      "args": "p_club_id uuid",
+      "source_md5": "ec39e716e78b265075f672aa77c8943e"
+    },
+    {
+      "name": "fetch_friend_activity_for_title",
+      "args": "p_media_type text, p_media_id integer",
+      "source_md5": "2e6be467348fd6125db0a7699d01816d"
+    },
+    {
+      "name": "shares_club_with",
+      "args": "p_other_user_id uuid",
+      "source_md5": "548246b924a6e1e7d340bde89c457eb3"
+    },
+    {
+      "name": "_account_write_guard",
+      "args": "p_user text",
+      "source_md5": "8f5d7e8a73ab0f908e3927c141acfdda"
+    }
+  ],
+  "limits": [
+    "No source bodies or customer IDs returned",
+    "No native sign-in or deployed replay proof",
+    "No live changes performed",
+    "Only named tables/functions audited; not a complete schema parity check"
+  ],
+  "follow_up_live_readonly_audit": {
+    "captured_date": "2026-10-07",
+    "method": "Actual authenticated browser SQL; BEGIN READ ONLY, statement_timeout 5 seconds, ROLLBACK; UI results transcribed",
+    "candidate_history_present": [],
+    "foundation_tables_checked": [
+      "adaptation_coverage",
+      "artwork_materials",
+      "catalogue_units",
+      "detail_copy",
+      "home_publications",
+      "library_import_baselines",
+      "library_import_items",
+      "library_import_jobs",
+      "list_entry_tombstones",
+      "mapping_revision_spans",
+      "mapping_revisions",
+      "mutation_receipts",
+      "provider_entry_refs",
+      "release_events",
+      "series",
+      "series_enrichment_jobs",
+      "series_entry_spans",
+      "series_sections",
+      "theme_links",
+      "user_series_intent"
+    ],
+    "foundation_tables_present": [],
+    "new_metadata_columns_present": [],
+    "legacy_list_orphans": {
+      "anime": 0,
+      "manga": 0
+    },
+    "existing_prerequisites_checked": [
+      "anime",
+      "anime_characters",
+      "anime_staff",
+      "anime_studios",
+      "anime_user_lists",
+      "authors",
+      "chapters",
+      "characters",
+      "club_members",
+      "club_membership_signals",
+      "club_poll_options",
+      "club_polls",
+      "club_rail_item_reactions",
+      "club_rail_items",
+      "club_rails",
+      "club_votes",
+      "clubs",
+      "episodes",
+      "feature_flags",
+      "import_session_items",
+      "import_sessions",
+      "manga",
+      "manga_authors",
+      "manga_characters",
+      "manga_user_lists",
+      "profiles",
+      "staff",
+      "studios",
+      "taste_import_context",
+      "title_comment_reactions",
+      "title_comments"
+    ],
+    "missing_existing_prerequisites": [],
+    "global_home_flag_rows_present": [],
+    "deletion_helper": {
+      "identity": "public._account_write_guard(text)",
+      "source_md5": "371d495002a7e36cbe3c286d14a078e3",
+      "security_definer": true,
+      "search_path": [
+        "public",
+        "extensions"
+      ],
+      "execute": {
+        "anon": false,
+        "authenticated": false,
+        "service_role": true
+      },
+      "semantic_review": "Canonical UUID input; shared account deletion advisory lock; fresh READ COMMITTED barrier read; terminal42501 ACCOUNT_DELETION_IN_PROGRESS. No replacement required. Earlier different hash is historical and is not current deployment admission."
+    },
+    "import_outcome_helper": {
+      "identity": "public._import_apply_outcome(uuid,boolean)",
+      "source_md5": "310e17e73b856595507150d24c614f2a",
+      "execute": {
+        "anon": false,
+        "authenticated": false,
+        "service_role": true
+      }
+    },
+    "history_shape": {
+      "columns": {
+        "version": "text NOT NULL",
+        "statements": "text[] NULL",
+        "name": "text NULL",
+        "created_by": "text NULL",
+        "idempotency_key": "text NULL",
+        "rollback": "text[] NULL"
+      },
+      "defaults": null,
+      "constraints": [
+        "PRIMARY KEY (version)",
+        "UNIQUE (idempotency_key)"
+      ]
+    },
+    "limits": [
+      "No live write/deployment or new account",
+      "Named prerequisites only; not complete schema equality",
+      "Browser-grant approval, actual hosted journeys and MAL consent remain pending"
+    ]
+  }
+}

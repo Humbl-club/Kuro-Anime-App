@@ -1,0 +1,15 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:43: NOTICE:  TEST ok: A: deletion lifecycle removes the owner's membership and deletes the now-empty club (uncommitted)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:48: NOTICE:  TEST ok: A: the concurrent join WAITS on the club row lock held by the lifecycle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:49: NOTICE:  TEST ok: A: deletion commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:51: NOTICE:  INVALID_CODE
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:51: NOTICE:  TEST ok: A: the join then finds no club (INVALID_CODE), instead of resurrecting it
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:53: NOTICE:  TEST ok: A: club A is gone
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:54: NOTICE:  TEST ok: A: no stray membership for the joiner
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:60: NOTICE:  TEST ok: B: user 4 joins club B (uncommitted, holds the club row lock)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:65: NOTICE:  TEST ok: B: the deletion lifecycle WAITS for the in-flight join
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:66: NOTICE:  TEST ok: B: join commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:68: NOTICE:  TEST ok: B: the lifecycle then sees the new member and deletes no club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:69: NOTICE:  TEST ok: B: deletion commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:70: NOTICE:  TEST ok: B: F39 closed -- club B survives
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:72: NOTICE:  TEST ok: B: the joiner kept their membership and became the owner
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:73: NOTICE:  TEST ok: B: the deleting user holds no membership

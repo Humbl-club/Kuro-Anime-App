@@ -1,5 +1,52 @@
 # Kuro — Current State of the Application (Authoritative, Technical)
 
+> **Native design polish, 9 October — FULL HOME RESTORED BESIDE THE EMPTY PAGE; OWNER VISUAL ACCEPTANCE STILL OPEN.** The empty mountain invitation is unchanged. A saved shelf is the Poster Home again: Coming up as an ink row under the switch, shallow Anime scenes with a white ink foot and a light raised plus, equal Manga covers with the chapter ticket on the art and a dark raised plus, then the calendar and a dark club room when real notes exist. The selected word still shows the first title. Visual acceptance is still open. No commit, push, TestFlight, or global flag change.
+
+> **Native design polish, 9 October — EMPTY AND SAVED HOME ARE DIFFERENT; OWNER VISUAL ACCEPTANCE STILL OPEN.** The mountain invitation is only the empty shelf. Once the selected medium has saved anime or manga, Home is the white shelf again: large title, progress, then rows or equal covers. The picture, wash, and clear header stay on the invitation only. Visual acceptance is still open. No commit, push, TestFlight, or global flag change.
+
+> **Native design polish, 9 October — HOME CONTINUES; OWNER VISUAL ACCEPTANCE STILL OPEN.** The Home wash covers the whole phone and eases out at the bottom, so the picture does not stop in a line under the last sentence. On Home, KURO, HOME, search, and profile sit in darker ink on a soft top field; Anime and Manga use full ink, and the selected word keeps a light rim so the picture inside the letters stays visible. Find opens Discover. The import sheet uses the same kicker, serif line, and ink rule as the invitation. A debug launch `--kuro-seed-samples` can save Cowboy Bebop, Ping Pong, Berserk, and Punpun onto the signed-in list so populated Home can be reviewed. Visual acceptance is still open. No commit, push, TestFlight, or global flag change.
+
+> **Native design polish, 9 October — INVITATION TYPE; OWNER VISUAL ACCEPTANCE STILL OPEN.** Empty Home keeps the same words. The cover line is light serif display, tight tracking, a short ink rule — the same rule under the selected Anime/Manga word. Find and Import are two actions: a wide-tracked cap kicker (`kuroKicker`), a serif line, a full ink rule, and an arrow. The picture still runs through the status bar and header. Tracking, Undo, Find and Import behavior are unchanged. Visual acceptance is still open. No commit, push, TestFlight or global flag change.
+
+> **Native design polish, 9 October — PICTURE THROUGH HEADER INSTALLED; OWNER VISUAL ACCEPTANCE STILL OPEN.** When Home is selected, the same Home picture (`HomePagePicture`) is pinned full-screen behind the status bar and `KuroHeaderNew`. The Home header fill, shadow and divider are clear so KURO, HOME and the search/profile circles read as ink on the field. Empty shelf uses the mountain; a populated shelf uses the first title’s scene or cover. The selected Anime/Manga word masks that same image (`HomePagePictureFill`). Soft wash stays over the lower type only. Tracking, Undo, Find and Import are unchanged. Controlled 390 renders, Debug install on `7FC4B58A-430C-457D-A017-6B0095723F3F`, and `home-picture-through-header.png` are in `docs/handoffs/2026-10-08-fresh-session/native-polish-screenshots/`. This is not owner acceptance, not a deployment, and not whole-app restyling. MAL account qualification and the recorded Storage CDN observation failure are unchanged. No commit, push, TestFlight or global flag change.
+
+> **Fresh-session handoff, 8 October — HANDOFF SAVED; IMPLEMENTATION STATUS UNCHANGED.** Documentation-only checkpoint: the handoff records freshly verified remote tips (local HEAD 46 commits ahead of main), all dirty paths, original design references, current installed source pins and live migration/function identities. Approved backend deployment is complete; the native polish remains planned and the remaining provider/installed journeys retain their precise blockers. No runtime, deployment, Git delivery or simulator changes. [Full handoff](docs/handoffs/2026-10-08-fresh-session/HANDOFF.md) · [Paste-ready prompt](docs/handoffs/2026-10-08-fresh-session/START_PROMPT.md).
+
+> **Native visual refinement, 8 October — PLAN SAVED; DESIGN ACCEPTANCE OPEN.** The user rejected the quality of the native translation and requested a cohesive Home/detail/Profile polish plan, image-led first-title/import actions with restrained login-style motion, and reconsideration of the yellow page tint. The proposed shared base is neutral white; palette and compositions require native visual review. This is planning only: no runtime/asset/deployment changes. Existing import/Library safety ownership and installed backend evidence remain valid within their recorded scope. Source/local fidelity repairs do not constitute owner visual acceptance. [Full plan](docs/plans/2026-10-08-native-design-polish.md).
+
+> **Approved import/Library/Home backend, 8 October — EXACT SET DEPLOYED; QUALIFICATION IN PROGRESS.** The user approved the pinned four-input SQL transaction and six Edge closures. Effective migration identities/RLS/grants/search paths and function versions are verified; global Home remains disabled. Real v2 import contracts pass142 bounded requests/two disposable accounts: both media, stage/no-write, Keep, selected updates, replay, later-edit conflict, guarded Undo, Stop, persistent results and outsider denial; exact account/job/list/item cleanup verified. Corrected Realtime qualification passes23 requests/three disposable accounts and club cleanup. Storage origin removal and old-token denial pass, but a previously cached public URL remains a CDN HIT through the60second observation, so that producer remains FAIL; all recorded URLs subsequently return decoded NoSuchKey. Initial failed evidence is retained. Native Home/detail fidelity is repaired and independently reviewed; six affected native tests pass and rendered inspection repaired image overflow. The shared reader incorrectly requested Manga-only volumes_progress from Anime; narrow query repair and two package regressions pass without weakening readiness. Its exact223-input-stable build is installed, and actual restored Home is visible against the live backend. First-time Manga selection cache fallback is repaired and independently accepted; its exact223-input-stable build is installed and actual Anime→Manga selection passes. MAL login is dismissed because a controlled user account is unavailable; real MAL account qualification is specifically blocked. Independent provider/recovery/results journeys remain pending. No TestFlight, public release, global Home rollout, backfill, worker scheduling or deletion cron. [Current deployment/live/native evidence](docs/handoffs/2026-10-08-backend-integration/approved-deployment-live-evidence.md). Earlier conflicting banners below are historical.
+
+
+> **Import/Library/Home deep review, 8 October — REQUEST CHANGES / DEPLOYMENT HOLD.** Independent source and user-journey review found27 concrete findings; six structured SQL defects were reproduced in a disposable PostgreSQL fixture with the accepted legacy repair installed. Normal AniList preview/confirm bypasses structured input; existing values can be overwritten without consent; MAL underscore statuses fail; exact progress and score pairs become inconsistent; recovery is not discoverable and can block new jobs; results/navigation and mounted Collection/Library/detail consistency remain incomplete. XML parser normalization/semantic-validation defects were observed separately. The prior118 assertions and legacy Apply/Undo approval remain narrow evidence, not import acceptance. Deployment draft is explicitly HOLD; hashes preserved, no implementation repair, live writes, rollout or TestFlight in this review. [All findings, user contract, two-wave repair sequence and focused checks](docs/handoffs/2026-10-08-backend-integration/import-user-journey-review.md). Earlier readiness banners are superseded.
+
+> **Backend integration, 8 October — SOURCE/LOCAL ACCEPTED; NOT DEPLOYED.** Fresh live audits mapped61 frontend RPCs,19 literal relations and7 Edge slugs;16 new Home/Library/import/social RPCs are absent, existing runtime SQL/table dependencies for six changed handlers are present. Existing Supabase CLI management access works without new keys; two read-only Auth/Storage administrative cleanup-access checks pass. Expanded minimum deployment is three pinned SQL inputs plus AniList, Apply, Undo, deletion, recommend and retrieve-assist closures (JWT enabled, flags unchanged). New forward SQL preserves precise units/labels and entry lifecycles; historical Undo without lifecycle proof skips legacy_lifecycle_unavailable, with no backfill. Independent review accepted the repair and exact3SQL assembly; exact disposable fixture rehearsal passes118assertions (9 install/history/data,40 import,69 writer), historical replay incomplete. Six Edge closures match accepted checkpoint, unchanged tests reused. Live rag_assist_v1 is already5% for DE/AT/CH, superseding older off claims; no flag change. Named production deployment approval and fresh simulator/live workflow proof remain pending. Simulator only; no TestFlight. [Complete mapping, findings, deployment and recovery](docs/handoffs/2026-10-08-backend-integration/backend-integration.md). Earlier conflicting banners are historical.
+
+> **MAL registration/configuration, 8 October — SIMULATOR CONFIGURED; SERVER INTEGRATION BLOCKED.** User screenshots verify the published native iOS registration and exact kuro://mal/callback. Debug.xcconfig enables the public client only for iphonesimulator; Shared/Release remain disabled and no confidential secret is embedded. Normal signed build/install and matching built Info.plist pass. Actual Profile exposes Connect and import MAL, which reports Library synchronization is not enabled yet before any provider consent. Existing sign-in survives the update. Exact Home/import SQL is still prepared/rehearsed, not deployed; controlled OAuth and real import/recovery remain pending. No live schema/grant/flag changes, archive or TestFlight. [Evidence](docs/handoffs/2026-10-08-simulator-qualification/qualification.md). Earlier banners are historical where superseded.
+
+> **Latest simulator qualification, 8 October — SIGN-IN / RESTORE / SIGN-OUT PASS; MAL CLIENT ID PENDING.** Actual normal password-form sign-in and restart restore pass on com.Kuro.app. A dedicated iPhone17Pro/iOS26.0 simulator also proves supported SDK callback, same-account restore and immediate sign-out to AuthView. Earlier callback FAIL is not current-artifact proof: the original simulator has a canvas preview also claiming kuro://; old observations remain historical. Existing preview apps/data were preserved; no production auth repair or unchanged broad suite rerun. Owner reports MAL registration complete; site policy blocks reading issued client values, public Client ID requested, connector remains disabled. Home/import candidate RPCs still absent live. No new live account, admin/schema/flag/deploy/TestFlight changes. [Current installed proof](docs/handoffs/2026-10-08-simulator-qualification/qualification.md). Earlier banners are superseded where they conflict.
+
+> **Latest access initiative, 7 October — SIGN-IN PASS / RESTORE FAIL / MAL HANDOFF.** One owner-authorized ordinary persistent GoTrue development account was created; credentials retained privately outside the repo. Genuine password sign-in and authenticated identity pass, and the simulator Profile shows the expected development email/build1.0(17). Ordinary restart returns to welcome, including after normal signed build/install; root cause unresolved, no auth-code repair claimed. Final simulator is signed in again. MAL registration is confirmed open in the sidebar for manual owner completion under the existing site-security restriction; client remains unconfigured. No existing account changes, admin grants, schema/flags/deploy/TestFlight. Prior unchanged local evidence remains valid at its layer; installed restore is a new failed check. [Evidence](docs/handoffs/2026-10-07-integrated-release-evidence/development-account-sidebar-handoff.md). Earlier banners are historical where superseded.
+
+> **Latest simulator execution, 7 October — LOCAL CHECKS PASS / LIVE INTEGRATION PENDING.** All387 distinct native cases have passing evidence across the initial362-case run, affected-suite repairs and the previous19SDK/6import cases; no unchanged whole-suite rerun. Four test files repaired with focused independent acceptance; production guards unchanged. The selected16SQL suites pass511assertions, and the exact two-migration atomic transaction/history rehearsal passes31assertions. Backend imports pass52tests/typecheck. Latest Debug1.0(17) is installed/launched on iPhone17Pro/iOS26.0 and the real sign-in form is open; signed-in workflows remain unverified. Live read-only preflight confirms all20newfoundation tables absent/all31existing prerequisites present, no orphan list rows, current deletion helper reviewed. No live changes/deployment/global rollout or TestFlight. Actual sign-in, specific production-grant approval and controlled MAL registration/consent remain pending. [Current evidence](docs/handoffs/2026-10-07-integrated-release-evidence/simulator-integration-progress.json). Earlier banners are historical where superseded.
+
+> **Latest simulator follow-through, 7 October — INTEGRATION IN PROGRESS.** Owner authorized live sign-in/Home/import/recovery checks. Focused Xcode SDK authentication: 19 PASS, 0 failures; import apply/outcome/retry/Undo: 6 PASS. Controlled HTTP is used, so these are native SDK proof, not live UI/GoTrue/Home proof. Initial 21-pass/4-fail run is retained. Two fixture issues were corrected without weakening assertions: per-scenario real SQLite/WAL injection prevents shared-file cleanup contention, and the stale-account fixture now really returns A then B. Independent review accepted the narrow change; production storage defaults are unchanged. Two further read-only live audits confirm eight new Home/tracking/import RPCs and eight checked foundation tables are absent; live has nine 5 October migrations plus 6 October import-session policy. Aggregate existing list rows: 37 Anime, 11 Manga. Exact two-migration deployment draft is prepared, not applied; global flags stay off. Real simulator login and concrete production-grant approval are pending. Native UI automation timed out after the clone test run. No live account/customer/schema/flag changes, TestFlight or upload. [Evidence](docs/handoffs/2026-10-07-integrated-release-evidence/simulator-auth-import-recovery.md). Earlier status banners below are historical and superseded where they conflict.
+
+> **Current target, 7 October — SIMULATOR ONLY / INTEGRATION IN PROGRESS.** Max explicitly removed TestFlight upload and physical-device delivery from this initiative. Debug 1.0 (17), bundle com.Kuro.app, built successfully and is installed/launched on iPhone 17 Pro / iOS 26.0; onboarding is visually verified, not a signed-in workflow pass. Supabase browser administration now works through existing GitHub sign-in. Two bounded read-only live audits found no malformed/noncanonical/colliding legacy list IDs, and confirmed exact auth.uid()::text owner policies. The six Home/detail/page RPCs, Home flag rows and feature_flag_overrides table are absent on the live project. No schema/customer/flag changes or deployment. MAL registration is pending: the browser site policy blocks apiconfig/create; the user must complete the prepared form and provide the Client ID. Existing 81 package / 5 snapshot / 3 contract passes remain valid; the broader native runner stays incomplete. Signing agreements, archive, upload, TestFlight and physical qualification are outside the current target. [Execution and evidence](docs/handoffs/2026-10-07-integrated-testflight-execution.md).
+
+> **Access refresh, 7 October — NOT RELEASED.** Xcode27.0 first-launch validation passes. Actual package81tests, Home snapshot5cases and credential/permission contract3cases PASS. Native compilation errors (missing KuroCore import and duplicate Home declaration) and three outdated test fixtures are repaired and independently source-accepted. The broader native runner stalled after its logged host exited; it was interrupted and has no finalized acceptance result. No whole-native PASS is claimed. Physical iPhone “Max” is paired/booted on iOS26.6; one development and one distribution signing identity are present. Existing ASC key4Y9VLAQLQN returns403 `FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`; the Account Holder must review agreements, then team/app/upload permissions can be checked. Fastlane references an absent older key. Supabase administration and controlled MAL registration/consent are still unavailable. No credential changes, backend deployment, upload or physical installation. Earlier license/hardware absence notes are superseded by these observations.
+
+
+> **Current implementation-stage result — IN PROGRESS / NOT RELEASED.** Proportionate gates are implemented in Fastlane: affected local checks during development, one integrated native/package/backend/selected-SQL verification, then real service and installed TestFlight proof. Future signing/live/device access is not due during development; correctness/privacy/replay and required workflows remain mandatory for release. MAL account ingestion for both media is implemented, primary contracts retrieved and source-reviewed, with controlled registration/consent still unavailable. Original-account/mount admission, Collection batch isolation, stale conflict controls and Profile deletion/preferences are repaired and independently source-accepted. Actual Core action tests, MAL reader, Library/Home/SQLite and Collection policy checks pass. Ten affected PostgreSQL suites pass253assertions, all12prepared migrations apply; historical baseline replay stays incomplete. No deployment, archive, upload or installation. Xcode license, Supabase administration, signing, controlled MAL consent and physical-device proof remain the precise release prerequisites. See [the complete executor/evidence/checklist](docs/handoffs/2026-10-07-integrated-testflight-execution.md).
+
+
+> **Integrated release continuation, 7 October: NOT COMPLETE.** Max approved modularity and Home/series together in exactly two waves to qualified installed TestFlight. Library owns durable progress/status and personal offline Home; actual compiled owner/SQLite harness passes recovery,100taps, account/lifecycle/cache isolation and exact cursor transport. Model/RPC contracts are capability-owned; Profile import and Concierge action lifetime have focused policy owners. Initial SDK reconciliation, tester overrides, deletion serialization/cascades and staged Fastlane verification are repaired in source. Latest affected SQL/native/live/device/MAL account proof remains incomplete. No frozen candidate, deployment, upload or installed TestFlight was made by this continuation. [Complete executor, all114findings and lasting rules](docs/handoffs/2026-10-07-integrated-testflight-execution.md); prior dated separate-scope/NOT STARTED/closure notes below are historical where superseded.
+
+
+> **Modularity execution, 7 October: NOT COMPLETE.** Targeted retrieval, terminal import errors, live probes, native dispatch, runner status, cursor timestamps and operational roots are repaired and locally reviewed. The fresh import-journal live run passed and cleaned both created accounts. No deployment, feature activation or upload by this initiative. Remaining architecture/native findings are explicit in the [register](docs/plans/2026-10-05-modularity-completion-register.csv); management, administrative cleanup-verification and distribution access are absent. Earlier dated entries and generated source blocks below are historical evidence, not current readiness.
+
+
+> **Home/series repairs, 7 October: IN PROGRESS, not production-qualified.** R01–R16 now have source repairs and evidence tracked in [REPAIR_LEDGER.md](docs/handoffs/2026-10-07-home-series-evidence/REPAIR_LEDGER.md). Current checks: 76 package tests, actual Home/SQLite lost-response + 100-tap drain, exact unit cursor, 7 AniList stream tests and 8 enrichment-worker tests PASS. Native disclosure syntax parses; SDK/device execution is blocked by Xcode license. SQL94's 50-assertion pass is historical; latest SQL95/96 and current performance reruns are NOT RUN because PostgreSQL cannot start, and Max instructed leaving IPC resources alone. Prepared SQL stays outside automatic migrations; no deployment, global flag activation or release by this initiative. The newer integrated user-approved bounded launch envelope is recorded separately; older capacity/readiness entries are historical.
+
 **Modular architecture executed locally (2026-10-05):** The [execution brief](docs/plans/2026-10-05-modular-architecture-plan.md) was executed in this checkout (uncommitted; nothing deployed); the "implementation NOT STARTED" status in the brief entry below is superseded. `SupabaseService` (13 files, 7,154 lines) is retired and deleted. The app is built once from `Kuro/Composition/AppComposition.swift` over one Supabase client, with one `@Observable` owner per capability in `Kuro/{Identity,Library,Catalog,Discovery,Search,Collection,Releases,Providers,Social,Clubs,Imports,Concierge,Taste,Telemetry}` (shared helpers in `Kuro/Infrastructure/`, the root in `Kuro/Composition/`) and the local package `Packages/KuroModules` (`KuroCore`, `KuroLibrary`, `KuroSupabase`); every other owner stays in-app by recorded decision. Lifecycle: one session funnel and one account-scoped invalidation list; completions from an ended account cannot publish. Corrections: Library ratings use the database 1–10 scale (repairs three writers that sent 10–100), field-masked writes, `save` never overwrites, import apply blocked until the Library is loaded and tracked titles never auto-apply, club leave/revocation clears private club/friend/provider state, sign-out invalidates before the first suspension point, deletion clears local state only after a confirmed success. New harnesses: package `swift test`, SDK-level `StubPostgREST` contract tests, `check_architecture.sh`, a throwaway local PostgreSQL authorization fixture (audited schema, not a migration replay) and deno edge tests. Final lanes: typed navigation routes (`Kuro/Views/Routing/KuroRoutes.swift`, 26 cross-feature constructions migrated), shared connected cards in `Kuro/Views/SharedCards/`, detail pages decomposed (shared chrome, one provider-link snapshot owner API, `FlowLayout` in `Kuro/Design/`, `docs/modules/detail-pages.md`), Concierge/Profile import decisions as pure tested rules (`ConciergeRouting`, `ImportReconciler.initialSelections`/`autoApplyPlan`). Prepared, NOT deployed: `delete-account` hardening, `concierge-apply`/`-undo` field fidelity, 3 club RLS migrations in `supabase/prepared-migrations/`. Open: `user_id` casing check, club RLS R4/R5, supabase-swift `detail`/`details` mismatch, UI/device journeys not run (incl. the 16 route smoke journeys), full replay BLOCKED, no hosted/capacity proof; the Home/detail master's offline/product/capacity gates are not passed by this work. Inventory: 129 app / 14 package Swift files, 235 migrations (+3 prepared). Gate status and final test counts: [execution ledger](docs/plans/2026-10-05-modular-architecture-execution-ledger.md); details: §3.1.
 
 **Modular architecture execution brief (2026-10-05):** [Claude Code execution brief](docs/plans/2026-10-05-modular-architecture-plan.md) now begins with a paste-ready prompt for autonomous local execution using coordinated specialist sub-agents and independent review. Removes effort/schedule estimates; priorities are correctness/account isolation 35%, ownership/maintainability 25%, compatibility 20%, verification quality 10%, simplicity/efficiency 10%. Weights never override mandatory G0–G7 gates. Stages E0–E8 establish safe verification, repair lifecycle in place, complete contracts/ownership, integrate Library, introduce justified packages, migrate all current consumers, qualify backend/active operations, and retire legacy authority. Adds exact risk-to-test scenarios, selective rerun rules, explicit Swift isolation/import/resource handling, shared UI/routing ownership, all production capability assignments, file-exclusive agent work and lead-owned documentation. Baseline stays 94 native Swift files / 46,537 physical lines. Planning artifact updated; architecture implementation NOT STARTED, all gates UNPASSED. Native/backend/prototypes/CI unchanged; no build, database test, deployment or capacity proof.
@@ -102,7 +149,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 129 app Swift files in `/Kuro`; 14 package Swift files in `/Packages`; 235 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 160 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -224,26 +271,71 @@ This file is a **contract**. It must be updated **after every single change** to
 - `MASTER_PLAN.md` — architectural north star (historical docs moved to `archive/`)
 - `Packages/KuroModules/` — local Swift package (2026-10-05): `KuroCore`, `KuroLibrary`, `KuroSupabase`; see §3.1
 
-> **Note (2026-10-05):** the auto-generated blocks in this file (§2.1 inventory, §3.2 iOS backend index, §7.1 migration map and §8.2 edge map, generated 2026-07-31; Appendix J source excerpts, generated 2026-03-26) were NOT regenerated for the modular-architecture migration. They still list the retired `SupabaseService*.swift` files and predate the owner folders and `Packages/`. The current client layout is §3.1, `docs/modules/README.md` and the ownership map; the authoritative counts are the inventory markers at the top of this file.
+> **Inventory provenance (2026-10-07):** §2.1 is refreshed from current files, including local packages and operational shell/Swift/Python scripts. Other generated blocks retain their older timestamps (§3.2, §7.1 and §8.2: July; Appendix J: March) and are historical snapshots, including retired service code. Current files, `docs/modules/README.md` and the refreshed ownership manifest govern source navigation; no snapshot establishes deployed parity.
 
 <!-- BEGIN AUTO-INVENTORY -->
 
 ## 2.1) Auto-generated inventory (exhaustive file lists)
 
-Generated: **2026-07-31T04:08:20.318Z**  (git: `10f3c9a` on `main`)
+Generated: **2026-10-07T15:04:52.638Z**  (git: `a7f39b6` on `kuro/taste-overhaul`)
 
 This section is auto-generated. Rebuild it after any repo change:
 ```bash
 node scripts/generate_app_state_inventory.js
 ```
 
-### iOS (Swift) files (count: 91)
+### iOS (Swift) files (count: 134)
+- `Kuro/Catalog/CatalogStore.swift`
+- `Kuro/Catalog/DiscoveryContentRules.swift`
+- `Kuro/Catalog/MissingSupabaseConfiguration.swift`
+- `Kuro/Clubs/ClubModels.swift`
+- `Kuro/Clubs/ClubRealtimeCoordinator.swift`
+- `Kuro/Clubs/ClubsLibrarySink.swift`
+- `Kuro/Clubs/ClubsStore.swift`
+- `Kuro/Collection/CollectionStore.swift`
+- `Kuro/Composition/AccountScopedState.swift`
+- `Kuro/Composition/AppComposition.swift`
+- `Kuro/Composition/BannerCenter.swift`
+- `Kuro/Composition/FixtureHost.swift`
+- `Kuro/Composition/LibraryChangeSinks.swift`
+- `Kuro/Composition/LibraryRefreshHook.swift`
+- `Kuro/Composition/PostgrestLibraryTransport.swift`
+- `Kuro/Composition/PostgrestRequestEncoding.swift`
+- `Kuro/Concierge/ConciergeFunctions.swift`
+- `Kuro/Concierge/ConciergeRecommendModels.swift`
+- `Kuro/Concierge/ConciergeRouting.swift`
+- `Kuro/Concierge/ConciergeStore.swift`
 - `Kuro/ContentView.swift`
 - `Kuro/Design/Color+Hex.swift`
+- `Kuro/Design/FlowLayout.swift`
 - `Kuro/Design/KuroDesignSystem.swift`
+- `Kuro/Discovery/DiscoverCards.swift`
+- `Kuro/Discovery/DiscoveryStore.swift`
+- `Kuro/Discovery/RecommendationsReader.swift`
+- `Kuro/Home/HomeContracts.swift`
+- `Kuro/Home/HomeStore.swift`
+- `Kuro/Identity/AuthCallbackGuard.swift`
+- `Kuro/Identity/AuthService.swift`
+- `Kuro/Identity/IdentityStore.swift`
+- `Kuro/Identity/SessionController.swift`
+- `Kuro/Imports/ImportModels.swift`
+- `Kuro/Imports/ImportReconciler.swift`
+- `Kuro/Imports/ImportsService.swift`
+- `Kuro/Infrastructure/MemoryPressure.swift`
+- `Kuro/Infrastructure/Retry.swift`
+- `Kuro/Infrastructure/TimedCache.swift`
 - `Kuro/KuroApp.swift`
+- `Kuro/Library/LibraryActions.swift`
+- `Kuro/Library/LibraryRealtime.swift`
 - `Kuro/Models/DiscoverBundle.swift`
 - `Kuro/Models/SupabaseModels.swift`
+- `Kuro/Providers/ProviderAvailabilityStore+DetailLinks.swift`
+- `Kuro/Providers/ProviderAvailabilityStore+LegalLinks.swift`
+- `Kuro/Providers/ProviderAvailabilityStore.swift`
+- `Kuro/Providers/ProviderLinkBuilders.swift`
+- `Kuro/Releases/ReleasesStore.swift`
+- `Kuro/Releases/ReminderScheduler.swift`
+- `Kuro/Search/SearchStore.swift`
 - `Kuro/Services/AppConfig.swift`
 - `Kuro/Services/AppleFMService.swift`
 - `Kuro/Services/ConciergeAnalytics.swift`
@@ -254,38 +346,28 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Services/KuroPerf.swift`
 - `Kuro/Services/NetworkMonitor.swift`
 - `Kuro/Services/SupabaseRPCParams.swift`
-- `Kuro/Services/SupabaseService+Browse.swift`
-- `Kuro/Services/SupabaseService+ClubRealtime.swift`
-- `Kuro/Services/SupabaseService+Clubs.swift`
-- `Kuro/Services/SupabaseService+Collection.swift`
-- `Kuro/Services/SupabaseService+Concierge.swift`
-- `Kuro/Services/SupabaseService+Monetization.swift`
-- `Kuro/Services/SupabaseService+Recommendations.swift`
-- `Kuro/Services/SupabaseService+Social.swift`
-- `Kuro/Services/SupabaseService+Streaming.swift`
-- `Kuro/Services/SupabaseService+Taste.swift`
-- `Kuro/Services/SupabaseService+UserLists.swift`
-- `Kuro/Services/SupabaseService.swift`
 - `Kuro/Services/TextNormalization.swift`
+- `Kuro/Social/SocialActivityStore.swift`
+- `Kuro/Taste/TasteModels.swift`
+- `Kuro/Taste/TasteStore.swift`
+- `Kuro/Telemetry/InteractionTelemetry.swift`
+- `Kuro/Telemetry/OutboundLinkTelemetry.swift`
 - `Kuro/Views/AddToListSheet.swift`
 - `Kuro/Views/AuthView.swift`
 - `Kuro/Views/BrowseComponents.swift`
 - `Kuro/Views/BrowseView.swift`
-- `Kuro/Views/Cards.swift`
 - `Kuro/Views/ClubCreateSheets.swift`
 - `Kuro/Views/ClubDetailSheets.swift`
 - `Kuro/Views/ClubDetailShellComponents.swift`
 - `Kuro/Views/ClubDetailTabComponents.swift`
 - `Kuro/Views/ClubDetailView.swift`
+- `Kuro/Views/ClubViewLifecycle.swift`
 - `Kuro/Views/ClubsView.swift`
-- `Kuro/Views/ConciergeActionFooter.swift`
 - `Kuro/Views/ConciergeAniListImportCoordinator.swift`
 - `Kuro/Views/ConciergeComponents.swift`
-- `Kuro/Views/ConciergeComposerDock.swift`
 - `Kuro/Views/ConciergeEditorialShell.swift`
 - `Kuro/Views/ConciergeImportCards.swift`
 - `Kuro/Views/ConciergeInputField.swift`
-- `Kuro/Views/ConciergeIntentDeck.swift`
 - `Kuro/Views/ConciergeRecommendationRails.swift`
 - `Kuro/Views/ConciergeResponseStage.swift`
 - `Kuro/Views/ConciergeView+AniListImport.swift`
@@ -296,19 +378,22 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/DetailPages/CastSection.swift`
 - `Kuro/Views/DetailPages/ClubActivitySection.swift`
 - `Kuro/Views/DetailPages/CreditsSection.swift`
+- `Kuro/Views/DetailPages/DetailSharedComponents.swift`
 - `Kuro/Views/DetailPages/EntityDetailSheets.swift`
 - `Kuro/Views/DetailPages/ExternalLinksSection.swift`
 - `Kuro/Views/DetailPages/FriendsActivitySection.swift`
 - `Kuro/Views/DetailPages/MangaDetailView.swift`
 - `Kuro/Views/DetailPages/MediaDetailSheet.swift`
+- `Kuro/Views/DetailPages/ProviderLinkViews.swift`
+- `Kuro/Views/DiscoverOneThingCard.swift`
 - `Kuro/Views/DiscoverViewModel.swift`
-- `Kuro/Views/EditorialCards.swift`
 - `Kuro/Views/EditorialCollectionComponents.swift`
 - `Kuro/Views/EditorialCollectionView.swift`
 - `Kuro/Views/EditorialDiscoverRouting.swift`
 - `Kuro/Views/EditorialDiscoverView.swift`
 - `Kuro/Views/EditorialSearchView.swift`
-- `Kuro/Views/GenreHubView.swift`
+- `Kuro/Views/Home/HomeView.swift`
+- `Kuro/Views/Home/SeriesDetailViews.swift`
 - `Kuro/Views/KuroCachedAsyncImage.swift`
 - `Kuro/Views/KuroCardText.swift`
 - `Kuro/Views/KuroConciergeMark.swift`
@@ -322,15 +407,42 @@ node scripts/generate_app_state_inventory.js
 - `Kuro/Views/KuroRefinedCard.swift`
 - `Kuro/Views/KuroToast.swift`
 - `Kuro/Views/KuroTransientBanner.swift`
+- `Kuro/Views/LibraryViewActions.swift`
 - `Kuro/Views/OnboardingView.swift`
-- `Kuro/Views/PosterView.swift`
 - `Kuro/Views/ProfileFreshnessCard.swift`
 - `Kuro/Views/ProfileView.swift`
 - `Kuro/Views/QuickVerdictActionCard.swift`
+- `Kuro/Views/Routing/KuroRoutes.swift`
+- `Kuro/Views/SharedCards/AddToClubRailSheet.swift`
+- `Kuro/Views/SharedCards/CompactAnimeCard.swift`
+- `Kuro/Views/SharedCards/GridAnimeCard.swift`
 - `Kuro/Views/TasteDeckView.swift`
-- `Kuro/Views/UIComponents.swift`
+- `Kuro/Views/TastePicksView.swift`
+- `Kuro/Views/TrackingDraft.swift`
 
-### Supabase migrations (count: 181)
+### Local package Swift files (count: 20, including package manifests and tests)
+- `Packages/KuroModules/Package.swift`
+- `Packages/KuroModules/Sources/KuroCore/AccountScopedLoads.swift`
+- `Packages/KuroModules/Sources/KuroCore/AccountSession.swift`
+- `Packages/KuroModules/Sources/KuroCore/MediaKey.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/LibraryContracts.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/LibraryImportBatch.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/LibraryStore.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/LibraryValues.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/MALExportParser.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/ProgressOutbox.swift`
+- `Packages/KuroModules/Sources/KuroLibrary/SeriesGrouping.swift`
+- `Packages/KuroModules/Sources/KuroSupabase/LibraryFenceTransport.swift`
+- `Packages/KuroModules/Sources/KuroSupabase/LibraryRowTransport.swift`
+- `Packages/KuroModules/Sources/KuroSupabase/SupabaseLibraryBackend.swift`
+- `Packages/KuroModules/Sources/KuroSupabase/UserIdText.swift`
+- `Packages/KuroModules/Tests/KuroCoreTests/AccountSessionTests.swift`
+- `Packages/KuroModules/Tests/KuroLibraryTests/LibraryStoreTests.swift`
+- `Packages/KuroModules/Tests/KuroLibraryTests/SeriesHomeFoundationTests.swift`
+- `Packages/KuroModules/Tests/KuroLibraryTests/Support/ControlledBackend.swift`
+- `Packages/KuroModules/Tests/KuroSupabaseTests/SupabaseLibraryBackendTests.swift`
+
+### Supabase migrations (count: 245)
 - `supabase/migrations/20250109_remote_applied_placeholder.sql`
 - `supabase/migrations/20250909_remote_applied_placeholder.sql`
 - `supabase/migrations/20250917_remote_applied_placeholder.sql`
@@ -512,8 +624,72 @@ node scripts/generate_app_state_inventory.js
 - `supabase/migrations/20260731070000_taste_math_v2_hotfix.sql`
 - `supabase/migrations/20260731080000_taste_math_v2_fix2.sql`
 - `supabase/migrations/20260731090000_taste_deck_pass_memory.sql`
+- `supabase/migrations/20260731095000_deck_love_to_list.sql`
+- `supabase/migrations/20260731100000_discover_p1.sql`
+- `supabase/migrations/20260731110000_daily_feature_argument_polish.sql`
+- `supabase/migrations/20260731120000_realm_signatures_v1.sql`
+- `supabase/migrations/20260731130000_canon_seed_v1.sql`
+- `supabase/migrations/20260731140000_media_rec_edges_v1.sql`
+- `supabase/migrations/20260731150000_realm_graph_v1.sql`
+- `supabase/migrations/20260731160000_realm_gate_calibration.sql`
+- `supabase/migrations/20260731170000_media_realm_llm_v1.sql`
+- `supabase/migrations/20260731180000_similarity_inclusion_fix.sql`
+- `supabase/migrations/20260731190000_debug_functiondef.sql`
+- `supabase/migrations/20260731191000_debug_functiondef2.sql`
+- `supabase/migrations/20260731192000_debug_functiondef3.sql`
+- `supabase/migrations/20260731193000_debug_sim_pair.sql`
+- `supabase/migrations/20260731194000_debug_sim_v42.sql`
+- `supabase/migrations/20260731195000_debug_ranked_pair.sql`
+- `supabase/migrations/20260731200000_penalty_clamp_and_debug_cleanup.sql`
+- `supabase/migrations/20260802010000_realm_describe_drain.sql`
+- `supabase/migrations/20260802011000_ops_read_cron_secret_tmp.sql`
+- `supabase/migrations/20260802012000_ops_list_cron_jobnames.sql`
+- `supabase/migrations/20260802013000_ops_extract_literal_import_secret.sql`
+- `supabase/migrations/20260802014000_realm_llm_upsert_rate_budget.sql`
+- `supabase/migrations/20260802015000_pause_realm_describe_cron.sql`
+- `supabase/migrations/20260802016000_realm_describe_cron_catchup.sql`
+- `supabase/migrations/20260802017000_realm_llm_upsert_service_role_only.sql`
+- `supabase/migrations/20260802120000_pause_realm_describe_cron_again.sql`
+- `supabase/migrations/20260802123000_media_realm_membership_delta_v1.sql`
+- `supabase/migrations/20260802124000_membership_delta_clamp_fix.sql`
+- `supabase/migrations/20260802125000_membership_delta_check_float4.sql`
+- `supabase/migrations/20260802140000_spirited_away_gate_harden.sql`
+- `supabase/migrations/20260802141000_canon_bless_and_discover_realm_rails.sql`
+- `supabase/migrations/20260802150000_curation_sources_expand_v1.sql`
+- `supabase/migrations/20260804100000_similarity_penalty_and_costs.sql`
+- `supabase/migrations/20260804110000_totoro_credits_and_studio_main.sql`
+- `supabase/migrations/20260804120000_tier_from_effective_and_cron.sql`
+- `supabase/migrations/20260804121000_rebuild_tier_execute_service_role_only.sql`
+- `supabase/migrations/20260804130000_media_similar_titles_precompute.sql`
+- `supabase/migrations/20260804131000_similar_builder_oom_fix.sql`
+- `supabase/migrations/20260804132000_similar_driver_batch_100.sql`
+- `supabase/migrations/20260804140000_franchise_components_and_blend_dedupe.sql`
+- `supabase/migrations/20260804150000_hygiene_ops_fn_and_view_advisors.sql`
+- `supabase/migrations/20260805100000_daily_feature_display_synopsis.sql`
+- `supabase/migrations/20260805110000_realm_audit_overrides.sql`
+- `supabase/migrations/20260805112000_realm_audit_override_conditional_swap.sql`
+- `supabase/migrations/20260805120000_edges_first_serving.sql`
+- `supabase/migrations/20260805130000_critique_ingestion_schema.sql`
+- `supabase/migrations/20260805140000_entry_point_canonicalization.sql`
+- `supabase/migrations/20260805150000_entry_point_upward_tier_substitution.sql`
+- `supabase/migrations/20260806000000_security_and_mirror_repair.sql`
+- `supabase/migrations/20260806010000_serving_fixes_v1.sql`
+- `supabase/migrations/20260806020000_serving_hardening_v1.sql`
+- `supabase/migrations/20260807000000_baseline_capture_v1.sql`
+- `supabase/migrations/20260807010000_leftover_repairs_v1.sql`
+- `supabase/migrations/20260810120000_clubs_trust_flags_promote_100.sql`
+- `supabase/migrations/20261005120000_club_members_role_column_guard.sql`
+- `supabase/migrations/20261005120100_club_rails_insert_admin_only.sql`
+- `supabase/migrations/20261005120200_toggle_comment_reaction_visibility.sql`
+- `supabase/migrations/20261005130000_import_apply_undo_transactions.sql`
+- `supabase/migrations/20261005140000_account_deletion_write_barrier.sql`
+- `supabase/migrations/20261005150000_club_membership_lifecycle_and_privacy.sql`
+- `supabase/migrations/20261005160000_club_realtime_signals.sql`
+- `supabase/migrations/20261005170000_user_lists_view_security_invoker.sql`
+- `supabase/migrations/20261005180000_list_user_id_canonical_case.sql`
+- `supabase/migrations/20261006120000_import_sessions_select_only.sql`
 
-### Supabase Edge Functions (index.ts) (count: 15)
+### Supabase Edge Functions (index.ts) (count: 16)
 - `supabase/functions/auth-callback/index.ts`
 - `supabase/functions/bulk-import-anime/index.ts`
 - `supabase/functions/bulk-import-manga/index.ts`
@@ -529,18 +705,32 @@ node scripts/generate_app_state_inventory.js
 - `supabase/functions/manga-chapter-enrich/index.ts`
 - `supabase/functions/manga-source-review-action/index.ts`
 - `supabase/functions/mirror-images/index.ts`
+- `supabase/functions/realm-describe/index.ts`
 
-### Repo scripts (count: 45)
+### Repo scripts (count: 120)
 - `scripts/apply_remote_sql.js`
 - `scripts/audit_curated_rails_quality.js`
+- `scripts/capture_screen_canvas.py`
 - `scripts/catalog_safety_dashboard_server.js`
+- `scripts/catalog_safety_decision.swift`
+- `scripts/catalog_safety_offline_tests.swift`
+- `scripts/catalog_safety_run.swift`
+- `scripts/catalog_safety_worker.swift`
 - `scripts/check_cron_health.js`
 - `scripts/collect_db_metrics.js`
+- `scripts/compile_curation_ingest.js`
 - `scripts/concierge_corpus_generate.js`
 - `scripts/concierge_eval_parse.js`
+- `scripts/db/explain_series_inner_plans.sh`
+- `scripts/db/guard_env.sh`
+- `scripts/db/replay_migrations.sh`
+- `scripts/db/run_local_db_tests.sh`
+- `scripts/db/test_guard_env.sh`
 - `scripts/db_state.sql`
 - `scripts/eval_concierge_modes.js`
+- `scripts/eval_realm_rec_gold.js`
 - `scripts/eval_router.js`
+- `scripts/export_screen_canvas.py`
 - `scripts/generate_app_state_codebase_bundle.js`
 - `scripts/generate_app_state_inventory.js`
 - `scripts/generate_app_state_live_snapshot.js`
@@ -556,25 +746,87 @@ node scripts/generate_app_state_inventory.js
 - `scripts/genre_audit.js`
 - `scripts/import_anilist_fast.js`
 - `scripts/import_anilist_local.js`
+- `scripts/import_anilist_rec_edges.js`
+- `scripts/install_catalog_safety_launchd.sh`
+- `scripts/install_local_cicd_launchd.sh`
+- `scripts/install_media_relations_launchd.sh`
+- `scripts/install_provider_availability_launchd.sh`
+- `scripts/install_synopsis_dashboard_launchd.sh`
+- `scripts/install_synopsis_enrichment_launchd.sh`
+- `scripts/install_unified_dashboard_launchd.sh`
+- `scripts/kuro_project_root.sh`
 - `scripts/legacy/03_updated_edge_function.js`
 - `scripts/legacy/04_manga_edge_function.js`
 - `scripts/legacy/06_anime_edge_function_with_episodes.js`
 - `scripts/legacy/07_manga_edge_function_with_chapters.js`
+- `scripts/legacy/CONCIERGE_FINAL_INTEGRATED.swift`
+- `scripts/lib/load_project_public_env.sh`
 - `scripts/lib/project_config.js`
+- `scripts/live/README.md`
+- `scripts/live/probe_checkers.test.js`
+- `scripts/live/probe_club_activity_signals.js`
+- `scripts/live/probe_import_sessions_select_only.js`
+- `scripts/live/probe_support.js`
 - `scripts/load_test_concierge.js`
+- `scripts/local_cd.sh`
+- `scripts/local_ci.sh`
 - `scripts/manual/test_bulk_import_anime.js`
 - `scripts/manual/test_bulk_import_manga.js`
 - `scripts/manual/test_bulk_import_manga_with_chapters.js`
 - `scripts/manual/verify_supabase_connection.js`
+- `scripts/media_relations_offline_test.js`
 - `scripts/media_relations_worker.js`
 - `scripts/provider_availability_dashboard_server.js`
+- `scripts/provider_availability_matching.swift`
+- `scripts/provider_availability_offline_tests.swift`
+- `scripts/provider_availability_run.swift`
+- `scripts/provider_availability_worker.swift`
+- `scripts/quality-gates/audit_rails.sh`
+- `scripts/quality-gates/build_ios.sh`
+- `scripts/quality-gates/check_architecture.sh`
+- `scripts/quality-gates/check_docs_current_state.py`
+- `scripts/quality-gates/check_docs_current_state.sh`
+- `scripts/quality-gates/check_migrations.sh`
+- `scripts/quality-gates/check_secrets.sh`
+- `scripts/quality-gates/ios_verify_helpers.sh`
 - `scripts/quality-gates/router_test_cases.js`
+- `scripts/quality-gates/run_all.sh`
+- `scripts/quality-gates/test_concierge_corpora.sh`
+- `scripts/quality-gates/test_edge_functions.sh`
+- `scripts/quality-gates/test_ios_unit.sh`
+- `scripts/quality-gates/test_leftovers_verify.sh`
+- `scripts/quality-gates/test_multi_user_pages.sh`
+- `scripts/quality-gates/test_packages.sh`
+- `scripts/quality-gates/test_router_offline.sh`
+- `scripts/realm_descriptor_validate_selftest.js`
+- `scripts/realm_descriptor_worker.js`
+- `scripts/realm_gold_owner_shortlist.js`
+- `scripts/realm_llm_apply_deltas.js`
+- `scripts/realm_llm_pass_fetch.js`
+- `scripts/realm_llm_pass_submit.js`
+- `scripts/realm_llm_qa_fetch.js`
+- `scripts/realm_llm_salvage_swarm.js`
+- `scripts/realm_repair/run_phase1_acceptance.js`
 - `scripts/report_airing_window.js`
+- `scripts/run_catalog_safety.sh`
 - `scripts/run_full_import.js`
+- `scripts/run_local_cd_logged.sh`
+- `scripts/run_local_ci_logged.sh`
 - `scripts/run_manga_chapter_crunch.js`
+- `scripts/run_media_relations_refresh.sh`
+- `scripts/run_provider_availability.sh`
+- `scripts/run_synopsis_enrichment.sh`
+- `scripts/serve_design_share.py`
+- `scripts/serve_live_preview.py`
 - `scripts/smoke_concierge_recommend.js`
 - `scripts/smoke_magic_parse_apply.js`
 - `scripts/synopsis_dashboard_server.js`
+- `scripts/synopsis_enrichment_offline_tests.swift`
+- `scripts/synopsis_enrichment_worker.swift`
+- `scripts/synopsis_quality.swift`
+- `scripts/synopsis_run.swift`
+- `scripts/test_kuro_launcher_paths.sh`
+- `scripts/test_kuro_ops_defaults.sh`
 - `scripts/unified_local_dashboard_server.js`
 
 
@@ -943,7 +1195,7 @@ Generated: **2026-07-31T04:08:20.387Z** (git: `10f3c9a`)
 
 ## 4) Design system (current)
 
-**Design philosophy:** Editorial minimalism + premium glass surfaces
+**Design philosophy:** Editorial minimalism. Home, series detail and Profile (9 October 2026) use a scoped neutral canvas: `kuroCanvasPage` `#FFFFFF`, `kuroCanvasQuiet` `#F6F6F6`, `kuroInk` `#181818`, `kuroInkSecondary` `#5C5C5C`, `kuroInkQuiet` `#6B6B6B`, `kuroHairline` black at 10%. Other pages still use `kuroBackground`. Artwork keeps its own color. `KuroSceneryLoop` is the shared mountain banner.
 
 **Key design primitives**
 - `KuroGlassCard` in `Kuro/Views/KuroGlass.swift`
@@ -2331,6 +2583,14 @@ This single command:
 ---
 
 ## 14) Change Log (append-only)
+
+- **2026-10-07 — Independent Home/series review requests changes:** Added R01–R16, source fingerprints and local Swift/SQLite reproduction evidence in [docs/handoffs/2026-10-07-home-series-evidence/INDEPENDENT_REVIEW.md](docs/handoffs/2026-10-07-home-series-evidence/INDEPENDENT_REVIEW.md). Supersedes earlier approval-only/readiness and visual-pass conclusions; progress/import/privacy/series/design/query gaps remain open. Five focused package tests pass; fresh PostgreSQL tests blocked by host shared-memory exhaustion. Documentation/evidence only; app/SQL/flags/live unchanged.
+
+- **2026-10-07 — Recalibrate Home release gates (docs only):** Clarified that “Concierge apply/undo” is the import-session receipt path (Concierge stays a sheet), and “pending progress map” is the in-memory optimistic +1 on `HomeStore` (not chat UI). Demoted 1000/5000-session burst/soak and 10M EXPLAIN from hard release blockers to optional pre-user load tooling. Hard bar remains: owner-approved migrate, flags still owner-gated, existing throwaway races/receipt/import + 1M plans, device VoiceOver/haptics before native flag at 100%, live check after deploy. Ledger: `docs/handoffs/2026-10-07-home-series-evidence/ledger.md`. No Swift/SQL edits; flags stay off; no `db push` or edge deploy.
+
+- **2026-10-07 — Finish first Home plan, still not deployed:** Prepared `20261007040000_series_home_foundation_v1.sql` now routes import-session `apply_import_session` / `undo_import_session` progress and status through `_apply_progress_mutations_for_user` / `_fence_set_progress_status` (notes/rating stay direct; Concierge remains a sheet). Throwaway `81_import_session_receipt.sql` 20 PASS. `HomeStore` publishes one pending progress map for Home, both series details, and series Collection; receipt ack clears pending after `adoptServerProgress`. Inner EXPLAIN at 1M list rows recorded in `docs/handoffs/2026-10-07-home-series-evidence/db/explain-largest-fixture.txt` (10M optional/NOT RUN). Poster and native screenshots at 320/390/430 under that handoff’s `screenshots/`; composition rules clean, no layout fix. `series_foundation_v1` / `series_home_native_v1` stay off. No `db push`, edge deploy, or flag enablement. Device VoiceOver/haptics remain a native-flag gate; 1000/5000 soak is optional (see recalibration entry).
+
+- **2026-10-07 — Home and detail closure, flags off, not deployed:** Prepared `supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql` stays out of `supabase/migrations/`. `series_foundation_v1` and `series_home_native_v1` stay off. When the foundation flag is on, `SupabaseLibraryBackend` sends progress, status and removal through `apply_progress_mutations_v1` / `apply_remove_mutations_v1`; notes, rating and verdict stay on PATCH and still advance `server_revision`. MAL XML and AniList `libraryItems` apply through `start_library_import_v1` / `apply_import_chunk_v1` (added, updated, conflict, unmatched; no percentage). Collection uses `collection_series_page_v1` only while the native flag is on. Throwaway PostgreSQL: `93_series_fence_races.sql` 22 assertions PASS, `81_library_import_counts.sql` 9 assertions PASS. Small-fixture `EXPLAIN` of the three bundle calls is a function-call Result node, not a 100k/1M/10M plan. Device, screenshot overlay, 1000/5000 sessions and production apply are NOT RUN. Nothing was pushed or deployed. Evidence: `docs/handoffs/2026-10-07-home-series-evidence/`.
 
 - **2026-09-25 — Current-product and design review:** Added detailed decision review, two-page visual brief, interactive phone proposals and sanitized live/source evidence under `docs/research/2026-09-25-kuro-design-review/`. Verified live flag states, migration-version inventory, active-function inventory, catalogue scheduling coverage, rating constraints and installed-build identity. Recorded functional/source risks before design priorities; corrected nonhistorical Active-tab, onboarding and build labels. Six independent lanes, 11 additional community records. No product source changes, builds, deployments, hosted mutations or user-account/list edits; pre-existing AuthView changes preserved. Commit: uncommitted documentation initiative.
 
@@ -5828,9 +6088,9 @@ node scripts/generate_app_state_live_snapshot.js
 
 ---
 
-## 25) Appendix J — Source of truth excerpts (auto-generated)
+## 25) Appendix J — Historical source excerpts (auto-generated)
 
-This appendix inlines the **exact current source** for the most important runtime components so another LLM can reason from ground truth without opening the repo.
+This appendix preserves the **26 March source snapshot** shown by its generation timestamp. It includes retired service code and is historical reference only. Read current repository files and the module map for current behavior; these excerpts cannot establish acceptance or deployment.
 
 For a complete (very large) source bundle, see: `archive/CURRENT_APP_STATE_CODEBASE.md` (auto-generated).
 
@@ -19142,3 +19402,200 @@ Retained adaptation matching and story-overview requirements in the single maste
 ### Change Log — 5 October 2026: Deletion barrier deployed
 
 **Production (2026-10-05).** The account-deletion write barrier and the club membership lifecycle are applied on `bkdifromsqxkndnllmdj`. `delete-account` is version 9. Media uploads take the same per-user lock and are refused after deletion starts. A disposable account's JPEG was removed, GoTrue rejected the user, and a later upload returned `ACCOUNT_DELETION_IN_PROGRESS`. The three leftover test images from the earlier run were deleted and are gone at the origin. Apply/Undo SQL, realtime signal cutover, and an App Store release are not in this deploy. The migration remains **NOT COMPLETE**.
+
+### Change Log — 6 October 2026: Database side of the remaining migration
+
+**Production database (2026-10-06).** The remaining prepared SQL is applied on `bkdifromsqxkndnllmdj`: club member column grants, club rail insert rule, comment-reaction visibility, Apply/Undo transactions, realtime signal tables, the user-list view running as the caller, and lower-case list user ids. The Apply and Undo edge functions did not deploy. The CLI was rejected with `FGA Authentication Error`. The simulator still calls the previous functions (`concierge-apply` last updated 2026-07-30, `concierge-undo` last updated 2026-02-24). The app still sends stored ratings and notes, and it still listens to the old club tables as well as the new signal tables. No App Store build. The migration remains **NOT COMPLETE**.
+
+### Change Log — 6 October 2026: Apply and Undo functions deployed
+
+**Production (2026-10-06, 17:24 UTC).** `concierge-apply` is version 26 and `concierge-undo` is version 17 on `bkdifromsqxkndnllmdj`. The simulator now calls those handlers. The app still sends stored ratings and notes, and it still listens to the old club tables as well as the new signals. There is no App Store build.
+
+### Change Log — 7 October 2026: Production-ready leftovers for the simulator build
+
+**Live project + local client (2026-10-07).** Simulator build leftovers against `bkdifromsqxkndnllmdj` — not an App Store release, and **G0–G7 are not all passed**.
+
+- Client: `ImportReconciler.sendsStoredRatingAndNotes = false`; after a live member/non-member `club_activity_signals` check, `listensToLegacyContentTables = false`; account-switch test clears Concierge/Clubs/Collection private state; `ClubError` reads PostgREST `details` when `detail` is empty.
+- Locked rules: ambiguous parse does not auto-apply when `clarify_v2` is off; Finished with no title stores no status; bare numbers in titles stay in the title; AniList may return 200 and Apply takes the first 100 with omitted messaging; private club cards show count only, not names; old half-finished import sessions stay non-undoable; no new deletion-barrier cron.
+- DB: `20261006120000_import_sessions_select_only` applied (authenticated SELECT-only; app never wrote those tables).
+- Edge: `concierge-retrieve-assist` split to thin `index.ts` + `run.ts` (deno **5 passed**), deployed **v8**; `rag_assist_v1` stays off.
+- Still open: the sixteen route smoke journeys in `docs/modules/README.md` are a simulator checklist, not a claimed pass; F51 remains partial overall; no independent review of this batch.
+
+### Change Log — 7 October 2026: Multi-user page verification harness
+
+**Verification only (2026-10-07).** Added an agent-runnable three-layer harness. It does **not** claim G0–G7, the 16 device journeys, App Store readiness, production UI, or enabling `rag_assist_v1`.
+
+- Layer A: `scripts/quality-gates/test_leftovers_verify.sh` (build + leftover KuroTests filters + offline Deno; optional local DB).
+- Layer B: `KuroTests/MultiUserPageOrchestrationTests` — three AppGraphs (A/B/C) exercise Concierge/Collection, Clubs privacy initials, Discover/Browse/Search + account switch. Runner: `scripts/quality-gates/test_multi_user_pages.sh` (optional; not in `run_all.sh`). **Passed** on iPhone 17 Pro.
+- Layer C: `scripts/live/probe_*.js` — disposable accounts only. Import sessions SELECT-only **ok**; `club_activity_signals` member/outsider realtime **ok**. Accounts deleted via `delete-account`.
+- Reports: `reports/leftovers-verify/`.
+
+### Change Log — 7 October 2026: Home production closure, still not deployed
+
+**Local only (2026-10-07).** The Home/detail closure is in the working tree. Flags stay off. The prepared migration was not moved into `supabase/migrations/` and was not pushed.
+
+- Progress, status and removal use the receipt RPCs when `series_foundation_v1` is on. Notes and ratings stay on direct update and still move `server_revision`, so a stale progress write conflicts.
+- `93_series_fence_races.sql`: 22 assertions PASS (progress versus a note, add/delete/add lifecycle, import versus a local edit, membership removal versus a comment).
+- `81_library_import_counts.sql`: 9 assertions PASS (0/1/50 items, duplicate custom-list rows, score 0, private notes off the list and off club comments, a later omission does not delete a local title).
+- Profile can import a MAL XML export and, when the foundation flag is on, apply AniList `libraryItems` as the same job. Counts are added, updated, conflict and unmatched. No percentage. The old Concierge text preview remains the path while the flag is off.
+- Collection, Home load-more and detail season changes use the bundle RPCs when the native flag is on. A season change replaces the in-flight request.
+- The outbox is drained per account, on foreground and on reconnect, at most 50 at a time. Undo of an unsent tap restores the prior position. A conflict offers keep-server or reapply.
+- iPhone 17 Pro simulator build succeeded. Small-fixture `EXPLAIN` does not estimate inner rows. 100k/1M/10M, device VoiceOver/haptics, native-versus-prototype screenshots and a live check after deploy are NOT RUN. The app is not called live.
+
+
+### Change Log — 7 October 2026: Codex migration repair execution
+
+Executed targeted migration repairs with proportionate verification: rag-v2 scopes Anime/Manga/unscoped cache and avoids outage poisoning; recommendation rejects wrong-medium seeds; exact deletion barrier becomes terminal rather than retryable in server/client. Live probes now prove real delivery and genuine journal denial with bounded cleanup. Existing native owner journey now exercises real dispatch and passed1test. Backend affected suites16+32passed, script checker12passed, focused independent review accepted. Fresh live journal Apply/Undo and six42501denials passed; both disposable users deleted. No deployment/flag change/App Store upload. Native terminal-error contract also passed exactly 1 test (0 failed, 0 skipped); the earlier zero-test selector was corrected and not counted as a pass. The concurrent Home compile mismatch was repaired by its owner. Release access and remaining findings stay open. Evidence: docs/handoffs/2026-10-07-modularity-execution-evidence/README.md. New files: retrieval recommendation repository test, probe support/checker, native runner helper, active execution note and sanitized evidence files. Existing files retained; no deletion by this initiative.
+
+- 2026-10-07: Started authorized independent-review repairs (durable sync, import replay/fidelity, account/privacy, selected-season and schema/query contracts). See repair ledger for exact proof and open work; not production closure.
+
+### Change Log — 7 October 2026: Cursor, ops and register reconciliation
+
+F20 shared production/test PostgREST DB encoder emits fractional UTC Z, retains millisecond precision and leaves Auth/decoding intact. Two existing cursor contracts passed (structured2/0/0), independently accepted. F57 three dashboard/six installer root defaults use established resolver with tuning preserved;13 offline checks plus syntax checks and independent acceptance, no jobs executed. New file: Kuro/Composition/PostgrestRequestEncoding.swift; current inventory134 app/20 package/245 migration files. Parser/alias F27–F31 source acceptance and no-backfill/no-cron residuals reconciled. Current Swift manifest185rows and generator expanded for packages and operational source types. Historical source/ownership/completion claims explicitly superseded. Remaining architecture/native/deployment work remains NOT COMPLETE; no deployment/flag/upload.
+
+### Change Log — 7 October 2026: Home repair evidence reconciliation
+
+Preserved unrelated dirty work while repairing R01–R16; shared integration is now on `codex/integrated-testflight`. Detailed source/proof matrix and logs: [repair ledger](docs/handoffs/2026-10-07-home-series-evidence/REPAIR_LEDGER.md). Producer backfill locks source before queue mutation; completion locks catalogue before job; source revisions/leases reject stale writes. Club disclosure purges enriched/private caches immediately, rejects stale uncached provider responses and separates privacy refresh from membership loss. New files for this initiative include `scripts/series_enrichment_worker.py`, its offline test, actual Home drain runner/repro, `KuroTests/ClubDisclosureRepairTests.swift`, SQL94/95 and SQL96 backfill race specifications, and repair evidence/docs. No repository file was deleted by this repair. Package76/Home/AniList7/enrichment8 PASS; native parse only. SQL94 historical50 PASS is not latest SQL qualification. Current SQL/performance/native/device/live/release remain incomplete; no IPC cleanup, deployment, flag activation, scheduled worker or upload. The new integrated envelope is an explicit later user scope decision, not a silent waiver.
+
+- Repair documentation gate PASS: current shared inventory 150 app Swift files, 22 package Swift files, 245 migrations. Inventory markers in the two current-state docs and CLAUDE were refreshed without changing rules. SQL96 specification independently reviewed; still NOT RUN.
+
+
+### Change Log — 7 October 2026: Integrated TestFlight source continuation
+
+Approved integrated two-wave scope and preserved dirty/untracked migration inputs on codex/integrated-testflight. Added Library-owned progress/status recovery, exact unit/string cursors, bounded personal Home offline snapshot/partial tracking knowledge, initial SDK reconciliation and transport-only expired-session presentation restore, account-scoped tester enrollment cache, captured-account deletion cleanup/admission SQL95/96, capability-specific model/RPC ownership, Profile import workflow coordinator, Concierge action lifetime, native selected-season/unit/edition controls and legacy detail loader/paging cancellation. Staged Fastlane freezes/validates exact inputs and separates real live-service evidence from valid local SQL; no zero-test or partial release pass.
+
+Evidence: actual compiled Library/Home/SQLite/precision/cache harness passes; focused high-risk source review repairs discovered defects; Fastlane10tests44assertions, live-evidence/SQL-partition9tests, native-runner5offlinecases and20distinct offline probe cases passed (12 affected legacy-probe cases rerun after the bounds delta; unchanged8 reused). Swift syntax and architecture boundaries passed. These are local/owner/offline/source proofs. Final SQL cannot start with exhausted shared-memory resources left untouched per user; Xcode license blocks typed native/package/SDK runs; management/admin/signing/MAL registration/consent/physical-device proof are unavailable. MAL account list importer and final release qualification remain incomplete. No backend deployment, new hosted writes, archive or upload by this continuation. Source/evidence checkpoint at docs/handoffs/2026-10-07-integrated-release-evidence/source-checkpoint.json is not a frozen release artifact. Full checklist/executor: docs/handoffs/2026-10-07-integrated-testflight-execution.md.
+
+New capability files: fourteen shared model/RPC owner files, Kuro/Home/HomePersonalSnapshot.swift, Kuro/Imports/MALNativeAccountConnector.swift, Kuro/Imports/ProfileImportCoordinator.swift, Kuro/Concierge/ConciergeWorkflowLifetime.swift, Packages/KuroModules/Sources/KuroLibrary/LibraryProgress.swift and focused regression sources. Central SupabaseModels/SupabaseRPCParams retired. Prepared flag/account lifecycle SQL and regressions95/96 are not deployed. Backend review repaired rejected mapping reuse, failed mapping/deactivation reads, malformed deletion acknowledgments and provider deadlines; the final alias-decision read fails closed and is independently source-accepted. Chapter8/deletion22/recommendation9 focused Deno cases pass, with unchanged relevant evidence reused. Provider URL normalization and retrieval confidence/identity validation passed actual Foundation/Deno checks. App Store metadata/reviewer draft, eight-category privacy manifest and source-reviewed FileTimestamp reasons are prepared; vendor/archive/Connect privacy qualification remains open. Runtime/release/probe helper files are listed in the ownership/evidence snapshot; unrelated work retained. Inventory below is current; older point-in-time counts remain historical.
+
+
+### 2026-10-07 — proportionate gates and remaining integrated source
+
+Proportionate gates are implemented in Fastlane: affected local checks during development, one integrated native/package/backend/selected-SQL verification, then real service and installed TestFlight proof. Future signing/live/device access is not due during development; correctness/privacy/replay and required workflows remain mandatory for release. MAL account ingestion for both media is implemented, primary contracts retrieved and source-reviewed, with controlled registration/consent still unavailable. Original-account/mount admission, Collection batch isolation, stale conflict controls and Profile deletion/preferences are repaired and independently source-accepted. Actual Core action tests, MAL reader, Library/Home/SQLite and Collection policy checks pass. Ten affected PostgreSQL suites pass253assertions, all12prepared migrations apply; historical baseline replay stays incomplete. No deployment, archive, upload or installation. Xcode license, Supabase administration, signing, controlled MAL consent and physical-device proof remain the precise release prerequisites. See [the complete executor/evidence/checklist](docs/handoffs/2026-10-07-integrated-testflight-execution.md).
+
+New source: `Kuro/Imports/ImportsService+MALAccount.swift`, `Packages/KuroModules/Sources/KuroCore/AccountActionScope.swift`, `Packages/KuroModules/Sources/KuroLibrary/MALAccountList.swift`. Existing rendering, identity, tracking, import and release owners were repaired in place; required regressions reuse existing suites. Inventory:151app/24package Swift files,29native test files,245migrations; no new SQL migration. Legacy uppercase list rows require read-only live counts before any reviewed repair. Unrelated work and local servers were preserved. This entry supersedes the earlier IPC-blocked/MAL-source-incomplete notes; it does not qualify a release.
+
+
+### 2026-10-07 — Xcode and release-access refresh
+
+**Access refresh, 7 October — NOT RELEASED.** Xcode27.0 first-launch validation passes. Actual package81tests, Home snapshot5cases and credential/permission contract3cases PASS. Native compilation errors (missing KuroCore import and duplicate Home declaration) and three outdated test fixtures are repaired and independently source-accepted. The broader native runner stalled after its logged host exited; it was interrupted and has no finalized acceptance result. No whole-native PASS is claimed. Physical iPhone “Max” is paired/booted on iOS26.6; one development and one distribution signing identity are present. Existing ASC key4Y9VLAQLQN returns403 `FORBIDDEN.REQUIRED_AGREEMENTS_MISSING_OR_EXPIRED`; the Account Holder must review agreements, then team/app/upload permissions can be checked. Fastlane references an absent older key. Supabase administration and controlled MAL registration/consent are still unavailable. No credential changes, backend deployment, upload or physical installation. Earlier license/hardware absence notes are superseded by these observations.
+
+### 2026-10-07 — Simulator-only delivery and live administrative inspection
+
+**Current target, 7 October — SIMULATOR ONLY / INTEGRATION IN PROGRESS.** Max explicitly removed TestFlight upload and physical-device delivery from this initiative. Debug 1.0 (17), bundle com.Kuro.app, built successfully and is installed/launched on iPhone 17 Pro / iOS 26.0; onboarding is visually verified, not a signed-in workflow pass. Supabase browser administration now works through existing GitHub sign-in. Two bounded read-only live audits found no malformed/noncanonical/colliding legacy list IDs, and confirmed exact auth.uid()::text owner policies. The six Home/detail/page RPCs, Home flag rows and feature_flag_overrides table are absent on the live project. No schema/customer/flag changes or deployment. MAL registration is pending: the browser site policy blocks apiconfig/create; the user must complete the prepared form and provide the Client ID. Existing 81 package / 5 snapshot / 3 contract passes remain valid; the broader native runner stays incomplete. Signing agreements, archive, upload, TestFlight and physical qualification are outside the current target. [Execution and evidence](docs/handoffs/2026-10-07-integrated-testflight-execution.md).
+
+Evidence: `simulator-only-install-receipt.json`, `simulator-only-build-pass.log`, `simulator-only-installed.png` and `simulator-live-readonly-audit.json` under `docs/handoffs/2026-10-07-integrated-release-evidence/`. Two read-only5second-bounded queries return metadata/aggregates only; no customer identities/content or administrative credentials retained. Sixteen deployed function slugs observed; exact versions/source not inspected. No Swift files added/removed and no code changed in this initiative;151app/24package/29unit/3UI Swift files and245migrations remain. The current directive supersedes earlier mandatory TestFlight/physical delivery clauses without waiving safety or required advertised workflows.
+
+
+### 2026-10-07 — Focused native authentication/import recovery and live contract preflight
+
+**Latest simulator follow-through, 7 October — INTEGRATION IN PROGRESS.** Owner authorized live sign-in/Home/import/recovery checks. Focused Xcode SDK authentication: 19 PASS, 0 failures; import apply/outcome/retry/Undo: 6 PASS. Controlled HTTP is used, so these are native SDK proof, not live UI/GoTrue/Home proof. Initial 21-pass/4-fail run is retained. Two fixture issues were corrected without weakening assertions: per-scenario real SQLite/WAL injection prevents shared-file cleanup contention, and the stale-account fixture now really returns A then B. Independent review accepted the narrow change; production storage defaults are unchanged. Two further read-only live audits confirm eight new Home/tracking/import RPCs and eight checked foundation tables are absent; live has nine 5 October migrations plus 6 October import-session policy. Aggregate existing list rows: 37 Anime, 11 Manga. Exact two-migration deployment draft is prepared, not applied; global flags stay off. Real simulator login and concrete production-grant approval are pending. Native UI automation timed out after the clone test run. No live account/customer/schema/flag changes, TestFlight or upload. [Evidence](docs/handoffs/2026-10-07-integrated-release-evidence/simulator-auth-import-recovery.md). Earlier status banners below are historical and superseded where they conflict.
+
+Changed native files: `Kuro/Composition/AppComposition.swift`, `KuroTests/IdentityCompositionTests.swift`. Added read-only preflight, pinned deployment draft and finalized test summaries/logs/receipt under the integrated evidence directory. Inventory unchanged: 151 app Swift, 24 package Swift, 245 historical migration files. No new tests, deployment or hosted mutations.
+
+
+### Change Log — 7 October 2026: Final scoped simulator checks and exact SQL rehearsal
+
+**Latest simulator execution, 7 October — LOCAL CHECKS PASS / LIVE INTEGRATION PENDING.** All387 distinct native cases have passing evidence across the initial362-case run, affected-suite repairs and the previous19SDK/6import cases; no unchanged whole-suite rerun. Four test files repaired with focused independent acceptance; production guards unchanged. The selected16SQL suites pass511assertions, and the exact two-migration atomic transaction/history rehearsal passes31assertions. Backend imports pass52tests/typecheck. Latest Debug1.0(17) is installed/launched on iPhone17Pro/iOS26.0 and the real sign-in form is open; signed-in workflows remain unverified. Live read-only preflight confirms all20newfoundation tables absent/all31existing prerequisites present, no orphan list rows, current deletion helper reviewed. No live changes/deployment/global rollout or TestFlight. Actual sign-in, specific production-grant approval and controlled MAL registration/consent remain pending. [Current evidence](docs/handoffs/2026-10-07-integrated-release-evidence/simulator-integration-progress.json). Earlier banners are historical where superseded.
+
+This initiative changed four native fixture files (CollectionContractTests, IdentityCompositionTests, ClubsContractTests, LibraryFacadeTests), preserving real SDK credentials, batch ordering, immediate private-cache purge and successful progress assertions. No production source file changed in this follow-through. Evidence includes failed initial runs and a stopped owned clone-start/diagnostics attempt; no zero-test or interrupted run counted as acceptance. No app/package/migration files added or removed; inventory remains151app/24package/29native-unit/3UI Swift files and245migrations. Operational SQL assembly/evidence added under the integrated handoff. Global flags stay off; live trigger behavior also affects existing clients when eventually deployed. Historical migration replay remains incomplete.
+
+
+### Change Log — 7 October 2026: Requested sign-in and MAL registration attempt
+
+Actual simulator login fields are empty; the normal saved-password option supplied no credentials. No sign-in/reset/new account. The existing MyAnimeList registration page is explicitly blocked by browser site-security policy; no bypass attempted and no form filled/submitted. Native public-client/callback values checked and owner handoff prepared in docs/handoffs/2026-10-07-integrated-release-evidence/simulator-sign-in-mal-handoff.md. The owner must enter Kuro credentials locally and complete the blocked MAL form with actual applicant/homepage and agreement acceptance. Existing MAL configuration remains empty/not approved; no production source, live account/schema/provider/flag changes or TestFlight. Prior valid local evidence remains unchanged.
+
+
+### Change Log — 7 October 2026: Reusable development login and sidebar handoff
+
+**Latest access initiative, 7 October — SIGN-IN PASS / RESTORE FAIL / MAL HANDOFF.** One owner-authorized ordinary persistent GoTrue development account was created; credentials retained privately outside the repo. Genuine password sign-in and authenticated identity pass, and the simulator Profile shows the expected development email/build1.0(17). Ordinary restart returns to welcome, including after normal signed build/install; root cause unresolved, no auth-code repair claimed. Final simulator is signed in again. MAL registration is confirmed open in the sidebar for manual owner completion under the existing site-security restriction; client remains unconfigured. No existing account changes, admin grants, schema/flags/deploy/TestFlight. Prior unchanged local evidence remains valid at its layer; installed restore is a new failed check. [Evidence](docs/handoffs/2026-10-07-integrated-release-evidence/development-account-sidebar-handoff.md). Earlier banners are historical where superseded.
+
+No app/package/migration files added or removed. Added sanitized auth/install evidence and handoff; credentials stay outside repo and evidence. Actual restart failure remains open, with prior local proof retained.
+
+
+### Change Log — 8 October 2026: Actual sign-in, callback identity and restore qualification
+
+**Latest simulator qualification, 8 October — SIGN-IN / RESTORE / SIGN-OUT PASS; MAL CLIENT ID PENDING.** Actual normal password-form sign-in and restart restore pass on com.Kuro.app. A dedicated iPhone17Pro/iOS26.0 simulator also proves supported SDK callback, same-account restore and immediate sign-out to AuthView. Earlier callback FAIL is not current-artifact proof: the original simulator has a canvas preview also claiming kuro://; old observations remain historical. Existing preview apps/data were preserved; no production auth repair or unchanged broad suite rerun. Owner reports MAL registration complete; site policy blocks reading issued client values, public Client ID requested, connector remains disabled. Home/import candidate RPCs still absent live. No new live account, admin/schema/flag/deploy/TestFlight changes. [Current installed proof](docs/handoffs/2026-10-08-simulator-qualification/qualification.md). Earlier banners are superseded where they conflict.
+
+No app/package/migration inventory changes. Added targeted installed-app evidence and one isolated simulator; only ignored callback orchestration and state/evidence documents changed. Secrets remain privately retained outside repo.
+
+### Change Log — 8 October 2026: Published MAL registration configured for simulator
+
+**MAL registration/configuration, 8 October — SIMULATOR CONFIGURED; SERVER INTEGRATION BLOCKED.** User screenshots verify the published native iOS registration and exact kuro://mal/callback. Debug.xcconfig enables the public client only for iphonesimulator; Shared/Release remain disabled and no confidential secret is embedded. Normal signed build/install and matching built Info.plist pass. Actual Profile exposes Connect and import MAL, which reports Library synchronization is not enabled yet before any provider consent. Existing sign-in survives the update. Exact Home/import SQL is still prepared/rehearsed, not deployed; controlled OAuth and real import/recovery remain pending. No live schema/grant/flag changes, archive or TestFlight. [Evidence](docs/handoffs/2026-10-08-simulator-qualification/qualification.md).
+
+### Change Log — 8 October 2026: Effective backend integration and precise import repair
+
+**Backend integration, 8 October — SOURCE/LOCAL ACCEPTED; NOT DEPLOYED.** Fresh live audits mapped61 frontend RPCs,19 literal relations and7 Edge slugs;16 new Home/Library/import/social RPCs are absent, existing runtime SQL/table dependencies for six changed handlers are present. Existing Supabase CLI management access works without new keys; two read-only Auth/Storage administrative cleanup-access checks pass. Expanded minimum deployment is three pinned SQL inputs plus AniList, Apply, Undo, deletion, recommend and retrieve-assist closures (JWT enabled, flags unchanged). New forward SQL preserves precise units/labels and entry lifecycles; historical Undo without lifecycle proof skips legacy_lifecycle_unavailable, with no backfill. Independent review accepted the repair and exact3SQL assembly; exact disposable fixture rehearsal passes118assertions (9 install/history/data,40 import,69 writer), historical replay incomplete. Six Edge closures match accepted checkpoint, unchanged tests reused. Live rag_assist_v1 is already5% for DE/AT/CH, superseding older off claims; no flag change. Named production deployment approval and fresh simulator/live workflow proof remain pending. Simulator only; no TestFlight. [Complete mapping, findings, deployment and recovery](docs/handoffs/2026-10-08-backend-integration/backend-integration.md). Earlier conflicting banners are historical.
+
+
+### Change Log — 8 October 2026: Deep import user-journey review and deployment hold
+
+**Import/Library/Home deep review, 8 October — REQUEST CHANGES / DEPLOYMENT HOLD.** Independent source and user-journey review found27 concrete findings; six structured SQL defects were reproduced in a disposable PostgreSQL fixture with the accepted legacy repair installed. Normal AniList preview/confirm bypasses structured input; existing values can be overwritten without consent; MAL underscore statuses fail; exact progress and score pairs become inconsistent; recovery is not discoverable and can block new jobs; results/navigation and mounted Collection/Library/detail consistency remain incomplete. XML parser normalization/semantic-validation defects were observed separately. The prior118 assertions and legacy Apply/Undo approval remain narrow evidence, not import acceptance. Deployment draft is explicitly HOLD; hashes preserved, no implementation repair, live writes, rollout or TestFlight in this review. [All findings, user contract, two-wave repair sequence and focused checks](docs/handoffs/2026-10-08-backend-integration/import-user-journey-review.md). Earlier readiness banners are superseded.
+
+### Change Log — 8 October 2026: Import review, recovery and shared Library integration
+
+Implemented the two-wave specification without replacing existing capability owners. New source files: `ImportsService+Workflow.swift`, `ImportsService+WorkflowRPC.swift`, `ImportsService+WorkflowSources.swift`, `ImportWorkflowPresentation.swift`, `ImportWorkflowSheet.swift`, `ImportCatalogMatchPicker.swift`, `ImportHistorySection.swift`, `CollectionStore+ImportedTitles.swift`, package `LibraryImportWorkflow.swift`, `LibraryImportWorkflowJournal.swift`, `ImportWorkflowJournalTests.swift` and native `ImportWorkflowIntegrationTests.swift`. Added forward `20261008110000_import_review_recovery_v2.sql` and SQL97 regression suite. Existing AniList/MAL adapters, journal, Library transport/sequencing, projection consumers, actual entrypoints and composition were repaired in place; legacy Concierge compatibility stays available.
+
+Default Keep, selected-field approval, coupled progress/score identity, provider-ID namespace, strict XML/status/range checks, staged coverage, immutable receipts, Stop, lifecycle/revision-guarded Undo, persistent results and same-device recovery are implemented. Final independent review also closed an Apply/Resume race with newer unsent progress or admitted removal/notes. Terminal retirement is receipt-first/manifest-last; a saved result awaiting projection keeps its full recovery input. Imported navigation remains a Collection filter. No lossless claim is added to legacy text export.
+
+Evidence: exact four-input guarded SQL rehearsal265 assertions, package95 tests, native r5 41 distinct methods/54 executions and two affected generic-reservation tests pass. The final affected11-import/3-publication run passes14/14 methods, zero failures/skips and222 unchanged candidate inputs. Exact tested simulator candidate installed; all bundle hashes match and normal launch restores the existing account. SQL and high-risk source independent acceptance is recorded in the same27-finding register. Historical full schema replay is incomplete; fixtures are not hosted GoTrue/Storage/PostgREST/Realtime proof. Production approval and controlled live provider/simulator journeys/cleanup remain pending.
+
+Inventory:159 app Swift,27 package Swift,30 native test Swift;245 historical migrations;14 prepared top-level SQL inputs plus one opt-in historical backfill (excluded). No applied-history rewrites, customer backfill, deletion-barrier cron, deployment, TestFlight or global Home activation. Rules: one lifecycle owner/typed API, immutable attempted actions, missing-versus-clear semantics, current account/permission guards, persistent partial outcomes, semantic line-length review signals and focused independent high-risk review. Unrelated dirty changes were preserved.
+
+Final local delivery addendum: affected native14/14 PASS,222 candidate inputs unchanged; exact tested simulator1.0(17) installed with complete bundle-hash match. Actual launch restores the existing account; MAL pauses safely with foundation disabled. [Evidence and four gates](docs/handoffs/2026-10-08-backend-integration/import-v2-implementation-evidence.md). Full completion remains BLOCKED pending exact live deployment approval and subsequent included provider/installed/live journeys and cleanup. No deployment or TestFlight.
+
+
+### Change Log — 8 October 2026: Exact approved backend deployment and native Home qualification
+
+**Approved import/Library/Home backend, 8 October — EXACT SET DEPLOYED; QUALIFICATION IN PROGRESS.** The user approved the pinned four-input SQL transaction and six Edge closures. Effective migration identities/RLS/grants/search paths and function versions are verified; global Home remains disabled. Real v2 import contracts pass142 bounded requests/two disposable accounts: both media, stage/no-write, Keep, selected updates, replay, later-edit conflict, guarded Undo, Stop, persistent results and outsider denial; exact account/job/list/item cleanup verified. Corrected Realtime qualification passes23 requests/three disposable accounts and club cleanup. Storage origin removal and old-token denial pass, but a previously cached public URL remains a CDN HIT through the60second observation, so that producer remains FAIL; all recorded URLs subsequently return decoded NoSuchKey. Initial failed evidence is retained. Native Home/detail fidelity is repaired and independently reviewed; six affected native tests pass and rendered inspection repaired image overflow. The shared reader incorrectly requested Manga-only volumes_progress from Anime; narrow query repair and two package regressions pass without weakening readiness. Its exact223-input-stable build is installed, and actual restored Home is visible against the live backend. First-time Manga selection cache fallback is repaired and independently accepted; its exact223-input-stable build is installed and actual Anime→Manga selection passes. MAL login is dismissed because a controlled user account is unavailable; real MAL account qualification is specifically blocked. Independent provider/recovery/results journeys remain pending. No TestFlight, public release, global Home rollout, backfill, worker scheduling or deletion cron. [Current deployment/live/native evidence](docs/handoffs/2026-10-08-backend-integration/approved-deployment-live-evidence.md). Earlier conflicting banners below are historical.
+
+Inventory:160 app Swift,27 package Swift,30 native test Swift;245 historical migrations remain unchanged. Added HomeCalendarPresentation.swift (display-only) and probe_import_workflow_v2.js (bounded existing harness); repaired the existing Storage/Realtime producers and Library selector. No new lifecycle owner, test framework or scheduler. Ownership map updated. Prior r6/r3 and presentation-only install evidence remains scoped historical; current reader-build install has223 stable inputs and matching bundle hashes.
+
+
+**Simulator visibility and MAL clarification, 8 October:** The user clarified that no MAL user account is available. The browser login was dismissed; the separate Xcode Simulator window was raised with Home visible. “Qualification” is the device name, not a product screen or completed verdict. The final independently accepted Manga cache correction is now installed with exact bundle identity, retained app data/Keychain and local Debug flags; actual Anime→Manga selection remains selected. No provider login, consent or real account-list ingestion is claimed. Only controlled MAL account qualification depends on obtaining a test account; other Home/Library/AniList/XML/recovery journeys remain independently executable and pending. No backend change or TestFlight action. [Installed state](docs/handoffs/2026-10-08-backend-integration/approved-installed-home-readiness.json).
+
+
+### Change Log — 8 October 2026: Native design polish planning
+
+Saved the scoped native design plan covering shared palette/type/motion, image-led empty Home, populated Anime/Manga, detail continuity and Profile account-hub grouping. Inspected actual login scenery, onboarding, Profile and native screenshots. First-action routing, honest empty/planned/error states, account privacy and durable recovery remain with existing owners. Two native implementation passes and proportionate verification are specified. No runtime source, asset, schema or deployment change; no tests rerun for this documentation initiative. [Plan](docs/plans/2026-10-08-native-design-polish.md).
+
+
+### Change Log — 8 October 2026: Fresh-session handoff
+
+Documentation-only checkpoint: the handoff records freshly verified remote tips (local HEAD 46 commits ahead of main), all dirty paths, original design references, current installed source pins and live migration/function identities. Approved backend deployment is complete; the native polish remains planned and the remaining provider/installed journeys retain their precise blockers. No runtime, deployment, Git delivery or simulator changes. Handoff provenance includes a dirty-file manifest, checkout snapshot and read-only live metadata. No app/package/migration files added or removed; runtime inventory is unchanged. [Handoff and next-session prompt](docs/handoffs/2026-10-08-fresh-session/HANDOFF.md).
+
+### Change Log — 9 October 2026: Native design polish first pass
+
+Built the scoped neutral Home, series detail and Profile pass from `docs/plans/2026-10-08-native-design-polish.md`. New files: `Kuro/Views/KuroSceneryLoop.swift`, `Kuro/Views/Home/HomeShelfPolicy.swift`, `Kuro/Views/ImportSourceChooser.swift`, `KuroTests/HomeShelfPolicyTests.swift`. Login welcome uses the shared scenery loop and keeps its saturation; empty Home cools the sky. Drift stops offscreen, in the background, with Reduce Motion, and in Low Power Mode. Find opens Search scoped to the selected medium. Import presents the existing coordinator's AniList, MAL file and MAL account paths without a new credential owner. Shelf policy tests and the Home composition snapshot suite pass, including empty Home and a tall Profile render. Screenshots: `docs/handoffs/2026-10-08-fresh-session/native-polish-screenshots/`. Debug 1.0 (17) installed on the owned qualification simulator; the restored empty account shows the Manga invitation. The previous bundle hash is stale. Owner visual acceptance is still open. No backend deploy, flag rollout, commit, TestFlight, MAL account proof or Storage CDN retest.
+
+Inventory: 163 app Swift, 27 package Swift, 31 native test Swift. Historical migrations unchanged.
+
+Follow-up the same day: the cover was tightened after the form-like pass was rejected. The mountain ridge is magnified into the empty Home and Profile masthead. The headline is display type over the picture. Find and Import sit as a paired line under a short rule. Watching titles use a gradient foot and a circular advance mark instead of a solid bar. Coming up and the calendar dropped their gray cards. Library counts on Profile are three large figures. Snapshot suite passed again and Debug 1.0 (17) was reinstalled on the owned simulator. Visual acceptance is still open.
+
+### Change Log — 9 October 2026: One cover, then paper
+
+Unified empty and populated Home into one cover object, then a paper index. `HomeView` drops the artwork mask on Anime/Manga (ink + underline only). The first active title (or the mountain when none) fills the same full-bleed frame; type band and action line stay in one place. Later Anime titles are index rows with a small still and the same advance control; Manga keeps equal covers for titles after the first. Coming up is one line under the cover with the date list beneath; club renders only when items exist. Saved shelf uses the same cover with Collection. `HomeCompositionSnapshotTests` re-rendered empty/anime/manga at 390; Debug reinstalled on the owned qualification simulator. Visual acceptance remains open. No backend, flag, commit or TestFlight change.
+
+### Change Log — 9 October 2026: One picture, one page
+
+Owner rejected the cover-then-white-paper mash-up. `HomeView` now keeps one picture behind the full scroll (mountain or first title). The selected medium word is restored as a mask of that same image. Type, actions, later titles, Coming up, calendar and club are ink on a soft wash of the picture; gray calendar/club cards are removed. Snapshot suite re-rendered at 390; Debug reinstalled on `7FC4B58A-430C-457D-A017-6B0095723F3F`. Visual acceptance remains open. No backend, flag, commit or TestFlight change.
+
+### Change Log — 9 October 2026: Full Poster Home
+
+The empty invitation is unchanged. A saved shelf now follows the original Poster Home with the owner’s adjustments: Coming up is an ink row under the switch, Anime titles are shallow scenes with a white foot and a light raised plus, Manga titles are equal covers with the chapter ticket on the art and a dark raised plus, then the calendar and a dark club room when real notes exist. Visual acceptance remains open. The v1.1 backend waves were not re-executed.
+
+### Change Log — 9 October 2026: Empty and saved Home
+
+`homeInvitation` is true only when the selected medium’s shelf scene is `.invitation`. That is the only time `HomePagePicture` and the clear header are drawn. A saved or in-progress anime or manga shelf uses the white page and the original shelf: first title as the large line and progress control, later anime as rows, later manga as equal covers. Visual acceptance remains open.
+
+### Change Log — 9 October 2026: Home continues
+
+The short wash rectangle under the invitation was ending in a hard line. Home now uses one full-phone wash that stays readable at the header and the type and eases out at the bottom. Scroll content background is hidden so the picture shows through. On Home, KURO, the section window, search, and profile use ink on a light field. Unselected Anime/Manga is full ink; the selected word keeps a white rim under the picture mask. Find switches to Discover. `ImportSourceChooser` uses the invitation kicker, serif line, rule, and arrow. Debug `--kuro-seed-samples` saves Cowboy Bebop (117, watching), Ping Pong the Animation (758, planning), Berserk (5, reading), and Oyasumi Punpun (11, planning) through `LibraryStore.save`. Visual acceptance remains open.
+
+### Change Log — 9 October 2026: Invitation type
+
+Empty Home keeps its words. The cover sentence uses light display serif, tight tracking, and the same short ink rule as the selected medium word. Find and Import are separate actions: `kuroKicker()` (wide-tracked caps), a serif line, a full ink rule, and an arrow. `kuroKicker()` lives on `View` in `KuroDesignSystem.swift` so later screens can use the same small voice. Behavior of Find and Import is unchanged. Visual acceptance remains open.
+
+### Change Log — 9 October 2026: Picture through header
+
+The white band above Home was app chrome (`Color.kuroBackground` + opaque `KuroHeaderNew`) sitting above the pager. When `selection == .home`, `KuroMainView` now pins shared `HomePagePicture` full-screen with `.ignoresSafeArea()` behind the header and pager; other pages keep the white field. On Home, `KuroHeaderNew` clears its fill, shadow and divider. `HomeView` drops the scrolling duplicate picture and the white.opacity(0.92) cut; soft wash stays over the lower type; the medium word uses `HomePagePictureFill`. New file: `Kuro/Views/Home/HomePagePicture.swift`. `HomeCompositionSnapshotTests` re-rendered; Debug reinstalled on `7FC4B58A-430C-457D-A017-6B0095723F3F`; evidence `home-picture-through-header.png`. Visual acceptance remains open. No backend, flag, commit or TestFlight change.

@@ -1,0 +1,39 @@
+{
+  "evidence_layer": "native SDK execution in Xcode test simulator; controlled in-process HTTP and fake Library transport; real isolated SQLite/WAL",
+  "captured_at": "2026-10-07T20:32:54.775138+00:00",
+  "initial_run": {
+    "summary": "simulator-auth-import-initial-fail.json",
+    "result": "Failed",
+    "passed": 21,
+    "failed": 4,
+    "total": 25,
+    "import_apply_outcome_cases": 6,
+    "import_apply_outcome_failed": 0,
+    "diagnostics_collector": "Owned child 9132 of xcodebuild 6928 was stopped after test host exited; xcodebuild finalized normally with TEST FAILED and exit 65. No other process stopped."
+  },
+  "repaired_run": {
+    "summary": "simulator-auth-repaired-pass.json",
+    "result": "Passed",
+    "passed": 19,
+    "failed": 0,
+    "total": 19,
+    "suite": "SessionSDKTests",
+    "exit_code": 0
+  },
+  "repairs": [
+    "Each SessionSDKHarness supplies a unique real on-disk SQLite/WAL via existing Home outbox initializer and new optional composition argument; production nil default remains unchanged",
+    "Stale-account confirmation fixture uses email-bound StubAuth.signInResponder so A to B is genuine, retaining no-dispatch and current-account assertions"
+  ],
+  "independent_review": "focused_review accepted exact narrow changes; no error suppression, serialization or weakened assertions",
+  "source_sha256": {
+    "Kuro/Composition/AppComposition.swift": "43643e31e114c0149f4fec7139dd3e61aa16b88d649601b4b42915c5157d0351",
+    "KuroTests/IdentityCompositionTests.swift": "6c49537ec534529761425e2bb05a567aeb19b9f70eda4f069a5c6744cfe45aa5"
+  },
+  "limits": [
+    "Not live GoTrue or native UI sign-in proof",
+    "Not deployed Home/import/replay proof",
+    "Earlier installed original simulator binary has not been replaced by this test build",
+    "No whole-native suite acceptance",
+    "No TestFlight or deployment"
+  ]
+}

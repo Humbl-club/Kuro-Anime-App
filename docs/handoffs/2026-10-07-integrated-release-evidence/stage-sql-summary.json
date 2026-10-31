@@ -1,0 +1,95 @@
+{
+  "scope": "Disposable PostgreSQL fixture only; no deployed/live-service proof",
+  "foundation_sha256": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+  "profile": {
+    "postgres": "17.10",
+    "shared_memory_type": "mmap",
+    "dynamic_shared_memory_type": "mmap",
+    "shared_buffers": "16MB",
+    "max_connections": 30,
+    "TCP": false
+  },
+  "tests": [
+    {
+      "suite": "80_series_home_foundation",
+      "assertions": 34,
+      "result": "PASS",
+      "report_dir": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql"
+    },
+    {
+      "suite": "81_import_session_receipt",
+      "assertions": 20,
+      "result": "PASS",
+      "report_dir": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql"
+    },
+    {
+      "suite": "81_library_import_counts",
+      "assertions": 9,
+      "result": "PASS",
+      "report_dir": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql"
+    },
+    {
+      "suite": "95_feature_flag_overrides",
+      "assertions": 8,
+      "result": "PASS",
+      "report_dir": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql"
+    },
+    {
+      "suite": "96_series_enrichment_backfill_races",
+      "assertions": 18,
+      "result": "PASS",
+      "report_dir": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql"
+    },
+    {
+      "suite": "95_series_producers_disclosure",
+      "assertions": 49,
+      "result": "PASS",
+      "report_dir": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql"
+    },
+    {
+      "suite": "96_series_account_lifecycle",
+      "assertions": 14,
+      "result": "PASS",
+      "report_dir": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql"
+    },
+    {
+      "suite": "92_series_progress_race",
+      "assertions": 8,
+      "result": "PASS",
+      "report_dir": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql"
+    },
+    {
+      "suite": "93_series_fence_races",
+      "assertions": 24,
+      "result": "PASS",
+      "report_dir": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql"
+    },
+    {
+      "suite": "94_series_home_review_repairs",
+      "assertions": 69,
+      "result": "PASS",
+      "report_dir": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql"
+    }
+  ],
+  "passed_assertions": 253,
+  "prepared_migrations": "All12 applied in fixture",
+  "historical_replay": "INCOMPLETE;baseline-first195applied62failed;strict147applied110failed",
+  "startup_diagnosis": "Explicitmmap still uses56byteSysVinterlock. Host occupancy independentlydroppedfrom32to3 before successfulprobe; noforeignIPC/server changes wereperformed.",
+  "performance": {
+    "dataset": "one authenticated fixture account,50trackedanime,10two-seasoncontinuities,50currentpalettes,30releaseevents",
+    "first_complete_SQL_bundle_ms": 10.826,
+    "subsequent_bundle_plus_counts_ms": 2.621,
+    "active_CTE_execution_ms": 0.342,
+    "returned_active": 12,
+    "returned_events": 20,
+    "total_eligible_events": 30,
+    "uncompressed_JSON_bytes": 13582,
+    "report": "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql/home-query.txt",
+    "limitation": "One local sampleperpath;notHTTP,p95,coldmachinecache,capacity,orproductionproof. Activecontinuityprojection scopes/sortsall50accountentries before13rowpage; catalog/palettehydrationbounded12rows. Per-entrySQLlookupnotnetworkfanout."
+  },
+  "source_manifests": [
+    "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql/kuro-final-sql-pre-run-pin.json",
+    "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql/kuro-final-sql-repaired-pre-run-pin.json",
+    "docs/handoffs/2026-10-07-integrated-release-evidence/stage-sql/kuro-final-sql-94-pre-run-pin.json"
+  ]
+}

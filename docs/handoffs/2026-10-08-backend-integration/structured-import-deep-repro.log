@@ -1,0 +1,21 @@
+abcdef00-0000-4000-8000-000000000981
+
+{"case": "official_underscore_statuses", "response": {"added": 0, "applied": 0, "updated": 0, "conflict": 0, "unchanged": 0, "unmatched": 3}, "dispositions": [{"detail": "unsupported status", "medium": "anime", "disposition": "unmatched", "external_id": "998101"}, {"detail": "unsupported status", "medium": "manga", "disposition": "unmatched", "external_id": "998102"}, {"detail": "unsupported status", "medium": "anime", "disposition": "unmatched", "external_id": "998103"}]}
+{"state": "ready_with_issues", "counters": {"added": 0, "updated": 0, "conflict": 0, "unchanged": 0, "unmatched": 3}, "home_revision": 0, "home_revisions": {"anime": 0, "manga": 0}}
+{"row": {"label": "4.5", "unit_id": "98198198-1981-4981-8981-981981981981", "progress": 4, "revision": 1}, "case": "precision_before"}
+{"row": {"raw": 80, "scale": "POINT_100", "rating": 8, "revision": 1}, "case": "score_before"}
+{"row": {"notes": "deliberate Kuro note", "rating": 9, "status": "WATCHING", "progress": 12, "revision": 1}, "case": "prebaseline_before"}
+{"case": "precision_score_prebaseline_response", "response": {"added": 0, "applied": 3, "updated": 3, "conflict": 0, "unchanged": 0, "unmatched": 0}}
+{"row": {"label": "4.5", "unit_id": "98198198-1981-4981-8981-981981981981", "progress": 7, "revision": 2}, "case": "precision_after"}
+{"row": {"raw": 80, "scale": "MAL_10", "rating": 8, "revision": 2}, "case": "score_after"}
+{"row": {"notes": "provider note", "rating": 4, "status": "PLANNING", "progress": 1, "revision": 2}, "case": "prebaseline_after"}
+{"state": "ready", "counters": {"added": 0, "updated": 3, "conflict": 0, "unchanged": 0, "unmatched": 0}, "home_revision": 1, "home_revisions": {"anime": 1, "manga": 1}}
+{"row": {"notes": "same", "status": "WATCHING", "progress": 3, "revision": 1}, "case": "identical_first", "response": {"added": 1, "applied": 1, "updated": 0, "conflict": 0, "unchanged": 0, "unmatched": 0}, "home_revision": 2}
+{"state": "ready", "counters": {"added": 1, "updated": 0, "conflict": 0, "unchanged": 0, "unmatched": 0}, "home_revision": 2, "home_revisions": {"anime": 2, "manga": 1}}
+{"row": {"notes": "same", "status": "WATCHING", "progress": 3, "revision": 2}, "case": "identical_reimport", "response": {"added": 0, "applied": 1, "updated": 1, "conflict": 0, "unchanged": 0, "unmatched": 0}, "home_revision": 3}
+{"state": "ready", "counters": {"added": 0, "updated": 1, "conflict": 0, "unchanged": 0, "unmatched": 0}, "home_revision": 3, "home_revisions": {"anime": 3, "manga": 1}}
+
+
+ba5fced4-7625-466f-babe-17a84417a8e9
+{"case": "external_id_overflow", "state": "22003", "message": "value \"3000000000\" is out of range for type integer"}
+

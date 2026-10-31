@@ -70,3 +70,45 @@ An independent review of the integrated tree found eight defects. No source was 
 ### 2026-10-05 live service checks
 
 Disposable accounts on `bkdifromsqxkndnllmdj`. F44 is LIVE-PARTIAL: sign-in, refresh, own-profile read, and a cross-account update that changed nothing. The live PostgREST error body uses `details`. F45 and F88 were LIVE-FAIL on v8. They are LIVE-PASS on v9 after `20261005140000` and `20261005150000`: the origin prefix was empty, and a later upload returned `ACCOUNT_DELETION_IN_PROGRESS`. The three earlier JPEGs were removed. Apply/Undo SQL, the signal cutover, and an App Store release are not deployed. The migration is not complete.
+
+### 2026-10-06 database deploy, functions blocked
+
+Applied `20261005120000`, `20261005120100`, `20261005120200`, `20261005130000`, `20261005160000`, `20261005170000`, and `20261005180000`. `concierge-apply` and `concierge-undo` did not deploy: `FGA Authentication Error`. Those slugs stay on the previously deployed bundles. `sendsStoredRatingAndNotes` and `listensToLegacyContentTables` stay true. No App Store release.
+
+`concierge-apply` version 26 and `concierge-undo` version 17 deployed 2026-10-06 17:24 UTC. The simulator now reaches the new Apply and Undo handlers. There is still no App Store release.
+
+### 2026-10-07 production-ready leftovers (simulator build against live project)
+
+Client now matches the deployed server for the leftover switches. **G0–G7 are not all passed.** No App Store / TestFlight upload. The sixteen route smoke journeys in `docs/modules/README.md` stay a simulator checklist, not a claimed pass.
+
+- **F15:** `ImportReconciler.sendsStoredRatingAndNotes = false` (Apply v26 field-only writes). Season notes stay insert-only.
+- **F42:** Live disposable-club check: a member received `club_activity_signals`; a non-member received none. `SupabaseClubChannel.listensToLegacyContentTables = false`. Account-switch test: replacing user A with user B clears Concierge, Clubs, and Collection private state (`AccountLifecycleTests`).
+- **F17:** `ClubError` reads PostgREST `details` when `detail` is empty (`postgrestJSON` + `postgrestDecoder`). Realistic `DUPLICATE_ITEM` body → `.duplicateItem`; unknown text stays `.other`. SDK not upgraded.
+- **Locked product rules:** F30 (ambiguous parse does not auto-apply when `clarify_v2` is off, Concierge + Profile), F74 (Finished with no title stores no status), F75 (bare number in a title stays in the title), F81 (AniList 200 / Apply first 100 + omitted copy). Old half-finished import sessions stay non-undoable; no deletion-barrier cron.
+- **F87:** Private club list cards show member count only (`ClubsListCardRules.memberInitials`); status/progress keep names.
+- **F77:** Confirmed no app `.from("import_sessions")` writes. Migration `20261006120000_import_sessions_select_only` applied: authenticated SELECT-only.
+- **F51 (retrieve-assist slice):** `concierge-retrieve-assist` thin `index.ts` + `runRetrieveAssist` in `run.ts`; offline `run_test.ts` **5 passed / 0 failed**; deployed **v8** on `bkdifromsqxkndnllmdj`. `rag_assist_v1` stays off. F51 remains PARTIAL overall (other handlers pending review).
+
+Live now: October SQL (incl. import-session SELECT-only), `delete-account` v9, Apply v26, Undo v17, retrieve-assist v8. Simulator still needs a manual walk of the other journeys.
+
+### 2026-10-07 multi-user page verification harness
+
+Agent-runnable layered verification for the leftovers (no production UI; `rag_assist_v1` untouched). **G0–G7 are not all passed. The 16 device smoke journeys remain NOT run.**
+
+- **Layer A:** `scripts/quality-gates/test_leftovers_verify.sh` — build + targeted KuroTests + retrieve-assist/parser deno (+ optional local DB scopes; exit 4 = BLOCKED, not PASS).
+- **Layer B:** `KuroTests/MultiUserPageOrchestrationTests` + `scripts/quality-gates/test_multi_user_pages.sh` — three simultaneous graphs (A import/collection, B private club initials + ClubError details, C Discover/Browse/Search then switch). **TEST SUCCEEDED** on iPhone 17 Pro (1 passed). Not in `run_all.sh`.
+- **Layer C:** `scripts/live/probe_import_sessions_select_only.js` **ok** (INSERT/UPDATE/DELETE → 42501; SELECT allowed). `scripts/live/probe_club_activity_signals.js` **ok** (`passPath: realtime`; member 1 event, outsider 0; disposable accounts deleted).
+- Evidence under `reports/leftovers-verify/`.
+
+### 2026-10-07 Codex execution / proportionate verification
+
+Owner requested implementation rather than another handoff and reduced artificial test breadth. Retrieval cache/caller identity, terminal deletion errors, live checker assertions/cleanup, actual native owner journey and honest partial runner status repaired. Focused independent acceptance and new live journal PASS are recorded in docs/handoffs/2026-10-07-modularity-execution-evidence/README.md. Native owner journey 1 passed; terminal native contract 1 passed, 0 failed, 0 skipped, verified from structured xcresult. No deployment/flag/App Store change. CLI/administrative/distribution access missing; remaining register work is not complete.
+
+### 2026-10-07 remaining source reconciliation
+
+F20 now emits explicit fractional UTC cursor instants through a shared DB encoder; two existing owner/SDK contracts passed, structured total2/failed0/skipped0, independent acceptance. F57 dashboard/install defaults repaired;13 offline checks and independent review passed without installing/restarting jobs. F27/F28/F29/F31 are locally accepted from independent production-rule/corpus/alias execution (11 tests); F79/F89 follow existing no-backfill/no-cron locks as accepted residuals. Current Swift owner manifest and inventory regenerated; historical generated excerpts and the old completion headline explicitly superseded. No new product feature, live deployment or release. Remaining semantic/API/presentation/native/access work remains open. `LOCALLY-ACCEPTED` is source acceptance, not deployment; `LIVE-PASS` is limited to the named service contract.
+
+
+### 7 October — scoped simulator gates reconciled, no deployment
+
+Latest owner scope is simulator only.387distinct native cases have passing evidence across valid runs; unaffected cases reused, four existing fixture files repaired/independently accepted.16selected SQL suites/511assertions and backend import4suites/52tests pass. Exact missing two-migration atomic/history transaction rehearsed locally31PASS with server-wide trigger scope disclosed; live20foundation tables absent/31prerequisites present. Latest Debug installed/launched; real sign-in form open. F43/F46/F47/F49/F50 reflect these proof layers. Real signed-in journeys, exact live approval/deploy, MAL controlled consent, hosted cleanup and measured behavior remain pending. TestFlight/physical proof not due. Nothing changed live; no global flag enablement.

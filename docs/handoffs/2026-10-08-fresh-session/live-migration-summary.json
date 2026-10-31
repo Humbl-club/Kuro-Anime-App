@@ -1,0 +1,117 @@
+{
+  "capturedAt": "2026-10-08T01:15:08.702155+00:00",
+  "projectRef": "bkdifromsqxkndnllmdj",
+  "command": "supabase migration list --linked",
+  "remoteHistoryRows": 249,
+  "localOnly": [],
+  "remoteOnly": [
+    "20261007040000",
+    "20261007130000",
+    "20261008100000",
+    "20261008110000"
+  ],
+  "preparedTopLevel": [
+    {
+      "id": "20261005120000",
+      "path": "supabase/prepared-migrations/20261005120000_club_members_role_column_guard.sql",
+      "sha256": "1cb636b6e502ef7678cc42eac97e1316f55be10c90d4fae048276212154d4d17",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261005120100",
+      "path": "supabase/prepared-migrations/20261005120100_club_rails_insert_admin_only.sql",
+      "sha256": "394556ec8349de14766c81ec2f6b0381b4ba0f19c41f330001c640802b7f4f60",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261005120200",
+      "path": "supabase/prepared-migrations/20261005120200_toggle_comment_reaction_visibility.sql",
+      "sha256": "7383906f97852e2a9175c74a8312b565aa8a56b15ea12a3eeeeec331ed3c3815",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261005130000",
+      "path": "supabase/prepared-migrations/20261005130000_import_apply_undo_transactions.sql",
+      "sha256": "05f7c9f1b42b5ea4bc8a948dcf9f268ff9a1cfd602008bef28f9e484eb5fe45f",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261005140000",
+      "path": "supabase/prepared-migrations/20261005140000_account_deletion_write_barrier.sql",
+      "sha256": "55d6cb6330635ac830392160001d91fb088ef54b056b447459fd174bf7bb6355",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261005150000",
+      "path": "supabase/prepared-migrations/20261005150000_club_membership_lifecycle_and_privacy.sql",
+      "sha256": "5328c0849ca2114f222acd83ad741da5847c314a4f8aad2403a92cc46e4fa112",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261005160000",
+      "path": "supabase/prepared-migrations/20261005160000_club_realtime_signals.sql",
+      "sha256": "d06296bc802f3533408d058ecc08357b20de676eeb0c1ac76649c24d18d6943c",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261005170000",
+      "path": "supabase/prepared-migrations/20261005170000_user_lists_view_security_invoker.sql",
+      "sha256": "e7e423553633689b6f160f97536e2a336decdc7615bc3bdee0c90d601a10be2b",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261005180000",
+      "path": "supabase/prepared-migrations/20261005180000_list_user_id_canonical_case.sql",
+      "sha256": "382602438c61957663f8eda66cce06537b9912ea6740928fd0c07c690f17dbac",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261007040000",
+      "path": "supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql",
+      "sha256": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261007120000",
+      "path": "supabase/prepared-migrations/20261007120000_feature_flag_overrides.sql",
+      "sha256": "c4abf009f6e36d835506f83531dee99aa4e040239a0313ea757213e7c0d7909d",
+      "remoteHistoryContainsIdentity": false,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261007130000",
+      "path": "supabase/prepared-migrations/20261007130000_series_account_lifecycle.sql",
+      "sha256": "8cfb01f295f013dc2562b8a8f74ce865ffe7fe9c5bae071b7f15617d5f73b777",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261008100000",
+      "path": "supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql",
+      "sha256": "af22886f86a23d7e5314f49de59b63185a28b3c5b47c98a4f84f2a00b7f4eccd",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    },
+    {
+      "id": "20261008110000",
+      "path": "supabase/prepared-migrations/20261008110000_import_review_recovery_v2.sql",
+      "sha256": "552fcafe1e98d98ce9ec23e59c627f3ccfdbd3261517e4cff74c86a472cd2e6d",
+      "remoteHistoryContainsIdentity": true,
+      "meaning": "Identity presence alone does not prove checksum or effective semantic parity."
+    }
+  ],
+  "optIn": {
+    "path": "supabase/prepared-migrations/opt-in",
+    "excludedFromApprovedDeployment": true
+  }
+}

@@ -1,0 +1,160 @@
+Release pipeline / evidence enforcement checks — 2026-10-07
+Evidence layer: OFFLINE ONLY. Recorded from completed tool outputs, without
+rerunning unchanged suites to create this log. No hosted calls, PostgreSQL
+startups, native execution, signing, upload, deployment or license acceptance.
+
+Command: KURO_GIT=<existing fallback git> ruby fastlane/release_candidate_test.rb
+Exit: 0
+Run options: --seed 1035
+10 runs, 44 assertions, 0 failures, 0 errors, 0 skips
+Includes evidence replacement during gates, missing/partial gate refusal,
+candidate/source drift, unchanged archive flow and artifact integrity.
+
+Command: <bundled Python> fastlane/test_live_service_evidence.py
+Exit: 0
+.........
+Ran 9 tests in 0.068s
+OK
+Includes actual SQL summary partition, missing SQL prerequisites, missing raw
+protocol proof, mismatched backend source inventory and cleanup failures.
+
+Command: <bundled Python> fastlane/test_ios_unit_runner.py
+Exit: 0
+.....
+Ran 5 tests in 0.788s
+OK
+This uses offline xcodebuild/simulator tool doubles; no native tests were run.
+
+Command: <bundled Node> --test scripts/live/auth_storage_probes.test.js scripts/live/probe_checkers.test.js
+Exit: 0
+✔ both producers require admin verification before any disposable creation
+✔ Auth captures nullable details, real identity/denial rows and sanitizes credentials/customer listings
+✔ malformed successful anonymous response fails and still cleans both users
+✔ Storage creates a readable seed, real held overlap, same-token RLS denial and exact physical absence
+✔ accepted old-token writes are failures even after exact emergency object cleanup succeeds
+✔ lost seed response stops subsequent business writes and retains exact cleanup inventory
+✔ account creation cap prevents the sixth dispatch
+✔ transport starts at most five requests per second and holds at most five slots
+✔ exact target rejects lookalikes, path/query/userinfo and the old override
+✔ permission assertion requires 42501, never FK or zero-row success
+✔ actual journal probe uses Apply, both tables' real rows, outsider SELECT, and Undo
+✔ actual journal rejects false denial {"denialCode":"23503"} and cleans both accounts
+✔ actual journal rejects false denial {"zeroMutation":true} and cleans both accounts
+✔ missing session is recorded immediately; admin cleanup or explicit leftover, never pass
+✔ actual Realtime cannot pass without delivery despite a revision bump; channels clean up
+✔ actual Realtime cannot pass without subscription acknowledgment; channels clean up
+✔ failure after first provision still cleans its recorded account
+✔ request deadline covers body read and cancels timed-out work
+✔ timed-out sign-up retains exact unknown identity for cleanup follow-up
+✔ actual Realtime verifies delivery, own removal and revocation before cleanup
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18550.91275
+All remote transport above is controlled offline responses, not Supabase proof.
+
+Command: bash -n scripts/quality-gates/run_all.sh scripts/quality-gates/test_ios_unit.sh scripts/quality-gates/ios_verify_helpers.sh scripts/quality-gates/check_live_services.sh scripts/db/run_local_db_tests.sh
+Exit: 0
+
+Command: ruby -c fastlane/Fastfile
+Exit: 0
+Syntax OK
+Command: ruby -c fastlane/release_candidate.rb
+Exit: 0
+Syntax OK
+
+Command: <existing fallback git> diff --check
+Exit: 0
+
+Mandatory release evidence remains unavailable: reviewed/frozen intended backend
+manifest and observed deployment hashes, fresh actual Auth/API/Storage/journal/
+Realtime protocols, exact signed artifact processing and installed physical
+device qualification. No approved backend_release_manifest.json was created.
+Independent source/offline review is recorded separately by the reviewing agent.
+
+Final narrow bound delta — 2026-10-07
+Both legacy journal/Realtime run() sites now force limits:true after options
+spread, reusing the shared limiter. All four actual probe producers enforce
+five request starts/second, five in-flight requests and 1,000 requests per run.
+Docs require sequential separately identified runs; no single eight-account claim.
+
+Command: <bundled Node> --test scripts/live/probe_checkers.test.js
+Exit: 0
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19680.542542
+Only affected legacy checks rerun. Previous eight Auth/Storage tests and other
+unchanged offline suites were reused, not redundantly rerun.
+Command: <bundled Node> --check scripts/live/probe_import_sessions_select_only.js
+Exit: 0
+Command: <bundled Node> --check scripts/live/probe_club_activity_signals.js
+Exit: 0
+Command: <existing fallback git> diff --check
+Exit: 0
+No hosted calls, native runs, PostgreSQL starts or deployment.
+
+Stage-aware development/release delta — 2026-10-07
+Evidence layer: OFFLINE ONLY. Existing executed outputs retained without rerun.
+Command: KURO_GIT=<existing fallback git> ruby fastlane/release_candidate_test.rb
+Exit: 0
+Run options: --seed 56865
+15 runs, 64 assertions, 0 failures, 0 errors, 0 skips
+Relevant new assertions: development creates no release receipt and has no live
+prerequisite; unchanged scoped proof is reused but changed authority reruns;
+actual edge selector rejects invalid/empty selections and zero-test success;
+relative shared-import changes select real consumers; actual PG tool resolver
+and semantic config invalidate cache; unlocked edge checks execute again while
+retaining immutable earlier proof.
+The fixed scripts/tool transports in these tests are offline doubles.
+
+Command: ruby -c fastlane/release_candidate.rb
+Exit: 0
+Syntax OK
+Command: ruby -c fastlane/Fastfile
+Exit: 0
+Syntax OK
+Command: bash -n scripts/quality-gates/test_edge_functions.sh
+Exit: 0
+Command: <existing fallback git> diff --check
+Exit: 0
+Command: FASTLANE_SKIP_UPDATE_CHECK=1 FASTLANE_HIDE_CHANGELOG=1 FASTLANE_OPT_OUT_USAGE=1 fastlane lanes
+Exit: 0
+New ios check_development lane parsed successfully (read-only).
+Independent focused stage/cache source review: ACCEPTED by native_journey_fix.
+
+Stage-aware Fastlane is the canonical preparation path. run_all remains the
+broad optional diagnostic. Existing accepted SQL/source evidence is retained;
+this change does not manufacture retrospective full-run receipts. Live/admin,
+SQL/native safety proof and installed advertised workflows remain necessary
+at final TestFlight qualification, not development progress. Percentiles are
+observational/investigation signals, not arbitrary shipping vetoes.
+No PostgreSQL, native, hosted, signing, upload or deployment calls performed.
+
+Final explicit SQL selector — 2026-10-07
+Evidence layer: OFFLINE PIPELINE TESTS ONLY; no real SQL/PG execution.
+Command: KURO_GIT=<existing fallback git> ruby fastlane/release_candidate_test.rb
+Exit: 0
+Run options: --seed 5893
+16 runs, 73 assertions, 0 failures, 0 errors, 0 skips
+The printed PASS SQL rows in this transport test are controlled fixture output,
+not actual PostgreSQL evidence. Tests verify exact required --only arguments,
+selection environment/cache scope, missing/zero suite refusal, unrelated
+historical fixture edits not invalidating selected proof, and native-before-DB
+ordering. SQL source and runner were not edited or rerun. Existing 253 assertion
+SQL evidence remains separately recorded at its actual source/layer.
+Command: ruby -c fastlane/release_candidate.rb
+Exit: 0
+Syntax OK
+Command: bash -n scripts/quality-gates/test_edge_functions.sh
+Exit: 0
+Command: <existing fallback git> diff --check
+Exit: 0

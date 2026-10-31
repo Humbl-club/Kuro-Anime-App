@@ -1,0 +1,72 @@
+{
+  "project": "bkdifromsqxkndnllmdj",
+  "recordedAt": "2026-10-08T00:19:07.021638+00:00",
+  "functions": [
+    {
+      "slug": "concierge-apply",
+      "id": "2e7ddb4c-b2ae-4330-97ce-7a65cb00fa7d",
+      "version": 26,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1791307448447,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_2e7ddb4c-b2ae-4330-97ce-7a65cb00fa7d_26/source/supabase/functions/concierge-apply/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "4bda34076df747ba379b3f300066b3efcb27ab6e5e2dada476e511ace4d77b93"
+    },
+    {
+      "slug": "concierge-undo",
+      "id": "ce2779b0-b0e9-42ce-a10e-2c7bd11f0942",
+      "version": 17,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1791307449403,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_ce2779b0-b0e9-42ce-a10e-2c7bd11f0942_17/source/supabase/functions/concierge-undo/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "785637fe28c3267811417cacfa377148f5b872834cf361f3664add21c3cf72e6"
+    },
+    {
+      "slug": "concierge-recommend",
+      "id": "4ba43353-970d-4844-aa40-505aca90c814",
+      "version": 49,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1771975460222,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_4ba43353-970d-4844-aa40-505aca90c814_47/source/supabase/functions/concierge-recommend/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "4e8ab4ad531ff1d1b74391438d4f0418b0f4015685c498a6314094a4f3de43de"
+    },
+    {
+      "slug": "concierge-retrieve-assist",
+      "id": "d977eaa3-bf4c-4a43-97ef-0acff7f99734",
+      "version": 8,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1791326346418,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_d977eaa3-bf4c-4a43-97ef-0acff7f99734_8/source/supabase/functions/concierge-retrieve-assist/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "48694da79dffa42c4a9a6092906a193ad4c397607166d68bb2c04b2f3abaebb6"
+    },
+    {
+      "slug": "delete-account",
+      "id": "94797f3c-2f58-4e8a-9fd6-5ff26a86ffba",
+      "version": 9,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1791231404866,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_94797f3c-2f58-4e8a-9fd6-5ff26a86ffba_9/source/supabase/functions/delete-account/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "181843edf93a6475cc468ff13cf95efb5a31ccd7cc35de1705686513a137e8a0"
+    },
+    {
+      "slug": "concierge-import-anilist",
+      "id": "65b2ae20-2127-4b02-b5b4-7de23ee5344c",
+      "version": 5,
+      "status": "ACTIVE",
+      "verify_jwt": true,
+      "updated_at": 1785470452678,
+      "entrypoint_path": "file:///tmp/user_fn_bkdifromsqxkndnllmdj_65b2ae20-2127-4b02-b5b4-7de23ee5344c_3/source/supabase/functions/concierge-import-anilist/index.ts",
+      "import_map_path": null,
+      "ezbr_sha256": "895275077b1fdab7b956075d68cddf4b092b86c58a3a4c238967c63e74a22298"
+    }
+  ]
+}

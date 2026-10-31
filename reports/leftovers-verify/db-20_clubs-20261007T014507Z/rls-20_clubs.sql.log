@@ -1,0 +1,94 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:57: NOTICE:  TEST ok: revoked-to-be member can read the club before revocation
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:58: NOTICE:  TEST ok: revoked-to-be member sees club rails before revocation
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:70: NOTICE:  TEST ok: bundle (4 members): caller sees own status for the item
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:72: NOTICE:  TEST ok: F36: bundle (4 members, progress club) member_statuses lists all 3 tracking members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:74: NOTICE:  TEST ok: F36: member_status_counts aggregate across members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:76: NOTICE:  TEST ok: ...while the raw list rows of the others stay invisible to the caller
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:80: NOTICE:  TEST ok: owner reads the club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:81: NOTICE:  TEST ok: F34: owner reads only their own membership row through the table API
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:82: NOTICE:  TEST ok: ...and the full member list through the authorized bundle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:87: NOTICE:  TEST ok: owner reads rail / item / poll / options
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:88: NOTICE:  TEST ok: owner updates own club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:89: NOTICE:  TEST ok: owner locks a rail (admin update)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:91: NOTICE:  TEST ok: direct INSERT into club_members is not allowed for anyone (membership only via RPC) (denied: new row violates row-level security policy for table "club_members")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:93: NOTICE:  TEST ok: owner cannot forge a rail attributed to another user (denied: new row violates row-level security policy for table "club_rails")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:97: NOTICE:  TEST ok: member reads the club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:100: NOTICE:  TEST ok: member reads rails/items/polls
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:101: NOTICE:  TEST ok: member cannot UPDATE the club (owner only): 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:102: NOTICE:  TEST ok: member cannot DELETE the club: 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:103: NOTICE:  TEST ok: member cannot UPDATE a rail (admin only): 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:104: NOTICE:  TEST ok: member cannot DELETE a rail (admin only): 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:105: NOTICE:  TEST ok: member cannot DELETE the owner membership row: 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:107: NOTICE:  TEST ok: member cannot UPDATE another member's row (self only): 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:110: NOTICE:  TEST ok: member inserts a reaction as themself
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:112: NOTICE:  TEST ok: member cannot insert a reaction attributed to someone else (denied: new row violates row-level security policy for table "club_rail_item_reactions")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:114: NOTICE:  TEST ok: member cannot delete another user's reaction: 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:115: NOTICE:  TEST ok: member votes through the RPC
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:117: NOTICE:  TEST ok: member cannot delete another user's vote: 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:123: NOTICE:  TEST ok: member: create_club_rail RPC is admin/owner only (NOT_ADMIN) (raised: NOT_ADMIN: only owner or admin can create rails)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:127: NOTICE:  TEST ok: outsider reads 0 clubs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:128: NOTICE:  TEST ok: outsider reads 0 memberships
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:129: NOTICE:  TEST ok: outsider reads 0 rails
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:130: NOTICE:  TEST ok: outsider reads 0 rail items
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:131: NOTICE:  TEST ok: outsider reads 0 reactions
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:132: NOTICE:  TEST ok: outsider reads 0 polls
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:133: NOTICE:  TEST ok: outsider reads 0 poll options
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:134: NOTICE:  TEST ok: outsider reads 0 votes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:135: NOTICE:  TEST ok: outsider UPDATE club: 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:136: NOTICE:  TEST ok: outsider DELETE club: 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:137: NOTICE:  TEST ok: outsider cannot insert a rail (denied: new row violates row-level security policy for table "club_rails")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:138: NOTICE:  TEST ok: outsider cannot insert a rail item (denied: new row violates row-level security policy for table "club_rail_items")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:139: NOTICE:  TEST ok: outsider cannot insert a reaction (denied: new row violates row-level security policy for table "club_rail_item_reactions")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:140: NOTICE:  TEST ok: outsider cannot insert a poll (denied: new row violates row-level security policy for table "club_polls")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:141: NOTICE:  TEST ok: outsider cannot insert a vote (denied: new row violates row-level security policy for table "club_votes")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:142: NOTICE:  TEST ok: outsider fetch_club_bundle raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:143: NOTICE:  TEST ok: outsider cast_club_vote raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:144: NOTICE:  TEST ok: outsider toggle_club_reaction raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:145: NOTICE:  TEST ok: outsider create_club_poll raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:146: NOTICE:  TEST ok: outsider leave_club raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:150: NOTICE:  TEST ok: anon reads 0 clubs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:151: NOTICE:  TEST ok: anon reads 0 members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:152: NOTICE:  TEST ok: anon create_club raises UNAUTHENTICATED (raised: UNAUTHENTICATED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:157: NOTICE:  TEST ok: F35/F34: a direct table DELETE of another member's row affects 0 rows (own-row SELECT; removal is the RPC)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:159: NOTICE:  TEST ok: owner removes member 4 through remove_club_member
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:162: NOTICE:  TEST ok: REVOKED: clubs invisible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:163: NOTICE:  TEST ok: REVOKED: membership rows invisible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:164: NOTICE:  TEST ok: REVOKED: rails invisible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:165: NOTICE:  TEST ok: REVOKED: rail items invisible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:166: NOTICE:  TEST ok: REVOKED: reactions invisible (incl. their own earlier reaction)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:167: NOTICE:  TEST ok: REVOKED: polls invisible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:168: NOTICE:  TEST ok: REVOKED: poll options invisible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:169: NOTICE:  TEST ok: REVOKED: votes invisible (incl. their own earlier vote)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:170: NOTICE:  TEST ok: REVOKED: messages invisible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:171: NOTICE:  TEST ok: REVOKED: cannot add a rail (denied: new row violates row-level security policy for table "club_rails")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:172: NOTICE:  TEST ok: REVOKED: cannot add a rail item (denied: new row violates row-level security policy for table "club_rail_items")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:173: NOTICE:  TEST ok: REVOKED: cannot add a reaction (denied: new row violates row-level security policy for table "club_rail_item_reactions")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:174: NOTICE:  TEST ok: REVOKED: cannot add a poll (denied: new row violates row-level security policy for table "club_polls")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:175: NOTICE:  TEST ok: REVOKED: cannot add a vote (denied: new row violates row-level security policy for table "club_votes")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:176: NOTICE:  TEST ok: REVOKED: cannot post a message (denied: new row violates row-level security policy for table "club_messages")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:177: NOTICE:  TEST ok: REVOKED: cannot update the club: 0 rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:178: NOTICE:  TEST ok: REVOKED: fetch_club_bundle raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:179: NOTICE:  TEST ok: REVOKED: cast_club_vote raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:180: NOTICE:  TEST ok: REVOKED: toggle_club_reaction raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:181: NOTICE:  TEST ok: REVOKED: create_club_poll raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:186: NOTICE:  TEST ok: F35: REMOVED user 4 cannot re-join with the unchanged invite code (raised: REMOVED_FROM_CLUB)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:187: NOTICE:  TEST ok: ...and is still not a member
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:189: NOTICE:  TEST ok: owner restores member 4
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:191: NOTICE:  TEST ok: restored member 4 re-joins with the valid invite code
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:193: NOTICE:  TEST ok: owner removes member 4 again
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:197: NOTICE:  TEST ok: member 5 reads rails before leaving
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:198: NOTICE:  TEST ok: leave_club succeeds
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:199: NOTICE:  TEST ok: LEFT: rails invisible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:200: NOTICE:  TEST ok: LEFT: members invisible
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:201: NOTICE:  TEST ok: LEFT: cannot add a reaction (denied: new row violates row-level security policy for table "club_rail_item_reactions")
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:206: NOTICE:  TEST ok: revoked user 4's earlier vote row is kept (excluded, not deleted)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:209: NOTICE:  TEST ok: F34: ...but remaining members cannot read it through the table API
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:211: NOTICE:  TEST ok: F34: ...nor the revoked user's reaction row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:213: NOTICE:  TEST ok: F35: the revoked user's heart is excluded from the bundle reaction totals
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:222: NOTICE:  TEST ok: F34 RAW votes: a plain member reads no other member's vote row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:224: NOTICE:  TEST ok: F34 RAW votes: ...but their own
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:226: NOTICE:  TEST ok: F34 RAW reactions: a plain member reads no other member's reaction row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:228: NOTICE:  TEST ok: F34 RAW memberships: a plain member reads no other member's club_members row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:230: NOTICE:  TEST ok: F36: ...while the bundle still counts both current voters
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:239: NOTICE:  TEST ok: private club: bundle exposes ONLY the caller's own membership
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/20_clubs.sql:241: NOTICE:  TEST ok: F34 private club: a direct club_members read returns only the caller's row (no bypass of the bundle gate)

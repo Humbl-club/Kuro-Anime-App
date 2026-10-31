@@ -1,0 +1,268 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:43: NOTICE:  TEST ok: an end user cannot start a deletion barrier (service role only) (denied: permission denied for function begin_account_deletion)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:45: NOTICE:  TEST ok: an end user cannot read barrier rows (denied: permission denied for table account_deletion_barriers)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:47: NOTICE:  TEST ok: anon cannot start a deletion barrier (denied: permission denied for function begin_account_deletion)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:52: NOTICE:  TEST ok: before: owner writes a list row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:57: NOTICE:  TEST ok: begin_account_deletion succeeds
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:58: NOTICE:  TEST ok: begin_account_deletion is idempotent (retry)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:60: NOTICE:  TEST ok: exactly one barrier row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:65: NOTICE:  TEST ok: F38: new list row refused (anime, own JWT) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:67: NOTICE:  TEST ok: F38: new list row refused (manga, own JWT) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:69: NOTICE:  TEST ok: F38: notes-only update of a surviving row refused (the evidence's second leak) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:71: NOTICE:  TEST ok: F38: an upper-case spelling of the same id is refused too (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:73: NOTICE:  TEST ok: F38: joining a club refused (no new membership during deletion) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:74: NOTICE:  TEST ok: F38: creating a club refused (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:76: NOTICE:  TEST ok: deletes are never blocked (cleanup and retries proceed)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:80: NOTICE:  TEST ok: F38: a service-role writer acting for the user is refused as well (e.g. an import) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:82: NOTICE:  TEST ok: F38: legacy anime_comments write for the user refused (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:84: NOTICE:  TEST ok: F38: concierge_runs write for the user refused (its FK only SETs NULL, the prompt would survive) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:89: NOTICE:  TEST ok: another user writes normally
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:90: NOTICE:  TEST ok: another user joins clubs normally
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:96: NOTICE:  TEST ok: F38: no list row survives the deletion
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:99: NOTICE:  TEST ok: F38: a late write with the deleted user's JWT is still refused (barrier outlives the auth user) (denied: ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:109: NOTICE:  TEST ok: retention: a finished deletion older than 7 days is purged by the next deletion
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:111: NOTICE:  TEST ok: retention: an old barrier of a user who still exists (interrupted deletion) is kept
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:115: NOTICE:  TEST ok: posture: barrier table has RLS enabled
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:117: NOTICE:  TEST ok: posture: begin_account_deletion is SECURITY DEFINER with search_path = public, extensions
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:121: NOTICE:  TEST ok: posture: only service_role may EXECUTE begin_account_deletion
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/51_account_deletion_barrier.sql:125: NOTICE:  TEST ok: posture: the barrier trigger guards every no-cascade user-keyed table and new memberships
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:79: NOTICE:  TEST ok: legit: a member downgrades their own sharing level (own row, sharing_level only)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:91: NOTICE:  TEST ok: legit: member 4 downgrades to status in the progress club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:94: NOTICE:  TEST ok: legit: member 5 opts out (private) in the progress club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:119: NOTICE:  TEST ok: F34 raw (private club): member reads ONLY their own vote row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:121: NOTICE:  TEST ok: F34 raw (private club): ...and it is their own
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:123: NOTICE:  TEST ok: F34 raw (private club): member reads ONLY their own reaction rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:125: NOTICE:  TEST ok: F34 raw (private club): member reads ONLY their own membership row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:127: NOTICE:  TEST ok: F34 raw (status club): member reads ONLY their own membership row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:129: NOTICE:  TEST ok: F34 raw (progress club): member reads ONLY their own membership row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:131: NOTICE:  TEST ok: F34 raw: other members' list rows stay invisible (owner-only list policy unchanged)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:134: NOTICE:  TEST ok: F34 raw: even the OWNER reads only their own membership row through the table API
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:138: NOTICE:  TEST ok: F34 raw: outsider reads 0 votes / reactions / memberships
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:142: NOTICE:  TEST ok: F34 raw: anon reads 0 votes / reactions / memberships
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:150: NOTICE:  TEST ok: F36 private: member_count is all 4 members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:152: NOTICE:  TEST ok: F36 private: poll vote counts include all 3 voters
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:154: NOTICE:  TEST ok: F36 private: reaction totals are complete anonymous counts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:156: NOTICE:  TEST ok: F36 private: anonymous tracking count = the 3 OTHER members who track the item
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:157: NOTICE:  TEST ok: F34 private: no per-member statuses
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:158: NOTICE:  TEST ok: F34 private: members list is only the caller
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:161: NOTICE:  TEST ok: F34 private: caller's own status/progress/rating are returned to the caller
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:163: NOTICE:  TEST ok: F34 private: no other member's notes or rating text anywhere in the bundle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:165: NOTICE:  TEST ok: F36 loading bundle (private): member_count is all 4 members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:170: NOTICE:  TEST ok: F36 status: per-status counts over status-visible members (1 WATCHING, 2 COMPLETED, 3 WATCHING; 5 private-excluded)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:172: NOTICE:  TEST ok: F36 status: member_statuses lists the 3 status-visible members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:175: NOTICE:  TEST ok: F34 status: the private-downgraded member 5 is absent from member_statuses
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:178: NOTICE:  TEST ok: F34 status: no progress numbers at status level
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:180: NOTICE:  TEST ok: F34 status: no anonymous _tracking_count key in a status club (per-status counts only)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:183: NOTICE:  TEST ok: F34 status: member_statuses never carry rating or notes keys
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:184: NOTICE:  TEST ok: F34 status: no notes anywhere in the bundle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:190: NOTICE:  TEST ok: F36 progress: per-status counts over the 4 members who share status; opted-out member 5 (PAUSED) is not counted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:192: NOTICE:  TEST ok: F36 progress: member_statuses lists the 4 status-sharing members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:195: NOTICE:  TEST ok: F34 progress: the opted-out (private) member 5 is absent from member_statuses
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:198: NOTICE:  TEST ok: F36 progress: progress visible for a member at effective progress level (member 3: 7)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:201: NOTICE:  TEST ok: F34 progress: member 4 downgraded to status -> status shown, progress withheld
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:202: NOTICE:  TEST ok: F36 progress: member list (>=3 members) is complete
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:203: NOTICE:  TEST ok: F34 progress: no notes anywhere in the bundle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:212: NOTICE:  TEST ok: k rule (progress duo): no cross-member count that would identify the other member
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:213: NOTICE:  TEST ok: k rule (status duo): no cross-member count
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:214: NOTICE:  TEST ok: k rule (private duo): no cross-member count
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:218: NOTICE:  TEST ok: F34 duo: no per-member statuses below 3 members (all three levels)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:219: NOTICE:  TEST ok: F34 duo: members list is only the caller below 3 members
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:220: NOTICE:  TEST ok: duo: the caller still gets their own status for the item
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:221: NOTICE:  TEST ok: duo: reaction/vote aggregates keep their shape (empty reactions object)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:227: NOTICE:  TEST ok: legit: member 3 leaves the private club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:230: NOTICE:  TEST ok: departed: member_count drops to 3
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:232: NOTICE:  TEST ok: departed: the leaver's vote is excluded from poll counts (3 -> 2)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:234: NOTICE:  TEST ok: departed: the leaver's reaction is excluded from totals
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:236: NOTICE:  TEST ok: departed: tracking count covers current other members only (1, 4)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:239: NOTICE:  TEST ok: departed: the leaver's vote row is kept (excluded, not deleted)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:245: NOTICE:  TEST ok: outsider: fetch_club_bundle raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:246: NOTICE:  TEST ok: outsider: fetch_club_bundle_loading raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:248: NOTICE:  TEST ok: departed member: fetch_club_bundle raises NOT_A_MEMBER (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:250: NOTICE:  TEST ok: anon: no EXECUTE on fetch_club_bundle (denied: permission denied for function fetch_club_bundle)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:251: NOTICE:  TEST ok: anon: no EXECUTE on fetch_club_bundle_loading (denied: permission denied for function fetch_club_bundle_loading)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:254: NOTICE:  TEST ok: posture: fetch_club_bundle is SECURITY DEFINER with search_path = public, extensions
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:256: NOTICE:  TEST ok: posture: fetch_club_bundle_loading is SECURITY DEFINER with search_path = public, extensions
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:260: NOTICE:  TEST ok: posture: no PUBLIC EXECUTE on either bundle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/64_club_privacy_aggregates.sql:263: NOTICE:  TEST ok: posture: authenticated may EXECUTE both bundles
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:48: NOTICE:  TEST ok: a direct table DELETE of another member's row cannot see it (0 rows)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:49: NOTICE:  TEST ok: owner removes member 4 through remove_club_member
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:51: NOTICE:  TEST ok: removal recorded a block for (club, member 4), visible to the owner
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:54: NOTICE:  TEST ok: F35: removed member cannot rejoin with the still-valid invite code (raised: REMOVED_FROM_CLUB)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:55: NOTICE:  TEST ok: removed member cannot read block rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:57: NOTICE:  TEST ok: plain member cannot read block rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:59: NOTICE:  TEST ok: plain member cannot remove anyone (NOT_ADMIN) (raised: NOT_ADMIN)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:61: NOTICE:  TEST ok: plain member cannot restore a removed member (NOT_ADMIN) (raised: NOT_ADMIN)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:63: NOTICE:  TEST ok: nobody writes block rows through the table API (denied: permission denied for table club_member_blocks)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:65: NOTICE:  TEST ok: owner restores member 4
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:66: NOTICE:  TEST ok: restoring again is a no-op
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:68: NOTICE:  TEST ok: F35: restored member rejoins with a valid invite code
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:74: NOTICE:  TEST ok: admin removes plain member 3
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:76: NOTICE:  TEST ok: F35: member removed by an admin cannot rejoin (raised: REMOVED_FROM_CLUB)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:78: NOTICE:  TEST ok: admin restores member 3
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:86: NOTICE:  TEST ok: admin cannot delete the OWNER row through the table API (0 rows)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:88: NOTICE:  TEST ok: admin cannot remove the OWNER through the RPC (NOT_ADMIN) (raised: NOT_ADMIN)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:90: NOTICE:  TEST ok: nobody removes themself through the RPC (CANNOT_REMOVE_SELF; leave_club is the path) (raised: CANNOT_REMOVE_SELF)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:93: NOTICE:  TEST ok: owner cannot delete their own row through the table API (0 rows; leave_club transfers ownership)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:94: NOTICE:  TEST ok: club still has exactly one owner
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:100: NOTICE:  TEST ok: member 3 leaves through leave_club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:102: NOTICE:  TEST ok: leave records no block
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:104: NOTICE:  TEST ok: F35: voluntary leaver rejoins with a still-valid invite code
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:106: NOTICE:  TEST ok: a non-owner may still delete their own row (equivalent to leave, 1 row)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:107: NOTICE:  TEST ok: ...which is not a block either
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:111: NOTICE:  TEST ok: member 3 leaves again
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:113: NOTICE:  TEST ok: a voluntary leaver still needs a VALID code (expired -> CODE_EXPIRED) (raised: CODE_EXPIRED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:123: NOTICE:  TEST ok: owner leaves through leave_club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:126: NOTICE:  TEST ok: ownership went to the admin (2) although member 4 joined earlier
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:128: NOTICE:  TEST ok: a leaver is not blocked but not a member any more (raised: NOT_A_MEMBER)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:133: NOTICE:  TEST ok: solo owner leaves
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:135: NOTICE:  TEST ok: solo club deleted when its last member leaves
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:144: NOTICE:  TEST ok: F39: an empty (orphaned) club cannot be joined (reported like an invalid code) (raised: INVALID_CODE)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:146: NOTICE:  TEST ok: ...and nobody became a member of it
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:168: NOTICE:  TEST ok: end user cannot call delete_account_club_memberships (denied: permission denied for function delete_account_club_memberships)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:172: NOTICE:  TEST ok: club lifecycle for account deletion requires the deletion barrier first (DELETION_NOT_STARTED) (raised: DELETION_NOT_STARTED)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:177: NOTICE:  TEST ok: F37: solo club of the deleted owner is deleted now (not left for a later sweep)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:178: NOTICE:  TEST ok: F37: ...with its rail
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:179: NOTICE:  TEST ok: F37: shared club survives
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:181: NOTICE:  TEST ok: F37: shared club ownership went to the admin (8)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:183: NOTICE:  TEST ok: F37: other members' content is preserved (7's rail item)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:184: NOTICE:  TEST ok: F37: the deleted user holds no membership anywhere
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:186: NOTICE:  TEST ok: F37: club L (owner 2) is untouched apart from the departure
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:188: NOTICE:  TEST ok: F37: lifecycle reports what it did
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:190: NOTICE:  TEST ok: retry after completion is a no-op
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:193: NOTICE:  TEST ok: F37: auth deletion afterwards leaves the shared club owned
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:206: NOTICE:  TEST ok: safety net: solo club of a cascaded owner is deleted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/65_club_membership_lifecycle.sql:208: NOTICE:  TEST ok: safety net: shared club gets a new owner (5)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:20: NOTICE:  TEST ok: fixture: import_sessions exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:21: NOTICE:  TEST ok: fixture: import_session_items exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:22: NOTICE:  TEST ok: fixture: anime_user_lists exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:23: NOTICE:  TEST ok: fixture: manga_user_lists exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:24: NOTICE:  TEST ok: fixture: taste_import_context exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:25: NOTICE:  TEST ok: fixture: taste_signal_events exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:27: NOTICE:  TEST ok: fixture: check_concierge_rate_limit exists (the limiter both handlers gate on)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:29: NOTICE:  TEST ok: fixture: taste_capture trigger on anime_user_lists exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:31: NOTICE:  TEST ok: pending migration: apply_import_session exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:33: NOTICE:  TEST ok: pending migration: undo_import_session exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:36: NOTICE:  TEST ok: pending migration: journal columns after_values / reverted_at exist
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:40: NOTICE:  TEST ok: pending migration: import_sessions.idempotency_key + partial unique index per user
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:44: NOTICE:  TEST ok: grant: anon cannot EXECUTE apply_import_session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:46: NOTICE:  TEST ok: grant: authenticated cannot EXECUTE apply_import_session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:48: NOTICE:  TEST ok: grant: anon cannot EXECUTE undo_import_session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:50: NOTICE:  TEST ok: grant: authenticated cannot EXECUTE undo_import_session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:53: NOTICE:  TEST ok: grant: anon/authenticated cannot EXECUTE the outcome helper
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:56: NOTICE:  TEST ok: grant: service_role can EXECUTE both RPCs
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:61: NOTICE:  TEST ok: posture: both RPCs are SECURITY DEFINER with search_path = public, extensions
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:72: NOTICE:  TEST ok: grant: authenticated calling apply_import_session is refused (42501) (denied: permission denied for function apply_import_session)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:74: NOTICE:  TEST ok: grant: authenticated calling undo_import_session is refused (42501) (denied: permission denied for function undo_import_session)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:77: NOTICE:  TEST ok: grant: anon calling apply_import_session is refused (42501) (denied: permission denied for function apply_import_session)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:97: NOTICE:  TEST ok: A: applied lists the add and the update in request order
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:98: NOTICE:  TEST ok: A: skipped lists the skip item
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:99: NOTICE:  TEST ok: A: no conflicts, no errors
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:100: NOTICE:  TEST ok: A: undoable, not replayed
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:103: NOTICE:  TEST ok: A: session is applied, owned by the JWT user, carries the key
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:106: NOTICE:  TEST ok: A: new row written with the insert values (progress default 0, no rating/notes)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:109: NOTICE:  TEST ok: A: existing row: only the written fields changed, authored notes kept
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:113: NOTICE:  TEST ok: A: add journal: after image is the whole inserted row, no before image
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:116: NOTICE:  TEST ok: A: update journal: after image = the written fields only
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:119: NOTICE:  TEST ok: A: update journal: before image = the whole row before the import
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:122: NOTICE:  TEST ok: A: three journal rows (applied, applied, skipped)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:124: NOTICE:  TEST ok: A: taste events of the import exist (planned_add, rating_high) - not vacuous
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:127: NOTICE:  TEST ok: A: every taste event of the import is import-origin for this session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:129: NOTICE:  TEST ok: A: taste_import_context is gone after commit (never leaks to later edits)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:136: NOTICE:  TEST ok: A: a later manual edit is NOT import-origin
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:148: NOTICE:  TEST ok: F: replay returns the stored outcome with replayed=true
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:149: NOTICE:  TEST ok: F: replay wrote no list row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:150: NOTICE:  TEST ok: F: still one session for the key
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:151: NOTICE:  TEST ok: F: no journal rows added
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:161: NOTICE:  TEST ok: G: user B undoing user A's session is reported as not found
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:162: NOTICE:  TEST ok: G: ...and A's session stays applied
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:164: NOTICE:  TEST ok: G: ...and A's rows are untouched
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:167: NOTICE:  TEST ok: G: keys are per user: B's apply with A's key is a new Apply, not A's replay
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:169: NOTICE:  TEST ok: G: B's write went to B's row only
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:185: NOTICE:  TEST ok: H: undo of an older session is refused as not_latest
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:188: NOTICE:  TEST ok: H: ...and nothing was reverted, the session stays applied
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:190: NOTICE:  TEST ok: H: ...and no taste context is left behind
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:224: NOTICE:  TEST ok: B: undo result
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:227: NOTICE:  TEST ok: B F08: later rating and notes edits survive; untouched written fields revert
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:229: NOTICE:  TEST ok: B F09: a row deleted after an update import stays deleted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:231: NOTICE:  TEST ok: B: an untouched update is fully restored
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:233: NOTICE:  TEST ok: B: an untouched add is deleted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:235: NOTICE:  TEST ok: B F08: an add edited later is kept as edited
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:240: NOTICE:  TEST ok: B: reverted entries
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:245: NOTICE:  TEST ok: B: skipped entries explain every kept change
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:246: NOTICE:  TEST ok: B: session cancelled only after every item resolved
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:249: NOTICE:  TEST ok: B: reverted_at marks exactly the reverted items
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:252: NOTICE:  TEST ok: B: revert writes are import-origin for the undone session (taste semantics kept)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:257: NOTICE:  TEST ok: B: a second undo is the idempotent already_undone outcome
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:272: NOTICE:  TEST ok: C F10: a journal insert failure on item 2 aborts the whole Apply (raised: injected journal failure)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:275: NOTICE:  TEST ok: C F10: no list write of item 1 survives (no unjournaled write)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:279: NOTICE:  TEST ok: C: no session, no journal rows, no taste context, no taste events
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:285: NOTICE:  TEST ok: C: the retry with the same key is a fresh Apply (the failed one left nothing to replay)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:301: NOTICE:  TEST ok: D F11: a failed session transition aborts the whole Apply (raised: injected finalisation failure)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:305: NOTICE:  TEST ok: D F11: no list row, no session, no journal survive
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:322: NOTICE:  TEST ok: E: the accepted manga add is applied
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:324: NOTICE:  TEST ok: E: the stale update is a conflict (compare-and-set under the row lock)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:326: NOTICE:  TEST ok: E: the rejected item (unknown catalog id) is an isolated item error with a fixed message (no schema names)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:328: NOTICE:  TEST ok: E F12: the session is applied and undoable
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:330: NOTICE:  TEST ok: E: the conflicted row is untouched
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:337: NOTICE:  TEST ok: E F12: undo of the partial session removes exactly the accepted write
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:357: NOTICE:  TEST ok: I F13: a compensation failure on item 2 aborts the whole Undo (raised: injected compensation failure)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:362: NOTICE:  TEST ok: I F13: item 1 was not removed, the session stays applied, nothing is marked reverted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:370: NOTICE:  TEST ok: I F13: the retry completes every item and only then cancels the session
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:393: NOTICE:  TEST ok: J: legacy update journal (after image in action.after) is restored
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:395: NOTICE:  TEST ok: J: legacy add journal is deleted
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:411: NOTICE:  TEST ok: L: malformed journal descriptors do not abort the Apply
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:415: NOTICE:  TEST ok: L: each malformed descriptor is replaced by its default (raw, parsed, candidates, confidence)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:434: NOTICE:  TEST ok: L: undo reverts the restorable field, keeps the unrestorable ones and says why
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:436: NOTICE:  TEST ok: L: a journal row with a malformed identity is skipped with a warning, not a failed Undo
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:451: NOTICE:  TEST ok: M R1: 1500000000 (applied) and 2147483647 (skipped) come back as numbers, never null
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:465: NOTICE:  TEST ok: N A1: [add 3, update 5] on one title: Undo (last write first) removes the row entirely
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:470: NOTICE:  TEST ok: N A1: ...reported in request order, nothing mislabelled as a later edit
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:473: NOTICE:  TEST ok: L: ...and the row is exactly that
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:521: NOTICE:  TEST ok: K1 F08 race: the concurrent edit committed during Undo survives; the untouched field reverts
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:523: NOTICE:  TEST ok: K1: ...and Undo reports the kept field
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:537: NOTICE:  TEST ok: K2: the concurrent duplicate returns the first outcome as a replay
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:541: NOTICE:  TEST ok: K2: one session, one journal row, the first write only
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:579: NOTICE:  TEST ok: K3 R2: the Apply commits (no deadlock)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:580: NOTICE:  TEST ok: K3 R2: the user's concurrent save commits (not a deadlock victim)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:583: NOTICE:  TEST ok: K3 R2: the manual edit applies on top of the import (both survive)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:605: NOTICE:  TEST ok: K4 R2: the Undo commits (no deadlock)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:606: NOTICE:  TEST ok: K4 R2: the user's concurrent save commits (not a deadlock victim)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/rls/70_import_apply_undo_transactions.sql:610: NOTICE:  TEST ok: K4 R2: Undo reverted its fields, the manual edit applies on top, the add is gone
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:29: NOTICE:  TEST ok: A: writer opens a transaction
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:33: NOTICE:  TEST ok: A: writer inserts a list row (uncommitted, holds the user's shared lock)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:37: NOTICE:  TEST ok: A: the deletion barrier WAITS for the in-flight writer (advisory lock wait observed)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:38: NOTICE:  TEST ok: A: writer commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:40: NOTICE:  TEST ok: A: the barrier is established after the writer committed
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:42: NOTICE:  TEST ok: A: the writer's row exists before cleanup (it committed before the barrier)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:47: NOTICE:  ACCOUNT_DELETION_IN_PROGRESS
+DETAIL:  this account is being deleted; no new data is accepted for it
+HINT:  ACCOUNT_DELETION_IN_PROGRESS
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:47: NOTICE:  TEST ok: A: a notes-only update of the surviving row is refused once the barrier exists
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:51: NOTICE:  TEST ok: A: cleanup deletes the user's list rows
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:57: NOTICE:  ACCOUNT_DELETION_IN_PROGRESS
+DETAIL:  this account is being deleted; no new data is accepted for it
+HINT:  ACCOUNT_DELETION_IN_PROGRESS
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:57: NOTICE:  TEST ok: A: a write after the cleanup is refused (ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:62: NOTICE:  TEST ok: A: F38 closed -- no private list row survives the deletion
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:67: NOTICE:  TEST ok: B: the deletion takes the barrier first (transaction still open)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:72: NOTICE:  TEST ok: B: the concurrent write WAITS for the deletion's exclusive lock
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:73: NOTICE:  TEST ok: B: deletion commits the barrier
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:75: NOTICE:  ACCOUNT_DELETION_IN_PROGRESS
+DETAIL:  this account is being deleted; no new data is accepted for it
+HINT:  ACCOUNT_DELETION_IN_PROGRESS
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:75: NOTICE:  TEST ok: B: the waiting write is then refused (ACCOUNT_DELETION_IN_PROGRESS)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/90_deletion_write_barrier.sql:78: NOTICE:  TEST ok: B: nothing was written for the user
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:43: NOTICE:  TEST ok: A: deletion lifecycle removes the owner's membership and deletes the now-empty club (uncommitted)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:48: NOTICE:  TEST ok: A: the concurrent join WAITS on the club row lock held by the lifecycle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:49: NOTICE:  TEST ok: A: deletion commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:51: NOTICE:  INVALID_CODE
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:51: NOTICE:  TEST ok: A: the join then finds no club (INVALID_CODE), instead of resurrecting it
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:53: NOTICE:  TEST ok: A: club A is gone
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:54: NOTICE:  TEST ok: A: no stray membership for the joiner
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:60: NOTICE:  TEST ok: B: user 4 joins club B (uncommitted, holds the club row lock)
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:65: NOTICE:  TEST ok: B: the deletion lifecycle WAITS for the in-flight join
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:66: NOTICE:  TEST ok: B: join commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:68: NOTICE:  TEST ok: B: the lifecycle then sees the new member and deletes no club
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:69: NOTICE:  TEST ok: B: deletion commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:70: NOTICE:  TEST ok: B: F39 closed -- club B survives
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:72: NOTICE:  TEST ok: B: the joiner kept their membership and became the owner
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/91_club_lifecycle_join_race.sql:73: NOTICE:  TEST ok: B: the deleting user holds no membership

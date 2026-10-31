@@ -1,0 +1,45 @@
+{
+  "captured_at": "2026-10-07T22:52:09.992642+00:00",
+  "files": [
+    {
+      "path": "/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-atomic-DRAFT.sql",
+      "sha256": "1f20a5219293d850f53b4c72a2cf20b8989a0d755a26919f3bcca16f9102700d",
+      "bytes": 510389
+    },
+    {
+      "path": "/Users/max/Kuro-Anime-App/docs/handoffs/2026-10-08-backend-integration/backend-deployment-DRAFT.json",
+      "sha256": "a6d01c0e34bd92e8dbee93a638112bba50571fffe61d2e0049d31aad3df349af",
+      "bytes": 17596
+    },
+    {
+      "path": "/Users/max/Kuro-Anime-App/supabase/tests/rls/81_import_session_receipt.sql",
+      "sha256": "85f4f43302a551ce5f9039c1fe1fb2c8df0e91d8789d7a7ed4396dbdd7bcb4d6",
+      "bytes": 21495
+    },
+    {
+      "path": "/Users/max/Kuro-Anime-App/supabase/tests/rls/94_series_home_review_repairs.sql",
+      "sha256": "2f074eceec43fd85ee27ec8e305843774ff065c3ab651caa77f180a63ecaa241",
+      "bytes": 22569
+    },
+    {
+      "path": "/private/tmp/kuro-backend-atomic-final-rehearsal.sql",
+      "sha256": "00bea9f84bd7eeab55f33b4917b034ce719bde0c7c2bfca78da3486844687c10",
+      "bytes": 2934
+    },
+    {
+      "path": "/Users/max/Kuro-Anime-App/supabase/prepared-migrations/20261007040000_series_home_foundation_v1.sql",
+      "sha256": "9803ed3ec24a10d5e80a4388835c09f5a0eda8f2a2ca2095f77b91cb7cf1d651",
+      "bytes": 205262
+    },
+    {
+      "path": "/Users/max/Kuro-Anime-App/supabase/prepared-migrations/20261007130000_series_account_lifecycle.sql",
+      "sha256": "8cfb01f295f013dc2562b8a8f74ce865ffe7fe9c5bae071b7f15617d5f73b777",
+      "bytes": 2961
+    },
+    {
+      "path": "/Users/max/Kuro-Anime-App/supabase/prepared-migrations/20261008100000_import_status_fence_preserves_units.sql",
+      "sha256": "af22886f86a23d7e5314f49de59b63185a28b3c5b47c98a4f84f2a00b7f4eccd",
+      "bytes": 44412
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+Evidence layer: offline Deno, injected repository; not deployed/live/native.
+Command: deno test --allow-env supabase/functions/concierge-recommend/catalog_repository_test.ts
+Actual captured output, transcribed without rerunning unchanged tests:
+Check file:///Users/max/Kuro-Anime-App/supabase/functions/concierge-recommend/catalog_repository_test.ts
+running 2 tests
+ragSeed rejects wrong-medium answers and preserves matching or unscoped identity ... ok (8ms)
+ragSeed rejects malformed confidence and fractional identity instead of bypassing the threshold ... ok (0ms)
+ok | 2 passed | 0 failed (11ms)

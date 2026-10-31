@@ -1,0 +1,5 @@
+PASS
+- app_swift=150
+- package_swift=22
+- migrations=245
+Boundary: documentation marker check only; concurrent shared source, not release proof.

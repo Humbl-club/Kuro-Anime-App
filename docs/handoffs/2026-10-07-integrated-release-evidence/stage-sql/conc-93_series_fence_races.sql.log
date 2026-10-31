@@ -1,0 +1,24 @@
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:33: NOTICE:  TEST ok: progress begins
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:40: NOTICE:  TEST ok: progress applies position 5
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:42: NOTICE:  TEST ok: note begins
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:46: NOTICE:  TEST ok: note waits on account admission or list row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:48: NOTICE:  TEST ok: note is blocked by the exact in-flight progress writer
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:49: NOTICE:  TEST ok: progress commits
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:50: NOTICE:  TEST ok: note update finishes
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:54: NOTICE:  TEST ok: progress stayed at the receipt
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:56: NOTICE:  TEST ok: note landed after the receipt
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:70: NOTICE:  TEST ok: stale progress conflicts after the note
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:73: NOTICE:  TEST ok: conflict did not rewind progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:78: NOTICE:  TEST ok: owner deletes the row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:83: NOTICE:  TEST ok: the new row has a new lifecycle
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:94: NOTICE:  TEST ok: old lifecycle is removed
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:103: NOTICE:  TEST ok: new lifecycle accepts progress
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:106: NOTICE:  TEST ok: new lifecycle progress is 2
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:123: NOTICE:  TEST ok: import waits on the local edit admission or row
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:125: NOTICE:  TEST ok: import is blocked by the exact local-edit transaction
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:127: NOTICE:  TEST ok: import counts a conflict
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:130: NOTICE:  TEST ok: local progress wins
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:150: NOTICE:  TEST ok: shared club comment is visible before removal
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:164: NOTICE:  TEST ok: comment write waits on the membership change
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:173: NOTICE:  TEST ok: bundle has no comment text after the only shared club is gone
+psql:/Users/max/Kuro-Anime-App/supabase/tests/concurrency/93_series_fence_races.sql:176: NOTICE:  TEST ok: bundle has no display name after the only shared club is gone
