@@ -87,7 +87,8 @@ function main() {
   blocks.push(excerptBlock('Kuro/ContentView.swift', { title: 'iOS pager + swipe navigation (authoritative)' }));
 
   // Client/backend integration.
-  blocks.push(excerptBlock('Kuro/Services/SupabaseService.swift', { title: 'iOS Supabase client + RPC/Edge wiring (authoritative)' }));
+  blocks.push(excerptBlock('Kuro/Composition/AppComposition.swift', { title: 'iOS composition root: one Supabase client, owners, account-scoped list (authoritative)' }));
+  blocks.push(excerptBlock('Kuro/Identity/SessionController.swift', { title: 'iOS session/lifecycle funnel (authoritative)' }));
 
   // Concierge UI.
   blocks.push(excerptBlock('Kuro/Views/ConciergeView.swift', { title: 'Concierge UI (authoritative)' }));

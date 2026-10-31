@@ -2,58 +2,122 @@
 
 const fs = require('fs');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
+const { execFileSync } = require('child_process');
 const { getProjectUrl } = require('./lib/project_config');
 
-const ROOT = '/Applications/Kuro';
-const PROJECT_URL = process.env.SUPABASE_URL || getProjectUrl();
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const REPORT_DIR = process.env.MEDIA_RELATIONS_REPORTS_DIR || path.join(ROOT, 'reports/media-relations');
-const MODE = (process.env.MEDIA_RELATIONS_MODE || 'queue').trim().toLowerCase();
-const TOP_COUNT = parsePositiveInt(process.env.MEDIA_RELATIONS_TOP_COUNT, 500);
-const QUEUE_LIMIT = parsePositiveInt(process.env.MEDIA_RELATIONS_QUEUE_LIMIT, 40);
-const ANILIST_BATCH_SIZE = parsePositiveInt(process.env.ANILIST_BATCH_SIZE, 10);
-const REQUEST_DELAY_MS = parsePositiveInt(process.env.ANILIST_REQUEST_DELAY_MS, 350);
-const ANILIST_TIMEOUT_MS = parsePositiveInt(process.env.ANILIST_TIMEOUT_MS, 20000);
-const REPORT_TOP_MISSING_LIMIT = parsePositiveInt(process.env.MEDIA_RELATIONS_REPORT_TOP_MISSING_LIMIT, 30);
-const REPORT_SAMPLE_SIZE = parsePositiveInt(process.env.MEDIA_RELATIONS_REPORT_SAMPLE_SIZE, TOP_COUNT);
 const ANILIST_API = 'https://graphql.anilist.co';
 const SUPPORTED_RELATIONS = new Set(['SOURCE', 'ADAPTATION', 'PREQUEL', 'SEQUEL', 'SIDE_STORY', 'SPIN_OFF']);
+const LEGACY_APPLICATIONS_ROOT = '/Applications/Kuro';
 
-if (!SERVICE_ROLE_KEY) {
-  throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var.');
-}
-
-fs.mkdirSync(REPORT_DIR, { recursive: true });
-
-const supabase = createClient(PROJECT_URL, SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-  global: { headers: { 'x-client-info': 'kuro-media-relations-worker/1.0' } },
-});
-
-const localIdCache = new Map();
-let lastAniListRequestAt = 0;
+let activeReportDir = null;
 
 function parsePositiveInt(raw, fallback) {
   const value = Number.parseInt(raw ?? '', 10);
   return Number.isFinite(value) && value > 0 ? value : fallback;
 }
 
-function nowIso() {
-  return new Date().toISOString();
-}
-
-function sleep(ms) {
+function defaultSleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function rateLimitAniList() {
-  const now = Date.now();
-  const elapsed = now - lastAniListRequestAt;
-  if (elapsed < REQUEST_DELAY_MS) {
-    await sleep(REQUEST_DELAY_MS - elapsed);
+function nowIso(ctx) {
+  return ctx.clock().toISOString();
+}
+
+function readGitRoot() {
+  try {
+    return execFileSync('git', ['rev-parse', '--show-toplevel'], {
+      cwd: __dirname,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+  } catch (error) {
+    return '';
   }
-  lastAniListRequestAt = Date.now();
+}
+
+// 1. KURO_PROJECT_ROOT, when set
+// 2. else `git rev-parse --show-toplevel` from this script's directory
+// 3. else /Applications/Kuro, only when git is unavailable and that directory exists
+// 4. else the parent of scripts/
+function resolveProjectRoot(options = {}) {
+  const env = options.env || process.env;
+  const existsSync = options.existsSync || fs.existsSync;
+  const scriptsDir = options.scriptsDir || __dirname;
+  const gitRoot = options.gitRoot || readGitRoot;
+
+  const override = env.KURO_PROJECT_ROOT;
+  if (typeof override === 'string' && override.trim()) {
+    return override.trim();
+  }
+
+  let resolved = '';
+  try {
+    resolved = gitRoot();
+  } catch (error) {
+    resolved = '';
+  }
+  if (typeof resolved === 'string' && resolved.trim()) {
+    return resolved.trim();
+  }
+
+  if (existsSync(LEGACY_APPLICATIONS_ROOT)) {
+    return LEGACY_APPLICATIONS_ROOT;
+  }
+  return path.resolve(scriptsDir, '..');
+}
+
+function resolveReportDir() {
+  if (process.env.MEDIA_RELATIONS_REPORTS_DIR) {
+    return process.env.MEDIA_RELATIONS_REPORTS_DIR;
+  }
+  return path.join(resolveProjectRoot(), 'reports/media-relations');
+}
+
+function makeContext(deps) {
+  if (!deps || typeof deps !== 'object') {
+    throw new Error('runMediaRelations requires deps');
+  }
+  if (!deps.supabase) {
+    throw new Error('runMediaRelations requires deps.supabase');
+  }
+  if (!deps.reportDir) {
+    throw new Error('runMediaRelations requires deps.reportDir');
+  }
+  const fetchImpl = deps.fetch || globalThis.fetch;
+  if (typeof fetchImpl !== 'function') {
+    throw new Error('runMediaRelations requires deps.fetch');
+  }
+  const clock = deps.clock || (() => new Date());
+  if (typeof clock !== 'function') {
+    throw new Error('runMediaRelations requires deps.clock to be a function');
+  }
+  return {
+    supabase: deps.supabase,
+    fetch: fetchImpl,
+    clock,
+    sleep: deps.sleep || defaultSleep,
+    reportDir: deps.reportDir,
+    projectUrl: deps.projectUrl || process.env.SUPABASE_URL || '',
+    requestDelayMs: parsePositiveInt(deps.requestDelayMs ?? process.env.ANILIST_REQUEST_DELAY_MS, 350),
+    anilistTimeoutMs: parsePositiveInt(deps.anilistTimeoutMs ?? process.env.ANILIST_TIMEOUT_MS, 20000),
+    anilistBatchSize: parsePositiveInt(deps.anilistBatchSize ?? process.env.ANILIST_BATCH_SIZE, 10),
+    reportTopMissingLimit: parsePositiveInt(
+      deps.reportTopMissingLimit ?? process.env.MEDIA_RELATIONS_REPORT_TOP_MISSING_LIMIT,
+      30
+    ),
+    localIdCache: new Map(),
+    lastAniListRequestAt: 0,
+  };
+}
+
+async function rateLimitAniList(ctx) {
+  const now = ctx.clock().getTime();
+  const elapsed = now - ctx.lastAniListRequestAt;
+  if (elapsed < ctx.requestDelayMs) {
+    await ctx.sleep(ctx.requestDelayMs - elapsed);
+  }
+  ctx.lastAniListRequestAt = ctx.clock().getTime();
 }
 
 function normalizeAniListMediaType(raw) {
@@ -68,7 +132,7 @@ function normalizeRelationType(raw) {
   return SUPPORTED_RELATIONS.has(normalized) ? normalized : null;
 }
 
-async function fetchAniListMediaRelations(anilistId, mediaType) {
+async function fetchAniListMediaRelations(ctx, anilistId, mediaType) {
   const query = `
     query ($id: Int, $type: MediaType) {
       Media(id: $id, type: $type) {
@@ -88,13 +152,13 @@ async function fetchAniListMediaRelations(anilistId, mediaType) {
 
   let attempt = 0;
   while (true) {
-    await rateLimitAniList();
+    await rateLimitAniList(ctx);
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), ANILIST_TIMEOUT_MS);
+      const timeout = setTimeout(() => controller.abort(), ctx.anilistTimeoutMs);
       let response;
       try {
-        response = await fetch(ANILIST_API, {
+        response = await ctx.fetch(ANILIST_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query, variables: { id: anilistId, type: mediaType } }),
@@ -108,7 +172,7 @@ async function fetchAniListMediaRelations(anilistId, mediaType) {
         return payload?.data?.Media?.relations?.edges ?? [];
       }
       if ((response.status === 429 || response.status >= 500) && attempt < 4) {
-        await sleep(500 * Math.pow(2, attempt));
+        await ctx.sleep(500 * Math.pow(2, attempt));
         attempt += 1;
         continue;
       }
@@ -116,7 +180,7 @@ async function fetchAniListMediaRelations(anilistId, mediaType) {
       throw new Error(`AniList HTTP ${response.status}: ${text.slice(0, 300)}`);
     } catch (error) {
       if (attempt < 4) {
-        await sleep(500 * Math.pow(2, attempt));
+        await ctx.sleep(500 * Math.pow(2, attempt));
         attempt += 1;
         continue;
       }
@@ -125,7 +189,7 @@ async function fetchAniListMediaRelations(anilistId, mediaType) {
   }
 }
 
-async function fetchAniListRelationsBatch(items) {
+async function fetchAniListRelationsBatch(ctx, items) {
   const query = [
     'query {',
     ...items.map((item, index) => {
@@ -137,13 +201,13 @@ async function fetchAniListRelationsBatch(items) {
 
   let attempt = 0;
   while (true) {
-    await rateLimitAniList();
+    await rateLimitAniList(ctx);
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), ANILIST_TIMEOUT_MS);
+      const timeout = setTimeout(() => controller.abort(), ctx.anilistTimeoutMs);
       let response;
       try {
-        response = await fetch(ANILIST_API, {
+        response = await ctx.fetch(ANILIST_API, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query }),
@@ -163,7 +227,7 @@ async function fetchAniListRelationsBatch(items) {
       }
 
       if ((response.status === 429 || response.status >= 500) && attempt < 4) {
-        await sleep(500 * Math.pow(2, attempt));
+        await ctx.sleep(500 * Math.pow(2, attempt));
         attempt += 1;
         continue;
       }
@@ -171,7 +235,7 @@ async function fetchAniListRelationsBatch(items) {
       throw new Error(`AniList batch HTTP ${response.status}: ${text.slice(0, 300)}`);
     } catch (error) {
       if (attempt < 4) {
-        await sleep(500 * Math.pow(2, attempt));
+        await ctx.sleep(500 * Math.pow(2, attempt));
         attempt += 1;
         continue;
       }
@@ -180,13 +244,13 @@ async function fetchAniListRelationsBatch(items) {
   }
 }
 
-async function resolveLocalMediaId(mediaType, anilistId) {
+async function resolveLocalMediaId(ctx, mediaType, anilistId) {
   const key = `${mediaType}:${anilistId}`;
-  if (localIdCache.has(key)) {
-    return localIdCache.get(key);
+  if (ctx.localIdCache.has(key)) {
+    return ctx.localIdCache.get(key);
   }
   const table = mediaType === 'ANIME' ? 'anime' : 'manga';
-  const { data, error } = await supabase
+  const { data, error } = await ctx.supabase
     .from(table)
     .select('id')
     .eq('anilist_id', anilistId)
@@ -195,12 +259,12 @@ async function resolveLocalMediaId(mediaType, anilistId) {
     throw new Error(`Local media lookup failed for ${table} anilist_id=${anilistId}: ${error.message}`);
   }
   const localId = data?.id ?? null;
-  localIdCache.set(key, localId);
+  ctx.localIdCache.set(key, localId);
   return localId;
 }
 
-async function replaceRelationsForSource(fromMediaType, fromMediaId, edges) {
-  const { error: deleteError } = await supabase
+async function replaceRelationsForSource(ctx, fromMediaType, fromMediaId, edges) {
+  const { error: deleteError } = await ctx.supabase
     .from('media_relations')
     .delete()
     .eq('from_media_type', fromMediaType)
@@ -219,7 +283,7 @@ async function replaceRelationsForSource(fromMediaType, fromMediaId, edges) {
     if (!relationType || !targetType || !Number.isFinite(targetAniListId)) {
       continue;
     }
-    const targetMediaId = await resolveLocalMediaId(targetType, targetAniListId);
+    const targetMediaId = await resolveLocalMediaId(ctx, targetType, targetAniListId);
     if (!targetMediaId) continue;
     const dedupeKey = `${relationType}:${targetType}:${targetMediaId}`;
     if (seen.has(dedupeKey)) continue;
@@ -238,7 +302,7 @@ async function replaceRelationsForSource(fromMediaType, fromMediaId, edges) {
     return { inserted: 0 };
   }
 
-  const { error } = await supabase
+  const { error } = await ctx.supabase
     .from('media_relations')
     .upsert(rows, { onConflict: 'from_media_type,from_media_id,relation_type,to_media_type,to_media_id,source' });
   if (error) {
@@ -247,16 +311,16 @@ async function replaceRelationsForSource(fromMediaType, fromMediaId, edges) {
   return { inserted: rows.length };
 }
 
-async function refreshSource(item) {
+async function refreshSource(ctx, item) {
   if (!item?.anilist_id) {
     throw new Error(`Missing AniList ID for ${item.media_type}:${item.id}`);
   }
-  const edges = await fetchAniListMediaRelations(item.anilist_id, item.media_type);
-  return replaceRelationsForSource(item.media_type, item.id, edges);
+  const edges = await fetchAniListMediaRelations(ctx, item.anilist_id, item.media_type);
+  return replaceRelationsForSource(ctx, item.media_type, item.id, edges);
 }
 
-async function fetchQueueBatch(limit) {
-  const { data, error } = await supabase
+async function fetchQueueBatch(ctx, limit) {
+  const { data, error } = await ctx.supabase
     .from('media_relation_refresh_queue')
     .select('media_type, media_id, reason, retry_count')
     .in('status', ['pending', 'error'])
@@ -270,7 +334,7 @@ async function fetchQueueBatch(limit) {
   const resolved = [];
   for (const row of data) {
     const table = row.media_type === 'ANIME' ? 'anime' : 'manga';
-    const { data: media, error: mediaError } = await supabase
+    const { data: media, error: mediaError } = await ctx.supabase
       .from(table)
       .select('id, anilist_id, title_english, title_romaji, popularity')
       .eq('id', row.media_id)
@@ -292,8 +356,8 @@ async function fetchQueueBatch(limit) {
   return resolved;
 }
 
-async function setQueueStatus(mediaType, mediaId, patch) {
-  const { error } = await supabase
+async function setQueueStatus(ctx, mediaType, mediaId, patch) {
+  const { error } = await ctx.supabase
     .from('media_relation_refresh_queue')
     .update(patch)
     .eq('media_type', mediaType)
@@ -303,25 +367,25 @@ async function setQueueStatus(mediaType, mediaId, patch) {
   }
 }
 
-async function processQueue(limit) {
-  const batch = await fetchQueueBatch(limit);
+async function processQueue(ctx, limit) {
+  const batch = await fetchQueueBatch(ctx, limit);
   const summary = { mode: 'queue', processed: 0, refreshed: 0, errors: 0, items: [] };
   for (const item of batch) {
-    await setQueueStatus(item.media_type, item.id, {
+    await setQueueStatus(ctx, item.media_type, item.id, {
       status: 'processing',
-      last_attempt_at: nowIso(),
+      last_attempt_at: nowIso(ctx),
       retry_count: item.retry_count + 1,
       last_error: null,
-      updated_at: nowIso(),
+      updated_at: nowIso(ctx),
     });
 
     try {
-      const result = await refreshSource(item);
-      await setQueueStatus(item.media_type, item.id, {
+      const result = await refreshSource(ctx, item);
+      await setQueueStatus(ctx, item.media_type, item.id, {
         status: 'ok',
-        last_completed_at: nowIso(),
+        last_completed_at: nowIso(ctx),
         last_error: null,
-        updated_at: nowIso(),
+        updated_at: nowIso(ctx),
       });
       summary.processed += 1;
       summary.refreshed += 1;
@@ -330,10 +394,10 @@ async function processQueue(limit) {
         console.log(`[media-relations] queue progress ${summary.processed}/${batch.length}`);
       }
     } catch (error) {
-      await setQueueStatus(item.media_type, item.id, {
+      await setQueueStatus(ctx, item.media_type, item.id, {
         status: 'error',
         last_error: String(error.message || error).slice(0, 1000),
-        updated_at: nowIso(),
+        updated_at: nowIso(ctx),
       });
       summary.processed += 1;
       summary.errors += 1;
@@ -346,15 +410,15 @@ async function processQueue(limit) {
   return summary;
 }
 
-async function fetchTopCatalog(topCount) {
+async function fetchTopCatalog(ctx, topCount) {
   const [animeRes, mangaRes] = await Promise.all([
-    supabase
+    ctx.supabase
       .from('anime')
       .select('id, anilist_id, title_english, title_romaji, popularity')
       .eq('is_adult', false)
       .order('popularity', { ascending: false, nullsFirst: false })
       .limit(topCount),
-    supabase
+    ctx.supabase
       .from('manga')
       .select('id, anilist_id, title_english, title_romaji, popularity')
       .eq('is_adult', false)
@@ -381,8 +445,8 @@ async function fetchTopCatalog(topCount) {
   return { anime, manga, all: [...anime, ...manga] };
 }
 
-async function backfillTopCatalog(topCount) {
-  const top = await fetchTopCatalog(topCount);
+async function backfillTopCatalog(ctx, topCount) {
+  const top = await fetchTopCatalog(ctx, topCount);
   const summary = {
     mode: 'top-catalog',
     topCount,
@@ -394,11 +458,11 @@ async function backfillTopCatalog(topCount) {
     samples: [],
   };
 
-  for (let offset = 0; offset < top.all.length; offset += ANILIST_BATCH_SIZE) {
-    const batch = top.all.slice(offset, offset + ANILIST_BATCH_SIZE);
+  for (let offset = 0; offset < top.all.length; offset += ctx.anilistBatchSize) {
+    const batch = top.all.slice(offset, offset + ctx.anilistBatchSize);
     let fetchedBatch;
     try {
-      fetchedBatch = await fetchAniListRelationsBatch(batch);
+      fetchedBatch = await fetchAniListRelationsBatch(ctx, batch);
     } catch (error) {
       for (const item of batch) {
         summary.processed += 1;
@@ -417,7 +481,7 @@ async function backfillTopCatalog(topCount) {
     for (const entry of fetchedBatch) {
       const item = entry.item;
       try {
-        const result = await replaceRelationsForSource(item.media_type, item.id, entry.edges);
+        const result = await replaceRelationsForSource(ctx, item.media_type, item.id, entry.edges);
         summary.processed += 1;
         summary.refreshed += 1;
         if (summary.samples.length < 20) {
@@ -443,13 +507,13 @@ async function backfillTopCatalog(topCount) {
   return summary;
 }
 
-async function countDistinctRelationSources() {
+async function countDistinctRelationSources(ctx) {
   const pageSize = 1000;
   let from = 0;
   const seen = new Set();
   while (true) {
     const to = from + pageSize - 1;
-    const { data, error } = await supabase
+    const { data, error } = await ctx.supabase
       .from('media_relations')
       .select('from_media_type, from_media_id')
       .order('from_media_type', { ascending: true })
@@ -497,9 +561,9 @@ async function mapWithConcurrency(items, concurrency, fn) {
   return results;
 }
 
-async function buildCoverageReport(sampleSize) {
-  const top = await fetchTopCatalog(sampleSize);
-  const { count: totalRelations, error: countError } = await supabase
+async function buildCoverageReport(ctx, sampleSize) {
+  const top = await fetchTopCatalog(ctx, sampleSize);
+  const { count: totalRelations, error: countError } = await ctx.supabase
     .from('media_relations')
     .select('*', { count: 'exact', head: true });
   if (countError) {
@@ -507,7 +571,7 @@ async function buildCoverageReport(sampleSize) {
   }
 
   const ladders = await mapWithConcurrency(top.all, 8, async (item) => {
-    const { data, error } = await supabase.rpc('get_media_ladder', {
+    const { data, error } = await ctx.supabase.rpc('get_media_ladder', {
       p_media_type: item.media_type,
       p_media_id: item.id,
     });
@@ -538,17 +602,17 @@ async function buildCoverageReport(sampleSize) {
     }
   }
 
-  const distinctSources = await countDistinctRelationSources();
+  const distinctSources = await countDistinctRelationSources(ctx);
   const latestStatus = {
-    generated_at: nowIso(),
-    project_url: PROJECT_URL,
+    generated_at: nowIso(ctx),
+    project_url: ctx.projectUrl,
     total_media_relations_rows: totalRelations || 0,
     distinct_source_titles_with_relations: distinctSources,
     top_catalog_sample_size: sampleSize,
     top_catalog_coverage: coverageCounts,
     top_missing_titles: missing
       .sort((lhs, rhs) => (rhs.popularity || 0) - (lhs.popularity || 0))
-      .slice(0, REPORT_TOP_MISSING_LIMIT)
+      .slice(0, ctx.reportTopMissingLimit)
       .map(item => ({
         media_type: item.media_type,
         media_id: item.id,
@@ -559,7 +623,7 @@ async function buildCoverageReport(sampleSize) {
   };
 
   fs.writeFileSync(
-    path.join(REPORT_DIR, 'latest-status.json'),
+    path.join(ctx.reportDir, 'latest-status.json'),
     JSON.stringify(latestStatus, null, 2) + '\n',
     'utf8'
   );
@@ -585,33 +649,79 @@ async function buildCoverageReport(sampleSize) {
     }
   }
 
-  fs.writeFileSync(path.join(REPORT_DIR, 'missing-top-catalog.md'), mdLines.join('\n') + '\n', 'utf8');
+  fs.writeFileSync(path.join(ctx.reportDir, 'missing-top-catalog.md'), mdLines.join('\n') + '\n', 'utf8');
   return latestStatus;
 }
 
-async function main() {
-  const summary = { started_at: nowIso(), mode: MODE };
-  if (MODE === 'queue') {
-    summary.queue = await processQueue(QUEUE_LIMIT);
-  } else if (MODE === 'top-catalog') {
-    summary.backfill = await backfillTopCatalog(TOP_COUNT);
-  } else if (MODE !== 'report') {
-    throw new Error(`Unsupported MEDIA_RELATIONS_MODE: ${MODE}`);
+async function runMediaRelations(deps) {
+  const ctx = makeContext(deps);
+  const mode = (deps.mode ?? process.env.MEDIA_RELATIONS_MODE ?? 'queue').trim().toLowerCase();
+  const topCount = deps.topCount ?? parsePositiveInt(process.env.MEDIA_RELATIONS_TOP_COUNT, 500);
+  const queueLimit = deps.queueLimit ?? parsePositiveInt(process.env.MEDIA_RELATIONS_QUEUE_LIMIT, 40);
+  const reportSampleSize = deps.reportSampleSize ?? parsePositiveInt(
+    process.env.MEDIA_RELATIONS_REPORT_SAMPLE_SIZE,
+    topCount
+  );
+
+  const summary = { started_at: nowIso(ctx), mode };
+  if (mode === 'queue') {
+    summary.queue = await processQueue(ctx, queueLimit);
+  } else if (mode === 'top-catalog') {
+    summary.backfill = await backfillTopCatalog(ctx, topCount);
+  } else if (mode !== 'report') {
+    throw new Error(`Unsupported MEDIA_RELATIONS_MODE: ${mode}`);
   }
 
-  summary.report = await buildCoverageReport(REPORT_SAMPLE_SIZE);
-  summary.completed_at = nowIso();
-  fs.writeFileSync(path.join(REPORT_DIR, 'latest-run.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
+  summary.report = await buildCoverageReport(ctx, reportSampleSize);
+  summary.completed_at = nowIso(ctx);
+  fs.writeFileSync(path.join(ctx.reportDir, 'latest-run.json'), JSON.stringify(summary, null, 2) + '\n', 'utf8');
   console.log(JSON.stringify(summary, null, 2));
+  return summary;
 }
 
-main().catch(error => {
-  const payload = {
-    started_at: nowIso(),
-    mode: MODE,
-    error: String(error.message || error),
-  };
-  fs.writeFileSync(path.join(REPORT_DIR, 'latest-run.json'), JSON.stringify(payload, null, 2) + '\n', 'utf8');
-  console.error(error);
-  process.exit(1);
-});
+async function main() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) {
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY env var.');
+  }
+  const projectUrl = process.env.SUPABASE_URL || getProjectUrl();
+  const reportDir = resolveReportDir();
+  fs.mkdirSync(reportDir, { recursive: true });
+  activeReportDir = reportDir;
+  const { createClient } = require('@supabase/supabase-js');
+  const supabase = createClient(projectUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { 'x-client-info': 'kuro-media-relations-worker/1.0' } },
+  });
+  await runMediaRelations({
+    supabase,
+    fetch: globalThis.fetch,
+    clock: () => new Date(),
+    reportDir,
+    projectUrl,
+  });
+}
+
+module.exports = {
+  runMediaRelations,
+  resolveProjectRoot,
+};
+
+if (require.main === module) {
+  main().catch(error => {
+    if (activeReportDir) {
+      const payload = {
+        started_at: new Date().toISOString(),
+        mode: (process.env.MEDIA_RELATIONS_MODE || 'queue').trim().toLowerCase(),
+        error: String(error.message || error),
+      };
+      fs.writeFileSync(
+        path.join(activeReportDir, 'latest-run.json'),
+        JSON.stringify(payload, null, 2) + '\n',
+        'utf8'
+      );
+    }
+    console.error(error);
+    process.exit(1);
+  });
+}

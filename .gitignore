@@ -79,3 +79,7 @@ fastlane/README.md
 /reports/local-dashboard/
 /reports/media-relations/
 /reports/synopsis-enrichment/
+
+# Generated test result bundles and Python caches
+*.xcresult/
+__pycache__/

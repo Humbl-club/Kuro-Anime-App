@@ -5,6 +5,19 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 APP_SWIFT_COUNT = len(list((ROOT / "Kuro").rglob("*.swift")))
+# Local Swift package(s) (Packages/*/Sources and Packages/*/Tests). Absent until the first package target lands.
+PACKAGES_DIR = ROOT / "Packages"
+PACKAGE_SWIFT_COUNT = (
+    len([p for p in PACKAGES_DIR.rglob("*.swift") if ".build" not in p.parts])
+    if PACKAGES_DIR.exists()
+    else 0
+)
+PACKAGE_STATE_CLAUSE = (
+    f"; {PACKAGE_SWIFT_COUNT} package Swift files in `/Packages`" if PACKAGE_SWIFT_COUNT else ""
+)
+PACKAGE_PLAIN_CLAUSE = (
+    f", {PACKAGE_SWIFT_COUNT} package Swift files" if PACKAGE_SWIFT_COUNT else ""
+)
 MIGRATION_COUNT = len(list((ROOT / "supabase" / "migrations").glob("*.sql")))
 
 CURRENT_APP_STATE = (ROOT / "CURRENT_APP_STATE.md").read_text()
@@ -18,7 +31,7 @@ ARCHIVE_README = ROOT / "archive" / "README.md"
 checks = [
     (
         "CURRENT_APP_STATE inventory",
-        f"**Current repo inventory:** {APP_SWIFT_COUNT} app Swift files in `/Kuro`; {MIGRATION_COUNT} SQL migrations in `/supabase/migrations`.",
+        f"**Current repo inventory:** {APP_SWIFT_COUNT} app Swift files in `/Kuro`{PACKAGE_STATE_CLAUSE}; {MIGRATION_COUNT} SQL migrations in `/supabase/migrations`.",
         CURRENT_APP_STATE,
     ),
     (
@@ -28,7 +41,7 @@ checks = [
     ),
     (
         "CURRENT_APP_STATE_PLAIN inventory",
-        f"**Current inventory:** {APP_SWIFT_COUNT} app Swift files and {MIGRATION_COUNT} SQL migrations are in the repo today.",
+        f"**Current inventory:** {APP_SWIFT_COUNT} app Swift files{PACKAGE_PLAIN_CLAUSE} and {MIGRATION_COUNT} SQL migrations are in the repo today.",
         CURRENT_APP_STATE_PLAIN,
     ),
     (
@@ -70,4 +83,5 @@ if failures:
 
 print("PASS")
 print(f"- app_swift={APP_SWIFT_COUNT}")
+print(f"- package_swift={PACKAGE_SWIFT_COUNT}")
 print(f"- migrations={MIGRATION_COUNT}")

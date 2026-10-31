@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="/Applications/Kuro"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=kuro_project_root.sh
+source "$SCRIPT_DIR/kuro_project_root.sh"
+ROOT="$(kuro_resolve_project_root)"
 REPORT_DIR="${SYNOPSIS_REPORTS_DIR:-$ROOT/reports/synopsis-enrichment}"
 mkdir -p "$REPORT_DIR"
 
@@ -79,8 +82,27 @@ trap 'rm -f "$LOCK_PID_FILE" "$LOCK_STARTED_FILE"; rmdir "$LOCK_DIR" 2>/dev/null
 
 {
   log_line "starting synopsis enrichment worker"
-  if [[ ! -x "$WORKER_BIN" || "$ROOT/scripts/synopsis_enrichment_worker.swift" -nt "$WORKER_BIN" ]]; then
-    /usr/bin/xcrun swiftc -parse-as-library "$ROOT/scripts/synopsis_enrichment_worker.swift" -o "$WORKER_BIN"
+  SYNOPSIS_SOURCES=(
+    "$ROOT/scripts/synopsis_quality.swift"
+    "$ROOT/scripts/synopsis_run.swift"
+    "$ROOT/scripts/synopsis_enrichment_worker.swift"
+  )
+  needs_build=0
+  if [[ ! -x "$WORKER_BIN" ]]; then
+    needs_build=1
+  else
+    for src in "${SYNOPSIS_SOURCES[@]}"; do
+      if [[ "$src" -nt "$WORKER_BIN" ]]; then
+        needs_build=1
+      fi
+    done
+  fi
+  if [[ "$needs_build" -eq 1 ]]; then
+    if [[ -n "${KURO_SWIFTC:-}" ]]; then
+      "$KURO_SWIFTC" -parse-as-library "${SYNOPSIS_SOURCES[@]}" -o "$WORKER_BIN"
+    else
+      /usr/bin/xcrun swiftc -parse-as-library "${SYNOPSIS_SOURCES[@]}" -o "$WORKER_BIN"
+    fi
   fi
   "$WORKER_BIN"
   log_line "synopsis enrichment worker completed"

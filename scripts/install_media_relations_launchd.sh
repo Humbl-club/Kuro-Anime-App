@@ -2,7 +2,10 @@
 set -euo pipefail
 
 LABEL="com.kuro.media-relations"
-ROOT="/Applications/Kuro"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=kuro_project_root.sh
+source "$SCRIPT_DIR/kuro_project_root.sh"
+ROOT="$(kuro_resolve_project_root)"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 REPORT_DIR="$ROOT/reports/media-relations"
 mkdir -p "$HOME/Library/LaunchAgents" "$REPORT_DIR"
@@ -87,6 +90,8 @@ cat > "$PLIST" <<PLIST
 
   <key>EnvironmentVariables</key>
   <dict>
+    <key>KURO_PROJECT_ROOT</key>
+    <string>$ROOT</string>
     <key>SUPABASE_URL</key>
     <string>$SUPABASE_URL_VALUE</string>
     <key>SUPABASE_SERVICE_ROLE_KEY</key>

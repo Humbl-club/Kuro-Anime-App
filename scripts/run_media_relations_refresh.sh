@@ -1,35 +1,170 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="/Applications/Kuro"
-REPORT_DIR="${MEDIA_RELATIONS_REPORTS_DIR:-$ROOT/reports/media-relations}"
-mkdir -p "$REPORT_DIR"
-source "$ROOT/scripts/lib/load_project_public_env.sh"
-load_project_public_env || true
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=kuro_project_root.sh
+source "$SCRIPT_DIR/kuro_project_root.sh"
 
-read_existing_env() {
-  local key="$1"
-  local plists=(
-    "$HOME/Library/LaunchAgents/com.kuro.catalog-safety.plist"
-    "$HOME/Library/LaunchAgents/com.kuro.synopsis-enrichment.plist"
-    "$HOME/Library/LaunchAgents/com.kuro.provider-availability.plist"
-  )
-  local plist
-  for plist in "${plists[@]}"; do
-    if [[ -f "$plist" ]]; then
-      local value
-      value="$(/usr/libexec/PlistBuddy -c "Print :EnvironmentVariables:$key" "$plist" 2>/dev/null || true)"
-      if [[ -n "$value" ]]; then
-        printf '%s' "$value"
-        return 0
-      fi
+# Complete Supabase pair from one source only: both variables already in the
+# environment, else both keys in MEDIA_RELATIONS_CONFIG, else one fallback plist
+# that contains both. Never pair a URL from one file with a key from another.
+MEDIA_RELATIONS_CONFIG="${MEDIA_RELATIONS_CONFIG:-$HOME/Library/LaunchAgents/com.kuro.media-relations.plist}"
+
+kuro_media_relations_read_plist() {
+  local plist="$1"
+  local key="$2"
+  local value
+  [[ -f "$plist" ]] || return 1
+  value="$(/usr/libexec/PlistBuddy -c "Print :EnvironmentVariables:$key" "$plist" 2>/dev/null || true)"
+  [[ -n "$value" ]] || return 1
+  printf '%s' "$value"
+}
+
+kuro_media_relations_read_env_file() {
+  local file="$1"
+  local key="$2"
+  local line k v
+  [[ -f "$file" ]] || return 1
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%$'\r'}"
+    [[ -z "$line" || "${line:0:1}" == "#" ]] && continue
+    if [[ "$line" == export\ * ]]; then
+      line="${line#export }"
+      line="${line#"${line%%[![:space:]]*}"}"
     fi
-  done
+    [[ "$line" == *=* ]] || continue
+    k="${line%%=*}"
+    k="${k%"${k##*[![:space:]]}"}"
+    [[ "$k" == "$key" ]] || continue
+    v="${line#*=}"
+    v="${v#"${v%%[![:space:]]*}"}"
+    v="${v%"${v##*[![:space:]]}"}"
+    v="${v%$'\r'}"
+    if [[ "$v" == \"*\" && "$v" == *\" ]]; then
+      v="${v:1:${#v}-2}"
+    elif [[ "$v" == \'*\' && "$v" == *\' ]]; then
+      v="${v:1:${#v}-2}"
+    fi
+    printf '%s' "$v"
+    return 0
+  done < "$file"
   return 1
 }
 
-export SUPABASE_URL="${SUPABASE_URL:-$(read_existing_env SUPABASE_URL || true)}"
-export SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-$(read_existing_env SUPABASE_SERVICE_ROLE_KEY || true)}"
+kuro_media_relations_read_own() {
+  local key="$1"
+  local config="${MEDIA_RELATIONS_CONFIG:-}"
+  [[ -n "$config" && -f "$config" ]] || return 1
+  case "$config" in
+    *.plist)
+      kuro_media_relations_read_plist "$config" "$key"
+      ;;
+    *)
+      kuro_media_relations_read_env_file "$config" "$key"
+      ;;
+  esac
+}
+
+kuro_media_relations_fallback_plists() {
+  if [[ -n "${MEDIA_RELATIONS_FALLBACK_PLISTS+x}" ]]; then
+    local part
+    local IFS=':'
+    for part in ${MEDIA_RELATIONS_FALLBACK_PLISTS}; do
+      [[ -n "$part" ]] && printf '%s\n' "$part"
+    done
+    return 0
+  fi
+  printf '%s\n' \
+    "$HOME/Library/LaunchAgents/com.kuro.catalog-safety.plist" \
+    "$HOME/Library/LaunchAgents/com.kuro.synopsis-enrichment.plist" \
+    "$HOME/Library/LaunchAgents/com.kuro.provider-availability.plist"
+}
+
+kuro_media_relations_fail_incomplete() {
+  local missing_list="$1"
+  local source_label="$2"
+  echo "Missing ${missing_list}. ${source_label} has an incomplete Supabase pair, so the other setting was not taken from a different source." >&2
+  exit 1
+}
+
+# Complete pair only, in order:
+# 1. both variables already in the environment
+# 2. else both keys present in MEDIA_RELATIONS_CONFIG
+# 3. else the first fallback plist that contains both
+kuro_media_relations_resolve_settings() {
+  local env_url="${SUPABASE_URL:-}"
+  local env_key="${SUPABASE_SERVICE_ROLE_KEY:-}"
+  if [[ -n "$env_url" && -n "$env_key" ]]; then
+    return 0
+  fi
+  if [[ -n "$env_url" || -n "$env_key" ]]; then
+    local missing=()
+    [[ -z "$env_url" ]] && missing+=(SUPABASE_URL)
+    [[ -z "$env_key" ]] && missing+=(SUPABASE_SERVICE_ROLE_KEY)
+    kuro_media_relations_fail_incomplete "${missing[*]}" "The environment"
+  fi
+
+  local config="${MEDIA_RELATIONS_CONFIG:-}"
+  if [[ -n "$config" && -f "$config" ]]; then
+    local own_url="" own_key=""
+    own_url="$(kuro_media_relations_read_own SUPABASE_URL || true)"
+    own_key="$(kuro_media_relations_read_own SUPABASE_SERVICE_ROLE_KEY || true)"
+    if [[ -n "$own_url" && -n "$own_key" ]]; then
+      export SUPABASE_URL="$own_url"
+      export SUPABASE_SERVICE_ROLE_KEY="$own_key"
+      return 0
+    fi
+    if [[ -n "$own_url" || -n "$own_key" ]]; then
+      local missing=()
+      [[ -z "$own_url" ]] && missing+=(SUPABASE_URL)
+      [[ -z "$own_key" ]] && missing+=(SUPABASE_SERVICE_ROLE_KEY)
+      kuro_media_relations_fail_incomplete "${missing[*]}" "The media-relations config"
+    fi
+  fi
+
+  local plist url key
+  while IFS= read -r plist; do
+    [[ -n "$plist" && -f "$plist" ]] || continue
+    url="$(kuro_media_relations_read_plist "$plist" SUPABASE_URL || true)"
+    key="$(kuro_media_relations_read_plist "$plist" SUPABASE_SERVICE_ROLE_KEY || true)"
+    if [[ -n "$url" && -n "$key" ]]; then
+      export SUPABASE_URL="$url"
+      export SUPABASE_SERVICE_ROLE_KEY="$key"
+      return 0
+    fi
+  done < <(kuro_media_relations_fallback_plists)
+}
+
+kuro_media_relations_require_settings() {
+  local missing=()
+  [[ -z "${SUPABASE_URL:-}" ]] && missing+=(SUPABASE_URL)
+  [[ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]] && missing+=(SUPABASE_SERVICE_ROLE_KEY)
+  if ((${#missing[@]})); then
+    echo "Missing ${missing[*]}. Set both in the environment, or provide both in the media-relations config (MEDIA_RELATIONS_CONFIG; default ~/Library/LaunchAgents/com.kuro.media-relations.plist), or in one fallback plist that contains both." >&2
+    exit 1
+  fi
+}
+
+if [[ "${KURO_MEDIA_RELATIONS_SOURCE_ONLY:-}" == "1" ]]; then
+  return 0 2>/dev/null || exit 0
+fi
+
+ROOT="$(kuro_resolve_project_root)"
+REPORT_DIR="${MEDIA_RELATIONS_REPORTS_DIR:-$ROOT/reports/media-relations}"
+
+kuro_media_relations_resolve_settings
+if [[ -z "${SUPABASE_URL:-}" && -f "$ROOT/scripts/lib/load_project_public_env.sh" ]]; then
+  # Public project URL only. Never reads a service-role credential.
+  # shellcheck source=lib/load_project_public_env.sh
+  source "$ROOT/scripts/lib/load_project_public_env.sh"
+  load_project_public_env || true
+fi
+kuro_media_relations_require_settings
+
+mkdir -p "$REPORT_DIR"
+export SUPABASE_URL
+export SUPABASE_SERVICE_ROLE_KEY
 export MEDIA_RELATIONS_REPORTS_DIR="$REPORT_DIR"
 export MEDIA_RELATIONS_MODE="${MEDIA_RELATIONS_MODE:-queue}"
 export MEDIA_RELATIONS_TOP_COUNT="${MEDIA_RELATIONS_TOP_COUNT:-500}"
@@ -39,11 +174,6 @@ export MEDIA_RELATIONS_REPORT_TOP_MISSING_LIMIT="${MEDIA_RELATIONS_REPORT_TOP_MI
 export ANILIST_BATCH_SIZE="${ANILIST_BATCH_SIZE:-10}"
 export ANILIST_REQUEST_DELAY_MS="${ANILIST_REQUEST_DELAY_MS:-350}"
 export ANILIST_TIMEOUT_MS="${ANILIST_TIMEOUT_MS:-20000}"
-
-if [[ -z "${SUPABASE_SERVICE_ROLE_KEY}" ]]; then
-  echo "Missing SUPABASE_SERVICE_ROLE_KEY. Export it or install another Kuro launchd pipeline first." >&2
-  exit 1
-fi
 
 LOG_FILE="$REPORT_DIR/worker.log"
 LOCK_DIR="$REPORT_DIR/.worker.lock"

@@ -2,10 +2,21 @@
 set -euo pipefail
 
 LABEL="com.kuro.synopsis-dashboard"
-ROOT="/Applications/Kuro"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=kuro_project_root.sh
+source "$SCRIPT_DIR/kuro_project_root.sh"
+ROOT="$(kuro_resolve_project_root)"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
-REPORT_DIR="${SYNOPSIS_REPORTS_DIR:-$ROOT/reports/synopsis-enrichment}"
-PORT="${SYNOPSIS_DASHBOARD_PORT:-8787}"
+read_existing_env() {
+  local key="$1"
+  if [[ -f "$PLIST" ]]; then
+    /usr/libexec/PlistBuddy -c "Print :EnvironmentVariables:$key" "$PLIST" 2>/dev/null || true
+  fi
+}
+REPORT_DIR="${SYNOPSIS_REPORTS_DIR:-$(read_existing_env SYNOPSIS_REPORTS_DIR)}"
+REPORT_DIR="${REPORT_DIR:-$ROOT/reports/synopsis-enrichment}"
+PORT="${SYNOPSIS_DASHBOARD_PORT:-$(read_existing_env SYNOPSIS_DASHBOARD_PORT)}"
+PORT="${PORT:-8787}"
 mkdir -p "$HOME/Library/LaunchAgents" "$REPORT_DIR"
 
 cat > "$PLIST" <<PLIST
@@ -24,6 +35,8 @@ cat > "$PLIST" <<PLIST
 
   <key>EnvironmentVariables</key>
   <dict>
+    <key>KURO_PROJECT_ROOT</key>
+    <string>$ROOT</string>
     <key>SYNOPSIS_REPORTS_DIR</key>
     <string>$REPORT_DIR</string>
     <key>SYNOPSIS_DASHBOARD_PORT</key>

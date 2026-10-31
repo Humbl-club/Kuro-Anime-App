@@ -1,12 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# DEPLOY_SUPABASE defaults to 0. A plain run does not db push or functions deploy.
+# Set DEPLOY_SUPABASE=1, or pass --supabase-only, to deploy.
+kuro_local_cd_apply_defaults() {
+  DEPLOY_SUPABASE="${DEPLOY_SUPABASE:-0}"
+  DEPLOY_TESTFLIGHT="${DEPLOY_TESTFLIGHT:-0}"
+  DEPLOY_FUNCTIONS="${DEPLOY_FUNCTIONS:-bulk-import-anime,bulk-import-manga,manga-chapter-enrich}"
+}
+
+if [[ "${KURO_LOCAL_CD_SOURCE_DEFAULTS_ONLY:-}" == "1" ]]; then
+  kuro_local_cd_apply_defaults
+  return 0 2>/dev/null || exit 0
+fi
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=kuro_project_root.sh
+source "$SCRIPT_DIR/kuro_project_root.sh"
+ROOT_DIR="$(kuro_resolve_project_root)"
 cd "$ROOT_DIR"
 
-DEPLOY_SUPABASE="${DEPLOY_SUPABASE:-1}"
-DEPLOY_TESTFLIGHT="${DEPLOY_TESTFLIGHT:-0}"
-DEPLOY_FUNCTIONS="${DEPLOY_FUNCTIONS:-bulk-import-anime,bulk-import-manga,manga-chapter-enrich}"
+kuro_local_cd_apply_defaults
 
 usage() {
   cat <<'EOF'

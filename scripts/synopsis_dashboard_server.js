@@ -3,9 +3,12 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
-const REPORT_DIR = process.env.SYNOPSIS_REPORTS_DIR || '/Applications/Kuro/reports/synopsis-enrichment';
+const REPORT_DIR = process.env.SYNOPSIS_REPORTS_DIR || path.join(
+  execFileSync('/bin/bash', [path.join(__dirname, 'kuro_project_root.sh')], { encoding: 'utf8' }).trim(),
+  'reports', 'synopsis-enrichment',
+);
 const PORT = Number(process.env.SYNOPSIS_DASHBOARD_PORT || 8787);
 const LABEL = process.env.SYNOPSIS_LAUNCHD_LABEL || 'com.kuro.synopsis-enrichment';
 

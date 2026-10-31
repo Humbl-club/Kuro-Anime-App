@@ -2,10 +2,20 @@
 set -euo pipefail
 
 LABEL="com.kuro.unified-dashboard"
-ROOT="/Applications/Kuro"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=kuro_project_root.sh
+source "$SCRIPT_DIR/kuro_project_root.sh"
+ROOT="$(kuro_resolve_project_root)"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 REPORT_DIR="$ROOT/reports/local-dashboard"
-PORT="${KURO_UNIFIED_DASHBOARD_PORT:-8791}"
+read_existing_env() {
+  local key="$1"
+  if [[ -f "$PLIST" ]]; then
+    /usr/libexec/PlistBuddy -c "Print :EnvironmentVariables:$key" "$PLIST" 2>/dev/null || true
+  fi
+}
+PORT="${KURO_UNIFIED_DASHBOARD_PORT:-$(read_existing_env KURO_UNIFIED_DASHBOARD_PORT)}"
+PORT="${PORT:-8791}"
 
 mkdir -p "$HOME/Library/LaunchAgents" "$REPORT_DIR"
 
@@ -25,6 +35,8 @@ cat > "$PLIST" <<PLIST
 
   <key>EnvironmentVariables</key>
   <dict>
+    <key>KURO_PROJECT_ROOT</key>
+    <string>$ROOT</string>
     <key>KURO_UNIFIED_DASHBOARD_PORT</key>
     <string>$PORT</string>
   </dict>

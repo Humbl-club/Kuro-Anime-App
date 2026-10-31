@@ -3,9 +3,15 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
-const ROOT = '/Applications/Kuro';
+function resolveKuroProjectRoot() {
+  return execFileSync('/bin/bash', [path.join(__dirname, 'kuro_project_root.sh')], {
+    encoding: 'utf8',
+  }).trim();
+}
+
+const ROOT = resolveKuroProjectRoot();
 const REPORTS = path.join(ROOT, 'reports');
 const PORT = Number(process.env.KURO_UNIFIED_DASHBOARD_PORT || 8791);
 const AUTO_REFRESH_MS = 15000;
