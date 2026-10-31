@@ -3,7 +3,7 @@
 // (deletion.ts) against a fake supabase-js-shaped client; only the Supabase
 // service boundary is faked. This is NOT a test against Supabase itself.
 import { strict as assert } from "node:assert";
-import { createDeletionDeps, createPlatform, type AdminClientLike, type UserClientLike } from "./adapters.ts";
+import { createDeletionDeps, createPlatform, revokeAppleToken, type AdminClientLike, type UserClientLike } from "./adapters.ts";
 import { type AuthUser, type HandlerPlatform, handleDeleteAccount } from "./handler.ts";
 import { FakeBackend, OTHER, USER } from "./fake_backend.ts";
 
@@ -234,6 +234,55 @@ Deno.test("adapters: RPC mapping (ok / error / refused) and the JWT-bound client
 
   const failing = fakeUser({ data: null, error: { message: "boom" } });
   assert.deepEqual(await createDeletionDeps(admin, failing.client).deleteUserConciergeData(USER), { kind: "error", message: "boom" });
+});
+
+Deno.test("handler + adapters: a missing or malformed concierge cleanup acknowledgment keeps Auth intact", async () => {
+  for (const data of [null, {}, { success: false }, { success: "true" }]) {
+    const { admin, log } = fakeAdmin();
+    const { client } = fakeUser({ data, error: null });
+    const res = await handleDeleteAccount(post({}), realPlatform(admin, client));
+    assert.equal(res.status, 500);
+    assert.equal((await res.json()).success, undefined);
+    assert.equal(log.some((entry) => entry.startsWith("deleteUser:")), false);
+    assert.deepEqual(log, [`rpc:begin_account_deletion:${JSON.stringify({ p_user_id: USER })}`]);
+  }
+});
+
+Deno.test("actual Apple adapter: held headers or token body abort within one deadline and deletion proceeds", async () => {
+  for (const phase of ["headers", "body"] as const) {
+    const b = new FakeBackend();
+    let signal: AbortSignal | null | undefined;
+    let fetches = 0;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    const fetchImpl: typeof fetch = async (_input, init) => {
+      signal = init?.signal;
+      fetches += 1;
+      if (phase === "headers") {
+        await held;
+        return Response.json({ refresh_token: "late-token" });
+      }
+      // Real fetch propagates the signal to the body; this controlled body deliberately
+      // stays pending, proving that the adapter's deadline also bounds body consumption.
+      const response = Response.json({});
+      response.json = async () => { await held; return { refresh_token: "late-token" }; };
+      return response;
+    };
+    const platform = fakePlatform(b, { id: USER, identities: [{ provider: "apple" }] }, (code) =>
+      revokeAppleToken(code, { appleClientId: "test", appleClientSecret: "test" }, fetchImpl, 10)
+    );
+    try {
+      const res = await handleDeleteAccount(post({ apple_authorization_code: "test-code" }), platform);
+      assert.equal(res.status, 200);
+      assert.equal(signal?.aborted, true);
+      assert.equal(b.authUsers.has(USER), false);
+      assert.equal(fetches, 1);
+    } finally {
+      release();
+    }
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(fetches, 1, "late token response must not start revocation after the deadline");
+  }
 });
 
 Deno.test("adapters: auth deletion treats 'user already gone' as success but surfaces other errors", async () => {

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { gateRateLimit } from "../_shared/rate_limit_gate.ts";
+import { withResolveBudget } from "./resolve_budget.ts";
 
 type Candidate = {
   media_type: "ANIME" | "MANGA";
@@ -171,21 +173,19 @@ serve(async (req) => {
     const { data: userData, error: userErr } = await client.auth.getUser();
     if (userErr || !userData?.user) return json({ error: "Unauthorized" }, { status: 401 });
 
-    // Server-side rate limiting (per-user + per-IP).
+    // Server-side rate limiting (per-user + per-IP). A limiter error fails closed (F32).
     const ip = clientIp(req);
-    const { data: rl } = await client.rpc("check_concierge_rate_limit", {
-      p_kind: "resolve",
-      p_ip: ip,
-      p_window_seconds: null,
-      p_max_user: null,
-      p_max_ip: null,
-    });
-    if (rl && rl.allowed === false) {
-      return json(
-        { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
-        { status: 429, headers: { "Retry-After": String(rl.retry_after_s ?? 30) } },
-      );
-    }
+    const blocked = await gateRateLimit(
+      client.rpc("check_concierge_rate_limit", {
+        p_kind: "resolve",
+        p_ip: ip,
+        p_window_seconds: null,
+        p_max_user: null,
+        p_max_ip: null,
+      }),
+      json,
+    );
+    if (blocked) return blocked;
 
     // Global kill-switch: if disabled, just don't resolve (user can pick manually).
     const { data: llmEnabled } = await client.rpc("is_flag_enabled", { p_key: "llm_enabled" });
@@ -217,45 +217,19 @@ serve(async (req) => {
       return { raw, parsed, options };
     });
 
-    // Budget guardrails. We reserve before the LLM call, then finalize with actual usage if available.
+    // Budget guardrails. Acquire, run, then finalize only the scopes this request acquired.
     const maxCompletion = 220;
     const promptChars =
       1400 + // small constant for prompt framing
       packed.reduce((sum, it) => sum + it.raw.length + JSON.stringify(it.options).length + JSON.stringify(it.parsed ?? {}).length, 0);
     const reserveTokens = Math.min(8000, Math.max(120, Math.ceil(promptChars / 4) + maxCompletion));
 
-    const { data: budget } = await client.rpc("llm_budget_reserve", {
-      p_reserved_tokens: reserveTokens,
-      // Nulls => defaults from public.concierge_config.
-      p_max_daily_tokens: null,
-      p_max_daily_calls: null,
-      p_model: model,
+    const budget = await withResolveBudget(client, reserveTokens, model, async () => {
+      const answer = await groqResolve({ apiKey: groqKey, model, items: packed });
+      return { value: answer, actualTokens: answer.usageTotal ?? reserveTokens };
     });
-    if (budget && budget.allowed === false) {
-      return json({ success: true, choices: [], budget_exceeded: true });
-    }
-
-    // Global budget (prevents "many users" abuse).
-    const { data: cfg } = await client.rpc("get_concierge_config");
-    const globalBudget = cfg?.global_llm_budget ?? null;
-    const globalDailyTokens = Number(globalBudget?.daily_tokens ?? 250000);
-    const globalDailyCalls = Number(globalBudget?.daily_calls ?? 600);
-    const { data: gBudget } = await client.rpc("llm_global_budget_reserve", {
-      p_reserved_tokens: reserveTokens,
-      p_max_daily_tokens: Number.isFinite(globalDailyTokens) ? globalDailyTokens : 250000,
-      p_max_daily_calls: Number.isFinite(globalDailyCalls) ? globalDailyCalls : 600,
-    });
-    if (gBudget && gBudget.allowed === false) {
-      // Release per-user reservation (best-effort).
-      try {
-        await client.rpc("llm_budget_finalize", { p_reserved_tokens: reserveTokens, p_actual_tokens: 0, p_model: model });
-      } catch {
-        // ignore
-      }
-      return json({ success: true, choices: [], budget_exceeded: true, global_budget_exceeded: true });
-    }
-
-    const { resolved, usageTotal } = await groqResolve({ apiKey: groqKey, model, items: packed });
+    if (!budget.value) return json(budget.body, { status: budget.status });
+    const resolved = budget.value.resolved;
     const choices = Array.isArray(resolved?.choices) ? resolved.choices : [];
 
     // Validate and map.
@@ -277,23 +251,9 @@ serve(async (req) => {
       });
     }
 
-    try {
-      const actual = usageTotal ?? reserveTokens;
-      await client.rpc("llm_budget_finalize", {
-        p_reserved_tokens: reserveTokens,
-        p_actual_tokens: actual,
-        p_model: model,
-      });
-      await client.rpc("llm_global_budget_finalize", {
-        p_reserved_tokens: reserveTokens,
-        p_actual_tokens: actual,
-      });
-    } catch {
-      // best-effort
-    }
-
     return json({ success: true, choices: out });
   } catch (e) {
-    return json({ success: false, error: e?.message ?? String(e) }, { status: 500 });
+    // Type-only cast (E7): `e` is `unknown`; runtime expression unchanged.
+    return json({ success: false, error: (e as Error)?.message ?? String(e) }, { status: 500 });
   }
 });

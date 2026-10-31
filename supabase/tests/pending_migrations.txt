@@ -1,0 +1,30 @@
+# Migrations in supabase/prepared-migrations/ (deliberately OUTSIDE supabase/migrations/ so
+# no `supabase db push` or scripts/local_cd.sh can deploy them) that are PREPARED ONLY:
+# NOT applied to production. Deployment is a separate, explicit human approval.
+#
+# The local DB fixture (scripts/db/run_local_db_tests.sh) INCLUDES these by default,
+# so the RLS tests assert the post-fix behavior. `--exclude-pending` rebuilds the
+# fixture without them (the deployed-chain state; the matching tests then FAIL on
+# purpose, which is the red half of the red/green evidence).
+#
+# To deploy after approval: `git mv supabase/prepared-migrations/<file> supabase/migrations/`,
+# delete its line below, then push through the normal approved deployment path.
+#
+# When a file here is deployed, delete its line (never edit the migration itself).
+# One basename per line; '#' starts a comment.
+
+20261005120000_club_members_role_column_guard.sql
+20261005120100_club_rails_insert_admin_only.sql
+20261005120200_toggle_comment_reaction_visibility.sql
+20261005130000_import_apply_undo_transactions.sql
+20261005140000_account_deletion_write_barrier.sql
+20261005150000_club_membership_lifecycle_and_privacy.sql
+20261005160000_club_realtime_signals.sql
+20261005170000_user_lists_view_security_invoker.sql
+20261005180000_list_user_id_canonical_case.sql
+20261007040000_series_home_foundation_v1.sql
+20261007120000_feature_flag_overrides.sql
+
+20261007130000_series_account_lifecycle.sql
+20261008100000_import_status_fence_preserves_units.sql
+20261008110000_import_review_recovery_v2.sql

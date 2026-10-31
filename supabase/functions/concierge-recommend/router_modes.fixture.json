@@ -1,0 +1,839 @@
+{
+  "_source": "concierge_config.config->'modes' rebuilt by replaying, in filename order on a throwaway local PostgreSQL 17 (row seeded with '{}'), the only 9 migrations that touch config modes: 20260205190000, 20260205233000, 20260206100000, 20260207012000, 20260207021000, 20260208022356, 20260208092000, 20260209100000, 20260209110000.",
+  "_caveat": "Migration-chain config, NOT verified against the live project (no remote access). It stands in for the get_concierge_config RPC in the router tests; production falls back to defaultModes() (17 modes) only when the config has no valid modes.",
+  "_generated": "2026-10-05 (E7)",
+  "modes": [
+    {
+      "id": "premium_picks",
+      "title": "Premium Picks",
+      "rail_id": {
+        "anime": "premium_picks_anime",
+        "manga": "premium_picks_manga"
+      },
+      "synonyms": [
+        "something good",
+        "recommend something",
+        "surprise me",
+        "premium",
+        "best",
+        "top tier",
+        "what should i watch",
+        "was soll ich schauen",
+        "etwas gutes",
+        "anything good",
+        "just pick something",
+        "quality",
+        "empfehlung",
+        "was empfiehlst du",
+        "was ist gut"
+      ],
+      "min_score": 75,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 2500,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ]
+    },
+    {
+      "id": "gateway_start_here",
+      "title": "Start Here",
+      "rail_id": {
+        "anime": "gateway_anime",
+        "manga": "gateway_manga"
+      },
+      "synonyms": [
+        "first anime",
+        "first manga",
+        "where do i start",
+        "getting into anime",
+        "getting into manga",
+        "anime anfangen",
+        "manga anfangen",
+        "beginner",
+        "new to anime",
+        "new to manga",
+        "gateway",
+        "never watched anime",
+        "erstes anime",
+        "einstieg",
+        "womit anfangen",
+        "fuer einsteiger",
+        "was zuerst schauen"
+      ]
+    },
+    {
+      "id": "premium_action",
+      "title": "Premium Action",
+      "rail_id": {
+        "anime": "premium_action_anime",
+        "manga": "premium_action_manga"
+      },
+      "synonyms": [
+        "action",
+        "hype action",
+        "action premium",
+        "best action",
+        "sakuga",
+        "fight scenes",
+        "battle",
+        "tournament",
+        "shounen",
+        "epic fights",
+        "adrenaline",
+        "kampf",
+        "action anime",
+        "action anime",
+        "beste action",
+        "kampfszenen"
+      ],
+      "min_score": 75,
+      "min_popularity": 3500,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Action"
+      ]
+    },
+    {
+      "id": "premium_comedy_grownup",
+      "title": "Premium Comedy (grown-up)",
+      "rail_id": {
+        "anime": "premium_comedy_grownup_anime",
+        "manga": "premium_comedy_grownup_manga"
+      },
+      "synonyms": [
+        "funny but not childish",
+        "grown up comedy",
+        "adult humor",
+        "smart comedy",
+        "witzig aber nicht kindisch",
+        "sitcom",
+        "parody",
+        "satire",
+        "clever humor",
+        "erwachsene komödie",
+        "comedy for adults",
+        "lustiges",
+        "witziges",
+        "zum totlachen",
+        "comedy fuer erwachsene"
+      ],
+      "min_score": 75,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 3500,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Comedy"
+      ]
+    },
+    {
+      "id": "cozy_comfort",
+      "title": "Cozy / Comfort",
+      "rail_id": {
+        "anime": "cozy_comfort_anime",
+        "manga": "cozy_comfort_manga"
+      },
+      "synonyms": [
+        "cozy",
+        "comfort",
+        "chill",
+        "relax",
+        "healing",
+        "iyashikei",
+        "gemütlich",
+        "wholesome",
+        "feel good",
+        "heartwarming",
+        "warm",
+        "gentle",
+        "peaceful",
+        "entspannend",
+        "wohlfühl",
+        "gemuetliches",
+        "entspannendes",
+        "zum abschalten",
+        "feelgood"
+      ],
+      "min_score": 70,
+      "min_popularity": 1200,
+      "exclude_formats": [
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Slice of Life"
+      ]
+    },
+    {
+      "id": "dark_serious",
+      "title": "Dark / Serious",
+      "rail_id": {
+        "anime": "dark_serious_anime",
+        "manga": "dark_serious_manga"
+      },
+      "synonyms": [
+        "dark",
+        "serious",
+        "mature",
+        "grown up",
+        "not childish",
+        "psychological",
+        "thriller",
+        "mind game",
+        "seinen",
+        "gore",
+        "violent",
+        "gritty",
+        "brutal",
+        "düster",
+        "ernst",
+        "erwachsen",
+        "mind bending",
+        "duesteres",
+        "ernstes",
+        "schwere kost",
+        "nichts fuer kinder"
+      ],
+      "min_score": 78,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 2500,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Drama",
+        "Thriller",
+        "Psychological",
+        "Mystery"
+      ]
+    },
+    {
+      "id": "hidden_gems",
+      "title": "Hidden Gems",
+      "rail_id": {
+        "anime": "hidden_gems_anime",
+        "manga": "hidden_gems_manga"
+      },
+      "synonyms": [
+        "hidden gems",
+        "underrated",
+        "less known",
+        "something new",
+        "new to me",
+        "overlooked",
+        "sleeper",
+        "cult",
+        "niche",
+        "off the beaten path",
+        "geheimtipp",
+        "unbekannt",
+        "unterschätzt",
+        "geheimtipps",
+        "kennt niemand",
+        "unterschaetztes"
+      ],
+      "min_score": 78,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "max_popularity": 45000,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ]
+    },
+    {
+      "id": "classics_expanded",
+      "title": "Classics (expanded)",
+      "rail_id": {
+        "anime": "classics_anime",
+        "manga": "classics_manga"
+      },
+      "synonyms": [
+        "classic",
+        "classics",
+        "must watch",
+        "essentials",
+        "goat",
+        "greatest of all time",
+        "old school",
+        "retro",
+        "90s anime",
+        "80s anime",
+        "legendär",
+        "klassiker",
+        "all time best",
+        "iconic",
+        "die besten aller zeiten",
+        "muss man gesehen haben",
+        "legendaeres"
+      ],
+      "min_score": 80,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 1500,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "classic_year_max": 2012
+    },
+    {
+      "id": "short_one_season",
+      "title": "Short & Complete",
+      "rail_id": {
+        "anime": "short_one_season_anime",
+        "manga": "short_one_season_manga"
+      },
+      "synonyms": [
+        "short",
+        "one season",
+        "12 episodes",
+        "13 episodes",
+        "quick watch",
+        "binge",
+        "completed",
+        "one cour",
+        "single season",
+        "short anime",
+        "kurz",
+        "eine staffel",
+        "schnell durchschauen",
+        "kurze serie",
+        "eine staffel",
+        "schnell durchschauen"
+      ],
+      "min_score": 74,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 2000,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC",
+        "MOVIE",
+        "ONA"
+      ],
+      "required_genres": []
+    },
+    {
+      "id": "movie_night",
+      "title": "Movie Night",
+      "rail_id": {
+        "anime": "movie_night_anime"
+      },
+      "synonyms": [
+        "movie",
+        "movies",
+        "film",
+        "anime movie",
+        "movie night",
+        "filmabend",
+        "anime film",
+        "feature film",
+        "standalone movie",
+        "kinofilm",
+        "filmabend",
+        "anime film",
+        "kinofilm"
+      ],
+      "min_score": 76,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 2000,
+      "exclude_formats": [
+        "TV",
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC",
+        "ONA",
+        "OVA"
+      ],
+      "required_genres": []
+    },
+    {
+      "id": "romance_serious",
+      "title": "Romance (serious)",
+      "rail_id": {
+        "anime": "romance_serious_anime",
+        "manga": "romance_serious_manga"
+      },
+      "synonyms": [
+        "serious romance",
+        "love story",
+        "romantic drama",
+        "romance drama",
+        "emotional romance",
+        "bittersweet",
+        "liebesgeschichte",
+        "ernste romanze",
+        "heartbreak",
+        "romance not comedy",
+        "deep romance",
+        "liebesgeschichten",
+        "romantisches",
+        "herzzerreissend"
+      ],
+      "min_score": 74,
+      "exclude_genres": [
+        "Kids",
+        "Comedy"
+      ],
+      "min_popularity": 2000,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Romance",
+        "Drama"
+      ]
+    },
+    {
+      "id": "romcom",
+      "title": "Romcom",
+      "rail_id": {
+        "anime": "romcom_anime",
+        "manga": "romcom_manga"
+      },
+      "synonyms": [
+        "romcom",
+        "romantic comedy",
+        "rom com",
+        "funny romance",
+        "lighthearted romance",
+        "love comedy",
+        "romantische komödie",
+        "lustige romanze",
+        "cute romance",
+        "fluffy",
+        "sweet romance",
+        "lustige romanze",
+        "romantische komoedie",
+        "suesses"
+      ],
+      "min_score": 72,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 2000,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Romance",
+        "Comedy"
+      ]
+    },
+    {
+      "id": "fantasy_non_isekai",
+      "title": "Fantasy (no isekai)",
+      "rail_id": {
+        "anime": "fantasy_non_isekai_anime",
+        "manga": "fantasy_non_isekai_manga"
+      },
+      "synonyms": [
+        "fantasy",
+        "high fantasy",
+        "swords and sorcery",
+        "magic",
+        "epic fantasy",
+        "fantasy no isekai",
+        "traditional fantasy",
+        "pure fantasy",
+        "klassische fantasy",
+        "fantasy ohne isekai",
+        "fantasy ohne isekai",
+        "klassische fantasy",
+        "magisches"
+      ],
+      "min_score": 74,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 2000,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Fantasy"
+      ]
+    },
+    {
+      "id": "isekai",
+      "title": "Isekai",
+      "rail_id": {
+        "anime": "isekai_anime",
+        "manga": "isekai_manga"
+      },
+      "synonyms": [
+        "isekai",
+        "transported to another world",
+        "reincarnated",
+        "another world",
+        "reborn",
+        "other world",
+        "parallel world",
+        "andere welt",
+        "wiedergeboren",
+        "summoned to another world",
+        "truck-kun",
+        "in eine andere welt",
+        "wiedergeburt",
+        "portal fantasy"
+      ],
+      "min_score": 72,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 2500,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Fantasy",
+        "Adventure"
+      ]
+    },
+    {
+      "id": "sports",
+      "title": "Sports",
+      "rail_id": {
+        "anime": "sports_anime",
+        "manga": "sports_manga"
+      },
+      "synonyms": [
+        "sports",
+        "sport",
+        "basketball",
+        "soccer",
+        "football",
+        "volleyball",
+        "boxing",
+        "tennis",
+        "baseball",
+        "cycling",
+        "running",
+        "swimming",
+        "haikyuu",
+        "blue lock",
+        "kuroko",
+        "ippo",
+        "slam dunk",
+        "sportanime",
+        "sportmanga",
+        "sportanime",
+        "sportmanga",
+        "fussball",
+        "basketball"
+      ],
+      "min_score": 72,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 1500,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Sports"
+      ]
+    },
+    {
+      "id": "scifi",
+      "title": "Sci-Fi",
+      "rail_id": {
+        "anime": "scifi_anime",
+        "manga": "scifi_manga"
+      },
+      "synonyms": [
+        "sci-fi",
+        "science fiction",
+        "scifi",
+        "cyberpunk",
+        "space",
+        "futuristic",
+        "dystopian",
+        "robots",
+        "space opera",
+        "mecha",
+        "zukunft",
+        "weltraum",
+        "science fiction",
+        "weltraum",
+        "zukunft"
+      ],
+      "min_score": 74,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 2000,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Sci-Fi"
+      ]
+    },
+    {
+      "id": "horror_supernatural",
+      "title": "Horror & Supernatural",
+      "rail_id": {
+        "anime": "horror_supernatural_anime",
+        "manga": "horror_supernatural_manga"
+      },
+      "synonyms": [
+        "horror",
+        "scary",
+        "creepy",
+        "supernatural",
+        "ghost",
+        "demon",
+        "occult",
+        "vampire",
+        "zombie",
+        "curse",
+        "haunted",
+        "junji ito",
+        "gruselig",
+        "geister",
+        "uebernatuerlich",
+        "gruseliges",
+        "uebernatuerliches",
+        "horror anime"
+      ],
+      "min_score": 70,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "min_popularity": 1500,
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Horror",
+        "Supernatural"
+      ]
+    },
+    {
+      "id": "mecha",
+      "title": "Mecha",
+      "rail_id": {
+        "anime": "mecha_anime",
+        "manga": "mecha_manga"
+      },
+      "synonyms": [
+        "mecha",
+        "giant robot",
+        "gundam",
+        "evangelion",
+        "code geass",
+        "roboter",
+        "riesenroboter",
+        "giant robots",
+        "mech"
+      ],
+      "min_score": 72,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Mecha"
+      ]
+    },
+    {
+      "id": "mystery_detective",
+      "title": "Mystery & Detective",
+      "rail_id": {
+        "anime": "mystery_detective_anime",
+        "manga": "mystery_detective_manga"
+      },
+      "synonyms": [
+        "mystery",
+        "detective",
+        "whodunit",
+        "case",
+        "deduction",
+        "krimi",
+        "detektiv",
+        "raetsel",
+        "who did it",
+        "crime",
+        "suspense"
+      ],
+      "min_score": 76,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Mystery"
+      ]
+    },
+    {
+      "id": "music_performance",
+      "title": "Music & Performance",
+      "rail_id": {
+        "anime": "music_performance_anime",
+        "manga": "music_performance_manga"
+      },
+      "synonyms": [
+        "music anime",
+        "band",
+        "idol",
+        "concert",
+        "k-on",
+        "your lie in april",
+        "musik",
+        "konzert",
+        "musik anime",
+        "instrument"
+      ],
+      "min_score": 70,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ],
+      "required_genres": [
+        "Music"
+      ]
+    },
+    {
+      "id": "historical",
+      "title": "Historical & Period",
+      "rail_id": {
+        "anime": "historical_anime",
+        "manga": "historical_manga"
+      },
+      "synonyms": [
+        "historical",
+        "period",
+        "samurai",
+        "war",
+        "vinland",
+        "kingdom",
+        "historisch",
+        "samurai",
+        "mittelalter",
+        "sengoku",
+        "edo",
+        "period drama"
+      ],
+      "min_score": 76,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ]
+    },
+    {
+      "id": "school_coming_of_age",
+      "title": "School & Coming of Age",
+      "rail_id": {
+        "anime": "school_anime",
+        "manga": "school_manga"
+      },
+      "synonyms": [
+        "school",
+        "high school",
+        "campus",
+        "coming of age",
+        "youth",
+        "schule",
+        "gymnasium",
+        "jugend",
+        "school life",
+        "teen",
+        "student"
+      ],
+      "min_score": 74,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ]
+    },
+    {
+      "id": "shoujo_josei",
+      "title": "Shoujo & Josei",
+      "rail_id": {
+        "anime": "shoujo_josei_anime",
+        "manga": "shoujo_josei_manga"
+      },
+      "synonyms": [
+        "shoujo",
+        "josei",
+        "for women",
+        "girls manga",
+        "woman protagonist",
+        "fuer frauen",
+        "maedchen",
+        "mahou shoujo",
+        "magical girl",
+        "reverse harem"
+      ],
+      "min_score": 72,
+      "exclude_genres": [
+        "Kids"
+      ],
+      "exclude_formats": [
+        "TV_SHORT",
+        "SPECIAL",
+        "MUSIC"
+      ]
+    }
+  ]
+}

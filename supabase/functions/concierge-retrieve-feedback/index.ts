@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { gateRateLimit } from "../_shared/rate_limit_gate.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -61,19 +62,17 @@ serve(async (req) => {
   }
 
   const ip = clientIp(req);
-  const { data: rl } = await client.rpc("check_concierge_rate_limit", {
-    p_kind: "rag_feedback",
-    p_ip: ip,
-    p_window_seconds: null,
-    p_max_user: null,
-    p_max_ip: null,
-  });
-  if (rl && rl.allowed === false) {
-    return json(
-      { error: "Rate limited", retry_after_s: rl.retry_after_s ?? 30 },
-      { status: 429, headers: { "Retry-After": String(rl.retry_after_s ?? 30) } },
-    );
-  }
+  const blocked = await gateRateLimit(
+    client.rpc("check_concierge_rate_limit", {
+      p_kind: "rag_feedback",
+      p_ip: ip,
+      p_window_seconds: null,
+      p_max_user: null,
+      p_max_ip: null,
+    }),
+    json,
+  );
+  if (blocked) return blocked;
 
   // Parse request body
   let body: Record<string, unknown>;

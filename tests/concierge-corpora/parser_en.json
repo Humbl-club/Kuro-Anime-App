@@ -107,6 +107,7 @@
     "expected_slots": { "status": "WATCHING" },
     "expected_confidence_min": 0.7,
     "expected_ambiguity": null,
+    "adjudication": {"decision": "corrected-expectation", "intended_ambiguity": "status_unclear", "rationale": "Write safety: past-tense 'watched' with no completion phrase and no progress leaves COMPLETED vs WATCHING materially uncertain, so the parser keeps WATCHING and asks 'Finished or still watching?' instead of an unreviewed write. Slots unchanged."},
     "description": "Past tense watched defaults to WATCHING"
   },
   {
@@ -247,6 +248,7 @@
     "expected_slots": { "status": "WATCHING" },
     "expected_confidence_min": 0.6,
     "expected_ambiguity": null,
+    "adjudication": {"decision": "corrected-expectation", "intended_ambiguity": "status_unclear", "rationale": "Same write-safety rule as parser_en_011, applied to each of the three split titles. Slots unchanged."},
     "description": "Multi-title comma-separated import (first item)"
   },
   {
@@ -387,6 +389,7 @@
     "expected_slots": { "status": "WATCHING" },
     "expected_confidence_min": 0.0,
     "expected_ambiguity": "intent_unclear",
+    "adjudication": {"decision": "accepted-production", "intended_slots": {"status": null}, "rationale": "Title-less fragment: nothing here can become a silent import write. Bare 'watched' without a subject is not a status rule, and the title-only rule already asks import-or-seed (intent_unclear), the clarification the corpus expects; a status on a line without a title has no write effect."},
     "description": "Status verb but no title"
   },
   {
@@ -397,6 +400,7 @@
     "expected_slots": {},
     "expected_confidence_min": 0.0,
     "expected_ambiguity": "unit_unclear",
+    "adjudication": {"decision": "accepted-production", "intended_ambiguity": "intent_unclear", "rationale": "Title-less fragment: the unit question is asked only when a status or parsed progress makes the number a progress value (detectAmbiguity); a bare 'at 12' is handled like any title-only line (intent_unclear). Both clarifications block a write; a unit answer would have no title to attach to."},
     "description": "Number without unit context"
   },
   {

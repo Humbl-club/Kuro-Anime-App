@@ -81,6 +81,9 @@ export function createDeletionDeps(admin: AdminClientLike, user: UserClientLike)
       if (error) return { kind: "error", message: error.message };
       const refused = (data as { error?: unknown } | null)?.error;
       if (refused) return { kind: "refused", reason: String(refused) };
+      if ((data as { success?: unknown } | null)?.success !== true) {
+        return { kind: "error", message: "delete_user_concierge_data did not report success" };
+      }
       return { kind: "ok" };
     },
 
@@ -120,43 +123,65 @@ export function createDeletionDeps(admin: AdminClientLike, user: UserClientLike)
 
 /**
  * Exchange the Apple authorization code for a refresh token and revoke it
- * (App Review Guideline 5.1.1(v)). Best-effort: never throws.
+ * (App Review Guideline 5.1.1(v)). Best-effort: never throws. One five-second
+ * deadline covers both requests and token-body consumption before deletion continues.
  */
 export async function revokeAppleToken(
   authorizationCode: string,
   env: Pick<FunctionEnv, "appleClientId" | "appleClientSecret">,
   fetchFn: typeof fetch = fetch,
+  timeoutMs = 5_000,
 ): Promise<void> {
   const clientId = env.appleClientId;
   const clientSecret = env.appleClientSecret;
   if (!clientId || !clientSecret) return;
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new Error("Apple token revocation timed out"));
+    }, timeoutMs);
+  });
   try {
-    const tokenRes = await fetchFn("https://appleid.apple.com/auth/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code: authorizationCode,
-        grant_type: "authorization_code",
-      }),
-    });
-    if (!tokenRes.ok) return;
-    const tokenData = await tokenRes.json();
-    const refreshToken = tokenData?.refresh_token;
-    if (!refreshToken) return;
-    await fetchFn("https://appleid.apple.com/auth/revoke", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        token: refreshToken,
-        token_type_hint: "refresh_token",
-      }),
-    });
+    await Promise.race([
+      deadline,
+      (async () => {
+        const tokenRes = await fetchFn("https://appleid.apple.com/auth/token", {
+          signal: controller.signal,
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code: authorizationCode,
+            grant_type: "authorization_code",
+          }),
+        });
+        controller.signal.throwIfAborted();
+        if (!tokenRes.ok) return;
+        const tokenData = await tokenRes.json();
+        controller.signal.throwIfAborted();
+        const refreshToken = tokenData?.refresh_token;
+        if (!refreshToken) return;
+        const revokeRes = await fetchFn("https://appleid.apple.com/auth/revoke", {
+          signal: controller.signal,
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: clientId,
+            client_secret: clientSecret,
+            token: refreshToken,
+            token_type_hint: "refresh_token",
+          }),
+        });
+        await revokeRes.body?.cancel();
+      })(),
+    ]);
   } catch {
     // Token revocation is best-effort; don't block account deletion.
+  } finally {
+    clearTimeout(timer);
   }
 }
 

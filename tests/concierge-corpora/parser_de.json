@@ -37,6 +37,7 @@
     "expected_slots": { "status": "WATCHING" },
     "expected_confidence_min": 0.7,
     "expected_ambiguity": null,
+    "adjudication": {"decision": "corrected-expectation", "intended_ambiguity": "status_unclear", "rationale": "Same write-safety rule as parser_en_011 for 'ich habe ... geschaut'. Slots unchanged."},
     "description": "ich habe geschaut defaults to WATCHING"
   },
   {
@@ -127,6 +128,7 @@
     "expected_slots": { "status": "WATCHING", "progressVolumes": 3 },
     "expected_confidence_min": 0.6,
     "expected_ambiguity": null,
+    "adjudication": {"decision": "corrected-expectation", "intended_slots": {"status": "READING", "progressVolumes": 3}, "rationale": "'angefangen' with a manga unit (Band) means reading: parseStatus maps angefangen + band/kapitel/manga to READING and the EN twin parser_en_012 expects READING. The authored WATCHING contradicted both."},
     "description": "Angefangen with Band (volume)"
   },
   {
@@ -367,6 +369,7 @@
     "expected_slots": { "status": "WATCHING" },
     "expected_confidence_min": 0.0,
     "expected_ambiguity": "intent_unclear",
+    "adjudication": {"decision": "accepted-production", "intended_slots": {"status": null}, "intended_ambiguity": null, "rationale": "Title-less fragment: after the participle is stripped the title is empty, so there is no candidate to import and nothing to clarify; an import-or-seed question would have no title to refer to. No write is possible either way."},
     "description": "Status word without title"
   },
   {
@@ -377,6 +380,7 @@
     "expected_slots": {},
     "expected_confidence_min": 0.0,
     "expected_ambiguity": "unit_unclear",
+    "adjudication": {"decision": "accepted-production", "intended_ambiguity": "intent_unclear", "rationale": "Same as parser_en_040 for 'bei 12'."},
     "description": "Number with preposition but no unit"
   },
   {
