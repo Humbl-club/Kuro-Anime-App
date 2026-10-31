@@ -7,7 +7,10 @@ import SwiftUI
 // CTAs fixed: Apple outline + Email solid black.
 
 struct AuthView: View {
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(IdentityStore.self) private var identity
+    @Environment(AuthService.self) private var auth
+    @Environment(SessionController.self) private var session
+    @Environment(DiscoveryStore.self) private var discovery
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum Step { case welcome, welcomeGenie, email }
@@ -102,10 +105,10 @@ struct AuthView: View {
         }
         .onChange(of: email) { _, _ in revalidateEmail() }
         .onChange(of: password) { _, _ in revalidatePassword() }
-        .onChange(of: supabaseService.authErrorMessage) { _, newValue in
+        .onChange(of: identity.authErrorMessage) { _, newValue in
             if let msg = newValue {
                 errorText = msg
-                supabaseService.authErrorMessage = nil
+                identity.authErrorMessage = nil
             }
         }
     }
@@ -151,7 +154,7 @@ struct AuthView: View {
         let bannerH = geo.size.height * 0.52 + geo.safeAreaInsets.top
         return ZStack {
             VStack(spacing: 0) {
-                AuthSceneryLoop()
+                KuroSceneryLoop()
                     .frame(maxWidth: .infinity)
                     .frame(height: bannerH)
                     .mask(
@@ -546,7 +549,7 @@ struct AuthView: View {
         emailCheckTask = Task {
             try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled else { return }
-            let exists = await supabaseService.checkEmailExists(email: trimmed)
+            let exists = await auth.checkEmailExists(email: trimmed)
             guard !Task.isCancelled else { return }
             emailStatus = exists ? .taken : .available
         }
@@ -588,7 +591,7 @@ struct AuthView: View {
     }
 
     private func loadCovers() async {
-        let anime = await supabaseService.fetchTrendingAnime(limit: 12)
+        let anime = await discovery.fetchTrendingAnime(limit: 12)
         let urls = anime.compactMap { URL(string: $0.displayImage) }.filter { !$0.absoluteString.isEmpty }
         if !urls.isEmpty { coverURLs = Array(urls.prefix(6)) }
     }
@@ -601,12 +604,12 @@ struct AuthView: View {
         defer { isWorking = false }
         do {
             if mode == .signIn {
-                try await supabaseService.signInWithEmail(email: e, password: password)
+                try await session.signInWithEmail(email: e, password: password)
             } else {
-                try await supabaseService.signUpWithEmail(email: e, password: password)
+                try await session.signUpWithEmail(email: e, password: password)
             }
         } catch {
-            errorText = supabaseService.authErrorMessage ?? SupabaseService.userFacingAuthErrorMessage(from: error)
+            errorText = identity.authErrorMessage ?? AuthService.userFacingAuthErrorMessage(from: error)
         }
     }
 
@@ -631,9 +634,9 @@ struct AuthView: View {
             let fullName = credential.fullName.flatMap {
                 [$0.givenName, $0.familyName].compactMap { $0 }.joined(separator: " ")
             }
-            try await supabaseService.signInWithApple(idToken: idToken, rawNonce: rawNonce, fullName: fullName)
+            try await session.signInWithApple(idToken: idToken, rawNonce: rawNonce, fullName: fullName)
         } catch {
-            errorText = SupabaseService.userFacingAuthErrorMessage(from: error)
+            errorText = AuthService.userFacingAuthErrorMessage(from: error)
             if step != .email {
                 withAnimation(KuroMotion.resolve(KuroAnimation.editorial)) { step = .email }
             }
@@ -650,10 +653,10 @@ struct AuthView: View {
         isWorking = true
         defer { isWorking = false }
         do {
-            try await supabaseService.resetPassword(email: e)
+            try await auth.resetPassword(email: e)
             errorText = "Password reset email sent. Check your inbox."
         } catch {
-            errorText = SupabaseService.userFacingAuthErrorMessage(from: error)
+            errorText = AuthService.userFacingAuthErrorMessage(from: error)
         }
     }
 
@@ -1285,57 +1288,6 @@ private struct AuthGeniePlaceholder: View {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
-    }
-}
-
-// MARK: - Living scenery loop (Anything hero)
-
-/// A truly seamless, infinitely scrolling banner. The asset is a double-width
-/// mirrored tile. We lay out TWO tiles (4 tile-widths) side by side and slide the
-/// strip by exactly one tile-width, then wrap — so frame N and frame N+period are
-/// pixel-identical. No seam, no restart, at any size.
-private struct AuthSceneryLoop: View {
-    var body: some View {
-        GeometryReader { geo in
-            let h = geo.size.height
-            // Wrap distance = one tile at the artwork's TRUE aspect (3072×1024 = 3:1).
-            // Using anything narrower crops the mountains out of the center via scaledToFill.
-            let tileW = h * 3.0
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
-                let elapsed = context.date.timeIntervalSinceReferenceDate
-                let period: Double = 34
-                let t = elapsed.truncatingRemainder(dividingBy: period) / period
-                let shift = tileW * t
-                HStack(spacing: 0) {
-                    Image("KuroZenMountains")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: tileW, height: h)
-                        .clipped()
-                    Image("KuroZenMountains")
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: tileW, height: h)
-                        .clipped()
-                }
-                .frame(width: geo.size.width, height: h, alignment: .leading)
-                .offset(x: -shift)
-                .saturation(1.02)
-                .overlay(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.04),
-                            Color.white.opacity(0.0),
-                            Color.white.opacity(0.12)
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-            }
-        }
-        .clipped()
-        .allowsHitTesting(false)
     }
 }
 

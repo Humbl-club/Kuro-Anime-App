@@ -1,13 +1,27 @@
 import SwiftUI
+import KuroCore
+import KuroLibrary
 
 struct ConciergeAniListImportSheet: View {
-    let supabaseService: SupabaseService
+    let imports: ImportsService
     let isGermanLocale: Bool
-    let onImportCompleted: (SupabaseService.ConciergeAniListImportResponse) async -> Void
+    let onImportCompleted: (ConciergeAniListImportResponse) async -> Void
+    let usesStructuredImport: Bool
+    let onPrepared: ((ImportOutcome) -> Void)?
+
+    init(imports: ImportsService, isGermanLocale: Bool, usesStructuredImport: Bool = false,
+         onPrepared: ((ImportOutcome) -> Void)? = nil,
+         onImportCompleted: @escaping (ConciergeAniListImportResponse) async -> Void) {
+        self.imports = imports; self.isGermanLocale = isGermanLocale
+        self.usesStructuredImport = usesStructuredImport; self.onPrepared = onPrepared
+        self.onImportCompleted = onImportCompleted
+    }
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var coordinator = ConciergeAniListImportCoordinator()
+    @State private var selectedImportMode: Bool?
+    private var usesStructuredPath: Bool { selectedImportMode ?? usesStructuredImport }
     @State private var username: String = ""
     @State private var includeAnime: Bool = true
     @State private var includeManga: Bool = true
@@ -16,12 +30,13 @@ struct ConciergeAniListImportSheet: View {
     @State private var includePlanning: Bool = true
     @State private var includePaused: Bool = false
     @State private var includeDropped: Bool = false
+    @State private var includeRepeating: Bool = false
     @FocusState private var usernameFocused: Bool
 
     private var canPreview: Bool {
         !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (includeAnime || includeManga)
-            && (includeCurrent || includeCompleted || includePlanning || includePaused || includeDropped)
+            && (includeCurrent || includeCompleted || includePlanning || includePaused || includeDropped || includeRepeating)
     }
 
     private var selectedTypes: [String] {
@@ -38,6 +53,7 @@ struct ConciergeAniListImportSheet: View {
         if includePlanning { values.append("PLANNING") }
         if includePaused { values.append("PAUSED") }
         if includeDropped { values.append("DROPPED") }
+        if includeRepeating { values.append("REPEATING") }
         return values
     }
 
@@ -65,8 +81,11 @@ struct ConciergeAniListImportSheet: View {
         }
         .presentationDetents([.large])
         .onAppear {
+            coordinator.activate(using: imports)
             usernameFocused = true
         }
+        .onDisappear { coordinator.stop() }
+        .onChange(of: imports.accountSession.current) { _, _ in coordinator.stop(); dismiss() }
     }
 
     private var headerSection: some View {
@@ -75,9 +94,9 @@ struct ConciergeAniListImportSheet: View {
                 .font(.kuroCustom(26, weight: .ultraLight, design: .serif, relativeTo: .title2))
                 .foregroundStyle(Color.kuroBlack.opacity(0.84))
 
-            Text(isGermanLocale
+            Text(usesStructuredPath ? "Read the complete selected list, review every title, then approve saving. Existing Kuro values stay unless you choose updates." : (isGermanLocale
                 ? "Erst Vorschau, dann Import. So siehst du Titel, Status und Umfang, bevor Kuro etwas übernimmt."
-                : "Preview first, then confirm. See titles, status, and scope before Kuro imports anything."
+                : "Preview first, then confirm. See titles, status, and scope before Kuro imports anything.")
             )
             .font(.kuroBody(weight: .light))
             .foregroundStyle(Color.kuroBlack.opacity(0.62))
@@ -110,6 +129,9 @@ struct ConciergeAniListImportSheet: View {
                 previewLoadingCard
             }
         case .ready:
+            if usesStructuredPath {
+                ProgressView("Opening prepared review")
+            } else {
             VStack(alignment: .leading, spacing: 14) {
                 selectionSummaryCard
                 if let preview = coordinator.preview {
@@ -120,10 +142,11 @@ struct ConciergeAniListImportSheet: View {
                     primaryAction: { Task { await confirmImport() } },
                     secondaryTitle: isGermanLocale ? "FORMULAR ÄNDERN" : "EDIT FORM",
                     secondaryAction: {
-                        coordinator.reset()
+                        resetForm()
                         usernameFocused = true
                     }
                 )
+            }
             }
         case .importing:
             VStack(alignment: .leading, spacing: 14) {
@@ -152,18 +175,18 @@ struct ConciergeAniListImportSheet: View {
                         primaryAction: { Task { await confirmImport() } },
                         secondaryTitle: isGermanLocale ? "FORMULAR ÄNDERN" : "EDIT FORM",
                         secondaryAction: {
-                            coordinator.reset()
+                            resetForm()
                             usernameFocused = true
                         }
                     )
                 } else {
                     errorCard
                     actionButtons(
-                        primaryTitle: isGermanLocale ? "VORSCHAU ERNEUT VERSUCHEN" : "TRY PREVIEW AGAIN",
+                        primaryTitle: usesStructuredPath ? "RESUME SOURCE READING" : (isGermanLocale ? "VORSCHAU ERNEUT VERSUCHEN" : "TRY PREVIEW AGAIN"),
                         primaryAction: { Task { await startPreview() } },
                         secondaryTitle: isGermanLocale ? "FORMULAR ÄNDERN" : "EDIT FORM",
                         secondaryAction: {
-                            coordinator.reset()
+                            resetForm()
                             usernameFocused = true
                         }
                     )
@@ -208,6 +231,7 @@ struct ConciergeAniListImportSheet: View {
                 togglePill(title: isGermanLocale ? "Pausiert" : "On hold", isOn: $includePaused)
                 togglePill(title: isGermanLocale ? "Abgebrochen" : "Dropped", isOn: $includeDropped)
             }
+            togglePill(title: isGermanLocale ? "Wiederholung" : "Repeating", isOn: $includeRepeating)
 
             Button {
                 Task { await startPreview() }
@@ -217,7 +241,7 @@ struct ConciergeAniListImportSheet: View {
                         ProgressView()
                             .tint(Color.kuroWhite)
                     }
-                    Text(isGermanLocale ? "VORSCHAU" : "PREVIEW")
+                    Text(usesStructuredPath ? "READ COMPLETE LIST FOR REVIEW" : (isGermanLocale ? "VORSCHAU" : "PREVIEW"))
                         .font(.kuroCaption(weight: .medium))
                         .tracking(2.0)
                 }
@@ -240,6 +264,10 @@ struct ConciergeAniListImportSheet: View {
             .font(.kuroMicro())
             .foregroundColor(.kuroTextTertiary)
             .padding(.top, 2)
+            if usesStructuredPath {
+                Text("All selected pages are read before approval. Existing status, progress, rating and notes stay unchanged by default. Unavailable fields are identified in review; a public list cannot expose private AniList entries.")
+                    .font(.kuroCaption()).foregroundStyle(Color.kuroTextSecondary)
+            }
         }
         .padding(16)
         .background(
@@ -266,7 +294,7 @@ struct ConciergeAniListImportSheet: View {
                 }
                 Spacer(minLength: 0)
                 Button {
-                    coordinator.reset()
+                    resetForm()
                     usernameFocused = true
                 } label: {
                     Text(isGermanLocale ? "ÄNDERN" : "EDIT")
@@ -293,6 +321,7 @@ struct ConciergeAniListImportSheet: View {
                 if includePlanning { summaryPill(isGermanLocale ? "Plan" : "Planning") }
                 if includePaused { summaryPill(isGermanLocale ? "Pausiert" : "Paused") }
                 if includeDropped { summaryPill(isGermanLocale ? "Abgebrochen" : "Dropped") }
+                if includeRepeating { summaryPill(isGermanLocale ? "Wiederholung" : "Repeating") }
             }
         }
         .padding(14)
@@ -307,7 +336,7 @@ struct ConciergeAniListImportSheet: View {
     }
 
     private func previewCard(
-        preview: SupabaseService.ConciergeAniListPreviewResponse,
+        preview: ConciergeAniListPreviewResponse,
         errorMessage: String?,
         isImporting: Bool
     ) -> some View {
@@ -607,7 +636,7 @@ struct ConciergeAniListImportSheet: View {
         }
     }
 
-    private func sampleRow(_ sample: SupabaseService.ConciergeAniListPreviewItem) -> some View {
+    private func sampleRow(_ sample: ConciergeAniListPreviewItem) -> some View {
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(sample.titleDisplay)
@@ -632,7 +661,7 @@ struct ConciergeAniListImportSheet: View {
         )
     }
 
-    private func sampleMeta(_ sample: SupabaseService.ConciergeAniListPreviewItem) -> String {
+    private func sampleMeta(_ sample: ConciergeAniListPreviewItem) -> String {
         var parts: [String] = []
         parts.append(sample.status.uppercased())
         if let progress = sample.progress {
@@ -644,7 +673,7 @@ struct ConciergeAniListImportSheet: View {
         return parts.joined(separator: " • ")
     }
 
-    private func countSummary(_ preview: SupabaseService.ConciergeAniListPreviewResponse) -> String {
+    private func countSummary(_ preview: ConciergeAniListPreviewResponse) -> String {
         let count = preview.itemCount ?? 0
         let truncated = preview.truncated == true
         if isGermanLocale {
@@ -653,10 +682,26 @@ struct ConciergeAniListImportSheet: View {
         return truncated ? "\(count) items, truncated" : "\(count) items"
     }
 
+    private func resetForm() {
+        coordinator.stop()
+        coordinator.activate(using: imports)
+        selectedImportMode = nil
+    }
+
     private func startPreview() async {
         guard canPreview else { return }
+        let structured = usesStructuredPath
+        selectedImportMode = structured
+        if structured {
+            guard usesStructuredImport else { coordinator.pauseForDisabledFoundation(); return }
+            if let job = await coordinator.prepare(using: imports, username: username,
+                types: selectedTypes, statuses: selectedStatuses) {
+                dismiss(); onPrepared?(job)
+            }
+            return
+        }
         await coordinator.loadPreview(
-            using: supabaseService,
+            using: imports,
             isGermanLocale: isGermanLocale,
             username: username,
             types: selectedTypes,
@@ -665,7 +710,8 @@ struct ConciergeAniListImportSheet: View {
     }
 
     private func confirmImport() async {
-        guard let response = await coordinator.confirmImport(using: supabaseService, isGermanLocale: isGermanLocale) else {
+        guard !usesStructuredPath else { return }
+        guard let response = await coordinator.confirmImport(using: imports, isGermanLocale: isGermanLocale) else {
             return
         }
         dismiss()

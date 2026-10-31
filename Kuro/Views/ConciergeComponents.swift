@@ -248,25 +248,25 @@ struct ConciergeMessage: Identifiable {
     /// If this message was produced from a specific user input (e.g. an import parse),
     /// keep the originating text so actions like "Re-parse" target the correct input.
     let sourceUserText: String?
-    let items: [SupabaseService.ConciergeParseItem]?
-    let recommendations: [SupabaseService.ConciergeRecommendResponse.Item]?
-    let recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]?
+    let items: [ConciergeParseItem]?
+    let recommendations: [ConciergeRecommendResponse.Item]?
+    let recommendationSets: [ConciergeRecommendResponse.Set]?
     let recommendationCategories: [String]?
-    let parseResponse: SupabaseService.ConciergeParseResponse?
+    let parseResponse: ConciergeParseResponse?
     /// Ambiguity from the parser requiring user clarification before re-parse.
-    let ambiguity: SupabaseService.ConciergeAmbiguity?
+    let ambiguity: ConciergeAmbiguity?
 
     init(
         role: Role,
         text: String,
         showClarifyActions: Bool = false,
         sourceUserText: String? = nil,
-        items: [SupabaseService.ConciergeParseItem]? = nil,
-        recommendations: [SupabaseService.ConciergeRecommendResponse.Item]? = nil,
-        recommendationSets: [SupabaseService.ConciergeRecommendResponse.Set]? = nil,
+        items: [ConciergeParseItem]? = nil,
+        recommendations: [ConciergeRecommendResponse.Item]? = nil,
+        recommendationSets: [ConciergeRecommendResponse.Set]? = nil,
         recommendationCategories: [String]? = nil,
-        parseResponse: SupabaseService.ConciergeParseResponse? = nil,
-        ambiguity: SupabaseService.ConciergeAmbiguity? = nil
+        parseResponse: ConciergeParseResponse? = nil,
+        ambiguity: ConciergeAmbiguity? = nil
     ) {
         self.role = role
         self.text = text
@@ -406,63 +406,6 @@ private enum ConciergeCuratedCopy {
     }
 }
 
-// MARK: - Action Bar
-
-struct ConciergeActionBar: View {
-    let selectedCount: Int
-    let hasAnySelection: Bool
-    let canUndo: Bool
-    let onApply: () -> Void
-    let onUndo: () -> Void
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Button(action: onUndo) {
-                Text("UNDO")
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(1.6)
-                    .foregroundColor(canUndo ? .kuroBlack : .kuroTextTertiary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                            .fill((canUndo ? Color.kuroBlack04 : Color.kuroBlack02))
-                    )
-            }
-            .buttonStyle(.plain)
-            .disabled(!canUndo)
-
-            Spacer()
-
-            Button(action: onApply) {
-                HStack(spacing: KuroDesignSpacing.sm) {
-                    Text("APPLY")
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(1.6)
-                    Text("\(selectedCount)")
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(1.0)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 999, style: .continuous)
-                                .fill(Color.kuroWhite15)
-                        )
-                }
-                .foregroundColor(.kuroWhite)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                        .fill(hasAnySelection ? Color.kuroBlack : Color.kuroBlack20)
-                )
-            }
-            .buttonStyle(.plain)
-            .disabled(!hasAnySelection)
-        }
-    }
-}
-
 // MARK: - Typing Indicator (500ms cycle)
 
 struct ConciergeTypingIndicator: View {
@@ -579,19 +522,6 @@ struct ConciergeIntroCard: View {
                     .lineSpacing(2)
             }
         }
-    }
-}
-
-private struct ConciergeCuratorNote: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.kuroCustom(13, weight: .regular, design: .serif, relativeTo: .caption1))
-            .italic()
-            .foregroundStyle(Color.kuroBlack65)
-            .lineSpacing(2.5)
-            .padding(.horizontal, 1)
     }
 }
 
@@ -1004,16 +934,16 @@ private struct ClarifyChoicePill: View {
 
 struct ConciergeBubble: View {
     let message: ConciergeMessage
-    let selected: (SupabaseService.ConciergeParseItem) -> SupabaseService.ConciergeCandidate?
-    let onSelect: (SupabaseService.ConciergeParseItem, SupabaseService.ConciergeCandidate) -> Void
-    let onOpenRecommendation: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
-    let onQuickSave: (SupabaseService.ConciergeRecommendResponse.Item) -> Void
+    let selected: (ConciergeParseItem) -> ConciergeCandidate?
+    let onSelect: (ConciergeParseItem, ConciergeCandidate) -> Void
+    let onOpenRecommendation: (ConciergeRecommendResponse.Item) -> Void
+    let onQuickSave: (ConciergeRecommendResponse.Item) -> Void
     let onClarifyPaste: () -> Void
     let onClarifyImportLibrary: () -> Void
     let onClarifyExampleImport: () -> Void
     let onClarifyExampleVibe: () -> Void
     var onClarifyAmbiguity: ((_ kind: String, _ value: String, _ sourceText: String) -> Void)? = nil
-    var onConfirmItems: ((SupabaseService.ConciergeParseResponse) -> Void)? = nil
+    var onConfirmItems: ((ConciergeParseResponse) -> Void)? = nil
     var onReparse: (() -> Void)? = nil
     var onUndoImport: (() -> Void)? = nil
     var onViewCollection: (() -> Void)? = nil
@@ -1179,7 +1109,7 @@ struct ConciergeBubble: View {
     }
 
     @ViewBuilder
-    private func ambiguityCard(ambiguity: SupabaseService.ConciergeAmbiguity, sourceText: String) -> some View {
+    private func ambiguityCard(ambiguity: ConciergeAmbiguity, sourceText: String) -> some View {
         switch ambiguity.kind {
         case "status_unclear":
             plainSurface(cornerRadius: KuroRadius.md) {
@@ -1245,9 +1175,9 @@ private struct WhisperMessageMoonIcon: View {
 // MARK: - Inline Confirm Bubble (with Import Reconciliation)
 
 struct ConciergeConfirmBubble: View {
-    let items: [SupabaseService.ConciergeParseItem]
-    let selected: (SupabaseService.ConciergeParseItem) -> SupabaseService.ConciergeCandidate?
-    let onSelect: (SupabaseService.ConciergeParseItem, SupabaseService.ConciergeCandidate) -> Void
+    let items: [ConciergeParseItem]
+    let selected: (ConciergeParseItem) -> ConciergeCandidate?
+    let onSelect: (ConciergeParseItem, ConciergeCandidate) -> Void
     let onConfirm: () -> Void
     var onReparse: (() -> Void)? = nil
     var onUndo: (() -> Void)? = nil
@@ -1259,17 +1189,17 @@ struct ConciergeConfirmBubble: View {
     var itemActions: [String: ImportItemAction] = [:]
     @Binding var excludedItemIds: Set<String>
 
-    private func actionFor(_ item: SupabaseService.ConciergeParseItem) -> ImportItemAction {
+    private func actionFor(_ item: ConciergeParseItem) -> ImportItemAction {
         itemActions[item.id] ?? .add
     }
 
-    private var addItems: [SupabaseService.ConciergeParseItem] {
+    private var addItems: [ConciergeParseItem] {
         items.filter { actionFor($0) == .add }
     }
-    private var updateItems: [SupabaseService.ConciergeParseItem] {
+    private var updateItems: [ConciergeParseItem] {
         items.filter { actionFor($0) == .update }
     }
-    private var skipItems: [SupabaseService.ConciergeParseItem] {
+    private var skipItems: [ConciergeParseItem] {
         items.filter { actionFor($0) == .skip }
     }
 
@@ -1283,7 +1213,7 @@ struct ConciergeConfirmBubble: View {
         }
     }
 
-    private var selectedByItemId: [String: SupabaseService.ConciergeCandidate] {
+    private var selectedByItemId: [String: ConciergeCandidate] {
         Dictionary(
             uniqueKeysWithValues: items.compactMap { item in
                 guard let c = selected(item) else { return nil }
@@ -1584,9 +1514,9 @@ struct ConciergeConfirmBubble: View {
 // MARK: - Match Row
 
 private struct ConciergeMatchRow: View {
-    let item: SupabaseService.ConciergeParseItem
-    let chosen: SupabaseService.ConciergeCandidate?
-    let onSelect: (SupabaseService.ConciergeCandidate) -> Void
+    let item: ConciergeParseItem
+    let chosen: ConciergeCandidate?
+    let onSelect: (ConciergeCandidate) -> Void
 
     @State private var expanded: Bool = false
 

@@ -91,6 +91,23 @@ extension Color {
     static let kuroGroupedBackground = Color(NSColor.controlBackgroundColor)
     static let kuroSurface = Color(NSColor.windowBackgroundColor)
     #endif
+
+    // MARK: - Neutral canvas (Home, series detail, Profile)
+    // Scoped roles. Other pages keep `kuroBackground`. Artwork keeps its own color.
+    /// Primary page. Clean white, no yellow or green cast.
+    static let kuroCanvasPage = Color(hex: "FFFFFF")
+    /// Secondary groups and contained controls.
+    static let kuroCanvasQuiet = Color(hex: "F6F6F6")
+    /// Headlines, title names, and primary actions.
+    static let kuroInk = Color(hex: "181818")
+    /// Explanatory text and ordinary metadata.
+    static let kuroInkSecondary = Color(hex: "5C5C5C")
+    /// Small captions on white.
+    static let kuroInkQuiet = Color(hex: "6B6B6B")
+    /// Separators. Black at 10%, inside the 8–12% hairline range.
+    static let kuroHairline = Color.black.opacity(0.10)
+    /// Neutral stand-in when a title has no verified artwork.
+    static let kuroMissingArt = Color(hex: "E6E6E6")
 }
 
 // MARK: - Dynamic Type Scaling
@@ -216,6 +233,16 @@ extension Font {
     // Legacy compatibility
     static func kuroCardTitle(weight: Font.Weight = .light) -> Font {
         kuroHeadline(weight: weight)
+    }
+}
+
+extension View {
+    /// The small Kuro voice: wide-tracked caps, quiet ink. Pairs with a light serif cover line and a short ink rule.
+    func kuroKicker() -> some View {
+        font(.kuroMicro(weight: .medium))
+            .tracking(2.1)
+            .textCase(.uppercase)
+            .foregroundStyle(Color.kuroInkQuiet)
     }
 }
 
@@ -389,6 +416,12 @@ struct KuroMotion {
         #else
         animation
         #endif
+    }
+
+    /// Ambient welcome drift. A still frame is the treatment for Reduce Motion, Low Power Mode,
+    /// and any surface that is offscreen, backgrounded, or dismissed.
+    static func ambientDriftAllowed(reduceMotion: Bool, lowPowerMode: Bool, sceneIsActive: Bool) -> Bool {
+        sceneIsActive && !reduceMotion && !lowPowerMode
     }
 }
 

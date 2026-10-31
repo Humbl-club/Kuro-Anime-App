@@ -1,4 +1,5 @@
 import Foundation
+import KuroCore
 
 enum KuroDiskDetailCache {
     nonisolated private static let folderName = "kuro.detail.v1"

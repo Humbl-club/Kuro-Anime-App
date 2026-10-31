@@ -1,5 +1,6 @@
+import KuroCore
+import KuroLibrary
 import SwiftUI
-import PostgREST
 
 // MARK: - Journal Tab Bar
 
@@ -182,17 +183,18 @@ private struct ClubDetailSectionPill: View {
 // MARK: - Journal Rails Content
 
 struct JournalRailsContent: View {
-    let bundle: SupabaseService.ClubBundle
+    let bundle: ClubBundle
     let showSharedAvailability: Bool
-    let sharedProviders: SupabaseService.ClubSharedProvidersResponse?
+    let sharedProviders: ProviderAvailabilityStore.ClubSharedProvidersResponse?
     let isAvailableOnSharedServices: (Int, String) -> Bool
     let onToggleShared: () -> Void
     let onCreateRail: () -> Void
     let onAddToRail: (String) -> Void
     let onError: (String) -> Void
-    let canAddToRail: (SupabaseService.ClubRail, String) -> Bool
+    let canAddToRail: (ClubRail, String) -> Bool
     let userStreamingServicesEmpty: Bool
     let isConnected: Bool
+    @Environment(FeatureFlags.self) private var flags
 
     var body: some View {
         if bundle.rails.isEmpty {
@@ -231,9 +233,9 @@ struct JournalRailsContent: View {
             streamingAvailabilityControls
 
             // Milestone celebrations
-            if FeatureFlags.shared.isClubsPaceSyncV1Enabled {
+            if flags.isClubsPaceSyncV1Enabled {
                 let milestones = bundle.rails.flatMap { rail in
-                    rail.items.compactMap { item -> SupabaseService.ClubRailItem? in
+                    rail.items.compactMap { item -> ClubRailItem? in
                         guard bundle.member_count >= 3,
                               let counts = item.member_status_counts,
                               let completed = counts["COMPLETED"],
@@ -297,7 +299,7 @@ struct JournalRailsContent: View {
 
     @ViewBuilder
     private var streamingAvailabilityControls: some View {
-        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+        if flags.isStreamingAvailabilityV1Enabled {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     if let sp = sharedProviders, !sp.shared_services.isEmpty {
@@ -334,7 +336,7 @@ struct JournalRailsContent: View {
         }
     }
 
-    private func curatorNote(for rail: SupabaseService.ClubRail, index: Int) -> String? {
+    private func curatorNote(for rail: ClubRail, index: Int) -> String? {
         // Use rail description if available, otherwise generate editorial notes
         if let desc = rail.description, !desc.isEmpty {
             return desc
@@ -352,12 +354,13 @@ struct JournalRailsContent: View {
 // MARK: - Journal Rail Section
 
 struct JournalRailSection: View {
-    let rail: SupabaseService.ClubRail
+    let rail: ClubRail
     let memberCount: Int
     let curatorNote: String?
     var onAddItem: (() -> Void)? = nil
     var onError: ((String) -> Void)? = nil
-    var itemOpacity: ((SupabaseService.ClubRailItem) -> Double)? = nil
+    var itemOpacity: ((ClubRailItem) -> Double)? = nil
+    @Environment(FeatureFlags.self) private var flags
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -427,7 +430,7 @@ struct JournalRailSection: View {
                         ForEach(rail.items) { item in
                             VStack(spacing: 6) {
                                 JournalRailItemCard(item: item, memberCount: memberCount)
-                                if FeatureFlags.shared.isClubsReactionsV1Enabled {
+                                if flags.isClubsReactionsV1Enabled {
                                     let hasAnyReaction: Bool = {
                                         let counts = item.reactions ?? [:]
                                         let mine = item.my_reactions ?? []
@@ -485,13 +488,15 @@ struct JournalRailSection: View {
 // MARK: - Journal Rail Item Card
 
 struct JournalRailItemCard: View {
-    let item: SupabaseService.ClubRailItem
+    let item: ClubRailItem
     let memberCount: Int
 
-    @State private var showDetail = false
     @State private var showAddToList = false
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @State private var actionScope = AccountActionScope()
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @Environment(\.kuroRoutes) private var routes
 
     private let cardWidth: CGFloat = 120
     private let cardHeight: CGFloat = 170
@@ -500,12 +505,12 @@ struct JournalRailItemCard: View {
         item.media_type.uppercased() == "MANGA" ? .manga : .anime
     }
 
-    private var mediaType: String {
-        mediaKind.rawValue
+    private var libraryKey: MediaKey {
+        MediaKey(kind: mediaKind, id: item.media_id)
     }
 
     private var isInCollection: Bool {
-        supabaseService.isInCollection(mediaId: item.media_id, mediaType: mediaType)
+        library.isTracked(libraryKey)
     }
 
     private var progressText: String? {
@@ -534,10 +539,12 @@ struct JournalRailItemCard: View {
     }
 
     var body: some View {
-        Button {
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        return Button {
+            guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
-            showDetail = true
+            routes.openMedia(MediaRoute(libraryKey))
         } label: {
             VStack(alignment: .leading, spacing: 0) {
                 // Poster
@@ -590,8 +597,9 @@ struct JournalRailItemCard: View {
         .buttonStyle(.plain)
         .contextMenu {
             Button(action: {
+                guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
                 KuroAccessibility.impactHaptic(.light)
-                supabaseService.toggleInCollection(mediaId: item.media_id, mediaType: mediaType)
+                LibraryViewActions.toggleTracked(libraryKey, actions: libraryActions)
             }) {
                 Label(
                     isInCollection ? "Remove from List" : "Quick Add (Planned)",
@@ -599,16 +607,16 @@ struct JournalRailItemCard: View {
                 )
             }
         }
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: mediaKind, id: item.media_id)
-        }
+        .onAppear { actionScope.activate(session: libraryActions.accountSession) }
+        .onDisappear { actionScope.deactivate() }
     }
 }
 
 // MARK: - Journal Activity Content
 
 struct JournalActivityContent: View {
-    let bundle: SupabaseService.ClubBundle
+    let bundle: ClubBundle
+    @Environment(FeatureFlags.self) private var flags
 
     struct ActivityEntry: Identifiable {
         let id: String
@@ -742,7 +750,7 @@ struct JournalActivityContent: View {
             }
 
             // Pace banners
-            if FeatureFlags.shared.isClubsPaceSyncV1Enabled && bundle.club.sharing_level == "progress" && bundle.member_count >= 3 {
+            if flags.isClubsPaceSyncV1Enabled && bundle.club.sharing_level == "progress" && bundle.member_count >= 3 {
                 ForEach(paceBehindItems, id: \.id) { item in
                     JournalPaceBanner(item: item)
                         .padding(.horizontal, 20)
@@ -768,7 +776,7 @@ struct JournalActivityContent: View {
         )
     }
 
-    private var paceBehindItems: [SupabaseService.ClubRailItem] {
+    private var paceBehindItems: [ClubRailItem] {
         bundle.rails.flatMap(\.items).filter { item in
             guard let myProgress = item.my_progress,
                   let statuses = item.member_statuses, !statuses.isEmpty else { return false }
@@ -876,7 +884,7 @@ struct JournalActivityEntry: View {
 // MARK: - Journal Pace Banner
 
 struct JournalPaceBanner: View {
-    let item: SupabaseService.ClubRailItem
+    let item: ClubRailItem
 
     private var paceText: String {
         guard let myProgress = item.my_progress,
@@ -913,7 +921,7 @@ struct JournalPaceBanner: View {
 // MARK: - Journal Milestone Card
 
 struct JournalMilestoneCard: View {
-    let item: SupabaseService.ClubRailItem
+    let item: ClubRailItem
     let memberCount: Int
 
     var body: some View {
@@ -951,20 +959,20 @@ struct JournalMilestoneCard: View {
 // MARK: - Journal Polls Content
 
 struct JournalPollsContent: View {
-    let bundle: SupabaseService.ClubBundle
+    let bundle: ClubBundle
     let clubsInteractionV2Enabled: Bool
     let voteInFlightPollIds: Set<String>
     let optimisticVoteByPollId: [String: String]
     let optimisticVoteCountsByPollId: [String: [String: Int]]
-    let onVote: (SupabaseService.ClubPoll, String) -> Void
+    let onVote: (ClubPoll, String) -> Void
     let onCreatePoll: () -> Void
     let isConnected: Bool
 
-    private var openPolls: [SupabaseService.ClubPoll] {
+    private var openPolls: [ClubPoll] {
         bundle.polls.filter { !$0.is_closed }
     }
 
-    private var closedPolls: [SupabaseService.ClubPoll] {
+    private var closedPolls: [ClubPoll] {
         bundle.polls.filter { $0.is_closed }
     }
 
@@ -1095,8 +1103,8 @@ struct JournalPollsContent: View {
 // MARK: - Journal Poll Card
 
 struct JournalPollCard: View {
-    let poll: SupabaseService.ClubPoll
-    let members: [SupabaseService.ClubMember]
+    let poll: ClubPoll
+    let members: [ClubMember]
     let isSubmittingVote: Bool
     let optimisticMyVoteOptionId: String?
     let optimisticVoteCounts: [String: Int]?
@@ -1196,7 +1204,7 @@ struct JournalPollCard: View {
 // MARK: - Journal Poll Option Row
 
 struct JournalPollOptionRow: View {
-    let option: SupabaseService.ClubPollOption
+    let option: ClubPollOption
     let displayVoteCount: Int
     let totalVotes: Int
     let isMyVote: Bool
@@ -1273,10 +1281,11 @@ struct JournalPollOptionRow: View {
 // MARK: - Club Reaction Row
 
 struct ClubReactionRow: View {
-    let item: SupabaseService.ClubRailItem
+    let item: ClubRailItem
     var onError: ((String) -> Void)? = nil
 
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(ClubsStore.self) private var clubs
+    @State private var actionScope = AccountActionScope()
     @State private var optimisticReactions: [String: Int]?
     @State private var optimisticMyReactions: Set<String>?
 
@@ -1294,13 +1303,14 @@ struct ClubReactionRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 4) {
+        let origin = actionScope.capture(session: clubs.accountSession)
+        return HStack(spacing: 4) {
             ForEach(Self.emojis, id: \.self) { emoji in
                 let count = effectiveReactions[emoji] ?? 0
                 let isMine = effectiveMyReactions.contains(emoji)
                 Button {
                     KuroAccessibility.impactHaptic(.light)
-                    toggleReaction(emoji: emoji)
+                    toggleReaction(emoji: emoji, origin: origin)
                 } label: {
                     HStack(spacing: 3) {
                         Text(Self.emojiDisplay[emoji] ?? emoji)
@@ -1323,9 +1333,16 @@ struct ClubReactionRow: View {
             }
         }
         .frame(width: 120, alignment: .leading)
+        .onAppear { actionScope.activate(session: clubs.accountSession) }
+        .onDisappear {
+            actionScope.deactivate()
+            optimisticReactions = nil
+            optimisticMyReactions = nil
+        }
     }
 
-    private func toggleReaction(emoji: String) {
+    private func toggleReaction(emoji: String, origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         let isMine = effectiveMyReactions.contains(emoji)
         var newReactions = effectiveReactions
         var newMy = effectiveMyReactions
@@ -1342,10 +1359,11 @@ struct ClubReactionRow: View {
         optimisticReactions = newReactions
         optimisticMyReactions = newMy
 
-        Task {
+        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
             do {
-                _ = try await supabaseService.toggleReaction(railItemId: item.id, emoji: emoji)
+                _ = try await clubs.toggleReaction(railItemId: item.id, emoji: emoji)
             } catch {
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
                 optimisticReactions = nil
                 optimisticMyReactions = nil
                 UINotificationFeedbackGenerator().notificationOccurred(.error)
@@ -1358,7 +1376,7 @@ struct ClubReactionRow: View {
 // MARK: - Club Reaction Row Compact (collapsed trigger for unreacted items)
 
 struct ClubReactionRowCompact: View {
-    let item: SupabaseService.ClubRailItem
+    let item: ClubRailItem
     var onError: ((String) -> Void)? = nil
     @State private var expanded = false
 

@@ -1,3 +1,4 @@
+import KuroCore
 import SwiftUI
 
 struct MediaDetailSheet: View {
@@ -25,7 +26,7 @@ struct MediaDetailSheet: View {
 
 struct AnimeDetailLoaderView: View {
     let animeId: Int
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(CatalogStore.self) private var catalog
     @State private var anime: Anime? = nil
     @State private var errorMessage: String? = nil
     @State private var retryCount = 0
@@ -69,7 +70,7 @@ struct AnimeDetailLoaderView: View {
             errorMessage = nil
             let perf = KuroPerf.begin("detail.anime")
             do {
-                if let loaded = try await supabaseService.fetchAnimeById(animeId) {
+                if let loaded = try await catalog.fetchAnimeById(animeId) {
                     anime = loaded
                     KuroPerf.end(perf, message: "ok")
                 } else {
@@ -86,7 +87,7 @@ struct AnimeDetailLoaderView: View {
 
 struct MangaDetailLoaderView: View {
     let mangaId: Int
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(CatalogStore.self) private var catalog
     @State private var manga: Manga? = nil
     @State private var errorMessage: String? = nil
     @State private var retryCount = 0
@@ -130,7 +131,7 @@ struct MangaDetailLoaderView: View {
             errorMessage = nil
             let perf = KuroPerf.begin("detail.manga")
             do {
-                if let loaded = try await supabaseService.fetchMangaById(mangaId) {
+                if let loaded = try await catalog.fetchMangaById(mangaId) {
                     manga = loaded
                     KuroPerf.end(perf, message: "ok")
                 } else {

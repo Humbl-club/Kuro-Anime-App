@@ -2,11 +2,12 @@
 // Entry point for the Clubs section (5th page in the swipe pager).
 // Shows joined clubs, create/join flows, and empty state.
 
+import KuroCore
 import SwiftUI
-import PostgREST
 
 struct ClubsView: View {
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(ClubsStore.self) private var clubs
+    @State private var actionScope = AccountActionScope()
 
     @Binding var pendingJoinCode: String?
 
@@ -24,7 +25,8 @@ struct ClubsView: View {
     }
 
     var body: some View {
-        ZStack {
+        let origin = actionScope.capture(session: clubs.accountSession)
+        return ZStack {
             Color.kuroBackground.ignoresSafeArea()
 
             ScrollView(.vertical, showsIndicators: false) {
@@ -32,7 +34,7 @@ struct ClubsView: View {
                     if isInitialLoading {
                         loadingState
                             .padding(.top, KuroDesignSpacing.xl)
-                    } else if supabaseService.myClubs.isEmpty {
+                    } else if clubs.myClubs.isEmpty {
                         emptyState
                             .padding(.top, KuroDesignSpacing.xxl)
                     } else {
@@ -44,7 +46,8 @@ struct ClubsView: View {
                 .padding(.bottom, KuroDesignSpacing.xxl)
             }
             .refreshable {
-                await supabaseService.fetchMyClubs()
+                guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+                await clubs.fetchMyClubs()
             }
             // Keep final rows clear of home-indicator chrome.
             .safeAreaInset(edge: .bottom) {
@@ -62,33 +65,45 @@ struct ClubsView: View {
                 .zIndex(100)
             }
         }
-        .task {
+        .task(id: origin) {
+            guard let loadOrigin = actionScope.capture(session: clubs.accountSession) else { return }
             guard !didInitialLoad else { return }
             didInitialLoad = true
             isInitialLoading = true
-            await supabaseService.fetchMyClubs()
+            await clubs.fetchMyClubs()
+            guard actionScope.isCurrent(loadOrigin, session: clubs.accountSession) else { return }
             isInitialLoading = false
-            supabaseService.clearClubNotificationBadge()
+            clubs.clearClubNotificationBadge()
         }
-        .onAppear { consumePendingJoinCode() }
+        .onAppear {
+            actionScope.activate(session: clubs.accountSession)
+            consumePendingJoinCode()
+        }
+        .onDisappear {
+            actionScope.deactivate()
+            toastDismissTask?.cancel()
+            isInitialLoading = false
+            didInitialLoad = false
+        }
         .onChange(of: pendingJoinCode) { _, _ in consumePendingJoinCode() }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            Task {
-                await supabaseService.fetchMyClubs()
-                await supabaseService.checkClubNotifications()
+            actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
+                await clubs.fetchMyClubs()
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
+                await clubs.checkClubNotifications()
             }
         }
         .sheet(isPresented: $showCreateSheet) {
             CreateClubSheet { response in
+                guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
                 showToast(.success, title: "Club created", subtitle: response.name)
             }
-            .environment(supabaseService)
         }
         .sheet(isPresented: $showJoinSheet, onDismiss: { joinPrefillCode = "" }) {
             JoinClubSheet(initialCode: joinPrefillCode) { response in
+                guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
                 showToast(.success, title: "Joined club", subtitle: response.club_name)
             }
-            .environment(supabaseService)
         }
         .sheet(isPresented: Binding(
             get: { selectedClubId != nil },
@@ -97,7 +112,7 @@ struct ClubsView: View {
             if let clubId = selectedClubId {
                 NavigationStack {
                     ClubDetailView(clubId: clubId)
-                        .environment(supabaseService)
+                        .id(clubId)
                 }
             }
         }
@@ -149,16 +164,16 @@ struct ClubsView: View {
             )
 
             LazyVStack(spacing: 16) {
-                ForEach(supabaseService.myClubs) { club in
+                ForEach(clubs.myClubs) { club in
                     Button {
                         KuroAccessibility.impactHaptic(.light)
                         selectedClubId = club.id
                     } label: {
-                        JournalClubCard(club: club, hasUnseen: supabaseService.hasUnseenActivity(club: club))
+                        JournalClubCard(club: club, hasUnseen: clubs.hasUnseenActivity(club: club))
                     }
                     .buttonStyle(.plain)
                     .contentShape(Rectangle())
-                    .accessibilityLabel("\(club.name), \(club.member_count ?? 0) member\((club.member_count ?? 0) == 1 ? "" : "s")\(supabaseService.hasUnseenActivity(club: club) ? ", new activity" : "")")
+                    .accessibilityLabel("\(club.name), \(club.member_count ?? 0) member\((club.member_count ?? 0) == 1 ? "" : "s")\(clubs.hasUnseenActivity(club: club) ? ", new activity" : "")")
                 }
             }
         }
@@ -353,7 +368,7 @@ private struct JournalActionRow: View {
 // MARK: - Journal Club Card
 
 private struct JournalClubCard: View {
-    let club: SupabaseService.ClubListRow
+    let club: ClubListRow
     let hasUnseen: Bool
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {
@@ -376,9 +391,10 @@ private struct JournalClubCard: View {
     }
 
     private var initials: [String] {
-        (club.member_names ?? []).map { name in
-            String(name.prefix(1)).uppercased()
-        }
+        ClubsListCardRules.memberInitials(
+            sharingLevel: club.sharing_level,
+            memberNames: club.member_names
+        )
     }
 
     private var memberCountText: String {
@@ -394,7 +410,7 @@ private struct JournalClubCard: View {
 
     private var relativeTime: String? {
         guard let str = club.last_activity_at,
-              let date = SupabaseService.parseISO8601(str) else { return nil }
+              let date = ClubsStore.parseISO8601(str) else { return nil }
         return Self.relativeFormatter.localizedString(for: date, relativeTo: Date()).uppercased()
     }
 
@@ -574,7 +590,8 @@ private extension String {
 
 private struct CreateClubSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(ClubsStore.self) private var clubs
+    @State private var actionScope = AccountActionScope()
 
     @State private var name = ""
     @State private var description = ""
@@ -582,12 +599,13 @@ private struct CreateClubSheet: View {
     @State private var isSubmitting = false
     @State private var errorText: String? = nil
 
-    let onCreated: (SupabaseService.CreateClubResponse) -> Void
+    let onCreated: (CreateClubResponse) -> Void
 
     private let sharingLevels = ["private", "status", "progress"]
 
     var body: some View {
-        NavigationStack {
+        let origin = actionScope.capture(session: clubs.accountSession)
+        return NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
                     Text("CREATE CLUB")
@@ -639,7 +657,7 @@ private struct CreateClubSheet: View {
                     }
 
                     Button {
-                        submit()
+                        submit(origin: origin)
                     } label: {
                         HStack {
                             if isSubmitting {
@@ -676,6 +694,8 @@ private struct CreateClubSheet: View {
                 }
             }
         }
+        .onAppear { actionScope.activate(session: clubs.accountSession) }
+        .onDisappear { actionScope.deactivate(); isSubmitting = false }
     }
 
     private var sharingLevelDescription: String {
@@ -687,25 +707,29 @@ private struct CreateClubSheet: View {
         }
     }
 
-    private func submit() {
+    private func submit(origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
         isSubmitting = true
         errorText = nil
+        let desc = description.trimmingCharacters(in: .whitespaces)
+        let sharing = sharingLevel
 
-        Task {
+        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
             do {
-                let desc = description.trimmingCharacters(in: .whitespaces)
-                let resp = try await supabaseService.createClub(
+                let resp = try await clubs.createClub(
                     name: trimmed,
                     description: desc.isEmpty ? nil : desc,
-                    sharingLevel: sharingLevel
+                    sharingLevel: sharing
                 )
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
                 KuroAccessibility.impactHaptic(.medium)
                 onCreated(resp)
                 dismiss()
             } catch {
-                let code = errorCode(from: error)
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
+                let code = error as? ClubError
                 if code == .invalidName {
                     errorText = "Name must be 1-80 characters."
                 } else if code == .descriptionTooLong {
@@ -719,29 +743,8 @@ private struct CreateClubSheet: View {
                 }
                 KuroAccessibility.errorHaptic()
             }
-            isSubmitting = false
+            if actionScope.isCurrent(ticket, session: clubs.accountSession) { isSubmitting = false }
         }
-    }
-
-    private enum CreateClubErrorCode: String {
-        case invalidName = "INVALID_NAME"
-        case descriptionTooLong = "DESCRIPTION_TOO_LONG"
-        case rateLimited = "RATE_LIMITED"
-        case tooManyClubs = "TOO_MANY_CLUBS"
-    }
-
-    private func errorCode(from error: Error) -> CreateClubErrorCode? {
-        guard let pgError = error as? PostgrestError else { return nil }
-        let candidates = [pgError.detail, pgError.hint, pgError.message]
-        for raw in candidates {
-            guard let raw else { continue }
-            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            let token = trimmed.split(separator: ":", maxSplits: 1).first.map(String.init) ?? trimmed
-            let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-            if let code = CreateClubErrorCode(rawValue: normalized) { return code }
-        }
-        return nil
     }
 }
 
@@ -749,21 +752,23 @@ private struct CreateClubSheet: View {
 
 private struct JoinClubSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(ClubsStore.self) private var clubs
+    @State private var actionScope = AccountActionScope()
 
     @State private var inviteCode: String
     @State private var isSubmitting = false
     @State private var errorText: String? = nil
 
-    let onJoined: (SupabaseService.JoinClubResponse) -> Void
+    let onJoined: (JoinClubResponse) -> Void
 
-    init(initialCode: String = "", onJoined: @escaping (SupabaseService.JoinClubResponse) -> Void) {
+    init(initialCode: String = "", onJoined: @escaping (JoinClubResponse) -> Void) {
         _inviteCode = State(initialValue: initialCode)
         self.onJoined = onJoined
     }
 
     var body: some View {
-        NavigationStack {
+        let origin = actionScope.capture(session: clubs.accountSession)
+        return NavigationStack {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
                 Text("JOIN CLUB")
                     .font(.kuroCaption(weight: .medium))
@@ -796,7 +801,7 @@ private struct JoinClubSheet: View {
                 }
 
                 Button {
-                    submit()
+                    submit(origin: origin)
                 } label: {
                     HStack {
                         if isSubmitting {
@@ -833,66 +838,47 @@ private struct JoinClubSheet: View {
                 }
             }
         }
+        .onAppear { actionScope.activate(session: clubs.accountSession) }
+        .onDisappear { actionScope.deactivate(); isSubmitting = false }
     }
 
-    private func submit() {
+    private func submit(origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         let code = inviteCode.trimmingCharacters(in: .whitespaces)
         guard code.count == 8 else { return }
         isSubmitting = true
         errorText = nil
 
-        Task {
+        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
             do {
-                let resp = try await supabaseService.joinClub(inviteCode: code)
+                let resp = try await clubs.joinClub(inviteCode: code)
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
                 KuroAccessibility.impactHaptic(.medium)
                 onJoined(resp)
                 dismiss()
             } catch {
-                switch errorCode(from: error) {
-                case .invalidCode:
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
+                switch error as? ClubError {
+                case .invalidCode?:
                     errorText = "Invalid invite code."
-                case .codeExpired:
+                case .codeExpired?:
                     errorText = "This invite code has expired."
-                case .codeExhausted:
+                case .codeExhausted?:
                     errorText = "This invite code has reached its usage limit."
-                case .clubArchived:
+                case .clubArchived?:
                     errorText = "This club is no longer active."
-                case .clubFull:
+                case .clubFull?:
                     errorText = "This club is full."
-                case .alreadyMember:
+                case .alreadyMember?:
                     errorText = "You're already a member of this club."
-                case .rateLimited:
+                case .rateLimited?:
                     errorText = "Too many attempts. Please wait a moment and try again."
-                case .none:
+                default:
                     errorText = "Failed to join. Please check the code and try again."
                 }
                 KuroAccessibility.errorHaptic()
             }
-            isSubmitting = false
+            if actionScope.isCurrent(ticket, session: clubs.accountSession) { isSubmitting = false }
         }
-    }
-
-    private enum JoinClubErrorCode: String {
-        case invalidCode = "INVALID_CODE"
-        case codeExpired = "CODE_EXPIRED"
-        case codeExhausted = "CODE_EXHAUSTED"
-        case clubArchived = "CLUB_ARCHIVED"
-        case clubFull = "CLUB_FULL"
-        case alreadyMember = "ALREADY_MEMBER"
-        case rateLimited = "RATE_LIMITED"
-    }
-
-    private func errorCode(from error: Error) -> JoinClubErrorCode? {
-        guard let pgError = error as? PostgrestError else { return nil }
-        let candidates = [pgError.detail, pgError.hint, pgError.message]
-        for raw in candidates {
-            guard let raw else { continue }
-            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            let token = trimmed.split(separator: ":", maxSplits: 1).first.map(String.init) ?? trimmed
-            let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-            if let mapped = JoinClubErrorCode(rawValue: normalized) { return mapped }
-        }
-        return nil
     }
 }

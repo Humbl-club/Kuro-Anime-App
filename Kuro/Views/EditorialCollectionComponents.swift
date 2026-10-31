@@ -1,3 +1,5 @@
+import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - Editorial Filter Bar
@@ -288,58 +290,16 @@ struct InstructionRow: View {
     }
 }
 
-// MARK: - Alternative: Editorial Masonry Layout
-struct EditorialMasonryGrid: View {
-    let items: [Anime]
-
-    var body: some View {
-        // Advanced masonry layout with varied sizes
-        VStack(spacing: EditorialLayout.gutterMedium) {
-            ForEach(Array(stride(from: 0, to: items.count, by: 3)), id: \.self) { index in
-                if index < items.count {
-                    masonryRow(startIndex: index)
-                }
-            }
-        }
-        .padding(.horizontal, EditorialLayout.marginEditorial)
-        .padding(.top, EditorialLayout.gutterSmall)
-        .padding(.bottom, EditorialLayout.gutterLarge)
-    }
-
-    @ViewBuilder
-    private func masonryRow(startIndex: Int) -> some View {
-        let rowItems = Array(items[startIndex..<min(startIndex + 3, items.count)])
-
-        if rowItems.count == 3 {
-            // 1 large + 2 small pattern
-            HStack(alignment: .top, spacing: EditorialLayout.gutterMedium) {
-                // Large (2/3 width)
-                EditorialGridCard(media: rowItems[0], size: .large)
-                    .frame(height: 360)
-
-                // Two small (1/3 width each, stacked)
-                VStack(spacing: EditorialLayout.gutterMedium) {
-                    EditorialGridCard(media: rowItems[1], size: .small)
-                        .frame(height: 172)
-
-                    EditorialGridCard(media: rowItems[2], size: .small)
-                        .frame(height: 172)
-                }
-            }
-        } else if rowItems.count == 2 {
-            HStack(spacing: EditorialLayout.gutterMedium) {
-                EditorialFeatureCard(media: rowItems[0])
-                EditorialFeatureCard(media: rowItems[1])
-            }
-        } else if let item = rowItems.first {
-            EditorialFeatureCard(media: item)
-        }
-    }
-}
-
 #Preview {
     EditorialCollectionView()
-        .environment(SupabaseService.shared)
+        .environment(AppComposition.shared.identity)
+        .environment(AppComposition.shared.library)
+        .environment(AppComposition.shared.collection)
+        .environment(AppComposition.shared.releases)
+        .environment(AppComposition.shared.social)
+        .environment(AppComposition.shared.availability)
+        .environment(AppComposition.shared.flags)
+        .environment(AppComposition.shared.libraryActions)
 }
 
 // MARK: - Collection Grid Card (with countdown)
@@ -351,15 +311,16 @@ struct CollectionGridCard: View {
     var onQuickActionMessage: ((String) -> Void)? = nil
     var isSelected: Bool = false
     var onToggleSelection: (() -> Void)? = nil
-    @State private var showDetail = false
     @State private var showQuickActions = false
-    @State private var showAdvancedListEditor = false
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @Environment(ReleasesStore.self) private var releases
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @Environment(\.kuroRoutes) private var routes
 
-    private var upcomingAiring: SupabaseService.UpcomingAiring? {
+    private var upcomingAiring: ReleasesStore.UpcomingAiring? {
         guard media.kind == .anime else { return nil }
-        return supabaseService.upcomingAirings.first(where: { $0.anime_id == media.id })
+        return releases.upcomingAirings.first(where: { $0.anime_id == media.id })
     }
 
     private var shouldShowCountdown: Bool {
@@ -369,16 +330,12 @@ struct CollectionGridCard: View {
         return at > Date()
     }
 
-    private var mediaType: String {
-        media.kind.rawValue
-    }
-
     private var isInCollection: Bool {
-        supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
+        library.isTracked(media.libraryKey)
     }
 
-    private var userEntry: UserList? {
-        supabaseService.userListEntry(mediaType: mediaType, mediaId: media.id)
+    private var userEntry: LibraryEntry? {
+        library.entry(for: media.libraryKey)
     }
 
     private var canIncrementProgress: Bool {
@@ -393,14 +350,14 @@ struct CollectionGridCard: View {
 
     private var userProgress: (watched: Int, total: Int)? {
         guard media.kind == .anime else { return nil }
-        guard let watched = supabaseService.userListProgress(mediaType: "anime", mediaId: media.id) else { return nil }
+        guard let watched = userEntry?.progress else { return nil }
         guard let total = media.episodes, total > 0 else { return nil }
         return (watched, total)
     }
 
     private var mangaProgress: (read: Int, total: Int)? {
         guard media.kind == .manga else { return nil }
-        guard let read = supabaseService.userListProgress(mediaType: "manga", mediaId: media.id) else { return nil }
+        guard let read = userEntry?.progress else { return nil }
         guard let total = media.chapters, total > 0 else { return nil }
         return (read, total)
     }
@@ -415,7 +372,7 @@ struct CollectionGridCard: View {
             }
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
-            showDetail = true
+            routes.openMedia(MediaRoute(media.libraryKey))
         }) {
             VStack(alignment: .leading, spacing: 8) {
             // Image with score - FIXED HEIGHT
@@ -543,7 +500,7 @@ struct CollectionGridCard: View {
                         if canIncrementProgress {
                             Button {
                                 KuroAccessibility.impactHaptic(.light)
-                                Task { await supabaseService.incrementProgress(mediaId: media.id, mediaType: mediaType) }
+                                Task { await LibraryViewActions.incrementProgress(media.libraryKey, actions: libraryActions) }
                             } label: {
                                 Text("+1 EP")
                                     .font(.kuroMicro(weight: .semibold))
@@ -567,7 +524,7 @@ struct CollectionGridCard: View {
                         if canIncrementProgress {
                             Button {
                                 KuroAccessibility.impactHaptic(.light)
-                                Task { await supabaseService.incrementProgress(mediaId: media.id, mediaType: mediaType) }
+                                Task { await LibraryViewActions.incrementProgress(media.libraryKey, actions: libraryActions) }
                             } label: {
                                 Text("+1 CH")
                                     .font(.kuroMicro(weight: .semibold))
@@ -614,7 +571,7 @@ struct CollectionGridCard: View {
             if canIncrementProgress {
                 Button(action: {
                     KuroAccessibility.impactHaptic(.light)
-                    Task { await supabaseService.incrementProgress(mediaId: media.id, mediaType: mediaType) }
+                    Task { await LibraryViewActions.incrementProgress(media.libraryKey, actions: libraryActions) }
                 }) {
                     Label(incrementLabel, systemImage: "plus.circle")
                 }
@@ -622,20 +579,17 @@ struct CollectionGridCard: View {
 
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
-                showAdvancedListEditor = true
+                routes.presentTrackingEditor(TrackingEditorRequest(media: media))
             }) {
                 Label("Edit List", systemImage: "slider.horizontal.3")
             }
 
             Button(role: .destructive, action: {
                 KuroAccessibility.impactHaptic(.light)
-                Task { await supabaseService.removeFromList(mediaId: media.id, mediaType: mediaType) }
+                Task { await LibraryViewActions.remove(media.libraryKey, actions: libraryActions) }
             }) {
                 Label("Remove from List", systemImage: "trash")
             }
-        }
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: media.kind, id: media.id)
         }
         .sheet(isPresented: $showQuickActions) {
             QuickVerdictActionSheet(
@@ -644,9 +598,6 @@ struct CollectionGridCard: View {
                     { toast in onMessage(toast.title) }
                 }
             )
-        }
-        .sheet(isPresented: $showAdvancedListEditor) {
-            AddToListSheet(media: media)
         }
         }
     }
@@ -660,7 +611,7 @@ struct CollectionGridCard: View {
         if let rating = media.rating, rating > 0 { parts.append(String(format: "Rating %.1f", rating)) }
         if let p = userProgress { parts.append("\(p.watched) of \(p.total) watched") }
         if let p = mangaProgress { parts.append("\(p.read) of \(p.total) read") }
-        if shouldShowCountdown, let countdown = supabaseService.countdownByAnimeId[media.id] {
+        if shouldShowCountdown, let countdown = releases.countdownByAnimeId[media.id] {
             parts.append("Next episode in \(countdown)")
         }
         return Text(parts.joined(separator: ", "))
@@ -714,17 +665,16 @@ private struct CollectionListRow: View {
     var onQuickActionMessage: ((String) -> Void)? = nil
     var isSelected: Bool = false
     var onToggleSelection: (() -> Void)? = nil
-    @State private var showDetail = false
     @State private var showQuickActions = false
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @Environment(\.kuroRoutes) private var routes
     private var isGermanLocale: Bool {
         Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
     }
 
-    private var mediaType: String { media.kind.rawValue }
-
-    private var userEntry: UserList? {
-        supabaseService.userListEntry(mediaType: mediaType, mediaId: media.id)
+    private var userEntry: LibraryEntry? {
+        library.entry(for: media.libraryKey)
     }
 
     private var statusLabel: String {
@@ -764,7 +714,7 @@ private struct CollectionListRow: View {
                 return
             }
             KuroAccessibility.impactHaptic(.light)
-            showDetail = true
+            routes.openMedia(MediaRoute(media.libraryKey))
         } label: {
             HStack(spacing: 12) {
                 // Edit mode checkbox
@@ -819,7 +769,7 @@ private struct CollectionListRow: View {
                 if !isEditMode && canIncrement {
                     Button {
                         KuroAccessibility.impactHaptic(.light)
-                        Task { await supabaseService.incrementProgress(mediaId: media.id, mediaType: mediaType) }
+                        Task { await LibraryViewActions.incrementProgress(media.libraryKey, actions: libraryActions) }
                     } label: {
                         Text(media.kind == .anime ? "+1 EP" : "+1 CH")
                             .font(.kuroMicro(weight: .semibold))
@@ -854,9 +804,6 @@ private struct CollectionListRow: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(media.title)\(statusLabel.isEmpty ? "" : ", \(statusLabel)")\(progressText.map { ", \($0)" } ?? "")")
         .accessibilityHint("Opens details")
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: media.kind, id: media.id)
-        }
         .sheet(isPresented: $showQuickActions) {
             QuickVerdictActionSheet(
                 media: media,

@@ -1,5 +1,5 @@
+import KuroCore
 import SwiftUI
-import PostgREST
 
 // MARK: - Add Item to Rail Sheet
 
@@ -8,7 +8,9 @@ struct AddItemToRailSheet: View {
     let clubId: String
     let onAdded: () -> Void
 
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(ClubsStore.self) private var clubs
+    @State private var actionScope = AccountActionScope()
+    @Environment(SearchStore.self) private var search
     @Environment(\.dismiss) private var dismiss
 
     enum MediaTab: String, CaseIterable {
@@ -26,7 +28,8 @@ struct AddItemToRailSheet: View {
     @State private var searchTask: Task<Void, Never>? = nil
 
     var body: some View {
-        NavigationStack {
+        let origin = actionScope.capture(session: clubs.accountSession)
+        return NavigationStack {
             VStack(spacing: 0) {
                 // Media type toggle
                 Picker("Type", selection: $selectedMedia) {
@@ -120,7 +123,7 @@ struct AddItemToRailSheet: View {
                                         year: card.year,
                                         format: card.format
                                     ) {
-                                        addItem(mediaType: "ANIME", mediaId: card.id)
+                                        addItem(mediaType: "ANIME", mediaId: card.id, origin: origin)
                                     }
                                 }
                             } else {
@@ -131,7 +134,7 @@ struct AddItemToRailSheet: View {
                                         year: card.year,
                                         format: card.format
                                     ) {
-                                        addItem(mediaType: "MANGA", mediaId: card.id)
+                                        addItem(mediaType: "MANGA", mediaId: card.id, origin: origin)
                                     }
                                 }
                             }
@@ -159,7 +162,11 @@ struct AddItemToRailSheet: View {
             .onChange(of: selectedMedia) { _, _ in
                 debouncedSearch()
             }
+            .onAppear { actionScope.activate(session: clubs.accountSession) }
             .onDisappear {
+                actionScope.deactivate()
+                isAdding = false
+                isSearching = false
                 searchTask?.cancel()
                 searchTask = nil
             }
@@ -167,6 +174,7 @@ struct AddItemToRailSheet: View {
     }
 
     private func debouncedSearch() {
+        guard let origin = actionScope.capture(session: clubs.accountSession) else { return }
         searchTask?.cancel()
         errorMessage = nil
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -179,26 +187,31 @@ struct AddItemToRailSheet: View {
         isSearching = true
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000)
-            guard !Task.isCancelled else { return }
-            await performSearch(query: query)
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+            await performSearch(query: query, origin: origin)
         }
     }
 
-    private func performSearch(query: String) async {
+    private func performSearch(query: String, origin: AccountActionScope.Ticket) async {
+        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         do {
             if selectedMedia == .anime {
-                animeResults = try await supabaseService.fetchSearchAnimePage(
+                let results = try await search.fetchSearchAnimePage(
                     query: query, filters: nil, cursorRank: nil,
                     cursorPopularity: nil, cursorId: nil, limit: 20
                 )
+                guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+                animeResults = results
             } else {
-                mangaResults = try await supabaseService.fetchSearchMangaPage(
+                let results = try await search.fetchSearchMangaPage(
                     query: query, filters: nil, cursorRank: nil,
                     cursorPopularity: nil, cursorId: nil, limit: 20
                 )
+                guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+                mangaResults = results
             }
         } catch {
-            if !Task.isCancelled {
+            if actionScope.isCurrent(origin, session: clubs.accountSession) {
                 // Clear stale results so old rows aren't actionable
                 if selectedMedia == .anime { animeResults = [] } else { mangaResults = [] }
                 errorMessage = "Search failed. Check your connection and try again."
@@ -207,77 +220,57 @@ struct AddItemToRailSheet: View {
                 #endif
             }
         }
-        if !Task.isCancelled {
+        if actionScope.isCurrent(origin, session: clubs.accountSession) {
             isSearching = false
         }
     }
 
-    private func addItem(mediaType: String, mediaId: Int) {
+    private func addItem(mediaType: String, mediaId: Int, origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         guard !isAdding else { return }
         isAdding = true
         errorMessage = nil
-        Task {
+        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
             do {
-                _ = try await supabaseService.addRailItem(
+                _ = try await clubs.addRailItem(
                     railId: railId, mediaType: mediaType, mediaId: mediaId
                 )
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
                 KuroAccessibility.successHaptic()
                 onAdded()
                 dismiss()
-            } catch let pgError as PostgrestError {
-                // Decode structured RPC error fields (details/code/hint) from add_club_rail_item.
-                errorMessage = Self.mapRailItemError(pgError)
-                KuroAccessibility.errorHaptic()
-                isAdding = false
             } catch {
-                errorMessage = "Could not add item. Please try again."
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
+                // The store's typed `ClubError` (structured add_club_rail_item codes, else the SQLSTATE
+                // fallback); a transport failure or cancellation (not a `ClubError`) gets the generic copy.
+                errorMessage = Self.mapRailItemError(error as? ClubError)
                 KuroAccessibility.errorHaptic()
                 isAdding = false
             }
         }
     }
 
-    private enum AddRailItemErrorCode: String {
-        case duplicateItem = "DUPLICATE_ITEM"
-        case notAMember = "NOT_A_MEMBER"
-        case railLocked = "RAIL_LOCKED"
-        case mediaNotFound = "MEDIA_NOT_FOUND"
-        case invalidMediaType = "INVALID_MEDIA_TYPE"
-        case unauthenticated = "UNAUTHENTICATED"
-        case noteTooLong = "NOTE_TOO_LONG"
-        case railNotFound = "RAIL_NOT_FOUND"
-    }
-
-    /// Maps a structured PostgrestError from add_club_rail_item RPC to a user-facing string.
-    private static func mapRailItemError(_ error: PostgrestError) -> String {
-        let detailsCode = error.detail.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        let hintCode = error.hint.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-        let structuredCode =
-            detailsCode.flatMap(AddRailItemErrorCode.init(rawValue:)) ??
-            hintCode.flatMap(AddRailItemErrorCode.init(rawValue:))
-
-        switch structuredCode {
-        case .duplicateItem:
+    /// Maps an add_club_rail_item failure to a user-facing string.
+    private static func mapRailItemError(_ error: ClubError?) -> String {
+        switch error {
+        case .duplicateItem?, .uniqueViolation?:
+            // `uniqueViolation`: SQLSTATE 23505 without its DETAIL code (the SDK drops `details`).
             return "This title is already in this rail."
-        case .notAMember:
+        case .notAMember?:
             return "You're no longer a member of this club."
-        case .railLocked:
+        case .railLocked?:
             return "This rail is locked. Only admins can add items."
-        case .mediaNotFound:
+        case .mediaNotFound?:
             return "This title was not found in the catalog."
-        case .invalidMediaType:
+        case .invalidMediaType?:
             return "Invalid media type."
-        case .unauthenticated:
+        case .unauthenticated?:
             return "Please sign in again to continue."
-        case .noteTooLong:
+        case .noteTooLong?:
             return "Note is too long. Keep it under 280 characters."
-        case .railNotFound:
+        case .railNotFound?:
             return "This rail is no longer available."
-        case nil:
-            // Fallback to SQLSTATE for environments that haven't picked up structured detail codes yet.
-            if error.code == "23505" {
-                return "This title is already in this rail."
-            }
+        default:
             return "Could not add item. Please try again."
         }
     }
@@ -344,12 +337,17 @@ struct RailSearchResultRow: View {
 // MARK: - Club Settings Sheet
 
 struct ClubSettingsSheet: View {
-    let bundle: SupabaseService.ClubBundle
+    let bundle: ClubBundle
     let clubId: String
     let onDismiss: () -> Void
+    /// Told `true` before the leave request and `false` when it fails (the parent tells a voluntary
+    /// leave from a removal).
+    var onLeaving: ((Bool) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(IdentityStore.self) private var identity
+    @Environment(ClubsStore.self) private var clubs
+    @State private var actionScope = AccountActionScope()
 
     @State private var isLeaving = false
     @State private var showLeaveConfirm = false
@@ -375,7 +373,8 @@ struct ClubSettingsSheet: View {
     }()
 
     var body: some View {
-        NavigationStack {
+        let origin = actionScope.capture(session: clubs.accountSession)
+        return NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
                     // Club Info
@@ -437,6 +436,7 @@ struct ClubSettingsSheet: View {
                                     .foregroundColor(.kuroBlack80)
 
                                 Button {
+                                    guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
                                     UIPasteboard.general.string = code
                                     KuroAccessibility.successHaptic()
                                 } label: {
@@ -499,7 +499,7 @@ struct ClubSettingsSheet: View {
                                             .font(.kuroCaption(weight: .medium))
                                             .foregroundColor(.kuroBlack80)
 
-                                        if member.user_id == supabaseService.currentUserId {
+                                        if member.user_id == identity.currentUserId {
                                             Text("YOU")
                                                 .font(.kuroMicro(weight: .medium))
                                                 .tracking(1.0)
@@ -568,7 +568,7 @@ struct ClubSettingsSheet: View {
                     .buttonStyle(.plain)
                     .disabled(isLeaving)
                     .alert("Leave Club?", isPresented: $showLeaveConfirm) {
-                        Button("Leave", role: .destructive) { leaveClub() }
+                        Button("Leave", role: .destructive) { leaveClub(origin: origin) }
                         Button("Cancel", role: .cancel) { }
                     } message: {
                         Text(leaveConfirmMessage)
@@ -598,6 +598,8 @@ struct ClubSettingsSheet: View {
                 }
             }
         }
+        .onAppear { actionScope.activate(session: clubs.accountSession) }
+        .onDisappear { actionScope.deactivate(); isLeaving = false }
     }
 
     private var sharingLevelDescription: String {
@@ -630,45 +632,32 @@ struct ClubSettingsSheet: View {
         return "You'll need a new invite code to rejoin."
     }
 
-    private func leaveClub() {
+    private func leaveClub(origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         isLeaving = true
         leaveErrorText = nil
-        Task {
+        onLeaving?(true)
+        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
             do {
-                try await supabaseService.leaveClub(clubId: clubId)
+                try await clubs.leaveClub(clubId: clubId)
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
                 KuroAccessibility.successHaptic()
                 dismiss()
             } catch {
-                if leaveErrorCode(from: error) == .notAMember {
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
+                onLeaving?(false)
+                if (error as? ClubError) == .notAMember {
                     leaveErrorText = "You're no longer a member of this club."
                 } else {
                     leaveErrorText = "Could not leave club. Please try again."
                 }
                 KuroAccessibility.errorHaptic()
             }
-            isLeaving = false
+            if actionScope.isCurrent(ticket, session: clubs.accountSession) { isLeaving = false }
         }
     }
 
-    private enum LeaveErrorCode: String {
-        case notAMember = "NOT_A_MEMBER"
-    }
-
-    private func leaveErrorCode(from error: Error) -> LeaveErrorCode? {
-        guard let pgError = error as? PostgrestError else { return nil }
-        let candidates = [pgError.detail, pgError.hint, pgError.message]
-        for raw in candidates {
-            guard let raw else { continue }
-            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            let token = trimmed.split(separator: ":", maxSplits: 1).first.map(String.init) ?? trimmed
-            let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-            if let mapped = LeaveErrorCode(rawValue: normalized) { return mapped }
-        }
-        return nil
-    }
-
-    private func memberDisplayName(_ member: SupabaseService.ClubMember, index: Int) -> String {
+    private func memberDisplayName(_ member: ClubMember, index: Int) -> String {
         let trimmed = member.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !trimmed.isEmpty { return trimmed }
         // Stable short identifier from UUID (consistent across sessions)

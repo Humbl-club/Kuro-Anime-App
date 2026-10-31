@@ -1,2 +1,7 @@
 // Debug.xcconfig
 #include "Shared.xcconfig"
+
+// Owner-registered native iOS client, verified from the published MAL registration.
+// Enabled for simulator qualification; Release stays disabled until live import proof.
+MAL_CLIENT_ID[sdk=iphonesimulator*] = 6b83875bb9f77761deeae158f5d3431a
+MAL_REGISTRATION_APPROVED[sdk=iphonesimulator*] = YES

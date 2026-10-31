@@ -2,54 +2,48 @@
 // No full-screen state machine. Everything renders inline in the chat scroll.
 // High-confidence imports auto-apply with undo toast. Recommendations appear as editorial rails.
 
+import KuroCore
+import KuroLibrary
 import SwiftUI
 
-// MARK: - Import Reconciliation Types
-
-enum ImportItemAction: String, Sendable {
-    case add
-    case update
-    case skip
-}
-
-struct ImportDiff: Sendable {
-    struct FieldDiff<T: Sendable>: Sendable {
-        let from: T
-        let to: T
-    }
-    var status: FieldDiff<String>?
-    var progressEpisodes: FieldDiff<Int>?
-    var progressChapters: FieldDiff<Int>?
-    var progressVolumes: FieldDiff<Int>?
-    var rating: FieldDiff<Int?>?
-
-    var isEmpty: Bool {
-        status == nil && progressEpisodes == nil && progressChapters == nil && progressVolumes == nil && rating == nil
-    }
-}
+// Import reconciliation (Add / Update / Skip, diff, pre-selection, auto-apply plan, apply items) lives in
+// `ImportReconciler` (Kuro/Imports/ImportReconciler.swift), shared with the Profile AniList import.
+// Message routing (low-signal gate, on-device intent threshold, keyword router, clarify re-route,
+// parser clarification) lives in `ConciergeRouting` (Kuro/Concierge/ConciergeRouting.swift).
 
 // MARK: - Main View
 struct ConciergeView: View {
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @Environment(InteractionTelemetry.self) private var interactionTelemetry
+    @Environment(FeatureFlags.self) private var flags
+    @Environment(CatalogStore.self) private var catalog
+    @Environment(CollectionStore.self) private var collection
+    @Environment(ImportsService.self) private var imports
+    @Environment(ConciergeStore.self) private var concierge
+    @Environment(AppleFMService.self) private var deviceIntelligence
+    @Environment(\.kuroRoutes) private var routes
 
     let assistantEnabled: Bool
     var initialPrompt: String? = nil
+    var onImportNavigation: ((ImportResultDestination) -> Void)? = nil
 
     // MARK: Input & Core State
+    @State private var workflow = ConciergeWorkflowLifetime()
     @State private var input: String = ""
     @State private var didConsumeInitialPrompt = false
     @State private var focusRequest: Bool = false
     @State private var messages: [ConciergeMessage] = []
     @State private var isWorking = false
     @State private var errorText: String? = nil
-    @State private var selectedByItemId: [String: SupabaseService.ConciergeCandidate] = [:]
+    @State private var selectedByItemId: [String: ConciergeCandidate] = [:]
     @State private var itemActions: [String: ImportItemAction] = [:]
     @State private var excludedItemIds: Set<String> = []
     @State private var autoReasonByItemId: [String: String] = [:]
     @State private var lastApplySessionId: String? = nil
+    /// Frozen Apply identity. A lost response retries this action; a new gesture or an edit starts another.
+    @State private var applyAttempt = ImportApplyAttempt()
     @State private var lastApplySessionResetTask: Task<Void, Never>? = nil
-    @State private var selectedAnime: Anime? = nil
-    @State private var selectedManga: Manga? = nil
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
     @State private var assistantExpanded: Bool = false
@@ -72,6 +66,9 @@ struct ConciergeView: View {
     @State private var lastRagSeedEntityId: String? = nil
     @State private var ragFeedbackSentForQuery: Set<String> = []
     @State private var showAniListImportSheet: Bool = false
+    @State private var pendingAniListReview: ImportOutcome?
+    @State private var pendingAniListTicket: ConciergeWorkflowScope.Ticket?
+    @State private var importWorkflowJob: ImportOutcome?
     private var mascotState: ConciergeMascotState {
         if isWorking { return .thinking }
         if errorText != nil { return .concerned }
@@ -80,15 +77,15 @@ struct ConciergeView: View {
     }
 
     private var clarifyV2Enabled: Bool {
-        FeatureFlags.shared.isClarifyV2Enabled
+        flags.isClarifyV2Enabled
     }
 
     private var fmAssistEnabled: Bool {
-        FeatureFlags.shared.isFmAssistEnabled && supabaseService.fmService.isAvailable
+        flags.isFmAssistEnabled && deviceIntelligence.isAvailable
     }
 
     private var conciergePerfV2Enabled: Bool {
-        FeatureFlags.shared.isConciergePerfV2Enabled
+        flags.isConciergePerfV2Enabled
     }
 
     private var isGermanLocale: Bool {
@@ -107,9 +104,11 @@ struct ConciergeView: View {
         return isGermanLocale ? "Importiere direkt aus deiner Bibliothek — oder lass mich zwei Rails kuratieren." : "Import from your list — or let me curate two rails."
     }
 
-    init(assistantEnabled: Bool = true, initialPrompt: String? = nil) {
+    init(assistantEnabled: Bool = true, initialPrompt: String? = nil,
+         onImportNavigation: ((ImportResultDestination) -> Void)? = nil) {
         self.assistantEnabled = assistantEnabled
         self.initialPrompt = initialPrompt
+        self.onImportNavigation = onImportNavigation
     }
 
     // MARK: Body
@@ -131,32 +130,48 @@ struct ConciergeView: View {
                 .zIndex(100)
             }
         }
-        .sheet(item: $selectedAnime) { anime in
-            AnimeDetailView(anime: anime)
-        }
-        .sheet(item: $selectedManga) { manga in
-            MangaDetailView(manga: manga)
-        }
-        .sheet(isPresented: $showAniListImportSheet) {
+        .sheet(isPresented: $showAniListImportSheet, onDismiss: {
+            guard let job = pendingAniListReview else { return }
+            pendingAniListReview = nil
+            let origin = pendingAniListTicket; pendingAniListTicket = nil
+            guard workflow.isCurrent(origin, session: imports.accountSession) else { return }
+            importWorkflowJob = job
+        }) {
+            let origin = workflow.capture(session: imports.accountSession)
             ConciergeAniListImportSheet(
-                supabaseService: supabaseService,
-                isGermanLocale: isGermanLocale
+                imports: imports,
+                isGermanLocale: isGermanLocale,
+                usesStructuredImport: flags.seriesFoundationV1Enabled,
+                onPrepared: { job in
+                    guard workflow.isCurrent(origin, session: imports.accountSession) else { return }
+                    pendingAniListReview = job; pendingAniListTicket = origin
+                }
             ) { response in
                 let count = response.itemCount ?? 0
-                await sendExternalImport(
-                    sourceLabel: "AniList",
-                    displayText: isGermanLocale
-                        ? "AniList-Import — \(count) Titel"
-                        : "AniList import — \(count) items",
-                    sourceText: response.text ?? "",
-                    truncated: response.truncated ?? false
-                )
+                perform(origin: origin) {
+                    await sendExternalImport(
+                        sourceLabel: "AniList",
+                        displayText: isGermanLocale
+                            ? "AniList-Import — \(count) Titel"
+                            : "AniList import — \(count) items",
+                        sourceText: response.text ?? "",
+                        truncated: response.truncated ?? false
+                    )
+                }
             }
         }
+        .sheet(item: $importWorkflowJob) { job in
+            let origin = workflow.capture(session: imports.accountSession)
+            ImportWorkflowSheet(imports: imports, job: job) { destination in
+                guard workflow.isCurrent(origin, session: imports.accountSession) else { return }
+                onImportNavigation?(destination)
+            }
+        }
+        .onAppear { workflow.activate(session: imports.accountSession) }
         .task {
-            // Warm up the edge function isolate on view appear (fire-and-forget)
-            warmupTask = Task.detached(priority: .background) {
-                await supabaseService.conciergeWarmup()
+            // Warm up under the same account/chat lifetime as foreground actions.
+            warmupTask = workflow.launch(origin: workflow.capture(session: imports.accountSession), session: imports.accountSession) {
+                await concierge.conciergeWarmup()
             }
 
             // Pre-fill input from deep link prompt (consumed once)
@@ -167,21 +182,21 @@ struct ConciergeView: View {
             }
         }
         .onDisappear {
-            lastApplySessionResetTask?.cancel()
-            warmupTask?.cancel()
-            prefetchTask?.cancel()
-            prefetchTask2?.cancel()
-            backgroundRefreshTask?.cancel()
-            backgroundRefreshTask2?.cancel()
-            undoRefreshTask?.cancel()
-            toastDismissTask?.cancel()
-            disambiguationTask?.cancel()
+            workflow.deactivate()
+            cancelAuxiliaryTasks()
+            isWorking = false
+            applyAttempt.abandon()
+        }
+        .onChange(of: imports.accountSession.current) {
+            startNewChat()
+            workflow.activate(session: imports.accountSession)
         }
         .preferredColorScheme(.light)
     }
 
     private var editorialChatView: some View {
-        ConciergeEditorialShell(
+        let origin = workflow.capture(session: imports.accountSession)
+        return ConciergeEditorialShell(
             title: "Concierge",
             subtitle: editorialSubtitle,
             errorText: errorText,
@@ -204,16 +219,20 @@ struct ConciergeView: View {
                 isSending: isWorking,
                 focusRequest: $focusRequest,
                 onSend: { text in
-                    Task { await send(text: text) }
+                    perform(origin: origin) { await send(text: text) }
                 }
                 ,onAutoSend: { text in
                     // Auto-send only when the input field detects a real paste import list.
-                    Task { await send(text: text) }
+                    perform(origin: origin) { await send(text: text) }
                 }
             )
             .kuroSwipeExclusionZone()
         } footer: {
-            EmptyView()
+            Button(isGermanLocale ? "Aus AniList importieren" : "Import from AniList") {
+                guard workflow.isCurrent(origin, session: imports.accountSession) else { return }
+                showAniListImportSheet = true
+            }
+            .font(.kuroCaption()).foregroundStyle(Color.kuroTextSecondary)
         }
         .background {
             GeometryReader { geo in
@@ -225,12 +244,13 @@ struct ConciergeView: View {
     }
 
     private func sendExternalImport(sourceLabel: String, displayText: String, sourceText: String, truncated: Bool) async {
+        guard isWorkflowCurrent else { return }
         let t = sourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return }
         guard !isWorking else { return }
 
         errorText = nil
-        let sendStartedAt = supabaseService.beginInteractionTiming()
+        let sendStartedAt = interactionTelemetry.beginInteractionTiming()
 
         // Compact user bubble (avoid dumping 200 lines into chat).
         let userMsg = ConciergeMessage(role: .user, text: displayText, sourceUserText: t, items: nil)
@@ -239,9 +259,10 @@ struct ConciergeView: View {
         }
 
         isWorking = true
-        defer { isWorking = false }
+        defer { if isWorkflowCurrent { isWorking = false } }
 
         await handleImportFlow(text: t, interactionStartedAt: sendStartedAt)
+        guard isWorkflowCurrent else { return }
 
         if truncated {
             showToast(.init(
@@ -256,7 +277,8 @@ struct ConciergeView: View {
 
     // MARK: Chat View (Always Visible)
     private var chatView: some View {
-        VStack(spacing: 0) {
+        let origin = workflow.capture(session: imports.accountSession)
+        return VStack(spacing: 0) {
             messageTimeline(
                 horizontalPadding: KuroDesignSpacing.padding,
                 topPadding: KuroDesignSpacing.md,
@@ -281,7 +303,7 @@ struct ConciergeView: View {
                 isSending: isWorking,
                 focusRequest: $focusRequest,
                 onSend: { text in
-                    Task { await send(text: text) }
+                    perform(origin: origin) { await send(text: text) }
                 }
             )
             .kuroSwipeExclusionZone()
@@ -319,7 +341,9 @@ struct ConciergeView: View {
         messageSpacing: CGFloat = KuroDesignSpacing.md,
         includeStarter: Bool
     ) -> some View {
-        ScrollViewReader { proxy in
+        let origin = workflow.capture(session: imports.accountSession)
+        let undoSessionId = lastApplySessionId
+        return ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(alignment: .leading, spacing: messageSpacing) {
                     if includeStarter && messages.isEmpty {
@@ -329,12 +353,12 @@ struct ConciergeView: View {
                             .padding(.bottom, KuroDesignSpacing.sm)
 
                         ConciergeStarterActions(
-                            onPaste: { pasteFromClipboard() },
+                            onPaste: { if workflow.isCurrent(origin, session: imports.accountSession) { pasteFromClipboard() } },
                             onImportLibrary: {
-                                Task { await importFromLibrary() }
+                                perform(origin: origin) { await importFromLibrary() }
                             },
-                            onExampleImport: { seedExampleImport() },
-                            onExampleVibe: { seedExampleVibe() }
+                            onExampleImport: { if workflow.isCurrent(origin, session: imports.accountSession) { seedExampleImport() } },
+                            onExampleVibe: { if workflow.isCurrent(origin, session: imports.accountSession) { seedExampleVibe() } }
                         )
                         .frame(maxWidth: .infinity)
                     }
@@ -343,6 +367,7 @@ struct ConciergeView: View {
                         HStack {
                             Spacer()
                             Button {
+                                guard workflow.isCurrent(origin, session: imports.accountSession) else { return }
                                 startNewChat()
                             } label: {
                                 HStack(spacing: 4) {
@@ -366,37 +391,43 @@ struct ConciergeView: View {
                     ForEach(messages) { msg in
                         ConciergeBubble(
                             message: msg,
-                            selected: { item in selectedByItemId[item.id] },
+                            selected: { item in
+                                guard workflow.isCurrent(origin, session: imports.accountSession) else { return nil }
+                                return selectedByItemId[item.id]
+                            },
                             onSelect: { item, candidate in
+                                guard workflow.isCurrent(origin, session: imports.accountSession) else { return }
                                 KuroAccessibility.impactHaptic(.light)
                                 selectedByItemId[item.id] = candidate
                             },
                             onOpenRecommendation: { rec in
-                                Task { await openRecommendation(rec) }
+                                perform(origin: origin) { await openRecommendation(rec) }
                             },
                             onQuickSave: { rec in
-                                Task { await quickSaveRecommendation(rec) }
+                                perform(origin: origin) { await quickSaveRecommendation(rec) }
                             },
-                            onClarifyPaste: { pasteFromClipboard() },
+                            onClarifyPaste: { if workflow.isCurrent(origin, session: imports.accountSession) { pasteFromClipboard() } },
                             onClarifyImportLibrary: {
-                                Task { await importFromLibrary() }
+                                perform(origin: origin) { await importFromLibrary() }
                             },
-                            onClarifyExampleImport: { seedExampleImport() },
-                            onClarifyExampleVibe: { seedExampleVibe() },
+                            onClarifyExampleImport: { if workflow.isCurrent(origin, session: imports.accountSession) { seedExampleImport() } },
+                            onClarifyExampleVibe: { if workflow.isCurrent(origin, session: imports.accountSession) { seedExampleVibe() } },
                             onClarifyAmbiguity: clarifyV2Enabled ? { kind, value, sourceText in
-                                Task { await handleClarification(kind: kind, value: value, sourceText: sourceText) }
+                                perform(origin: origin) { await handleClarification(kind: kind, value: value, sourceText: sourceText) }
                             } : nil,
                             onConfirmItems: { response in
-                                Task { await confirmImport(response: response, sourceMessageId: msg.id) }
+                                perform(origin: origin) { await confirmImport(response: response, sourceMessageId: msg.id) }
                             },
                             onReparse: {
+                                guard workflow.isCurrent(origin, session: imports.accountSession) else { return }
                                 reparse(message: msg)
                             },
-                            onUndoImport: lastApplySessionId != nil ? {
-                                guard let sid = lastApplySessionId else { return }
-                                Task { await undoApply(sessionId: sid) }
+                            onUndoImport: undoSessionId != nil ? {
+                                guard let sid = undoSessionId else { return }
+                                perform(origin: origin) { await undoApply(sessionId: sid) }
                             } : nil,
                             onViewCollection: appliedImportMessageIds.contains(msg.id) ? {
+                                guard workflow.isCurrent(origin, session: imports.accountSession) else { return }
                                 navigateToCollection()
                             } : nil,
                             isImportApplied: appliedImportMessageIds.contains(msg.id),
@@ -404,7 +435,10 @@ struct ConciergeView: View {
                             importAppliedSummary: appliedImportMessageIds.contains(msg.id) ? appliedImportSummary : nil,
                             autoReasonByItemId: autoReasonByItemId,
                             itemActions: itemActions,
-                            excludedItemIds: $excludedItemIds
+                            excludedItemIds: Binding(
+                                get: { workflow.isCurrent(origin, session: imports.accountSession) ? excludedItemIds : [] },
+                                set: { if workflow.isCurrent(origin, session: imports.accountSession) { excludedItemIds = $0 } }
+                            )
                         )
                         .id(msg.id)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -432,10 +466,11 @@ struct ConciergeView: View {
 
     // MARK: Send (Main Entry Point)
     private func send(text: String) async {
+        guard isWorkflowCurrent else { return }
         guard !text.isEmpty else { return }
         guard !isWorking else { return }
         errorText = nil
-        let sendStartedAt = supabaseService.beginInteractionTiming()
+        let sendStartedAt = interactionTelemetry.beginInteractionTiming()
 
         #if DEBUG
         let sendStart = CFAbsoluteTimeGetCurrent()
@@ -459,7 +494,9 @@ struct ConciergeView: View {
 
         // Low-signal prompts ("ADD", random letters, etc.) should not guess.
         // Ask a clarifying question with examples instead of hitting the network.
-        if shouldAskClarifyingQuestion(text) {
+        // NOTE: This runs BEFORE FM intent classification (by design).
+        // Catches garbage/low-signal input without burning FM inference.
+        if ConciergeRouting.shouldAskClarifyingQuestion(text) {
             let assistantMsg = ConciergeMessage(
                 role: .assistant,
                 text: "What would you like to do?",
@@ -469,13 +506,13 @@ struct ConciergeView: View {
             withAnimation(KuroAnimation.editorial) {
                 messages.append(assistantMsg)
             }
-            supabaseService.analytics.track("clarify_shown", payload: [
+            interactionTelemetry.track("clarify_shown", payload: [
                 "reason": "low_signal",
                 "input_length": Double(text.count),
                 "surface": "concierge_chat",
                 "result": "clarify",
             ])
-            supabaseService.trackInteractionEvent(
+            interactionTelemetry.trackInteractionEvent(
                 "concierge_first_response_ms",
                 surface: "concierge_chat",
                 result: "clarify",
@@ -489,12 +526,14 @@ struct ConciergeView: View {
         if fmAssistEnabled {
             // FM-primary: use on-device model for intent classification
             let locale = isGermanLocale ? "de" : "en"
-            let fmResult = await supabaseService.fmService.assistIntent(text: text, locale: locale)
+            let fmResult = await deviceIntelligence.assistIntent(text: text, locale: locale)
+            guard isWorkflowCurrent else { return }
 
-            if let result = fmResult, result.confidence >= 0.65 {
+            if let result = fmResult,
+               let flow = ConciergeRouting.onDeviceFlow(intent: result.selectedIntent, confidence: result.confidence) {
                 let intent = result.selectedIntent
 
-                supabaseService.analytics.track("intent_detected", payload: [
+                interactionTelemetry.track("intent_detected", payload: [
                     "intent": intent,
                     "source": "fm",
                     "confidence": result.confidence,
@@ -505,10 +544,10 @@ struct ConciergeView: View {
                 print("[Concierge] FM intent: \(intent) (confidence: \(String(format: "%.2f", result.confidence)), reasoning: \(result.reasoning))")
                 #endif
 
-                switch intent {
-                case "import":
+                switch flow {
+                case .importList:
                     await handleImportFlow(text: text, interactionStartedAt: sendStartedAt)
-                case "unknown":
+                case .clarify:
                     let clarifyMsg = ConciergeMessage(
                         role: .assistant,
                         text: "What would you like to do?",
@@ -518,7 +557,7 @@ struct ConciergeView: View {
                     withAnimation(KuroAnimation.editorial) {
                         messages.append(clarifyMsg)
                     }
-                default:
+                case .recommendation:
                     // recommend_vibe, recommend_seed, library_query, club_action
                     await handleRecommendationFlow(text: text, interactionStartedAt: sendStartedAt)
                 }
@@ -538,19 +577,20 @@ struct ConciergeView: View {
             await routeByKeywords(text: text, sendStartedAt: sendStartedAt)
         }
 
-        isWorking = false
+        if isWorkflowCurrent { isWorking = false }
     }
 
     private func routeByKeywords(text: String, sendStartedAt: CFAbsoluteTime) async {
-        if looksLikeImport(text) {
-            supabaseService.analytics.track("intent_detected", payload: [
+        guard isWorkflowCurrent else { return }
+        if ConciergeRouting.keywordFlow(for: text) == .importList {
+            interactionTelemetry.track("intent_detected", payload: [
                 "intent": "import",
                 "source": "keywords",
                 "input_length": Double(text.count),
             ])
             await handleImportFlow(text: text, interactionStartedAt: sendStartedAt)
         } else {
-            supabaseService.analytics.track("intent_detected", payload: [
+            interactionTelemetry.track("intent_detected", payload: [
                 "intent": "recommend",
                 "source": "keywords",
                 "input_length": Double(text.count),
@@ -568,6 +608,7 @@ struct ConciergeView: View {
 
     // MARK: Clarification Re-Parse (Disambiguated)
     private func handleClarification(kind: String, value: String, sourceText: String) async {
+        guard isWorkflowCurrent else { return }
         guard clarifyV2Enabled else { return }
         errorText = nil
         isWorking = true
@@ -578,23 +619,22 @@ struct ConciergeView: View {
         #endif
 
         // Intent-level clarify can switch flows directly.
-        if kind == "intent_unclear" {
-            if value.lowercased() == "recommend_seed" {
-                supabaseService.analytics.track("clarify_selected", payload: [
-                    "kind": kind,
-                    "value": value,
-                    "routed_to": "recommend",
-                    "surface": "concierge_chat",
-                    "result": "recommend",
-                ])
-                await handleRecommendationFlow(text: sourceText)
-                isWorking = false
-                return
-            }
+        if ConciergeRouting.clarificationRoute(kind: kind, value: value) == .recommendation {
+            interactionTelemetry.track("clarify_selected", payload: [
+                "kind": kind,
+                "value": value,
+                "routed_to": "recommend",
+                "surface": "concierge_chat",
+                "result": "recommend",
+            ])
+            await handleRecommendationFlow(text: sourceText)
+            guard isWorkflowCurrent else { return }
+            isWorking = false
+            return
         }
 
         let clarification = [kind: value]
-        supabaseService.analytics.track("clarify_selected", payload: [
+        interactionTelemetry.track("clarify_selected", payload: [
             "kind": kind,
             "value": value,
             "routed_to": "import_reparse",
@@ -603,28 +643,23 @@ struct ConciergeView: View {
         ])
 
         do {
-            let response = try await supabaseService.conciergeParse(
-                text: sourceText,
-                scope: .both,
-                clarification: clarification
+            // Repeated lines collapse; existing entries come from the Library, not the parse response.
+            let parsed = try await imports.conciergeParse(
+                text: sourceText, scope: .both, clarification: clarification
             )
+            guard isWorkflowCurrent else { return }
+            let response = ImportReconciler.prepared(parsed, existing: ImportReconciler.libraryLookup(library))
 
-            // Pre-select top candidates
+            // Pre-select top candidates (the re-parse also sets the action of ambiguous lines)
+            let preselection = ImportReconciler.initialSelectionsClarificationReparse(for: response.items)
             for item in response.items {
                 autoReasonByItemId[item.id] = nil
-                if let top = item.candidates.first, top.score >= 0.60 {
-                    if !hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention) {
-                        selectedByItemId[item.id] = top
-                    }
-                }
-                let action = computeItemAction(item: item)
-                itemActions[item.id] = action
             }
+            selectedByItemId.merge(preselection.selections) { _, new in new }
+            itemActions.merge(preselection.actions) { _, new in new }
 
             // Check if there are still ambiguities in the re-parsed response
-            let remainingAmbiguity = response.items.compactMap(\.ambiguity).first
-
-            if remainingAmbiguity != nil, clarifyV2Enabled {
+            if let remainingAmbiguity = ConciergeRouting.parserClarification(in: response.items, clarifyEnabled: clarifyV2Enabled) {
                 // Still ambiguous -- show another clarify card
                 let assistantMsg = ConciergeMessage(
                     role: .assistant,
@@ -651,67 +686,24 @@ struct ConciergeView: View {
                 }
             }
         } catch {
+            guard isWorkflowCurrent else { return }
             handleError(error)
         }
 
-        isWorking = false
-    }
-
-    // NOTE: This runs BEFORE FM intent classification (by design).
-    // Catches garbage/low-signal input without burning FM inference.
-    private func shouldAskClarifyingQuestion(_ text: String) -> Bool {
-        let t = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if t.isEmpty { return true }
-
-        // If it already looks like an import (multi-line, progress/status cues), don't block.
-        if looksLikeImport(t) { return false }
-
-        // Single-token short inputs are most likely noise unless they are known abbreviations.
-        let tokens = t.split(whereSeparator: { $0.isWhitespace || $0 == "," || $0 == ";" })
-        if tokens.count == 1 {
-            let s = String(tokens[0])
-            let upper = s.uppercased()
-
-            // Known short anime abbreviations we should treat as a seed instead of asking.
-            // Keep this set small and high-signal; the server still handles the rich parsing.
-            let knownAbbrev: Set<String> = [
-                "AOT", "HXH", "NGE", "EVA", "DB", "DBZ", "DBS", "SAO",
-                "TPN", "BNHA", "OP"
-            ]
-            if knownAbbrev.contains(upper) { return false }
-
-            // Obvious low-signal (very short or command-like).
-            if s.count <= 3 { return true }
-            if upper == "ADD" || upper == "IMPORT" { return true }
-
-            // Random letters (no vowels) tends to be noise: "AGBTT".
-            if s.count <= 6,
-               s.range(of: #"^[A-Za-z]{3,6}$"#, options: .regularExpression) != nil
-            {
-                let lower = s.lowercased()
-                let hasVowel = lower.contains(where: { "aeiouy".contains($0) })
-                if !hasVowel { return true }
-            }
-        }
-
-        // If it's extremely short and has no structure, ask.
-        if t.count < 5, t.range(of: #"[0-9\(\)]"#, options: .regularExpression) == nil {
-            return true
-        }
-
-        return false
+        if isWorkflowCurrent { isWorking = false }
     }
 
     // MARK: Import Flow (Inline)
-    private func handleImportFlow(text: String, interactionStartedAt: SupabaseService.InteractionStartedAt? = nil) async {
-        let parseStartedAt = supabaseService.beginInteractionTiming()
+    private func handleImportFlow(text: String, interactionStartedAt: InteractionTelemetry.StartedAt? = nil) async {
+        guard isWorkflowCurrent else { return }
+        let parseStartedAt = interactionTelemetry.beginInteractionTiming()
         do {
             var firstResponseTracked = false
 
             func trackFirstResponseIfNeeded(_ result: String) {
                 guard let interactionStartedAt, !firstResponseTracked else { return }
                 firstResponseTracked = true
-                supabaseService.trackInteractionEvent(
+                interactionTelemetry.trackInteractionEvent(
                     "concierge_first_response_ms",
                     surface: "concierge_chat",
                     result: result,
@@ -723,13 +715,22 @@ struct ConciergeView: View {
             let parseStart = CFAbsoluteTimeGetCurrent()
             #endif
 
-            let response = try await supabaseService.conciergeParse(text: text, scope: .both)
+            // Repeated lines collapse; existing entries come from the Library, not the parse response.
+            let parsed = try await imports.conciergeParse(text: text, scope: .both)
+            guard isWorkflowCurrent else { return }
+            let response = ImportReconciler.prepared(parsed, existing: ImportReconciler.libraryLookup(library))
 
-            supabaseService.analytics.track("parse_completed", payload: [
-                "item_count": Double(response.items.count),
-                "has_ambiguity": response.items.contains { $0.ambiguity != nil },
-            ])
-            supabaseService.trackInteractionEvent(
+            interactionTelemetry.trackInteractionEvent(
+                "parse_completed",
+                surface: "concierge_parse",
+                result: "ok",
+                startedAt: parseStartedAt,
+                extra: [
+                    "item_count": Double(response.items.count),
+                    "has_ambiguity": response.items.contains { $0.ambiguity != nil },
+                ]
+            )
+            interactionTelemetry.trackInteractionEvent(
                 "concierge_parse_ms",
                 surface: "concierge_parse",
                 result: "ok",
@@ -755,36 +756,23 @@ struct ConciergeView: View {
             let prefetchStart = CFAbsoluteTimeGetCurrent()
             print("[Concierge Timing] image prefetch started: \(String(format: "%.1f", (prefetchStart - parseEnd) * 1000))ms after parse")
             #endif
-            prefetchTask = Task.detached(priority: .background) {
+            prefetchTask = Task(priority: .background) {
+                guard isWorkflowCurrent else { return }
                 await ImagePipeline.shared.prefetch(urls: coverUrls, maxPixelSize: 520)
             }
             #endif
 
-            // Pre-select top candidates (skip when adaptations are ambiguous)
-            var hasAnyExistingEntry = false
-            var ambiguousItemsNeedingHelp: [SupabaseService.ConciergeParseItem] = []
+            // Pre-select top candidates (skip when adaptations are ambiguous; those lines get no action here)
+            let preselection = ImportReconciler.initialSelectionsFirstParse(for: response.items)
             for item in response.items {
                 autoReasonByItemId[item.id] = nil
-                if let top = item.candidates.first, top.score >= 0.60 {
-                    if hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention) {
-                        ambiguousItemsNeedingHelp.append(item)
-                        continue
-                    }
-                    selectedByItemId[item.id] = top
-                }
-
-                // Compute reconciliation action per item
-                let action = computeItemAction(item: item)
-                itemActions[item.id] = action
-                if item.existing_entry != nil {
-                    hasAnyExistingEntry = true
-                }
             }
+            selectedByItemId.merge(preselection.selections) { _, new in new }
+            itemActions.merge(preselection.actions) { _, new in new }
+            let ambiguousItemsNeedingHelp = preselection.ambiguousItems
 
             // Check for parser-level ambiguities that need user clarification
-            let parserAmbiguity = response.items.compactMap(\.ambiguity).first
-
-            if let ambiguity = parserAmbiguity, clarifyV2Enabled {
+            if let ambiguity = ConciergeRouting.parserClarification(in: response.items, clarifyEnabled: clarifyV2Enabled) {
                 // Dismiss keyboard when clarify card appears
                 #if os(iOS)
                 UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
@@ -806,16 +794,27 @@ struct ConciergeView: View {
                 print("[Concierge Timing] clarify card rendered: \(String(format: "%.0f", (CFAbsoluteTimeGetCurrent() - parseStart) * 1000))ms total from parse start")
                 #endif
             } else {
-                // Auto-apply safety: disabled when ANY item has an existing_entry
-                let allHighConfidence = !hasAnyExistingEntry && response.items.allSatisfy { item in
-                    guard let top = item.candidates.first else { return false }
-                    return top.score >= 0.85 && !hasAmbiguousAdaptations(candidates: item.candidates, yearMention: item.parsed.yearMention)
-                }
-
-                if allHighConfidence && !response.items.isEmpty {
+                // Auto-apply safety: every item >= 0.85, no ambiguous adaptations, nothing already in the library
+                // (and the Library loaded for this account: an unknown tracking state never auto-applies).
+                // Parser ambiguity blocks auto-apply (locked: same rule as Profile, clarify_v2 on or off).
+                switch ImportReconciler.conciergeAutoApplyPlan(
+                    for: response.items,
+                    loadState: library.loadState,
+                    excluded: excludedItemIds,
+                    existing: ImportReconciler.libraryLookup(library)
+                ) {
+                case .apply(let applyItems, let omitted):
                     // Auto-apply: skip confirm UI entirely
-                    await autoApplyImport(response: response, interactionStartedAt: interactionStartedAt)
-                } else {
+                    await autoApplyImport(
+                        response: response,
+                        chosen: applyItems.map(\.payload),
+                        interactionStartedAt: interactionStartedAt,
+                        omittedBeyondLimit: omitted
+                    )
+                case .nothingToApply:
+                    // Every line excluded: nothing is applied and no confirm bubble is shown (as before).
+                    break
+                case .review:
                     // Show inline confirm bubble in chat
                     let assistantMsg = ConciergeMessage(
                         role: .assistant,
@@ -834,6 +833,7 @@ struct ConciergeView: View {
                 }
             }
 
+            guard isWorkflowCurrent else { return }
             // On-device Apple FM can help pick the correct adaptation when candidates share a base title
             // (e.g. "Hunter x Hunter" 1999 vs 2011). This runs after the confirm bubble is visible
             // so the UI stays snappy, and it never overrides a user-made selection.
@@ -843,7 +843,8 @@ struct ConciergeView: View {
                 }
             }
         } catch {
-            supabaseService.trackInteractionEvent(
+            guard isWorkflowCurrent else { return }
+            interactionTelemetry.trackInteractionEvent(
                 "concierge_parse_ms",
                 surface: "concierge_parse",
                 result: "error",
@@ -854,9 +855,10 @@ struct ConciergeView: View {
     }
 
     private func autoDisambiguateAmbiguousAdaptations(
-        items: [SupabaseService.ConciergeParseItem],
+        items: [ConciergeParseItem],
         userText: String
     ) async {
+        guard isWorkflowCurrent else { return }
         // FM assist is optional and flag-gated.
         guard fmAssistEnabled else { return }
 
@@ -882,13 +884,13 @@ struct ConciergeView: View {
                 )
             }
 
-            guard let picked = await supabaseService.fmService.disambiguate(
+            let result = await deviceIntelligence.disambiguate(
                 candidates: fmCandidates,
                 userText: userText,
                 rawTitle: item.raw
-            ) else {
-                continue
-            }
+            )
+            guard isWorkflowCurrent else { return }
+            guard let picked = result else { continue }
 
             let idx = picked.selectedIndex
             guard topCandidates.indices.contains(idx) else { continue }
@@ -901,96 +903,71 @@ struct ConciergeView: View {
         }
     }
 
-    // MARK: Reconciliation Helpers
-
-    private func computeItemAction(item: SupabaseService.ConciergeParseItem) -> ImportItemAction {
-        guard let existing = item.existing_entry else { return .add }
-        let diff = computeDiff(existing: existing, parsed: item.parsed)
-        if let diff, !diff.isEmpty { return .update }
-        return .skip
-    }
-
-    private func computeDiff(existing: SupabaseService.ConciergeExistingEntry, parsed: SupabaseService.ConciergeParseItemParsed) -> ImportDiff? {
-        var diff = ImportDiff()
-
-        if let parsedStatus = parsed.status,
-           parsedStatus.uppercased() != existing.status.uppercased() {
-            diff.status = ImportDiff.FieldDiff(from: existing.status, to: parsedStatus.uppercased())
-        }
-        if let ep = parsed.progressEpisodes,
-           ep != (existing.progress_episodes ?? 0) {
-            diff.progressEpisodes = ImportDiff.FieldDiff(from: existing.progress_episodes ?? 0, to: ep)
-        }
-        if let ch = parsed.progressChapters,
-           ch != (existing.progress_chapters ?? 0) {
-            diff.progressChapters = ImportDiff.FieldDiff(from: existing.progress_chapters ?? 0, to: ch)
-        }
-        if let vol = parsed.progressVolumes,
-           vol != (existing.progress_volumes ?? 0) {
-            diff.progressVolumes = ImportDiff.FieldDiff(from: existing.progress_volumes ?? 0, to: vol)
-        }
-
-        return diff.isEmpty ? nil : diff
-    }
-
     // MARK: Auto-Apply (High Confidence, Pure Adds Only)
+    /// Applies `chosen` (the non-empty apply items of `ImportReconciler.conciergeAutoApplyPlan`) without a confirm step.
     private func autoApplyImport(
-        response: SupabaseService.ConciergeParseResponse,
-        interactionStartedAt: SupabaseService.InteractionStartedAt? = nil
+        response: ConciergeParseResponse,
+        chosen: [[String: Any]],
+        interactionStartedAt: InteractionTelemetry.StartedAt? = nil,
+        omittedBeyondLimit: Int = 0
     ) async {
+        guard isWorkflowCurrent else { return }
+        let anchor = "auto:" + response.items.map(\.raw).joined(separator: "\n")
+        let started = applyAttempt.begin(anchor: anchor, stamp: "auto") { chosen }
         do {
-            let chosen = buildApplyPayload(from: response)
-            guard !chosen.isEmpty else { return }
-
-            let res = try await supabaseService.conciergeApply(items: chosen)
-            if let sessionId = res.sessionId {
+            let res = try await imports.conciergeApply(items: started.items, idempotencyKey: started.key)
+            guard isWorkflowCurrent else { return }
+            let presented = res.presentation
+            guard presented.tone != .failed else {
+                applyAttempt.complete()
+                showToast(.init(kind: .error, title: "Failed to add items", subtitle: presented.firstError ?? "Unknown error", actionTitle: nil, onAction: nil))
+                return
+            }
+            applyAttempt.complete()
+            if let sessionId = presented.undoSessionId {
                 setLastApplySession(sessionId)
             }
 
-            // Check if the apply actually succeeded
-            guard res.success else {
-                let errorDetail = res.errors?.first?.error ?? "Unknown error"
-                showToast(.init(kind: .error, title: "Failed to add items", subtitle: errorDetail, actionTitle: nil, onAction: nil))
-                return
+            // Refresh the Collection feed in background (don't block toast); `conciergeApply`
+            // already re-reads the Library projection.
+            backgroundRefreshTask = Task {
+                guard isWorkflowCurrent else { return }
+                await collection.fetchCollectionFeed(status: nil)
             }
 
-            // Refresh collection in background (don't block toast)
-            backgroundRefreshTask = Task.detached {
-                async let _lists: () = supabaseService.fetchUserLists()
-                async let _items: () = supabaseService.fetchCollectionItems()
-                async let _feed: () = supabaseService.fetchCollectionFeed(status: nil)
-                _ = await (_lists, _items, _feed)
+            // Show success toast with undo when the session can still be reversed.
+            let appliedCount = presented.acceptedCount
+            var summaryText: String
+            if presented.tone == .empty {
+                summaryText = "Nothing to add"
+            } else if presented.tone == .partial {
+                summaryText = "\(appliedCount) item\(appliedCount == 1 ? "" : "s") added, some need review"
+            } else {
+                summaryText = "\(appliedCount) item\(appliedCount == 1 ? "" : "s") added to collection"
             }
-
-            // Show success toast with undo
-            let appliedCount = res.applied?.count ?? chosen.count
-            let summaryText = "\(appliedCount) item\(appliedCount == 1 ? "" : "s") added to collection"
-            let sid = lastApplySessionId
+            if let omitted = ImportReconciler.omittedApplyCopy(omitted: omittedBeyondLimit, german: false) {
+                summaryText = "\(summaryText). \(omitted)"
+            }
+            let lines = applyConfirmationLines(response: response, result: res)
+            let rejectedCount = presented.conflictCount + presented.errorCount
+            let sid = presented.undoSessionId
+            let origin = ConciergeWorkflowScope.ticket
             showToast(.init(
-                kind: .success,
+                kind: presented.tone == .applied ? .success : .info,
                 title: summaryText,
-                subtitle: nil,
-                actionTitle: "UNDO",
+                subtitle: rejectedCount > 0 ? "\(rejectedCount) need review" : nil,
+                actionTitle: sid == nil ? nil : "UNDO",
                 onAction: {
                     guard let sid else { return }
-                    Task {
+                    perform(origin: origin) {
                         await undoApply(sessionId: sid)
                     }
                 }
             ), autoDismissSeconds: 4.0)
 
-            // Build title list for confirmation message
-            let titleNames = response.items.compactMap { item -> String? in
-                guard let c = selectedByItemId[item.id] else { return nil }
-                if excludedItemIds.contains(item.id) { return nil }
-                return c.title_raw
-            }
-            let titleList = titleNames.isEmpty ? "" : "\n" + titleNames.map { "· \($0)" }.joined(separator: "\n")
-
-            // Add confirmation message to chat
             let confirmMsg = ConciergeMessage(
                 role: .assistant,
-                text: "\(summaryText).\(titleList)",
+                text: ImportApplyConfirmation.text(summary: summaryText, applied: lines.applied, rejected: lines.rejected),
                 items: nil
             )
             withAnimation(KuroAnimation.editorial) {
@@ -998,7 +975,7 @@ struct ConciergeView: View {
                 messages.append(confirmMsg)
             }
             if let interactionStartedAt {
-                supabaseService.trackInteractionEvent(
+                interactionTelemetry.trackInteractionEvent(
                     "concierge_first_response_ms",
                     surface: "concierge_chat",
                     result: "auto_apply",
@@ -1007,6 +984,8 @@ struct ConciergeView: View {
             }
 
         } catch {
+            guard isWorkflowCurrent else { return }
+            applyAttempt.observe(error)
             handleError(error)
         }
     }
@@ -1014,16 +993,17 @@ struct ConciergeView: View {
     // MARK: Recommendation Flow (Inline Rails)
     private func handleRecommendationFlow(
         text: String,
-        interactionStartedAt: SupabaseService.InteractionStartedAt? = nil
+        interactionStartedAt: InteractionTelemetry.StartedAt? = nil
     ) async {
-        let recommendStartedAt = supabaseService.beginInteractionTiming()
+        guard isWorkflowCurrent else { return }
+        let recommendStartedAt = interactionTelemetry.beginInteractionTiming()
         do {
             var firstResponseTracked = false
 
             func trackFirstResponseIfNeeded(_ result: String) {
                 guard let interactionStartedAt, !firstResponseTracked else { return }
                 firstResponseTracked = true
-                supabaseService.trackInteractionEvent(
+                interactionTelemetry.trackInteractionEvent(
                     "concierge_first_response_ms",
                     surface: "concierge_chat",
                     result: result,
@@ -1035,8 +1015,9 @@ struct ConciergeView: View {
             let recStart = CFAbsoluteTimeGetCurrent()
             #endif
 
-            let rec = try await supabaseService.conciergeRecommend(text: text, scope: .both, limit: 8)
-            supabaseService.trackInteractionEvent(
+            let rec = try await concierge.conciergeRecommend(text: text, scope: .both, limit: 8)
+            guard isWorkflowCurrent else { return }
+            interactionTelemetry.trackInteractionEvent(
                 "concierge_recommend_ms",
                 surface: "concierge_recommend",
                 result: "ok",
@@ -1066,7 +1047,8 @@ struct ConciergeView: View {
             #if DEBUG
             print("[Concierge Timing] rec image prefetch started: \(String(format: "%.1f", (CFAbsoluteTimeGetCurrent() - recEnd) * 1000))ms after response")
             #endif
-            prefetchTask2 = Task.detached(priority: .background) {
+            prefetchTask2 = Task(priority: .background) {
+                guard isWorkflowCurrent else { return }
                 await ImagePipeline.shared.prefetch(urls: recUrls, maxPixelSize: 560)
             }
             #endif
@@ -1088,7 +1070,7 @@ struct ConciergeView: View {
                     .map { item in
                         (mediaType: item.mediaType.uppercased(), mediaId: item.mediaId)
                     }
-                supabaseService.prefetchMediaRelationRefreshRequests(
+                catalog.prefetchMediaRelationRefreshRequests(
                     items: ladderCandidates,
                     reason: "concierge_recommend"
                 )
@@ -1115,8 +1097,11 @@ struct ConciergeView: View {
                 trackFirstResponseIfNeeded("recommend_empty")
             }
 
+        } catch is CancellationError {
+            return
         } catch {
-            supabaseService.trackInteractionEvent(
+            guard isWorkflowCurrent else { return }
+            interactionTelemetry.trackInteractionEvent(
                 "concierge_recommend_ms",
                 surface: "concierge_recommend",
                 result: "error",
@@ -1127,64 +1112,84 @@ struct ConciergeView: View {
     }
 
     // MARK: Confirm Import (From Inline Bubble)
-    private func confirmImport(response: SupabaseService.ConciergeParseResponse, sourceMessageId: UUID? = nil) async {
+    private func confirmImport(response: ConciergeParseResponse, sourceMessageId: UUID? = nil) async {
+        guard isWorkflowCurrent else { return }
         isWorking = true
         if let sourceMessageId {
             applyingImportMessageId = sourceMessageId
         }
 
+        // Apply gate: never while the Library is not loaded for this account (a line that looks
+        // untracked may be tracked). The confirm control stays; the Library refreshes so the user can
+        // confirm again.
+        guard ImportReconciler.canApply(loadState: library.loadState) else {
+            showToast(.init(kind: .info, title: "Your library is still loading. Try again in a moment.", subtitle: nil, actionTitle: nil, onAction: nil))
+            isWorking = false
+            applyingImportMessageId = nil
+            await libraryActions.fetchUserLists()
+            return
+        }
+
         do {
-            let chosen = buildApplyPayload(from: response)
+            let anchor = "confirm:\(sourceMessageId?.uuidString ?? "current")"
+            let started = applyAttempt.begin(anchor: anchor, stamp: selectionStamp()) {
+                buildApplyPayload(from: response)
+            }
+            let chosen = started.items
 
             guard !chosen.isEmpty else {
+                applyAttempt.abandon()
                 showToast(.init(kind: .error, title: "No items selected", subtitle: nil, actionTitle: nil, onAction: nil))
                 isWorking = false
                 applyingImportMessageId = nil
                 return
             }
 
-            let res = try await supabaseService.conciergeApply(items: chosen)
-            if let sessionId = res.sessionId {
-                setLastApplySession(sessionId)
-            }
-
-            // Check if the apply actually succeeded
-            guard res.success else {
-                let errorDetail = res.errors?.first?.error ?? "Unknown error"
-                showToast(.init(kind: .error, title: "Failed to apply items", subtitle: errorDetail, actionTitle: nil, onAction: nil))
+            let res = try await imports.conciergeApply(items: chosen, idempotencyKey: started.key)
+            guard isWorkflowCurrent else { return }
+            let presented = res.presentation
+            guard presented.tone != .failed else {
+                applyAttempt.complete()
+                showToast(.init(kind: .error, title: "Failed to apply items", subtitle: presented.firstError ?? "Unknown error", actionTitle: nil, onAction: nil))
                 isWorking = false
                 applyingImportMessageId = nil
                 return
             }
-
-            // Refresh collection in background
-            backgroundRefreshTask2 = Task.detached {
-                async let _lists: () = supabaseService.fetchUserLists()
-                async let _items: () = supabaseService.fetchCollectionItems()
-                async let _feed: () = supabaseService.fetchCollectionFeed(status: nil)
-                _ = await (_lists, _items, _feed)
+            applyAttempt.complete()
+            if let sessionId = presented.undoSessionId {
+                setLastApplySession(sessionId)
             }
 
-            // Compute summary text based on actual server response
-            let appliedItems = res.applied ?? []
-            let serverAddCount = appliedItems.filter { $0.action == "add" }.count
-            let serverUpdateCount = appliedItems.filter { $0.action == "update" }.count
-            let conflictCount = res.conflicts?.count ?? 0
+            // Refresh the Collection feed in background; `conciergeApply` already re-reads the
+            // Library projection.
+            backgroundRefreshTask2 = Task {
+                guard isWorkflowCurrent else { return }
+                await collection.fetchCollectionFeed(status: nil)
+            }
+
+            // Compute summary text based on the actual server outcome, including a reversible partial apply.
+            let serverAddCount = presented.addCount
+            let serverUpdateCount = presented.updateCount
+            let conflictCount = presented.conflictCount
 
             var summaryParts: [String] = []
             if serverAddCount > 0 { summaryParts.append("\(serverAddCount) added") }
             if serverUpdateCount > 0 { summaryParts.append("\(serverUpdateCount) updated") }
-            let summaryText = summaryParts.isEmpty ? "\(appliedItems.count) items applied" : summaryParts.joined(separator: ", ")
+            let summaryText = presented.tone == .empty
+                ? "Nothing to add"
+                : (summaryParts.isEmpty ? "\(presented.acceptedCount) items applied" : summaryParts.joined(separator: ", "))
+            let rejectedCount = presented.conflictCount + presented.errorCount
 
-            let sid = lastApplySessionId
+            let sid = presented.undoSessionId
+            let origin = ConciergeWorkflowScope.ticket
             showToast(.init(
-                kind: conflictCount > 0 ? .info : .success,
+                kind: presented.tone == .applied && rejectedCount == 0 ? .success : .info,
                 title: summaryText,
-                subtitle: conflictCount > 0 ? "\(conflictCount) conflict\(conflictCount == 1 ? "" : "s") -- review needed" : nil,
-                actionTitle: "UNDO",
+                subtitle: rejectedCount > 0 ? "\(rejectedCount) need review" : nil,
+                actionTitle: sid == nil ? nil : "UNDO",
                 onAction: {
                     guard let sid else { return }
-                    Task {
+                    perform(origin: origin) {
                         await undoApply(sessionId: sid)
                     }
                 }
@@ -1200,139 +1205,183 @@ struct ConciergeView: View {
             }
 
         } catch {
+            guard isWorkflowCurrent else { return }
+            applyAttempt.observe(error)
             handleError(error)
         }
 
-        isWorking = false
+        if isWorkflowCurrent { isWorking = false }
     }
 
     // MARK: Build Apply Payload
-    private func buildApplyPayload(from response: SupabaseService.ConciergeParseResponse) -> [[String: Any]] {
-        response.items.compactMap { item -> [String: Any]? in
-            guard let c = selectedByItemId[item.id] else { return nil }
-
-            // Respect per-item exclusion toggles
-            if excludedItemIds.contains(item.id) { return nil }
-
-            let action = itemActions[item.id] ?? .add
-            // Skip items produce no apply payload
-            if action == .skip { return nil }
-
-            let mediaType = c.media_type
-            let status = normalizedStatus(for: item.parsed.status, mediaType: mediaType)
-
-            var payload: [String: Any] = [
-                "raw": item.raw,
-                "mediaType": mediaType.uppercased(),
-                "mediaId": c.media_id,
-                "status": status,
-                "confidence": c.score,
-                "action": action.rawValue,
-            ]
-
-            let p = item.parsed
-            if let v = p.progressEpisodes  { payload["progressEpisodes"] = v }
-            if let v = p.progressChapters   { payload["progressChapters"] = v }
-            if let v = p.progressVolumes    { payload["progressVolumes"] = v }
-            if let v = p.seasonNumber       { payload["seasonNumber"] = v }
-            if let v = p.episodeInSeason    { payload["episodeInSeason"] = v }
-            if let v = p.caughtUp           { payload["caughtUp"] = v }
-            if let v = p.lastEpisode        { payload["lastEpisode"] = v }
-            if let v = p.completed          { payload["completed"] = v }
-            if let v = p.rating             { payload["rating"] = v }
-
-            // TOCTOU protection: send expected existing state for updates
-            if action == .update, let existing = item.existing_entry {
-                var expected: [String: Any] = ["status": existing.status]
-                if let ep = existing.progress_episodes { expected["progress_episodes"] = ep }
-                if let ch = existing.progress_chapters { expected["progress_chapters"] = ch }
-                if let vol = existing.progress_volumes { expected["progress_volumes"] = vol }
-                payload["expectedExisting"] = expected
-            }
-
-            return payload
-        }
+    /// Selected, non-excluded, non-skip items, reconciled against the Library entry of the chosen title
+    /// (status kept unless the line states one, stored rating/notes sent back, expected state for updates).
+    private func buildApplyPayload(from response: ConciergeParseResponse) -> [[String: Any]] {
+        ImportReconciler.applyItems(
+            for: response.items,
+            selections: selectedByItemId,
+            excluded: excludedItemIds,
+            actions: itemActions,
+            existing: ImportReconciler.libraryLookup(library)
+        ).map(\.payload)
     }
 
     // MARK: Actions
-    private func openRecommendation(_ item: SupabaseService.ConciergeRecommendResponse.Item) async {
+    private func openRecommendation(_ item: ConciergeRecommendResponse.Item) async {
+        guard isWorkflowCurrent else { return }
         errorText = nil
 
         do {
             if item.mediaType.uppercased() == "ANIME" {
-                let anime = try await supabaseService.fetchAnimeById(item.mediaId)
+                let anime = try await catalog.fetchAnimeById(item.mediaId)
+                guard isWorkflowCurrent else { return }
                 guard let anime else {
                     errorText = "Couldn't find that anime in the database."
                     return
                 }
-                selectedAnime = anime
+                routes.openMedia(MediaRoute(anime: anime))
                 recordRagFeedbackIfNeeded(accepted: true)
             } else {
-                let manga = try await supabaseService.fetchMangaById(item.mediaId)
+                let manga = try await catalog.fetchMangaById(item.mediaId)
+                guard isWorkflowCurrent else { return }
                 guard let manga else {
                     errorText = "Couldn't find that manga in the database."
                     return
                 }
-                selectedManga = manga
+                routes.openMedia(MediaRoute(manga: manga))
                 recordRagFeedbackIfNeeded(accepted: true)
             }
         } catch {
+            guard isWorkflowCurrent else { return }
             errorText = "Couldn't open: \(error.localizedDescription)"
         }
     }
 
-    private func quickSaveRecommendation(_ item: SupabaseService.ConciergeRecommendResponse.Item) async {
-        let mediaType = item.mediaType.uppercased() == "ANIME" ? "anime" : "manga"
-        await supabaseService.upsertUserListEntry(
-            mediaId: item.mediaId,
-            mediaType: mediaType,
-            status: .planning,
-            progress: 0,
-            rating: nil,
-            notes: nil,
-            verdict: supabaseService.userListEntry(mediaType: mediaType, mediaId: item.mediaId)?.verdict
-        )
-        recordRagFeedbackIfNeeded(accepted: true)
-        showToast(.init(kind: .success, title: "Added to Planning", subtitle: item.title, actionTitle: nil, onAction: nil))
+    /// Quick save = `save` semantics: adds the title as Planned; a title that is already tracked
+    /// keeps its status, progress and everything else.
+    private func quickSaveRecommendation(_ item: ConciergeRecommendResponse.Item) async {
+        guard isWorkflowCurrent else { return }
+        let key = MediaKey(kind: item.mediaType.uppercased() == "ANIME" ? .anime : .manga, id: item.mediaId)
+        let outcome = await libraryActions.save(key, status: .planning)
+        guard isWorkflowCurrent else { return }
+        switch outcome {
+        case .applied(let change):
+            recordRagFeedbackIfNeeded(accepted: true)
+            let title = change.kind == .added ? "Added to Planning" : "Already in your list"
+            showToast(.init(kind: .success, title: title, subtitle: item.title, actionTitle: nil, onAction: nil))
+        case .failed(let error):
+            showToast(.init(kind: .error, title: "Couldn't update list", subtitle: friendlyListMutationMessage(error, isGerman: false), actionTitle: nil, onAction: nil))
+        }
     }
 
     // MARK: Undo
     private func undoApply(sessionId: String) async {
+        guard isWorkflowCurrent else { return }
         isWorking = true
         errorText = nil
-        defer { isWorking = false }
+        defer { if isWorkflowCurrent { isWorking = false } }
 
         do {
-            let res = try await supabaseService.conciergeUndo(sessionId: sessionId)
+            let res = try await imports.conciergeUndo(sessionId: sessionId)
+            guard isWorkflowCurrent else { return }
 
-            // Refresh in background
-            undoRefreshTask = Task.detached {
-                async let _lists: () = supabaseService.fetchUserLists()
-                async let _items: () = supabaseService.fetchCollectionItems()
-                async let _feed: () = supabaseService.fetchCollectionFeed(status: nil)
-                _ = await (_lists, _items, _feed)
+            // Refresh the Collection feed in background; `conciergeUndo` already re-reads the
+            // Library projection.
+            undoRefreshTask = Task {
+                guard isWorkflowCurrent else { return }
+                await collection.fetchCollectionFeed(status: nil)
             }
 
-            setLastApplySession(nil)
-
             if res.success {
+                setLastApplySession(nil)
                 if let lastAppliedImportMessageId {
                     appliedImportMessageIds.remove(lastAppliedImportMessageId)
                     self.lastAppliedImportMessageId = nil
                 }
-                showToast(.init(kind: .success, title: "Import undone", subtitle: nil, actionTitle: nil, onAction: nil))
+                let kept = res.keptCount
+                showToast(.init(
+                    kind: .success,
+                    title: "Import undone",
+                    subtitle: kept > 0 ? "\(kept) later edit\(kept == 1 ? "" : "s") kept" : nil,
+                    actionTitle: nil,
+                    onAction: nil
+                ))
             } else {
                 showToast(.init(kind: .error, title: "Undo failed", subtitle: "Try again.", actionTitle: nil, onAction: nil))
             }
+        } catch is CancellationError {
+            return
         } catch {
+            guard isWorkflowCurrent else { return }
             errorText = "Undo failed: \(error.localizedDescription)"
             showToast(.init(kind: .error, title: "Undo failed", subtitle: error.localizedDescription, actionTitle: nil, onAction: nil))
         }
     }
 
+    /// Selected titles, actions and exclusions. A library refresh does not change it, so a lost
+    /// response retries the frozen payload. Editing the form starts a new action.
+    private func selectionStamp() -> String {
+        let lineIds = Set(selectedByItemId.keys).union(itemActions.keys).union(excludedItemIds)
+        let choices = lineIds.map { lineId in
+            let candidate = selectedByItemId[lineId]
+            return ImportSelectionStamp.Choice(
+                lineId: lineId,
+                mediaType: candidate?.media_type ?? "",
+                mediaId: candidate?.media_id ?? 0,
+                action: itemActions[lineId]?.rawValue,
+                excluded: excludedItemIds.contains(lineId)
+            )
+        }
+        return ImportSelectionStamp.make(choices: choices)
+    }
+
+    private func applyConfirmationLines(
+        response: ConciergeParseResponse,
+        result: ConciergeApplyResponse
+    ) -> (applied: [ImportApplyConfirmation.Line], rejected: [ImportApplyConfirmation.Line]) {
+        func line(type: String, id: Int) -> ImportApplyConfirmation.Line? {
+            for item in response.items {
+                guard let candidate = selectedByItemId[item.id] else { continue }
+                guard candidate.media_type.uppercased() == type.uppercased(), candidate.media_id == id else { continue }
+                return ImportApplyConfirmation.Line(mediaType: type.uppercased(), mediaId: id, title: candidate.title_raw)
+            }
+            return nil
+        }
+        let applied = (result.applied ?? []).compactMap { line(type: $0.mediaType, id: $0.mediaId) }
+        let rejected = ((result.conflicts ?? []).compactMap { conflict -> ImportApplyConfirmation.Line? in
+            guard let type = conflict.mediaType, let id = conflict.mediaId else { return nil }
+            return line(type: type, id: id)
+        }) + ((result.errors ?? []).compactMap { error -> ImportApplyConfirmation.Line? in
+            guard let type = error.mediaType, let id = error.mediaId else { return nil }
+            return line(type: type, id: id)
+        })
+        return (applied, rejected)
+    }
+
     // MARK: Helpers
+    private var isWorkflowCurrent: Bool {
+        workflow.isCurrent(ConciergeWorkflowScope.ticket, session: imports.accountSession)
+    }
+
+    private func perform(origin: ConciergeWorkflowScope.Ticket?, _ operation: @escaping @MainActor () async -> Void) {
+        workflow.launch(origin: origin, session: imports.accountSession, operation: operation)
+    }
+
+    private func cancelAuxiliaryTasks() {
+        lastApplySessionResetTask?.cancel()
+        warmupTask?.cancel()
+        prefetchTask?.cancel()
+        prefetchTask2?.cancel()
+        backgroundRefreshTask?.cancel()
+        backgroundRefreshTask2?.cancel()
+        undoRefreshTask?.cancel()
+        toastDismissTask?.cancel()
+        disambiguationTask?.cancel()
+    }
+
     private func handleError(_ error: Error) {
-        if let guardrail = error as? SupabaseService.ConciergeGuardrailsError {
+        if error is CancellationError { return }
+        if let guardrail = error as? ConciergeGuardrailsError {
             // Persistent: rate limit / guardrail errors stay inline until next action
             errorText = guardrail.localizedDescription
         } else {
@@ -1351,6 +1400,13 @@ struct ConciergeView: View {
     }
 
     private func startNewChat() {
+        workflow.invalidate()
+        cancelAuxiliaryTasks()
+        isWorking = false
+        toast = nil
+        lastApplySessionId = nil
+        showAniListImportSheet = false; pendingAniListReview = nil; pendingAniListTicket = nil
+        importWorkflowJob = nil
         withAnimation(KuroAnimation.fast) {
             messages = []
         }
@@ -1369,14 +1425,7 @@ struct ConciergeView: View {
         lastRecommendWasRagAssist = false
         lastRagSeedEntityId = nil
         ragFeedbackSentForQuery = []
-    }
-
-    private func normalizedStatus(for raw: String?, mediaType: String?) -> String {
-        let s = (raw ?? "").uppercased()
-        if mediaType == "manga", s == "WATCHING" { return "READING" }
-        if mediaType == "anime", s == "READING" { return "WATCHING" }
-        if s.isEmpty { return "PLANNING" }
-        return s
+        applyAttempt.abandon()
     }
 
     private func setLastApplySession(_ sessionId: String?) {
@@ -1386,48 +1435,15 @@ struct ConciergeView: View {
         // Avoid stale sticky undo controls if the user moves on.
         lastApplySessionResetTask = Task {
             try? await Task.sleep(nanoseconds: 120_000_000_000)
-            guard !Task.isCancelled else { return }
+            guard isWorkflowCurrent else { return }
             if lastApplySessionId == sessionId {
                 lastApplySessionId = nil
             }
         }
     }
 
-    // MARK: Adaptation Ambiguity Guard
-    private func strippedBaseTitle(_ raw: String) -> String {
-        var t = raw
-        if let range = t.range(of: #"\s*\([^)]*\)\s*$"#, options: .regularExpression) {
-            t.removeSubrange(range)
-        }
-        if let range = t.range(of: ": ") {
-            t = String(t[t.startIndex..<range.lowerBound])
-        }
-        return t.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-    }
-
-    private func hasAmbiguousAdaptations(
-        candidates: [SupabaseService.ConciergeCandidate],
-        yearMention: Int?
-    ) -> Bool {
-        guard candidates.count >= 2 else { return false }
-
-        let top = candidates[0]
-        let second = candidates[1]
-
-        guard top.media_id != second.media_id else { return false }
-
-        let baseTop = strippedBaseTitle(top.title_raw)
-        let baseSecond = strippedBaseTitle(second.title_raw)
-        guard baseTop == baseSecond else { return false }
-
-        if let mentioned = yearMention, let topYear = top.year, topYear == mentioned {
-            return false
-        }
-
-        return true
-    }
-
     private func recordRagFeedbackIfNeeded(accepted: Bool, rejectedReason: String? = nil) {
+        guard isWorkflowCurrent else { return }
         guard lastRecommendWasRagAssist, let query = lastRecommendQuery else { return }
         let key = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !key.isEmpty else { return }
@@ -1437,8 +1453,8 @@ struct ConciergeView: View {
         let locale = Locale.current.identifier
         let entityId = lastRagSeedEntityId
 
-        Task(priority: .utility) {
-            await supabaseService.conciergeRetrieveFeedback(
+        perform(origin: ConciergeWorkflowScope.ticket) {
+            await concierge.conciergeRetrieveFeedback(
                 query: query,
                 locale: locale,
                 selectedEntityId: entityId,
@@ -1452,12 +1468,13 @@ struct ConciergeView: View {
     @MainActor
     private func showToast(_ next: KuroToastState, autoDismissSeconds: Double = 2.5) {
         toastDismissTask?.cancel()
+        let origin = workflow.capture(session: imports.accountSession)
         withAnimation(KuroAnimation.fast) {
             toast = next
         }
         toastDismissTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: UInt64(max(0.8, autoDismissSeconds) * 1_000_000_000))
-            if !Task.isCancelled {
+            if workflow.isCurrent(origin, session: imports.accountSession) {
                 withAnimation(KuroAnimation.fast) {
                     toast = nil
                 }
@@ -1466,14 +1483,16 @@ struct ConciergeView: View {
     }
 
     private func importFromLibrary() async {
+        guard isWorkflowCurrent else { return }
         guard !isWorking else { return }
         errorText = nil
 
-        let result = await supabaseService.conciergeLibraryExportText(
+        let result = await imports.conciergeLibraryExportText(
             includeStatus: Set(ListStatus.allCases),
             includeMediaTypes: ["anime", "manga"],
             maxItems: 400
         )
+        guard isWorkflowCurrent else { return }
 
         guard let result else {
             showToast(.init(
@@ -1532,146 +1551,6 @@ struct ConciergeView: View {
             : "Something funny, dry, character-led — not childish."
         focusRequest = true
         KuroAccessibility.impactHaptic(.light)
-    }
-
-    // MARK: Import vs Vibe Detection
-    private func looksLikeImport(_ text: String) -> Bool {
-        TextNormalization.looksLikeImport(text)
-    }
-}
-
-// MARK: - Guided Tutorial Overlay
-
-private struct ConciergeTutorialOverlay: View {
-    @Binding var step: Int
-    let isGerman: Bool
-    let onDismiss: () -> Void
-
-    private let steps: [(iconEN: String, titleEN: String, bodyEN: String, iconDE: String, titleDE: String, bodyDE: String)] = [
-        (
-            iconEN: "text.bubble",
-            titleEN: "Describe a mood",
-            bodyEN: "Type something like \"dark, not gory, short\" and the Concierge curates two rails for you.",
-            iconDE: "text.bubble",
-            titleDE: "Beschreibe eine Stimmung",
-            bodyDE: "Schreibe z.B. \"dunkel, kein Gore, kurz\" und der Concierge kuratiert zwei Rails fur dich."
-        ),
-        (
-            iconEN: "doc.on.clipboard",
-            titleEN: "Or paste your list",
-            bodyEN: "Paste your anime list from any source. The Concierge matches, reconciles, and imports it.",
-            iconDE: "doc.on.clipboard",
-            titleDE: "Oder fuge deine Liste ein",
-            bodyDE: "Fuge deine Anime-Liste ein. Der Concierge gleicht ab, erkennt Konflikte und importiert."
-        ),
-        (
-            iconEN: "sparkles",
-            titleEN: "Curated for you",
-            bodyEN: "Recommendations come filtered against your library. No duplicates, no noise.",
-            iconDE: "sparkles",
-            titleDE: "Kuratiert fur dich",
-            bodyDE: "Empfehlungen werden gegen deine Bibliothek gefiltert. Keine Duplikate, kein Rauschen."
-        ),
-    ]
-
-    private var activeStep: (iconEN: String, titleEN: String, bodyEN: String, iconDE: String, titleDE: String, bodyDE: String) {
-        steps[step]
-    }
-
-    var body: some View {
-        ZStack {
-            // Dimmed backdrop
-            Color.kuroBlack.opacity(0.32)
-                .ignoresSafeArea()
-                .onTapGesture { advance() }
-
-            VStack(spacing: 20) {
-                Spacer()
-
-                tutorialCard
-                .padding(.vertical, 28)
-                .padding(.horizontal, 20)
-
-                Spacer()
-
-                // Skip
-                if step < steps.count - 1 {
-                    skipButton
-                }
-            }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(isGerman ? "Concierge-Anleitung" : "Concierge tutorial")
-    }
-
-    private var tutorialCard: some View {
-        VStack(spacing: 18) {
-            Circle()
-                .fill(Color.kuroWhite.opacity(0.12))
-                .frame(width: 56, height: 56)
-                .overlay(
-                    Image(systemName: isGerman ? activeStep.iconDE : activeStep.iconEN)
-                        .font(.kuroCustom(22, weight: .light, relativeTo: .title3))
-                        .foregroundColor(Color.kuroWhite.opacity(0.88))
-                )
-
-            Text(isGerman ? activeStep.titleDE : activeStep.titleEN)
-                .font(.kuroCustom(22, weight: .ultraLight, design: .serif, relativeTo: .title3))
-                .foregroundColor(Color.kuroWhite92)
-
-            Text(isGerman ? activeStep.bodyDE : activeStep.bodyEN)
-                .font(.kuroBody(weight: .light))
-                .foregroundColor(Color.kuroWhite.opacity(0.68))
-                .multilineTextAlignment(.center)
-                .lineSpacing(3)
-                .padding(.horizontal, 24)
-
-            HStack(spacing: 6) {
-                ForEach(0..<steps.count, id: \.self) { i in
-                    Circle()
-                        .fill(Color.kuroWhite.opacity(step == i ? 0.80 : 0.25))
-                        .frame(width: 5, height: 5)
-                }
-            }
-            .padding(.top, 4)
-
-            Button(action: { advance() }) {
-                Text(step < steps.count - 1
-                     ? (isGerman ? "WEITER" : "NEXT")
-                     : (isGerman ? "VERSTANDEN" : "GOT IT"))
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(1.8)
-                    .foregroundColor(Color.kuroBlack.opacity(0.88))
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 12)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.kuroWhite92)
-                    )
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private var skipButton: some View {
-        Button(action: { onDismiss() }) {
-            Text(isGerman ? "Uberspringen" : "Skip")
-                .font(.kuroCaption(weight: .medium))
-                .foregroundColor(Color.kuroWhite.opacity(0.42))
-        }
-        .buttonStyle(.plain)
-        .padding(.bottom, 48)
-    }
-
-    private func advance() {
-        KuroAccessibility.impactHaptic(.light)
-        if step < steps.count - 1 {
-            withAnimation(KuroAnimation.fast) {
-                step += 1
-            }
-        } else {
-            onDismiss()
-        }
     }
 }
 

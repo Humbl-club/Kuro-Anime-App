@@ -15,9 +15,9 @@ struct DiscoverOneThingCard: View {
     /// Eyebrow label (default: The One Thing; Stage 4 Hidden Gem overrides).
     var eyebrow: String = "THE ONE THING"
 
-    @State private var showDetail = false
     @State private var isPressed = false
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @Environment(\.kuroRoutes) private var routes
 
     private var height: CGFloat {
         floor(width * 1.25) // 4:5 crop — see header note
@@ -123,7 +123,7 @@ struct DiscoverOneThingCard: View {
         .kuroDeliberateTap {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
-            showDetail = true
+            routes.openMedia(MediaRoute(kind: feature.kind, id: feature.mediaId))
         }
         .scaleEffect(isPressed ? 0.99 : 1.0)
         .kuroAnimation(KuroAnimation.editorial, value: isPressed)
@@ -132,9 +132,6 @@ struct DiscoverOneThingCard: View {
         .accessibilityLabel(Text("\(eyebrow). \(feature.title)"))
         .accessibilityHint("Opens details")
         .accessibilityAddTraits(.isButton)
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: feature.kind, id: feature.mediaId)
-        }
     }
 }
 

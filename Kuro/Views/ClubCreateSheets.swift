@@ -1,3 +1,4 @@
+import KuroCore
 import SwiftUI
 
 // MARK: - Create Club Rail Sheet
@@ -6,8 +7,9 @@ struct CreateClubRailSheet: View {
     let clubId: String
     var onCreated: (() -> Void)? = nil
 
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(ClubsStore.self) private var clubs
     @Environment(\.dismiss) private var dismiss
+    @State private var actionScope = AccountActionScope()
 
     @State private var title: String = ""
     @State private var description: String = ""
@@ -15,7 +17,8 @@ struct CreateClubRailSheet: View {
     @State private var errorText: String? = nil
 
     var body: some View {
-        NavigationStack {
+        let origin = actionScope.capture(session: clubs.accountSession)
+        return NavigationStack {
             ZStack {
                 Color.kuroBackground.ignoresSafeArea()
 
@@ -63,7 +66,7 @@ struct CreateClubRailSheet: View {
                         }
 
                         Button {
-                            Task { await create() }
+                            actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await create(origin: ticket) }
                         } label: {
                             HStack(spacing: 10) {
                                 if isWorking {
@@ -102,30 +105,35 @@ struct CreateClubRailSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .onAppear { actionScope.activate(session: clubs.accountSession) }
+        .onDisappear { actionScope.deactivate(); isWorking = false }
     }
 
     private var canSubmit: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func create() async {
+    private func create(origin: AccountActionScope.Ticket) async {
+        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let d = description.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty else { return }
 
         errorText = nil
         isWorking = true
-        defer { isWorking = false }
+        defer { if actionScope.isCurrent(origin, session: clubs.accountSession) { isWorking = false } }
 
         do {
-            _ = try await supabaseService.createClubRail(
+            _ = try await clubs.createClubRail(
                 clubId: clubId,
                 title: t,
                 description: d.isEmpty ? nil : d
             )
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             onCreated?()
             dismiss()
         } catch {
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             errorText = error.localizedDescription
         }
     }
@@ -137,8 +145,9 @@ struct CreateClubPollSheet: View {
     let clubId: String
     var onCreated: (() -> Void)? = nil
 
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(ClubsStore.self) private var clubs
     @Environment(\.dismiss) private var dismiss
+    @State private var actionScope = AccountActionScope()
 
     @State private var question: String = ""
     @State private var options: [String] = ["", ""]
@@ -146,7 +155,8 @@ struct CreateClubPollSheet: View {
     @State private var errorText: String? = nil
 
     var body: some View {
-        NavigationStack {
+        let origin = actionScope.capture(session: clubs.accountSession)
+        return NavigationStack {
             ZStack {
                 Color.kuroBackground.ignoresSafeArea()
 
@@ -224,7 +234,7 @@ struct CreateClubPollSheet: View {
                         }
 
                         Button {
-                            Task { await create() }
+                            actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await create(origin: ticket) }
                         } label: {
                             HStack(spacing: 10) {
                                 if isWorking {
@@ -263,6 +273,8 @@ struct CreateClubPollSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .onAppear { actionScope.activate(session: clubs.accountSession) }
+        .onDisappear { actionScope.deactivate(); isWorking = false }
     }
 
     private var validOptions: [String] {
@@ -273,23 +285,26 @@ struct CreateClubPollSheet: View {
         !question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && validOptions.count >= 2
     }
 
-    private func create() async {
+    private func create(origin: AccountActionScope.Ticket) async {
+        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty, validOptions.count >= 2 else { return }
 
         errorText = nil
         isWorking = true
-        defer { isWorking = false }
+        defer { if actionScope.isCurrent(origin, session: clubs.accountSession) { isWorking = false } }
 
         do {
-            _ = try await supabaseService.createClubPoll(
+            _ = try await clubs.createClubPoll(
                 clubId: clubId,
                 question: q,
                 options: validOptions
             )
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             onCreated?()
             dismiss()
         } catch {
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             errorText = error.localizedDescription
         }
     }

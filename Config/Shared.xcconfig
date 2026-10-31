@@ -2,5 +2,11 @@
 // Base configuration shared across all build configs.
 // Override in Debug.xcconfig / Release.xcconfig or local developer overrides.
 
+// Public/native MAL client only; no confidential secret is embedded in the app.
+// Set approval to YES only after reviewing the registered client and exact callback.
+MAL_CLIENT_ID =
+MAL_REDIRECT_URI = kuro:/$()/mal/callback
+MAL_REGISTRATION_APPROVED = NO
+
 SUPABASE_URL = https:/$()/bkdifromsqxkndnllmdj.supabase.co
 SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrZGlmcm9tc3F4a25kbmxsbWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1OTg2NjMsImV4cCI6MjA2ODE3NDY2M30.xWtSNgApX5jMZqdWJLjsqNlsXbwubFwW39Hs3x9hOoo

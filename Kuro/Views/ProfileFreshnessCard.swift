@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 struct ProfileFreshnessCard: View {
-    let snapshot: SupabaseService.StreamingObservabilitySnapshot?
+    let snapshot: ProviderAvailabilityStore.StreamingObservabilitySnapshot?
     let isRefreshing: Bool
     let onRefresh: () -> Void
 

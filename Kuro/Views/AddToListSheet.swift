@@ -1,20 +1,27 @@
+import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - Add To List Sheet
 
 struct AddToListSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
     @Environment(NetworkMonitor.self) private var networkMonitor
+    @State private var actionScope = AccountActionScope()
     let media: any MediaDisplayable
-    @State private var selectedStatus: ListStatus = .planning
-    @State private var progress: Int = 0
+    /// Status, progress, score (1...10, 0 = unrated) and notes as the editor shows them.
+    @State private var draft = TrackingDraft(entry: nil)
     @State private var isEditingProgress = false
-    @State private var score: Int = 0
-    @State private var notes: String = ""
     @State private var isExistingEntry: Bool = false
     @State private var isSaving: Bool = false
     @State private var saveError: String? = nil
+
+    private struct EditorIdentity: Equatable {
+        let media: MediaKey
+        let origin: AccountActionScope.Ticket?
+    }
 
     private var mediaType: String {
         media.kind.rawValue
@@ -26,7 +33,7 @@ struct AddToListSheet: View {
     }
 
     private var showsProgress: Bool {
-        (selectedStatus == .current || selectedStatus == .completed || selectedStatus == .repeating) && maxProgress > 0
+        (draft.status == .current || draft.status == .completed || draft.status == .repeating) && maxProgress > 0
     }
 
     private var progressUnitLabel: String {
@@ -61,7 +68,7 @@ struct AddToListSheet: View {
     }
 
     private var scoreLabel: String {
-        switch score {
+        switch draft.score {
         case 1: return "SKIP"
         case 2: return "WEAK"
         case 3: return "FLAT"
@@ -77,13 +84,14 @@ struct AddToListSheet: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        return GeometryReader { geometry in
             ScrollView {
                 VStack(spacing: 0) {
                     SpreadHeroSection(media: media, containerWidth: geometry.size.width)
 
                     SpreadStatusRow(
-                        selectedStatus: $selectedStatus,
+                        selectedStatus: $draft.status,
                         mediaType: mediaType,
                         statusLabel: statusLabel
                     )
@@ -93,7 +101,7 @@ struct AddToListSheet: View {
 
                     if showsProgress {
                         SpreadProgressSection(
-                            progress: $progress,
+                            progress: $draft.progress,
                             isEditing: $isEditingProgress,
                             maxProgress: maxProgress,
                             unitLabel: progressUnitLabel
@@ -103,12 +111,12 @@ struct AddToListSheet: View {
                             .padding(.horizontal, KuroSpacing.lg)
                     }
 
-                    SpreadScoreSection(score: $score, scoreLabel: scoreLabel)
+                    SpreadScoreSection(score: $draft.score, scoreLabel: scoreLabel)
 
                     EditorialLayout.divider()
                         .padding(.horizontal, KuroSpacing.lg)
 
-                    SpreadNotesSection(notes: $notes)
+                    SpreadNotesSection(notes: $draft.notes)
 
                     Color.clear.frame(height: KuroSpacing.xl)
                 }
@@ -121,8 +129,8 @@ struct AddToListSheet: View {
                     isOffline: !networkMonitor.isConnected,
                     mutationMessage: mutationStatusMessage,
                     mutationColor: mutationStatusColor,
-                    onSave: saveToList,
-                    onRemove: removeFromList
+                    onSave: { saveToList(origin: origin) },
+                    onRemove: { removeFromList(origin: origin) }
                 )
             }
             .overlay(alignment: .topTrailing) {
@@ -139,21 +147,15 @@ struct AddToListSheet: View {
             }
         }
         .background(Color.kuroBackground)
-        .task(id: media.id) {
-            await supabaseService.fetchUserLists()
-            if let entry = supabaseService.userLists.first(where: { $0.mediaId == media.id && $0.mediaType.lowercased() == mediaType }) {
-                isExistingEntry = true
-                selectedStatus = entry.status
-                progress = entry.progress
-                score = (entry.score ?? 0) / 10
-                notes = entry.notes ?? ""
-            } else {
-                isExistingEntry = false
-                selectedStatus = .planning
-                progress = 0
-                score = 0
-                notes = ""
-            }
+        .onAppear { actionScope.activate(session: libraryActions.accountSession) }
+        .onDisappear { actionScope.deactivate(); isSaving = false }
+        .task(id: EditorIdentity(media: media.libraryKey, origin: origin)) {
+            guard actionScope.capture(session: libraryActions.accountSession) != nil, !Task.isCancelled else { return }
+            // The Library projection is authoritative (kept current by the session refresh and
+            // realtime hints): fill the editor from it without a network round trip.
+            let entry = library.entry(for: media.libraryKey)
+            isExistingEntry = entry != nil
+            draft = TrackingDraft(entry: entry)
         }
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected, saveError == offlineMutationMessage {
@@ -162,7 +164,8 @@ struct AddToListSheet: View {
         }
     }
 
-    private func saveToList() {
+    private func saveToList(origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         guard networkMonitor.isConnected else {
             saveError = offlineMutationMessage
             return
@@ -170,57 +173,43 @@ struct AddToListSheet: View {
         saveError = nil
         isSaving = true
 
-        let finalProgress: Int
-        if selectedStatus == .completed && maxProgress > 0 && progress == 0 {
-            finalProgress = maxProgress
-        } else {
-            finalProgress = progress
-        }
+        // One explicit edit of what the editor shows; the verdict is left as stored.
+        let key = media.libraryKey
+        let edit = draft.edit(maxProgress: maxProgress)
+        let createIfMissing = draft.createIfMissing
 
-        let rating: Int? = score > 0 ? (score * 10) : nil
-        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        let notesValue: String? = trimmedNotes.isEmpty ? nil : trimmedNotes
-
-        Task {
-            await supabaseService.upsertUserListEntry(
-                mediaId: media.id,
-                mediaType: mediaType,
-                status: selectedStatus,
-                progress: finalProgress,
-                rating: rating,
-                notes: notesValue,
-                verdict: supabaseService.userListEntry(mediaType: mediaType, mediaId: media.id)?.verdict
-            )
-            await MainActor.run {
-                isSaving = false
-                if let msg = supabaseService.errorMessage, !msg.isEmpty {
-                    saveError = msg
-                    return
-                }
-                KuroAccessibility.successHaptic()
-                dismiss()
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.apply(edit, to: key, createIfMissing: createIfMissing)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            isSaving = false
+            if let error = outcome.error {
+                saveError = friendlyListMutationMessage(error, isGerman: false)
+                return
             }
+            KuroAccessibility.successHaptic()
+            dismiss()
         }
     }
 
-    private func removeFromList() {
+    private func removeFromList(origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         guard networkMonitor.isConnected else {
             saveError = offlineMutationMessage
             return
         }
         saveError = nil
         isSaving = true
-        Task {
-            await supabaseService.removeFromList(mediaId: media.id, mediaType: mediaType)
-            await MainActor.run {
-                isSaving = false
-                if let msg = supabaseService.errorMessage, !msg.isEmpty {
-                    saveError = msg
-                    return
-                }
-                KuroAccessibility.successHaptic()
-                dismiss()
+        let key = media.libraryKey
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await libraryActions.remove(key)
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            isSaving = false
+            if let error = outcome.error {
+                saveError = friendlyListMutationMessage(error, isGerman: false)
+                return
             }
+            KuroAccessibility.successHaptic()
+            dismiss()
         }
     }
 }

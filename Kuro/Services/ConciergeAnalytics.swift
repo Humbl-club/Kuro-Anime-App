@@ -8,16 +8,30 @@ import Supabase
 // No PII in payload. user_id is the Supabase auth UID only.
 // Fire-and-forget: analytics NEVER blocks UI or response.
 // Offline batching: queues events when offline, flushes on reconnect.
+// Owner: `InteractionTelemetry` (Kuro/Telemetry/), which composition builds over `shared` (the
+// instance KuroApp's reconnect flush reaches) and which scopes the queue to the account.
 
 @MainActor
 final class ConciergeAnalytics {
     static let shared = ConciergeAnalytics()
 
     private var client: SupabaseClient?
-    private let connectivity = NetworkMonitor()
+    /// Whether events can be sent now (production: a `NetworkMonitor` of its own).
+    private let isConnected: @MainActor () -> Bool
     private var userId: String?
     private var offlineQueue: [EventRow] = []
     private static let maxQueueSize = 200
+
+    /// Connectivity from a `NetworkMonitor` of its own.
+    convenience init() {
+        let connectivity = NetworkMonitor()
+        self.init(isConnected: { connectivity.isConnected })
+    }
+
+    /// `isConnected`: whether events can be sent now (KuroTests script it).
+    init(isConnected: @escaping @MainActor () -> Bool) {
+        self.isConnected = isConnected
+    }
 
     private struct EventRow: Encodable, Sendable {
         let user_id: String?
@@ -40,7 +54,9 @@ final class ConciergeAnalytics {
 
     // MARK: - Track
 
-    func track(_ event: String, payload: [String: Any] = [:]) {
+    /// Sends the event at once (returns the send) or queues it while offline (returns nil).
+    @discardableResult
+    func track(_ event: String, payload: [String: Any] = [:]) -> Task<Void, Never>? {
         let lang = Self.detectLanguage()
         let market = Self.detectMarket()
         let uid = userId
@@ -58,36 +74,42 @@ final class ConciergeAnalytics {
             payload: .object(payloadJson)
         )
 
-        guard connectivity.isConnected, client != nil else {
+        guard isConnected(), client != nil else {
             if offlineQueue.count < Self.maxQueueSize {
                 offlineQueue.append(row)
             }
-            return
+            return nil
         }
 
-        sendFireAndForget(row)
+        return sendFireAndForget(row)
     }
 
     // MARK: - Flush (on reconnect)
 
-    func flushIfNeeded() {
-        guard !offlineQueue.isEmpty else { return }
-        guard connectivity.isConnected, client != nil else { return }
+    /// Sends the queued events (returns the sends; fire-and-forget for callers).
+    @discardableResult
+    func flushIfNeeded() -> [Task<Void, Never>] {
+        guard !offlineQueue.isEmpty else { return [] }
+        guard isConnected(), client != nil else { return [] }
 
         let batch = offlineQueue
         offlineQueue.removeAll()
 
-        for row in batch {
-            sendFireAndForget(row)
-        }
+        return batch.compactMap { sendFireAndForget($0) }
+    }
+
+    /// Drops the queued events attributed to an account (its session ended: under another login the
+    /// insert policy rejects them, and they must not outlive the account). Anonymous events stay.
+    func dropQueuedAccountEvents() {
+        offlineQueue.removeAll { $0.user_id != nil }
     }
 
     // MARK: - Private
 
-    private func sendFireAndForget(_ row: EventRow) {
-        guard let client else { return }
+    private func sendFireAndForget(_ row: EventRow) -> Task<Void, Never>? {
+        guard let client else { return nil }
 
-        Task(priority: .utility) {
+        return Task(priority: .utility) {
             do {
                 try await client
                     .from("concierge_events")

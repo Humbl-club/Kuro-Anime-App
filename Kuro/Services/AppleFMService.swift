@@ -202,14 +202,100 @@ private func sanitizeForLLM(_ text: String, maxLength: Int = 2000) -> String {
     return s
 }
 
+// MARK: - Synopsis cache
+
+/// FNV-1a 64-bit over the UTF-8 description. Stable across processes; not `Hasher`.
+func synopsisSourceDigest(_ description: String) -> UInt64 {
+    var hash: UInt64 = 0xcbf29ce484222325
+    let prime: UInt64 = 0x100000001b3
+    for byte in description.utf8 {
+        hash ^= UInt64(byte)
+        hash = hash &* prime
+    }
+    return hash
+}
+
+/// FNV-1a over a length-prefixed list. Order and item boundaries stay distinct
+/// (`["ab","c"]` and `["a","bc"]` do not share a digest).
+func synopsisListDigest(_ values: [String]) -> UInt64 {
+    var hash: UInt64 = 0xcbf29ce484222325
+    let prime: UInt64 = 0x100000001b3
+    func mix(_ byte: UInt8) {
+        hash ^= UInt64(byte)
+        hash = hash &* prime
+    }
+    func mixCount(_ value: UInt64) {
+        var remaining = value
+        for _ in 0..<8 {
+            mix(UInt8(truncatingIfNeeded: remaining))
+            remaining >>= 8
+        }
+    }
+    mixCount(UInt64(values.count))
+    for value in values {
+        mixCount(UInt64(value.utf8.count))
+        for byte in value.utf8 { mix(byte) }
+    }
+    return hash
+}
+
+/// Text-only calls and media calls do not share a case. Both carry the inputs that change the
+/// prompt — description, title, and genres — each as an FNV-1a digest. Media entries also carry
+/// kind and numeric id. The condense API has no locale.
+enum SynopsisCacheKey: Hashable, Sendable {
+    case text(description: UInt64, title: UInt64, genres: UInt64)
+    case media(kind: String, id: Int, description: UInt64, title: UInt64, genres: UInt64)
+}
+
+/// Lookup and store for condensed synopses. Pure value type: tests run it with no model session.
+struct SynopsisCache: Sendable {
+    private var entries: [SynopsisCacheKey: String] = [:]
+
+    func lookup(_ key: SynopsisCacheKey) -> String? {
+        entries[key]
+    }
+
+    mutating func store(_ text: String, for key: SynopsisCacheKey) {
+        entries[key] = text
+    }
+
+    mutating func removeAll() {
+        entries.removeAll()
+    }
+
+    var count: Int { entries.count }
+
+    static func textKey(description: String, title: String, genres: [String]) -> SynopsisCacheKey {
+        .text(
+            description: synopsisSourceDigest(description),
+            title: synopsisSourceDigest(title),
+            genres: synopsisListDigest(genres)
+        )
+    }
+
+    static func mediaKey(kind: String, id: Int, description: String, title: String, genres: [String]) -> SynopsisCacheKey {
+        .media(
+            kind: kind.uppercased(),
+            id: id,
+            description: synopsisSourceDigest(description),
+            title: synopsisSourceDigest(title),
+            genres: synopsisListDigest(genres)
+        )
+    }
+}
+
 // MARK: - Apple FM Service
 
 @MainActor
 @Observable
 final class AppleFMService: FMProvider {
 
-    // Synopsis cache (mediaId -> condensed text)
-    private var synopsisCache: [Int: String] = [:]
+    private var synopsisCache = SynopsisCache()
+
+    /// Uncached hook generator. Production leaves this nil and uses Foundation Models.
+    /// Tests install a spy so the public methods' cache orchestration runs without a model.
+    @ObservationIgnored
+    var synopsisHookGenerator: (@MainActor (String, String, [String]) async -> String?)?
 
     // Assist cache (keyed by normalized input hash)
     private struct AssistCacheEntry {
@@ -338,13 +424,69 @@ final class AppleFMService: FMProvider {
     // MARK: - Synopsis Condenser
 
     func condenseSynopsis(description: String, title: String, genres: [String]) async -> String? {
+        // Unavailable Foundation Models stays a nil result, including when a text entry is already stored.
+        if synopsisHookGenerator == nil, !foundationModelsCanCondense { return nil }
+        return await cachedSynopsis(
+            SynopsisCache.textKey(description: description, title: title, genres: genres),
+            description: description,
+            title: title,
+            genres: genres
+        )
+    }
+
+    /// Condense with a typed media identity. Looks up and stores only the media key.
+    func condenseSynopsis(mediaKind: String, mediaId: Int, description: String, title: String, genres: [String]) async -> String? {
+        await cachedSynopsis(
+            SynopsisCache.mediaKey(
+                kind: mediaKind,
+                id: mediaId,
+                description: description,
+                title: title,
+                genres: genres
+            ),
+            description: description,
+            title: title,
+            genres: genres
+        )
+    }
+
+    /// Lookup and store for one key. A miss calls the shared uncached generator; it never reads another key.
+    private func cachedSynopsis(
+        _ key: SynopsisCacheKey,
+        description: String,
+        title: String,
+        genres: [String]
+    ) async -> String? {
+        if let cached = synopsisCache.lookup(key) { return cached }
+        guard !description.isEmpty else { return nil }
+        guard let hook = await generateUncachedSynopsis(description: description, title: title, genres: genres) else {
+            return nil
+        }
+        synopsisCache.store(hook, for: key)
+        return hook
+    }
+
+    private var foundationModelsCanCondense: Bool {
+        #if canImport(FoundationModels)
+        if #available(iOS 26, *) {
+            return SystemLanguageModel.default.isAvailable
+        }
+        #endif
+        return false
+    }
+
+    /// The one synopsis generation. The Foundation Models prompt lives only here.
+    private func generateUncachedSynopsis(description: String, title: String, genres: [String]) async -> String? {
+        if let synopsisHookGenerator {
+            let hook = await synopsisHookGenerator(description, title, genres)?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let hook, !hook.isEmpty else { return nil }
+            return hook
+        }
+
         #if canImport(FoundationModels)
         guard #available(iOS 26, *), SystemLanguageModel.default.isAvailable else { return nil }
         guard !description.isEmpty else { return nil }
-
-        // Check cache first (keyed on hash of description since we don't have mediaId here)
-        let cacheKey = description.hashValue
-        if let cached = synopsisCache[cacheKey] { return cached }
 
         let sanitizedTitle = sanitizeForLLM(title, maxLength: 500)
         let sanitizedDesc = sanitizeForLLM(description)
@@ -367,8 +509,6 @@ final class AppleFMService: FMProvider {
 
             let hook = output.hook.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !hook.isEmpty else { return nil }
-
-            synopsisCache[cacheKey] = hook
             return hook
         } catch {
             #if DEBUG
@@ -379,16 +519,6 @@ final class AppleFMService: FMProvider {
         #else
         return nil
         #endif
-    }
-
-    /// Condense with an explicit mediaId for stable caching.
-    func condenseSynopsis(mediaId: Int, description: String, title: String, genres: [String]) async -> String? {
-        if let cached = synopsisCache[mediaId] { return cached }
-        guard let result = await condenseSynopsis(description: description, title: title, genres: genres) else {
-            return nil
-        }
-        synopsisCache[mediaId] = result
-        return result
     }
 
     // MARK: - Collection Search Intent Parsing

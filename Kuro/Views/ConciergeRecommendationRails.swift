@@ -6,7 +6,7 @@ import SwiftUI
 import Observation
 
 // MARK: - Recommendation Item Type
-typealias ConciergeRecItem = SupabaseService.ConciergeRecommendResponse.Item
+typealias ConciergeRecItem = ConciergeRecommendResponse.Item
 
 // Preview mocks live under DEBUG at the bottom of the file.
 

@@ -3,8 +3,8 @@
 // Journal editorial design: blurred mosaic hero, curator notes, prose activity, glass bottom bar.
 // Uses @Observable pattern, KuroDesignSystem tokens throughout.
 
+import KuroCore
 import SwiftUI
-import PostgREST
 
 // MARK: - Scroll Offset Preference Key
 
@@ -18,8 +18,11 @@ private struct ClubScrollOffsetPreferenceKey: PreferenceKey {
 struct ClubDetailView: View {
     let clubId: String
 
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(ClubsStore.self) private var clubs
+    @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(NetworkMonitor.self) private var networkMonitor
+    @Environment(FeatureFlags.self) private var flags
+    @Environment(InteractionTelemetry.self) private var interactionTelemetry
     @Environment(\.dismiss) private var dismiss
 
     enum Tab: String, CaseIterable {
@@ -32,25 +35,29 @@ struct ClubDetailView: View {
         }
     }
 
+    @State private var actionScope = AccountActionScope()
     @State private var selectedTab: Tab = .rails
-    @State private var bundle: SupabaseService.ClubBundle? = nil
-    @State private var loadingBundle: SupabaseService.ClubBundleLoading? = nil
+    @State private var bundle: ClubBundle? = nil
+    @State private var loadingBundle: ClubBundleLoading? = nil
     @State private var loadPhase: ClubDetailLoadPhase = .idle
     @State private var showSettings = false
     @State private var showCreateRail = false
     @State private var showCreatePoll = false
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
+    @State private var disclosureReloadTask: Task<Void, Never>?
     @State private var voteInFlightPollIds: Set<String> = []
     @State private var optimisticVoteByPollId: [String: String] = [:]
     @State private var optimisticVoteCountsByPollId: [String: [String: Int]] = [:]
     @State private var addToRailId: String? = nil
-    @State private var sharedProviders: SupabaseService.ClubSharedProvidersResponse? = nil
+    @State private var sharedProviders: ProviderAvailabilityStore.ClubSharedProvidersResponse? = nil
     @State private var showSharedAvailability: Bool = false
     @State private var scrollOffset: CGFloat = 0
+    /// Realtime and membership-loss decisions (`ClubDetailLifecycle`, pure and unit-tested).
+    @State private var lifecycle = ClubDetailLifecycle()
 
     private var clubsInteractionV2Enabled: Bool {
-        FeatureFlags.shared.isClubsInteractionV2Enabled
+        flags.isClubsInteractionV2Enabled
     }
 
     private let heroHeight: CGFloat = 220
@@ -101,7 +108,8 @@ struct ClubDetailView: View {
     }
 
     var body: some View {
-        ZStack {
+        let origin = actionScope.capture(session: clubs.accountSession)
+        return ZStack {
             Color.kuroBackground.ignoresSafeArea()
 
             if let bundle {
@@ -112,7 +120,7 @@ struct ClubDetailView: View {
                                 message: message,
                                 isConnected: networkMonitor.isConnected,
                                 onRetry: {
-                                    Task { await loadBundle(force: true) }
+                                    actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
                                 }
                             )
                             .padding(.horizontal, 20)
@@ -125,7 +133,7 @@ struct ClubDetailView: View {
                     loadingBundle: loadingBundle,
                     isConnected: networkMonitor.isConnected,
                     onRetry: {
-                        Task { await loadBundle(force: true) }
+                        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
                     }
                 )
             }
@@ -142,51 +150,98 @@ struct ClubDetailView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
-        .task {
-            supabaseService.markClubSeen(clubId: clubId)
-            await loadBundle()
-            await supabaseService.subscribeToClubUpdates(clubId: clubId)
+        .task(id: origin) {
+            guard let origin, actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+            clubs.markClubSeen(clubId: clubId)
+            await loadBundle(origin: origin)
+            // Disappeared while loading, or the membership ended: never open this club's channel.
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+            guard lifecycle.shouldSubscribe(taskCancelled: Task.isCancelled) else { return }
+            await clubs.subscribeToClubUpdates(clubId: clubId)
+            // Disappeared or lost the club while subscribing: close this club's channel (only its
+            // own), unless the view is back on screen with the club (its new task owns the channel).
+            let next = lifecycle.afterSubscribe(taskCancelled: Task.isCancelled)
+            if next.stopsOwnChannel {
+                clubs.realtime.stop(clubId: clubId)
+            }
+            guard next.continuesTask, actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
 
             // Streaming: fetch shared providers + prefetch rail item providers
-            if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
-                sharedProviders = await supabaseService.fetchClubSharedProviders(clubId: clubId)
+            if flags.isStreamingAvailabilityV1Enabled {
+                let epoch = clubs.revocationEpoch(clubId)
+                let shared = await availability.fetchClubSharedProviders(clubId: clubId)
+                // Revoked meanwhile: keep nothing derived from the club's members.
+                guard actionScope.isCurrent(origin, session: clubs.accountSession), clubs.revocationEpoch(clubId) == epoch else { return }
+                sharedProviders = shared
                 if let bundle {
                     let allItems: [(mediaType: String, mediaId: Int)] = bundle.rails.flatMap { rail in
                         rail.items.map { (mediaType: $0.media_type, mediaId: $0.media_id) }
                     }
                     if !allItems.isEmpty {
-                        supabaseService.prefetchProviders(items: allItems)
+                        availability.prefetchProviders(items: allItems)
                     }
                 }
             }
         }
+        .onAppear {
+            actionScope.activate(session: clubs.accountSession)
+            lifecycle.appeared()
+        }
         .onDisappear {
-            Task { await supabaseService.unsubscribeFromClubUpdates() }
+            actionScope.deactivate()
+            voteInFlightPollIds.removeAll()
+            optimisticVoteByPollId.removeAll()
+            optimisticVoteCountsByPollId.removeAll()
+            toastDismissTask?.cancel()
+            disclosureReloadTask?.cancel()
+            disclosureReloadTask = nil
+            // Close this club's channel only: another club's view may own the open one by now.
+            if lifecycle.disappeared() {
+                clubs.realtime.stop(clubId: clubId)
+            }
+        }
+        .onChange(of: clubs.revocationEpoch(clubId)) { _, _ in
+            handleClubRevoked()
+        }
+        .onChange(of: clubs.disclosureGeneration) { _, _ in
+            // Drop private copies immediately, then revalidate. A peer's settings
+            // change is not evidence that the viewer was removed from the club.
+            dropClubState()
+            disclosureReloadTask?.cancel()
+            disclosureReloadTask = actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
         }
         .refreshable {
-            await loadBundle(force: true)
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+            await loadBundle(force: true, origin: origin)
         }
         .sheet(isPresented: $showSettings) {
             if let bundle {
-                ClubSettingsSheet(bundle: bundle, clubId: clubId) {
-                    Task { await loadBundle(force: true) }
-                }
-                .environment(supabaseService)
+                ClubSettingsSheet(
+                    bundle: bundle,
+                    clubId: clubId,
+                    onDismiss: {
+                        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
+                    },
+                    onLeaving: { leaving in
+                        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+                        lifecycle.leavingChanged(leaving)
+                    }
+                )
             }
         }
         .sheet(isPresented: $showCreateRail) {
             CreateClubRailSheet(clubId: clubId) {
+                guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
                 showToast(.success, title: "Rail created", subtitle: nil)
-                Task { await loadBundle(force: true) }
+                actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
             }
-            .environment(supabaseService)
         }
         .sheet(isPresented: $showCreatePoll) {
             CreateClubPollSheet(clubId: clubId) {
+                guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
                 showToast(.success, title: "Poll created", subtitle: nil)
-                Task { await loadBundle(force: true) }
+                actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
             }
-            .environment(supabaseService)
         }
         .sheet(isPresented: Binding(
             get: { addToRailId != nil },
@@ -194,18 +249,21 @@ struct ClubDetailView: View {
         )) {
             if let railId = addToRailId {
                 AddItemToRailSheet(railId: railId, clubId: clubId) {
+                    guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
                     showToast(.success, title: "Item added", subtitle: nil)
-                    Task { await loadBundle(force: true) }
+                    actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await loadBundle(force: true, origin: ticket) }
                 }
-                .environment(supabaseService)
             }
         }
+        // The club sheet's own presentation context: rail items open their routes here.
+        .routePresenter()
     }
 
     // MARK: - Journal Content
 
     @ViewBuilder
-    private func journalContent(_ bundle: SupabaseService.ClubBundle) -> some View {
+    private func journalContent(_ bundle: ClubBundle) -> some View {
+        let origin = actionScope.capture(session: clubs.accountSession)
         GeometryReader { geometry in
             let safeTop = max(geometry.safeAreaInsets.top, 24)
 
@@ -258,7 +316,7 @@ struct ClubDetailView: View {
                                 onAddToRail: { railId in addToRailId = railId },
                                 onError: { message in showToast(.error, title: message, subtitle: nil) },
                                 canAddToRail: canAddToRail,
-                                userStreamingServicesEmpty: supabaseService.userStreamingServices.isEmpty,
+                                userStreamingServicesEmpty: availability.userStreamingServices.isEmpty,
                                 isConnected: networkMonitor.isConnected
                             )
                         case .active:
@@ -273,15 +331,17 @@ struct ClubDetailView: View {
                                 optimisticVoteByPollId: optimisticVoteByPollId,
                                 optimisticVoteCountsByPollId: optimisticVoteCountsByPollId,
                                 onVote: { poll, optionId in
-                                    Task {
+                                    actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
                                         if clubsInteractionV2Enabled {
-                                            await voteOnPoll(poll: poll, optionId: optionId)
+                                            await voteOnPoll(poll: poll, optionId: optionId, origin: ticket)
                                         } else {
                                             do {
-                                                try await supabaseService.castVote(pollId: poll.id, optionId: optionId)
+                                                try await clubs.castVote(pollId: poll.id, optionId: optionId)
+                                                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
                                                 KuroAccessibility.impactHaptic(.light)
-                                                await loadBundle(force: true)
+                                                await loadBundle(force: true, origin: origin)
                                             } catch {
+                                                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
                                                 showToast(.error, title: "Vote failed", subtitle: "Please try again.")
                                                 KuroAccessibility.errorHaptic()
                                             }
@@ -356,41 +416,61 @@ struct ClubDetailView: View {
     }
 
     private func isAvailableOnSharedServices(mediaId: Int, mediaType: String) -> Bool {
-        let providers = supabaseService.providers(mediaId: mediaId, mediaType: mediaType)
+        let providers = availability.providers(mediaId: mediaId, mediaType: mediaType)
         return providers.contains(where: { sharedServiceSlugs.contains($0.slug) })
     }
 
     // MARK: - Load
 
-    private func loadBundle(force: Bool = false) async {
+    private func loadBundle(force: Bool = false, origin: AccountActionScope.Ticket?) async {
+        guard let origin, actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+        // The membership ended on screen: the club is closing, nothing is loaded again.
+        guard lifecycle.acceptsLoads else { return }
         let isInitialLoad = bundle == nil
         loadPhase = isInitialLoad ? .loadingInitial : .refreshing
         if isInitialLoad {
-            Task { @MainActor in
-                let snapshot = try? await supabaseService.fetchClubBundleLoading(clubId: clubId)
-                guard bundle == nil else { return }
+            let epoch = clubs.revocationEpoch(clubId)
+            actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
+                let snapshot = try? await clubs.fetchClubBundleLoading(clubId: clubId)
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession), bundle == nil, clubs.revocationEpoch(clubId) == epoch else { return }
                 loadingBundle = snapshot
             }
         }
         do {
-            let fetched = try await supabaseService.fetchClubBundle(clubId: clubId, forceRefresh: force)
+            // The store hands out the accepted newest snapshot only (F07: request order), so a load
+            // that answers after a newer one cannot publish an older bundle here.
+            let fetched = try await clubs.fetchClubBundle(clubId: clubId, forceRefresh: force)
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             bundle = fetched
             loadingBundle = nil
             optimisticVoteByPollId.removeAll()
             optimisticVoteCountsByPollId.removeAll()
             loadPhase = .loaded
         } catch {
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             #if DEBUG
             print("[ClubDetail] loadBundle failed: \(type(of: error)) — \(error)")
             #endif
-            switch rpcErrorCode(from: error) {
-            case .notAMember:
+            // Dropped by the store (account or membership changed while in flight, F04) or by the
+            // view's own task: an obsolete completion publishes no error over newer state.
+            if error is CancellationError {
+                if loadPhase == .loadingInitial || loadPhase == .refreshing {
+                    loadPhase = bundle == nil ? .idle : .loaded
+                }
+                return
+            }
+            // Revoked while loading (the store drops the answer): keep the membership notice.
+            guard lifecycle.acceptsLoads else { return }
+            switch error as? ClubError {
+            case .notAMember?:
                 loadingBundle = nil
                 handleMembershipLoss()
-            case .clubNotFound:
-                bundle = nil
+            case .clubNotFound?:
+                apply(lifecycle.clubGone())
+            case .permissionDenied?:
+                // Permission denied (SQLSTATE 42501): a membership loss without a code.
                 loadingBundle = nil
-                loadPhase = .failedInitial(message: "This club no longer exists.")
+                handleMembershipLoss()
             default:
                 let message = clubDetailErrorMessage(for: error)
                 loadPhase = bundle == nil
@@ -400,14 +480,15 @@ struct ClubDetailView: View {
         }
     }
 
-    private func voteOnPoll(poll: SupabaseService.ClubPoll, optionId: String) async {
+    private func voteOnPoll(poll: ClubPoll, optionId: String, origin: AccountActionScope.Ticket) async {
+        guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         guard !poll.is_closed else { return }
         guard poll.my_vote_option_id != optionId else { return }
         guard !voteInFlightPollIds.contains(poll.id) else { return }
 
         voteInFlightPollIds.insert(poll.id)
-        let startedAt = supabaseService.beginInteractionTiming()
-        supabaseService.trackInteractionEvent(
+        let startedAt = interactionTelemetry.beginInteractionTiming()
+        interactionTelemetry.trackInteractionEvent(
             "clubs_vote_tap",
             surface: "club_detail_polls",
             result: "attempt",
@@ -427,14 +508,17 @@ struct ClubDetailView: View {
         optimisticVoteCountsByPollId[poll.id] = counts
         KuroAccessibility.impactHaptic(.light)
 
-        defer { voteInFlightPollIds.remove(poll.id) }
+        defer { if actionScope.isCurrent(origin, session: clubs.accountSession) { voteInFlightPollIds.remove(poll.id) } }
 
         do {
-            try await supabaseService.castVote(pollId: poll.id, optionId: optionId)
-            bundle = try await supabaseService.refreshClubBundle(clubId: clubId)
+            try await clubs.castVote(pollId: poll.id, optionId: optionId)
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+            let refreshed = try await clubs.refreshClubBundle(clubId: clubId)
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+            bundle = refreshed
             optimisticVoteByPollId.removeAll()
             optimisticVoteCountsByPollId.removeAll()
-            supabaseService.trackInteractionEvent(
+            interactionTelemetry.trackInteractionEvent(
                 "clubs_vote_success",
                 surface: "club_detail_polls",
                 result: "ok",
@@ -442,18 +526,25 @@ struct ClubDetailView: View {
                 extra: ["club_id": clubId]
             )
             KuroAccessibility.successHaptic()
-        } catch {
+        } catch is CancellationError {
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+            // Dropped by the store (account or membership changed, F04): revert the optimistic vote
+            // silently; no toast, no error event for a vote nobody current cast.
             optimisticVoteByPollId[poll.id] = nil
             optimisticVoteCountsByPollId[poll.id] = nil
-            switch rpcErrorCode(from: error) {
-            case .notAMember:
+        } catch {
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+            optimisticVoteByPollId[poll.id] = nil
+            optimisticVoteCountsByPollId[poll.id] = nil
+            switch error as? ClubError {
+            case .notAMember?:
                 handleMembershipLoss()
-            case .pollClosed:
+            case .pollClosed?:
                 showToast(.error, title: "Poll closed", subtitle: "This poll is no longer accepting votes.")
             default:
                 showToast(.error, title: "Vote failed", subtitle: "Please try again.")
             }
-            supabaseService.trackInteractionEvent(
+            interactionTelemetry.trackInteractionEvent(
                 "clubs_vote_error",
                 surface: "club_detail_polls",
                 result: "error",
@@ -465,63 +556,85 @@ struct ClubDetailView: View {
     }
 
     private func showToast(_ kind: KuroToastState.Kind, title: String, subtitle: String?) {
+        guard let origin = actionScope.capture(session: clubs.accountSession) else { return }
         toastDismissTask?.cancel()
         withAnimation(KuroAnimation.fast) {
             toast = KuroToastState(kind: kind, title: title, subtitle: subtitle, actionTitle: nil, onAction: nil)
         }
         toastDismissTask = Task {
             try? await Task.sleep(nanoseconds: 2_500_000_000)
-            guard !Task.isCancelled else { return }
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             withAnimation(KuroAnimation.fast) { toast = nil }
         }
     }
 
-    private enum ClubRPCErrorCode: String {
-        case notAMember = "NOT_A_MEMBER"
-        case clubNotFound = "CLUB_NOT_FOUND"
-        case pollClosed = "POLL_CLOSED"
-    }
-
-    private func rpcErrorCode(from error: Error) -> ClubRPCErrorCode? {
-        guard let pgError = error as? PostgrestError else { return nil }
-        let candidates = [pgError.detail, pgError.hint, pgError.message]
-        for raw in candidates {
-            guard let raw else { continue }
-            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-            let token = trimmed.split(separator: ":", maxSplits: 1).first.map(String.init) ?? trimmed
-            let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-            if let mapped = ClubRPCErrorCode(rawValue: normalized) { return mapped }
-        }
-        return nil
-    }
-
-    private func canAddToRail(_ rail: SupabaseService.ClubRail, role: String) -> Bool {
+    private func canAddToRail(_ rail: ClubRail, role: String) -> Bool {
         if !rail.is_locked { return true }
         return ["owner", "admin"].contains(role)
     }
 
+    /// A club request answered with a membership loss.
     private func handleMembershipLoss() {
         // A loaded bundle means the user was a member and lost access;
         // no bundle (e.g. initial load via kuro://club/<uuid>) means they were never a member.
-        let wasKnownMember = bundle != nil
-        bundle = nil
-        loadPhase = .failedInitial(message: wasKnownMember
-            ? "You're no longer a member of this club."
-            : "You're not a member of this club yet — ask for an invite.")
-        showToast(.error, title: "Access updated", subtitle: wasKnownMember
-            ? "You were removed from this club."
-            : "You're not a member of this club yet — ask for an invite.")
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            dismiss()
+        apply(lifecycle.membershipLost(showsClub: bundle != nil))
+    }
+
+    /// `ClubsStore` revoked this club (the caller left it, was removed, or a club request answered
+    /// with a membership loss). The store already dropped its own state; this drops the view's copies
+    /// so nothing private stays on screen, then closes the club.
+    private func handleClubRevoked() {
+        apply(lifecycle.revoked(showsClub: bundle != nil))
+    }
+
+    /// Performs a `ClubDetailLifecycle` answer: drop the club's data, show the notice, dismiss.
+    private func apply(_ response: ClubDetailLifecycle.LossResponse) {
+        if response.dropsLocalState {
+            dropClubState()
         }
+        switch response.notice {
+        case .removed:
+            loadPhase = .failedInitial(message: "You're no longer a member of this club.")
+            showToast(.error, title: "Access updated", subtitle: "You were removed from this club.")
+        case .notYetMember:
+            loadPhase = .failedInitial(message: "You're not a member of this club yet — ask for an invite.")
+            showToast(.error, title: "Access updated", subtitle: "You're not a member of this club yet — ask for an invite.")
+        case .left:
+            loadPhase = .failedInitial(message: "You're no longer a member of this club.")
+        case .clubGone:
+            loadPhase = .failedInitial(message: "This club no longer exists.")
+        case nil:
+            break
+        }
+        if response.dismisses {
+            let origin = actionScope.capture(session: clubs.accountSession)
+            actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in
+                try? await Task.sleep(nanoseconds: 500_000_000)
+                guard actionScope.isCurrent(ticket, session: clubs.accountSession) else { return }
+                dismiss()
+            }
+        }
+    }
+
+    /// Drops every local copy of the club's data (bundle, loading snapshot, optimistic votes, shared
+    /// providers) and closes the sheets that render it. The rails' reaction rows live inside the
+    /// bundle's content, so their optimistic reactions go with it.
+    private func dropClubState() {
+        bundle = nil
+        loadingBundle = nil
+        optimisticVoteByPollId.removeAll()
+        optimisticVoteCountsByPollId.removeAll()
+        sharedProviders = nil
+        showSettings = false
+        showCreateRail = false
+        showCreatePoll = false
+        addToRailId = nil
     }
 }
 
 private struct ClubDetailInitialState: View {
     let phase: ClubDetailView.ClubDetailLoadPhase
-    let loadingBundle: SupabaseService.ClubBundleLoading?
+    let loadingBundle: ClubBundleLoading?
     let isConnected: Bool
     let onRetry: () -> Void
 
@@ -590,7 +703,7 @@ private struct ClubDetailInitialState: View {
 }
 
 private struct ClubDetailInitialHeader: View {
-    let loadingBundle: SupabaseService.ClubBundleLoading?
+    let loadingBundle: ClubBundleLoading?
     let isConnected: Bool
     let isFailure: Bool
 
@@ -649,7 +762,7 @@ private struct ClubDetailInitialHeader: View {
 }
 
 private struct ClubDetailInitialSkeleton: View {
-    let loadingBundle: SupabaseService.ClubBundleLoading?
+    let loadingBundle: ClubBundleLoading?
     private let cardCount = 3
 
     var body: some View {
@@ -734,7 +847,7 @@ private struct ClubDetailInitialSkeleton: View {
         .accessibilityHidden(true)
     }
 
-    private func heroMetaText(for bundle: SupabaseService.ClubBundleLoading) -> String {
+    private func heroMetaText(for bundle: ClubBundleLoading) -> String {
         let members = bundle.member_count
         let rails = bundle.rail_count ?? 0
         let polls = bundle.poll_count ?? 0

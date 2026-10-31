@@ -1,4 +1,5 @@
-// uses Kuro/Views/PosterView.swift
+import KuroCore
+import KuroLibrary
 import SwiftUI
 import UIKit
 
@@ -21,11 +22,9 @@ fileprivate func pixelAlign(_ value: CGFloat, scale: CGFloat = 3.0) -> CGFloat {
 // MARK: - Content View
 struct ContentView: View {
     @Binding var pendingDeepLink: DeepLink?
-    @Environment(SupabaseService.self) private var supabaseService
 
     var body: some View {
         KuroRootView(pendingDeepLink: $pendingDeepLink)
-            .environment(supabaseService)
     }
 }
 
@@ -39,6 +38,8 @@ struct KuroRootView: View {
     var body: some View {
         ZStack {
             KuroMainView(pendingDeepLink: $pendingDeepLink)
+                // The app root's presentation context; KuroMainView's deep links read its routes.
+                .routePresenter()
 
             if showLaunchOverlay {
                 KuroLaunchView()
@@ -104,16 +105,27 @@ struct KuroLaunchView: View {
 // MARK: - Main View
 struct KuroMainView: View {
     @Binding var pendingDeepLink: DeepLink?
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(DiscoveryStore.self) private var discovery
+    @Environment(ClubsStore.self) private var clubs
+    @Environment(CollectionStore.self) private var collection
     @Environment(NetworkMonitor.self) private var networkMonitor
+    @Environment(FeatureFlags.self) private var flags
+    @Environment(HomeStore.self) private var home
+    @Environment(InteractionTelemetry.self) private var interactionTelemetry
+    @Environment(BannerCenter.self) private var banner
+    @Environment(\.kuroRoutes) private var routes
+    @Environment(\.scenePhase) private var scenePhase
 
     enum Section: Int, CaseIterable {
-        case taste, concierge, discover, browse, collection, clubs
+        case taste, concierge, discover, browse, collection, clubs, home
 
         var title: String {
             switch self {
             case .taste:
                 return "TASTE"
+            case .home:
+                return "HOME"
             case .concierge:
                 return "CONCIERGE"
             case .discover:
@@ -126,11 +138,23 @@ struct KuroMainView: View {
                 return "CLUBS"
             }
         }
+
+        /// Five pages. The series-home flag replaces Browse with Home and keeps Taste on the left.
+        static func pagerOrder(tasteDeck: Bool, seriesHome: Bool) -> [Section] {
+            if seriesHome {
+                return [.taste, .home, .discover, .collection, .clubs]
+            }
+            return tasteDeck
+                ? [.taste, .discover, .browse, .collection, .clubs]
+                : [.concierge, .discover, .browse, .collection, .clubs]
+        }
     }
 
 	@State private var selection: Section = .discover
 	@State private var showProfileSheet = false
 	@State private var showSearchSheet = false
+    @State private var searchSession = 0
+    @State private var pendingSearchScope: EditorialSearchView.SearchScope = .all
 	@State private var mountedSections: Set<Section> = [.discover]
 	@State private var swipeExclusions: [CGRect] = []
     @State private var suppressCardTaps = false
@@ -139,9 +163,6 @@ struct KuroMainView: View {
     @State private var didApplyStartArgument = false
     @State private var showOnboarding = !OnboardingView.hasCompletedOnboarding
     @State private var edgeBounceOffset: CGFloat = 0
-    @State private var deepLinkAnimeId: Int? = nil
-    @State private var deepLinkMangaId: Int? = nil
-    @State private var deepLinkClubId: String? = nil
     @State private var pendingJoinCode: String? = nil
     @State private var pendingConciergePrompt: String? = nil
     @State private var pendingPromptClearTask: Task<Void, Never>? = nil
@@ -150,9 +171,18 @@ struct KuroMainView: View {
 	// Taste-flagged funnel: [Taste] ← [Discover] → Browse → Collection → Clubs.
     // Flag off restores the legacy order with Concierge at index 0 (one DB UPDATE rollback).
     private var swipeOrder: [Section] {
-        FeatureFlags.shared.tasteDeckV1Enabled
-            ? [.taste, .discover, .browse, .collection, .clubs]
-            : [.concierge, .discover, .browse, .collection, .clubs]
+        Section.pagerOrder(tasteDeck: flags.tasteDeckV1Enabled, seriesHome: flags.seriesHomeNativeV1Enabled)
+    }
+
+    /// The mountain invitation. A saved anime or manga shelf is the white page instead.
+    private var homeInvitation: Bool {
+        guard selection == .home else { return false }
+        let kind: MediaKind = home.medium == "manga" ? .manga : .anime
+        let statuses = library.allEntries.filter { $0.key.kind == kind }.map(\.status)
+        return HomeShelfPolicy.scene(
+            activeListTypes: home.bundle?.active.map(\.listType) ?? [],
+            libraryStatuses: statuses
+        ) == .invitation
     }
     private let swipeThreshold: CGFloat = 40
     private let swipeEdgeMargin: CGFloat = KuroGesturePolicy.edgeMarginPt
@@ -165,7 +195,7 @@ struct KuroMainView: View {
     private var hidesHeaderForConcierge: Bool {
         // With the Deck at index 0 the header returns to standard behavior;
         // the concierge hide rule only applies to the legacy (flag-off) pager.
-        !FeatureFlags.shared.tasteDeckV1Enabled && selection == .concierge && conciergeEditorialV1Enabled
+        !flags.tasteDeckV1Enabled && selection == .concierge && conciergeEditorialV1Enabled
     }
 
     private func sectionFromLaunchArgument(_ raw: String) -> Section? {
@@ -174,6 +204,7 @@ struct KuroMainView: View {
         case "concierge": return .concierge
         case "discover": return .discover
         case "browse": return .browse
+        case "home": return .home
         case "collection": return .collection
         case "clubs": return .clubs
         default: return nil
@@ -218,11 +249,27 @@ struct KuroMainView: View {
     
     var body: some View {
 	        ZStack {
-	            Color.kuroBackground.ignoresSafeArea()
+	            if homeInvitation {
+	                HomePagePicture(isActive: scenePhase == .active)
+	                    .ignoresSafeArea()
+	                HomeInvitationWash()
+	            } else {
+	                Color.kuroBackground.ignoresSafeArea()
+	            }
 
 	            VStack(spacing: 0) {
                 if !hidesHeaderForConcierge {
-                    KuroHeaderNew(selection: $selection, showProfileSheet: $showProfileSheet, showSearchSheet: $showSearchSheet)
+                    KuroHeaderNew(
+                        selection: $selection,
+                        showProfileSheet: $showProfileSheet,
+                        showSearchSheet: $showSearchSheet,
+                        onOpenSearch: {
+                            pendingSearchScope = .all
+                            searchSession += 1
+                            showSearchSheet = true
+                        },
+                        onPicture: homeInvitation
+                    )
                 }
 
                 // Header-driven pager: keeps sections mounted once visited.
@@ -234,6 +281,16 @@ struct KuroMainView: View {
                             suppressCardTaps: suppressCardTaps,
                             pendingConciergePrompt: pendingConciergePrompt,
                             pendingJoinCode: $pendingJoinCode,
+                            onOpenImport: { showProfileSheet = true },
+                            onFindTitle: { _ in
+                                selection = .discover
+                                mountedSections.insert(.discover)
+                            },
+                            onOpenCollection: {
+                                selection = .collection
+                                mountedSections.insert(.collection)
+                            },
+                            onImportNavigation: navigateFromImport,
                             bottomInset: pagerProxy.safeAreaInsets.bottom
 	                    )
 	                    .offset(x: edgeBounceOffset)
@@ -262,7 +319,7 @@ struct KuroMainView: View {
                    let value = kv.split(separator: "=", maxSplits: 1).last
                 {
                     let raw = String(value).trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                    if raw == "concierge" && FeatureFlags.shared.tasteDeckV1Enabled {
+                    if raw == "concierge" && !swipeOrder.contains(.concierge) {
                         // Archived concierge opens as a sheet when the Deck owns index 0.
                         conciergeSheetPrompt = nil
                         showConciergeSheet = true
@@ -271,19 +328,22 @@ struct KuroMainView: View {
                         mountedSections.insert(target)
                     }
                 } else if args.contains("--kuro-start-concierge") {
-                    if FeatureFlags.shared.tasteDeckV1Enabled {
+                    if !swipeOrder.contains(.concierge) {
                         conciergeSheetPrompt = nil
                         showConciergeSheet = true
                     } else {
                         selection = .concierge
                         mountedSections.insert(.concierge)
                     }
+                } else if flags.seriesHomeNativeV1Enabled {
+                    selection = .home
+                    mountedSections = [.home]
                 }
             }
 	        .simultaneousGesture(
             DragGesture(minimumDistance: 10, coordinateSpace: .named("kuro_root"))
                     .onChanged { value in
-                        guard FeatureFlags.shared.isSwipeTapGuardEnabled else { return }
+                        guard flags.isSwipeTapGuardEnabled else { return }
                         guard !KuroGestureCoordinator.shared.isHorizontalRailDragging else { return }
                         let excluded = isSwipeExcluded(start: value.startLocation)
                         if excluded && !isFastFlingOverride(value) { return }
@@ -299,7 +359,7 @@ struct KuroMainView: View {
                         }
                         if !didTrackSuppressionThisGesture {
                             didTrackSuppressionThisGesture = true
-                            supabaseService.trackInteractionEvent(
+                            interactionTelemetry.trackInteractionEvent(
                                 "card_tap_suppressed_during_swipe",
                                 surface: "root_pager",
                                 result: "active"
@@ -307,7 +367,7 @@ struct KuroMainView: View {
                         }
                     }
 	                .onEnded { value in
-                        let shouldManageSuppression = FeatureFlags.shared.isSwipeTapGuardEnabled
+                        let shouldManageSuppression = flags.isSwipeTapGuardEnabled
                         defer { didTrackSuppressionThisGesture = false }
                         if shouldManageSuppression && suppressCardTaps {
                             scheduleTapSuppressionReset()
@@ -358,14 +418,14 @@ struct KuroMainView: View {
 	            .onChange(of: selection) { _, newValue in
 	                mountedSections.insert(newValue)
                     if newValue == .clubs {
-                        supabaseService.clearClubNotificationBadge()
+                        clubs.clearClubNotificationBadge()
                     }
 	            }
 	            .task {
 	                // Warm the Discover bundle so the first Discover render feels instant.
-                _ = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24)
+                _ = await discovery.fetchDiscoverBundle(limit: 30, hours: 24)
                 // Check club notifications
-                await supabaseService.checkClubNotifications()
+                await clubs.checkClubNotifications()
             }
             .sheet(isPresented: $showProfileSheet) {
                 ProfileView(
@@ -375,14 +435,19 @@ struct KuroMainView: View {
                             try? await Task.sleep(nanoseconds: 300_000_000)
                             handleDeepLink(.concierge(prompt: prompt))
                         }
+                    },
+                    onImportNavigation: navigateFromImport,
+                    onOpenCollection: {
+                        showProfileSheet = false
+                        selection = .collection
+                        mountedSections.insert(.collection)
                     }
                 )
-                    .environment(supabaseService)
             }
             .sheet(isPresented: $showSearchSheet) {
                 NavigationStack {
-                    EditorialSearchView()
-                        .environment(supabaseService)
+                    EditorialSearchView(initialScope: pendingSearchScope)
+                        .id(searchSession)
                         .toolbar {
                             ToolbarItem(placement: .topBarLeading) {
                                 Button(action: { showSearchSheet = false }) {
@@ -398,17 +463,29 @@ struct KuroMainView: View {
             .onDisappear {
                 tapSuppressionResetTask?.cancel()
             }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                home.invalidateClubContent()
+                Task {
+                    await home.drain()
+                    if flags.seriesHomeNativeV1Enabled { await home.load() }
+                }
+            }
             .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
                 guard networkMonitor.isConnected else { return }
                 Task {
+                    await home.drain()
                     switch selection {
                     case .discover:
-                        _ = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
+                        _ = await discovery.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
                     case .collection:
-                        await supabaseService.fetchUserLists()
-                        await supabaseService.fetchCollectionFeed(status: nil)
+                        try? await library.refresh()
+                        await collection.fetchCollectionFeed(status: nil)
                     case .clubs:
-                        await supabaseService.checkClubNotifications()
+                        await clubs.checkClubNotifications()
+                    case .home:
+                        await home.load()
+                        await home.drain()
                     case .concierge, .browse, .taste:
                         break
                     }
@@ -419,6 +496,15 @@ struct KuroMainView: View {
                 pendingDeepLink = nil
                 handleDeepLink(link)
             }
+            .onChange(of: flags.seriesHomeNativeV1Enabled) { _, enabled in
+                if enabled {
+                    selection = .home
+                    mountedSections = [.home]
+                } else if !swipeOrder.contains(selection) {
+                    selection = .discover
+                    mountedSections = [.discover]
+                }
+            }
             .onAppear {
                 // Consume a link stashed while logged out (or before this view existed);
                 // onChange does not fire for a value that was already set.
@@ -427,57 +513,30 @@ struct KuroMainView: View {
                     handleDeepLink(link)
                 }
             }
-            .sheet(isPresented: Binding(
-                get: { deepLinkAnimeId != nil },
-                set: { if !$0 { deepLinkAnimeId = nil } }
-            )) {
-                if let animeId = deepLinkAnimeId {
-                    MediaDetailSheet(kind: .anime, id: animeId)
-                        .environment(supabaseService)
-                }
-            }
-            .sheet(isPresented: Binding(
-                get: { deepLinkMangaId != nil },
-                set: { if !$0 { deepLinkMangaId = nil } }
-            )) {
-                if let mangaId = deepLinkMangaId {
-                    MediaDetailSheet(kind: .manga, id: mangaId)
-                        .environment(supabaseService)
-                }
-            }
-            .sheet(isPresented: Binding(
-                get: { deepLinkClubId != nil },
-                set: { if !$0 { deepLinkClubId = nil } }
-            )) {
-                if let clubId = deepLinkClubId {
-                    NavigationStack {
-                        ClubDetailView(clubId: clubId)
-                            .environment(supabaseService)
-                    }
-                }
-            }
             .sheet(isPresented: $showConciergeSheet) {
                 NavigationStack {
-                    ConciergeView(assistantEnabled: true, initialPrompt: conciergeSheetPrompt)
-                        .environment(supabaseService)
+                    ConciergeView(assistantEnabled: true, initialPrompt: conciergeSheetPrompt,
+                                  onImportNavigation: navigateFromImport)
                         .toolbar {
                             ToolbarItem(placement: .confirmationAction) {
                                 Button("Done") { showConciergeSheet = false }
                                     .font(.kuroBody(weight: .light))
                             }
                         }
+                        // The Concierge sheet's own presentation context (ConciergeView reads its routes).
+                        .routePresenter()
                 }
             }
             .fullScreenCover(isPresented: $showOnboarding) {
                 OnboardingView { destination in
                     showOnboarding = false
-                    if destination == .tasteDeck && FeatureFlags.shared.tasteDeckV1Enabled {
+                    if destination == .tasteDeck && flags.tasteDeckV1Enabled {
                         selection = .taste
                         mountedSections.insert(.taste)
                     }
                 }
             }
-            if let transientBannerMessage = supabaseService.transientBannerMessage {
+            if let transientBannerMessage = banner.message {
                 VStack {
                     KuroTransientBanner(message: transientBannerMessage)
                         .padding(.top, hidesHeaderForConcierge ? 20 : 10)
@@ -489,21 +548,32 @@ struct KuroMainView: View {
             }
     }
 
+    private func navigateFromImport(_ destination: ImportResultDestination) {
+        switch destination {
+        case .importedTitles(let keys): collection.showImportedTitles(keys)
+        case .fullCollection: collection.clearImportedTitles()
+        }
+        showProfileSheet = false
+        showConciergeSheet = false
+        selection = .collection
+        mountedSections.insert(.collection)
+    }
+
     private func handleDeepLink(_ link: DeepLink) {
         switch link {
         case .anime(let id):
-            deepLinkAnimeId = id
+            routes.openMedia(MediaRoute(kind: .anime, id: id))
         case .manga(let id):
-            deepLinkMangaId = id
+            routes.openMedia(MediaRoute(kind: .manga, id: id))
         case .club(let id):
-            deepLinkClubId = id
+            routes.openClub(id)
         case .collection:
             selection = .collection
             mountedSections.insert(.collection)
         case .discover:
             selection = .discover
         case .concierge(let prompt):
-            if FeatureFlags.shared.tasteDeckV1Enabled {
+            if !swipeOrder.contains(.concierge) {
                 // Archived: present Concierge as a sheet; prompt injection is preserved
                 // via ConciergeView's initialPrompt (consumed once on appear).
                 conciergeSheetPrompt = prompt
@@ -541,9 +611,14 @@ private struct KuroSectionPager: View {
     let suppressCardTaps: Bool
     var pendingConciergePrompt: String?
     @Binding var pendingJoinCode: String?
+    var onOpenImport: () -> Void
+    var onFindTitle: (String) -> Void = { _ in }
+    var onOpenCollection: () -> Void = {}
+    var onImportNavigation: (ImportResultDestination) -> Void
     /// Bottom safe-area inset captured before the pager ignores it. The Deck's art
     /// runs edge-to-edge; every other page gets the inset back as padding.
     var bottomInset: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var selectionIndex: Int {
         order.firstIndex(of: selection) ?? 0
@@ -568,7 +643,7 @@ private struct KuroSectionPager: View {
             .clipped()
             // Animate only when the selection changes (header-driven paging).
             // This avoids gesture conflicts with in-page horizontal carousels.
-            .animation(.snappy(duration: 0.22, extraBounce: 0.02), value: selectionIndex)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.22, extraBounce: 0.02), value: selectionIndex)
         }
     }
 
@@ -582,9 +657,13 @@ private struct KuroSectionPager: View {
         if shouldMount {
             switch section {
             case .taste:
-                TasteDeckView(bottomInset: bottomInset, onDone: { selection = .discover })
+                TastePicksView()
+            case .home:
+                HomeView(onOpenImport: onOpenImport, onFindTitle: onFindTitle,
+                         onOpenCollection: onOpenCollection, onImportNavigation: onImportNavigation)
             case .concierge:
-                ConciergeView(assistantEnabled: true, initialPrompt: pendingConciergePrompt)
+                ConciergeView(assistantEnabled: true, initialPrompt: pendingConciergePrompt,
+                              onImportNavigation: onImportNavigation)
             case .discover:
                 EditorialDiscoverView()
             case .browse:
@@ -601,17 +680,45 @@ private struct KuroSectionPager: View {
     }
 }
 
+/// Soft field over the empty-Home picture. Strong enough to read the header and the type, and open at the bottom so it does not end in a line.
+private struct HomeInvitationWash: View {
+    var body: some View {
+        LinearGradient(
+            stops: [
+                .init(color: Color.white.opacity(0.72), location: 0.00),
+                .init(color: Color.white.opacity(0.42), location: 0.14),
+                .init(color: Color.white.opacity(0.04), location: 0.30),
+                .init(color: Color.white.opacity(0.20), location: 0.48),
+                .init(color: Color.white.opacity(0.58), location: 0.66),
+                .init(color: Color.white.opacity(0.36), location: 0.84),
+                .init(color: Color.white.opacity(0.12), location: 1.00)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+}
+
 // MARK: - New Responsive Header Component (Fixed)
 struct KuroHeaderNew: View {
     @Binding var selection: KuroMainView.Section
     @Binding var showProfileSheet: Bool
     @Binding var showSearchSheet: Bool
-    @Environment(SupabaseService.self) private var supabaseService
+    var onOpenSearch: () -> Void = {}
+    /// Empty Home paints the picture through this header. A saved shelf keeps the white header.
+    var onPicture: Bool = false
+    @Environment(IdentityStore.self) private var identity
+    @Environment(SessionController.self) private var session
+    @Environment(ClubsStore.self) private var clubs
+    @Environment(FeatureFlags.self) private var flags
 
     private var swipeOrder: [KuroMainView.Section] {
-        FeatureFlags.shared.tasteDeckV1Enabled
-            ? [.taste, .discover, .browse, .collection, .clubs]
-            : [.concierge, .discover, .browse, .collection, .clubs]
+        KuroMainView.Section.pagerOrder(
+            tasteDeck: flags.tasteDeckV1Enabled,
+            seriesHome: flags.seriesHomeNativeV1Enabled
+        )
     }
 
     private static let windowTextPaddingX: CGFloat = 14
@@ -656,10 +763,15 @@ struct KuroHeaderNew: View {
             shape
                 .fill(Color.clear)
                 // Tiny fill keeps the shape "present" so the shadow reads, without tinting the interior.
-                .background(shape.fill(Color.kuroWhite.opacity(0.001)))
+                .background(shape.fill(onPicture ? Color.white.opacity(0.55) : Color.kuroWhite.opacity(0.001)))
                 .overlay(
                     shape
-                        .stroke(hint ? Color.kuroBlack12 : Color.kuroBlack06, lineWidth: 0.6)
+                        .stroke(
+                            hint
+                                ? (onPicture ? Color.kuroInk.opacity(0.45) : Color.kuroBlack12)
+                                : (onPicture ? Color.kuroInk.opacity(0.22) : Color.kuroBlack06),
+                            lineWidth: onPicture ? 0.8 : 0.6
+                        )
                 )
                 // Subtle highlight to sell the "window" edge without changing the interior color.
                 .overlay(
@@ -691,11 +803,11 @@ struct KuroHeaderNew: View {
     @ViewBuilder
     private func headerIconCircle<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         Circle()
-            .fill(Color.kuroBlack06)
+            .fill(onPicture ? Color.white.opacity(0.82) : Color.kuroBlack06)
             .frame(width: 32, height: 32)
             .overlay { content() }
             .overlay(
-                Circle().stroke(Color.kuroBlack10, lineWidth: 0.7)
+                Circle().stroke(onPicture ? Color.kuroInk.opacity(0.28) : Color.kuroBlack10, lineWidth: 0.7)
             )
     }
 
@@ -706,9 +818,9 @@ struct KuroHeaderNew: View {
                 // Left: Brand (30% opacity)
                 HStack(spacing: 10) {
                     Text("KURO")
-                        .font(.kuroNavigation(weight: .regular))
+                        .font(.kuroNavigation(weight: onPicture ? .medium : .regular))
                         .tracking(1.5)
-                        .foregroundColor(.kuroTextTertiary)
+                        .foregroundColor(onPicture ? Color.kuroInk : Color.kuroTextTertiary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -737,12 +849,14 @@ struct KuroHeaderNew: View {
                     HStack(spacing: 5) {
                         ForEach(swipeOrder, id: \.self) { section in
                             ZStack {
-                                Circle()
-                                    .fill(section == selection ? Color.kuroTextSecondary : Color.kuroBlack15)
+                                    Circle()
+                                    .fill(section == selection
+                                          ? (onPicture ? Color.kuroInk : Color.kuroTextSecondary)
+                                          : (onPicture ? Color.kuroInk.opacity(0.28) : Color.kuroBlack15))
                                     .frame(width: 4, height: 4)
 
                                 // Badge dot for Clubs when unseen activity exists
-                                if section == .clubs && supabaseService.hasUnseenClubActivity && selection != .clubs {
+                                if section == .clubs && clubs.hasUnseenClubActivity && selection != .clubs {
                                     Circle()
                                         .fill(Color.kuroBlack70)
                                         .frame(width: 6, height: 6)
@@ -767,12 +881,12 @@ struct KuroHeaderNew: View {
 
                     Button(action: {
                         KuroAccessibility.impactHaptic(.light)
-                        showSearchSheet = true
+                        onOpenSearch()
                     }) {
                         headerIconCircle {
                             Image(systemName: "magnifyingglass")
                                 .font(.kuroCustom(13, weight: .regular, relativeTo: .caption1))
-                                .foregroundColor(.kuroBlack60)
+                                .foregroundColor(onPicture ? Color.kuroInk : Color.kuroBlack60)
                         }
                     }
                     .buttonStyle(KuroHeaderIconButtonStyle())
@@ -784,13 +898,13 @@ struct KuroHeaderNew: View {
                             showProfileSheet = true
                         }
                         Button("Sign Out", role: .destructive) {
-                            Task { await supabaseService.signOut() }
+                            Task { await session.signOut() }
                         }
                     } label: {
                         headerIconCircle {
-                            Text(supabaseService.currentUserInitial)
+                            Text(identity.currentUserInitial)
                                 .font(.kuroCustom(12, weight: .medium, relativeTo: .caption1))
-                                .foregroundColor(.kuroBlack80)
+                                .foregroundColor(onPicture ? Color.kuroInk : Color.kuroBlack80)
                         }
                     }
                     .buttonStyle(KuroHeaderIconButtonStyle())
@@ -847,14 +961,21 @@ struct KuroHeaderNew: View {
                 previousSectionCleanupTask = nil
             }
 
-            // Subtle divider
-            Rectangle()
-                .fill(Color.kuroBlack08)
-                .frame(height: 0.5)
+            // Subtle divider — omitted only while the empty-Home picture runs through the header.
+            if !onPicture {
+                Rectangle()
+                    .fill(Color.kuroBlack08)
+                    .frame(height: 0.5)
+            }
         }
         .frame(height: 54)
-        .background(Color.kuroBackground)
-        .shadow(color: Color.kuroBlack08, radius: 10, x: 0, y: 6)
+        .background(onPicture ? Color.clear : Color.kuroBackground)
+        .shadow(
+            color: onPicture ? Color.clear : Color.kuroBlack08,
+            radius: 10,
+            x: 0,
+            y: 6
+        )
     }
 }
 
@@ -901,5 +1022,8 @@ private struct KuroHeaderIconButtonStyle: ButtonStyle {
 // MARK: - Preview
 #Preview {
     ContentView(pendingDeepLink: .constant(nil))
-        .environment(SupabaseService.shared)
+        .environment(AppComposition.shared.identity)
+        .environment(AppComposition.shared.auth)
+        .environment(AppComposition.shared.session)
+        .environment(AppComposition.shared.library)
 }

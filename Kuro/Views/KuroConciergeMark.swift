@@ -27,18 +27,6 @@ struct KuroConciergeMark: View {
     }
 }
 
-// Glyph-only version (no background circle). Useful when the parent already provides a container.
-struct KuroConciergeGlyph: View {
-    var size: CGFloat = 18
-
-    var body: some View {
-        KuroButlerGlyph()
-            .fill(Color.black.opacity(0.78))
-            .frame(width: size, height: size)
-            .accessibilityHidden(true)
-    }
-}
-
 // A tiny "butler" silhouette (head + jacket + bow tie) that reads premium at small sizes.
 private struct KuroButlerGlyph: Shape {
     func path(in rect: CGRect) -> Path {

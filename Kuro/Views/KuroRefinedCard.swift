@@ -2,6 +2,8 @@
 // Premium, Elegant, Evolved Design
 // Philosophy: "Gallery-quality presentation with editorial restraint"
 
+import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - Refined Score Badge
@@ -36,260 +38,27 @@ struct KuroScoreBadge: View {
     }
 }
 
-// MARK: - Year Badge (on poster)
-struct KuroYearBadge: View {
-    let yearText: String
-
-    var body: some View {
-        Text(yearText)
-            .font(.system(size: 9, weight: .medium))
-            .foregroundColor(.white)
-            .monospacedDigit()
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Color.black.opacity(0.62))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .stroke(Color.white.opacity(0.14), lineWidth: 0.6)
-            )
-    }
-}
-
-// MARK: - Collection Status Indicator
-struct KuroStatusIndicator: View {
-    let isInCollection: Bool
-    
-    var body: some View {
-        if isInCollection {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.white)
-                .padding(4)
-                .background(
-                    Circle()
-                        .fill(Color.black.opacity(0.75))
-                )
-                .overlay(
-                    Circle()
-                        .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
-                )
-        }
-    }
-}
-
-// MARK: - Refined Portrait Card (Primary)
-struct KuroPortraitCard: View {
-    let media: any MediaDisplayable
-    let cardWidth: CGFloat
-    let cardHeight: CGFloat
-    
-    @State private var showDetail = false
-    @State private var showAddToList = false
-    @State private var showAddToClub = false
-    @State private var isPressed = false
-    @Environment(SupabaseService.self) private var supabaseService
-    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
-
-    private var mediaType: String {
-        media.kind.rawValue
-    }
-
-    private var isInCollection: Bool {
-        supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
-    }
-
-    private var imageHeight: CGFloat {
-        cardWidth / 0.7 // Standard poster ratio
-    }
-
-    private var metaLine: String? {
-        var parts: [String] = []
-
-        let digits = media.year.filter(\.isNumber)
-        if digits.count >= 4 {
-            parts.append(String(digits.prefix(4)))
-        }
-
-        if let episodes = media.episodes, episodes > 0 {
-            parts.append("\(KuroCardText.countString(episodes)) eps")
-        } else if let chapters = media.chapters, chapters > 0 {
-            parts.append("\(KuroCardText.countString(chapters)) ch")
-        } else if let status = media.statusRaw?.uppercased() {
-            if status == "RELEASING" { parts.append("airing") }
-            if status == "FINISHED" { parts.append("finished") }
-        } else if let format = media.formatRaw, !format.isEmpty {
-            parts.append(format.lowercased())
-        }
-
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Image Container
-            ZStack(alignment: .top) {
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 520) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: cardWidth, height: imageHeight)
-                            .clipped()
-                    case .failure, .empty:
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.black.opacity(0.06))
-                            .frame(width: cardWidth, height: imageHeight)
-                            .overlay(
-                                ProgressView()
-                                    .scaleEffect(0.6)
-                                    .tint(.kuroTextTertiary)
-                            )
-                    @unknown default:
-                        EmptyView()
-                    }
-                }
-                .frame(width: cardWidth, height: imageHeight)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                
-                HStack(alignment: .top) {
-                    Spacer()
-
-                    VStack(alignment: .trailing, spacing: 6) {
-                        if let rating = media.rating, rating > 0 {
-                            KuroScoreBadge(score: rating)
-                        }
-
-                        if isInCollection {
-                            KuroStatusIndicator(isInCollection: true)
-                        }
-                    }
-                }
-                .padding(8)
-            }
-            
-            // Text Block
-            VStack(alignment: .leading, spacing: 4) {
-                Text(KuroCardText.sanitizeTitleForCard(media.title))
-                    .font(.system(size: 13, weight: .light, design: .serif))
-                    .textCase(.uppercase)
-                    .tracking(media.title.count >= 26 ? 0.3 : 0.6)
-                    .foregroundColor(.black.opacity(0.9))
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.92)
-                    .allowsTightening(true)
-                    .truncationMode(.tail)
-                    .frame(height: 38, alignment: .top)
-
-                if let metaLine {
-                    Text(metaLine)
-                        .font(.system(size: 9, weight: .light))
-                        .foregroundColor(.black.opacity(0.5))
-                        .lineLimit(1)
-                }
-
-                if FeatureFlags.shared.isSocialActivityV1Enabled {
-                    let count = supabaseService.friendCount(mediaId: media.id, mediaType: mediaType.uppercased())
-                    if count > 0 {
-                        HStack(spacing: 3) {
-                            Image(systemName: "person.2")
-                                .font(.system(size: 8, weight: .regular))
-                            Text("\(count) friend\(count == 1 ? "" : "s")")
-                                .font(.system(size: 9, weight: .light))
-                        }
-                        .foregroundColor(.black.opacity(0.40))
-                    }
-                }
-
-                if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
-                    if let provider = supabaseService.bestProviderDisplayName(mediaId: media.id, mediaType: mediaType.uppercased()) {
-                        HStack(spacing: 3) {
-                            Image(systemName: "play.tv")
-                                .font(.system(size: 8, weight: .regular))
-                            Text(provider)
-                                .font(.system(size: 9, weight: .light))
-                        }
-                        .foregroundColor(.black.opacity(0.40))
-                    }
-                }
-            }
-            .frame(width: cardWidth, alignment: .topLeading)
-            .padding(.top, 10)
-        }
-        .frame(width: cardWidth, height: cardHeight, alignment: .top)
-        .contentShape(Rectangle())
-        .kuroDeliberateTap {
-            guard !suppressCardTaps else { return }
-            KuroAccessibility.impactHaptic(.light)
-            showDetail = true
-        }
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .opacity(isPressed ? 0.95 : 1.0)
-        .accessibilityAddTraits(.isButton)
-        .pressable($isPressed)
-        .contextMenu {
-            Button(action: {
-                KuroAccessibility.impactHaptic(.light)
-                supabaseService.toggleInCollection(mediaId: media.id, mediaType: mediaType)
-            }) {
-                Label(
-                    isInCollection ? "Remove from List" : "Quick Add (Planned)",
-                    systemImage: isInCollection ? "minus.circle" : "plus.circle"
-                )
-            }
-
-            Button(action: {
-                KuroAccessibility.impactHaptic(.light)
-                showAddToList = true
-            }) {
-                Label(
-                    isInCollection ? "Edit List" : "Add to List\u{2026}",
-                    systemImage: "slider.horizontal.3"
-                )
-            }
-
-            if !supabaseService.myClubs.isEmpty {
-                Button(action: {
-                    KuroAccessibility.impactHaptic(.light)
-                    showAddToClub = true
-                }) {
-                    Label("Add to Club\u{2026}", systemImage: "person.2.circle")
-                }
-            }
-        }
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: media.kind, id: media.id)
-        }
-        .sheet(isPresented: $showAddToList) {
-            AddToListSheet(media: media)
-        }
-        .sheet(isPresented: $showAddToClub) {
-            AddToClubRailSheet(mediaId: media.id, mediaType: mediaType.uppercased())
-        }
-    }
-}
-
 // MARK: - Refined Compact Card (Horizontal Scroll)
 struct KuroCompactCard: View {
     let media: any MediaDisplayable
     var width: CGFloat = 110
 
-    @State private var showDetail = false
-    @State private var showAddToList = false
-    @State private var showAddToClub = false
     @State private var isPressed = false
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @Environment(FeatureFlags.self) private var flags
+    @Environment(ClubsStore.self) private var clubs
+    @Environment(SocialActivityStore.self) private var social
+    @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @Environment(\.kuroRoutes) private var routes
 
     private var mediaType: String {
         media.kind.rawValue
     }
 
     private var isInCollection: Bool {
-        supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
+        library.isTracked(media.libraryKey)
     }
 
     private var height: CGFloat {
@@ -368,8 +137,8 @@ struct KuroCompactCard: View {
                         .lineLimit(1)
                 }
 
-                if FeatureFlags.shared.isSocialActivityV1Enabled {
-                    let count = supabaseService.friendCount(mediaId: media.id, mediaType: mediaType.uppercased())
+                if flags.isSocialActivityV1Enabled {
+                    let count = social.friendCount(mediaId: media.id, mediaType: mediaType.uppercased())
                     if count > 0 {
                         HStack(spacing: 3) {
                             Image(systemName: "person.2")
@@ -381,8 +150,8 @@ struct KuroCompactCard: View {
                     }
                 }
 
-                if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
-                    if let provider = supabaseService.bestProviderDisplayName(mediaId: media.id, mediaType: mediaType.uppercased()) {
+                if flags.isStreamingAvailabilityV1Enabled {
+                    if let provider = availability.bestProviderDisplayName(mediaId: media.id, mediaType: mediaType.uppercased()) {
                         HStack(spacing: 3) {
                             Image(systemName: "play.tv")
                                 .font(.system(size: 8, weight: .regular))
@@ -400,7 +169,7 @@ struct KuroCompactCard: View {
         .kuroDeliberateTap {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
-            showDetail = true
+            routes.openMedia(MediaRoute(media.libraryKey))
         }
         .scaleEffect(isPressed ? 0.97 : 1.0)
         .opacity(isPressed ? 0.95 : 1.0)
@@ -409,7 +178,7 @@ struct KuroCompactCard: View {
         .contextMenu {
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
-                supabaseService.toggleInCollection(mediaId: media.id, mediaType: mediaType)
+                LibraryViewActions.toggleTracked(media.libraryKey, actions: libraryActions)
             }) {
                 Label(
                     isInCollection ? "Remove from List" : "Quick Add (Planned)",
@@ -419,7 +188,7 @@ struct KuroCompactCard: View {
 
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
-                showAddToList = true
+                routes.presentTrackingEditor(TrackingEditorRequest(media: media))
             }) {
                 Label(
                     isInCollection ? "Edit List" : "Add to List\u{2026}",
@@ -427,23 +196,14 @@ struct KuroCompactCard: View {
                 )
             }
 
-            if !supabaseService.myClubs.isEmpty {
+            if !clubs.myClubs.isEmpty {
                 Button(action: {
                     KuroAccessibility.impactHaptic(.light)
-                    showAddToClub = true
+                    routes.presentAddToClub(media.libraryKey)
                 }) {
                     Label("Add to Club\u{2026}", systemImage: "person.2.circle")
                 }
             }
-        }
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: media.kind, id: media.id)
-        }
-        .sheet(isPresented: $showAddToList) {
-            AddToListSheet(media: media)
-        }
-        .sheet(isPresented: $showAddToClub) {
-            AddToClubRailSheet(mediaId: media.id, mediaType: mediaType.uppercased())
         }
     }
 }
@@ -453,19 +213,21 @@ struct KuroHeroCard: View {
     let media: any MediaDisplayable
     let width: CGFloat
 
-    @State private var showDetail = false
-    @State private var showAddToList = false
-    @State private var showAddToClub = false
     @State private var isPressed = false
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @Environment(FeatureFlags.self) private var flags
+    @Environment(ClubsStore.self) private var clubs
+    @Environment(SocialActivityStore.self) private var social
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @Environment(\.kuroRoutes) private var routes
 
     private var mediaType: String {
         media.kind.rawValue
     }
 
     private var isInCollection: Bool {
-        supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
+        library.isTracked(media.libraryKey)
     }
 
     private var height: CGFloat {
@@ -536,8 +298,8 @@ struct KuroHeroCard: View {
                             .foregroundColor(.white.opacity(0.85))
                     }
 
-                    if FeatureFlags.shared.isSocialActivityV1Enabled {
-                        let count = supabaseService.friendCount(mediaId: media.id, mediaType: mediaType.uppercased())
+                    if flags.isSocialActivityV1Enabled {
+                        let count = social.friendCount(mediaId: media.id, mediaType: mediaType.uppercased())
                         if count > 0 {
                             HStack(spacing: 3) {
                                 Image(systemName: "person.2")
@@ -557,7 +319,7 @@ struct KuroHeroCard: View {
         .kuroDeliberateTap {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.medium)
-            showDetail = true
+            routes.openMedia(MediaRoute(media.libraryKey))
         }
         .scaleEffect(isPressed ? 0.99 : 1.0)
         .opacity(isPressed ? 0.95 : 1.0)
@@ -566,7 +328,7 @@ struct KuroHeroCard: View {
         .contextMenu {
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
-                supabaseService.toggleInCollection(mediaId: media.id, mediaType: mediaType)
+                LibraryViewActions.toggleTracked(media.libraryKey, actions: libraryActions)
             }) {
                 Label(
                     isInCollection ? "Remove from List" : "Quick Add (Planned)",
@@ -576,7 +338,7 @@ struct KuroHeroCard: View {
 
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
-                showAddToList = true
+                routes.presentTrackingEditor(TrackingEditorRequest(media: media))
             }) {
                 Label(
                     isInCollection ? "Edit List" : "Add to List\u{2026}",
@@ -584,23 +346,14 @@ struct KuroHeroCard: View {
                 )
             }
 
-            if !supabaseService.myClubs.isEmpty {
+            if !clubs.myClubs.isEmpty {
                 Button(action: {
                     KuroAccessibility.impactHaptic(.light)
-                    showAddToClub = true
+                    routes.presentAddToClub(media.libraryKey)
                 }) {
                     Label("Add to Club\u{2026}", systemImage: "person.2.circle")
                 }
             }
-        }
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: media.kind, id: media.id)
-        }
-        .sheet(isPresented: $showAddToList) {
-            AddToListSheet(media: media)
-        }
-        .sheet(isPresented: $showAddToClub) {
-            AddToClubRailSheet(mediaId: media.id, mediaType: mediaType.uppercased())
         }
     }
 }
@@ -628,129 +381,5 @@ struct PressableModifier: ViewModifier {
 extension View {
     func pressable(_ isPressed: Binding<Bool>, duration: Double = 0.1) -> some View {
         modifier(PressableModifier(isPressed: isPressed, minimumDuration: duration))
-    }
-}
-
-// MARK: - Section Header
-struct KuroSectionHeader: View {
-    let title: String
-    let subtitle: String
-    var showSeeAll: Bool = false
-    var onSeeAll: (() -> Void)? = nil
-    
-    var body: some View {
-        HStack(alignment: .lastTextBaseline) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .tracking(0.3)
-                    .foregroundColor(.black)
-                
-                Text(subtitle)
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(0.2)
-                    .foregroundColor(.black.opacity(0.5))
-            }
-            
-            Spacer()
-            
-            if showSeeAll, let onSeeAll = onSeeAll {
-                Button(action: onSeeAll) {
-                    Text("See All")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.black.opacity(0.6))
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-    }
-}
-
-// MARK: - Horizontal Section with Refined Cards
-struct KuroHorizontalSection: View {
-    let title: String
-    let subtitle: String
-    let items: [any MediaDisplayable]
-    var onSeeAll: (() -> Void)? = nil
-    var containerWidth: CGFloat = 393
-
-    private var cardWidth: CGFloat {
-        let candidate = floor((containerWidth - 56) / 2.8)
-        return min(144, max(112, candidate))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            KuroSectionHeader(
-                title: title,
-                subtitle: subtitle,
-                showSeeAll: onSeeAll != nil,
-                onSeeAll: onSeeAll
-            )
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(items, id: \.id) { media in
-                        KuroCompactCard(media: media, width: cardWidth)
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
-        }
-    }
-}
-
-// MARK: - Two Column Grid Section with Refined Cards
-struct KuroTwoColumnSection: View {
-    let title: String
-    let subtitle: String
-    let items: [any MediaDisplayable]
-    let geometry: GeometryProxy
-    var onSeeAll: (() -> Void)? = nil
-    var onLoadMore: (() async -> Void)? = nil
-    
-    private var gridMetrics: (columns: [GridItem], cardWidth: CGFloat, cardHeight: CGFloat) {
-        let spacing: CGFloat = 12
-        let padding: CGFloat = 20
-        let availableWidth = geometry.size.width - (2 * padding) - spacing
-        let cardWidth = floor(availableWidth / 2)
-        let imageHeight = cardWidth / 0.7
-        let cardHeight = imageHeight + 8 + 52 // image + spacing + text block
-        
-        let columns = [
-            GridItem(.fixed(cardWidth), spacing: spacing),
-            GridItem(.fixed(cardWidth), spacing: spacing)
-        ]
-        
-        return (columns, cardWidth, cardHeight)
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            KuroSectionHeader(
-                title: title,
-                subtitle: subtitle,
-                showSeeAll: onSeeAll != nil,
-                onSeeAll: onSeeAll
-            )
-            
-            let metrics = gridMetrics
-            
-            LazyVGrid(columns: metrics.columns, spacing: 16) {
-                ForEach(Array(items.enumerated()), id: \.offset) { index, media in
-                    KuroPortraitCard(
-                        media: media,
-                        cardWidth: metrics.cardWidth,
-                        cardHeight: metrics.cardHeight
-                    )
-                    .onAppear {
-                        if index == items.count - 1 {
-                            Task { await onLoadMore?() }
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-        }
     }
 }

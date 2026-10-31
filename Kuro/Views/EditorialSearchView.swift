@@ -2,6 +2,8 @@
 // Vogue/Miu Miu inspired search experience
 // Refined search bar, elegant filters, sophisticated results
 
+import KuroCore
+import KuroLibrary
 import SwiftUI
 
 struct EditorialSearchResultItem: Identifiable {
@@ -12,11 +14,16 @@ struct EditorialSearchResultItem: Identifiable {
 }
 
 struct EditorialSearchView: View {
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(BannerCenter.self) private var banner
+    @Environment(SearchStore.self) private var search
     @State private var searchText = ""
     @State private var searchTask: Task<Void, Never>? = nil
-    @State private var scope: SearchScope = .all
+    @State private var scope: SearchScope
     @State private var selectedRefinements: Set<SearchRefinement> = []
+
+    init(initialScope: SearchScope = .all) {
+        _scope = State(initialValue: initialScope)
+    }
 
     enum SearchScope: String, CaseIterable {
         case all = "ALL"
@@ -44,8 +51,8 @@ struct EditorialSearchView: View {
         }
     }
 
-    private var activeSearchFilters: SupabaseService.SearchFilters? {
-        var filters = SupabaseService.SearchFilters()
+    private var activeSearchFilters: SearchStore.SearchFilters? {
+        var filters = SearchStore.SearchFilters()
         if selectedRefinements.contains(.trending) { filters.trending = true }
         if selectedRefinements.contains(.classics) { filters.classics = true }
         if selectedRefinements.contains(.hiddenGems) { filters.hiddenGems = true }
@@ -69,7 +76,7 @@ struct EditorialSearchView: View {
     }
 
     private var serverResults: [EditorialSearchResultItem] {
-        let anime = supabaseService.searchAnimeItems.map {
+        let anime = search.searchAnimeItems.map {
             EditorialSearchResultItem(
                 id: "anime-\($0.id)",
                 media: $0,
@@ -77,7 +84,7 @@ struct EditorialSearchView: View {
                 popularity: $0.popularity ?? 0
             )
         }
-        let manga = supabaseService.searchMangaItems.map {
+        let manga = search.searchMangaItems.map {
             EditorialSearchResultItem(
                 id: "manga-\($0.id)",
                 media: $0,
@@ -114,7 +121,7 @@ struct EditorialSearchView: View {
                     .padding(.bottom, EditorialLayout.gutterMedium)
                 }
 
-                if let transientBannerMessage = supabaseService.transientBannerMessage {
+                if let transientBannerMessage = banner.message {
                     KuroTransientBanner(message: transientBannerMessage)
                         .padding(.horizontal, EditorialLayout.marginEditorial)
                         .padding(.bottom, EditorialLayout.gutterSmall)
@@ -123,7 +130,7 @@ struct EditorialSearchView: View {
                 // Search Results
                 ScrollView(.vertical, showsIndicators: false) {
                     if showsSearchContent {
-                        if serverResults.isEmpty && !supabaseService.isSearching {
+                        if serverResults.isEmpty && !search.isSearching {
                             EditorialSearchEmpty(searchText: emptyStateQueryText) { suggestion in
                                 searchText = suggestion
                             }
@@ -131,13 +138,13 @@ struct EditorialSearchView: View {
                             EditorialSearchResults(
                                 results: serverResults,
                                 query: searchText,
-                                isLoading: supabaseService.isSearching,
-                                hasMore: supabaseService.hasMoreSearch
+                                isLoading: search.isSearching,
+                                hasMore: search.hasMoreSearch
                             ) {
                                 if scope == .all {
-                                    await supabaseService.fetchNextCombinedSearchPage()
+                                    await search.fetchNextCombinedSearchPage()
                                 } else {
-                                    await supabaseService.fetchNextSearchPage()
+                                    await search.fetchNextSearchPage()
                                 }
                             }
                         }
@@ -147,7 +154,7 @@ struct EditorialSearchView: View {
                 }
                 .scrollDisabled(false)
                 .refreshable {
-                    await supabaseService.refreshSearch()
+                    await search.refreshSearch()
                 }
                 .background(Color.kuroBackground)
             }
@@ -165,6 +172,8 @@ struct EditorialSearchView: View {
         .onAppear {
             // No prefetch required: search and filter results are server-driven + paged.
         }
+        // The search sheet's own presentation context: result rows open their routes here.
+        .routePresenter()
     }
 
     private var emptyStateQueryText: String {
@@ -190,7 +199,7 @@ struct EditorialSearchView: View {
         let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasFilters = activeSearchFilters != nil
 
-        supabaseService.setSearchFilters(activeSearchFilters)
+        search.setSearchFilters(activeSearchFilters)
 
         // Avoid blanking the UI for very short queries; wait until the user has typed enough.
         if !Self.shouldRunSearch(query: trimmed, hasFilters: hasFilters) {
@@ -200,18 +209,18 @@ struct EditorialSearchView: View {
         if reset {
             switch scope {
             case .all:
-                supabaseService.resetCombinedSearch(query: trimmed)
+                search.resetCombinedSearch(query: trimmed)
             case .anime:
-                supabaseService.resetSearch(query: trimmed, isManga: false)
+                search.resetSearch(query: trimmed, isManga: false)
             case .manga:
-                supabaseService.resetSearch(query: trimmed, isManga: true)
+                search.resetSearch(query: trimmed, isManga: true)
             }
         }
 
         if scope == .all {
-            await supabaseService.fetchNextCombinedSearchPage()
+            await search.fetchNextCombinedSearchPage()
         } else {
-            await supabaseService.fetchNextSearchPage()
+            await search.fetchNextSearchPage()
         }
     }
 
@@ -341,36 +350,6 @@ struct EditorialSearchBar: View {
     }
 }
 
-// MARK: - Editorial Category Filters
-struct EditorialCategoryFilters: View {
-    let categories: [String]
-    @Binding var selectedCategories: Set<String>
-
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(categories, id: \.self) { category in
-                    EditorialCategoryPill(
-                        title: category,
-                        isSelected: selectedCategories.contains(category)
-                    ) {
-                        withAnimation(KuroAnimation.editorialBounce) {
-                            if selectedCategories.contains(category) {
-                                selectedCategories.remove(category)
-                            } else {
-                                selectedCategories.insert(category)
-                            }
-                        }
-                        KuroAccessibility.impactHaptic(.light)
-                    }
-                }
-            }
-            .padding(.horizontal, EditorialLayout.marginEditorial)
-        }
-        .kuroSwipeExclusionZone()
-    }
-}
-
 // MARK: - Editorial Category Pill
 struct EditorialCategoryPill: View {
     let title: String
@@ -466,10 +445,10 @@ struct EditorialSearchResults: View {
 struct SearchResultRow: View {
     let media: any MediaDisplayable
     let query: String
-    @State private var showDetail = false
-    @State private var showAddToList = false
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @Environment(\.kuroRoutes) private var routes
 
     private var mediaTypeLabel: String {
         switch media.kind {
@@ -478,12 +457,8 @@ struct SearchResultRow: View {
         }
     }
 
-    private var mediaType: String {
-        media.kind.rawValue
-    }
-
     private var isSaved: Bool {
-        supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
+        library.isTracked(media.libraryKey)
     }
 
     private func highlightedTitle(_ title: String, query: String) -> Text {
@@ -500,7 +475,7 @@ struct SearchResultRow: View {
         Button(action: {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
-            showDetail = true
+            routes.openMedia(MediaRoute(media.libraryKey))
         }) {
             HStack(spacing: 12) {
                 // Thumbnail
@@ -582,7 +557,7 @@ struct SearchResultRow: View {
         .contextMenu {
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
-                supabaseService.toggleInCollection(mediaId: media.id, mediaType: mediaType)
+                LibraryViewActions.toggleTracked(media.libraryKey, actions: libraryActions)
             }) {
                 Label(
                     isSaved ? "Remove from List" : "Quick Add (Planned)",
@@ -592,19 +567,13 @@ struct SearchResultRow: View {
 
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
-                showAddToList = true
+                routes.presentTrackingEditor(TrackingEditorRequest(media: media))
             }) {
                 Label(
                     isSaved ? "Edit List" : "Add to List\u{2026}",
                     systemImage: "slider.horizontal.3"
                 )
             }
-        }
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: media.kind, id: media.id)
-        }
-        .sheet(isPresented: $showAddToList) {
-            AddToListSheet(media: media)
         }
     }
 
@@ -767,5 +736,9 @@ struct EditorialSearchPlaceholder: View {
 
 #Preview {
     EditorialSearchView()
-        .environment(SupabaseService.shared)
+        .environment(AppComposition.shared.identity)
+        .environment(AppComposition.shared.library)
+        .environment(AppComposition.shared.search)
+        .environment(AppComposition.shared.banner)
+        .environment(AppComposition.shared.libraryActions)
 }

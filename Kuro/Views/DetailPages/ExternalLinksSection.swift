@@ -46,7 +46,7 @@ private struct ExternalLinkButton: View {
     let url: URL
     let mediaType: String
     let mediaId: Int
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(OutboundLinkTelemetry.self) private var outboundLinks
 
     var body: some View {
         Link(destination: url) {
@@ -71,7 +71,7 @@ private struct ExternalLinkButton: View {
         }
         .accessibilityLabel("Reference link: \(title)")
         .simultaneousGesture(TapGesture().onEnded {
-            supabaseService.recordOutboundLink(
+            outboundLinks.recordOutboundLink(
                 mediaType: mediaType.uppercased(),
                 mediaId: mediaId,
                 linkKind: "external_reference",

@@ -77,33 +77,29 @@ final class TasteDeckModel {
     private(set) var undoCandidate: TasteDeckOutcome? = nil
     var removalDirection: TasteDeckExitDirection = .up
 
-    /// A signal whose record RPC failed; retried once on the next commit and
-    /// once on appear. In-memory only — deck signals are taste hints, and the
-    /// queue never outlives the session.
-    private struct PendingSignal {
-        let mediaType: String
-        let mediaId: Int
-        let action: TasteDeckAction
-        /// Total failed delivery attempts (initial try + retries).
-        var failures: Int
-    }
+    // Signal delivery (queue, retry with backoff, dedupe per card, account scope and the
+    // "didn't save" flag `signalsNeedAttention`) is owned by `TasteStore`'s outbox; the model only
+    // submits each decision and keeps the deck's presentation state.
 
     private var dealtKeys: Set<String> = []
     private var isFetchingBatch = false
     private var batchExhausted = false
     private var undoClearTask: Task<Void, Never>? = nil
     private var fetchTask: Task<Void, Never>? = nil
-    private var pendingSignals: [PendingSignal] = []
-    private var isFlushingSignals = false
-    /// True once a signal has failed delivery three times (initial + two
-    /// retries); the view surfaces a transient banner. Resets when the queue
-    /// fully drains, so one outage = one banner.
-    private(set) var signalsNeedAttention = false
     /// Set when a batch fetch fails with an empty queue — the view swaps the
     /// loading shimmer for a quiet retry state instead of shimmering forever.
     private(set) var initialLoadFailed = false
 
     var current: TasteDeckCard? { queue.first }
+
+    /// The "didn't save" banner for the outbox's current state (nil when nothing needs attention). The
+    /// outbox outlives the deck screen, so the view asks on appear and on every change. Only a signal
+    /// still queued after repeated failures is retried; a dropped one (queue full, attempts used up) is not.
+    static func signalBanner(needsAttention: Bool, pending: [TasteStore.PendingSignal]) -> String? {
+        guard needsAttention else { return nil }
+        let retrying = pending.contains { $0.failures >= TasteStore.attentionAfterFailures }
+        return retrying ? "Signal didn't save — will retry" : "Signal didn't save"
+    }
     var upcomingCards: [TasteDeckCard] { Array(queue.dropFirst().prefix(3)) }
 
     /// Offline recovery keeps dealing; only retry when the queue ran dry and the
@@ -112,13 +108,14 @@ final class TasteDeckModel {
         queue.isEmpty && !batchExhausted
     }
 
-    func loadInitial(using service: SupabaseService) async {
+    func loadInitial(using taste: TasteStore) async {
         phase = .loading
         batchExhausted = false
         initialLoadFailed = false
-        // Appear retry: queued (previously failed) signals get one more shot.
-        await flushPendingSignals(using: service)
-        await fetchNextBatch(using: service)
+        // Appear retry: queued (previously failed) signals get one more shot, without waiting
+        // for their backoff; delivery runs in the store and never holds up the first deal.
+        taste.drainSignalOutbox(force: true)
+        await fetchNextBatch(using: taste)
         // A failed initial fetch keeps the loading phase so the view can show
         // its retry state; a genuinely empty catalog still lands on .empty.
         if phase == .loading && !(initialLoadFailed && queue.isEmpty) {
@@ -126,11 +123,11 @@ final class TasteDeckModel {
         }
     }
 
-    func retry(using service: SupabaseService) async {
-        await loadInitial(using: service)
+    func retry(using taste: TasteStore) async {
+        await loadInitial(using: taste)
     }
 
-    func commit(_ action: TasteDeckAction, using service: SupabaseService) {
+    func commit(_ action: TasteDeckAction, using taste: TasteStore) {
         guard let card = current else { return }
         removalDirection = TasteDeckExitDirection(action: action)
         queue.removeFirst()
@@ -141,19 +138,19 @@ final class TasteDeckModel {
         undoCandidate = TasteDeckOutcome(card: card, action: action)
         scheduleUndoClear()
 
-        // Fire-and-forget; the deck never waits on the write. Failures queue
-        // and retry on the next commit/appear instead of vanishing.
-        recordSignal(mediaType: card.mediaType, mediaId: card.mediaId, action: action, using: service)
+        // Fire-and-forget; the deck never waits on the write. The store's outbox
+        // delivers it and retries failures instead of letting them vanish.
+        taste.submitSignal(mediaType: card.mediaType, mediaId: card.mediaId, action: action)
 
         if queue.isEmpty && batchExhausted {
             phase = .empty
         } else if queue.count <= 3 {
             // Endless: keep dealing — the batch RPC returns fresh unseen titles.
-            prefetchNextBatch(using: service)
+            prefetchNextBatch(using: taste)
         }
     }
 
-    func undoLast(using service: SupabaseService) {
+    func undoLast(using taste: TasteStore) {
         guard let outcome = undoCandidate else { return }
         undoCandidate = nil
         undoClearTask?.cancel()
@@ -162,11 +159,10 @@ final class TasteDeckModel {
         lastSignalAt = Date()
         queue.insert(outcome.card, at: 0)
         phase = .dealing
-        recordSignal(
+        taste.submitSignal(
             mediaType: outcome.card.mediaType,
             mediaId: outcome.card.mediaId,
-            action: .retract,
-            using: service
+            action: .retract
         )
     }
 
@@ -175,51 +171,6 @@ final class TasteDeckModel {
         undoClearTask = nil
         fetchTask?.cancel()
         fetchTask = nil
-    }
-
-    /// Fire-and-forget record with a safety net: the pending queue is flushed
-    /// first (older signals replay in order), then this signal is recorded; a
-    /// failure is queued for retry instead of being dropped.
-    private func recordSignal(mediaType: String, mediaId: Int, action: TasteDeckAction, using service: SupabaseService) {
-        Task {
-            await flushPendingSignals(using: service)
-            let recorded = await service.recordTasteDeckSignal(mediaType: mediaType, mediaId: mediaId, action: action)
-            guard !recorded else { return }
-            #if DEBUG
-            print("⚠️ taste signal queued for retry: \(action.rawValue) \(mediaType)-\(mediaId)")
-            #endif
-            pendingSignals.append(PendingSignal(mediaType: mediaType, mediaId: mediaId, action: action, failures: 1))
-        }
-    }
-
-    /// Serially retries every queued signal once. Failures stay queued with an
-    /// incremented count; after the third failed delivery the deck flags it so
-    /// the view can show the transient "didn't save" banner.
-    private func flushPendingSignals(using service: SupabaseService) async {
-        guard !isFlushingSignals, !pendingSignals.isEmpty else { return }
-        isFlushingSignals = true
-        defer { isFlushingSignals = false }
-        // Snapshot + clear so signals enqueued mid-flush are never lost.
-        let batch = pendingSignals
-        pendingSignals = []
-        var stillPending: [PendingSignal] = []
-        for var signal in batch {
-            let recorded = await service.recordTasteDeckSignal(
-                mediaType: signal.mediaType,
-                mediaId: signal.mediaId,
-                action: signal.action
-            )
-            guard !recorded else { continue }
-            signal.failures += 1
-            if signal.failures >= 3 {
-                signalsNeedAttention = true
-            }
-            stillPending.append(signal)
-        }
-        pendingSignals.append(contentsOf: stillPending)
-        if pendingSignals.isEmpty {
-            signalsNeedAttention = false
-        }
     }
 
     private func scheduleUndoClear() {
@@ -241,20 +192,20 @@ final class TasteDeckModel {
         }
     }
 
-    private func prefetchNextBatch(using service: SupabaseService) {
+    private func prefetchNextBatch(using taste: TasteStore) {
         guard fetchTask == nil else { return }
         fetchTask = Task { [weak self] in
             guard let self else { return }
-            await self.fetchNextBatch(using: service)
+            await self.fetchNextBatch(using: taste)
             self.fetchTask = nil
         }
     }
 
-    private func fetchNextBatch(using service: SupabaseService) async {
+    private func fetchNextBatch(using taste: TasteStore) async {
         guard !isFetchingBatch, !batchExhausted else { return }
         isFetchingBatch = true
         defer { isFetchingBatch = false }
-        guard let rows = await service.fetchTasteDeckBatch(limit: batchSize) else {
+        guard let rows = await taste.fetchTasteDeckBatch(limit: batchSize) else {
             // Transport/server error: not proof of exhaustion. Leave the phase alone so
             // the offline/loading UI (and reconnect retry) can recover; flag empty-queue
             // failures so the view can offer a retry instead of shimmering forever.
@@ -603,8 +554,9 @@ private struct TasteDeckCardSurface: View {
 // MARK: - Deck View
 
 struct TasteDeckView: View {
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(TasteStore.self) private var taste
     @Environment(NetworkMonitor.self) private var networkMonitor
+    @Environment(BannerCenter.self) private var banner
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var model = TasteDeckModel()
@@ -630,7 +582,7 @@ struct TasteDeckView: View {
         }
         .task {
             startLoadingWatchdog()
-            await model.loadInitial(using: supabaseService)
+            await model.loadInitial(using: taste)
             prefetchUpcoming()
         }
         .onDisappear {
@@ -642,7 +594,7 @@ struct TasteDeckView: View {
         .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
             guard networkMonitor.isConnected, model.shouldRetryAfterReconnect else { return }
             Task {
-                await model.retry(using: supabaseService)
+                await model.retry(using: taste)
                 prefetchUpcoming()
             }
         }
@@ -656,13 +608,13 @@ struct TasteDeckView: View {
                 runExhaustedReveal()
             }
         }
-        .onChange(of: model.signalsNeedAttention) { _, needsAttention in
-            guard needsAttention else { return }
-            supabaseService.showTransientBanner("Signal didn't save — will retry")
+        .onChange(of: taste.signalsNeedAttention, initial: true) { _, needsAttention in
+            // `initial`: the flag can already be set when the deck opens (the outbox outlives this screen).
+            guard let message = TasteDeckModel.signalBanner(needsAttention: needsAttention, pending: taste.pendingSignals) else { return }
+            banner.show(message)
         }
         .sheet(isPresented: $showLeaningsSheet) {
             TasteLeaningsSheet(latestSignalAt: model.lastSignalAt)
-                .environment(supabaseService)
         }
     }
 
@@ -813,7 +765,7 @@ struct TasteDeckView: View {
     private var undoChip: some View {
         Button {
             withAnimation(KuroMotion.resolve(KuroAnimation.editorial)) {
-                model.undoLast(using: supabaseService)
+                model.undoLast(using: taste)
             }
         } label: {
             Text("Undo")
@@ -951,7 +903,7 @@ struct TasteDeckView: View {
             Button {
                 startLoadingWatchdog()
                 Task {
-                    await model.retry(using: supabaseService)
+                    await model.retry(using: taste)
                     prefetchUpcoming()
                 }
             } label: {
@@ -1025,7 +977,7 @@ struct TasteDeckView: View {
             .padding(.horizontal, KuroDesignSpacing.xl)
             Button {
                 Task {
-                    await model.retry(using: supabaseService)
+                    await model.retry(using: taste)
                     prefetchUpcoming()
                 }
             } label: {
@@ -1054,7 +1006,7 @@ struct TasteDeckView: View {
         #endif
         showingSynopsis = false
         withAnimation(KuroMotion.resolve(KuroAnimation.editorial)) {
-            model.commit(action, using: supabaseService)
+            model.commit(action, using: taste)
         }
         prefetchUpcoming()
     }
@@ -1072,7 +1024,7 @@ struct TasteDeckView: View {
 // MARK: - "Your leanings" sheet (server profile is the only source)
 
 struct TasteLeaningsSheet: View {
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(TasteStore.self) private var taste
     @Environment(\.dismiss) private var dismiss
 
     /// The deck's most recent signal. When newer than the profile's computed_at,
@@ -1122,8 +1074,8 @@ struct TasteLeaningsSheet: View {
         }
         .task {
             guard !didLoad else { return }
-            async let metaFetch = supabaseService.fetchRealmMeta()
-            profile = await supabaseService.fetchMyTasteProfile()
+            async let metaFetch = taste.fetchRealmMeta()
+            profile = await taste.fetchMyTasteProfile()
             realmMeta = Dictionary(uniqueKeysWithValues: await metaFetch.map { ($0.realm, $0) })
             didLoad = true
         }
@@ -1343,10 +1295,10 @@ struct TasteLeaningsSheet: View {
             updatedAt: nil
         )
     )
-    .environment(SupabaseService())
+    .environment(AppComposition.shared.taste)
 }
 
 #Preview("Leanings — Empty") {
     TasteLeaningsSheet()
-        .environment(SupabaseService())
+        .environment(AppComposition.shared.taste)
 }

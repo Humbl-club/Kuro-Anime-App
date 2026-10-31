@@ -1,12 +1,38 @@
+import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - MANGA DETAIL VIEW - iOS 26 Mobile-First
 // Comprehensive manga detail page with elegant minimalism
+//
+// Loading (the page's one documented load coordinator; docs/modules/detail-pages.md). Initial/keyed
+// loads use SwiftUI tasks; unit-sheet sentinel paging owns a task cancelled on dismissal. Each run
+// rejects cancelled/superseded results before publishing or changing loading state.
+// Row limits: similar 14, sub-genre tags 12 (one row read, trimmed client-side), chapter preview 10,
+// chapter sheet 50 per page, chapter status one row. NOT row-limited: the credits queries (every
+// author / cast row of the title), the ladder RPC and the title's external links.
+//
+// | Loader                                        | Key                        | Work                                                                                                   | Lifetime   |
+// | --------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------ | ---------- |
+// | Screen (`MangaDetailView`)                    | manga id                   | top tags, similar, ladder -> `enqueueMediaRelationRefreshIfNeeded` (server write, cooldown) -> FM synopsis | page       |
+// | Credits (`MangaDetailView`)                   | manga id + credits_cast_v1 | authors, cast                                                                                          | page       |
+// | Units preview (`ChaptersSection`)             | next chapter number        | next 10 chapters, chapter status, best legal read link (`getBestLegalReadLink`)                        | section    |
+// | Units sheet (`ChapterListSheet`)              | sheet appear + load-more   | chapters, pages of 50, best legal read link                                                            | sheet      |
+// | Read links (`MangaActionButtons`)             | manga id                   | `ProviderAvailabilityStore.resolveReadLinks`: legal external links, and behind streaming_availability_v1 status / provider v2 / `enqueueAvailabilityRefreshIfStale` (server write); a cancelled (superseded) run publishes nothing | action bar |
+// | `ClubActivitySection`, `FriendsActivitySection` | own `.task`              | club activity, friend comments                                                                         | section    |
+//
+// Chapter rows open the catalog best link (`getBestLegalReadLink`) while the action bar uses the
+// verified-or-catalog snapshot: preserved as found (a product question, not changed here).
+// Shared chrome: DetailSharedComponents.swift; provider sheet: ProviderLinkViews.swift; link builders:
+// Kuro/Providers/ProviderLinkBuilders.swift.
 
 struct MangaDetailView: View {
     let manga: Manga
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(CatalogStore.self) private var catalog
+    @Environment(RecommendationsReader.self) private var recommendations
+    @Environment(AppleFMService.self) private var deviceIntelligence
+    @Environment(FeatureFlags.self) private var flags
     @State private var scrollOffset: CGFloat = 0
     @State private var showFullDescription = false
     @State private var toast: KuroToastState? = nil
@@ -19,8 +45,18 @@ struct MangaDetailView: View {
     @State private var mediaLadder: MediaLadderResponse = .empty
     @State private var didLoadCredits = false
     @State private var didLoadLadder = false
+    @State private var screenLoadGeneration = UUID()
+    @State private var creditsLoadGeneration = UUID()
 
     var body: some View {
+        if flags.seriesHomeNativeV1Enabled {
+            SeriesMangaDetailView(manga: manga)
+        } else {
+            legacyMangaDetail
+        }
+    }
+
+    private var legacyMangaDetail: some View {
         GeometryReader { geometry in
             // In sheets, SwiftUI sometimes reserves a top "cap" area that isn't reflected as a
             // typical safe-area inset on some OS/device combinations. Enforce a minimum so the
@@ -70,7 +106,7 @@ struct MangaDetailView: View {
                             TagChipsSection(title: "SUB‑GENRES", tags: topTags.map(\.name))
                         }
 
-                        if FeatureFlags.shared.isCreditsCastV1Enabled {
+                        if flags.isCreditsCastV1Enabled {
                             if didLoadCredits {
                                 if !castItems.isEmpty {
                                     CastSection(characters: castItems)
@@ -112,35 +148,38 @@ struct MangaDetailView: View {
 
                         ClubActivitySection(mediaId: manga.id, mediaType: "MANGA")
 
-                        if FeatureFlags.shared.isSocialActivityV1Enabled {
+                        if flags.isSocialActivityV1Enabled {
                             FriendsActivitySection(mediaId: manga.id, mediaType: "MANGA")
                         }
 
-                        ShareLink(
-                            item: URL(string: "kuro://manga/\(manga.id)")!,
-                            subject: Text(manga.displayTitle)
-                        ) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 11, weight: .medium))
-                                Text("SHARE")
-                                    .font(.kuroMicro(weight: .medium))
-                                    .tracking(1.2)
+                        // The page's deep link; it always parses for an integer id (no force unwrap).
+                        if let shareURL = URL(string: "kuro://manga/\(manga.id)") {
+                            ShareLink(
+                                item: shareURL,
+                                subject: Text(manga.displayTitle)
+                            ) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 11, weight: .medium))
+                                    Text("SHARE")
+                                        .font(.kuroMicro(weight: .medium))
+                                        .tracking(1.2)
+                                }
+                                .foregroundColor(.kuroTextSecondary)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(Color.black.opacity(0.04))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                                .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                                        )
+                                )
                             }
-                            .foregroundColor(.kuroTextSecondary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(Color.black.opacity(0.04))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                            .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
-                                    )
-                            )
+                            .buttonStyle(.plain)
+                            .simultaneousGesture(TapGesture().onEnded { KuroAccessibility.impactHaptic(.light) })
                         }
-                        .buttonStyle(.plain)
-                        .simultaneousGesture(TapGesture().onEnded { KuroAccessibility.impactHaptic(.light) })
 
                         ExternalLinksSection(
                             anilistId: manga.id,
@@ -203,40 +242,69 @@ struct MangaDetailView: View {
         .toolbar(.hidden, for: .windowToolbar)
         #endif
         .task(id: manga.id) {
-            async let tags = supabaseService.fetchTopTagsForManga(mangaId: manga.id, limit: 12)
-            async let sim = supabaseService.fetchSimilarManga(seed: manga, limit: 14)
-            async let ladder = supabaseService.fetchMediaLadder(mediaType: "MANGA", mediaId: manga.id)
-            topTags = await tags
-            similar = await sim
-            mediaLadder = await ladder
+            guard !Task.isCancelled else { return }
+            let generation = UUID()
+            screenLoadGeneration = generation
+            async let tags = catalog.fetchTopTagsForManga(mangaId: manga.id, limit: 12)
+            async let sim = recommendations.fetchSimilarManga(seed: manga, limit: 14)
+            async let ladder = catalog.fetchMediaLadder(mediaType: "MANGA", mediaId: manga.id)
+            let loadedTags = await tags
+            guard !Task.isCancelled, screenLoadGeneration == generation else { return }
+            topTags = loadedTags
+            let loadedSimilar = await sim
+            guard !Task.isCancelled, screenLoadGeneration == generation else { return }
+            similar = loadedSimilar
+            let loadedLadder = await ladder
+            guard !Task.isCancelled, screenLoadGeneration == generation else { return }
+            mediaLadder = loadedLadder
             didLoadLadder = true
-            await supabaseService.enqueueMediaRelationRefreshIfNeeded(
+            await catalog.enqueueMediaRelationRefreshIfNeeded(
                 mediaType: "MANGA",
                 mediaId: manga.id,
                 ladder: mediaLadder,
                 reason: "detail_open"
             )
 
+            guard !Task.isCancelled, screenLoadGeneration == generation else { return }
+
             // Condense long synopses on-device via Apple FM (no-op on unsupported devices)
             let sourceSynopsis = manga.displayDescription
             let hasReadyEnhanced = (manga.synopsisEnhancedState ?? "").lowercased() == "ready"
             if !hasReadyEnhanced, sourceSynopsis.count > 200 {
-                condensedSynopsis = await supabaseService.fmService.condenseSynopsis(
+                let synopsis = await deviceIntelligence.condenseSynopsis(
+                    mediaKind: "MANGA",
                     mediaId: manga.id,
                     description: sourceSynopsis,
                     title: manga.displayTitle,
                     genres: manga.genreList ?? []
                 )
+                guard !Task.isCancelled, screenLoadGeneration == generation else { return }
+                condensedSynopsis = synopsis
             }
         }
-        .task(id: "\(manga.id)-\(FeatureFlags.shared.isCreditsCastV1Enabled)") {
-            guard FeatureFlags.shared.isCreditsCastV1Enabled else { return }
-            async let authorFetch = supabaseService.fetchAuthorsForManga(mangaId: manga.id)
-            async let castFetch = supabaseService.fetchCharactersForManga(mangaId: manga.id)
-            authorItems = await authorFetch
-            castItems = await castFetch
+        .task(id: "\(manga.id)-\(flags.isCreditsCastV1Enabled)") {
+            guard !Task.isCancelled else { return }
+            let generation = UUID()
+            creditsLoadGeneration = generation
+            guard flags.isCreditsCastV1Enabled else { return }
+            async let authorFetch = catalog.fetchAuthorsForManga(mangaId: manga.id)
+            async let castFetch = catalog.fetchCharactersForManga(mangaId: manga.id)
+            let loadedAuthorItems = await authorFetch
+            guard !Task.isCancelled, creditsLoadGeneration == generation, flags.isCreditsCastV1Enabled else { return }
+            authorItems = loadedAuthorItems
+            let loadedCastItems = await castFetch
+            guard !Task.isCancelled, creditsLoadGeneration == generation, flags.isCreditsCastV1Enabled else { return }
+            castItems = loadedCastItems
             didLoadCredits = true
         }
+        .onDisappear {
+            screenLoadGeneration = UUID()
+            creditsLoadGeneration = UUID()
+            toastDismissTask?.cancel()
+        }
+        // This detail sheet's own presentation context: the cards and the action bar inside open their
+        // routes here (stacked on this detail, as before).
+        .routePresenter()
     }
 
     @MainActor
@@ -330,13 +398,11 @@ struct MangaSimilarSection: View {
 struct MangaNextPickSection: View {
     let mediaId: Int
     let similar: [Manga]
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
     @State private var showDetail = false
 
-    private var userEntry: UserList? {
-        supabaseService.userLists.first {
-            $0.mediaId == mediaId && $0.mediaType.lowercased() == "manga"
-        }
+    private var userEntry: LibraryEntry? {
+        library.entry(for: MediaKey(kind: .manga, id: mediaId))
     }
 
     private var isCompleted: Bool {
@@ -345,15 +411,12 @@ struct MangaNextPickSection: View {
 
     private var pick: Manga? {
         guard isCompleted else { return nil }
-        let collectionIds = supabaseService.userMediaIds(mediaType: "manga")
-        let planningIds = supabaseService.userMediaIds(mediaType: "manga", status: .planning)
-
-        if let planned = similar.first(where: { planningIds.contains($0.id) }) {
+        if let planned = similar.first(where: { library.entry(for: $0.libraryKey)?.status == .planning }) {
             return planned
         }
 
         return similar
-            .filter { !collectionIds.contains($0.id) }
+            .filter { !library.isTracked($0.libraryKey) }
             .max(by: { ($0.averageScore ?? 0) < ($1.averageScore ?? 0) })
     }
 
@@ -419,13 +482,6 @@ struct MangaNextPickSection: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-}
-
-private struct KuroDetailScrollOffsetPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
 
@@ -540,62 +596,27 @@ struct MangaTitleSection: View {
     }
 }
 
-// MARK: - Manga Stats Grid
-struct MangaStatsGrid: View {
-    let manga: Manga
-    
-    var body: some View {
-        LazyVGrid(
-            columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ],
-            spacing: KuroSpacing.md
-        ) {
-            if let score = manga.averageScore {
-                StatCard(
-                    label: "SCORE",
-                    value: String(format: "%.1f", Double(score) / 10.0),
-                    icon: "star.fill"
-                )
-            }
-            
-            if let chapters = manga.chapterCount {
-                StatCard(
-                    label: "CHAPTERS",
-                    value: "\(chapters)",
-                    icon: "book.fill"
-                )
-            }
-            
-            if let volumes = manga.volumeCount {
-                StatCard(
-                    label: "VOLUMES",
-                    value: "\(volumes)",
-                    icon: "books.vertical.fill"
-                )
-            }
-        }
-    }
-}
-
 // MARK: - Chapters Section
 struct ChaptersSection: View {
     let manga: Manga
     let chapterCount: Int?
     var onError: ((KuroToastState) -> Void)? = nil
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @State private var progressActionScope = AccountActionScope()
+    @Environment(ProviderAvailabilityStore.self) private var availability
+    @Environment(CatalogStore.self) private var catalog
     @Environment(\.openURL) private var openURL
     @State private var chapters: [MangaChapter] = []
     @State private var chapterStatus: MangaChapterStatus? = nil
     @State private var isLoading: Bool = false
     @State private var showAllChapters: Bool = false
     @State private var markingChapter: Int? = nil
+    @State private var previewGeneration = UUID()
     @State private var legalReadLink: (url: String, site: String, label: String)? = nil
 
-    private var entry: UserList? {
-        supabaseService.userListEntry(mediaType: "manga", mediaId: manga.id)
+    private var entry: LibraryEntry? {
+        library.entry(for: manga.libraryKey)
     }
 
     private var userProgress: Int {
@@ -618,7 +639,8 @@ struct ChaptersSection: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: KuroSpacing.md) {
+        let origin = progressActionScope.capture(session: libraryActions.accountSession)
+        return VStack(alignment: .leading, spacing: KuroSpacing.md) {
             HStack {
                 Text("CHAPTERS")
                     .font(.kuroMicro(weight: .medium))
@@ -662,7 +684,7 @@ struct ChaptersSection: View {
                             isMarking: markingChapter == ch.number,
                             hasExternalLink: legalReadLink != nil,
                             onOpen: { openChapter(ch) },
-                            onMarkRead: { markRead(ch) }
+                            onMarkRead: { markRead(ch, origin: origin) }
                         )
                     }
                 }
@@ -692,72 +714,80 @@ struct ChaptersSection: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .task(id: nextChapterNumber) {
-            await loadPreview()
-            await refreshChapterStatus()
-            await refreshLegalReadLink()
+            guard !Task.isCancelled else { return }
+            let generation = UUID()
+            previewGeneration = generation
+            let fromNumber = nextChapterNumber
+            await loadPreview(generation: generation, fromNumber: fromNumber)
+            guard isCurrentPreview(generation, fromNumber: fromNumber) else { return }
+            await refreshChapterStatus(generation: generation, fromNumber: fromNumber)
+            guard isCurrentPreview(generation, fromNumber: fromNumber) else { return }
+            await refreshLegalReadLink(generation: generation, fromNumber: fromNumber)
         }
         .sheet(isPresented: $showAllChapters) {
             ChapterListSheet(manga: manga, chapterCount: chapterCount, chapterStatus: chapterStatus)
-                .environment(supabaseService)
+        }
+        .onAppear { progressActionScope.activate(session: libraryActions.accountSession) }
+        .onDisappear {
+            progressActionScope.deactivate()
+            markingChapter = nil
+            previewGeneration = UUID()
+            isLoading = false
         }
     }
 
-    private func loadPreview() async {
-        isLoading = true
-        defer { isLoading = false }
-        chapters = await supabaseService.fetchChaptersNext(mangaId: manga.id, fromNumber: nextChapterNumber, limit: 10)
+    private func isCurrentPreview(_ generation: UUID, fromNumber: Int) -> Bool {
+        !Task.isCancelled && previewGeneration == generation && nextChapterNumber == fromNumber
     }
 
-    private func refreshChapterStatus() async {
-        let status = await supabaseService.fetchMangaChapterStatus(mangaId: manga.id)
-        await MainActor.run { chapterStatus = status }
+    private func loadPreview(generation: UUID, fromNumber: Int) async {
+        guard isCurrentPreview(generation, fromNumber: fromNumber) else { return }
+        isLoading = true
+        defer {
+            if isCurrentPreview(generation, fromNumber: fromNumber) { isLoading = false }
+        }
+        let preview = await catalog.fetchChaptersNext(mangaId: manga.id, fromNumber: fromNumber, limit: 10)
+        guard isCurrentPreview(generation, fromNumber: fromNumber) else { return }
+        chapters = preview
+    }
+
+    private func refreshChapterStatus(generation: UUID, fromNumber: Int) async {
+        let status = await catalog.fetchMangaChapterStatus(mangaId: manga.id)
+        guard isCurrentPreview(generation, fromNumber: fromNumber) else { return }
+        chapterStatus = status
     }
 
     private func openChapter(_ _: MangaChapter) {
         guard let legalReadLink else { return }
         KuroAccessibility.impactHaptic(.light)
-        guard let url = validatedURL(from: legalReadLink.url) else { return }
+        guard let url = ProviderAvailabilityStore.validatedOutboundURL(legalReadLink.url) else { return }
         openURL(url)
     }
 
-    private func refreshLegalReadLink() async {
-        let best = await supabaseService.getBestLegalReadLink(
+    private func refreshLegalReadLink(generation: UUID, fromNumber: Int) async {
+        let best = await availability.getBestLegalReadLink(
             manga: manga,
             locale: Locale.current.identifier
         )
-        await MainActor.run {
-            legalReadLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
-        }
+        guard isCurrentPreview(generation, fromNumber: fromNumber) else { return }
+        legalReadLink = best.flatMap { ProviderAvailabilityStore.validatedOutboundURL($0.url) != nil ? $0 : nil }
     }
 
-    private func validatedURL(from raw: String?) -> URL? {
-        guard let raw else { return nil }
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        var candidate = trimmed.replacingOccurrences(of: " ", with: "%20")
-        let lower = candidate.lowercased()
-        if !(lower.hasPrefix("http://") || lower.hasPrefix("https://")) {
-            guard !candidate.contains("://") else { return nil }
-            candidate = "https://\(candidate)"
-        }
-        guard let url = URL(string: candidate), let scheme = url.scheme?.lowercased(),
-              scheme == "http" || scheme == "https" else { return nil }
-        return url
-    }
-
-    private func markRead(_ ch: MangaChapter) {
+    private func markRead(_ ch: MangaChapter, origin: AccountActionScope.Ticket?) {
+        guard progressActionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         let target = chapterCount.map { min(ch.number, $0) } ?? ch.number
         markingChapter = ch.number
-        Task {
-            await supabaseService.setUserProgress(mediaId: manga.id, mediaType: "manga", progress: target)
-            if let msg = supabaseService.errorMessage, !msg.isEmpty {
+        progressActionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await LibraryViewActions.markProgress(manga.libraryKey, to: target, actions: libraryActions)
+            guard progressActionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            if outcome.error != nil {
                 KuroAccessibility.errorHaptic()
                 onError?(KuroToastState(kind: .error, title: "Update failed", subtitle: "Could not mark chapter \(ch.number).", actionTitle: nil, onAction: nil))
                 #if DEBUG
-                print("markRead failed for chapter \(ch.number): \(msg)")
+                print("markRead failed for chapter \(ch.number): \(outcome)")
                 #endif
             }
-            await MainActor.run { markingChapter = nil }
+            markingChapter = nil
         }
     }
 
@@ -902,7 +932,11 @@ struct ChapterListSheet: View {
     let manga: Manga
     let chapterCount: Int?
     let chapterStatus: MangaChapterStatus?
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @State private var progressActionScope = AccountActionScope()
+    @Environment(ProviderAvailabilityStore.self) private var availability
+    @Environment(CatalogStore.self) private var catalog
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
 
@@ -911,6 +945,10 @@ struct ChapterListSheet: View {
     @State private var hasLoadedOnce: Bool = false
     @State private var hasMore: Bool = true
     @State private var offset: Int = 0
+    @State private var pagingGeneration = UUID()
+    @State private var pagingTask: Task<Void, Never>? = nil
+    // Paging must not supersede the legal link, which belongs to the sheet lifetime.
+    @State private var linkGeneration = UUID()
     @State private var markingChapter: Int? = nil
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
@@ -919,11 +957,12 @@ struct ChapterListSheet: View {
     private let pageSize: Int = 50
 
     private var userProgress: Int {
-        supabaseService.userLists.first(where: { $0.mediaType.lowercased() == "manga" && $0.mediaId == manga.id })?.progress ?? 0
+        library.entry(for: manga.libraryKey)?.progress ?? 0
     }
 
     var body: some View {
-        NavigationStack {
+        let origin = progressActionScope.capture(session: libraryActions.accountSession)
+        return NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: KuroSpacing.sm) {
                     if legalReadLink == nil {
@@ -959,11 +998,11 @@ struct ChapterListSheet: View {
                             isMarking: markingChapter == ch.number,
                             hasExternalLink: legalReadLink != nil,
                             onOpen: { openChapter(ch) },
-                            onMarkRead: { markRead(ch) }
+                            onMarkRead: { markRead(ch, origin: origin) }
                         )
                         .onAppear {
                             if index == chapters.count - 1, hasMore, !isLoading {
-                                Task { await loadMore() }
+                                startLoadMore()
                             }
                         }
                     }
@@ -986,9 +1025,17 @@ struct ChapterListSheet: View {
                         .font(.kuroMicro(weight: .medium))
                 }
             }
-            .task {
-                await loadMore(reset: true)
-                await refreshLegalReadLink()
+            .task(id: manga.id) {
+                guard !Task.isCancelled else { return }
+                pagingTask?.cancel()
+                pagingTask = nil
+                let generation = UUID()
+                pagingGeneration = generation
+                let legalLinkGeneration = UUID()
+                linkGeneration = legalLinkGeneration
+                await loadMore(reset: true, generation: generation)
+                guard !Task.isCancelled, linkGeneration == legalLinkGeneration else { return }
+                await refreshLegalReadLink(generation: legalLinkGeneration)
             }
         }
         .overlay(alignment: .bottom) {
@@ -1000,6 +1047,17 @@ struct ChapterListSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .onAppear { progressActionScope.activate(session: libraryActions.accountSession) }
+        .onDisappear {
+            progressActionScope.deactivate()
+            markingChapter = nil
+            pagingGeneration = UUID()
+            linkGeneration = UUID()
+            pagingTask?.cancel()
+            pagingTask = nil
+            toastDismissTask?.cancel()
+            isLoading = false
+        }
     }
 
     @MainActor
@@ -1014,44 +1072,62 @@ struct ChapterListSheet: View {
         }
     }
 
-    private func loadMore(reset: Bool = false) async {
+    private func startLoadMore() {
+        guard hasMore, !isLoading, pagingTask == nil else { return }
+        let generation = UUID()
+        pagingGeneration = generation
+        pagingTask = Task { await loadMore(generation: generation) }
+    }
+
+    private func loadMore(reset: Bool = false, generation: UUID) async {
+        guard !Task.isCancelled, pagingGeneration == generation else { return }
         if reset {
+            isLoading = false
             chapters = []
             offset = 0
             hasMore = true
             hasLoadedOnce = false
         }
         guard hasMore, !isLoading else { return }
+        let requestedOffset = offset
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if !Task.isCancelled, pagingGeneration == generation {
+                isLoading = false
+                pagingTask = nil
+            }
+        }
 
-        let page = await supabaseService.fetchChaptersPage(mangaId: manga.id, offset: offset, limit: pageSize)
+        let page = await catalog.fetchChaptersPage(mangaId: manga.id, offset: requestedOffset, limit: pageSize)
+        guard !Task.isCancelled, pagingGeneration == generation, offset == requestedOffset else { return }
         chapters.append(contentsOf: page)
         hasMore = page.count == pageSize
-        if hasMore { offset += pageSize }
+        if hasMore { offset = requestedOffset + pageSize }
         hasLoadedOnce = true
     }
 
     private func openChapter(_ _: MangaChapter) {
         guard let legalReadLink else { return }
         KuroAccessibility.impactHaptic(.light)
-        guard let url = validatedURL(from: legalReadLink.url) else { return }
+        guard let url = ProviderAvailabilityStore.validatedOutboundURL(legalReadLink.url) else { return }
         openURL(url)
     }
 
-    private func markRead(_ ch: MangaChapter) {
+    private func markRead(_ ch: MangaChapter, origin: AccountActionScope.Ticket?) {
+        guard progressActionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         let target = chapterCount.map { min(ch.number, $0) } ?? ch.number
         markingChapter = ch.number
-        Task {
-            await supabaseService.setUserProgress(mediaId: manga.id, mediaType: "manga", progress: target)
-            if let msg = supabaseService.errorMessage, !msg.isEmpty {
+        progressActionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = await LibraryViewActions.markProgress(manga.libraryKey, to: target, actions: libraryActions)
+            guard progressActionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+            if outcome.error != nil {
                 KuroAccessibility.errorHaptic()
                 showToast(KuroToastState(kind: .error, title: "Update failed", subtitle: "Could not mark chapter \(ch.number).", actionTitle: nil, onAction: nil))
                 #if DEBUG
-                print("markRead failed for chapter \(ch.number): \(msg)")
+                print("markRead failed for chapter \(ch.number): \(outcome)")
                 #endif
             }
-            await MainActor.run { markingChapter = nil }
+            markingChapter = nil
         }
     }
 
@@ -1068,29 +1144,13 @@ struct ChapterListSheet: View {
         }
     }
 
-    private func refreshLegalReadLink() async {
-        let best = await supabaseService.getBestLegalReadLink(
+    private func refreshLegalReadLink(generation: UUID) async {
+        let best = await availability.getBestLegalReadLink(
             manga: manga,
             locale: Locale.current.identifier
         )
-        await MainActor.run {
-            legalReadLink = best.flatMap { validatedURL(from: $0.url) != nil ? $0 : nil }
-        }
-    }
-
-    private func validatedURL(from raw: String?) -> URL? {
-        guard let raw else { return nil }
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        var candidate = trimmed.replacingOccurrences(of: " ", with: "%20")
-        let lower = candidate.lowercased()
-        if !(lower.hasPrefix("http://") || lower.hasPrefix("https://")) {
-            guard !candidate.contains("://") else { return nil }
-            candidate = "https://\(candidate)"
-        }
-        guard let url = URL(string: candidate), let scheme = url.scheme?.lowercased(),
-              scheme == "http" || scheme == "https" else { return nil }
-        return url
+        guard !Task.isCancelled, linkGeneration == generation else { return }
+        legalReadLink = best.flatMap { ProviderAvailabilityStore.validatedOutboundURL($0.url) != nil ? $0 : nil }
     }
 }
 
@@ -1162,9 +1222,13 @@ struct VolumeCard: View {
 struct MangaActionButtons: View {
     let manga: Manga
     let onToast: (KuroToastState) -> Void
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var libraryActions
+    @State private var actionScope = AccountActionScope()
+    @Environment(OutboundLinkTelemetry.self) private var outboundLinks
+    @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(\.openURL) private var openURL
-    @State private var showAddToList = false
+    @Environment(\.kuroRoutes) private var routes
     @State private var showQuickVerdict = false
     @State private var showProviders = false
     @State private var readLink: ProviderSheetItem? = nil
@@ -1177,15 +1241,15 @@ struct MangaActionButtons: View {
     }
 
     private var isSaved: Bool {
-        supabaseService.isInCollection(mediaId: manga.id, mediaType: "manga")
+        library.isTracked(manga.libraryKey)
     }
 
-    private var userEntry: UserList? {
-        supabaseService.userListEntry(mediaType: "manga", mediaId: manga.id)
+    private var userEntry: LibraryEntry? {
+        library.entry(for: manga.libraryKey)
     }
 
     private var hasReadLink: Bool {
-        readLink.flatMap { validatedURL(from: $0.url) } != nil
+        readLink.flatMap { ProviderAvailabilityStore.validatedOutboundURL($0.url) } != nil
     }
 
     private var verdictButtonTitle: String {
@@ -1206,9 +1270,10 @@ struct MangaActionButtons: View {
     }
 
     var body: some View {
+        let origin = actionScope.capture(session: libraryActions.accountSession)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
-                Button(action: toggleSaved) {
+                Button { toggleSaved(origin: origin) } label: {
                     Image(systemName: isSaved ? "heart.fill" : "heart")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.kuroBlack)
@@ -1221,7 +1286,7 @@ struct MangaActionButtons: View {
 
                 Button {
                     KuroAccessibility.impactHaptic(.medium)
-                    showAddToList = true
+                    routes.presentTrackingEditor(TrackingEditorRequest(media: manga))
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
@@ -1295,11 +1360,10 @@ struct MangaActionButtons: View {
                         .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.8)
                 )
         )
+        .onAppear { actionScope.activate(session: libraryActions.accountSession) }
+        .onDisappear { actionScope.deactivate() }
         .task(id: manga.id) {
             await refreshLinks()
-        }
-        .sheet(isPresented: $showAddToList) {
-            AddToListSheet(media: manga)
         }
         .sheet(isPresented: $showQuickVerdict) {
             QuickVerdictPickerSheet(media: manga, onToast: onToast)
@@ -1310,9 +1374,9 @@ struct MangaActionButtons: View {
                 links: allLinks,
                 statusCaption: readAvailabilityStatusCaption
             ) { link in
-                if let url = validatedURL(from: link.url) {
+                if let url = ProviderAvailabilityStore.validatedOutboundURL(link.url) {
                     KuroAccessibility.impactHaptic(.light)
-                    supabaseService.recordOutboundLink(mediaType: "MANGA", mediaId: manga.id, linkKind: "provider_sheet", provider: link.title)
+                    outboundLinks.recordOutboundLink(mediaType: "MANGA", mediaId: manga.id, linkKind: "provider_sheet", provider: link.title)
                     openURL(url)
                 } else {
                     onToast(.init(kind: .error, title: "Couldn’t open link", subtitle: "Try a different provider.", actionTitle: nil, onAction: nil))
@@ -1321,18 +1385,19 @@ struct MangaActionButtons: View {
         }
     }
 
-    private func toggleSaved() {
+    private func toggleSaved(origin: AccountActionScope.Ticket?) {
+        guard actionScope.isCurrent(origin, session: libraryActions.accountSession) else { return }
         let currentlySaved = isSaved
-        Task {
-            let success: Bool
-            if currentlySaved {
-                success = await supabaseService.removeFromList(mediaId: manga.id, mediaType: "manga")
-            } else {
-                success = await supabaseService.addToList(mediaId: manga.id, mediaType: "manga", status: .planning)
-            }
+        let key = manga.libraryKey
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+            let outcome = currentlySaved
+                ? await libraryActions.remove(key)
+                : await libraryActions.save(key, status: .planning)
 
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             await MainActor.run {
-                if success {
+                guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
+                if outcome.change != nil {
                     KuroAccessibility.successHaptic()
                     onToast(
                         .init(
@@ -1349,7 +1414,7 @@ struct MangaActionButtons: View {
                         .init(
                             kind: .error,
                             title: "Couldn't save",
-                            subtitle: supabaseService.errorMessage,
+                            subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: false) },
                             actionTitle: nil,
                             onAction: nil
                         )
@@ -1360,7 +1425,7 @@ struct MangaActionButtons: View {
     }
 
     private func handleReadAction() {
-        guard let link = readLink, let linkURL = validatedURL(from: link.url) else {
+        guard let link = readLink, let linkURL = ProviderAvailabilityStore.validatedOutboundURL(link.url) else {
             KuroAccessibility.impactHaptic(.light)
             onToast(
                 .init(
@@ -1378,167 +1443,19 @@ struct MangaActionButtons: View {
         if allLinks.count > 1 {
             showProviders = true
         } else {
-            supabaseService.recordOutboundLink(mediaType: "MANGA", mediaId: manga.id, linkKind: "read", provider: link.title)
+            outboundLinks.recordOutboundLink(mediaType: "MANGA", mediaId: manga.id, linkKind: "read", provider: link.title)
             openURL(linkURL)
         }
     }
 
+    /// Resolves the read links through the ProviderAvailability owner (keyed on the manga id; the
+    /// primary is the first item) and publishes them unless this run was superseded.
     private func refreshLinks() async {
-        let locale = Locale.current.identifier
-        let preferredAudio = locale.lowercased().hasPrefix("de") ? "de" : "en"
-        let links = await supabaseService.fetchLegalReadLinks(
-            mediaId: manga.id,
-            locale: locale
-        )
-        var availabilityStatus: MediaAvailabilityStatus? = nil
-        var requestedRefresh = false
-        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
-            availabilityStatus = await supabaseService.mediaAvailabilityStatus(
-                mediaId: manga.id,
-                mediaType: "MANGA"
-            )
-            await supabaseService.fetchProviderAvailabilityV2(
-                items: [(mediaType: "MANGA", mediaId: manga.id)],
-                preferredAudioLang: preferredAudio,
-                preferredSubLang: nil,
-                includeUnknown: true
-            )
-            requestedRefresh = await supabaseService.enqueueAvailabilityRefreshIfStale(
-                mediaType: "MANGA",
-                mediaId: manga.id,
-                reason: "detail_open"
-            )
-            if requestedRefresh {
-                availabilityStatus = await supabaseService.mediaAvailabilityStatus(
-                    mediaId: manga.id,
-                    mediaType: "MANGA"
-                )
-            }
-        }
-        let availability = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
-            ? supabaseService.providerAvailability(mediaId: manga.id, mediaType: "MANGA")
-            : []
-        let verifiedItems = makeVerifiedProviderItems(
-            providers: availability.filter { !$0.isStale },
-            fallbackLinks: links,
-            ranking: supabaseService.mangaProviderRanking,
-            preferredAudioLang: preferredAudio,
-            preferredSubtitleLang: nil,
-            originalLanguage: nil
-        ).filter { validatedURL(from: $0.url) != nil }
-        let catalogItems = makeCatalogProviderItems(
-            from: links,
-            ranking: supabaseService.mangaProviderRanking,
-            fallbackSubtitle: "Catalog link only. Reading rights may vary by region and publisher."
-        ).filter { validatedURL(from: $0.url) != nil }
-        let note = FeatureFlags.shared.isStreamingAvailabilityV1Enabled
-            ? supabaseService.bestProviderAvailabilityNote(
-                mediaId: manga.id,
-                mediaType: "MANGA",
-                preferredAudioLang: preferredAudio
-            )
-            : nil
-        let displayedItems = verifiedItems.isEmpty ? catalogItems : verifiedItems
-        await MainActor.run {
-            self.allLinks = displayedItems
-            self.readLink = displayedItems.first
-            if !verifiedItems.isEmpty {
-                self.readAvailabilityNote = note?.displayText ?? "Verified providers for this title."
-            } else if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
-                self.readAvailabilityNote = "Catalog links only. Verified availability is still being refreshed."
-            } else {
-                self.readAvailabilityNote = "Reading availability may vary by region and publisher."
-            }
-            self.readAvailabilityStatusCaption = providerAvailabilityStatusCaption(
-                status: availabilityStatus,
-                requestedRefresh: requestedRefresh,
-                hasVerifiedProviders: !verifiedItems.isEmpty
-            )
-        }
-    }
-
-    private func validatedURL(from raw: String?) -> URL? {
-        guard let raw else { return nil }
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        var candidate = trimmed.replacingOccurrences(of: " ", with: "%20")
-        let lower = candidate.lowercased()
-        if !(lower.hasPrefix("http://") || lower.hasPrefix("https://")) {
-            guard !candidate.contains("://") else { return nil }
-            candidate = "https://\(candidate)"
-        }
-        if let url = URL(string: candidate) {
-            guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
-            return url
-        }
-        // Percent-encode non-ASCII characters (CJK, Korean, etc.)
-        guard let encoded = candidate.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-              let url = URL(string: encoded),
-              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { return nil }
-        return url
-    }
-
-}
-
-// MARK: - Detail Page Skeleton Placeholders
-
-private struct DetailCreditsSkeleton: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: KuroSpacing.md) {
-            // "CAST" caption placeholder
-            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.06))
-                .frame(width: 40, height: 10)
-                .kuroShimmer()
-
-            // Circle avatars row
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 14) {
-                    ForEach(0..<5, id: \.self) { _ in
-                        Circle()
-                            .fill(Color.black.opacity(0.06))
-                            .frame(width: 64, height: 64)
-                            .kuroShimmer()
-                    }
-                }
-            }
-
-            // "PRODUCTION" caption placeholder
-            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.06))
-                .frame(width: 80, height: 10)
-                .kuroShimmer()
-
-            // Text line placeholders
-            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.05))
-                .frame(width: 180, height: 12)
-                .kuroShimmer()
-
-            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.05))
-                .frame(width: 140, height: 12)
-                .kuroShimmer()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-private struct DetailLadderSkeleton: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: KuroSpacing.sm) {
-            // Caption placeholder
-            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.06))
-                .frame(width: 100, height: 10)
-                .kuroShimmer()
-
-            // Body text placeholder
-            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.04))
-                .frame(width: 220, height: 14)
-                .kuroShimmer()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        guard let snapshot = await availability.resolveReadLinks(mangaId: manga.id),
+              !Task.isCancelled else { return }
+        allLinks = snapshot.all
+        readLink = snapshot.primary
+        readAvailabilityNote = snapshot.note
+        readAvailabilityStatusCaption = snapshot.statusCaption
     }
 }

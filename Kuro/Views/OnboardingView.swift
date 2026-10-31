@@ -11,6 +11,7 @@ enum OnboardingDestination {
 struct OnboardingView: View {
     let onComplete: (OnboardingDestination) -> Void
 
+    @Environment(FeatureFlags.self) private var flags
     @State private var currentPage = 0
     @State private var appeared = false
 
@@ -81,7 +82,7 @@ struct OnboardingView: View {
                         }
                         .buttonStyle(.plain)
                     } else {
-                        if FeatureFlags.shared.tasteDeckV1Enabled {
+                        if flags.tasteDeckV1Enabled {
                             // Deck owns index 0: the last card's primary CTA lands on it.
                             Button(action: { completeOnboarding(.tasteDeck) }) {
                                 Text(isGermanLocale ? "ZEIG KURO DEINEN GESCHMACK" : "TEACH KURO YOUR TASTE")

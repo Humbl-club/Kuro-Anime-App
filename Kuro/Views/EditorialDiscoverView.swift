@@ -2,11 +2,18 @@
 // Functional-first anime discovery with refined aesthetics
 // Dense content, efficient browsing, elegant presentation
 
+import KuroCore
+import KuroLibrary
 import SwiftUI
 
 struct EditorialDiscoverView: View {
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(SocialActivityStore.self) private var social
+    @Environment(CatalogStore.self) private var catalog
+    @Environment(DiscoveryStore.self) private var discovery
+    @Environment(TasteStore.self) private var taste
     @Environment(NetworkMonitor.self) private var networkMonitor
+    @Environment(FeatureFlags.self) private var flags
     @State private var vm = DiscoverViewModel()
     @State private var isLoadingSections = false
     @State private var didInitialLoad = false
@@ -186,7 +193,7 @@ struct EditorialDiscoverView: View {
                     }
 
                     // Stage 4 — The Shelf (tonight's realm), flag-gated.
-                    if FeatureFlags.shared.discoverRealmRailsV1Enabled,
+                    if flags.discoverRealmRailsV1Enabled,
                        !vm.tonightShelf.isEmpty,
                        selectedMediaType == .all || selectedMediaType == .anime {
                         CompactHorizontalSection(
@@ -211,7 +218,7 @@ struct EditorialDiscoverView: View {
                     }
 
                     // Stage 4 — Hidden Gem (reuse One Thing card grammar).
-                    if FeatureFlags.shared.discoverRealmRailsV1Enabled,
+                    if flags.discoverRealmRailsV1Enabled,
                        let gem = vm.hiddenGem,
                        (selectedMediaType == .all
                         || (selectedMediaType == .anime && gem.kind == .anime)
@@ -370,7 +377,11 @@ struct EditorialDiscoverView: View {
             .scrollDisabled(false)
             .background(Color.kuroBackground)
             .refreshable {
+                // Pull-to-refresh is user-initiated: also re-read the Library projection
+                // (badges/progress), next to the bundle. The first load relies on the session refresh.
+                async let libraryRefresh: Void? = try? library.refresh()
                 await refreshSections()
+                _ = await libraryRefresh
             }
             .overlay(alignment: .top) {
                 if let bannerMessage {
@@ -435,10 +446,10 @@ struct EditorialDiscoverView: View {
 
         let hadContentBefore = await MainActor.run { hasAnyContent }
 
-        // Keep local list state up to date for badges/progress, while fetching the server bundle.
-        async let _ = supabaseService.fetchUserLists()
-        async let dailyFeatureResult = supabaseService.fetchDailyFeature()
-        let bundle = await supabaseService.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
+        // List state for badges/progress comes from the Library projection (session refresh +
+        // realtime hints); only the server bundle is fetched here.
+        async let dailyFeatureResult = discovery.fetchDailyFeature()
+        let bundle = await discovery.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
 
         let gotAnyNew = bundle.map { b in
             !(b.anime.essentials.isEmpty && b.anime.classics.isEmpty && b.anime.newToYou.isEmpty &&
@@ -497,9 +508,9 @@ struct EditorialDiscoverView: View {
         // Discover P1, flag-gated: Because-You replaces NEW TO YOU when the
         // taste rail clears the evidence floor (>= 4 cards). Otherwise the
         // existing personalized NTY swap runs, failing that the bundle rail.
-        if FeatureFlags.shared.personalizedNewToYouV1Enabled {
+        if flags.personalizedNewToYouV1Enabled {
             var becauseApplied = false
-            if let rail = await supabaseService.fetchBecauseYouRail(limit: 12), rail.count >= 4 {
+            if let rail = await discovery.fetchBecauseYouRail(limit: 12), rail.count >= 4 {
                 let items = rail.map { $0.toMedia() }
                 let reason = rail.first?.reasonTitle
                 await MainActor.run {
@@ -515,7 +526,7 @@ struct EditorialDiscoverView: View {
                 }
                 // Personalized NEW TO YOU (flag-gated): swap the rail's data source.
                 // Any error or empty result quietly keeps the bundle rail.
-                if let personalized = await supabaseService.fetchPersonalizedNewToYou(limit: 20, mediaType: "ANIME"),
+                if let personalized = await taste.fetchPersonalizedNewToYou(limit: 20, mediaType: "ANIME"),
                    !personalized.isEmpty {
                     let mapped = personalized.map { $0.toAnimeCard() }
                     await MainActor.run { vm.newToYou = mapped }
@@ -529,9 +540,9 @@ struct EditorialDiscoverView: View {
         }
 
         // Stage 4 — The Shelf + Hidden Gem (flag-gated, independent of P1).
-        if FeatureFlags.shared.discoverRealmRailsV1Enabled {
-            async let shelfResult = supabaseService.fetchTonightShelf(limit: 12)
-            async let gemResult = supabaseService.fetchRealmHiddenGem()
+        if flags.discoverRealmRailsV1Enabled {
+            async let shelfResult = discovery.fetchTonightShelf(limit: 12)
+            async let gemResult = discovery.fetchRealmHiddenGem()
             let shelf = await shelfResult
             let gem = await gemResult
             await MainActor.run {
@@ -559,7 +570,7 @@ struct EditorialDiscoverView: View {
         KuroPerf.end(perf, message: gotAnyNew ? "ok" : "no new data")
 
         // Prefetch friend tracking counts for card indicators
-        if FeatureFlags.shared.isSocialActivityV1Enabled {
+        if flags.isSocialActivityV1Enabled {
             let items: [(mediaType: String, mediaId: Int)] = await MainActor.run {
                 let anime = (vm.essentials + vm.trending + vm.topRated + vm.newToYou + vm.newlyAdded + vm.currentSeason)
                     .map { (mediaType: "ANIME", mediaId: $0.id) }
@@ -568,7 +579,7 @@ struct EditorialDiscoverView: View {
                 return Array((anime + manga).prefix(100))
             }
             if !items.isEmpty {
-                supabaseService.prefetchFriendCounts(items: items)
+                social.prefetchFriendCounts(items: items)
             }
         }
 
@@ -583,7 +594,7 @@ struct EditorialDiscoverView: View {
             return items
         }
         if !ladderCandidates.isEmpty {
-            supabaseService.prefetchMediaRelationRefreshRequests(
+            catalog.prefetchMediaRelationRefreshRequests(
                 items: ladderCandidates,
                 reason: "discover_primary"
             )
@@ -762,358 +773,6 @@ struct CompactHorizontalSection<Item: MediaDisplayable>: View {
     }
 }
 
-// MARK: - Dense 2-Column Section
-// Efficient grid showing maximum anime with infinite scroll
-struct Dense2ColumnSection: View {
-    let title: String
-    let subtitle: String
-    let items: [Anime]
-    let geometry: GeometryProxy
-    @Environment(SupabaseService.self) private var supabaseService
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Clean section header
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .tracking(0.5)
-                    .foregroundColor(.black)
-
-                Text(subtitle)
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(0.3)
-                    .foregroundColor(.black.opacity(0.5))
-            }
-            .padding(.horizontal, 20)
-
-            // Dense 2-column grid with FIXED card dimensions
-            let horizontalPadding: CGFloat = 20
-            let spacing: CGFloat = 12
-            let totalHorizontalPadding = horizontalPadding * 2
-            let totalSpacing = spacing
-            let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
-            let cardWidth = floor(availableWidth / 2)
-            let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 52
-            let cardSpacing: CGFloat = 8
-            let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
-            let rowSpacing: CGFloat = 14
-
-            let columns = [
-                GridItem(.fixed(cardWidth), spacing: spacing),
-                GridItem(.fixed(cardWidth), spacing: spacing)
-            ]
-
-            LazyVGrid(columns: columns, spacing: rowSpacing) {
-                ForEach(items, id: \.id) { anime in
-                    GridAnimeCard(media: anime, cardWidth: cardWidth, cardHeight: totalCardHeight)
-                        .onAppear {
-                            // Load more when reaching last item
-                            if anime.id == items.last?.id && supabaseService.hasMoreAnime {
-                                Task {
-                                    await supabaseService.fetchNextAnimePage()
-                                }
-                            }
-                        }
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-}
-
-// MARK: - Compact Anime Card (for horizontal scrolls)
-// Small, efficient, shows key info
-struct CompactAnimeCard: View {
-    let media: any MediaDisplayable
-    var cardWidth: CGFloat = 110
-    @State private var showDetail = false
-    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
-
-    var body: some View {
-        let imageHeight: CGFloat = floor(cardWidth / 0.6667)
-        // Keep a fixed total height so horizontal rows never "wobble" based on title wrapping.
-        let titleHeight: CGFloat = 32
-        let metaHeight: CGFloat = 12
-        let innerSpacingImageToText: CGFloat = 7
-        let innerSpacingTitleToMeta: CGFloat = 3
-        let totalHeight = imageHeight + innerSpacingImageToText + titleHeight + innerSpacingTitleToMeta + metaHeight
-
-        VStack(alignment: .leading, spacing: 7) {
-                // Image with score badge
-                ZStack(alignment: .topTrailing) {
-                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 420) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: cardWidth, height: imageHeight)
-                                .clipped()
-                        case .failure, .empty:
-                            Rectangle()
-                                .fill(Color.black.opacity(0.05))
-                                .frame(width: cardWidth, height: imageHeight)
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                    .frame(width: cardWidth, height: imageHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                    if let rating = media.rating, rating > 0 {
-                        KuroScoreBadge(score: rating)
-                            .padding(6)
-                    }
-                }
-
-                // Title and info
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(media.title)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.black)
-                        .lineLimit(2)
-                        .frame(height: titleHeight, alignment: .top)
-
-                    HStack(spacing: 4) {
-                        Text(media.year)
-                            .font(.system(size: 10, weight: .regular))
-                            .foregroundColor(.black.opacity(0.6))
-
-                        if let episodes = media.episodes, episodes > 0 {
-                            Text("·")
-                                .foregroundColor(.black.opacity(0.4))
-                            Text("\(episodes) eps")
-                                .font(.system(size: 10, weight: .regular))
-                                .foregroundColor(.black.opacity(0.6))
-                        } else if let chapters = media.chapters, chapters > 0 {
-                            Text("·")
-                                .foregroundColor(.black.opacity(0.4))
-                            Text("\(chapters) ch")
-                                .font(.system(size: 10, weight: .regular))
-                                .foregroundColor(.black.opacity(0.6))
-                        }
-                    }
-                    .frame(height: metaHeight, alignment: .topLeading)
-                }
-                .frame(width: cardWidth)
-        }
-        .frame(width: cardWidth, height: totalHeight, alignment: .topLeading)
-        .contentShape(Rectangle())
-        .kuroDeliberateTap {
-            guard !suppressCardTaps else { return }
-            KuroAccessibility.impactHaptic(.light)
-            showDetail = true
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabelText())
-        .accessibilityHint("Opens details")
-        .accessibilityAddTraits(.isButton)
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: media.kind, id: media.id)
-        }
-    }
-
-    private func accessibilityLabelText() -> Text {
-        var parts: [String] = []
-        parts.append(media.title)
-        if !media.year.isEmpty { parts.append(media.year) }
-        if let episodes = media.episodes, episodes > 0 { parts.append("\(episodes) episodes") }
-        if let chapters = media.chapters, chapters > 0 { parts.append("\(chapters) chapters") }
-        if let rating = media.rating, rating > 0 { parts.append(String(format: "Rating %.1f", rating)) }
-        return Text(parts.joined(separator: ", "))
-    }
-}
-
-// MARK: - Grid Anime Card (for 2-column grids)
-// Vertical card optimized for grid layouts with FIXED dimensions
-struct GridAnimeCard: View {
-    let media: any MediaDisplayable
-    let cardWidth: CGFloat
-    let cardHeight: CGFloat
-    @State private var showDetail = false
-    @State private var showAddToList = false
-    @State private var showAddToClub = false
-    @Environment(SupabaseService.self) private var supabaseService
-    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
-
-    private var mediaType: String {
-        media.kind.rawValue
-    }
-
-    private var isInCollection: Bool {
-        supabaseService.isInCollection(mediaId: media.id, mediaType: mediaType)
-    }
-
-    private static let countFormatter: NumberFormatter = {
-        let f = NumberFormatter()
-        f.numberStyle = .decimal
-        f.maximumFractionDigits = 0
-        return f
-    }()
-
-    private func countString(_ value: Int) -> String {
-        Self.countFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
-    }
-
-    private var metaLine: String? {
-        var parts: [String] = []
-
-        let digits = media.year.filter(\.isNumber)
-        if digits.count >= 4 {
-            parts.append(String(digits.prefix(4)))
-        }
-
-        if let episodes = media.episodes, episodes > 0 {
-            parts.append("\(countString(episodes)) eps")
-        } else if let chapters = media.chapters, chapters > 0 {
-            parts.append("\(countString(chapters)) ch")
-        } else if let status = media.statusRaw?.uppercased() {
-            if status == "RELEASING" { parts.append("airing") }
-            if status == "FINISHED" { parts.append("finished") }
-        } else if let format = media.formatRaw, !format.isEmpty {
-            parts.append(format.lowercased())
-        }
-
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-                // Image with score - FIXED HEIGHT
-                let imageHeight = max(100, floor(cardWidth / 0.7))
-
-                ZStack(alignment: .top) {
-                    KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 520) { phase in
-                        switch phase {
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: cardWidth, height: imageHeight)
-                                .clipped()
-                        case .failure, .empty:
-                            Rectangle()
-                                .fill(Color.black.opacity(0.05))
-                                .frame(width: cardWidth, height: imageHeight)
-                        @unknown default:
-                            EmptyView()
-                        }
-                    }
-                    .frame(width: cardWidth, height: imageHeight)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                    HStack(alignment: .top) {
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 6) {
-                            if let rating = media.rating, rating > 0 {
-                                KuroScoreBadge(score: rating)
-                            }
-
-                            if isInCollection {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.black.opacity(0.55))
-                                    .background(
-                                        Circle()
-                                            .fill(Color.white)
-                                            .frame(width: 18, height: 18)
-                                    )
-                            }
-                        }
-                    }
-                    .padding(6)
-                }
-
-                // Title and info
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(KuroCardText.sanitizeTitleForCard(media.title))
-                        .font(.system(size: 12, weight: .light, design: .serif))
-                        .textCase(.uppercase)
-                        .tracking(media.title.count >= 26 ? 0.3 : 0.6)
-                        .foregroundColor(.black.opacity(0.9))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.92)
-                        .allowsTightening(true)
-                        .truncationMode(.tail)
-                        .frame(height: 32, alignment: .top)
-
-                    if let metaLine {
-                        Text(metaLine)
-                            .font(.system(size: 9, weight: .light))
-                            .foregroundColor(.black.opacity(0.5))
-                            .lineLimit(1)
-                    }
-
-                }
-                .frame(width: cardWidth, alignment: .topLeading)
-        }
-        .frame(width: cardWidth, height: cardHeight, alignment: .top)
-        .contentShape(Rectangle())
-        .kuroDeliberateTap {
-            guard !suppressCardTaps else { return }
-            KuroAccessibility.impactHaptic(.light)
-            showDetail = true
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabelText())
-        .accessibilityHint("Opens details")
-        .accessibilityAddTraits(.isButton)
-        .contextMenu {
-            Button(action: {
-                KuroAccessibility.impactHaptic(.light)
-                supabaseService.toggleInCollection(mediaId: media.id, mediaType: mediaType)
-            }) {
-                Label(
-                    isInCollection ? "Remove from List" : "Quick Add (Planned)",
-                    systemImage: isInCollection ? "minus.circle" : "plus.circle"
-                )
-            }
-
-            Button(action: {
-                KuroAccessibility.impactHaptic(.light)
-                showAddToList = true
-            }) {
-                Label(
-                    isInCollection ? "Edit List" : "Add to List…",
-                    systemImage: "slider.horizontal.3"
-                )
-            }
-
-            if !supabaseService.myClubs.isEmpty {
-                Button(action: {
-                    KuroAccessibility.impactHaptic(.light)
-                    showAddToClub = true
-                }) {
-                    Label("Add to Club\u{2026}", systemImage: "person.2.circle")
-                }
-            }
-        }
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: media.kind, id: media.id)
-        }
-        .sheet(isPresented: $showAddToList) {
-            AddToListSheet(media: media)
-        }
-        .sheet(isPresented: $showAddToClub) {
-            AddToClubRailSheet(mediaId: media.id, mediaType: mediaType.uppercased())
-        }
-    }
-
-    private func accessibilityLabelText() -> Text {
-        var parts: [String] = []
-        parts.append(media.title)
-        if !media.year.isEmpty { parts.append(media.year) }
-        if let episodes = media.episodes, episodes > 0 { parts.append("\(episodes) episodes") }
-        if let chapters = media.chapters, chapters > 0 { parts.append("\(chapters) chapters") }
-        if let rating = media.rating, rating > 0 { parts.append(String(format: "Rating %.1f", rating)) }
-        if isInCollection { parts.append("Saved") }
-        return Text(parts.joined(separator: ", "))
-    }
-}
-
 // MARK: - Editorial Loading View
 struct EditorialLoadingView: View {
     var body: some View {
@@ -1274,55 +933,6 @@ struct CompactHorizontalMangaSection<Item: MediaDisplayable>: View {
     }
 }
 
-// Dense 2-Column Manga Section
-struct Dense2ColumnMangaSection<Item: MediaDisplayable>: View {
-    let title: String
-    let subtitle: String
-    let items: [Item]
-    let geometry: GeometryProxy
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 16, weight: .semibold))
-                    .tracking(0.5)
-                    .foregroundColor(.black)
-
-                Text(subtitle)
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(0.3)
-                    .foregroundColor(.black.opacity(0.5))
-            }
-            .padding(.horizontal, 20)
-
-            let horizontalPadding: CGFloat = 20
-            let spacing: CGFloat = 12
-            let totalHorizontalPadding = horizontalPadding * 2
-            let totalSpacing = spacing
-            let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
-            let cardWidth = floor(availableWidth / 2)
-            let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 52
-            let cardSpacing: CGFloat = 8
-            let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
-            let rowSpacing: CGFloat = 14
-
-            let columns = [
-                GridItem(.fixed(cardWidth), spacing: spacing),
-                GridItem(.fixed(cardWidth), spacing: spacing)
-            ]
-
-            LazyVGrid(columns: columns, spacing: rowSpacing) {
-                ForEach(items, id: \.id) { manga in
-                    GridAnimeCard(media: manga, cardWidth: cardWidth, cardHeight: totalCardHeight)
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-}
-
 // MARK: - Full Section Header
 struct DiscoverFullSectionHeader: View {
     let title: String
@@ -1385,7 +995,16 @@ struct DiscoverFullSectionHeader: View {
 
 #Preview {
     EditorialDiscoverView()
-        .environment(SupabaseService.shared)
+        .environment(AppComposition.shared.identity)
+        .environment(AppComposition.shared.library)
+        .environment(AppComposition.shared.catalog)
+        .environment(AppComposition.shared.discovery)
+        .environment(AppComposition.shared.social)
+        .environment(AppComposition.shared.availability)
+        .environment(AppComposition.shared.clubs)
+        .environment(AppComposition.shared.taste)
+        .environment(AppComposition.shared.flags)
+        .environment(AppComposition.shared.libraryActions)
 }
 
 // MARK: - Dense 2-Column Section Fixed (No GeometryReader)
@@ -1636,6 +1255,8 @@ struct FullSectionView<Item: MediaDisplayable>: View {
                 }
             }
         }
+        // This "see all" sheet's own presentation context: its grid cards open their routes here.
+        .routePresenter()
     }
 }
 
@@ -1698,6 +1319,8 @@ struct FullMangaSectionView<Item: MediaDisplayable>: View {
                 }
             }
         }
+        // This "see all" sheet's own presentation context: its grid cards open their routes here.
+        .routePresenter()
     }
 }
 

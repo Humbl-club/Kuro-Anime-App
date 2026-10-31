@@ -1,3 +1,4 @@
+import KuroCore
 import SwiftUI
 
 // MARK: - Entity Sort Mode
@@ -113,7 +114,7 @@ enum AuthorRoleFilter: String, CaseIterable {
 struct CharacterDetailSheet: View {
     let character: Character
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(CatalogStore.self) private var catalog
     @State private var works: [Media] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
@@ -199,9 +200,11 @@ struct CharacterDetailSheet: View {
             }
         }
         .task {
-            works = await supabaseService.fetchMediaByCharacter(characterId: character.id)
+            works = await catalog.fetchMediaByCharacter(characterId: character.id)
             isLoading = false
         }
+        // This entity sheet's own presentation context: its work cards open their routes here.
+        .routePresenter()
     }
 
     private var characterMetadata: [String] {
@@ -221,7 +224,7 @@ struct CharacterDetailSheet: View {
 struct StaffDetailSheet: View {
     let staff: Staff
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(CatalogStore.self) private var catalog
     @State private var works: [(media: Media, role: String)] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
@@ -300,9 +303,11 @@ struct StaffDetailSheet: View {
             }
         }
         .task {
-            works = await supabaseService.fetchAnimeByStaff(staffId: staff.id)
+            works = await catalog.fetchAnimeByStaff(staffId: staff.id)
             isLoading = false
         }
+        // This entity sheet's own presentation context: its work cards open their routes here.
+        .routePresenter()
     }
 }
 
@@ -311,7 +316,7 @@ struct StaffDetailSheet: View {
 struct AuthorDetailSheet: View {
     let author: Author
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(CatalogStore.self) private var catalog
     @State private var works: [(media: Media, role: String)] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
@@ -389,9 +394,11 @@ struct AuthorDetailSheet: View {
             }
         }
         .task {
-            works = await supabaseService.fetchMangaByAuthor(authorId: author.id)
+            works = await catalog.fetchMangaByAuthor(authorId: author.id)
             isLoading = false
         }
+        // This entity sheet's own presentation context: its work cards open their routes here.
+        .routePresenter()
     }
 }
 
@@ -400,7 +407,7 @@ struct AuthorDetailSheet: View {
 struct StudioDetailSheet: View {
     let studio: Studio
     @Environment(\.dismiss) private var dismiss
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(CatalogStore.self) private var catalog
     @State private var works: [Media] = []
     @State private var isLoading = true
     @State private var sortMode: EntitySortMode = .rating
@@ -471,9 +478,11 @@ struct StudioDetailSheet: View {
             }
         }
         .task {
-            works = await supabaseService.fetchAnimeByStudio(studioId: studio.id)
+            works = await catalog.fetchAnimeByStudio(studioId: studio.id)
             isLoading = false
         }
+        // This entity sheet's own presentation context: its work cards open their routes here.
+        .routePresenter()
     }
 }
 

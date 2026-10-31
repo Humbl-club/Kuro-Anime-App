@@ -1,5 +1,4 @@
 import SwiftUI
-import PostgREST
 
 // MARK: - Journal Status Bar
 
@@ -113,7 +112,7 @@ struct JournalStatusBar: View {
 // MARK: - Journal Hero Section
 
 struct JournalHeroSection: View {
-    let bundle: SupabaseService.ClubBundle
+    let bundle: ClubBundle
     let heroHeight: CGFloat
     let scrollOffset: CGFloat
     let containerWidth: CGFloat

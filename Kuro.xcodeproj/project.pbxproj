@@ -13,6 +13,9 @@
 		95CE206A2EB2350900BEE61E /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 95CE20692EB2350900BEE61E /* Realtime */; };
 		95CE206C2EB2350900BEE61E /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 95CE206B2EB2350900BEE61E /* Storage */; };
 		95CE206E2EB2350900BEE61E /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 95CE206D2EB2350900BEE61E /* Supabase */; };
+		96A000032EF0000100BEE61E /* KuroCore in Frameworks */ = {isa = PBXBuildFile; productRef = 96A000022EF0000100BEE61E /* KuroCore */; };
+		96A000052EF0000100BEE61E /* KuroLibrary in Frameworks */ = {isa = PBXBuildFile; productRef = 96A000042EF0000100BEE61E /* KuroLibrary */; };
+		96A000072EF0000100BEE61E /* KuroSupabase in Frameworks */ = {isa = PBXBuildFile; productRef = 96A000062EF0000100BEE61E /* KuroSupabase */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +73,9 @@
 				95CE206A2EB2350900BEE61E /* Realtime in Frameworks */,
 				95CE206C2EB2350900BEE61E /* Storage in Frameworks */,
 				95CE206E2EB2350900BEE61E /* Supabase in Frameworks */,
+				96A000032EF0000100BEE61E /* KuroCore in Frameworks */,
+				96A000052EF0000100BEE61E /* KuroLibrary in Frameworks */,
+				96A000072EF0000100BEE61E /* KuroSupabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -147,6 +153,9 @@
 				95CE20692EB2350900BEE61E /* Realtime */,
 				95CE206B2EB2350900BEE61E /* Storage */,
 				95CE206D2EB2350900BEE61E /* Supabase */,
+				96A000022EF0000100BEE61E /* KuroCore */,
+				96A000042EF0000100BEE61E /* KuroLibrary */,
+				96A000062EF0000100BEE61E /* KuroSupabase */,
 			);
 			productName = Kuro;
 			productReference = 953474852E8AA6D5004F4AA2 /* Kuro.app */;
@@ -232,6 +241,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				95CE20622EB2350900BEE61E /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				96A000012EF0000100BEE61E /* XCLocalSwiftPackageReference "Packages/KuroModules" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 953474862E8AA6D5004F4AA2 /* Products */;
@@ -640,6 +650,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		96A000012EF0000100BEE61E /* XCLocalSwiftPackageReference "Packages/KuroModules" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/KuroModules;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		95CE20622EB2350900BEE61E /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -681,6 +698,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 95CE20622EB2350900BEE61E /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		96A000022EF0000100BEE61E /* KuroCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 96A000012EF0000100BEE61E /* XCLocalSwiftPackageReference "Packages/KuroModules" */;
+			productName = KuroCore;
+		};
+		96A000042EF0000100BEE61E /* KuroLibrary */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 96A000012EF0000100BEE61E /* XCLocalSwiftPackageReference "Packages/KuroModules" */;
+			productName = KuroLibrary;
+		};
+		96A000062EF0000100BEE61E /* KuroSupabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 96A000012EF0000100BEE61E /* XCLocalSwiftPackageReference "Packages/KuroModules" */;
+			productName = KuroSupabase;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -1,3 +1,5 @@
+import KuroCore
+import KuroLibrary
 import SwiftUI
 
 // MARK: - Filter Chip
@@ -31,7 +33,7 @@ struct FilterChip: View {
 // MARK: - Control Bar (browse as a "lens" instead of a wall of chips)
 struct BrowseControlBar: View {
     @Binding var showAnime: Bool
-    @Binding var selectedSort: SupabaseService.BrowseSort
+    @Binding var selectedSort: DiscoveryStore.BrowseSort
     @Binding var selectedStatusFilter: BrowseView.StatusFilter?
     @Binding var selectedLengthFilter: BrowseView.LengthFilter?
     @Binding var selectedGenre: String?
@@ -88,7 +90,7 @@ struct BrowseControlBar: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     Menu {
-                        ForEach(SupabaseService.BrowseSort.allCases, id: \.self) { sort in
+                        ForEach(DiscoveryStore.BrowseSort.allCases, id: \.self) { sort in
                             Button(sort.rawValue) { selectedSort = sort }
                         }
                     } label: {
@@ -324,12 +326,12 @@ struct BrowseResultsHeader: View {
 struct BrowseHeroCard: View {
     let media: any MediaDisplayable
     let geometry: GeometryProxy
-    @State private var showDetail = false
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(\.kuroRoutes) private var routes
 
     private var isInCollection: Bool {
-        supabaseService.isInCollection(mediaId: media.id, mediaType: media.kind.rawValue)
+        library.isTracked(media.libraryKey)
     }
 
     var body: some View {
@@ -339,7 +341,7 @@ struct BrowseHeroCard: View {
         Button(action: {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
-            showDetail = true
+            routes.openMedia(MediaRoute(media.libraryKey))
         }) {
             ZStack(alignment: .bottomLeading) {
                 KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 700) { phase in
@@ -414,16 +416,13 @@ struct BrowseHeroCard: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(media.title), \(media.year)")
         .accessibilityHint("Opens details")
-        .sheet(isPresented: $showDetail) {
-            MediaDetailSheet(kind: media.kind, id: media.id)
-        }
     }
 }
 
 struct BrowseFiltersSheet: View {
     struct Selection {
         var showAnime: Bool
-        var sort: SupabaseService.BrowseSort
+        var sort: DiscoveryStore.BrowseSort
         var status: BrowseView.StatusFilter?
         var length: BrowseView.LengthFilter?
         var genre: String?
@@ -439,7 +438,7 @@ struct BrowseFiltersSheet: View {
 
     init(
         showAnime: Bool,
-        selectedSort: SupabaseService.BrowseSort,
+        selectedSort: DiscoveryStore.BrowseSort,
         selectedStatusFilter: BrowseView.StatusFilter?,
         selectedLengthFilter: BrowseView.LengthFilter?,
         selectedGenre: String?,
@@ -463,7 +462,7 @@ struct BrowseFiltersSheet: View {
 
                     SectionTitle(title: "SORT")
                     FlowLayout(spacing: 10) {
-                        ForEach(SupabaseService.BrowseSort.allCases, id: \.self) { s in
+                        ForEach(DiscoveryStore.BrowseSort.allCases, id: \.self) { s in
                             OptionChip(title: s.rawValue, isSelected: draft.sort == s) {
                                 draft.sort = s
                             }
@@ -798,6 +797,13 @@ struct BrowseEmptyState: View {
 
 #Preview {
     BrowseView()
-        .environment(SupabaseService.shared)
+        .environment(AppComposition.shared.identity)
+        .environment(AppComposition.shared.library)
+        .environment(AppComposition.shared.discovery)
+        .environment(AppComposition.shared.social)
+        .environment(AppComposition.shared.availability)
+        .environment(AppComposition.shared.clubs)
+        .environment(AppComposition.shared.flags)
+        .environment(AppComposition.shared.libraryActions)
         .environment(NetworkMonitor())
 }

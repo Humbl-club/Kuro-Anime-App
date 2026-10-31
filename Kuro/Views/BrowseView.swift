@@ -5,12 +5,14 @@
 import SwiftUI
 
 struct BrowseView: View {
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(SocialActivityStore.self) private var social
+    @Environment(DiscoveryStore.self) private var discovery
     @Environment(NetworkMonitor.self) private var networkMonitor
+    @Environment(FeatureFlags.self) private var flags
     @State private var selectedGenre: String? = nil
     @State private var selectedLengthFilter: LengthFilter? = nil
     @State private var selectedStatusFilter: StatusFilter? = nil
-    @State private var selectedSort: SupabaseService.BrowseSort = .popular
+    @State private var selectedSort: DiscoveryStore.BrowseSort = .popular
     @State private var selectedDecade: DecadeFilter? = nil
     @State private var selectedFormat: FormatFilter? = nil
     @State private var showAnime = true
@@ -412,8 +414,8 @@ struct BrowseView: View {
             let urls = page0.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
 
-            if FeatureFlags.shared.isSocialActivityV1Enabled, !page0.isEmpty {
-                supabaseService.prefetchFriendCounts(items: page0.map { (mediaType: "ANIME", mediaId: $0.id) })
+            if flags.isSocialActivityV1Enabled, !page0.isEmpty {
+                social.prefetchFriendCounts(items: page0.map { (mediaType: "ANIME", mediaId: $0.id) })
             }
         } else {
             mangaCursorInt = nil
@@ -441,8 +443,8 @@ struct BrowseView: View {
             let urls = page0.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
 
-            if FeatureFlags.shared.isSocialActivityV1Enabled, !page0.isEmpty {
-                supabaseService.prefetchFriendCounts(items: page0.map { (mediaType: "MANGA", mediaId: $0.id) })
+            if flags.isSocialActivityV1Enabled, !page0.isEmpty {
+                social.prefetchFriendCounts(items: page0.map { (mediaType: "MANGA", mediaId: $0.id) })
             }
         }
     }
@@ -466,8 +468,8 @@ struct BrowseView: View {
             let urls = page.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
 
-            if FeatureFlags.shared.isSocialActivityV1Enabled, !page.isEmpty {
-                supabaseService.prefetchFriendCounts(items: page.map { (mediaType: "ANIME", mediaId: $0.id) })
+            if flags.isSocialActivityV1Enabled, !page.isEmpty {
+                social.prefetchFriendCounts(items: page.map { (mediaType: "ANIME", mediaId: $0.id) })
             }
         } else {
             let page = await fetchMangaPage(cursorInt: mangaCursorInt, cursorDate: mangaCursorDate, cursorId: mangaCursorId)
@@ -481,8 +483,8 @@ struct BrowseView: View {
             let urls = page.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
             if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
 
-            if FeatureFlags.shared.isSocialActivityV1Enabled, !page.isEmpty {
-                supabaseService.prefetchFriendCounts(items: page.map { (mediaType: "MANGA", mediaId: $0.id) })
+            if flags.isSocialActivityV1Enabled, !page.isEmpty {
+                social.prefetchFriendCounts(items: page.map { (mediaType: "MANGA", mediaId: $0.id) })
             }
         }
     }
@@ -490,7 +492,7 @@ struct BrowseView: View {
     private func fetchAnimePage(cursorInt: Int?, cursorDate: Date?, cursorId: Int?) async -> [AnimeCard] {
         let range = selectedLengthFilter?.episodeRange
         let yearRange = selectedDecade?.yearRange
-        return await supabaseService.fetchBrowseAnimePageKeyset(
+        return await discovery.fetchBrowseAnimePageKeyset(
             genre: selectedGenre,
             status: selectedStatusFilter?.statusValue,
             minEpisodes: range?.min,
@@ -509,7 +511,7 @@ struct BrowseView: View {
     private func fetchMangaPage(cursorInt: Int?, cursorDate: Date?, cursorId: Int?) async -> [MangaCard] {
         let range = selectedLengthFilter?.chapterRange
         let yearRange = selectedDecade?.yearRange
-        return await supabaseService.fetchBrowseMangaPageKeyset(
+        return await discovery.fetchBrowseMangaPageKeyset(
             genre: selectedGenre,
             status: selectedStatusFilter?.statusValue,
             minChapters: range?.min,

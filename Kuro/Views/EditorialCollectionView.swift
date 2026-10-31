@@ -2,11 +2,21 @@
 // Vogue/Miu Miu inspired personal collection
 // Refined grid, elegant filters, sophisticated presentation
 
+import KuroCore
+import KuroLibrary
 import SwiftUI
 
 struct EditorialCollectionView: View {
-    @Environment(SupabaseService.self) private var supabaseService
+    @Environment(LibraryStore.self) private var library
+    @Environment(CollectionStore.self) private var collection
+    @Environment(SocialActivityStore.self) private var social
+    @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(NetworkMonitor.self) private var networkMonitor
+    @Environment(AppleFMService.self) private var deviceIntelligence
+    @Environment(FeatureFlags.self) private var flags
+    @Environment(LibraryActions.self) private var libraryActions
+    @Environment(HomeStore.self) private var home
+    @Environment(\.kuroRoutes) private var routes
     @State private var selectedFilter: CollectionFilter = .all
     @State private var selectedSort: CollectionSort = .lastUpdated
     @State private var showListView = false
@@ -25,6 +35,7 @@ struct EditorialCollectionView: View {
     @State private var includeUnknownLanguage: Bool = true
     @State private var searchDebounceTask: Task<Void, Never>?
     @State private var showBatchRemoveConfirm = false
+    @State private var mountedAccount: AccountContext?
 
     enum CollectionFilter: String, CaseIterable {
         case all = "ALL"
@@ -89,12 +100,13 @@ struct EditorialCollectionView: View {
         case progress = "PROGRESS"
     }
 
-    private var items: [Media] { supabaseService.collectionFeedItems }
+    private var items: [Media] { collection.displayedFeedItems }
     private var isGermanLocale: Bool {
         Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
     }
 
     private var displayItems: [Media] {
+        if collection.importedTitleKeys != nil { return items }
         var base = searchResults ?? items
 
         // Media type filter
@@ -105,20 +117,20 @@ struct EditorialCollectionView: View {
         }
 
         // Streaming service filter
-        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled, let slug = selectedServiceFilter {
-            let available = supabaseService.collectionItemsAvailableOn(slug: slug)
+        if flags.isStreamingAvailabilityV1Enabled, let slug = selectedServiceFilter {
+            let available = availability.collectionItemsAvailableOn(slug: slug)
             base = base.filter { available.contains("\($0.kind == .anime ? "ANIME" : "MANGA")-\($0.id)") }
         }
 
         // Language filter
-        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled, let lang = selectedLanguageFilter {
-            let available = supabaseService.collectionItemsWithLanguage(lang: lang, includeUnknown: includeUnknownLanguage)
+        if flags.isStreamingAvailabilityV1Enabled, let lang = selectedLanguageFilter {
+            let available = availability.collectionItemsWithLanguage(lang: lang, includeUnknown: includeUnknownLanguage)
             base = base.filter { available.contains("\($0.kind == .anime ? "ANIME" : "MANGA")-\($0.id)") }
         }
 
         if selectedFilter == .completed {
             base = base.filter { media in
-                guard let entry = supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id) else {
+                guard let entry = library.entry(for: media.libraryKey) else {
                     return false
                 }
                 switch selectedVerdictFilter {
@@ -141,13 +153,13 @@ struct EditorialCollectionView: View {
             return base.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
         case .myRating:
             return base.sorted {
-                (supabaseService.userListEntry(mediaType: $0.kind.rawValue, mediaId: $0.id)?.score ?? 0) >
-                (supabaseService.userListEntry(mediaType: $1.kind.rawValue, mediaId: $1.id)?.score ?? 0)
+                (library.entry(for: $0.libraryKey)?.rating?.value ?? 0) >
+                (library.entry(for: $1.libraryKey)?.rating?.value ?? 0)
             }
         case .progress:
             return base.sorted {
-                let p0 = supabaseService.userListProgress(mediaType: $0.kind.rawValue, mediaId: $0.id) ?? 0
-                let p1 = supabaseService.userListProgress(mediaType: $1.kind.rawValue, mediaId: $1.id) ?? 0
+                let p0 = library.entry(for: $0.libraryKey)?.progress ?? 0
+                let p1 = library.entry(for: $1.libraryKey)?.progress ?? 0
                 return p0 > p1
             }
         }
@@ -160,7 +172,7 @@ struct EditorialCollectionView: View {
     private var statusCounts: [(label: String, count: Int)] {
         var counts: [String: Int] = [:]
         for media in items {
-            if let entry = supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id) {
+            if let entry = library.entry(for: media.libraryKey) {
                 let label: String
                 switch entry.status {
                 case .current: label = "WATCHING"
@@ -179,9 +191,19 @@ struct EditorialCollectionView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
+                if collection.importedTitleKeys != nil {
+                    HStack {
+                        Text("Imported titles").font(.kuroCaption())
+                        Spacer()
+                        Button("View full Collection") { collection.clearImportedTitles() }
+                            .font(.kuroCaption()).frame(minHeight: 44)
+                    }.padding(.horizontal, KuroDesignSpacing.md)
+                }
                 statusSummarySection
-                collectionHeaderSection
-                searchFieldSection
+                if collection.importedTitleKeys == nil {
+                    collectionHeaderSection
+                    searchFieldSection
+                }
                 collectionContent(geometry: geometry)
                 batchActionBar
             }
@@ -207,12 +229,17 @@ struct EditorialCollectionView: View {
             }
             Button("Cancel", role: .cancel) { }
         }
+        .onAppear { mountedAccount = collection.accountSession.current }
+        .onDisappear { mountedAccount = nil }
         .task {
             if !didInitialLoad {
                 didInitialLoad = true
-                await supabaseService.fetchUserLists()
-                await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
-                await prefetchCollectionMetadata(for: Array(supabaseService.collectionFeedItems.prefix(80)))
+                if flags.seriesHomeNativeV1Enabled {
+                    await reloadSeriesCollection()
+                } else {
+                    await collection.fetchCollectionFeed(status: selectedFilter.listStatus)
+                    await prefetchCollectionMetadata(for: Array(collection.collectionFeedItems.prefix(80)))
+                }
             }
         }
         .onChange(of: selectedFilter) { _, _ in
@@ -220,14 +247,46 @@ struct EditorialCollectionView: View {
             searchResults = nil
             selectedVerdictFilter = .all
             Task {
-                await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
+                if flags.seriesHomeNativeV1Enabled { await reloadSeriesCollection() }
+                else { await collection.fetchCollectionFeed(status: selectedFilter.listStatus) }
             }
         }
+        .onChange(of: collection.importedTitleKeys) { _, _ in
+            Task {
+                if flags.seriesHomeNativeV1Enabled { await reloadSeriesCollection() }
+                else { await collection.fetchCollectionFeed(status: selectedFilter.listStatus) }
+            }
+        }
+        .onChange(of: collection.importPublicationRevision) { _, _ in
+            let origin = mountedAccount
+            guard !flags.seriesHomeNativeV1Enabled, collection.importedTitleKeys == nil,
+                  !searchText.isEmpty else { return }
+            Task {
+                guard mountedAccount == origin, collection.accountSession.isCurrent(origin) else { return }
+                await performSearch()
+            }
+        }
+        .onChange(of: home.medium) { _, _ in
+            if flags.seriesHomeNativeV1Enabled { Task { await reloadSeriesCollection() } }
+        }
+    }
+
+    private func reloadSeriesCollection(reset: Bool = true) async {
+        let status: String?
+        switch selectedFilter {
+        case .all: status = nil
+        case .watching: status = home.medium == "manga" ? "READING" : "WATCHING"
+        case .completed: status = "COMPLETED"
+        case .planned: status = "PLANNING"
+        case .paused: status = "PAUSED"
+        case .dropped: status = "DROPPED"
+        }
+        await collection.fetchSeriesPage(medium: home.medium, status: status, query: searchText, reset: reset)
     }
 
     private var completedUnsortedCount: Int {
         items.filter { media in
-            guard let entry = supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id) else {
+            guard let entry = library.entry(for: media.libraryKey) else {
                 return false
             }
             return entry.status == .completed && entry.verdict == nil
@@ -416,14 +475,14 @@ struct EditorialCollectionView: View {
 
     @ViewBuilder
     private var serviceFilterMenu: some View {
-        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled,
-           !supabaseService.userStreamingServices.isEmpty {
+        if flags.isStreamingAvailabilityV1Enabled,
+           !availability.userStreamingServices.isEmpty {
             Menu {
                 Button("ALL SERVICES") {
                     selectedServiceFilter = nil
                 }
-                ForEach(supabaseService.streamingServiceRegistry.filter({
-                    supabaseService.userStreamingServices.contains($0.slug)
+                ForEach(availability.streamingServiceRegistry.filter({
+                    availability.userStreamingServices.contains($0.slug)
                 })) { svc in
                     Button(svc.display_name) {
                         selectedServiceFilter = svc.slug
@@ -434,7 +493,7 @@ struct EditorialCollectionView: View {
                     Image(systemName: "play.tv")
                         .font(.system(size: 9, weight: .regular))
                     Text(selectedServiceFilter != nil
-                         ? (supabaseService.streamingServiceRegistry.first(where: { $0.slug == selectedServiceFilter })?.display_name ?? "SERVICE")
+                         ? (availability.streamingServiceRegistry.first(where: { $0.slug == selectedServiceFilter })?.display_name ?? "SERVICE")
                          : "SERVICE")
                         .font(.system(size: 9, weight: .medium))
                         .tracking(0.8)
@@ -447,7 +506,7 @@ struct EditorialCollectionView: View {
 
     @ViewBuilder
     private var languageFilterMenu: some View {
-        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+        if flags.isStreamingAvailabilityV1Enabled {
             Menu {
                 Button("ANY LANGUAGE") {
                     selectedLanguageFilter = nil
@@ -484,12 +543,14 @@ struct EditorialCollectionView: View {
                         let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
                         if trimmed.isEmpty {
                             searchResults = nil
+                            if flags.seriesHomeNativeV1Enabled { Task { await reloadSeriesCollection() } }
                             return
                         }
                         searchDebounceTask = Task {
                             try? await Task.sleep(for: .milliseconds(300))
                             guard !Task.isCancelled else { return }
-                            searchResults = items.filter { $0.title.localizedCaseInsensitiveContains(trimmed) }
+                            if flags.seriesHomeNativeV1Enabled { await reloadSeriesCollection() }
+                            else { searchResults = items.filter { $0.title.localizedCaseInsensitiveContains(trimmed) } }
                         }
                     }
 
@@ -530,13 +591,89 @@ struct EditorialCollectionView: View {
 
     @ViewBuilder
     private func collectionScrollContent(geometry: GeometryProxy) -> some View {
-        if supabaseService.isCollectionLoading {
+        if flags.seriesHomeNativeV1Enabled {
+            seriesCollection
+        } else if collection.isCollectionLoading {
             EditorialCollectionLoading()
         } else if !hasContent {
             collectionEmptyState
         } else {
             collectionLoadedContent(geometry: geometry)
         }
+    }
+
+    private var seriesCollection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if collection.isCollectionLoading && collection.displayedSeriesGroups.isEmpty {
+                EditorialCollectionLoading()
+            } else if collection.displayedSeriesGroups.isEmpty,let error = collection.collectionErrorMessage {
+                Text(error).font(.kuroBody())
+                Button("Try again") { Task { await reloadSeriesCollection() } }.frame(minHeight:44)
+            } else if collection.displayedSeriesGroups.isEmpty {
+                Text("Nothing in this collection yet.")
+                    .font(.kuroTitle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if collection.importedTitleKeys != nil, collection.displayedSeriesNextCursor != nil {
+                    Button("More imported titles") { Task { await reloadSeriesCollection(reset: false) } }
+                        .frame(minHeight: 44)
+                }
+            } else {
+                ForEach(collection.displayedSeriesGroups) { group in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(group.children.first?.title ?? "Series")
+                            .font(.kuroTitle())
+                            .accessibilityAddTraits(.isHeader)
+                        ForEach(group.children) { child in
+                            let childMedium = child.mediaKind?.rawValue.lowercased() ?? home.medium
+                            let progress = home.displayedProgress(
+                                medium: childMedium,
+                                mediaId: child.mediaId,
+                                server: child.progress, lifecycleId:UUID(uuidString:child.lifecycleId)
+                            )
+                            HStack {
+                                Button {
+                                    routes.openMedia(MediaRoute(kind: childMedium == "manga" ? .manga : .anime, id: child.mediaId))
+                                } label: { Text(child.title).font(.kuroBody()).frame(maxWidth: .infinity, minHeight: 44, alignment: .leading) }
+                                .buttonStyle(.plain)
+                                Spacer()
+                                Button {
+                                    Task {
+                                        await home.advance(
+                                            medium: childMedium,
+                                            mediaId: child.mediaId,
+                                            lifecycleId: child.lifecycleId,
+                                            baseRevision: child.serverRevision,
+                                            serverProgress: child.progress
+                                        )
+                                    }
+                                } label: {
+                                    Text("\(progress)")
+                                        .font(.kuroCaption())
+                                        .frame(minWidth: 44, minHeight: 44)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Progress \(progress)")
+                                .accessibilityHint("Advances progress by one")
+                            }
+                            .frame(minHeight: 44)
+                        }
+                        if group.childrenNext != nil {
+                            Button(home.medium == "manga" ? "More titles" : "More seasons") { Task { await collection.fetchMoreSeriesChildren(groupKey: group.groupKey) } }
+                                .font(.kuroCaption()).frame(minHeight: 44)
+                        }
+                    }
+                }
+                if let message = collection.collectionErrorMessage { Text(message).font(.kuroCaption()) }
+                if collection.displayedSeriesNextCursor != nil {
+                    Button("More") {
+                        Task { await reloadSeriesCollection(reset: false) }
+                    }
+                    .frame(minHeight: 44)
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
     }
 
     @ViewBuilder
@@ -552,7 +689,7 @@ struct EditorialCollectionView: View {
                     .foregroundColor(.black.opacity(0.4))
             }
             .padding(.top, 80)
-        } else if let msg = supabaseService.collectionErrorMessage, !msg.isEmpty {
+        } else if let msg = collection.collectionErrorMessage, !msg.isEmpty {
             collectionErrorState(message: msg)
         } else {
             EditorialCollectionEmpty(
@@ -585,8 +722,8 @@ struct EditorialCollectionView: View {
                 .multilineTextAlignment(.center)
             Button {
                 Task {
-                    await supabaseService.fetchUserLists()
-                    await supabaseService.fetchCollectionFeed(status: nil)
+                    try? await library.refresh()
+                    await collection.fetchCollectionFeed(status: nil)
                 }
             } label: {
                 Text("RETRY")
@@ -639,13 +776,13 @@ struct EditorialCollectionView: View {
     private var collectionPaginationSentinel: some View {
         KuroLoadMoreSentinel(
             itemCount: items.count,
-            hasMore: supabaseService.hasMoreCollectionFeed,
-            isLoading: supabaseService.isLoadingMoreCollectionFeed
+            hasMore: collection.hasMoreDisplayedFeed,
+            isLoading: collection.isLoadingMoreCollectionFeed
         ) {
-            let countBefore = supabaseService.collectionFeedItems.count
-            let loaded = await supabaseService.fetchNextCollectionFeedPage(limit: 90)
+            let countBefore = collection.collectionFeedItems.count
+            let loaded = await collection.fetchNextCollectionFeedPage(limit: 90)
             guard loaded else { return }
-            let newItems = Array(supabaseService.collectionFeedItems.dropFirst(countBefore))
+            let newItems = Array(collection.collectionFeedItems.dropFirst(countBefore))
             await prefetchCollectionMetadata(for: newItems)
         }
     }
@@ -664,13 +801,17 @@ struct EditorialCollectionView: View {
 
     @MainActor
     private func performSearch() async {
+        guard let context = mountedAccount, collection.accountSession.isCurrent(context) else { return }
+        if flags.seriesHomeNativeV1Enabled { await reloadSeriesCollection(); return }
+        let query = searchText
         guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             searchResults = nil
             return
         }
 
         // Try FM intent parsing first (no-op on unsupported devices)
-        if let intent = await supabaseService.fmService.parseSearchIntent(query: searchText) {
+        if let intent = await deviceIntelligence.parseSearchIntent(query: query) {
+            guard mountedAccount == context, collection.accountSession.isCurrent(context), searchText == query else { return }
             var filtered = items
             if let genre = intent.genre, !genre.isEmpty {
                 filtered = filtered.filter { media in
@@ -701,6 +842,7 @@ struct EditorialCollectionView: View {
             }
             searchResults = filtered
         } else {
+            guard mountedAccount == context, collection.accountSession.isCurrent(context), searchText == query else { return }
             // Fallback: simple substring match
             searchResults = items.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
         }
@@ -708,14 +850,15 @@ struct EditorialCollectionView: View {
 
     @MainActor
     private func refreshCollection() async {
+        if flags.seriesHomeNativeV1Enabled { await reloadSeriesCollection(); return }
         let hadContentBefore = hasContent
-        await supabaseService.fetchUserLists()
-        await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
-        if hadContentBefore, let msg = supabaseService.collectionErrorMessage, !msg.isEmpty {
+        try? await library.refresh()
+        await collection.fetchCollectionFeed(status: selectedFilter.listStatus)
+        if hadContentBefore, let msg = collection.collectionErrorMessage, !msg.isEmpty {
             showBanner("Couldn't refresh. Try again.")
             return
         }
-        await prefetchCollectionMetadata(for: Array(supabaseService.collectionFeedItems.prefix(80)))
+        await prefetchCollectionMetadata(for: Array(collection.collectionFeedItems.prefix(80)))
     }
 
     @MainActor
@@ -731,43 +874,52 @@ struct EditorialCollectionView: View {
 
         guard !feedItems.isEmpty else { return }
 
-        if FeatureFlags.shared.isSocialActivityV1Enabled {
-            supabaseService.prefetchFriendCounts(items: feedItems)
+        if flags.isSocialActivityV1Enabled {
+            social.prefetchFriendCounts(items: feedItems)
         }
-        if FeatureFlags.shared.isStreamingAvailabilityV1Enabled {
+        if flags.isStreamingAvailabilityV1Enabled {
             let preferredAudio = Locale.current.identifier.lowercased().hasPrefix("de") ? "de" : "en"
-            supabaseService.prefetchProviderAvailabilityV2(
+            availability.prefetchProviderAvailabilityV2(
                 items: feedItems,
                 preferredAudioLang: preferredAudio,
                 preferredSubLang: nil,
                 includeUnknown: true
             )
-            supabaseService.prefetchProviders(items: feedItems)
+            availability.prefetchProviders(items: feedItems)
         }
     }
 
     @MainActor
     private func batchChangeStatus(_ status: ListStatus) async {
+        guard let context = mountedAccount, !Task.isCancelled,
+              collection.accountSession.isCurrent(context) else { return }
         let selected = selectedMediaItems()
         guard !selected.isEmpty else { return }
-        for media in selected {
-            await supabaseService.upsertUserListEntry(
-                mediaId: media.id,
-                mediaType: media.kind.rawValue,
-                status: status,
-                progress: supabaseService.userListProgress(mediaType: media.kind.rawValue, mediaId: media.id) ?? 0,
-                rating: nil,
-                notes: nil,
-                verdict: supabaseService.userListEntry(mediaType: media.kind.rawValue, mediaId: media.id)?.verdict
-            )
+        // CollectionStore owns the one visible-filter refresh. Per-item outcomes stay on `updatedCount`.
+        let outcomes = await collection.applyBatchStatusChange(
+            status,
+            to: selected.map(\.libraryKey),
+            visibleFilter: selectedFilter.listStatus
+        ) { edit, key, createIfMissing in
+            await libraryActions.apply(edit, to: key, createIfMissing: createIfMissing)
         }
-        KuroAccessibility.successHaptic()
-        showBanner("Updated \(selected.count) item\(selected.count == 1 ? "" : "s")")
+        guard !Task.isCancelled, mountedAccount == context,
+              collection.accountSession.isCurrent(context) else { return }
+        let updatedCount = outcomes.filter { $0.change != nil }.count
+        if updatedCount == selected.count {
+            KuroAccessibility.successHaptic()
+            showBanner("Updated \(selected.count) item\(selected.count == 1 ? "" : "s")")
+        } else if updatedCount > 0 {
+            KuroAccessibility.impactHaptic(.medium)
+            showBanner("Updated \(updatedCount) of \(selected.count) — \(selected.count - updatedCount) failed")
+        } else {
+            KuroAccessibility.errorHaptic()
+            showBanner("Couldn't update items — check your connection")
+        }
         withAnimation(KuroAnimation.fast) {
             selectedKeys.removeAll()
             isEditMode = false
         }
-        await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
     }
 
     private func batchRemove() {
@@ -776,22 +928,16 @@ struct EditorialCollectionView: View {
 
     @MainActor
     private func confirmBatchRemove() async {
+        guard let context = mountedAccount, !Task.isCancelled,
+              collection.accountSession.isCurrent(context) else { return }
         let selected = selectedMediaItems()
         guard !selected.isEmpty else { return }
-        var removedCount = 0
-        for media in selected {
-            let type = media.kind.rawValue.lowercased()
-            let removed = await supabaseService.removeFromList(
-                mediaId: media.id,
-                mediaType: type,
-                skipRefresh: true
-            )
-            if removed { removedCount += 1 }
+        // Collection owns the originating account and the one refresh for the whole removal.
+        let removedCount = await collection.applyBatchRemoval(to: selected.map(\.libraryKey)) { key in
+            await LibraryViewActions.remove(key, actions: libraryActions)
         }
-        // Single refresh after all deletes (instead of 3 fetches per item)
-        await supabaseService.fetchUserLists()
-        await supabaseService.fetchCollectionItems(status: selectedFilter.listStatus)
-        await supabaseService.fetchCollectionFeed(status: selectedFilter.listStatus)
+        guard !Task.isCancelled, mountedAccount == context,
+              collection.accountSession.isCurrent(context) else { return }
         if removedCount == selected.count {
             KuroAccessibility.successHaptic()
             showBanner("Removed \(selected.count) item\(selected.count == 1 ? "" : "s")")

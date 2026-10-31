@@ -7,31 +7,8 @@
 
 import Testing
 import Foundation
+import KuroCore
 @testable import Kuro
-
-@Suite("Kuro App Tests")
-struct KuroTests {
-
-    @Test("App Launch Test")
-    func testAppLaunch() async throws {
-        // Test that the app can initialize without crashing
-        #expect(Bool(true), "App should launch successfully")
-        print("✅ App Launch: PASSED")
-    }
-    
-
-    @Test("UI Components Test")
-    func testUIComponents() async throws {
-        // Test that UI components can be created
-        let moods = ["Contemplative", "Energetic", "Melancholic", "Uplifting", "Mysterious"]
-        #expect(moods.count == 5, "Should have 5 mood options")
-
-        let sections = ["DISCOVER", "COLLECTION", "SEARCH"]
-        #expect(sections.count == 3, "Should have 3 main sections")
-
-        print("✅ UI Components: PASSED")
-    }
-}
 
 // MARK: - Import Intent Detection Tests
 
@@ -194,7 +171,7 @@ struct AuthErrorMappingTests {
     func testOfflineTransportMessage() {
         let error = URLError(.notConnectedToInternet)
         #expect(
-            SupabaseService.userFacingAuthErrorMessage(from: error) ==
+            AuthService.userFacingAuthErrorMessage(from: error) ==
             "No internet connection. Check your connection and try again."
         )
     }
@@ -203,7 +180,7 @@ struct AuthErrorMappingTests {
     func testTimeoutTransportMessage() {
         let error = URLError(.timedOut)
         #expect(
-            SupabaseService.userFacingAuthErrorMessage(from: error) ==
+            AuthService.userFacingAuthErrorMessage(from: error) ==
             "The request timed out. Please try again."
         )
     }
@@ -216,7 +193,7 @@ struct AuthErrorMappingTests {
             userInfo: [NSUnderlyingErrorKey: URLError(.cannotConnectToHost)]
         )
         #expect(
-            SupabaseService.userFacingAuthErrorMessage(from: wrapped) ==
+            AuthService.userFacingAuthErrorMessage(from: wrapped) ==
             "Can't reach the server right now. Please try again."
         )
     }
@@ -229,7 +206,7 @@ struct AuthErrorMappingTests {
             userInfo: [NSLocalizedDescriptionKey: "Invalid login credentials"]
         )
         #expect(
-            SupabaseService.userFacingAuthErrorMessage(from: error) ==
+            AuthService.userFacingAuthErrorMessage(from: error) ==
             "Incorrect email or password. Please try again."
         )
     }
