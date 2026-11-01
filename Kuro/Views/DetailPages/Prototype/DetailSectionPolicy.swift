@@ -270,6 +270,7 @@ enum DetailPageCopy {
         case "SPECIAL": return german ? "Special" : "Special"
         case "MUSIC": return german ? "Musik" : "Music"
         case "ONA": return "ONA"
+        case "TV", "TV_SHORT": return "TV"
         default: return german ? "Weiteres" : "Extra"
         }
     }

@@ -317,8 +317,8 @@ struct AnimeDetailPage: View {
         savingNext = true
         actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
             let outcome = await LibraryViewActions.markProgress(key, to: capped, actions: libraryActions)
-            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             savingNext = false
+            guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             if outcome.error != nil {
                 KuroAccessibility.errorHaptic()
                 showToast(KuroToastState(kind: .error,
@@ -616,7 +616,7 @@ struct DetailSeasonsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             DetailSectionHeading(title: KuroLocale.text("Seasons", "Staffeln"), size: 18, tracking: -0.7,
-                                 note: numbersAreReal && seasonCount > 1 ? DetailPageCopy.seasonsCount(seasonCount, german: KuroLocale.isGerman) : nil)
+                                 note: showsNumbers ? DetailPageCopy.seasonsCount(seasonCount, german: KuroLocale.isGerman) : nil)
                 .padding(.bottom, 12)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 8) {
@@ -646,11 +646,14 @@ struct DetailSeasonsSection: View {
         .padding(.bottom, 0)
     }
 
+    /// Numbers only for a proven chain with more than one numbered season: a lone TV entry beside a
+    /// film is never labelled "1" (no invented "Season 1").
+    private var showsNumbers: Bool { numbersAreReal && seasonCount > 1 }
+
     private func label(_ season: LadderSeason) -> String {
-        if let number = season.number, numbersAreReal { return "\(number)" }
+        if let number = season.number, showsNumbers { return "\(number)" }
         if let part = season.partLabel { return KuroLocale.isGerman ? part.replacingOccurrences(of: "Part", with: "Teil") : part }
-        if !season.entry.isSeasonFormat { return DetailPageCopy.formatWord(season.entry.format, german: KuroLocale.isGerman) }
-        return "·"
+        return DetailPageCopy.formatWord(season.entry.format, german: KuroLocale.isGerman)
     }
 
     private func tile(_ season: LadderSeason) -> some View {
@@ -711,7 +714,7 @@ struct DetailSeasonsSection: View {
             .contentShape(shape)
         }
         .buttonStyle(KuroPressStyle())
-        .accessibilityLabel(season.number.map { numbersAreReal ? KuroLocale.text("Season \($0), \(season.entry.title)", "Staffel \($0), \(season.entry.title)") : season.entry.title }
+        .accessibilityLabel(season.number.map { showsNumbers ? KuroLocale.text("Season \($0), \(season.entry.title)", "Staffel \($0), \(season.entry.title)") : season.entry.title }
                             ?? season.entry.title)
         .accessibilityValue(current ? KuroLocale.text("Current", "Aktuell") : "")
         .accessibilityHint(current ? "" : KuroLocale.text("Opens this entry without changing your progress",
