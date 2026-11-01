@@ -6,7 +6,7 @@ import SwiftUI
 // The prototype draws a raised face inset inside the target:
 //   light     34 pt face, radius 7, `kuroKeyLightTop → kuroKeyLightBottom`, ink #29352c
 //             (Anime scene foot on art)
-//   dark      38 pt face, radius 6, solid #2b342e with a #2b342e border, ink #f8faf7 (Manga leaf)
+//   dark      40 pt face (38 + its 1 pt border), radius 6, solid #2b342e, 10 pt cap in #f8faf7 @ .75 (Manga leaf)
 //   ink       34 pt face, radius 7, `kuroKeyDarkTop → kuroKeyDarkBottom` (#444a47 → #2c322f), ink
 //             #f8faf7: the CSS `--key-face` dark for keys without artwork (Folio)
 //   material  34 pt face, radius 7, the title's artwork `base → deep`, white ink (Also watching,
@@ -67,7 +67,12 @@ struct KuroAdvanceKey: View {
 
     private var isInteractive: Bool { phase == .advance || phase == .needsChoice }
 
-    private var glyphFont: Font { .kuroCustom(15, weight: .regular, relativeTo: .body, maxSize: 22) }
+    /// The prototype's 16 × 16 key-cap SVG is a thin stroke (≈ 1.5 pt): a light-weight symbol on the
+    /// 34 pt faces; the manga leaf's cap is 10 pt (PROTOTYPE_SPEC §4 "Manga leaf").
+    private var glyphFont: Font {
+        let face = KuroKeyFace(style: style)
+        return .kuroCustom(face.glyphSize, weight: .light, relativeTo: .body, maxSize: face.glyphSize + 8)
+    }
 
     var body: some View {
         let face = KuroKeyFace(style: style)
@@ -92,7 +97,7 @@ struct KuroAdvanceKey: View {
                         .kuroConfirmStamp(trigger: confirmTrigger)
                 }
             }
-            .foregroundStyle(face.ink)
+            .foregroundStyle(face.ink.opacity(face.glyphOpacity))
             .frame(width: 44, height: 44)
             .contentShape(Rectangle())
         }
@@ -114,6 +119,9 @@ struct KuroKeyFace {
     let highlight: Color
     let drop: Color
     let ink: Color
+    /// The glyph's size and opacity (the manga leaf's cap reads muted, `--mp-key-ink` at about .75).
+    var glyphSize: CGFloat = 15
+    var glyphOpacity: Double = 1
 
     /// `#20282326`: the light and material key border.
     private static let raisedBorder = Color(hex: "202823", opacity: Double(0x26) / 255)
@@ -134,7 +142,9 @@ struct KuroKeyFace {
             border = Self.raisedBorder; highlight = Self.raisedHighlight; drop = Self.raisedDrop
             ink = Color(hex: "29352C")
         case .dark:
-            size = 38; radius = 6
+            // 38 pt `::before` plus its 1 pt border on each side: a 40 pt face, as rendered.
+            size = 40; radius = 6
+            glyphSize = 10; glyphOpacity = 0.75
             top = Self.leaf; bottom = Self.leaf
             border = Self.leaf; highlight = Color.white.opacity(Double(0x1F) / 255)
             drop = Color(hex: "28372A", opacity: Double(0x14) / 255)

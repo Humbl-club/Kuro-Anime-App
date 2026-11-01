@@ -78,7 +78,8 @@ struct ScreenMapSnapshotTests {
                 .environment(graph.availability)
                 .environment(graph.clubs)
                 .environment(graph.imports)
-                .environment(graph.flags),
+                .environment(graph.flags)
+                .environment(graph.artworkMaterials),
             width: 390, height: 1900, name: "profile-seeded-390.png", settle: 1_200
         )
 

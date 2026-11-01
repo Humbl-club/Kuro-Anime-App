@@ -140,7 +140,7 @@ struct RestyleLaneTests {
         #expect(FolioPolicy.keyStyle(for: .anime) == .light)
         #expect(FolioPolicy.keyStyle(for: .manga) == .dark)
         let face = KuroKeyFace(style: FolioPolicy.keyStyle(for: .manga))
-        #expect(face.size == 38 && face.radius == 6)
+        #expect(face.size == 40 && face.radius == 6)
     }
 
     // MARK: Skeleton blocks

@@ -45,7 +45,24 @@ struct DetailBetweenUs: View {
         roster.compactMap { $0.display_name?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
     }
 
+    /// The heading's member names: none while social activity is switched off, whatever was loaded.
+    static func headingNames(_ roster: [SocialActivityStore.FriendTitleActivity], socialEnabled: Bool) -> [String] {
+        socialEnabled ? rosterNames(roster) : []
+    }
+
     var body: some View {
+        content
+            // Switching social activity off mid-page drops the loaded roster here and on the page
+            // (`FriendsActivitySection` leaves without reporting an empty roster).
+            .onChange(of: socialEnabled) { _, on in
+                guard !on else { return }
+                roster = []
+                onRoster([])
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         if !clubs.myClubs.isEmpty {
             let shape = bookish
                 ? UnevenRoundedRectangle(topLeadingRadius: 5, bottomLeadingRadius: 5,
@@ -107,7 +124,8 @@ struct DetailBetweenUs: View {
 
     private var heading: some View {
         let compact = dynamicTypeSize.isAccessibilitySize
-        let names = Self.rosterNames(roster)
+        // The roster is social activity: the `social_activity_v1` kill switch hides it here too.
+        let names = Self.headingNames(roster, socialEnabled: socialEnabled)
         return HStack(alignment: .center, spacing: 19) {
             if !compact {
                 Color.clear

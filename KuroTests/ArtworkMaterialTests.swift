@@ -200,6 +200,38 @@ struct ArtworkMaterialStoreTests {
         #expect(calls.value == 0, "the disk cache answered; the image was never loaded")
     }
 
+    @Test("Clear cache forgets every material and removes the disk folder; the disk is pruned to its bound")
+    func clearAllAndPrune() async throws {
+        let directory = Self.tempDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let image = try ArtworkMaterialTests.prototypeAsset("anime0.jpg")
+        let box = MaterialImageBox(image)
+        let url = try #require(URL(string: "https://example.invalid/cover/anime0.jpg"))
+        let store = ArtworkMaterialStore(cacheDirectory: directory) { _ in box.image }
+        _ = store.material(for: url, seedHex: "#28484b")
+        await Self.waitUntil { store.material(for: url, seedHex: "#28484b").method == "art-hue-v1" }
+        try? await Task.sleep(for: .milliseconds(100))
+        #expect(FileManager.default.fileExists(atPath: directory.path))
+        await store.clearAll()
+        #expect(!FileManager.default.fileExists(atPath: directory.path), "the disk folder is gone")
+        #expect(store.material(for: url, seedHex: "#28484b") == ArtworkMaterial.fromHex("#28484b"),
+                "memory is reset: the seed paints first again")
+
+        // The per-launch prune keeps the newest files only.
+        let prune = Self.tempDirectory()
+        defer { try? FileManager.default.removeItem(at: prune) }
+        try FileManager.default.createDirectory(at: prune, withIntermediateDirectories: true)
+        for index in 0..<5 {
+            let file = prune.appendingPathComponent("\(index).json")
+            try Data("{}".utf8).write(to: file)
+            try FileManager.default.setAttributes([.modificationDate: Date(timeIntervalSince1970: Double(1_000 + index))],
+                                                  ofItemAtPath: file.path)
+        }
+        ArtworkMaterialStore.pruneDisk(prune, keeping: 2)
+        let left = try FileManager.default.contentsOfDirectory(atPath: prune.path).sorted()
+        #expect(left == ["3.json", "4.json"])
+    }
+
     @Test("A failed URL is tried again after the retry interval (e.g. offline at launch, then back online)")
     func failedLoadRetriesAfterInterval() async throws {
         let clock = MaterialClock()

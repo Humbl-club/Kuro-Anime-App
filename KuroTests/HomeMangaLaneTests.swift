@@ -68,6 +68,31 @@ struct HomeMangaLaneTests {
         #expect(small.leafHeight == 219) // 119 + 6 + 44 + 50
     }
 
+    @Test("A releasing manga reached its released chapter: the leaf is caught up (no +1 for an unreleased chapter)")
+    func mangaLeafKeyHasAReleaseCeiling() {
+        // RELEASING, no catalogue total, the schedule's next (non-estimated) chapter is 115, read 114.
+        let row = ReleaseScheduleItem(medium: .manga, mediaId: 7, title: "T7", unitKind: .chapter, unitNumber: 115,
+                                      releaseAt: Self.now.addingTimeInterval(86_400), basis: .announced,
+                                      source: "mangaupdates", precision: .day)
+        let next = HomeShelfPolicy.nextUnitNumber([row], medium: .manga)
+        let available = HomeShelfPolicy.availableUnits(catalogueStatus: "RELEASING", total: nil, nextUnit: next)
+        #expect(available == 114)
+        #expect(HomeShelfPolicy.homeKeyCaughtUp(progress: 114, total: nil, available: available))
+        #expect(!HomeShelfPolicy.homeKeyCaughtUp(progress: 113, total: nil, available: available))
+        // No schedule: the released count is unknown, so the key stays a +1 (never a guessed ✓).
+        let unknown = HomeShelfPolicy.availableUnits(catalogueStatus: "RELEASING", total: nil, nextUnit: nil)
+        #expect(!HomeShelfPolicy.homeKeyCaughtUp(progress: 114, total: nil, available: unknown))
+        // The opening line agrees: nothing new.
+        let opening = HomeShelfPolicy.opening([.init(progress: 114, available: available, catalogueStatus: "RELEASING")])
+        #expect(opening.newUnits == 0 && opening.nothingNew)
+        // The leaf's readout: "Caught up" in the "Ch." slot over the count (EN); German the long word
+        // takes the count's lines (LANE_AMENDMENTS 14).
+        #expect(HomeMangaLeafMetrics.readoutLabel(caughtUp: true, german: true) == "Auf dem neuesten Stand")
+        #expect(HomeMangaLeafMetrics.showsCount(caughtUp: true, german: false))
+        #expect(!HomeMangaLeafMetrics.showsCount(caughtUp: true, german: true))
+        #expect(HomeMangaLeafMetrics.showsCount(caughtUp: false, german: true))
+    }
+
     // MARK: Calendar card
 
     @Test("calendar day chip shows day number and month abbreviation (EN \"OCT\", DE \"OKT\")")

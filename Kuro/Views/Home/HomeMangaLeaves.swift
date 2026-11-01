@@ -87,15 +87,19 @@ struct HomeMangaLeaves<Key: View>: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 0))
         return layout {
+            let german = KuroLocale.isGerman
+            let showsCount = HomeMangaLeafMetrics.showsCount(caughtUp: state.caughtUp, german: german)
             VStack(alignment: .leading, spacing: 0) {
-                // Caught up, the word takes the count's lines too (German "Auf dem neuesten Stand" is
-                // long for a 62 pt column): up to three lines in the same row height, never cut.
-                Text(HomeMangaLeafMetrics.readoutLabel(caughtUp: state.caughtUp, german: KuroLocale.isGerman))
+                // "Caught up" takes the "Ch." slot and the count stays under it (the reference). The
+                // German word ("Auf dem neuesten Stand") is too long for the 9 pt slot of a 62 pt
+                // column: it takes the count's lines too, up to three, in the same row height
+                // (LANE_AMENDMENTS 14), and the spoken label still carries the position.
+                Text(HomeMangaLeafMetrics.readoutLabel(caughtUp: state.caughtUp, german: german))
                     .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 18))
                     .foregroundStyle(Color(hex: "59665A"))
-                    .lineLimit(state.caughtUp ? 3 : 1)
-                    .fixedSize(horizontal: false, vertical: state.caughtUp)
-                if !state.caughtUp {
+                    .lineLimit(showsCount ? 1 : 3)
+                    .fixedSize(horizontal: false, vertical: !showsCount)
+                if showsCount {
                     Text(state.label)
                         .font(.kuroCustom(24, weight: .medium, relativeTo: .title2, maxSize: 40))
                         .tracking(-0.8)
@@ -162,6 +166,12 @@ struct HomeMangaLeafMetrics: Equatable {
         return german ? "Kap." : "Ch."
     }
 
+    /// Whether the count shows under the label: always, except a German caught-up leaf, whose long
+    /// word takes the count's lines (LANE_AMENDMENTS 14).
+    static func showsCount(caughtUp: Bool, german: Bool) -> Bool {
+        !(caughtUp && german)
+    }
+
     /// The readout column's height at regular sizes ("Ch." 9 pt over the 24 pt count), kept when the
     /// caught-up word replaces the count, so a caught-up leaf's row stays level with its neighbours.
     static let readoutHeight: CGFloat = 40
@@ -205,6 +215,30 @@ struct HomeMangaLeafTitle: View {
 
     static func font(_ metrics: HomeMangaLeafMetrics) -> Font {
         .kuroCustom(metrics.titleSize, weight: .medium, relativeTo: .caption1, maxSize: metrics.titleSize * 2)
+    }
+}
+
+/// A caught-up manga leaf key: the prototype's disabled light raised key (`.step:disabled` on the
+/// manga Home): a 40 pt pale face with a 1 pt grey rule, radius 6, and a thin 10 pt muted check. Not
+/// interactive; VoiceOver hears the title and "Caught up".
+struct HomeLeafCaughtUpKey: View {
+    let accessibilityText: String
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+        Image(systemName: "checkmark")
+            .font(.kuroCustom(10, weight: .light, relativeTo: .body, maxSize: 18))
+            .foregroundStyle(HomeInk.caughtUpOnPaper)
+            .frame(width: 44, height: 44)
+            .background {
+                shape.fill(Color(hex: "FAFAF7"))
+                    .overlay(shape.strokeBorder(Color(hex: "C5CAC4"), lineWidth: 1))
+                    .frame(width: 40, height: 40)
+                    .accessibilityHidden(true)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityText)
+            .accessibilityValue(KuroAdvanceCopy.caughtUpLabel(title: nil, german: KuroLocale.isGerman))
     }
 }
 

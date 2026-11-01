@@ -224,7 +224,7 @@ struct HomeView: View {
     /// The prototype's new-account block instead of the shelf (`HomeShelfPolicy.showsNewAccount`).
     private var showsNewAccount: Bool {
         HomeShelfPolicy.showsNewAccount(latched: newAccountLatch,
-                                        onlyPlannedTitles: library.allEntries.allSatisfy { $0.status == .planning },
+                                        onlyPlannedTitles: HomeShelfPolicy.onlyBarePlans(library.allEntries),
                                         scene: shelfScene, otherMediumOccupied: otherMediumOccupied)
     }
 
@@ -765,11 +765,11 @@ struct HomeView: View {
         let label = home.displayedProgressLabel(medium: home.medium, mediaId: card.mediaId,
             serverLabel: card.progressLabel, lifecycleId: UUID(uuidString: card.lifecycleId)) ?? String(progress)
         let cap = mediumKind == .manga ? card.chapters : card.episodes
-        // Anime scenes and tiles: also caught up when every released episode is watched (the next one
-        // has not aired), so Home never offers a +1 for an unaired episode. Manga keeps the total cap.
-        let caughtUp = mediumKind == .anime
-            ? HomeShelfPolicy.homeKeyCaughtUp(progress: progress, total: cap, available: availableUnits(card))
-            : (cap.map { progress >= $0 } ?? false)
+        // Both media: also caught up when every released unit is reached (the next episode has not
+        // aired, the next chapter is not out), so Home never offers a +1 for an unreleased unit. The
+        // same released count the opening line and the manga detail page's Up next read
+        // (`availableUnits`: nil without a schedule, so an unknown count never reads caught up).
+        let caughtUp = HomeShelfPolicy.homeKeyCaughtUp(progress: progress, total: cap, available: availableUnits(card))
         let unitId = home.displayedUnitId(medium: home.medium, mediaId: card.mediaId,
             serverUnitId: card.unitId, lifecycleId: UUID(uuidString: card.lifecycleId))
         return KeyState(progress: progress, label: label, cap: cap, caughtUp: caughtUp,
@@ -828,6 +828,10 @@ struct HomeView: View {
         let stampKey = confirmationKey(card)
         if phase == .caughtUp, let onArt {
             HomeCaughtUpKey(onArt: onArt, accessibilityText: label)
+        } else if phase == .caughtUp, style == .dark {
+            // The manga leaf: the prototype's disabled light raised key (pale face, grey rule, thin ✓);
+            // the solid #2b342e face is only the active +1 (`ref-home-quiet-manga-390.png`).
+            HomeLeafCaughtUpKey(accessibilityText: label)
         } else {
             KuroAdvanceKey(style: style, phase: phase, accessibilityText: label,
                            confirmTrigger: confirmations[stampKey] ?? 0) {

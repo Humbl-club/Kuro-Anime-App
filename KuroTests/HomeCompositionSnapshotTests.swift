@@ -191,7 +191,8 @@ struct HomeCompositionSnapshotTests {
                 .environment(graph.availability)
                 .environment(graph.clubs)
                 .environment(graph.imports)
-                .environment(graph.flags),
+                .environment(graph.flags)
+                .environment(graph.artworkMaterials),
             width: 390,
             height: 1400,
             name: "profile-390.png"

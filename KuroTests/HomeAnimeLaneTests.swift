@@ -268,6 +268,11 @@ struct HomeAnimeLaneTests {
         #expect(HomeAlsoWatchingHeading.countLine(1, german: false) == "1 title")
         #expect(HomeAlsoWatchingHeading.countLine(4, german: true) == "4 Titel")
         #expect(HomeAlsoWatchingHeading.title(medium: .anime, german: true) == "Schaust du auch")
+        // VoiceOver: the German verb agrees with the number of names.
+        #expect(HomeSceneFact.clubSpoken(["Mina"], title: "Frieren", german: true) == "Mina hat über Frieren geschrieben")
+        #expect(HomeSceneFact.clubSpoken(["Mina", "Jules"], title: "Frieren", german: true)
+                == "Mina + Jules haben über Frieren geschrieben")
+        #expect(HomeSceneFact.clubSpoken(["Mina"], title: "Frieren", german: false) == "Mina wrote about Frieren")
     }
 
     // MARK: Medium word (amendment 7)

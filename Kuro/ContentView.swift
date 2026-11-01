@@ -205,7 +205,7 @@ struct KuroMainView: View {
             mangaCount: other == .manga ? otherCount : 0)
         return !HomeShelfPolicy.showsNewAccount(
             latched: homeNewAccountLatch,
-            onlyPlannedTitles: library.allEntries.allSatisfy { $0.status == .planning },
+            onlyPlannedTitles: HomeShelfPolicy.onlyBarePlans(library.allEntries),
             scene: scene, otherMediumOccupied: otherOccupied)
     }
 

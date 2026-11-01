@@ -22,8 +22,9 @@
 //  A URL whose image fails to load or decode keeps its seed (or the neutral base) and is tried again
 //  on the first `material(for:)` call at least `failureRetryInterval` (60 s) later, i.e. the next time a
 //  view showing it re-renders, so an offline launch recovers after the connection is back. The
-//  memory cache keeps the `memoryLimit` most recent materials and evicts the oldest first. Loading,
-//  decoding, derivation and disk IO run off the main actor.
+//  memory cache keeps the `memoryLimit` most recent materials and evicts the oldest first; the disk
+//  cache keeps the newest `maxDiskFiles` (pruned once per launch). Profile's "Clear cache" calls
+//  `clearAll()`. Loading, decoding, derivation and disk IO run off the main actor.
 //
 
 import CoreGraphics
@@ -74,6 +75,25 @@ final class ArtworkMaterialStore {
         self.failureRetryInterval = failureRetryInterval
         self.now = now
         self.loader = loader
+        // The disk cache is bounded per launch: the oldest files beyond `maxDiskFiles` are removed.
+        if let cacheDirectory {
+            Task.detached(priority: .background) { Self.pruneDisk(cacheDirectory, keeping: Self.maxDiskFiles) }
+        }
+    }
+
+    /// The most material files kept on disk (each is a few hundred bytes).
+    nonisolated static let maxDiskFiles = 1_500
+
+    /// Profile's "Clear cache": forgets every material in memory and removes the disk folder off the
+    /// main actor. A derivation still in flight never writes its file back afterwards (`DiskGate`).
+    /// The file names are hashes of the artwork a reader tracked or opened, so they go with the
+    /// image and detail caches.
+    func clearAll() async {
+        derived = [:]
+        order = []
+        failed = [:]
+        let directory = cacheDirectory
+        await Task.detached(priority: .utility) { Self.diskGate.clear(directory) }.value
     }
 
     /// The material for the artwork at `url`: the derived material when it is ready, otherwise the
@@ -128,6 +148,7 @@ final class ArtworkMaterialStore {
     /// The disk-cached material, else the material derived from the loaded image (then written to disk).
     /// No qualifying hue gives the `no-hue` marker (cached too). Nil: the image did not load.
     nonisolated private static func resolve(url: URL, file: URL?, banner: Bool, loader: Loader) async -> ArtworkMaterial? {
+        let generation = diskGate.generation
         if let file, let data = try? Data(contentsOf: file),
            let cached = try? JSONDecoder().decode(ArtworkMaterial.self, from: data),
            cached.method == "art-hue-v1" || cached.method == noHueMethod {
@@ -137,12 +158,51 @@ final class ArtworkMaterialStore {
         let material = ArtworkMaterial.deriveIfHued(from: image, banner: banner)
             ?? ArtworkMaterial(base: ArtworkMaterial.neutralBase, method: noHueMethod)
         if let file, let data = try? JSONEncoder().encode(material) {
-            try? FileManager.default.createDirectory(
-                at: file.deletingLastPathComponent(), withIntermediateDirectories: true
-            )
-            try? data.write(to: file, options: .atomic)
+            diskGate.write(data, to: file, ifGeneration: generation)
         }
         return material
+    }
+
+    // MARK: - Disk
+
+    /// Serialises disk writes with "Clear cache": a write started before a clear is dropped.
+    nonisolated private static let diskGate = DiskGate()
+
+    nonisolated final class DiskGate: @unchecked Sendable {
+        private let lock = NSLock()
+        private var current = 0
+
+        var generation: Int {
+            lock.lock(); defer { lock.unlock() }
+            return current
+        }
+
+        func write(_ data: Data, to file: URL, ifGeneration expected: Int) {
+            lock.lock(); defer { lock.unlock() }
+            guard current == expected else { return }
+            try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? data.write(to: file, options: .atomic)
+        }
+
+        func clear(_ directory: URL?) {
+            lock.lock(); defer { lock.unlock() }
+            current += 1
+            if let directory { try? FileManager.default.removeItem(at: directory) }
+        }
+    }
+
+    /// Removes the oldest material files beyond `limit` (by modification date).
+    nonisolated static func pruneDisk(_ directory: URL, keeping limit: Int) {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey],
+                                                      options: [.skipsHiddenFiles]),
+              files.count > limit else { return }
+        func modified(_ url: URL) -> Date {
+            (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+        }
+        for url in files.sorted(by: { modified($0) < modified($1) }).prefix(files.count - limit) {
+            try? fm.removeItem(at: url)
+        }
     }
 
     // MARK: - Helpers

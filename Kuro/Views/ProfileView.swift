@@ -24,6 +24,7 @@ struct ProfileView: View {
     @Environment(ClubsStore.self) private var clubs
     @Environment(ImportsService.self) private var imports
     @Environment(FeatureFlags.self) private var flags
+    @Environment(ArtworkMaterialStore.self) private var artworkMaterials
     @State private var profileActionScope = AccountActionScope()
     @State private var deleteConfirmationTicket: AccountActionScope.Ticket?
     @State private var importCoordinator: ProfileImportCoordinator?
@@ -734,6 +735,7 @@ struct ProfileView: View {
                     ) {
                         Task {
                             await KuroDiskDetailCache.clearAll()
+                            await artworkMaterials.clearAll()
                             URLCache.shared.removeAllCachedResponses()
                             KuroAccessibility.successHaptic()
                             showToast(.success, title: german ? "Cache geleert" : "Cache cleared", subtitle: nil)

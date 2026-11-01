@@ -116,6 +116,21 @@ struct FirstRunLaneTests {
         #expect(TastePageCopy.planLabel(medium: .anime, status: .current, german: false) == "On your list")
     }
 
+    @Test("The new-account block ends once a planned title is started (only bare plans keep it)")
+    func newAccountEndsOnAStartedPlan() {
+        typealias E = FakeLibraryBackend
+        #expect(HomeShelfPolicy.onlyBarePlans([]))
+        #expect(HomeShelfPolicy.onlyBarePlans([E.entry(.anime, 1, status: .planning), E.entry(.manga, 2, status: .planning)]))
+        // Up next on the detail page writes progress and keeps PLANNING: that title is started.
+        let started = [E.entry(.anime, 1, status: .planning), E.entry(.anime, 3, status: .planning, progress: 1)]
+        #expect(!HomeShelfPolicy.onlyBarePlans(started))
+        #expect(!HomeShelfPolicy.onlyBarePlans([E.entry(.anime, 1, status: .planning, rating: 8)]))
+        #expect(!HomeShelfPolicy.onlyBarePlans([E.entry(.anime, 1, status: .current)]))
+        // So the block gives way while latched, even though the shelf scene is not "in progress".
+        #expect(!HomeShelfPolicy.showsNewAccount(latched: true, onlyPlannedTitles: HomeShelfPolicy.onlyBarePlans(started),
+                                                 scene: .saved, otherMediumOccupied: false))
+    }
+
     @Test("Plan toast copy follows the prototype, EN and DE")
     func planToastCopy() {
         #expect(TastePlanCopy.message(.added, german: false) == "Added to your list.")

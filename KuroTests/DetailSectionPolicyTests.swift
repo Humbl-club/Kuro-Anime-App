@@ -15,6 +15,16 @@ import KuroLibrary
 @MainActor
 @Suite("Detail section policy")
 struct DetailSectionPolicyTests {
+    @Test("Between us: the heading shows no member names while social activity is switched off")
+    func betweenUsHonoursTheKillSwitch() {
+        let roster = ["Mina", "Jules"].enumerated().map { index, name in
+            SocialActivityStore.FriendTitleActivity(user_id: "u\(index)", display_name: name, status: "CURRENT",
+                                                    progress: 3, rating: nil, updated_at: nil)
+        }
+        #expect(DetailBetweenUs.headingNames(roster, socialEnabled: true) == ["Mina", "Jules"])
+        #expect(DetailBetweenUs.headingNames(roster, socialEnabled: false).isEmpty)
+    }
+
     @Test("A sparse title shows only its real sections: no seasons, songs, characters or club")
     func sparseTitleShowsOnlyRealSections() {
         let withCredits = DetailInput(hasSynopsis: true, creditCount: 2)

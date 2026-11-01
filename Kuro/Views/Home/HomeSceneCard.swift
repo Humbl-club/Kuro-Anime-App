@@ -126,6 +126,14 @@ enum HomeSceneFact: Equatable {
 
     /// "Mina + Jules".
     static func clubLine(_ names: [String]) -> String { names.joined(separator: " + ") }
+
+    /// VoiceOver: "Mina wrote about Frieren"; German agrees with the number of names ("Mina hat",
+    /// "Mina + Jules haben über Frieren geschrieben").
+    static func clubSpoken(_ names: [String], title: String, german: Bool = KuroLocale.isGerman) -> String {
+        let who = clubLine(names)
+        guard german else { return "\(who) wrote about \(title)" }
+        return "\(who) \(names.count == 1 ? "hat" : "haben") über \(title) geschrieben"
+    }
 }
 
 /// The readout beside a key: unit word, count, total, and how far along the scrub is (pure values).
@@ -307,8 +315,7 @@ struct HomeSceneCard<Key: View>: View {
                 }
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityLabel(KuroLocale.text("\(HomeSceneFact.clubLine(names)) wrote about \(title)",
-                                                    "\(HomeSceneFact.clubLine(names)) haben über \(title) geschrieben"))
+                .accessibilityLabel(HomeSceneFact.clubSpoken(names, title: title))
             }
         }
         .padding(.leading, compact ? 11 : 14)

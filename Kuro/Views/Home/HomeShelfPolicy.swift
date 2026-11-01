@@ -49,10 +49,18 @@ enum HomeShelfPolicy {
     /// stays through the block's own one-tap Plans (a planned title never unmounts it under the finger)
     /// and gives way as soon as the Library holds anything else (an import of watching, completed or
     /// paused titles; the Library stays `.loaded` through an import, so the latch alone would not end).
-    /// `onlyPlannedTitles`: every Library entry, in both media, is planned (the only status the block's
-    /// Plan key writes; true for an empty Library). Unlatched (not known, or the Library had titles), an
+    /// `onlyPlannedTitles`: every Library entry, in both media, is a bare plan (`onlyBarePlans`: what the
+    /// block's Plan key writes; true for an empty Library). Unlatched (not known, or the Library had titles), an
     /// empty medium shows the block only when the other medium is empty too; with the other medium
     /// occupied the approved invitation ("Go to your anime") stays.
+    /// `onlyPlannedTitles` for `showsNewAccount`: every entry is a bare plan (`TastePlanAction.isBarePlan`:
+    /// planned, no progress, rating, verdict or notes), exactly what the block's Plan key writes. A
+    /// planned title the reader has started (Up next on its page keeps the status PLANNING) ends the
+    /// block, so the started title shows on Home.
+    static func onlyBarePlans(_ entries: [LibraryEntry]) -> Bool {
+        entries.allSatisfy { TastePlanAction.isBarePlan($0) }
+    }
+
     static func showsNewAccount(latched: Bool?, onlyPlannedTitles: Bool, scene: HomeShelfScene,
                                 otherMediumOccupied: Bool) -> Bool {
         if latched == true, onlyPlannedTitles, scene != .inProgress { return true }

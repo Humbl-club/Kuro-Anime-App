@@ -256,6 +256,6 @@ struct BrandedStateTests {
         #expect(ink.bottom == Color.kuroKeyDarkBottom)
         #expect(ink.size == 34 && ink.radius == 7)
         let leaf = KuroKeyFace(style: .dark)
-        #expect(leaf.size == 38 && leaf.radius == 6, "the manga leaf key keeps its solid face")
+        #expect(leaf.size == 40 && leaf.radius == 6, "the manga leaf key keeps its solid face")
     }
 }
