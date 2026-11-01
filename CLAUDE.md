@@ -425,13 +425,17 @@ Since 2026-10-05: `concierge-apply`, `concierge-undo` and `delete-account` are s
 - Subtle backgrounds: `Color.kuroBlack08` (black @ 0.08)
 - Status pill text: `black.opacity(0.55)` — pill background: `black.opacity(0.06)`
 - **NO colored status pills/dots anywhere.** Red ONLY for destructive actions (leave/delete).
+- Prototype palette (2026-11-01, owner-approved): `kuroInk` #252625, `kuroCanvasHome` #fffef8 (Home/Taste), `kuroPaper` #f5f5f4 (detail), `kuroMuted` #696c6b, `kuroLine`, key faces `kuroKeyLightTop/Bottom`, `kuroKeyDarkTop/Bottom`; per-title tint only via `ArtworkMaterial` / `@Environment(ArtworkMaterialStore.self)` (never a per-title colour table). Statuses stay monochrome.
 
-### Typography (serif for editorial, sans-serif for body)
-- `.kuroHero()` — 64pt serif, dramatic statements
-- `.kuroDisplay()` — 44pt serif, large section headers
-- `.kuroFeature()` — 34pt serif, feature titles
-- `.kuroHeadline()` — 26pt serif, card titles
-- `.kuroTitle()` — 19pt serif, secondary titles
+### Typography (since 2026-11-01: the prototype's sans for display roles; serif only for editorial headings)
+- `.kuroHero()` — 64pt sans heavy, dramatic statements
+- `.kuroDisplay()` — 44pt sans semibold, large section headers
+- `.kuroFeature()` — 34pt sans semibold, feature titles
+- `.kuroHeadline()` — 26pt sans semibold, card titles
+- `.kuroTitle()` — 19pt sans semibold, secondary titles
+- Tight tracking is opt-in: `.kuroTracking(.headline)` etc. (`KuroTypeRole.tracking`; a `Font` cannot carry it)
+- `.kuroEditorial(size:)` — system serif, only for the prototype's editorial headings (club name/quote, "Between us.", manga detail title/hook, "Your bookmark", manga row numbers, "Seen the anime?")
+- `.kuroMediumWord()` + `.kuroMediumWordStyle()` — the ANIME / MANGA switch words (heavy, uppercase, tracked)
 - `.kuroBody()` — 15pt sans-serif, descriptions
 - `.kuroCaption()` — 11pt sans-serif, small labels
 - `.kuroMicro()` — 9pt sans-serif, tiny metadata

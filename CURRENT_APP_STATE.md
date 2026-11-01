@@ -1196,7 +1196,9 @@ Generated: **2026-07-31T04:08:20.387Z** (git: `10f3c9a`)
 
 ## 4) Design system (current)
 
-**Design philosophy:** Editorial minimalism. Home, series detail and Profile (9 October 2026) use a scoped neutral canvas: `kuroCanvasPage` `#FFFFFF`, `kuroCanvasQuiet` `#F6F6F6`, `kuroInk` `#181818`, `kuroInkSecondary` `#5C5C5C`, `kuroInkQuiet` `#6B6B6B`, `kuroHairline` black at 10%. Other pages still use `kuroBackground`. Artwork keeps its own color. `KuroSceneryLoop` is the shared mountain banner.
+**Design philosophy:** Editorial minimalism. Home, series detail and Profile (9 October 2026) use a scoped neutral canvas: `kuroCanvasPage` `#FFFFFF`, `kuroCanvasQuiet` `#F6F6F6`, `kuroInk` `#252625` (the prototype's ink since 2026-11-01; was `#181818`), `kuroInkSecondary` `#5C5C5C`, `kuroInkQuiet` `#6B6B6B`, `kuroHairline` black at 10%. Other pages still use `kuroBackground`. Artwork keeps its own color. `KuroSceneryLoop` is the shared mountain banner.
+
+**Prototype palette and artwork materials (2026-11-01, prototype-fidelity Task 2):** `kuroCanvasHome` `#fffef8` (Home/Taste canvas), `kuroPaper` `#f5f5f4` (detail paper), `kuroMuted` `#696c6b`, `kuroLine` (`#272b29` at alpha 0x20), raised key faces `kuroKeyLightTop/Bottom` `#f1f4f2/#d5ded8` and `kuroKeyDarkTop/Bottom` `#444a47/#2c322f`. Per-title tint comes from `ArtworkMaterial` (`Kuro/Design/ArtworkMaterial.swift`, port of the prototype's `art-hue-v1`; white text ≥ 7:1; neutral `#3a3d3c`) served by `ArtworkMaterialStore` (seed `cover_image_color` first, derived material later, memory + disk cache). Motion tokens `KuroMotion.contact/settle/medium` (120/220/320 ms) use the prototype ease `cubic-bezier(.2,.8,.25,1)`.
 
 **Key design primitives**
 - `KuroGlassCard` in `Kuro/Views/KuroGlass.swift`
@@ -1204,10 +1206,11 @@ Generated: **2026-07-31T04:08:20.387Z** (git: `10f3c9a`)
 - `KuroScoreBadge`, `KuroPortraitCard`, `KuroCompactCard` in `Kuro/Views/KuroRefinedCard.swift`. Card widths are adaptive: `floor((screenWidth - 56) / 2.8)` clamped to [112, 144]. `CompactHorizontalSection` / `CompactHorizontalMangaSection` require explicit `containerWidth` (no default). All surfaces pass screen width or GeometryReader width.
 - Concierge iconography: `KuroConciergeMark` (butler glyph) in `Kuro/Views/KuroConciergeMark.swift`
 
-**Typography**
-- Serif for titles and editorial feel
-- Light weights for subtitles
-- Uppercase tracking for section titles
+**Typography** (since 2026-11-01, prototype-fidelity Task 2)
+- Display roles (`kuroHero/Display/Feature/Headline/Title`) use the system sans at the prototype's weights (heavy/semibold); tight negative tracking via `.kuroTracking(_:)`
+- Serif (`kuroEditorial(size:)`) only for the prototype's editorial headings (club name/quote, "Between us.", manga detail title/hook, "Your bookmark", "Seen the anime?")
+- The medium switch words use `kuroMediumWord()` / `.kuroMediumWordStyle()` (heavy uppercase sans)
+- Uppercase tracking for kickers (`kuroKicker()`)
 
 **Card details (current)**
 - Rating pill in top-right of poster
