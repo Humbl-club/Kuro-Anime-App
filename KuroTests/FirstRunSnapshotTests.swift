@@ -67,6 +67,37 @@ struct FirstRunSnapshotTests {
         defaults.removePersistentDomain(forName: "firstrun-home")
     }
 
+    @Test("New-account Home through the integrated HomeView (Task 10), anime and manga, at 320/390/430")
+    func newAccountHomeView() async throws {
+        await Self.seedArtwork()
+        let (graph, defaults) = try await Self.signedInGraph("firstrun-homeview")
+        // An empty Home page for both media (the account has nothing yet), the Library loaded empty and
+        // the pager's latch set: HomeView draws its own new-account shelf (opening row + HomeNewAccount).
+        func empty(_ medium: String) throws -> HomeBundle {
+            try JSONDecoder().decode(HomeBundle.self, from: Data("""
+            {"medium":"\(medium)","window_days":7,"home_revision":1,"active":[],"upcoming":[],"pending":[],
+             "schedule_state":"ok","next_cursor":null,"club":{"state":"ready","label":"Between us.","items":[]}}
+            """.utf8))
+        }
+        let materials = ArtworkMaterialStore(cacheDirectory: nil, loader: HomeAnimeLaneTests.fixtureLoader)
+        for medium in [MediaKind.anime, .manga] {
+            graph.home.seedForVisualQA(anime: try empty("anime"), manga: try empty("manga"), medium: medium.rawValue)
+            #expect(graph.home.medium == medium.rawValue)
+            for width: CGFloat in [390, 320, 430] {
+                let url = Self.outDir.appendingPathComponent("home-new-\(medium.rawValue)-homeview-\(Int(width)).png")
+                try FileManager.default.createDirectory(at: Self.outDir, withIntermediateDirectories: true)
+                // The pager's canvas follows Home's medium (`KuroMainView.Section.canvas`).
+                let canvas = TastePageContent.canvas(for: medium)
+                try await HomeAnimeLaneTests.render(
+                    HomeAnimeLaneTests.home(graph.graph, materials, canvas: canvas, newAccountLatch: true),
+                    width: width, height: medium == .anime ? 1_700 : 2_000, to: url, canvas: canvas)
+                #expect(FileManager.default.fileExists(atPath: url.path))
+            }
+        }
+        await graph.session.endSession()
+        defaults.removePersistentDomain(forName: "firstrun-homeview")
+    }
+
     @Test("New-account Home through its own loader (seeded Discover bundle)")
     func newAccountHomeLive() async throws {
         await Self.seedArtwork()

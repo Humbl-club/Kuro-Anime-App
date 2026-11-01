@@ -9,6 +9,10 @@ What each render shows
   (HomeOpeningLine, Task 4) and the page footer (HomeFooter, Task 5) belong to other lanes. The harness
   stands them in with KuroMediumSwitch(.large, material: nil), the Taste opening row (YOUR COLLECTION /
   Begin here.) and the Taste footer. No header is drawn.
+- home-new-{anime,manga}-homeview-{320,390,430}.png (Task 10): the integrated HomeView for a new account
+  (newAccountLatch true, empty Library, empty Home pages, seeded Discover bundle), rendered through
+  HomeAnimeLaneTests' harness at 1 px = 1 pt on the medium's pager canvas. These are the primary renders
+  for ref-home-new-*; the harness renders above remain lane evidence (see ../INDEX.md).
 - home-new-*-prototype-block-390.png: the block with no picks (the bundle read failed or was empty).
 - home-new-*-loader-390.png: HomeNewAccount through its own loader over a seeded Discover bundle.
 - taste-busy-{anime,manga}-390.png: personal (because-you) picks in their REAL shape. Those rows carry a

@@ -385,16 +385,180 @@ struct HomeAnimeLaneTests {
         #expect(FileManager.default.fileExists(atPath: url.path))
     }
 
+    // MARK: Manga Home through HomeView (Task 10 integration; written only with KURO_WRITE_SNAPSHOTS=1)
+
+    /// The integrated `HomeView` on the manga medium, the four states the manga references show, on the
+    /// pager's manga canvas. Same harness and 1 px = 1 pt scale as the anime renders. The German run
+    /// (`-testLanguage de -testRegion DE`) writes busy and quiet at 390 with the `-de` suffix.
+    @Test("Manga Home fixture renders through HomeView: busy, full, undated and quiet at 320 / 390 / 430")
+    func mangaHomeRenders() async throws {
+        Self.seedMangaArtwork()
+        let materials = ArtworkMaterialStore(cacheDirectory: nil, loader: Self.fixtureLoader)
+        await Self.warm(materials, urls: Self.mangaTitles.compactMap { URL(string: Self.artHost + $0.cover) })
+        let outDir = Self.mangaOutDir
+        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+        let german = KuroLocale.isGerman
+        let scenarios: [Scenario] = german ? [.busy, .quiet] : Scenario.allCases
+        let widths: [CGFloat] = german ? [390] : [390, 320, 430]
+        for scenario in scenarios {
+            let graph = try Self.mangaGraph(scenario)
+            for width in widths {
+                let url = outDir.appendingPathComponent("home-\(scenario.rawValue)-manga\(german ? "-de" : "")-\(Int(width)).png")
+                try await Self.render(Self.home(graph, materials, canvas: .kuroCanvasHomeManga), width: width,
+                                      height: 2_400, to: url, canvas: .kuroCanvasHomeManga)
+                #expect(FileManager.default.fileExists(atPath: url.path))
+            }
+        }
+    }
+
+    private static var mangaOutDir: URL {
+        guard ProcessInfo.processInfo.environment["KURO_WRITE_SNAPSHOTS"] == "1" else {
+            return FileManager.default.temporaryDirectory.appendingPathComponent("kuro-home-manga-integrated", isDirectory: true)
+        }
+        return repo.appendingPathComponent("docs/prototype-fidelity/native/home-manga", isDirectory: true)
+    }
+
+    private static func mangaGraph(_ scenario: Scenario) throws -> AppGraph {
+        let defaults = try #require(UserDefaults(suiteName: "home-manga-integrated-\(UUID().uuidString)"))
+        let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter())
+        graph.home.seedForVisualQA(anime: nil, manga: Self.mangaBundle(scenario), medium: "manga")
+        graph.releases.schedule = Self.mangaSchedule(scenario)
+        Self.seedClub(graph)
+        return graph
+    }
+
+    /// The manga reference's shelf (prototype sample art, fixtures only).
+    private static let mangaTitles: [(id: Int, title: String, cover: String)] = [
+        (1, "Chainsaw Man", "manga0.jpg"),
+        (2, "Solo Leveling", "manga1.jpg"),
+        (3, "Jujutsu Kaisen", "manga2.jpg"),
+        (4, "Berserk", "manga3.jpg"),
+        (5, "SPY x FAMILY", "journal-manga-13-cover.jpg"),
+        (6, "Vinland Saga", "journal-manga-16-cover.jpg")
+    ]
+
+    private static func mangaCover(_ id: Int) -> String {
+        artHost + (mangaTitles.first { $0.id == id }?.cover ?? "manga0.jpg")
+    }
+
+    private static func seedMangaArtwork() {
+        for row in mangaTitles {
+            guard let data = try? Data(contentsOf: repo.appendingPathComponent("tools/design-directions/assets/" + row.cover)),
+                  let url = URL(string: artHost + row.cover),
+                  let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil,
+                                                 headerFields: ["Content-Type": "image/jpeg"]) else { continue }
+            URLCache.shared.storeCachedResponse(CachedURLResponse(response: response, data: data, storagePolicy: .allowedInMemoryOnly),
+                                                for: URLRequest(url: url))
+        }
+    }
+
+    /// Busy, full and undated read Chainsaw Man 24, Solo Leveling 8 (finished at 9: a backlog, never
+    /// "new"), Jujutsu Kaisen 19, Berserk 12, SPY x FAMILY 4 and Vinland Saga 40 (the reference's
+    /// sixth title is Vagabond; the fixture art is Vinland Saga's cover, so the title follows the art).
+    /// Against the dated chapters ahead (26, 22, 13, 6, 41) that is 1 + 2 + 0 + 1 + 0 = "4 new
+    /// chapters", the reference's headline, honestly. Quiet has read every released chapter (the caught-up account).
+    static func mangaBundle(_ scenario: Scenario) -> HomeBundle? {
+        let quiet = scenario == .quiet
+        func card(_ id: Int, progress: Int, chapters: Int?, status: String) -> String {
+            let title = mangaTitles.first { $0.id == id }?.title ?? ""
+            return """
+            {"media_id":\(id),"list_type":"READING","progress":\(progress),"server_revision":2,
+             "lifecycle_id":"2222222\(id)-2222-4222-8222-222222222222","title":"\(title)",
+             "cover_image":"\(mangaCover(id))","banner_image":null,"format":"MANGA",
+             "chapters":\(chapters.map(String.init) ?? "null"),"catalogue_status":"\(status)"}
+            """
+        }
+        let cards = [
+            card(1, progress: quiet ? 25 : 24, chapters: nil, status: "RELEASING"),
+            card(2, progress: quiet ? 9 : 8, chapters: 9, status: "FINISHED"),
+            card(3, progress: quiet ? 21 : 19, chapters: nil, status: "RELEASING"),
+            card(4, progress: 12, chapters: nil, status: "RELEASING"),
+            card(5, progress: quiet ? 5 : 4, chapters: nil, status: "RELEASING"),
+            card(6, progress: 40, chapters: nil, status: "RELEASING")
+        ].joined(separator: ",")
+        // The notes are two hours old whenever the suite runs (the references' "2h ago").
+        let noteAt = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-7_200))
+        let club = """
+        {"state":"ready","label":"Sunday Club","items":[
+          {"comment_id":"m1","media_id":4,"media_type":"MANGA","text":"Just one more. Famous last words.",
+           "display_name":"Mina","spoiler_scope":"none","created_at":"\(noteAt)"},
+          {"comment_id":"m2","media_id":2,"media_type":"MANGA","text":"Started.","display_name":"Jules",
+           "spoiler_scope":"none","created_at":"\(noteAt)"}]}
+        """
+        return try? decode("""
+        {"medium":"manga","window_days":7,"home_revision":1,"active":[\(cards)],"upcoming":[],"pending":[],
+         "schedule_state":"ok","next_cursor":null,"club":\(club)}
+        """)
+    }
+
+    /// Manga releases are announced for a day (00:00 UTC of the reader's local day, as stored). Busy and
+    /// quiet: three today, two tomorrow, one in a week (the reference's 6 releases · 7 days), plus three
+    /// undated volume announcements. Undated: the announcements only. Full: six weeks of releases.
+    static func mangaSchedule(_ scenario: Scenario) -> [ReleaseScheduleItem] {
+        func dayRow(_ days: Int) -> Date {
+            let calendar = KuroLocale.calendar
+            let start = calendar.startOfDay(for: Date())
+            let noon = calendar.date(byAdding: .hour, value: 12, to: calendar.date(byAdding: .day, value: days, to: start) ?? start) ?? start
+            let local = calendar.dateComponents([.year, .month, .day], from: noon)
+            var utc = Calendar(identifier: .gregorian)
+            utc.timeZone = TimeZone(identifier: "UTC") ?? utc.timeZone
+            return utc.date(from: local) ?? noon
+        }
+        func row(_ id: Int, _ unit: ReleaseUnitKind, _ number: Double, _ days: Int?) -> ReleaseScheduleItem {
+            ReleaseScheduleItem(medium: .manga, mediaId: id, title: mangaTitles.first { $0.id == id }?.title ?? "",
+                                coverImage: mangaCover(id), unitKind: unit, unitNumber: number,
+                                releaseAt: days.map(dayRow), basis: .announced, source: "anilist",
+                                precision: days == nil ? nil : .day)
+        }
+        let undated = [row(4, .volume, 42, nil), row(5, .volume, 14, nil), row(6, .volume, 38, nil)]
+        let week = [row(1, .chapter, 26, 0), row(2, .volume, 11, 0), row(3, .chapter, 22, 0),
+                    row(4, .chapter, 13, 1), row(5, .chapter, 6, 1), row(6, .chapter, 41, 7)]
+        switch scenario {
+        case .undated:
+            return undated
+        case .busy, .quiet:
+            return week + undated
+        case .full:
+            // 48 dated releases: the six above, then seven a week for six weeks (the last 41 days ahead,
+            // so the span reads "6 weeks"). Each title's chapters (Solo Leveling's volumes) keep counting.
+            let base: [Int: Double] = [1: 26, 2: 11, 3: 22, 4: 13, 5: 6, 6: 41]
+            var rows = week
+            for weekIndex in 1...6 {
+                for slot in 0..<7 {
+                    let id = slot % 6 + 1
+                    let number = (base[id] ?? 1) + Double(weekIndex * 2 + slot / 6)
+                    rows.append(row(id, id == 2 ? .volume : .chapter, number, weekIndex * 7 - 1))
+                }
+            }
+            return rows + undated
+        }
+    }
+
     private static func graph(_ scenario: Scenario) throws -> AppGraph {
         let defaults = try #require(UserDefaults(suiteName: "home-anime-lane-\(UUID().uuidString)"))
         let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter())
         graph.home.seedForVisualQA(anime: Self.bundle(scenario), manga: nil, medium: "anime")
         graph.releases.schedule = Self.schedule(scenario)
+        Self.seedClub(graph)
         return graph
     }
 
-    private static func home(_ graph: AppGraph, _ materials: ArtworkMaterialStore) -> some View {
-        HomeView(skipNetworkLoad: true)
+    /// The reader's one club (the references' "Sunday Club", active two hours ago), so Home's private
+    /// club room shows with the bundle's club notes (`HomeClubRoom.roomNotes` needs exactly one club).
+    static func seedClub(_ graph: AppGraph) {
+        let iso = ISO8601DateFormatter()
+        graph.clubs.myClubs = [
+            ClubListRow(id: "fixture-club", name: "Sunday Club", sharing_level: "status", is_archived: false,
+                        created_at: "2026-01-01T00:00:00Z", member_count: 3, rail_count: 1, poll_count: 0,
+                        last_activity_at: iso.string(from: Date().addingTimeInterval(-7_200)),
+                        activity_preview: nil, cover_images: nil, member_names: ["Mina", "Jules", "Ari"],
+                        loading_state: nil)
+        ]
+    }
+
+    static func home(_ graph: AppGraph, _ materials: ArtworkMaterialStore,
+                     canvas: Color = .kuroCanvasHome, newAccountLatch: Bool? = nil) -> some View {
+        HomeView(skipNetworkLoad: true, newAccountLatch: newAccountLatch)
             .environment(graph.home)
             .environment(graph.library)
             .environment(graph.libraryActions)
@@ -405,7 +569,8 @@ struct HomeAnimeLaneTests {
             .environment(NetworkMonitor())
             .environment(materials)
             .environment(\.kuroRoutes, KuroRoutes.unhandled)
-            .background(Color.kuroCanvasHome)
+            // The pager's canvas for this medium (`KuroMainView.Section.canvas`).
+            .background(canvas)
             // The pager places Home under the header, never under the status bar.
             .ignoresSafeArea()
     }
@@ -476,12 +641,14 @@ struct HomeAnimeLaneTests {
             cardJSON(5, progress: quiet ? 12 : 3, episodes: 12, status: "FINISHED", season: 2),
             cardJSON(6, progress: quiet ? 64 : 8, episodes: 64, status: "FINISHED", season: nil)
         ].joined(separator: ",")
+        // The notes are two hours old whenever the suite runs (the references' "2h ago").
+        let noteAt = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-7_200))
         let club = """
         {"state":"ready","label":"Sunday Club","items":[
           {"comment_id":"c1","media_id":2,"media_type":"ANIME","text":"Famous last words.","display_name":"Mina",
-           "spoiler_scope":"none","created_at":"2026-10-01T00:00:00Z"},
+           "spoiler_scope":"none","created_at":"\(noteAt)"},
           {"comment_id":"c2","media_id":2,"media_type":"ANIME","text":"Again.","display_name":"Jules",
-           "spoiler_scope":"none","created_at":"2026-10-01T00:00:00Z"}]}
+           "spoiler_scope":"none","created_at":"\(noteAt)"}]}
         """
         return try? decode("""
         {"medium":"anime","window_days":7,"home_revision":1,"active":[\(cards)],"upcoming":[],"pending":[],
@@ -552,8 +719,8 @@ struct HomeAnimeLaneTests {
     }
 
     /// Asks for every fixture material and waits (≤ 5 s) until each one is derived.
-    static func warm(_ store: ArtworkMaterialStore) async {
-        let urls = titles.compactMap { URL(string: artHost + ($0.banner ?? $0.cover)) }
+    static func warm(_ store: ArtworkMaterialStore, urls given: [URL]? = nil) async {
+        let urls = given ?? titles.compactMap { URL(string: artHost + ($0.banner ?? $0.cover)) }
         for _ in 0..<100 {
             let ready = urls.allSatisfy { store.material(for: $0, seedHex: nil).method == "art-hue-v1" }
             if ready { return }
@@ -561,14 +728,15 @@ struct HomeAnimeLaneTests {
         }
     }
 
-    static func render<V: View>(_ view: V, width: CGFloat, height: CGFloat, to url: URL) async throws {
+    static func render<V: View>(_ view: V, width: CGFloat, height: CGFloat, to url: URL,
+                                canvas: Color = .kuroCanvasHome) async throws {
         let host = UIHostingController(rootView: view.frame(width: width, height: height))
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: width, height: height))
         window.rootViewController = host
         window.isHidden = false
         defer { window.isHidden = true; window.rootViewController = nil }
         host.view.bounds = CGRect(x: 0, y: 0, width: width, height: height)
-        host.view.backgroundColor = UIColor(Color.kuroCanvasHome)
+        host.view.backgroundColor = UIColor(canvas)
         host.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(1_200))
         host.view.layoutIfNeeded()
