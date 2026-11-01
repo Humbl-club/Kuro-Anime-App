@@ -155,6 +155,8 @@ struct KuroMainView: View {
 	/// Home's new-account decision (`TastePageCopy.latchNewAccount` over the whole Library), held
 	/// here so the page background and `HomeView` agree; cleared when the Library leaves `.loaded`.
 	@State private var homeNewAccountLatch: Bool?
+	/// Taste's selected medium, owned here so the pager and header canvas follow it (amendment 8).
+	@State private var tasteMedium: MediaKind = .anime
 	/// Every swipe-exclusion frame reported in `kuro_root` space (filtered to the viewport on use).
 	@State private var swipeExclusions: [CGRect] = []
     /// The measured size of the root (`kuro_root`) container: the pager's real width on any device.
@@ -201,8 +203,10 @@ struct KuroMainView: View {
             selectedMedium: home.medium,
             animeCount: other == .anime ? otherCount : 0,
             mangaCount: other == .manga ? otherCount : 0)
-        return !HomeShelfPolicy.showsNewAccount(latched: homeNewAccountLatch, scene: scene,
-                                                otherMediumOccupied: otherOccupied)
+        return !HomeShelfPolicy.showsNewAccount(
+            latched: homeNewAccountLatch,
+            onlyPlannedTitles: library.allEntries.allSatisfy { $0.status == .planning },
+            scene: scene, otherMediumOccupied: otherOccupied)
     }
 
     private func latchHomeNewAccount() {
@@ -274,9 +278,9 @@ struct KuroMainView: View {
 	                    .ignoresSafeArea()
 	                HomeInvitationWash()
 	            } else {
-	                selection.canvas(mangaHome: home.medium == "manga").ignoresSafeArea()
+	                selection.canvas(mangaHome: home.medium == "manga", mangaTaste: tasteMedium == .manga).ignoresSafeArea()
 	                    .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.medium : nil,
-	                               value: selection.canvas(mangaHome: home.medium == "manga"))
+	                               value: selection.canvas(mangaHome: home.medium == "manga", mangaTaste: tasteMedium == .manga))
 	            }
 
 	            VStack(spacing: 0) {
@@ -293,7 +297,8 @@ struct KuroMainView: View {
                             searchSession += 1
                             showSearchSheet = true
                         },
-                        onPicture: homeInvitation
+                        onPicture: homeInvitation,
+                        tasteMedium: tasteMedium
                     )
                 }
 
@@ -334,6 +339,7 @@ struct KuroMainView: View {
                                 mountedSections.insert(.clubs)
                             },
                             homeNewAccountLatch: homeNewAccountLatch,
+                            tasteMedium: $tasteMedium,
                             bottomInset: pagerProxy.safeAreaInsets.bottom
 	                    )
 	                    .offset(x: edgeBounceOffset)
@@ -720,6 +726,8 @@ private struct KuroSectionPager: View {
     var onOpenClubs: () -> Void = {}
     /// Home's new-account decision (`KuroMainView.homeNewAccountLatch`).
     var homeNewAccountLatch: Bool?
+    /// Taste's selected medium (`KuroMainView.tasteMedium`).
+    @Binding var tasteMedium: MediaKind
     /// Bottom safe-area inset captured before the pager ignores it. The Deck's art
     /// runs edge-to-edge; every other page gets the inset back as padding.
     var bottomInset: CGFloat = 0
@@ -763,7 +771,7 @@ private struct KuroSectionPager: View {
             Group {
                 switch section {
                 case .taste:
-                    TastePicksView()
+                    TastePicksView(medium: $tasteMedium)
                 case .home:
                     HomeView(onOpenImport: onOpenImport, onFindTitle: onFindTitle,
                              onOpenCollection: onOpenCollection, onImportNavigation: onImportNavigation,
@@ -930,12 +938,14 @@ struct KuroHeaderRowLayout: Equatable {
 
 extension KuroMainView.Section {
     /// The page canvas behind the pager and the header (PROTOTYPE_SPEC.md §2): the warm Home canvas
-    /// `#fffef8` on Home and Taste, the manga Home canvas `#f5f5f3` while Home shows manga, the white
-    /// page elsewhere.
-    func canvas(mangaHome: Bool) -> Color {
+    /// `#fffef8` on Home and Taste, the manga Home canvas `#f5f5f3` while Home (or Taste, amendment 8:
+    /// "Taste follows its reference") shows manga, the white page elsewhere. Taste paints the same
+    /// tokens (`TastePageContent.canvas(for:)`), so no seam shows under the header or beside the
+    /// readable column on iPad.
+    func canvas(mangaHome: Bool, mangaTaste: Bool = false) -> Color {
         switch self {
         case .home: return mangaHome ? Color.kuroCanvasHomeManga : Color.kuroCanvasHome
-        case .taste: return Color.kuroCanvasHome
+        case .taste: return mangaTaste ? Color.kuroCanvasHomeManga : Color.kuroCanvasHome
         default: return Color.kuroBackground
         }
     }
@@ -948,6 +958,8 @@ struct KuroHeaderNew: View {
     var onOpenSearch: () -> Void = {}
     /// Empty Home paints the picture through this header. A saved shelf keeps the solid header.
     var onPicture: Bool = false
+    /// Taste's medium: manga Taste paints the manga canvas under the header too.
+    var tasteMedium: MediaKind = .anime
     @Environment(IdentityStore.self) private var identity
     @Environment(SessionController.self) private var session
     @Environment(ClubsStore.self) private var clubs
@@ -960,7 +972,7 @@ struct KuroHeaderNew: View {
     private var playsMotion: Bool { KuroMotion.playsMotionNow(reduceMotion: reduceMotion) }
 
     /// This page's canvas (Home's follows its medium).
-    private var canvas: Color { selection.canvas(mangaHome: home.medium == "manga") }
+    private var canvas: Color { selection.canvas(mangaHome: home.medium == "manga", mangaTaste: tasteMedium == .manga) }
 
     private var swipeOrder: [KuroMainView.Section] {
         KuroMainView.Section.pagerOrder(

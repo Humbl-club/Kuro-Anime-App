@@ -38,16 +38,25 @@ struct HomeAnimeLaneTests {
 
     @Test("New-account Home (Task 10): latched new accounts keep the block through Plans; the invitation stays for an empty medium beside an occupied one")
     func newAccountPresentation() {
-        // Latched new account: the block stays through planned titles, gives way to a title in progress.
-        #expect(HomeShelfPolicy.showsNewAccount(latched: true, scene: .invitation, otherMediumOccupied: false))
-        #expect(HomeShelfPolicy.showsNewAccount(latched: true, scene: .saved, otherMediumOccupied: false),
-                "the first one-tap Plan must not unmount the block")
-        #expect(!HomeShelfPolicy.showsNewAccount(latched: true, scene: .inProgress, otherMediumOccupied: true))
+        func shows(_ latched: Bool?, planned: Bool = true, _ scene: HomeShelfScene, other: Bool = false) -> Bool {
+            HomeShelfPolicy.showsNewAccount(latched: latched, onlyPlannedTitles: planned, scene: scene,
+                                            otherMediumOccupied: other)
+        }
+        // Latched new account: the block stays through its own Plans (planned titles only).
+        #expect(shows(true, .invitation))
+        #expect(shows(true, .saved), "the first one-tap Plan must not unmount the block")
+        #expect(shows(true, .invitation, other: true), "a Plan in the other medium keeps the block here too")
+        // It gives way to a title in progress, and to an import of anything but planned titles (the
+        // Library stays `.loaded` through an import, so the latch itself does not end).
+        #expect(!shows(true, .inProgress, other: true))
+        #expect(!shows(true, planned: false, .saved), "an import of completed titles ends the block")
+        #expect(!shows(true, planned: false, .invitation, other: true),
+                "an import into the other medium leaves the approved invitation here")
         // Not latched: an empty medium with the other occupied keeps the approved invitation.
-        #expect(!HomeShelfPolicy.showsNewAccount(latched: false, scene: .invitation, otherMediumOccupied: true))
-        #expect(!HomeShelfPolicy.showsNewAccount(latched: nil, scene: .invitation, otherMediumOccupied: true))
-        #expect(HomeShelfPolicy.showsNewAccount(latched: nil, scene: .invitation, otherMediumOccupied: false))
-        #expect(!HomeShelfPolicy.showsNewAccount(latched: false, scene: .saved, otherMediumOccupied: false))
+        #expect(!shows(false, .invitation, other: true))
+        #expect(!shows(nil, .invitation, other: true))
+        #expect(shows(nil, .invitation))
+        #expect(!shows(false, .saved))
     }
 
     @Test("Caught up (amendment 3): the headline is 'Keep watching.' and the quiet line is a separate card")

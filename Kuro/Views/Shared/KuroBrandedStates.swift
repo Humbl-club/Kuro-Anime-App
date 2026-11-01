@@ -358,9 +358,9 @@ struct KuroSkeleton: View {
     /// The block is translucent ink, so it stays visible on every canvas it lands on (Home
     /// `#fffef8`, manga Home `#f5f5f3`, detail paper `#f5f5f4`); an opaque light grey such as
     /// `kuroCanvasQuiet` (`#f6f6f6`) vanishes on the two grey canvases. Pinned in `KuroTests`.
-    static let blockInkOpacity: Double = 0.08
+    nonisolated static let blockInkOpacity: Double = 0.08
     /// The scene card's material foot: a second, deeper tone over the same canvas.
-    static let deepBlockInkOpacity: Double = 0.13
+    nonisolated static let deepBlockInkOpacity: Double = 0.13
 
     /// The block's colour composited over `canvas` (pure; the visibility test reads it).
     nonisolated static func block(on canvas: KuroRGB) -> KuroRGB {

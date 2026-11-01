@@ -2021,7 +2021,8 @@ Local branch only; nothing on the live server changed.
 
 Local branch only; nothing on the live server changed.
 - **Home is now one page in the prototype's style:** the "Coming up." calendar card, your private club's room (only for a real club, with notes only when you are in one club so a note is never credited to the wrong club), the manga "Now reading" leaves and the "Your pace. Your place." footer.
-- **A brand-new account** sees the prototype's welcome block on Home (＋, "Your stories belong here.", Explore Taste, Import and a few first picks) on the plain Home background. The block stays put while you plan your first titles and gives way once something is in progress.
+- **A brand-new account** sees the prototype's welcome block on Home (＋, "Your stories belong here.", Explore Taste, Import and a few first picks) on the plain Home background. The block stays put while you plan your first titles and gives way once you import a list or start something.
+- **Manga on Taste** now has the manga background behind the header and on iPad's side margins too, with no lighter strip.
 - **German wording:** release counts read "Veröffentlichungen" everywhere, and caught up reads "Auf dem neuesten Stand", also on manga leaves.
 - **Taste** uses the same Anime / Manga switch as Home, with the first pick's artwork showing through the chosen word.
 - **Your manga lists** use the dark manga key, as in the prototype; loading blocks stay visible on every background; error and empty screens use the same bold headline.

@@ -18,7 +18,12 @@ struct TastePicksView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(NetworkMonitor.self) private var networkMonitor
 
-    @State private var medium: MediaKind = .anime
+    /// The selected medium, owned by the pager (`ContentView`) so its canvas and the header follow it.
+    @Binding var medium: MediaKind
+
+    init(medium: Binding<MediaKind>) {
+        self._medium = medium
+    }
     @State private var animePicks: [TasteCard] = []
     @State private var mangaPicks: [TasteCard] = []
     @State private var isLoading = true

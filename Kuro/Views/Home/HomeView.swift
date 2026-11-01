@@ -223,8 +223,9 @@ struct HomeView: View {
 
     /// The prototype's new-account block instead of the shelf (`HomeShelfPolicy.showsNewAccount`).
     private var showsNewAccount: Bool {
-        HomeShelfPolicy.showsNewAccount(latched: newAccountLatch, scene: shelfScene,
-                                        otherMediumOccupied: otherMediumOccupied)
+        HomeShelfPolicy.showsNewAccount(latched: newAccountLatch,
+                                        onlyPlannedTitles: library.allEntries.allSatisfy { $0.status == .planning },
+                                        scene: shelfScene, otherMediumOccupied: otherMediumOccupied)
     }
 
     /// The approved invitation (this medium empty, the other occupied): the page picture runs behind it.
@@ -1033,7 +1034,7 @@ struct HomeView: View {
     /// the branded failure (or offline), never "no clubs".
     @ViewBuilder
     private func clubSection(origin: AccountActionScope.Ticket?) -> some View {
-        let rows = clubs.myClubs.compactMap(ClubSummary.init(row:))
+        let rows = clubs.myClubs.compactMap { ClubSummary(row: $0) }
         let clubCount = rows.count
         let slice = home.bundle?.club
         let readFailure: (failed: Bool, transport: Bool) = {

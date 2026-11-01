@@ -10,6 +10,7 @@
 //
 
 import CoreGraphics
+import KuroCore
 import SwiftUI
 import Testing
 import UIKit
@@ -217,6 +218,10 @@ struct BrandedStateTests {
         #expect(KuroMainView.Section.home.canvas(mangaHome: false) == Color.kuroCanvasHome)
         #expect(KuroMainView.Section.taste.canvas(mangaHome: false) == Color.kuroCanvasHome)
         #expect(KuroMainView.Section.taste.canvas(mangaHome: true) == Color.kuroCanvasHome)
+        // Taste follows its own medium (amendment 8), with the same tokens Taste paints.
+        #expect(KuroMainView.Section.taste.canvas(mangaHome: false, mangaTaste: true) == Color.kuroCanvasHomeManga)
+        #expect(KuroMainView.Section.taste.canvas(mangaHome: false, mangaTaste: true) == TastePageContent.canvas(for: .manga))
+        #expect(KuroMainView.Section.home.canvas(mangaHome: false, mangaTaste: true) == Color.kuroCanvasHome)
         #expect(KuroMainView.Section.home.canvas(mangaHome: true) == Color.kuroCanvasHomeManga)
         #expect(KuroMainView.Section.discover.canvas(mangaHome: true) == Color.kuroBackground)
     }

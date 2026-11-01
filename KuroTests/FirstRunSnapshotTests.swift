@@ -145,7 +145,7 @@ struct FirstRunSnapshotTests {
         // The real page: TastePicksView over the seeded bundle (the because-you read fails with no client,
         // so the bundle's NEW TO YOU picks stand in; the account is new, so "A first favourite.").
         #expect(await render(
-            TastePicksView()
+            TastePicksView(medium: .constant(.anime))
                 .environment(graph.discovery)
                 .environment(graph.library)
                 .environment(graph.libraryActions)
