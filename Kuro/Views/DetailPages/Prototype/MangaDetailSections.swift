@@ -29,6 +29,8 @@ struct MangaDetailContent {
     var authors: [(author: Author, role: String)] = []
     var chapters: [MangaChapter] = []
     var readLinks: [ProviderSheetItem] = []
+    /// Availability freshness for the provider sheet ("Checked 2 days ago."), when there is one.
+    var readStatusCaption: String? = nil
     var bundle: SeriesDetailBundle? = nil
     var friendsPreview: SocialActivityStore.FriendActivityResponse? = nil
 }
@@ -168,7 +170,7 @@ struct MangaDetailPage: View {
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(title: KuroLocale.text("Read on", "Lesen bei"),
-                                   links: content.readLinks, statusCaption: nil) { link in
+                                   links: content.readLinks, statusCaption: content.readStatusCaption) { link in
                 if let url = ProviderAvailabilityStore.validatedOutboundURL(link.url) {
                     outboundLinks.recordOutboundLink(mediaType: "MANGA", mediaId: manga.id, linkKind: "provider_sheet", provider: link.title)
                     openURL(url)
@@ -403,6 +405,7 @@ struct MangaDetailPage: View {
         let snapshot = await availability.resolveReadLinks(mangaId: manga.id)
         guard !Task.isCancelled, let snapshot else { return }
         content.readLinks = snapshot.all
+        content.readStatusCaption = snapshot.statusCaption
     }
 }
 
@@ -443,9 +446,9 @@ struct MangaDetailHero<Mark: View>: View {
             .padding(.bottom, 24)
         } else {
             ViewThatFits(in: .horizontal) {
-                row(inset: 24, gap: 23, titleSize: 29, titleWidth: 175)
+                row(inset: 24, gap: 23, titleSize: 29, titleWidth: 160)
                 // Small phones (prototype ≤360): tighter inset, 26 pt title.
-                row(inset: 20, gap: 18, titleSize: 26, titleWidth: 140)
+                row(inset: 20, gap: 18, titleSize: 26, titleWidth: 125)
             }
         }
     }
@@ -455,8 +458,10 @@ struct MangaDetailHero<Mark: View>: View {
             // The prototype's cover is 35 % of the band's content width, at most 128.
             book.containerRelativeFrame(.horizontal) { width, _ in min(128, max(0, width - inset * 2) * 0.35) }
             heading(titleSize: titleSize)
-                .frame(minWidth: titleWidth, alignment: .leading)
-            Spacer(minLength: 0)
+                .frame(minWidth: titleWidth, maxWidth: .infinity, alignment: .leading)
+                // The round close (44 pt, 12 pt from the edge) sits over this corner: a tall heading
+                // (long title, German mark on two lines) never runs under it.
+                .padding(.trailing, 32)
         }
         .padding(.top, 28 + 16)
         .padding(.horizontal, inset)
@@ -541,12 +546,43 @@ struct MangaBookmarkCard: View {
     let total: Int?
     let caption: String?
     let material: ArtworkMaterial
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        let german = KuroLocale.isGerman
         let shape = RoundedRectangle(cornerRadius: 3, style: .continuous)
-        HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .leading, spacing: 4) {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                // Large type: the count goes under "Your bookmark" so neither breaks inside a word.
+                VStack(alignment: .leading, spacing: 10) {
+                    label
+                    count
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(alignment: .center, spacing: 10) {
+                    label
+                    Spacer(minLength: 8)
+                    count
+                }
+            }
+        }
+        .padding(.vertical, 16)
+        .padding(.horizontal, 13)
+        .background(LinearGradient(colors: [material.wash.color, MangaInk.bandEnd],
+                                   startPoint: UnitPoint(x: 0, y: 0.32), endPoint: UnitPoint(x: 1, y: 0.68)), in: shape)
+        .overlay(alignment: .top) { Rectangle().fill(material.edge.color).frame(height: 1) }
+        .overlay(alignment: .bottom) { Rectangle().fill(material.edge.color).frame(height: 1) }
+        .overlay(alignment: .leading) { Rectangle().fill(material.base.color).frame(width: 2) }
+        .clipShape(shape)
+        .background(alignment: .bottom) {
+            Rectangle().fill(Color.white.opacity(0.5)).frame(height: 2).offset(y: 2)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var label: some View {
+        let german = KuroLocale.isGerman
+        return VStack(alignment: .leading, spacing: 4) {
                 Text(MangaDetailCopy.bookmark(german: german))
                     .font(.kuroEditorial(size: 22))
                     .tracking(-0.5)
@@ -558,8 +594,11 @@ struct MangaBookmarkCard: View {
                         .foregroundStyle(DetailInk.progressCaption)
                 }
             }
-            Spacer(minLength: 8)
-            HStack(alignment: .lastTextBaseline, spacing: 4) {
+    }
+
+    private var count: some View {
+        let german = KuroLocale.isGerman
+        return HStack(alignment: .lastTextBaseline, spacing: 4) {
                 Text(MangaDetailCopy.chapterUnit(german: german))
                     .font(.detailSF(10, relativeTo: .footnote))
                     .foregroundStyle(Color.kuroMuted)
@@ -579,19 +618,6 @@ struct MangaBookmarkCard: View {
             .fixedSize()
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(MangaDetailSections.bookmarkSpoken(progress: progress, total: total, german: german))
-        }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 13)
-        .background(LinearGradient(colors: [material.wash.color, MangaInk.bandEnd],
-                                   startPoint: UnitPoint(x: 0, y: 0.32), endPoint: UnitPoint(x: 1, y: 0.68)), in: shape)
-        .overlay(alignment: .top) { Rectangle().fill(material.edge.color).frame(height: 1) }
-        .overlay(alignment: .bottom) { Rectangle().fill(material.edge.color).frame(height: 1) }
-        .overlay(alignment: .leading) { Rectangle().fill(material.base.color).frame(width: 2) }
-        .clipShape(shape)
-        .background(alignment: .bottom) {
-            Rectangle().fill(Color.white.opacity(0.5)).frame(height: 2).offset(y: 2)
-        }
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -798,6 +824,7 @@ struct MangaAdaptationCard: View {
     let onOpen: (Int) -> Void
     @State private var showsGuide = false
     @State private var choice: Int?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let german = KuroLocale.isGerman
@@ -813,7 +840,10 @@ struct MangaAdaptationCard: View {
                 .padding(.top, 8)
                 .padding(.bottom, 18)
                 .accessibilityAddTraits(.isHeader)
-            HStack(alignment: .center, spacing: 16) {
+            let stacked = dynamicTypeSize.isAccessibilitySize
+            let layout = stacked ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                                 : AnyLayout(HStackLayout(alignment: .center, spacing: 16))
+            layout {
                 Text("映")
                     .font(.kuroEditorial(size: 25))
                     .foregroundStyle(material.base.color)
@@ -843,7 +873,7 @@ struct MangaAdaptationCard: View {
                     }
                     .buttonStyle(.plain)
                 }
-                Spacer(minLength: 0)
+                if !stacked { Spacer(minLength: 0) }
             }
             if !guides.isEmpty {
                 guide(german: german)

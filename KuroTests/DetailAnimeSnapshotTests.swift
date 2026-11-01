@@ -44,8 +44,7 @@ struct DetailAnimeSnapshotTests {
         await render(page, width: 390, height: 844, name: "detail-anime-top-390.png")
         await render(page, width: 320, height: 844, name: "detail-anime-top-320.png")
         // Review focus 1: the hero and Up next at the largest accessibility size.
-        await render(page.environment(\.dynamicTypeSize, .accessibility5), width: 320, height: 844,
-                     name: "detail-anime-top-ax5-320.png")
+        await renderAX5(page, width: 320, name: "detail-anime-top-ax5-320.png")
 
         // Series flags on with bundle data: the `detail_copy` hook and the manga coverage disclosure.
         var withBundle = Self.trackedContent()
@@ -62,7 +61,38 @@ struct DetailAnimeSnapshotTests {
         graph.clubs.myClubs = []
         await render(Self.host(AnimeDetailPage(anime: sparse, preview: sparseContent), graph: graph),
                      width: 390, height: 844, name: "detail-anime-untracked-390.png", fullPage: true)
+        // German, untracked: "Nicht in deiner Liste" + "Hinzufügen" beside or under the title.
+        let germanRendered = await withGerman {
+            let germanPage = Self.host(AnimeDetailPage(anime: sparse, preview: sparseContent), graph: graph)
+            await render(germanPage, width: 390, height: 844, name: "detail-anime-untracked-de-390.png")
+            await render(germanPage, width: 320, height: 844, name: "detail-anime-untracked-de-320.png")
+        }
+        #expect(germanRendered, "KuroLocale did not pick up the volatile AppleLanguages override")
         await graph.session.endSession()
+    }
+
+    /// Real AX5 type: the type roles read the process-wide `KuroTypeScale`, which the environment
+    /// value alone does not move. Restored to the device category afterwards.
+    private func renderAX5<V: View>(_ view: V, width: CGFloat, name: String, fullPage: Bool = false) async {
+        KuroTypeScale.current.update(category: .accessibilityExtraExtraExtraLarge)
+        await render(view.environment(\.dynamicTypeSize, .accessibility5), width: width, height: 844, name: name,
+                     fullPage: fullPage)
+        KuroTypeScale.current.update(category: UIApplication.shared.preferredContentSizeCategory)
+    }
+
+    /// Runs `body` with German as the first preferred language, set only in this process's volatile
+    /// argument domain (nothing is written to the app's preferences). Returns false, skipping the
+    /// body, when `KuroLocale` does not see the change.
+    private func withGerman(_ body: () async -> Void) async -> Bool {
+        let defaults = UserDefaults.standard
+        let previous = defaults.volatileDomain(forName: UserDefaults.argumentDomain)
+        var german = previous
+        german["AppleLanguages"] = ["de-DE"]
+        defaults.setVolatileDomain(german, forName: UserDefaults.argumentDomain)
+        defer { defaults.setVolatileDomain(previous, forName: UserDefaults.argumentDomain) }
+        guard KuroLocale.isGerman else { return false }
+        await body()
+        return true
     }
 
     // MARK: Hosting

@@ -86,19 +86,34 @@ struct DetailSectionHeading: View {
     var note: String? = nil
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(title)
-                .font(.detailSF(size, .medium, relativeTo: .title3))
-                .tracking(tracking)
-                .foregroundStyle(Color.kuroInk)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-            Spacer(minLength: 8)
-            if let note {
-                Text(note)
-                    .font(.detailSF(size >= 18 ? 10 : 9, relativeTo: .caption2))
-                    .foregroundStyle(size >= 18 ? DetailInk.count : DetailInk.castNote)
+        // Large type: the note goes under the title instead of breaking the title inside a word.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline) {
+                heading.fixedSize()
+                Spacer(minLength: 8)
+                noteText
             }
+            VStack(alignment: .leading, spacing: 4) {
+                heading.fixedSize(horizontal: false, vertical: true)
+                noteText
+            }
+        }
+    }
+
+    private var heading: some View {
+        Text(title)
+            .font(.detailSF(size, .medium, relativeTo: .title3))
+            .tracking(tracking)
+            .foregroundStyle(Color.kuroInk)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    @ViewBuilder
+    private var noteText: some View {
+        if let note {
+            Text(note)
+                .font(.detailSF(size >= 18 ? 10 : 9, relativeTo: .caption2))
+                .foregroundStyle(size >= 18 ? DetailInk.count : DetailInk.castNote)
         }
     }
 }
@@ -165,10 +180,18 @@ struct DetailHero<Mark: View>: View {
                     mark()
                 }
             } else {
-                HStack(alignment: .lastTextBaseline, spacing: 12) {
-                    titleBlock
-                    Spacer(minLength: 0)
-                    mark()
+                // Side by side while the title keeps at least 140 pt beside the mark; otherwise the mark
+                // goes under the title (the prototype's ≤360 single column, and long German marks).
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .lastTextBaseline, spacing: 12) {
+                        titleBlock
+                            .frame(minWidth: 140, idealWidth: 140, maxWidth: .infinity, alignment: .leading)
+                        mark()
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        titleBlock
+                        mark()
+                    }
                 }
             }
         }
@@ -220,7 +243,23 @@ struct DetailStatusMark: View {
     private var german: Bool { KuroLocale.isGerman }
 
     var body: some View {
-        HStack(spacing: 8) {
+        // German untracked ("Nicht in deiner Liste" + "Hinzufügen") is wider than a narrow hero column:
+        // Add then drops under the mark instead of clipping.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                statusMenu
+                addButton
+            }
+            .fixedSize()
+            VStack(alignment: .leading, spacing: 0) {
+                statusMenu
+                addButton
+            }
+            .fixedSize()
+        }
+    }
+
+    private var statusMenu: some View {
             Menu {
                 ForEach(DetailStatusCopy.actions(isTracked: isTracked), id: \.self) { action in
                     if handler(action) != nil {
@@ -261,7 +300,10 @@ struct DetailStatusMark: View {
                     }
                 }
             }
+    }
 
+    @ViewBuilder
+    private var addButton: some View {
             if !isTracked {
                 Button(action: onListSettings) {
                     Text(KuroLocale.text("Add", "Hinzufügen"))
@@ -276,8 +318,6 @@ struct DetailStatusMark: View {
                 .buttonStyle(KuroPressStyle())
                 .accessibilityLabel(KuroLocale.text("Add to your list", "Zur Liste hinzufügen"))
             }
-        }
-        .fixedSize()
     }
 
     private func handler(_ action: DetailStatusAction) -> (() -> Void)? {

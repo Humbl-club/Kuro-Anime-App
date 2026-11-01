@@ -1401,6 +1401,10 @@ struct DetailCharactersRail: View {
     /// Manga: square-cut portraits (radius 2) at the prototype's 0.6 saturation.
     var bookish = false
     @State private var selected: Character?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// 67 pt cards (prototype); wider at accessibility sizes so names never break inside a word.
+    private var cardWidth: CGFloat { dynamicTypeSize.isAccessibilitySize ? 124 : 67 }
 
     private var shown: [(character: Character, role: String)] {
         let rank: (String) -> Int = { role in
@@ -1429,7 +1433,7 @@ struct DetailCharactersRail: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 0) {
                                 Color.clear
-                                    .frame(width: 67, height: 84)
+                                    .frame(width: cardWidth, height: cardWidth * 84 / 67)
                                     .overlay {
                                         if let url = item.character.imageLarge.flatMap(AnimeDetailPage.webURL) {
                                             KuroCachedAsyncImage(url: url, maxPixelSize: 240) { phase in
@@ -1447,7 +1451,7 @@ struct DetailCharactersRail: View {
                                     .foregroundStyle(Color.kuroInk)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.leading)
-                                    .frame(width: 67, alignment: .leading)
+                                    .frame(width: cardWidth, alignment: .leading)
                                     .padding(.top, 9)
                             }
                             .contentShape(Rectangle())
