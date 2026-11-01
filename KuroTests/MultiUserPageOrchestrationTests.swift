@@ -112,6 +112,10 @@ struct MultiUserPageOrchestrationTests {
 
         let cBundleGate = StubGate()
         let cBundles = Mutex(0)
+        // Signalled by the responder once the late (second) bundle request is held. Waiting on the
+        // server's request waiters with a `cBundles >= 2` predicate cannot work: waiters are matched
+        // before the responder runs, so the late request itself is always seen with a count of 1.
+        let (lateBundleHeld, lateBundleHeldSignal) = AsyncStream<Void>.makeStream()
         let cServer = StubServer()
         cServer.respond { request in
             switch request.resource {
@@ -124,6 +128,7 @@ struct MultiUserPageOrchestrationTests {
                     return PublicRowJSON.bundle(newToYou: [301])
                 }
                 // Second (late) answer for C after switch: must not land on A.
+                lateBundleHeldSignal.yield()
                 return PublicRowJSON.bundle(newToYou: [999]).held(by: cBundleGate)
             case "rpc/browse_anime_page":
                 return PublicRowJSON.cards([401, 402])
@@ -284,9 +289,9 @@ struct MultiUserPageOrchestrationTests {
         let lateBundle = Task.immediate { @MainActor in
             await graphC.discovery.fetchDiscoverBundle(force: true)
         }
-        _ = await cServer.waitForRequest { req in
-            req.resource == "rpc/discover_bundle" && cBundles.withLock { $0 } >= 2
-        }
+        var lateHeld = lateBundleHeld.makeAsyncIterator()
+        _ = await lateHeld.next()
+        #expect(cBundles.withLock { $0 } == 2, "exactly one late bundle request is in flight")
 
         await graphC.session.applySession(userId: Self.userA, email: "a-on-c@example.com")
         #expect(graphC.discovery.discoverBundleCache.isEmpty, "account switch must clear C's Discover cache")

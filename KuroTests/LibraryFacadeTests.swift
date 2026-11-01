@@ -373,16 +373,23 @@ struct LibraryFacadeTests {
         #expect(harness.notifications.scheduled.isEmpty)
         #expect(harness.count("anime") == 0)
 
-        // A tracking status change still schedules the existing next-episode reminders.
+        // A tracking status change still schedules the existing next-episode reminders, and (since
+        // own-write realtime echoes are suppressed, `LibraryRealtimeEcho`) the Releases sink itself
+        // refreshes upcoming airings when the status changes: the first change reads
+        // `user_airing_next` once (the stub answers []), which records a successful read.
         #expect(await service.libraryActions.apply(LibraryEdit(status: .set(.paused)),
             to: MediaKey(kind: .anime, id: 42), createIfMissing: nil).error == nil)
         await harness.settleSinks()
         #expect(harness.notifications.scheduled == ["airing-42-start", "airing-42-1h"])
+        #expect(harness.count("user_airing_next") == 1)
+        // The second change also asks for a refresh, but it lands inside
+        // `ReleasesStore.upcomingThrottle` (20 s) of that successful read for the same 7-day window,
+        // so it is throttled: still exactly one read.
         #expect(await service.libraryActions.apply(LibraryEdit(status: .set(.current)),
             to: MediaKey(kind: .anime, id: 42), createIfMissing: nil).error == nil)
         await harness.settleSinks()
         #expect(harness.notifications.scheduled.count == 4)
-        #expect(harness.count("user_airing_next") == 0)
+        #expect(harness.count("user_airing_next") == 1)
 
         // A manga edit never touches airing reminders.
         await service.libraryActions.incrementProgress(mediaId: 7, mediaType: "manga")
