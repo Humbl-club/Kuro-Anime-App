@@ -1,0 +1,3 @@
+Command "cache-hit" is deprecated, use "db-stats" instead.
+Cannot find project ref. Have you run supabase link?
+Try rerunning the command with --debug to troubleshoot the error.
