@@ -53,7 +53,7 @@ export function queryFake(opts: FakeOptions = {}): QueryFake {
     let orderBy: { col: string; ascending: boolean } | null = null;
     let limitN: number | null = null;
     let mode: "select" | "update" | "insert" = "select";
-    let body: Row | null = null;
+    let body: Row | Row[] | null = null;
     let seq = 1000;
 
     const matches = (r: Row) =>
@@ -73,10 +73,12 @@ export function queryFake(opts: FakeOptions = {}): QueryFake {
     const write = (): RpcResult => {
       const rows = (tables[table] ??= []);
       if (mode === "insert") {
-        const row = { id: seq++, ...(body as Row) };
-        calls.push({ kind: "insert", table, body: { ...(body as Row) } });
-        rows.push(row);
-        return { data: { ...row }, error: null };
+        const many = Array.isArray(body);
+        const incoming = (many ? body : [body]) as Row[];
+        const stored = incoming.map((r) => ({ id: seq++, ...r }));
+        for (const r of incoming) calls.push({ kind: "insert", table, body: { ...r } });
+        rows.push(...stored);
+        return { data: many ? stored.map((r) => ({ ...r })) : { ...stored[0] }, error: null };
       }
       calls.push({ kind: "update", table, body: { ...(body as Row) }, filters: [...filters] });
       const err = opts.updateErrors?.[table];
@@ -120,7 +122,7 @@ export function queryFake(opts: FakeOptions = {}): QueryFake {
         body = patch;
         return builder;
       },
-      insert(row: Row) {
+      insert(row: Row | Row[]) {
         mode = "insert";
         body = row;
         return builder;

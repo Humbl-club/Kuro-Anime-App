@@ -42,6 +42,7 @@ import {
   startImportRun,
   updateMangaSyncFields,
   upsertChapterRows,
+  upsertVolumeRows,
   upsertMapping,
   type CandidateProcessResult,
   type MappingRow,
@@ -502,6 +503,15 @@ async function processCandidate(args: {
   const beforeCount = candidate.chapter_row_count ?? 0;
   if (aggregate.chapterNumbers.length > 0) {
     await upsertChapterRows(supabase, candidate.id, aggregate.chapterNumbers);
+  }
+  if (aggregate.volumes.length > 0) {
+    // Volume grouping from the same aggregate. Optional: a volume write failure is logged and
+    // does not undo the chapter coverage that already succeeded.
+    try {
+      await upsertVolumeRows(supabase, candidate.id, aggregate.volumes);
+    } catch (error) {
+      console.error("volume rows write failed:", candidate.id, error instanceof Error ? error.message : error);
+    }
   }
 
   const afterCount = await fetchChapterCount(supabase, candidate.id);

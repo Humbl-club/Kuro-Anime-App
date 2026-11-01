@@ -514,3 +514,26 @@ Deno.test("a held MangaDex body expires at the run deadline and only an acquired
   assertEquals(chapterOrMappingWrites(fake.ops), []);
   lockReleased(fake.ops);
 });
+
+Deno.test("actual run keeps the aggregate volume grouping as volume rows (2026-11-01)", async () => {
+  const rows = ["aaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbb"].map((id) => ({
+    id, attributes: { title: { en: "Blue Box" }, altTitles: [], links: { al: "7" } },
+  }));
+  const fake = enrichFake("acquired", {
+    candidate: { ...CANDIDATE, anilist_id: 7 },
+    aliases: [{ provider_media_id: rows[1].id, decision: "accepted" }],
+  });
+  const aggregate = { volumes: { "1": { chapters: { "1": {}, "2": {} } }, "none": { chapters: { "3": {} } } } };
+  const res = await runChapterEnrich({
+    supabase: fake.client, payload: PAYLOAD, sleep: instant,
+    fetch: (input) => Promise.resolve(Response.json(String(input).includes("/aggregate") ? aggregate : { data: rows })),
+  });
+  const body = await res.json();
+  assertEquals(body.results.errors, 0);
+  const volumeInserts = fake.ops.filter((op) => op.op === "insert" && op.table === "volumes");
+  assertEquals(volumeInserts.length, 1);
+  assertEquals((volumeInserts[0] as { body: unknown }).body, [
+    { manga_id: 42, number: 1, title: "Volume 1", description: "Chapters 1–2" },
+  ]);
+  lockReleased(fake.ops);
+});

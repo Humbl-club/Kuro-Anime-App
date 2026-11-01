@@ -44,6 +44,21 @@ const mangaDexRateLimiter: MangaDexRateLimiterState = {
   consecutive429: 0,
 };
 
+/** One MangaDex volume from /aggregate: integer volume number and its integer chapter range. */
+export interface AggregateVolume {
+  volume: number;
+  firstChapter: number;
+  lastChapter: number;
+  chapterCount: number;
+}
+
+export interface AggregateChapters {
+  chapterNumbers: number[];
+  fractionalSkipped: number;
+  /** Volume grouping kept from the same aggregate (chapters without a volume are not grouped). */
+  volumes: AggregateVolume[];
+}
+
 export interface MangaDexCallMetrics {
   api_429_count: number;
   rate_limiter_wait_ms: number;
@@ -71,7 +86,7 @@ export type MangaDexClient = {
     metrics: MangaDexCallMetrics;
     startedMs: number;
     timeBudgetMs: number;
-  }): Promise<{ chapterNumbers: number[]; fractionalSkipped: number }>;
+  }): Promise<AggregateChapters>;
 };
 
 function budgetRemainingMs(startedMs: number, timeBudgetMs: number): number {
@@ -161,6 +176,61 @@ async function readBodyText(reader: ReadableStreamDefaultReader<Uint8Array>, sig
     offset += chunk.byteLength;
   }
   return new TextDecoder().decode(bytes);
+}
+
+/**
+ * /manga/{id}/aggregate -> integer chapter numbers (fractional chapters skipped and counted) and
+ * the volume grouping MangaDex already returns: { volumes: { "<vol>": { chapters: { "<ch>": ... } } } }.
+ * Only integer volume keys > 0 with at least one integer chapter become volume groups; the
+ * "none" bucket (chapters not yet collected) is not a volume.
+ */
+// deno-lint-ignore no-explicit-any
+export function parseAggregatePayload(payload: any): AggregateChapters {
+  const volumes = payload?.volumes;
+  if (!volumes || typeof volumes !== "object") {
+    return { chapterNumbers: [], fractionalSkipped: 0, volumes: [] };
+  }
+
+  const chapterSet = new Set<number>();
+  let fractionalSkipped = 0;
+  const groups = new Map<number, Set<number>>();
+
+  // deno-lint-ignore no-explicit-any
+  for (const [volumeKey, volume] of Object.entries(volumes as Record<string, any>)) {
+    const chapters = volume?.chapters;
+    if (!chapters || typeof chapters !== "object") continue;
+    const volumeNumber = /^\d+$/.test(String(volumeKey).trim()) ? Number.parseInt(String(volumeKey).trim(), 10) : null;
+    for (const key of Object.keys(chapters)) {
+      const chapterKey = String(key).trim();
+      if (/^\d+$/.test(chapterKey)) {
+        const parsed = Number.parseInt(chapterKey, 10);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          chapterSet.add(parsed);
+          if (volumeNumber !== null && volumeNumber > 0) {
+            if (!groups.has(volumeNumber)) groups.set(volumeNumber, new Set());
+            groups.get(volumeNumber)?.add(parsed);
+          }
+        }
+        continue;
+      }
+      if (/^\d+\.\d+$/.test(chapterKey)) {
+        fractionalSkipped += 1;
+      }
+    }
+  }
+
+  const volumeGroups: AggregateVolume[] = [...groups.entries()]
+    .map(([volume, set]) => {
+      const list = [...set];
+      return { volume, firstChapter: Math.min(...list), lastChapter: Math.max(...list), chapterCount: list.length };
+    })
+    .sort((a, b) => a.volume - b.volume);
+
+  return {
+    chapterNumbers: Array.from(chapterSet).sort((a, b) => a - b),
+    fractionalSkipped,
+    volumes: volumeGroups,
+  };
 }
 
 export function createMangaDexClient(deps: {
@@ -400,38 +470,8 @@ export function createMangaDexClient(deps: {
   }
 
   // deno-lint-ignore no-explicit-any
-  function parseAggregateChapters(payload: any): { chapterNumbers: number[]; fractionalSkipped: number } {
-    const volumes = payload?.volumes;
-    if (!volumes || typeof volumes !== "object") {
-      return { chapterNumbers: [], fractionalSkipped: 0 };
-    }
-
-    const chapterSet = new Set<number>();
-    let fractionalSkipped = 0;
-
-    // deno-lint-ignore no-explicit-any
-    for (const volume of Object.values(volumes as Record<string, any>)) {
-      const chapters = volume?.chapters;
-      if (!chapters || typeof chapters !== "object") continue;
-      for (const key of Object.keys(chapters)) {
-        const chapterKey = String(key).trim();
-        if (/^\d+$/.test(chapterKey)) {
-          const parsed = Number.parseInt(chapterKey, 10);
-          if (Number.isFinite(parsed) && parsed > 0) {
-            chapterSet.add(parsed);
-          }
-          continue;
-        }
-        if (/^\d+\.\d+$/.test(chapterKey)) {
-          fractionalSkipped += 1;
-        }
-      }
-    }
-
-    return {
-      chapterNumbers: Array.from(chapterSet).sort((a, b) => a - b),
-      fractionalSkipped,
-    };
+  function parseAggregateChapters(payload: any): AggregateChapters {
+    return parseAggregatePayload(payload);
   }
 
   async function fetchMangaDexAggregate(
@@ -457,7 +497,7 @@ export function createMangaDexClient(deps: {
     metrics: MangaDexCallMetrics;
     startedMs: number;
     timeBudgetMs: number;
-  }): Promise<{ chapterNumbers: number[]; fractionalSkipped: number }> {
+  }): Promise<AggregateChapters> {
     const { mangaDexId, languages, includeFallbackAllLanguages, metrics, startedMs, timeBudgetMs } = args;
     let fractionalSkipped = 0;
 
@@ -467,7 +507,7 @@ export function createMangaDexClient(deps: {
       const parsed = parseAggregateChapters(aggregate);
       fractionalSkipped += parsed.fractionalSkipped;
       if (parsed.chapterNumbers.length > 0) {
-        return { chapterNumbers: parsed.chapterNumbers, fractionalSkipped };
+        return { chapterNumbers: parsed.chapterNumbers, fractionalSkipped, volumes: parsed.volumes };
       }
     }
 
@@ -475,10 +515,10 @@ export function createMangaDexClient(deps: {
       const aggregate = await fetchMangaDexAggregate(mangaDexId, null, metrics, startedMs, timeBudgetMs);
       const parsed = parseAggregateChapters(aggregate);
       fractionalSkipped += parsed.fractionalSkipped;
-      return { chapterNumbers: parsed.chapterNumbers, fractionalSkipped };
+      return { chapterNumbers: parsed.chapterNumbers, fractionalSkipped, volumes: parsed.volumes };
     }
 
-    return { chapterNumbers: [], fractionalSkipped };
+    return { chapterNumbers: [], fractionalSkipped, volumes: [] };
   }
 
   return {
