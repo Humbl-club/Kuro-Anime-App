@@ -14,19 +14,13 @@ import SwiftUI
 // `KuroLocale.isGerman`. Source text is sentence case; kicker lines upper-case it with `.textCase`.
 enum DetailCopy {
     /// A catalogue format ("TV", "MOVIE", "LIGHT_NOVEL") as a reader-facing word; nil when empty.
+    /// Codes Discover names use Discover's words (`DiscoverFrameCopy.formatName`), so a title reads the
+    /// same on Discover and on its detail page; only the codes Discover does not name are worded here.
     static func format(_ raw: String?, german: Bool) -> String? {
         guard let raw, !raw.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
         switch raw.uppercased() {
-        case "TV": return "TV"
-        case "TV_SHORT": return german ? "TV-Kurzserie" : "TV short"
-        case "MOVIE": return "Film"
-        case "OVA": return "OVA"
-        case "ONA": return "ONA"
-        case "SPECIAL": return "Special"
-        case "MUSIC": return german ? "Musikvideo" : "Music video"
-        case "MANGA": return "Manga"
-        case "ONE_SHOT": return german ? "One-Shot" : "One-shot"
-        case "NOVEL": return german ? "Roman" : "Novel"
+        case "TV", "TV_SHORT", "MOVIE", "OVA", "ONA", "SPECIAL", "MUSIC", "MANGA", "NOVEL", "ONE_SHOT":
+            return DiscoverFrameCopy.formatName(raw, german: german)
         case "LIGHT_NOVEL": return german ? "Light Novel" : "Light novel"
         default: return raw.replacingOccurrences(of: "_", with: " ").lowercased().capitalizedFirstLetter
         }
@@ -45,19 +39,53 @@ enum DetailCopy {
         }
     }
 
-    /// A raw list status from a club or friend row ("CURRENT", "READING", "ON_HOLD") as the Collection's
-    /// status word for the medium (`FolioStatus`); nil for an unknown value.
-    static func listStatus(_ raw: String, medium: MediaKind, german: Bool) -> String? {
-        let folio: FolioStatus
-        switch raw.uppercased() {
-        case "CURRENT", "WATCHING", "READING", "REPEATING": folio = .watching
-        case "PLANNING", "PLANNED": folio = .planned
-        case "COMPLETED": folio = .completed
-        case "PAUSED", "ON_HOLD": folio = .paused
-        case "DROPPED": folio = .dropped
-        default: return nil
+    /// Whose status a word describes. The Collection's German words are first person ("Schaue ich"),
+    /// right for the viewer's own row and wrong next to a friend's or another member's name.
+    enum Perspective {
+        case own
+        case other
+    }
+
+    /// A raw list status from a club or friend row ("CURRENT", "READING", "ON_HOLD") as a status word
+    /// for the medium; nil for an unknown value. `.own` uses the Collection's `FolioStatus` words;
+    /// `.other` uses third person in German ("Schaut" / "Liest"); English is the same for both.
+    static func listStatus(_ raw: String, medium: MediaKind, german: Bool, perspective: Perspective) -> String? {
+        guard let folio = folioStatus(raw) else { return nil }
+        if german, perspective == .other, folio == .watching {
+            return medium == .manga ? "Liest" : "Schaut"
         }
         return folio.title(medium: medium, german: german)
+    }
+
+    /// A club aggregate part ("3 Watching" / "3 schauen", "1 abgeschlossen"): a count of other members
+    /// with one status. German uses the plural verb or lower-case participle after the number.
+    static func statusCount(_ count: Int, status: FolioStatus, medium: MediaKind, german: Bool) -> String {
+        guard german else { return "\(count) \(status.title(medium: medium, german: false))" }
+        let word: String
+        switch status {
+        case .watching:
+            if medium == .manga {
+                word = count == 1 ? "liest" : "lesen"
+            } else {
+                word = count == 1 ? "schaut" : "schauen"
+            }
+        case .planned: word = "geplant"
+        case .completed: word = "abgeschlossen"
+        case .paused: word = "pausiert"
+        case .dropped: word = "abgebrochen"
+        }
+        return "\(count) \(word)"
+    }
+
+    private static func folioStatus(_ raw: String) -> FolioStatus? {
+        switch raw.uppercased() {
+        case "CURRENT", "WATCHING", "READING", "REPEATING": return .watching
+        case "PLANNING", "PLANNED": return .planned
+        case "COMPLETED": return .completed
+        case "PAUSED", "ON_HOLD": return .paused
+        case "DROPPED": return .dropped
+        default: return nil
+        }
     }
 
     static func episodes(_ count: Int, german: Bool) -> String {

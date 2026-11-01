@@ -3,7 +3,8 @@
 //  KuroTests
 //
 //  The detail pages' shared EN/DE vocabulary (`DetailCopy`, DetailSharedComponents.swift): catalogue
-//  formats and release states, club/friend list-status words (the Collection's `FolioStatus` words),
+//  formats and release states (Discover's format words), club/friend list-status words (first person only
+//  for the viewer's own row) and club aggregate counts,
 //  character roles, unit counts and the unknown fallback. Every case pins both languages explicitly.
 //
 
@@ -14,18 +15,22 @@ import KuroCore
 @MainActor
 @Suite("Detail copy (EN/DE)")
 struct DetailCopyTests {
-    @Test("Formats read as words in both languages; empty input has no word")
+    @Test("Formats read as words in both languages, matching Discover's words; empty input has no word")
     func formats() {
         #expect(DetailCopy.format("TV", german: false) == "TV")
+        #expect(DetailCopy.format("MOVIE", german: false) == "Movie")
         #expect(DetailCopy.format("MOVIE", german: true) == "Film")
         #expect(DetailCopy.format("LIGHT_NOVEL", german: false) == "Light novel")
         #expect(DetailCopy.format("LIGHT_NOVEL", german: true) == "Light Novel")
         #expect(DetailCopy.format("NOVEL", german: true) == "Roman")
-        #expect(DetailCopy.format("TV_SHORT", german: true) == "TV-Kurzserie")
-        #expect(DetailCopy.format("MUSIC", german: false) == "Music video")
         #expect(DetailCopy.format("SOME_NEW_FORMAT", german: false) == "Some new format")
         #expect(DetailCopy.format(nil, german: false) == nil)
         #expect(DetailCopy.format("  ", german: true) == nil)
+        for code in ["TV", "TV_SHORT", "MOVIE", "OVA", "ONA", "SPECIAL", "MUSIC", "MANGA", "NOVEL", "ONE_SHOT"] {
+            for german in [false, true] {
+                #expect(DetailCopy.format(code, german: german) == DiscoverFrameCopy.formatName(code, german: german), "\(code)")
+            }
+        }
     }
 
     @Test("Release states are reader words, never the raw server value")
@@ -39,17 +44,34 @@ struct DetailCopyTests {
         #expect(DetailCopy.releaseStatus(nil, german: true) == nil)
     }
 
-    @Test("Club and friend statuses use the Collection's words for the medium")
+    @Test("The viewer's own status uses the Collection's words; other people's read third person in German")
     func listStatuses() {
-        #expect(DetailCopy.listStatus("CURRENT", medium: .anime, german: false) == "Watching")
-        #expect(DetailCopy.listStatus("READING", medium: .manga, german: false) == "Reading")
-        #expect(DetailCopy.listStatus("CURRENT", medium: .manga, german: true) == "Lese ich")
-        #expect(DetailCopy.listStatus("WATCHING", medium: .anime, german: true) == "Schaue ich")
-        #expect(DetailCopy.listStatus("PLANNING", medium: .anime, german: true) == "Geplant")
-        #expect(DetailCopy.listStatus("ON_HOLD", medium: .anime, german: false) == "Paused")
-        #expect(DetailCopy.listStatus("DROPPED", medium: .manga, german: true) == "Abgebrochen")
-        #expect(DetailCopy.listStatus("completed", medium: .anime, german: true) == "Abgeschlossen")
-        #expect(DetailCopy.listStatus("SOMETHING_ELSE", medium: .anime, german: false) == nil)
+        #expect(DetailCopy.listStatus("CURRENT", medium: .anime, german: false, perspective: .own) == "Watching")
+        #expect(DetailCopy.listStatus("READING", medium: .manga, german: false, perspective: .other) == "Reading")
+        #expect(DetailCopy.listStatus("CURRENT", medium: .manga, german: true, perspective: .own) == "Lese ich")
+        #expect(DetailCopy.listStatus("WATCHING", medium: .anime, german: true, perspective: .own) == "Schaue ich")
+        #expect(DetailCopy.listStatus("CURRENT", medium: .anime, german: true, perspective: .other) == "Schaut")
+        #expect(DetailCopy.listStatus("READING", medium: .manga, german: true, perspective: .other) == "Liest")
+        #expect(DetailCopy.listStatus("PLANNING", medium: .anime, german: true, perspective: .other) == "Geplant")
+        #expect(DetailCopy.listStatus("ON_HOLD", medium: .anime, german: false, perspective: .other) == "Paused")
+        #expect(DetailCopy.listStatus("DROPPED", medium: .manga, german: true, perspective: .other) == "Abgebrochen")
+        #expect(DetailCopy.listStatus("completed", medium: .anime, german: true, perspective: .own) == "Abgeschlossen")
+        #expect(DetailCopy.listStatus("SOMETHING_ELSE", medium: .anime, german: false, perspective: .other) == nil)
+    }
+
+    @Test("Club aggregate counts never use the first-person words")
+    func statusCounts() {
+        #expect(DetailCopy.statusCount(3, status: .watching, medium: .anime, german: false) == "3 Watching")
+        #expect(DetailCopy.statusCount(3, status: .watching, medium: .anime, german: true) == "3 schauen")
+        #expect(DetailCopy.statusCount(1, status: .watching, medium: .anime, german: true) == "1 schaut")
+        #expect(DetailCopy.statusCount(2, status: .watching, medium: .manga, german: true) == "2 lesen")
+        #expect(DetailCopy.statusCount(1, status: .watching, medium: .manga, german: true) == "1 liest")
+        #expect(DetailCopy.statusCount(2, status: .completed, medium: .anime, german: true) == "2 abgeschlossen")
+        #expect(DetailCopy.statusCount(1, status: .dropped, medium: .manga, german: false) == "1 Dropped")
+        let firstPerson = [FolioStatus.watching, .planned, .completed, .paused, .dropped].flatMap { status in
+            [MediaKind.anime, .manga].map { DetailCopy.statusCount(2, status: status, medium: $0, german: true) }
+        }
+        #expect(firstPerson.allSatisfy { !$0.contains(" ich") }, "\(firstPerson)")
     }
 
     @Test("Character roles, units and the unknown fallback in both languages")

@@ -140,10 +140,10 @@ private struct ClubActivityItemRow: View {
         let planning = (counts["PLANNING"] ?? 0) + (counts["PLANNED"] ?? 0)
         let paused = (counts["PAUSED"] ?? 0) + (counts["ON_HOLD"] ?? 0)
         let dropped = counts["DROPPED"] ?? 0
-        // "3 · Watching" keeps the Collection's status words in both languages.
+        // "3 Watching" / "3 schauen": a count of members, so German uses the plural verb or participle.
         for (count, status) in [(watching, FolioStatus.watching), (completed, .completed), (planning, .planned),
                                 (paused, .paused), (dropped, .dropped)] where count > 0 {
-            parts.append("\(count) \(status.title(medium: kind, german: german))")
+            parts.append(DetailCopy.statusCount(count, status: status, medium: kind, german: german))
         }
         let tracked = counts
             .filter { $0.key != "_tracking_count" }
@@ -181,7 +181,7 @@ private struct ClubActivityItemRow: View {
                     Text(KuroLocale.text("You:", "Du:"))
                         .font(.kuroCaption())
                         .foregroundColor(.kuroTextSecondary)
-                    ClubStatusPill(status: myStatus, mediaType: item.media_type)
+                    ClubStatusPill(status: myStatus, mediaType: item.media_type, perspective: .own)
                     if let progress = item.my_progress, progress > 0 {
                         Text(progressText(current: progress, total: item.totalCount))
                             .font(.kuroCaption())
@@ -218,11 +218,14 @@ private struct ClubActivityItemRow: View {
 private struct ClubStatusPill: View {
     let status: String
     let mediaType: String
+    /// `.own` for the viewer's row ("Schaue ich"), `.other` for another member ("Schaut").
+    let perspective: DetailCopy.Perspective
 
-    /// The Collection's status word for the medium (EN/DE); an unknown value keeps its own text.
+    /// The status word for the medium (EN/DE); an unknown value keeps its own text.
     private var displayText: String {
         let kind: MediaKind = mediaType.uppercased() == "MANGA" ? .manga : .anime
-        return DetailCopy.listStatus(status, medium: kind, german: KuroLocale.isGerman) ?? status.capitalized
+        return DetailCopy.listStatus(status, medium: kind, german: KuroLocale.isGerman, perspective: perspective)
+            ?? status.capitalized
     }
 
     var body: some View {
@@ -436,7 +439,7 @@ private struct ClubMemberStatusList: View {
 
                             HStack(spacing: 6) {
                                 if let status = ms.status {
-                                    ClubStatusPill(status: status, mediaType: mediaType)
+                                    ClubStatusPill(status: status, mediaType: mediaType, perspective: isMe ? .own : .other)
                                 } else {
                                     Text(KuroLocale.text("Not started", "Noch nicht begonnen"))
                                         .font(.kuroCaption())

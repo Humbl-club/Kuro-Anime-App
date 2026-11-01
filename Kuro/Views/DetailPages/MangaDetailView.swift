@@ -1231,16 +1231,19 @@ struct MangaActionButtons: View {
         return isGermanLocale ? verdict.displayNameDE : verdict.displayName
     }
 
+    /// The line under the dock. Without a legal link (the read button is hidden) it says so first, so the
+    /// caption or note never implies links that are not there and VoiceOver hears why there is no button.
     private var readStatusLine: String {
+        guard hasReadLink else {
+            return KuroLocale.text("No legal provider link is available yet.", "Noch kein legaler Link verfügbar.")
+        }
         if let status = readAvailabilityStatusCaption, !status.isEmpty {
             return status
         }
         if let note = readAvailabilityNote, !note.isEmpty {
             return note
         }
-        return hasReadLink
-            ? (isGermanLocale ? "Rechtlich verfügbaren Link öffnen." : "Open legal provider link.")
-            : (isGermanLocale ? "Noch kein legaler Link verfügbar." : "No legal provider link is available yet.")
+        return KuroLocale.text("Open legal provider link.", "Rechtlich verfügbaren Link öffnen.")
     }
 
     var body: some View {

@@ -184,10 +184,12 @@ struct FriendsActivitySection: View {
         return ""
     }
 
-    /// The Collection's status word for the medium (EN/DE); an unknown value keeps its own text.
+    /// A friend's status word for the medium (EN/DE, third person in German: "Schaut" / "Liest");
+    /// an unknown value keeps its own text.
     private func statusLabel(_ status: String) -> String {
         let kind: MediaKind = mediaType.uppercased() == "MANGA" ? .manga : .anime
-        return DetailCopy.listStatus(status, medium: kind, german: KuroLocale.isGerman) ?? status.capitalized
+        return DetailCopy.listStatus(status, medium: kind, german: KuroLocale.isGerman, perspective: .other)
+            ?? status.capitalized
     }
 
     // MARK: - Comments
