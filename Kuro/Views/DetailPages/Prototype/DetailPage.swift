@@ -132,7 +132,14 @@ struct DetailHero<Mark: View>: View {
                 if let artworkURL {
                     KuroCachedAsyncImage(url: artworkURL, maxPixelSize: 1400) { phase in
                         if case .success(let image) = phase {
-                            image.resizable().scaledToFill()
+                            // The prototype's `object-position: 50% 18%`: a portrait cover shows its upper
+                            // part (faces), not the middle.
+                            GeometryReader { frame in
+                                Color.clear.overlay(alignment: .top) {
+                                    image.resizable().scaledToFill()
+                                        .alignmentGuide(.top) { d in max(0, d.height - frame.size.height) * 0.18 }
+                                }
+                            }
                         } else {
                             Color.clear
                         }

@@ -178,6 +178,8 @@ struct AnimeDetailPage: View {
                 }
             }
         }
+        // The hero reaches the sheet's top edge (no paper cap above the artwork).
+        .ignoresSafeArea(edges: .top)
         .background(Color.kuroPaper.ignoresSafeArea())
         .overlay(alignment: .topTrailing) { DetailCloseButton(material: material) }
         .modifier(DetailToastOverlay(toast: $toast))
@@ -621,7 +623,7 @@ struct DetailSeasonsSection: View {
                     ForEach(all) { season in
                         VStack(spacing: 0) {
                             tile(season)
-                                .containerRelativeFrame(.horizontal, count: all.count > 2 ? 5 : 2, span: 2, spacing: 8)
+                                .containerRelativeFrame(.horizontal, count: all.count > 2 ? 5 : 2, span: all.count > 2 ? 2 : 1, spacing: 8)
                             // The selection thread: a stem from the current tile down to its dot.
                             ZStack(alignment: .bottom) {
                                 if season.isCurrent {

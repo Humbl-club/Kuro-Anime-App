@@ -209,7 +209,13 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.clubs)
                     .environment(graph.social)
                     .environment(graph.catalog)
-                    .environment(graph.releases),
+                    .environment(graph.releases)
+                    // The series view now delegates to the prototype detail page (Task 6), which also
+                    // reads these owners.
+                    .environment(graph.flags)
+                    .environment(graph.artworkMaterials)
+                    .environment(graph.availability)
+                    .environment(graph.outboundLinks),
                 width: width,
                 name: "detail-anime-\(Int(width)).png"
             )
