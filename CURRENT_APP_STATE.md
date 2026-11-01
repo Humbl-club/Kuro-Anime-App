@@ -149,7 +149,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 191 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 193 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -19619,3 +19619,23 @@ Branch `kuro/overnight-2026-11-01` (local, not pushed). Morning report: `docs/ov
 - **Data delivery:** explicit catalog columns (no internal pipeline/moderation fields), card projections, bounded credits, cached watch-link chain, size-aware image cache, friend-count freshness, single Library read at bootstrap, Clubs staleness window.
 - **Verification:** see `docs/overnight-2026-11-01/REPORT.md` (final KuroTests, deno, local DB harness, Release build, gates). Review: 5-lens adversarial review (15 confirmed findings fixed incl. a Release-build break), simulator visual QA (`docs/overnight-2026-11-01/screenshots/`). Codex second opinion could not start (local Codex config error).
 - Inventory: 191 app Swift files, 27 package Swift files, 245 SQL migrations (+19 prepared files).
+
+### Change Log — 1 November 2026: Prototype fidelity, Task 2 (tokens, sans type ramp, artwork materials; local, not deployed)
+
+- Branch `kuro/prototype-fidelity`, plan `docs/superpowers/plans/2026-11-01-prototype-fidelity.md` Task 2.
+- **Tokens** (`Kuro/Design/KuroDesignSystem.swift`):
+  - `kuroInk` is now the prototype's `#252625` (was `#181818`).
+  - New tokens: `kuroCanvasHome` `#fffef8`, `kuroPaper` `#f5f5f4`, `kuroMuted` `#696c6b`, `kuroLine` (`#272b29` at alpha 0x20), and key faces `kuroKeyLightTop/Bottom` `#f1f4f2/#d5ded8` and `kuroKeyDarkTop/Bottom` `#444a47/#2c322f`.
+  - Every existing token name still compiles.
+- **Type ramp:**
+  - `kuroHero/Display/Feature/Headline/Title` are now system sans. Default weights: heavy / semibold / semibold / semibold / semibold. Sizes, text styles and caps are unchanged, and explicit `weight:` arguments are still honoured.
+  - Tracking is `KuroTypeRole.trackingEm`/`.tracking` plus `.kuroTracking(_:)`, because a `Font` cannot carry tracking.
+  - New: `Font.kuroEditorial(size:weight:)` (system serif), `Font.kuroMediumWord(size:)` with `.kuroMediumWordStyle(size:)` (heavy, uppercase, −1.9/36 tracking), and `KuroTypeRole.mediumWord`.
+- **Motion:** `KuroMotion.contact` (120 ms) and `.settle` (220 ms) now use the prototype ease `cubic-bezier(.2,.8,.25,1)`. Added `KuroMotion.medium` (320 ms) and `KuroMotion.ease(_:)`.
+- **Artwork materials (new):**
+  - `Kuro/Design/ArtworkMaterial.swift` (`KuroRGB`, `ArtworkMaterial`) ports the prototype's `art-hue-v1` from `build_art_materials.py`.
+  - `fromHex` gives the first paint from AniList `cover_image_color`, clamped to 7:1. With no colour it uses the neutral base `#3a3d3c`.
+  - `Kuro/Design/ArtworkMaterialStore.swift` (`@MainActor @Observable`) returns the seed first and publishes the derived material later. It caches in memory and on disk (`Caches/ArtworkMaterials-art-hue-v1`, SHA-256 of the URL) and loads images through `ImagePipeline.shared`.
+  - The store is built in `AppComposition.makeShell` (`ShellOwners`/`AppGraph.artworkMaterials`) and injected in `KuroApp`.
+- **Tests:** `KuroTests/ArtworkMaterialTests.swift`, 10 tests. Base colours match the Python reference for anime0–3 and manga0. Full KuroTests: 624/624 passed.
+- Inventory: 193 app Swift files, 27 package Swift files, 245 SQL migrations.

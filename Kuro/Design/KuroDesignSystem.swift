@@ -88,8 +88,9 @@ extension Color {
     static let kuroCanvasPage = Color(hex: "FFFFFF")
     /// Secondary groups and contained controls. Never a whole-page background.
     static let kuroCanvasQuiet = Color(hex: "F6F6F6")
-    /// Headlines, title names, primary actions and progress numerals (17.8:1 on white).
-    static let kuroInk = Color(hex: "181818")
+    /// Headlines, title names, primary actions and progress numerals. The prototype's `--ink`
+    /// #252625 (15.2:1 on white; was #181818 before the prototype-fidelity pass).
+    static let kuroInk = Color(hex: "252625")
     /// Explanatory text and ordinary metadata (6.7:1 on white).
     static let kuroInkSecondary = Color(hex: "5C5C5C")
     /// Captions and kickers (5.3:1 on white). The lightest ink allowed for text that carries meaning.
@@ -111,6 +112,27 @@ extension Color {
     /// Destructive text, outline and spinner (about 5.7:1 on white, AA for normal text). Red stays
     /// reserved for destructive actions; `kuroError` remains for icons and inline error marks.
     static let kuroDestructiveInk = Color(hex: "C4271D")
+
+    // MARK: - Prototype palette (prototype-fidelity pass, PROTOTYPE_SPEC.md §2)
+    // The approved prototype's component palette returns (owner, 2026-11-01). Statuses stay
+    // monochrome; red stays reserved for destructive actions. Artwork colour comes from
+    // `ArtworkMaterial`, never from a fixed per-title table.
+    /// The Home (Poster) canvas, also the Taste page: warm paper white `#fffef8`.
+    static let kuroCanvasHome = Color(hex: "FFFEF8")
+    /// The detail sheet paper `#f5f5f4` (`--paper`).
+    static let kuroPaper = Color(hex: "F5F5F4")
+    /// Secondary text, e.g. the header's page name (`--muted` #696c6b, about 5.3:1 on white).
+    static let kuroMuted = Color(hex: "696C6B")
+    /// Hairlines (`--line`: CSS `#272b2920`, i.e. #272b29 at alpha 0x20).
+    static let kuroLine = Color(hex: "272B29", opacity: Double(0x20) / 255)
+    /// Top of the raised light key face (`--key-face` light: #f1f4f2 → #d5ded8).
+    static let kuroKeyLightTop = Color(hex: "F1F4F2")
+    /// Bottom of the raised light key face.
+    static let kuroKeyLightBottom = Color(hex: "D5DED8")
+    /// Top of the raised dark key face where no artwork material exists (#444a47 → #2c322f).
+    static let kuroKeyDarkTop = Color(hex: "444A47")
+    /// Bottom of the raised dark key face.
+    static let kuroKeyDarkBottom = Color(hex: "2C322F")
 }
 
 // MARK: - Dynamic Type Scaling
@@ -218,6 +240,8 @@ extension View {
 enum KuroTypeRole {
     case hero, display, feature, headline, title, body, caption, micro, navigation
     case titleName, meta, buttonLabel
+    /// The medium switch words (ANIME / MANGA): prototype SF 36 w850, tracking −1.9, uppercase.
+    case mediumWord
 
     /// Base size at the default text size, the text style it scales with, and its cap.
     var spec: (base: CGFloat, style: UIFont.TextStyle, cap: CGFloat) {
@@ -234,8 +258,26 @@ enum KuroTypeRole {
         case .titleName: return (17, .headline, 36)
         case .meta: return (13, .footnote, 28)
         case .buttonLabel: return (17, .body, 30)
+        // Capped so the longer word still fits its half of the switch at the largest text sizes.
+        case .mediumWord: return (36, .largeTitle, 44)
         }
     }
+
+    /// The prototype's tracking as a fraction of the point size (em), so it scales with Dynamic Type.
+    /// Measured in PROTOTYPE_SPEC.md §4: the medium word 36/−1.9, the detail title 27/−1.1, "Coming
+    /// up." 24/−0.85 and the "Seasons" heading 18/−0.7. Roles the prototype does not track return 0.
+    var trackingEm: CGFloat {
+        switch self {
+        case .hero, .mediumWord: return -1.9 / 36
+        case .display, .feature: return -1.1 / 27
+        case .headline: return -0.85 / 24
+        case .title: return -0.7 / 18
+        case .body, .caption, .micro, .navigation, .titleName, .meta, .buttonLabel: return 0
+        }
+    }
+
+    /// The tracking in points at the current text size (`trackingEm` × `pointSize`).
+    var tracking: CGFloat { trackingEm * pointSize }
 
     /// The scaled, capped point size for the current text size.
     var pointSize: CGFloat {
@@ -244,8 +286,11 @@ enum KuroTypeRole {
     }
 }
 
-// MARK: - Editorial Typography System
-// Serif carries the editorial voice; sans carries title labels, buttons, settings and numbers.
+// MARK: - Typography System (prototype-fidelity pass)
+// The display roles (hero, display, feature, headline, title) speak the prototype's language: the system
+// sans (SF Pro) at the prototype's weights. A `Font` cannot carry tracking, so the matching tight
+// tracking is `KuroTypeRole.tracking` / `.kuroTracking(_:)` at the call site. The serif is reserved for
+// the prototype's few editorial headings (`kuroEditorial`). Explicit `weight:` arguments are honoured.
 extension Font {
     /// A custom size that scales with Dynamic Type relative to `textStyle`. `maxSize` caps it
     /// (nil: no cap, the legacy behaviour).
@@ -264,29 +309,52 @@ extension Font {
         .system(size: role.pointSize, weight: weight, design: design)
     }
 
-    // HERO - Magazine covers, dramatic statements (64pt serif)
-    static func kuroHero(weight: Font.Weight = .thin) -> Font {
-        kuroRole(.hero, weight: weight, design: .serif)
+    // HERO - Dramatic statements (64pt sans heavy; prototype w850 at display size)
+    static func kuroHero(weight: Font.Weight = .heavy) -> Font {
+        kuroRole(.hero, weight: weight, design: .default)
     }
 
-    // DISPLAY - Large section headers and the one cover line per screen (44pt serif)
-    static func kuroDisplay(weight: Font.Weight = .thin) -> Font {
-        kuroRole(.display, weight: weight, design: .serif)
+    // DISPLAY - Large section headers and the one cover line per screen (44pt sans semibold;
+    // prototype detail title w600)
+    static func kuroDisplay(weight: Font.Weight = .semibold) -> Font {
+        kuroRole(.display, weight: weight, design: .default)
     }
 
-    // FEATURE - Feature titles, prominent elements (34pt serif)
-    static func kuroFeature(weight: Font.Weight = .light) -> Font {
-        kuroRole(.feature, weight: weight, design: .serif)
+    // FEATURE - Feature titles, prominent elements (34pt sans semibold)
+    static func kuroFeature(weight: Font.Weight = .semibold) -> Font {
+        kuroRole(.feature, weight: weight, design: .default)
     }
 
-    // HEADLINE - Section headings, card titles (26pt serif)
-    static func kuroHeadline(weight: Font.Weight = .light) -> Font {
-        kuroRole(.headline, weight: weight, design: .serif)
+    // HEADLINE - Section headings, card titles (26pt sans semibold; prototype "Coming up." w550)
+    static func kuroHeadline(weight: Font.Weight = .semibold) -> Font {
+        kuroRole(.headline, weight: weight, design: .default)
     }
 
-    // TITLE - Secondary titles, section heads (19pt serif)
-    static func kuroTitle(weight: Font.Weight = .regular) -> Font {
-        kuroRole(.title, weight: weight, design: .serif)
+    // TITLE - Secondary titles, section heads (19pt sans semibold; prototype "Seasons" w550)
+    static func kuroTitle(weight: Font.Weight = .semibold) -> Font {
+        kuroRole(.title, weight: weight, design: .default)
+    }
+
+    // EDITORIAL - The prototype's few serif headings (system serif, New York, standing in for its
+    // Georgia): the club name and quote, "Between us.", the manga detail title and hook, "Your
+    // bookmark", manga row numbers (italic at the call site) and "Seen the anime?"
+    // (PROTOTYPE_SPEC.md §2, §8.1). `size` is the prototype's size at the default text size.
+    static func kuroEditorial(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+        let style: UIFont.TextStyle
+        switch size {
+        case 28...: style = .title1
+        case 22..<28: style = .title2
+        case 17..<22: style = .title3
+        default: style = .body
+        }
+        return kuroCustom(size, weight: weight, design: .serif, relativeTo: style, maxSize: size * 1.75)
+    }
+
+    // MEDIUM WORD - The medium switch (ANIME / MANGA): heavy sans. Uppercase and tracking need the
+    // view: use `.kuroMediumWordStyle()`. `size` 36 at 390 pt, 30 on small phones (≤ 360 pt).
+    static func kuroMediumWord(size: CGFloat = 36) -> Font {
+        let spec = KuroTypeRole.mediumWord.spec
+        return kuroCustom(size, weight: .heavy, relativeTo: spec.style, maxSize: size * spec.cap / spec.base)
     }
 
     // BODY - Descriptions, editorial content (15pt sans)
@@ -331,6 +399,20 @@ extension Font {
 }
 
 extension View {
+    /// The prototype's tight tracking for `role` at the current text size (0 for untracked roles).
+    func kuroTracking(_ role: KuroTypeRole) -> some View {
+        tracking(role.tracking)
+    }
+
+    /// A medium switch word: heavy sans, uppercase, the prototype's −1.9 / 36 tracking at `size`.
+    func kuroMediumWordStyle(size: CGFloat = 36) -> some View {
+        let spec = KuroTypeRole.mediumWord.spec
+        let scaled = min(kuroScaled(size, relativeTo: spec.style), size * spec.cap / spec.base)
+        return font(.kuroMediumWord(size: size))
+            .tracking(KuroTypeRole.mediumWord.trackingEm * scaled)
+            .textCase(.uppercase)
+    }
+
     /// The small Kuro voice: wide-tracked caps, quiet ink. Pairs with a light serif cover line and a short ink rule.
     func kuroKicker() -> some View {
         font(.kuroMicro(weight: .medium))
@@ -504,10 +586,17 @@ struct KuroMotion {
     /// A subtle cross-fade used when Reduce Motion is enabled.
     static let reducedMotionFallback: Animation = .easeInOut(duration: 0.2)
 
-    /// Press contact: immediate, reversible (120 ms, rulebook §7/§8).
-    static let contact: Animation = .easeOut(duration: 0.12)
-    /// Settle after a press or a small state change (220 ms).
-    static let settle: Animation = .easeOut(duration: 0.22)
+    /// The prototype's ease, `cubic-bezier(.2,.8,.25,1)` (`--ease`), over `duration` seconds.
+    static func ease(_ duration: Double) -> Animation {
+        .timingCurve(0.2, 0.8, 0.25, 1, duration: duration)
+    }
+
+    /// Press contact: immediate, reversible (`--motion-contact` 120 ms, prototype ease).
+    static let contact: Animation = ease(0.12)
+    /// Settle after a press or a small state change (`--motion-settle` 220 ms, prototype ease).
+    static let settle: Animation = ease(0.22)
+    /// A medium change, e.g. the canvas colour on a medium switch (`--motion-medium` 320 ms).
+    static let medium: Animation = ease(0.32)
     /// A progress count change (the Stamp, 160 ms).
     static let stamp: Animation = .easeOut(duration: 0.16)
     /// A clear context change: medium switch, season selection (220 ms crossfade, no overshoot).

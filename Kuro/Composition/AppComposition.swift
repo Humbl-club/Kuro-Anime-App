@@ -74,6 +74,8 @@ final class AppComposition {
     var interactionTelemetry: InteractionTelemetry { graph.interactionTelemetry }
     /// The outbound-link ledger (fire-and-forget).
     var outboundLinks: OutboundLinkTelemetry { graph.outboundLinks }
+    /// Artwork materials (seed colour first, then derived from the artwork; memory + disk cache).
+    var artworkMaterials: ArtworkMaterialStore { graph.artworkMaterials }
     /// The owners that shed public caches on a memory warning (the ONE registration list:
     /// `memoryPressureOwners(publicData:assistant:)`).
     var memoryPressure: MemoryPressureRelief { graph.memoryPressure }
@@ -293,6 +295,7 @@ final class AppComposition {
             banner: shell.banner,
             interactionTelemetry: shell.interactionTelemetry,
             outboundLinks: shell.outboundLinks,
+            artworkMaterials: shell.artworkMaterials,
             memoryPressure: MemoryPressureRelief(owners: memoryPressureOwners(publicData: publicData, assistant: assistant))
         )
     }
@@ -378,7 +381,7 @@ final class AppComposition {
     /// The app-shell owners over `client` (the single SDK client; never a second one): the runtime
     /// flags and the interaction telemetry (both built by the caller: production reads `.standard`,
     /// this process's launch arguments and `ConciergeAnalytics.shared`; tests and previews pass their
-    /// own), the transient banner and the outbound-link ledger.
+    /// own), the transient banner, the outbound-link ledger and the artwork materials.
     static func makeShell(
         client: SupabaseClient?,
         accountSession: AccountSessionCoordinator,
@@ -389,7 +392,8 @@ final class AppComposition {
             flags: flags,
             banner: BannerCenter(),
             interactionTelemetry: interactionTelemetry,
-            outboundLinks: OutboundLinkTelemetry(client: client, accountSession: accountSession)
+            outboundLinks: OutboundLinkTelemetry(client: client, accountSession: accountSession),
+            artworkMaterials: ArtworkMaterialStore()
         )
     }
 
@@ -576,6 +580,7 @@ struct AppGraph {
     let banner: BannerCenter
     let interactionTelemetry: InteractionTelemetry
     let outboundLinks: OutboundLinkTelemetry
+    let artworkMaterials: ArtworkMaterialStore
     let memoryPressure: MemoryPressureRelief
 }
 
@@ -592,6 +597,9 @@ struct ShellOwners {
     let interactionTelemetry: InteractionTelemetry
     /// The outbound-link ledger (fire-and-forget).
     let outboundLinks: OutboundLinkTelemetry
+    /// Artwork materials: AniList seed colour first, then the on-device `art-hue-v1` material
+    /// (memory + disk cache keyed by image URL). Not account-scoped: derived from public artwork.
+    let artworkMaterials: ArtworkMaterialStore
 }
 
 /// The public-data owners built by `AppComposition.makePublicData`.

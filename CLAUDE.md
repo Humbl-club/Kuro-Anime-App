@@ -260,9 +260,9 @@ Flags defined in `FeatureFlags.swift` (selected):
 
 ## FILE MAP (exact; iOS app, package and gates current as of 2026-10-31, other subsections carry their own dates)
 
-### iOS app — 191 Swift files in `Kuro/`
+### iOS app — 193 Swift files in `Kuro/`
 
-Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 43 in `KuroTests/` and 3 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
+Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 44 in `KuroTests/` and 3 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + `AppComposition` owners injected with `.environment(...)`, `.onOpenURL` deep link handler
@@ -346,8 +346,10 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 - Shared: `LibraryViewActions.swift` — typed-key adapters from views to `LibraryActions` (views never write `LibraryStore` directly); `ClubViewLifecycle.swift` — pure club-view lifecycle rule
 - Legacy/secondary: `DiscoverViewModel.swift`
 
-**Design (4 files):**
-- `KuroDesignSystem.swift` — colors (neutral roles since 2026-11-01: `kuroCanvasPage` #FFFFFF, `kuroCanvasQuiet` #F6F6F6, `kuroInk` #181818, `kuroInkSecondary` #5C5C5C, `kuroInkQuiet` #6B6B6B, `kuroHairline`, `kuroRoom` #222222; legacy names alias these), Dynamic-Type-reactive typography (`KuroTypeScale`, roles `kuroTitleName`/`kuroMeta`/`kuroButtonLabel`), spacing, radii, animations
+**Design (6 files):**
+- `ArtworkMaterial.swift` — `KuroRGB` + `ArtworkMaterial` (on-device port of the prototype's `art-hue-v1`; `derive(from:banner:)`, `fromHex(_:)`, white text ≥ 7:1, neutral base #3a3d3c)
+- `ArtworkMaterialStore.swift` — `@MainActor @Observable` store: seed colour first, derived material published later; memory + disk cache by image URL; built by `AppComposition`, read with `@Environment(ArtworkMaterialStore.self)`
+- `KuroDesignSystem.swift` — colors (neutral roles since 2026-11-01: `kuroCanvasPage` #FFFFFF, `kuroCanvasQuiet` #F6F6F6, `kuroInk` #252625 (prototype ink), prototype tokens `kuroCanvasHome`/`kuroPaper`/`kuroMuted`/`kuroLine`/`kuroKeyLight*`/`kuroKeyDark*`, `kuroInkSecondary` #5C5C5C, `kuroInkQuiet` #6B6B6B, `kuroHairline`, `kuroRoom` #222222; legacy names alias these), Dynamic-Type-reactive typography (`KuroTypeScale`; display roles in the prototype's sans with `KuroTypeRole.tracking`/`.kuroTracking(_:)`, serif `kuroEditorial(size:)`, `kuroMediumWord()`; roles `kuroTitleName`/`kuroMeta`/`kuroButtonLabel`), spacing, radii, animations (`KuroMotion.contact/settle/medium` on the prototype ease)
 - `KuroLocale.swift` — the one EN/DE switch (`KuroLocale.isGerman`, `KuroLocale.text(en, de)`); every user-facing string goes through it
 - `Color+Hex.swift` — hex color utility
 - `FlowLayout.swift` — wrapping layout primitive (detail pages, Browse, Profile, AddToList, Credits)

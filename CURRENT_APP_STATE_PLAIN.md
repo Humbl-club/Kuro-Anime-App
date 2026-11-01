@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 191 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 193 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -1989,3 +1989,11 @@ All the October work that only existed on the Mac is now saved: a full backup co
 ### Change Log — 1 November 2026: Overnight production pass
 
 Overnight, the whole app was checked (every server call, every way data comes in, every database table) and then reworked on a separate local branch. Nothing on the live server was changed and nothing was uploaded. The app can now show when the next episode, chapter or volume comes out (with an honest "confirmed / announced / expected" label and never a made-up date) and an anime's songs, once the prepared server changes are switched on; until then it quietly shows what it has today. Lists got a new, easy view ("Folio": tap a status, switch between covers and rows, add +1 with Undo), Profile was reorganised (your lists, imports, privacy, data sources), Discover, Clubs, sign-in and onboarding were redesigned in the white-and-ink style, and the database work that used most of the server's time was made far cheaper. Sign-in links are now only accepted when this phone asked for them, and "forgot password" finally lets you set a new one. Open owner decisions (data licensing, deploying, legal links, app icon, visual sign-off) are listed in `docs/overnight-2026-11-01/REPORT.md`.
+
+### Change Log — 1 November 2026: Prototype colours, type and artwork tints (step 2 of the prototype pass)
+
+This is the groundwork for making the app look like the approved prototype. It was done on the local branch only; nothing on the live server changed.
+- **Colours:** the app now has the prototype's colours: the warm Home background, the detail-page paper, its slightly softer black text, and the light and dark key colours.
+- **Headings:** big headings now use the prototype's clean, tight sans-serif instead of the thin serif. A serif style remains for the prototype's few editorial headings, such as "Between us.".
+- **Artwork tints:** the app can now work out a title's colour from its own cover art, the same way the prototype does. That colour will tint the detail pages and the Home cards. It always stays dark enough for white text to read clearly. It shows AniList's colour first and swaps to the computed one when it is ready. Each title is only computed once, then remembered.
+- The screens themselves change in the next steps.

@@ -33,6 +33,7 @@ struct KuroApp: App {
     @State private var flags = AppComposition.shared.flags
     @State private var interactionTelemetry = AppComposition.shared.interactionTelemetry
     @State private var outboundLinks = AppComposition.shared.outboundLinks
+    @State private var artworkMaterials = AppComposition.shared.artworkMaterials
     @State private var networkMonitor = NetworkMonitor()
     @State private var pendingDeepLink: DeepLink? = nil
     @Environment(\.scenePhase) private var scenePhase
@@ -77,6 +78,7 @@ struct KuroApp: App {
                 .environment(flags)
                 .environment(interactionTelemetry)
                 .environment(outboundLinks)
+                .environment(artworkMaterials)
                 .environment(networkMonitor)
                 // The current design system is light-first (black-on-white editorial).
                 // Until we have a full dark palette, keep system appearance stable.
