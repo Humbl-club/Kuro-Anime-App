@@ -7,12 +7,13 @@ These are the final visual evidence for every screen in the app after the overni
   - Source: `KuroTests/ScreenMapSnapshotTests.swift`. The views are hosted in `UIHostingController` and drawn at 3x.
   - No network: graphs use a nil client, `FakeLibraryBackend`, or the in-process `StubPostgREST` endpoint.
   - Fixture artwork comes from `tools/design-directions/assets`. Two manga titles carry cover art from other works (the "Berserk" row shows a JJK cover, "Vagabond" shows Berserk). That is a fixture labelling artefact, not an app bug.
-  - Skips and their reasons are in `fixture/NOTES.txt`.
+  - Skips and their reasons are in `fixture/NOTES.txt`. The suite only writes a note when that note is not already in the file.
+  - The shared-components sheet is split into two PNGs. A single 3000 pt render (9000 px) went past the renderer's texture limit and came out solid black.
 - **Simulator captures** (`app/`):
   - Debug build installed over the existing signed-in app on `7FC4B58A…` (data kept), light appearance, content size large, status bar 9:41.
   - Read-only: nothing was tapped.
   - **World A** = server flags. **World B** = `--ff-on=series_foundation_v1 --ff-on=series_home_native_v1`.
-  - Detail pages were opened by deep link using internal ids (`kuro://anime/21` = Assassination Classroom, `kuro://manga/30013` = Almight Network).
+  - Detail pages were opened by deep link using internal ids (`kuro://anime/21` = Assassination Classroom, `kuro://anime/1535` = Garden of Sinners Ch. 6, `kuro://manga/30013` = Almight Network).
 - **`--kuro-start` in World B now works.** `B-discover.png` and `B-collection.png` land on Discover and Collection about 9 s after launch, after flag hydration, and differ from `B-home.png` by md5. Last night they were byte-identical to Home. `B-collection` is byte-identical to `A-collection` for a valid reason: it is the same Folio page in both worlds, at the same pager index 3.
 - **World B detail = legacy body.** `SeriesAnimeDetailView` falls back to the legacy sections because the live series tables are empty (spec D15; REPORT.md §"Series grouping has no producer"). `B-detail-*` therefore matches `A-detail-*`. The native series detail shell exists only as a fixture: see `../snapshot-final/detail-*.png`.
 - **German: not captured.** `KuroLocale` reads `Locale.preferredLanguages` and has no override hook. Writing `AppleLanguages` would change the real app's preferences.
@@ -33,7 +34,8 @@ Verdict key: **good** = ship as is; **needs polish** = visible flaw, not blockin
 | G6 | Auth "Genie" hero | DEBUG `-AuthGenieHero` only | not captured: debug only | — |
 | G7 | Launch overlay | every signed-in mount, about 0.4 s | not captured: too brief | — |
 | G8 | Onboarding frame 1: Anime or manga? | first run (fullScreenCover) | `fixture/onboarding-frame1-390.png` | **good.** Scenery still, serif line, ink rule, Continue. The "Skip" capsule floats on the scenery with no visual anchor. |
-| G8 | Onboarding frames 2–3 | Continue / Not now | not captured: frame is private `@State`, and Continue writes the medium to the real `UserDefaults.standard` | — |
+| G8 | Onboarding frame 2: Bring your list. | frame 1 → Continue | `fixture/onboarding-frame2-390.png` | **good.** "Import a list" as an ink rule, with a quiet underlined "Not now" below it. I reached this frame through accessibility activation. The test restores the one key Continue writes (`kuro.folio.medium`); the key was absent before the run and absent after it. |
+| G8 | Onboarding frame 3: Clubs are private. | frame 2 → Not now | `fixture/onboarding-frame3-390.png` | **good.** "Start", with Skip removed as intended. The 2 pt step marks do not show in any frame at 844 pt; they are either below the fold or too faint. |
 | C1 | Header (wordmark, section pill, dots, search, profile) | above the pager | every `app/*.png` | **needs polish.** "KURO" sits on a faint grey blurred blob. Search and avatar are filled grey circles while the section name sits in a white capsule: two treatments in one bar. |
 | C2 | Transient banner / toast | `BannerCenter` | not captured: only after a write | — |
 | P1 | Taste (`TastePicksView`) | pager index 0, `--kuro-start=taste` | `app/A-taste.png` | **needs polish.** Blurbs are still non-synopsis copy: Samurai Champloo's is "let's break it down." and Trigun's starts with a lowercase "vash the stampede…". "+ Plan" buttons sit at different heights in the two columns. |
@@ -64,7 +66,7 @@ Verdict key: **good** = ship as is; **needs polish** = visible flaw, not blockin
 | S3 / S3a / S3b | Concierge sheet, AniList import, Why-this | Profile, `kuro://concierge` | not captured: Profile and Concierge need taps; `--kuro-start=concierge` was out of scope | — |
 | S4 / S5 | Import chooser / workflow | Home invitation, Profile | not captured: would start an import flow | — |
 | S6 | Home season overview | Home season chip | not captured: needs a tap and series data (empty live) | — |
-| S7 / S7a | Detail: anime (legacy body) | `kuro://anime/21` | `app/A-detail-anime-21.png`, `app/B-detail-anime-21.png` | **good** (improved). The dock is now opaque with one capsule shape family: heart, Add to list, Verdict, play. The duplicate meta line is gone ("SCORE 7.9 · 2015 · TV · 22 EPS · FINISHED" once). The "ANIME" badge is still a dark filled pill on the banner, and the banner is a blurry crop at this size. |
+| S7 / S7a | Detail: anime (legacy body) | `kuro://anime/21`, `kuro://anime/1535` | `app/A-detail-anime-21.png`, `app/A-detail-anime-1535.png` (long title and synopsis), `app/B-detail-anime-21.png` | **good** (improved). The dock is now opaque, with a hairline above it and one capsule shape family: heart, Add to list, Verdict, play. On 1535 the synopsis ends with READ MORE above the dock. Last night that text was cut behind the dock. The three-line uppercase serif title on 1535 is heavy. The duplicate meta line is gone ("SCORE 7.9 · 2015 · TV · 22 EPS · FINISHED" once). The "ANIME" badge is still a dark filled pill on the banner, and the banner is a blurry crop at this size. |
 | S7b | Detail: manga (legacy body) | `kuro://manga/30013` | `app/A-detail-manga-30013.png`, `app/B-detail-manga-30013.png` | **good.** Same dock, with the read button dropped and "No legal provider link is available yet." The small CJK native-title kicker above the English title is about 8 pt and grey, so it is hard to read. |
 | S7c / S7d | Series detail shell (anime/manga) | World B detail with series data | `../snapshot-final/detail-*.png` (fixture) | not re-captured live: no series data exists live, so the live page falls back to the legacy body |
 | S7e, S8–S13 | Unit chooser, episode/chapter lists, QuickVerdict, provider sheet, cast/credits/entity sheets, franchise path, next pick | taps inside detail | not captured: need taps; several would write (QuickVerdict) | — |
@@ -94,7 +96,7 @@ Verdict key: **good** = ship as is; **needs polish** = visible flaw, not blockin
 10. **Detail badge and kicker.** The dark filled "ANIME"/"MANGA" pill on the banner, and the tiny grey native-title kicker (`app/A-detail-*.png`).
 
 Fixed since last night's pass (`../app/VISUAL_QA.md`):
-- The detail dock no longer covers the synopsis and uses one shape family.
+- The detail dock no longer covers the synopsis (checked on 1535) and now uses a single shape family.
 - The duplicate detail meta line is gone.
 - Home no longer repeats "Nothing scheduled".
 - `--kuro-start` is honoured in World B.

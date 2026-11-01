@@ -113,7 +113,29 @@ struct ScreenMapSnapshotTests {
                 .environment(graph.flags),
             width: 390, height: 844, name: "onboarding-frame1-390.png", settle: 800
         )
-        note("Onboarding: only frame 1 rendered. The frame is private @State starting at .medium; reaching frames 2-3 needs the Continue button, which writes the Home/Collection medium to UserDefaults.standard (the real app container), so it was not activated.")
+        // Frames 2-3: Continue persists the medium. With no signed-in user and the series flag off it writes
+        // only `kuro.folio.medium` to UserDefaults.standard (the app container), so the prior value is
+        // restored afterwards. "Not now" writes nothing.
+        let folioKey = "kuro.folio.medium"
+        let priorMedium = UserDefaults.standard.object(forKey: folioKey)
+        defer {
+            if let priorMedium { UserDefaults.standard.set(priorMedium, forKey: folioKey) }
+            else { UserDefaults.standard.removeObject(forKey: folioKey) }
+        }
+        let onboarding = OnboardingView(onComplete: { _ in })
+            .environment(graph.identity)
+            .environment(graph.home)
+            .environment(graph.flags)
+        let frame2 = await render(onboarding, width: 390, height: 844, name: "onboarding-frame2-390.png", settle: 900,
+                                  prepare: { view in Self.activate(label: KuroLocale.text("Continue", "Weiter"), in: view) })
+        let frame3 = await render(onboarding, width: 390, height: 844, name: "onboarding-frame3-390.png", settle: 900,
+                                  prepare: { view in
+                                      Self.activate(label: KuroLocale.text("Continue", "Weiter"), in: view)
+                                  },
+                                  then: { view in Self.activate(label: KuroLocale.text("Not now", "Später"), in: view) })
+        if frame2 != true || frame3 != true {
+            note("Onboarding: frames 2-3 could not be reached through accessibility activation (Continue / Not now); those PNGs may show an earlier frame.")
+        }
 
         func auth() -> some View {
             AuthView()
@@ -269,7 +291,8 @@ struct ScreenMapSnapshotTests {
 
     @discardableResult
     private func render<V: View>(_ view: V, width: CGFloat, height preferredHeight: CGFloat? = nil, name: String,
-                                 settle: Int = 500, prepare: ((UIView) -> Bool)? = nil) async -> Bool? {
+                                 settle: Int = 500, prepare: ((UIView) -> Bool)? = nil,
+                                 then: ((UIView) -> Bool)? = nil) async -> Bool? {
         do {
             try FileManager.default.createDirectory(at: Self.outDir, withIntermediateDirectories: true)
         } catch {
@@ -291,6 +314,11 @@ struct ScreenMapSnapshotTests {
             try? await Task.sleep(for: .milliseconds(400))
             host.view.layoutIfNeeded()
             prepared = prepare(host.view)
+            if let then, prepared == true {
+                try? await Task.sleep(for: .milliseconds(700))
+                host.view.layoutIfNeeded()
+                prepared = then(host.view)
+            }
         }
         try? await Task.sleep(for: .milliseconds(settle))
         host.view.layoutIfNeeded()
@@ -339,6 +367,8 @@ struct ScreenMapSnapshotTests {
     private func note(_ line: String) {
         let url = Self.outDir.appendingPathComponent("NOTES.txt")
         let text = line + "\n"
+        // Idempotent across runs: the notes file is committed evidence.
+        if let existing = try? String(contentsOf: url, encoding: .utf8), existing.contains(line) { return }
         do {
             try FileManager.default.createDirectory(at: Self.outDir, withIntermediateDirectories: true)
             if let handle = try? FileHandle(forWritingTo: url) {
