@@ -108,13 +108,13 @@ extension ProviderAvailabilityStore {
             let statusRows = await detailAvailabilityStatusRows(mediaType: mediaType, mediaId: mediaId)
             availabilityStatus = statusRows?.first
             if shouldFetchDetailProviderAvailability(mediaType: mediaType, mediaId: mediaId, audio: preferredAudio) {
-                await fetchProviderAvailabilityV2(
+                let loaded = await loadProviderAvailabilityV2(
                     items: [(mediaType: mediaType, mediaId: mediaId)],
                     preferredAudioLang: preferredAudio,
                     preferredSubLang: nil,
                     includeUnknown: true
                 )
-                if !Task.isCancelled {
+                if loaded {
                     markDetailProviderAvailabilityFetched(mediaType: mediaType, mediaId: mediaId, audio: preferredAudio)
                 }
             }

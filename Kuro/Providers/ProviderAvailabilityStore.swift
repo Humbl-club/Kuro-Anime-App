@@ -323,10 +323,27 @@ final class ProviderAvailabilityStore: AccountScopedState {
         preferredSubLang: String? = nil,
         includeUnknown: Bool = true
     ) async {
-        guard !items.isEmpty else { return }
+        await loadProviderAvailabilityV2(
+            items: items,
+            preferredAudioLang: preferredAudioLang,
+            preferredSubLang: preferredSubLang,
+            includeUnknown: includeUnknown
+        )
+    }
+
+    /// `fetchProviderAvailabilityV2`, reporting whether the read succeeded (the detail resolution
+    /// marks a media fresh only after a successful read).
+    @discardableResult
+    func loadProviderAvailabilityV2(
+        items: [(mediaType: String, mediaId: Int)],
+        preferredAudioLang: String? = nil,
+        preferredSubLang: String? = nil,
+        includeUnknown: Bool = true
+    ) async -> Bool {
+        guard !items.isEmpty else { return false }
         let payload = items.map { ["media_type": $0.mediaType.uppercased(), "media_id": "\($0.mediaId)"] }
         guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
-              let jsonString = String(data: jsonData, encoding: .utf8) else { return }
+              let jsonString = String(data: jsonData, encoding: .utf8) else { return false }
         do {
             let client = try requiredClient()
             let params = RPCBatchProviderAvailabilityV2Params(
@@ -346,10 +363,12 @@ final class ProviderAvailabilityStore: AccountScopedState {
                     ProviderInfo(slug: $0.slug, display_name: $0.displayName, language: $0.languages.first)
                 }
             }
+            return true
         } catch {
             #if DEBUG
             print("[Streaming] fetchProviderAvailabilityV2 error: \(error.localizedDescription)")
             #endif
+            return false
         }
     }
 

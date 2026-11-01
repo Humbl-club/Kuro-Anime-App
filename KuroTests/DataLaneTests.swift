@@ -202,14 +202,14 @@ struct DataLaneRequestTests {
     func detailReadNamesColumns() async throws {
         let harness = try PublicDataHarness { request in
             switch request.resource {
-            case "anime": return .json("[" + PublicRowJSON.anime(5, title: "Anime 5") + "]")
-            case "manga": return .json("[" + PublicRowJSON.manga(6, title: "Manga 6") + "]")
+            case "anime": return .json("[" + PublicRowJSON.anime(990_205, title: "Anime 990205") + "]")
+            case "manga": return .json("[" + PublicRowJSON.manga(990_206, title: "Manga 990206") + "]")
             default: return .emptyArray
             }
         }
         let catalog = harness.service.catalog
-        #expect(try await catalog.fetchAnimeById(5)?.title == "Anime 5")
-        #expect(try await catalog.fetchMangaById(6)?.title == "Manga 6")
+        #expect(try await catalog.fetchAnimeById(990_205)?.title == "Anime 990205")
+        #expect(try await catalog.fetchMangaById(990_206)?.title == "Manga 990206")
 
         let anime = try #require(harness.requests(to: "anime").first)
         let manga = try #require(harness.requests(to: "manga").first)
@@ -225,28 +225,28 @@ struct DataLaneRequestTests {
         let harness = try PublicDataHarness { request in
             guard request.resource == "anime" else { return .emptyArray }
             if request.query("id")?.hasPrefix("in.") == true {
-                // 3 of 4 ids come back; id 4 is missing or adult-filtered on the server.
-                return .json("[" + [1, 2, 3].map { PublicRowJSON.anime($0, title: "Card \($0)") }.joined(separator: ",") + "]")
+                // 3 of 4 ids come back; 990304 is missing or adult-filtered on the server.
+                return .json("[" + [990_301, 990_302, 990_303].map { PublicRowJSON.anime($0, title: "Card \($0)") }.joined(separator: ",") + "]")
             }
-            return .json("[" + PublicRowJSON.anime(2, title: "Full 2") + "]")
+            return .json("[" + PublicRowJSON.anime(990_302, title: "Full 990302") + "]")
         }
         let catalog = harness.service.catalog
 
-        let cards = try #require(await catalog.fetchAnimeByIdsPreservingOrder([3, 4, 1, 2, 3]))
-        #expect(cards.map(\.id) == [3, 1, 2, 3])
+        let cards = try #require(await catalog.fetchAnimeByIdsPreservingOrder([990_303, 990_304, 990_301, 990_302, 990_303]))
+        #expect(cards.map(\.id) == [990_303, 990_301, 990_302, 990_303])
         let reads = harness.requests(to: "anime")
         #expect(reads.count == 1, "no N+1 for the unresolved id: \(reads)")
         #expect(Self.selected(try #require(reads.first)) == CatalogColumns.animeCard)
         #expect(catalog.animeDetailCache.isEmpty, "a card row must never become a detail model")
 
         // Again: served from the card cache, no request.
-        _ = await catalog.fetchAnimeByIdsPreservingOrder([1, 2])
+        _ = await catalog.fetchAnimeByIdsPreservingOrder([990_301, 990_302])
         #expect(harness.requests(to: "anime").count == 1)
 
         // Opening one of them loads the full detail model by id.
-        #expect(try await catalog.fetchAnimeById(2)?.title == "Full 2")
+        #expect(try await catalog.fetchAnimeById(990_302)?.title == "Full 990302")
         let detail = try #require(harness.requests(to: "anime").last)
-        #expect(detail.query("id") == "eq.2")
+        #expect(detail.query("id") == "eq.990302")
         #expect(Self.selected(detail) == CatalogColumns.animeDetail)
         await harness.tearDown()
     }
@@ -273,7 +273,7 @@ struct DataLaneRequestTests {
         let fail = Mutex(true)
         let harness = try PublicDataHarness { request in
             guard request.resource == "external_links" else { return .emptyArray }
-            if fail.withLock({ $0 }) { return .json(#"{"message":"boom"}"#, status: 500) }
+            if fail.withLock({ $0 }) { return .json(#"{"code":"PGRST100","details":null,"hint":null,"message":"boom"}"#, status: 400) }
             return .json("""
                 [{"id":1,"media_type":"ANIME","media_id":42,"site":"Crunchyroll","url":"https://www.crunchyroll.com/x",
                   "language":"en","color":null,"priority":1,"is_disabled":false,
@@ -319,7 +319,7 @@ struct DataLaneRequestTests {
         let harness = try PublicDataHarness { request in
             switch request.resource {
             case "rpc/search_anime_page": return PublicRowJSON.cards(Array(1...20))
-            case "rpc/search_manga_page": return .json(#"{"message":"boom"}"#, status: 500)
+            case "rpc/search_manga_page": return .json(#"{"code":"PGRST100","details":null,"hint":null,"message":"boom"}"#, status: 400)
             default: return .emptyArray
             }
         }
