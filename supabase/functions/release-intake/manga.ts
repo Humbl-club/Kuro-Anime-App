@@ -12,14 +12,15 @@
 // Releases repeat per scanlation group: deduped by chapter number keeping the earliest date.
 // Chapter strings that are not a plain number (ranges, "v.2", oneshots) are skipped, not guessed.
 // Emitted rows (all with source + source_url for credit):
-//   - the newest <= confirmedPastLimit dated chapters: basis confirmed, precision day, is_past;
-//   - one cadence estimate (cadence.ts) only when confidence >= 0.7, identity
-//     kuro_estimate:manga:<id>:next.
+//   - the newest <= confirmedPastLimit dated chapters: basis confirmed, precision day
+//     (source_local_date), status released once the day is over;
+//   - one cadence estimate (cadence.ts) only when confidence >= 0.7 (the writer keeps one
+//     estimate per title: kuro_estimate:manga:<id>:chapter:next).
 // manga.volumes / manga.chapters only ever move upward (never nulled, never lowered).
 // Nothing is fabricated: no MU mapping, no dates or an irregular cadence means no row.
 import { isPoliteCleanStop, type PoliteClient } from "../_shared/polite_fetch.ts";
 import { estimateNextChapter, isEstimate, type DatedChapter } from "./cadence.ts";
-import { dayPrecisionInstant, formatUnitNumber, type ReleaseEventRow, writeReleaseEvents } from "./contract.ts";
+import { dayIsPast, formatUnitNumber, type ReleaseEventRow, writeReleaseEvents } from "./contract.ts";
 
 export const MU_API = "https://api.mangaupdates.com/v1";
 
@@ -218,22 +219,21 @@ export async function runMangaReleases(
 
       const rows: ReleaseEventRow[] = [];
       for (const c of dated.slice(0, Math.max(0, opts.confirmedPastLimit))) {
-        const releaseAt = dayPrecisionInstant(c.date);
         rows.push({
           medium: "manga",
           media_id: candidate.id,
           unit_kind: "chapter",
           unit_number: c.number,
           unit_label: `Ch. ${formatUnitNumber(c.number)}`,
-          release_at: releaseAt,
           precision: "day",
+          source_local_date: c.date,
+          status: dayIsPast(c.date, opts.nowMs) ? "released" : "scheduled",
           basis: "confirmed",
           confidence: 1,
-          is_past: Date.parse(releaseAt) <= opts.nowMs,
           source: "mangaupdates",
           source_url: url,
           observed_at: observedAt,
-          source_identity: `mangaupdates:${seriesId}:ch:${formatUnitNumber(c.number)}`,
+          external_id: `series:${seriesId}`,
         });
       }
       const estimate = estimateNextChapter(dated, opts.nowMs);
@@ -244,15 +244,15 @@ export async function runMangaReleases(
           unit_kind: "chapter",
           unit_number: estimate.nextNumber,
           unit_label: `Ch. ${estimate.nextNumber}`,
-          release_at: dayPrecisionInstant(estimate.nextDate),
           precision: "day",
+          source_local_date: estimate.nextDate,
+          status: "scheduled",
           basis: "estimated",
           confidence: estimate.confidence,
-          is_past: false,
           source: "kuro_estimate",
           source_url: url,
           observed_at: observedAt,
-          source_identity: `kuro_estimate:manga:${candidate.id}:next`,
+          external_id: `series:${seriesId}`,
         });
         result.estimates++;
       }

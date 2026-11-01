@@ -1,7 +1,7 @@
 // mode 'airing': AniList Page.airingSchedules over [now - 6 h, now + 8 d], sort TIME, paged.
-//   - Every schedule row of a catalog title becomes a confirmed release event
-//     (source anilist, precision instant, identity anilist:airing:<scheduleId>; a delay keeps the
-//     id and rewrites release_at). Rows in the past part of the window are is_past.
+//   - Every schedule row of a catalog title becomes a confirmed release event (source anilist,
+//     precision instant; the writer keys it by title + episode, so a delay rewrites release_at).
+//     Rows in the past part of the window are status 'released'.
 //   - anime.next_episode_number / next_airing_at are patched from the nested
 //     media.nextAiringEpisode (AniList's own "next"), only when the value differs. A title that is
 //     not in the window is never touched by the window pass.
@@ -110,15 +110,15 @@ function eventRow(row: CatalogAnime, scheduleId: number, episode: number, airing
     unit_kind: "episode",
     unit_number: episode,
     unit_label: `Ep. ${episode}`,
-    release_at: iso(airingAt),
     precision: "instant",
+    release_at: iso(airingAt),
+    status: airingAt * 1000 <= nowMs ? "released" : "scheduled",
     basis: "confirmed",
     confidence: 1,
-    is_past: airingAt * 1000 <= nowMs,
     source: "anilist",
     source_url: `https://anilist.co/anime/${row.anilist_id}`,
     observed_at: observedAt,
-    source_identity: `anilist:airing:${scheduleId}`,
+    external_id: `airing:${scheduleId}`,
   };
 }
 

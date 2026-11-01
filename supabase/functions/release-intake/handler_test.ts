@@ -61,8 +61,45 @@ function lockRpc(state: { held: Set<string> }) {
   };
 }
 
+/**
+ * TS mirror of the row validation in upsert_release_events_v1
+ * (prepared-migrations/20261101000000_release_schedule_and_themes_v2.sql, section 8): every row
+ * this function sends must pass it, or the real writer would reject the whole call.
+ */
+function assertWriterAccepts(row: ReleaseEventRow) {
+  const r = row as unknown as Record<string, unknown>;
+  assert.ok(r.medium === "anime" || r.medium === "manga");
+  assert.match(String(r.media_id), /^[1-9][0-9]{0,9}$/);
+  if (r.medium === "anime") assert.ok(["episode", "season"].includes(String(r.unit_kind)));
+  else assert.ok(["chapter", "volume"].includes(String(r.unit_kind)));
+  assert.match(String(r.unit_number), /^[0-9]{1,5}(\.[0-9]{1,3})?$/);
+  assert.ok(["confirmed", "announced", "estimated"].includes(String(r.basis)));
+  assert.ok(["anilist", "mangaupdates", "mangadex", "publisher", "kuro_estimate"].includes(String(r.source)));
+  assert.equal(r.basis === "estimated", r.source === "kuro_estimate");
+  assert.equal(typeof r.confidence, "number");
+  assert.ok(Number(r.confidence) >= 0 && Number(r.confidence) <= 1);
+  if (r.source_url != null) assert.match(String(r.source_url), /^https:\/\/\S+$/);
+  if (r.precision === "instant") {
+    assert.ok(typeof r.release_at === "string" && Number.isFinite(Date.parse(String(r.release_at))));
+    assert.equal(r.source_local_date, undefined);
+  } else {
+    assert.equal(r.precision, "day");
+    assert.match(String(r.source_local_date), /^\d{4}-\d{2}-\d{2}$/);
+    assert.equal(r.release_at, undefined);
+  }
+  assert.ok(["scheduled", "released", "delayed", "cancelled", "announced"].includes(String(r.status)));
+  if (r.basis === "estimated") assert.equal(r.status, "scheduled");
+  assert.ok(String(r.unit_label).length <= 64);
+  assert.ok(Date.parse(String(r.observed_at)) <= NOW + 3_600_000);
+  assert.ok(String(r.external_id ?? "").length <= 120);
+}
+
 function writtenRows(fake: ReturnType<typeof queryFake>): ReleaseEventRow[] {
-  return fake.rpcCalls("upsert_release_events_v1").flatMap((a) => a.p_rows as ReleaseEventRow[]);
+  const calls = fake.rpcCalls("upsert_release_events_v1");
+  for (const call of calls) assert.ok((call.p_rows as unknown[]).length <= 500);
+  const rows = calls.flatMap((a) => a.p_rows as ReleaseEventRow[]);
+  rows.forEach(assertWriterAccepts);
+  return rows;
 }
 
 // ---------------------------------------------------------------------------
@@ -102,13 +139,24 @@ Deno.test("airing: window rows become confirmed events and next_* is patched onl
 
   const rows = writtenRows(fake);
   assert.equal(rows.length, 2);
-  const past = rows.find((r) => r.source_identity === "anilist:airing:409393");
-  assert.ok(past);
-  assert.deepEqual(
-    { medium: past.medium, media_id: past.media_id, unit_kind: past.unit_kind, unit_number: past.unit_number, unit_label: past.unit_label, basis: past.basis, precision: past.precision, is_past: past.is_past, source: past.source, source_url: past.source_url, confidence: past.confidence },
-    { medium: "anime", media_id: 10, unit_kind: "episode", unit_number: 1308, unit_label: "Ep. 1308", basis: "confirmed", precision: "instant", is_past: true, source: "anilist", source_url: "https://anilist.co/anime/966", confidence: 1 },
-  );
-  assert.equal(rows.find((r) => r.source_identity === "anilist:airing:500001")?.is_past, false);
+  const past = rows.find((r) => r.external_id === "airing:409393");
+  assert.deepEqual(past, {
+    medium: "anime",
+    media_id: 10,
+    unit_kind: "episode",
+    unit_number: 1308,
+    unit_label: "Ep. 1308",
+    precision: "instant",
+    release_at: new Date((NOW_S - 3600) * 1000).toISOString(),
+    status: "released",
+    basis: "confirmed",
+    confidence: 1,
+    source: "anilist",
+    source_url: "https://anilist.co/anime/966",
+    observed_at: new Date(NOW).toISOString(),
+    external_id: "airing:409393",
+  });
+  assert.equal(rows.find((r) => r.external_id === "airing:500001")?.status, "scheduled");
 
   // Title 966 moved to episode 1309; title 21 was already current, so it gets no write.
   const updates = fake.calls.filter((call) => call.kind === "update" && call.table === "anime");
@@ -164,7 +212,7 @@ Deno.test("airing: the stale sweep re-reads past next_airing_at titles and nulls
   assert.equal(fake.tables.anime[1].next_episode_number, null);
   assert.equal(fake.tables.anime[1].next_airing_at, null);
   const rows = writtenRows(fake);
-  assert.deepEqual(rows.map((r) => r.source_identity), ["anilist:airing:777"]);
+  assert.deepEqual(rows.map((r) => [r.external_id, r.media_id, r.unit_number]), [["airing:777", 20, 5]]);
   assert.deepEqual((c.anilistSeen[1].body as { variables: { ids: number[] } }).variables.ids, [3001, 3002]);
 });
 
@@ -272,24 +320,26 @@ Deno.test("manga: MangaUpdates history becomes confirmed chapter rows plus one c
     unit_kind: "chapter",
     unit_number: 1196,
     unit_label: "Ch. 1196",
-    release_at: "2026-10-25T12:00:00.000Z",
     precision: "day",
+    source_local_date: "2026-10-25",
+    status: "released",
     basis: "confirmed",
     confidence: 1,
-    is_past: true,
     source: "mangaupdates",
     source_url: "https://www.mangaupdates.com/series/pb8uwds/one-piece",
     observed_at: new Date(NOW).toISOString(),
-    source_identity: "mangaupdates:55099564912:ch:1196",
+    external_id: "series:55099564912",
   });
   const estimate = rows.find((r) => r.basis === "estimated");
   assert.ok(estimate);
   assert.equal(estimate.unit_number, 1197);
-  assert.equal(estimate.release_at, "2026-11-01T12:00:00.000Z");
+  assert.equal(estimate.source_local_date, "2026-11-01");
+  assert.equal(estimate.release_at, undefined);
+  assert.equal(estimate.status, "scheduled");
   assert.equal(estimate.source, "kuro_estimate");
   assert.equal(estimate.source_url, ONE_PIECE_SERIES.url);
   assert.ok(estimate.confidence >= 0.7);
-  assert.equal(estimate.source_identity, "kuro_estimate:manga:5:next");
+  assert.equal(rows.filter((r) => r.basis === "estimated").length, 1, "one estimate per title");
 
   // Counts move upward only: volumes from MU status, chapters 1190 -> 1196.
   assert.equal(fake.tables.manga[0].volumes, 115);
