@@ -156,6 +156,64 @@ enum HomeShelfPolicy {
         return progress >= available
     }
 
+    /// One title in progress, as the opening line reads it.
+    struct OpeningEntry: Equatable {
+        let progress: Int
+        /// `availableUnits(...)`: nil when Home cannot know how many units are out.
+        let available: Int?
+        let catalogueStatus: String?
+    }
+
+    /// What the opening line may claim, over EVERY title in progress (scenes and Also watching alike):
+    /// - `newUnits`: released units the reader has not reached, summed over titles still releasing
+    ///   (`max(0, available − progress)`), so "3 new episodes" counts episodes, not titles. A finished
+    ///   title's backlog is never new.
+    /// - `nothingNew`: no new unit anywhere, and no title that may be releasing (RELEASING, or a status
+    ///   Home does not know) has an unknown released count. Unknown is never "nothing new". Finished,
+    ///   hiatus and not-yet-released titles cannot have a new unit today, so they never block it.
+    static func opening(_ entries: [OpeningEntry]) -> (newUnits: Int, nothingNew: Bool) {
+        guard !entries.isEmpty else { return (0, false) }
+        var newUnits = 0
+        var unknown = false
+        for entry in entries {
+            let status = entry.catalogueStatus?.uppercased()
+            let mayRelease = status == nil || status == "RELEASING"
+            if status == "RELEASING", let available = entry.available {
+                newUnits += max(0, available - entry.progress)
+            } else if mayRelease, entry.available == nil {
+                unknown = true
+            }
+        }
+        return (newUnits, newUnits == 0 && !unknown)
+    }
+
+    /// A scene or Also watching key on Home: caught up when the catalogue total is reached, or when
+    /// the released count is known and reached (a releasing title whose next episode has not aired).
+    /// Home then shows the quiet ✓ and "Caught up", never a +1 that would mark an unaired unit.
+    /// Manual edits stay on the detail page.
+    static func homeKeyCaughtUp(progress: Int, total: Int?, available: Int?) -> Bool {
+        if let total, total > 0, progress >= total { return true }
+        return isKnownCaughtUp(progress: progress, available: available)
+    }
+
+    /// The +1 key plays its confirm / restore stamp only after a save that raised progress, for the
+    /// same account presentation (ticket still current) and the medium it was pressed on.
+    static func shouldStamp(before: Int, after: Int, ticketCurrent: Bool, mediumUnchanged: Bool) -> Bool {
+        ticketCurrent && mediumUnchanged && after > before
+    }
+
+    /// Club notes about a title: the same id AND the same medium (a manga note never lands on an anime
+    /// scene that shares the numeric id). Real display names only, in order, without repeats.
+    static func clubNames(_ items: [HomeClubItem], mediaId: Int, medium: String) -> [String] {
+        var names: [String] = []
+        for item in items where item.mediaId == mediaId && item.mediaType.lowercased() == medium.lowercased() {
+            guard let name = item.displayName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty,
+                  !names.contains(name) else { continue }
+            names.append(name)
+        }
+        return names
+    }
+
     private static func inProgress(_ listTypes: [String]) -> Bool {
         listTypes.contains(where: isInProgress(listType:))
     }

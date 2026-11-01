@@ -11,9 +11,9 @@ import SwiftUI
 
 /// The opening line's copy (pure; EN/DE).
 enum HomeOpeningLine {
-    /// The right-aligned headline. `available` counts titles with a released unit the reader has not
-    /// reached (`HomeShelfPolicy.hasNewUnit`); caught up and nothing new read "Keep watching." /
-    /// "Keep reading.".
+    /// The right-aligned headline. `available` counts released units (episodes / chapters) the reader
+    /// has not reached, over every title in progress (`HomeShelfPolicy.opening`); caught up and
+    /// nothing new read "Keep watching." / "Keep reading.".
     static func headline(available: Int, caughtUp: Bool, newAccount: Bool, medium: MediaKind,
                          german: Bool = KuroLocale.isGerman) -> String {
         if newAccount { return german ? "Fang hier an." : "Begin here." }
@@ -49,7 +49,8 @@ enum HomeOpeningLine {
         german ? "Heute nichts Neues. Bleib in deinem Tempo." : "Nothing new today. Stay at your own pace."
     }
 
-    /// The quiet card shows only when every lead title is known to be caught up and nothing is new.
+    /// The quiet card shows only when nothing is new and nothing is unknown (`caughtUp` is
+    /// `HomeShelfPolicy.opening(...).nothingNew`, over every title in progress).
     static func showsQuietLine(available: Int, caughtUp: Bool, newAccount: Bool) -> Bool {
         caughtUp && available == 0 && !newAccount
     }

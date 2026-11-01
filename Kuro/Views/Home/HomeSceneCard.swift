@@ -9,8 +9,8 @@ import SwiftUI
 //   material foot    the title's artwork material, 135° base → deep; 58 pt: title SF 17 w550
 //                    tracking −0.35 #fafafa | 1 pt #ffffff24 rule | "Ep." 9 pt, count 19 w500, "/ 5"
 //                    11 pt @ .8, 52 pt scrub (#ffffff1c track, #e9eeee trace) | raised light key
-//   footer row       41 pt, 1 pt #ffffff0d top rule: one honest fact (New episode available / Up to
-//                    date / the club members who wrote about it), else the row is omitted
+//   footer row       41 pt, 1 pt #ffffff0d top rule: one honest fact (the club members who wrote
+//                    about it / New episode available / Up to date), else the row is omitted
 // Card radius 5, shadow #19221b0a 0 1 2. At 320 pt (§5): foot padding 11, count 17, fact 9 pt.
 // The artwork, the title and the key are three separate targets (never nested); the season tab is a
 // fourth that opens the season overview.
@@ -55,6 +55,8 @@ enum HomeInk {
     static let switchMark = Color(hex: "203027")
     static let switchHairline = Color(hex: "203027", opacity: Double(0x44) / 255)
     static let switchUnlit = Color(hex: "253A2A")
+    /// Calendar heading summary `#656c66`.
+    static let calendarSummary = Color(hex: "656C66")
 }
 
 /// Layout rules shared by the scene card and the Also watching tile (pure).
@@ -103,8 +105,13 @@ enum HomeSceneFact: Equatable {
     /// Club members (real display names) who wrote about this title.
     case club(names: [String])
 
+    /// Order (the prototype's second scene carries the club link in every reference state): real club
+    /// names first, then a released unit not reached yet, then known caught up, else nothing. The
+    /// opening line still counts every new unit, so a club line never hides one from the page.
     static func make(hasNew: Bool, knownCaughtUp: Bool, clubNames: [String], medium: MediaKind,
                      german: Bool = KuroLocale.isGerman) -> HomeSceneFact? {
+        let names = clubNames.prefix(2)
+        if !names.isEmpty { return .club(names: Array(names)) }
         if hasNew {
             switch (medium, german) {
             case (.anime, false): return .newUnit("New episode available")
@@ -114,8 +121,7 @@ enum HomeSceneFact: Equatable {
             }
         }
         if knownCaughtUp { return .upToDate(german ? "Auf dem neuesten Stand" : "Up to date") }
-        let names = clubNames.prefix(2)
-        return names.isEmpty ? nil : .club(names: Array(names))
+        return nil
     }
 
     /// "Mina + Jules".
@@ -321,7 +327,11 @@ struct HomeSceneReadoutView: View {
             Text(readout.unit)
                 .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 18))
                 .foregroundStyle(HomeInk.footSecondary)
-                .lineLimit(1)
+                // The caught-up word is long in German ("Auf dem neuesten Stand"): it wraps inside the
+                // readout's column instead of widening the foot and squeezing the title.
+                .lineLimit(readout.caughtUp ? 3 : 1)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(width: readout.caughtUp ? 62 : nil, alignment: .leading)
             HStack(alignment: .lastTextBaseline, spacing: 0) {
                 Text(readout.value)
                     .font(.kuroCustom(compact ? 17 : 19, weight: .medium, relativeTo: .title3, maxSize: 34))
@@ -373,19 +383,45 @@ struct HomeScrub: View {
     }
 }
 
-/// A caught-up key: the prototype's disabled `.step` (no face, a quiet ✓), 44 × 44, not interactive.
+/// A caught-up key: the prototype's disabled `.step`, 44 × 44, not interactive. Its face loses fill and
+/// border, but on Poster screens the key's shadows stay (`.phone[data-switch=poster] .step:before`
+/// outranks `.step:disabled::before`): a 34 × 34 radius-7 ghost with a 1 pt `#ffffff35` top highlight
+/// inside and a `0 1 2 #14231912` shadow outside, around a quiet ✓.
 struct HomeCaughtUpKey: View {
     let onArt: Bool
     let accessibilityText: String
 
     var body: some View {
+        // The prototype's thin 12 pt check (`M4 10l4 4 8-8`).
         Image(systemName: "checkmark")
-            .font(.kuroCustom(14, weight: .regular, relativeTo: .body, maxSize: 22))
+            .font(.kuroCustom(12, weight: .light, relativeTo: .body, maxSize: 20))
             .foregroundStyle(onArt ? HomeInk.caughtUpOnArt : HomeInk.caughtUpOnPaper)
             .frame(width: 44, height: 44)
+            .background { ghostFace.accessibilityHidden(true) }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityText)
-            .accessibilityValue(KuroLocale.text("Caught up", "Auf dem neuesten Stand"))
+            .accessibilityValue(KuroAdvanceCopy.caughtUpLabel(title: nil, german: KuroLocale.isGerman))
+    }
+
+    private var ghostFace: some View {
+        let shape = RoundedRectangle(cornerRadius: 7)
+        return ZStack {
+            // The outside shadow only (the face itself has no fill): an opaque face casts it, then the
+            // face is cut away.
+            shape
+                .fill(Color.black)
+                .shadow(color: Color(hex: "142319", opacity: Double(0x12) / 255), radius: 1, y: 1)
+                .mask {
+                    Rectangle().padding(-6)
+                        .overlay { shape.blendMode(.destinationOut) }
+                        .compositingGroup()
+                }
+            shape.strokeBorder(
+                LinearGradient(colors: [Color.white.opacity(Double(0x35) / 255), .clear],
+                               startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.1)),
+                lineWidth: 1)
+        }
+        .frame(width: 34, height: 34)
     }
 }
 

@@ -9,13 +9,54 @@ import SwiftUI
 // 320, caption 9 pt, art 34 pt high). Tapping it scrolls to the calendar (HomeView). Hidden for a new
 // account. It summarises the same schedule the calendar lists, never a second source.
 
+/// How far ahead the dated releases reach (pure). The glance's count label and the calendar heading's
+/// summary read the same span, so the two never disagree. Mirrors lane 5's
+/// `HomeCalendarPresentation.summary` rule (Task 10 dedupes the two onto one helper).
+enum HomeScheduleSpan: Equatable {
+    /// Everything dated falls within the next seven days (or only those are known: the airing fallback).
+    case week
+    /// The furthest dated release is N weeks ahead.
+    case weeks(Int)
+    /// A month / quarter / year window is dated: no honest span in days, so none is stated.
+    case unspanned
+
+    static func of(_ groups: [HomeCalendarDay], coverage: ReleaseScheduleCoverage, copy: ReleaseCopy) -> HomeScheduleSpan {
+        if coverage == .nextSevenDays { return .week }
+        let dated = groups.filter { $0.kind != .undated }
+        if dated.contains(where: { $0.kind == .later }) { return .unspanned }
+        // Today plus the next seven days reads "this week" / "7 days" (the prototype's week ends on day 7).
+        let furthest = dated.flatMap(\.items).compactMap(copy.daysFromToday).max() ?? 0
+        if furthest <= 7 { return .week }
+        return .weeks(Int((Double(furthest) / 7).rounded(.up)))
+    }
+
+    /// The glance's count label: "this week", "6 weeks"; nil when unspanned.
+    func countLabel(german: Bool) -> String? {
+        switch self {
+        case .week: return german ? "diese Woche" : "this week"
+        case .weeks(let n): return german ? "\(n) Wochen" : "\(n) weeks"
+        case .unspanned: return nil
+        }
+    }
+
+    /// The calendar summary's span: "7 days", "6 weeks"; nil when unspanned.
+    func summarySpan(german: Bool) -> String? {
+        switch self {
+        case .week: return german ? "7 Tage" : "7 days"
+        case .weeks(let n): return german ? "\(n) Wochen" : "\(n) weeks"
+        case .unspanned: return nil
+        }
+    }
+}
+
 /// What the glance says (pure). Built from the account's release schedule, with the honest states of
 /// `HomeCalendarPresentation.glanceCaption` when nothing upcoming is known.
 struct HomeGlanceSummary: Equatable {
     let caption: String
     /// The big number, when there is something to count.
     let count: Int?
-    /// What `count` counts: "this week", "later", "pending".
+    /// What `count` counts: the dated span ("this week", "6 weeks") or "pending"; nil when the dated
+    /// releases have no span in days (a month window), never an invented word.
     let countLabel: String?
     /// The rows whose artwork the strip shows (≤ 3).
     let art: [ReleaseScheduleItem]
@@ -28,6 +69,8 @@ struct HomeGlanceSummary: Equatable {
     }
 
     /// `checked`: the schedule has been asked for at least once (until then "Checking dates").
+    /// The count is every dated release the calendar lists (the prototype's total), labelled by how
+    /// far ahead they reach; undated-only schedules count their announcements as "pending".
     static func make(items: [ReleaseScheduleItem], copy: ReleaseCopy, offline: Bool,
                      coverage: ReleaseScheduleCoverage, checked: Bool) -> HomeGlanceSummary {
         let german = copy.german
@@ -35,11 +78,10 @@ struct HomeGlanceSummary: Equatable {
         let dated = groups.filter { $0.kind != .undated }
         let datedCount = dated.reduce(0) { $0 + $1.items.count }
         if let first = dated.first {
-            let week = HomeCalendarPresentation.countThisWeek(items, copy: copy)
             return HomeGlanceSummary(
                 caption: "\(first.label) · \(releases(first.items.count, german: german))",
-                count: week > 0 ? week : datedCount,
-                countLabel: week > 0 ? (german ? "diese Woche" : "this week") : (german ? "später" : "later"),
+                count: datedCount,
+                countLabel: HomeScheduleSpan.of(groups, coverage: coverage, copy: copy).countLabel(german: german),
                 art: Array(first.items.prefix(3)),
                 linksToCalendar: true)
         }
@@ -57,10 +99,25 @@ struct HomeGlanceSummary: Equatable {
         return HomeGlanceSummary(caption: caption, count: nil, countLabel: nil, art: [], linksToCalendar: false)
     }
 
+    /// The calendar heading's summary (PROTOTYPE_SPEC.md §4 "Calendar"): "6 releases · 7 days",
+    /// "48 releases · 6 weeks", "N releases" without a span, or "From your list" when nothing is dated.
+    static func calendarSummary(_ groups: [HomeCalendarDay], coverage: ReleaseScheduleCoverage,
+                                copy: ReleaseCopy) -> String {
+        let german = copy.german
+        let count = groups.filter { $0.kind != .undated }.reduce(0) { $0 + $1.items.count }
+        guard count > 0 else { return german ? "Aus deiner Liste" : "From your list" }
+        let head = releases(count, german: german)
+        guard let span = HomeScheduleSpan.of(groups, coverage: coverage, copy: copy).summarySpan(german: german) else {
+            return head
+        }
+        return "\(head) · \(span)"
+    }
+
     /// The spoken summary: "Coming up: Today · 3 releases, 6 this week".
     func spoken(german: Bool) -> String {
         let head = (german ? "Demnächst: " : "Coming up: ") + caption
-        guard let count, let countLabel else { return head }
+        guard let count else { return head }
+        guard let countLabel else { return "\(head), \(Self.releases(count, german: german))" }
         return "\(head), \(count) \(countLabel)"
     }
 }

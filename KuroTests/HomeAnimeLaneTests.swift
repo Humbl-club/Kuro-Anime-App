@@ -141,12 +141,100 @@ struct HomeAnimeLaneTests {
         #expect(!HomeShelfPolicy.isKnownCaughtUp(progress: 80, available: available))
     }
 
+    // MARK: Opening composition (every title in progress, units not titles)
+
+    private func entry(_ progress: Int, _ available: Int?, _ status: String?) -> HomeShelfPolicy.OpeningEntry {
+        HomeShelfPolicy.OpeningEntry(progress: progress, available: available, catalogueStatus: status)
+    }
+
+    @Test("Opening: counts released units over every title in progress; finished backlogs never count")
+    func openingCountsUnitsOverAllTitles() {
+        // The busy fixture: two scenes one behind each, JJK caught up, finished backlogs.
+        let busy = HomeShelfPolicy.opening([entry(4, 5, "RELEASING"), entry(7, 8, "RELEASING"), entry(6, 6, "RELEASING"),
+                                            entry(11, 37, "FINISHED"), entry(3, 12, "FINISHED")])
+        #expect(busy.newUnits == 2 && !busy.nothingNew)
+        // A title three episodes behind adds three, not one.
+        #expect(HomeShelfPolicy.opening([entry(2, 5, "RELEASING")]).newUnits == 3)
+        // Two caught-up scenes plus an Also watching title with a new episode: 1, and no quiet card.
+        let alsoNew = HomeShelfPolicy.opening([entry(5, 5, "RELEASING"), entry(8, 8, "FINISHED"), entry(6, 7, "RELEASING")])
+        #expect(alsoNew.newUnits == 1 && !alsoNew.nothingNew)
+        #expect(HomeOpeningLine.headline(available: alsoNew.newUnits, caughtUp: alsoNew.nothingNew, newAccount: false,
+                                         medium: .anime, german: false) == "1 new episode")
+        #expect(!HomeOpeningLine.showsQuietLine(available: alsoNew.newUnits, caughtUp: alsoNew.nothingNew, newAccount: false))
+        // Manga sums chapters across books.
+        let manga = HomeShelfPolicy.opening([entry(20, 24, "RELEASING"), entry(80, 81, "RELEASING")])
+        #expect(HomeOpeningLine.headline(available: manga.newUnits, caughtUp: manga.nothingNew, newAccount: false,
+                                         medium: .manga, german: false) == "5 new chapters")
+    }
+
+    @Test("Quiet card: nothing new and nothing unknown; finished backlogs never block it")
+    func quietCardNeedsKnownAvailability() {
+        // Caught up to aired, a finished backlog (11 / 37) and a not-yet-released title: quiet.
+        let quiet = HomeShelfPolicy.opening([entry(5, 5, "RELEASING"), entry(11, 37, "FINISHED"), entry(0, nil, "NOT_YET_RELEASED"),
+                                             entry(4, nil, "HIATUS")])
+        #expect(quiet.newUnits == 0 && quiet.nothingNew)
+        #expect(HomeOpeningLine.showsQuietLine(available: quiet.newUnits, caughtUp: quiet.nothingNew, newAccount: false))
+        // A releasing title whose released count is unknown: never "nothing new".
+        let unknown = HomeShelfPolicy.opening([entry(5, 5, "RELEASING"), entry(3, nil, "RELEASING")])
+        #expect(unknown.newUnits == 0 && !unknown.nothingNew)
+        #expect(!HomeShelfPolicy.opening([entry(5, 5, "RELEASING"), entry(3, nil, nil)]).nothingNew,
+                "A title Home knows no status for may be releasing: unknown.")
+        #expect(!HomeShelfPolicy.opening([]).nothingNew)
+    }
+
+    @Test("Home key: caught up at the total, or at the released count (the next episode has not aired)")
+    func homeKeyGatesUnairedEpisodes() {
+        // Busy-style title: total 12, 5 aired, 5 watched: the ✓, never a +1 for unaired episode 6.
+        #expect(HomeShelfPolicy.homeKeyCaughtUp(progress: 5, total: 12, available: 5))
+        #expect(!HomeShelfPolicy.homeKeyCaughtUp(progress: 4, total: 12, available: 5))
+        #expect(HomeShelfPolicy.homeKeyCaughtUp(progress: 12, total: 12, available: nil))
+        // Unknown availability keeps the +1 (never a guessed cap).
+        #expect(!HomeShelfPolicy.homeKeyCaughtUp(progress: 5, total: 12, available: nil))
+        #expect(!HomeShelfPolicy.homeKeyCaughtUp(progress: 5, total: nil, available: nil))
+        // The fact row reads the same rule, so "Up to date" never sits beside a live +1.
+        let caughtUp = HomeShelfPolicy.homeKeyCaughtUp(progress: 5, total: 12, available: 5)
+        #expect(HomeSceneFact.make(hasNew: false, knownCaughtUp: caughtUp, clubNames: [], medium: .anime, german: false)
+                == .upToDate("Up to date"))
+    }
+
+    @Test("The +1 stamp plays only after a raised save, for the same account presentation and medium")
+    func stampRule() {
+        #expect(HomeShelfPolicy.shouldStamp(before: 4, after: 5, ticketCurrent: true, mediumUnchanged: true))
+        #expect(!HomeShelfPolicy.shouldStamp(before: 4, after: 4, ticketCurrent: true, mediumUnchanged: true),
+                "A refused or failed save never stamps.")
+        #expect(!HomeShelfPolicy.shouldStamp(before: 4, after: 5, ticketCurrent: false, mediumUnchanged: true),
+                "The account changed during the save: never stamp the new account's title.")
+        #expect(!HomeShelfPolicy.shouldStamp(before: 4, after: 5, ticketCurrent: true, mediumUnchanged: false))
+    }
+
+    @Test("Club names: same id AND same medium; real names only, no repeats")
+    func clubNamesMatchTheMedium() throws {
+        let items: [HomeClubItem] = try Self.decode("""
+        [{"comment_id":"a","media_id":2,"media_type":"ANIME","display_name":"Mina"},
+         {"comment_id":"b","media_id":2,"media_type":"MANGA","display_name":"Noah"},
+         {"comment_id":"c","media_id":2,"media_type":"ANIME","display_name":" "},
+         {"comment_id":"d","media_id":2,"media_type":"ANIME","display_name":"Mina"},
+         {"comment_id":"e","media_id":3,"media_type":"ANIME","display_name":"Ari"}]
+        """)
+        #expect(HomeShelfPolicy.clubNames(items, mediaId: 2, medium: "anime") == ["Mina"])
+        #expect(HomeShelfPolicy.clubNames(items, mediaId: 2, medium: "manga") == ["Noah"],
+                "A manga note with the same id never lands on the anime scene.")
+    }
+
     @Test("Scene footer: one honest fact, else nothing; club names only when real")
     func sceneFact() {
+        // Real club names rank first (the prototype's second scene carries the club link in every state).
         #expect(HomeSceneFact.make(hasNew: true, knownCaughtUp: false, clubNames: ["Mina"], medium: .anime, german: false)
+                == .club(names: ["Mina"]))
+        #expect(HomeSceneFact.make(hasNew: false, knownCaughtUp: true, clubNames: ["Mina", "Jules"], medium: .anime, german: false)
+                == .club(names: ["Mina", "Jules"]))
+        #expect(HomeSceneFact.make(hasNew: true, knownCaughtUp: false, clubNames: [], medium: .anime, german: false)
                 == .newUnit("New episode available"))
         #expect(HomeSceneFact.make(hasNew: false, knownCaughtUp: true, clubNames: [], medium: .anime, german: false)
                 == .upToDate("Up to date"))
+        #expect(HomeSceneFact.make(hasNew: false, knownCaughtUp: true, clubNames: [], medium: .anime, german: true)
+                == .upToDate(KuroAdvanceCopy.caughtUpLabel(title: nil, german: true)),
+                "German: one caught-up string for the fact, the readout and the key.")
         #expect(HomeSceneFact.make(hasNew: false, knownCaughtUp: false, clubNames: ["Mina", "Jules", "Noah"], medium: .anime, german: false)
                 == .club(names: ["Mina", "Jules"]))
         #expect(HomeSceneFact.make(hasNew: false, knownCaughtUp: false, clubNames: [], medium: .anime, german: false) == nil)
@@ -188,6 +276,28 @@ struct HomeAnimeLaneTests {
         let summary = HomeGlanceSummary.make(items: busy, copy: copy, offline: false, coverage: .complete, checked: true)
         #expect(summary.caption == "Today · 3 releases")
         #expect(summary.count == 4 && summary.countLabel == "this week")
+        let busyGroups = HomeCalendarPresentation.groups(busy, copy: copy)
+        #expect(HomeGlanceSummary.calendarSummary(busyGroups, coverage: .complete, copy: copy) == "4 releases · 7 days")
+
+        // Full: every dated release the calendar lists, labelled by how far ahead they reach.
+        let full = today + (1...5).map { row(10 + $0, now.addingTimeInterval(Double($0) * 8 * 86_400)) }
+        let fullSummary = HomeGlanceSummary.make(items: full, copy: copy, offline: false, coverage: .complete, checked: true)
+        #expect(fullSummary.count == 8 && fullSummary.countLabel == "6 weeks", "40 days ahead reads 6 weeks.")
+        #expect(HomeGlanceSummary.calendarSummary(HomeCalendarPresentation.groups(full, copy: copy), coverage: .complete,
+                                                  copy: copy) == "8 releases · 6 weeks")
+        #expect(fullSummary.countLabel != "later", "Never the invented 'later'.")
+        // The airing fallback knows seven days only.
+        #expect(HomeGlanceSummary.make(items: full, copy: copy, offline: false, coverage: .nextSevenDays, checked: true)
+                .countLabel == "this week")
+        // A month window has no honest span in days: no label, and the summary states the count only.
+        let month = ReleaseScheduleItem(medium: .anime, mediaId: 30, title: "M", unitKind: .episode, unitNumber: 1,
+                                        releaseAt: now.addingTimeInterval(60 * 86_400), basis: .announced,
+                                        source: "anilist", precision: .month)
+        let windowed = HomeGlanceSummary.make(items: today + [month], copy: copy, offline: false, coverage: .complete, checked: true)
+        #expect(windowed.count == 4 && windowed.countLabel == nil)
+        #expect(HomeGlanceSummary.calendarSummary(HomeCalendarPresentation.groups(today + [month], copy: copy),
+                                                  coverage: .complete, copy: copy) == "4 releases")
+        #expect(HomeGlanceSummary.calendarSummary([], coverage: .complete, copy: copy) == "From your list")
         #expect(summary.art.map(\.mediaId) == [1, 2, 3])
         #expect(summary.linksToCalendar)
 
@@ -207,42 +317,72 @@ struct HomeAnimeLaneTests {
                                  timeZone: try #require(TimeZone(identifier: "Europe/Berlin")))
         let de = HomeGlanceSummary.make(items: busy, copy: german, offline: false, coverage: .complete, checked: true)
         #expect(de.caption == "Heute · 3 Veröffentlichungen" && de.countLabel == "diese Woche")
+        #expect(HomeGlanceSummary.make(items: full, copy: german, offline: false, coverage: .complete, checked: true)
+                .countLabel == "6 Wochen")
+        #expect(HomeGlanceSummary.calendarSummary(HomeCalendarPresentation.groups(busy, copy: german), coverage: .complete,
+                                                  copy: german) == "4 Veröffentlichungen · 7 Tage")
+        #expect(HomeGlanceSummary.calendarSummary([], coverage: .complete, copy: german) == "Aus deiner Liste")
     }
 
     // MARK: Fixture renders (evidence; written only with TEST_RUNNER_KURO_WRITE_SNAPSHOTS=1)
 
     enum Scenario: String, CaseIterable { case busy, full, undated, quiet }
 
-    @Test("Anime Home fixture renders: busy, full, undated and quiet at 320 / 390 / 430")
+    /// English: the four states at 320 / 390 / 430 plus busy at AX5. Run again with
+    /// `xcodebuild test -testLanguage de -testRegion DE` for the German renders (busy and quiet at 390,
+    /// suffix `-de`); KuroLocale reads the run's language, so nothing persists `AppleLanguages`.
+    @Test("Anime Home fixture renders: busy, full, undated and quiet at 320 / 390 / 430, AX5 and German")
     func animeHomeRenders() async throws {
         Self.seedArtwork()
         let materials = ArtworkMaterialStore(cacheDirectory: nil, loader: Self.fixtureLoader)
         await Self.warm(materials)
         let outDir = Self.outDir
         try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
-        for scenario in Scenario.allCases {
-            guard let defaults = UserDefaults(suiteName: "home-anime-lane-\(UUID().uuidString)") else { continue }
-            let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter())
-            graph.home.seedForVisualQA(anime: Self.bundle(scenario), manga: nil, medium: "anime")
-            graph.releases.schedule = Self.schedule(scenario)
-            for width: CGFloat in [390, 320, 430] {
-                let view = HomeView(skipNetworkLoad: true)
-                    .environment(graph.home)
-                    .environment(graph.library)
-                    .environment(graph.libraryActions)
-                    .environment(graph.imports)
-                    .environment(graph.releases)
-                    .environment(NetworkMonitor())
-                    .environment(materials)
-                    .environment(\.kuroRoutes, KuroRoutes.unhandled)
-                    .background(Color.kuroCanvasHome)
-                    // The pager places Home under the header, never under the status bar.
-                    .ignoresSafeArea()
-                let url = outDir.appendingPathComponent("home-\(scenario.rawValue)-anime-\(Int(width)).png")
-                try await Self.render(view, width: width, height: 2_300, to: url)
+        let german = KuroLocale.isGerman
+        let scenarios: [Scenario] = german ? [.busy, .quiet] : Scenario.allCases
+        let widths: [CGFloat] = german ? [390] : [390, 320, 430]
+        for scenario in scenarios {
+            let graph = try Self.graph(scenario)
+            for width in widths {
+                let url = outDir.appendingPathComponent("home-\(scenario.rawValue)-anime\(german ? "-de" : "")-\(Int(width)).png")
+                try await Self.render(Self.home(graph, materials), width: width, height: 2_300, to: url)
                 #expect(FileManager.default.fileExists(atPath: url.path))
             }
         }
+        guard !german else { return }
+        // AX5: the app's type scale (`KuroTypeScale`, read by every `kuroCustom` size) and the
+        // environment both at accessibility 5, then restored.
+        let graph = try Self.graph(.busy)
+        let savedCategory = KuroTypeScale.current.category
+        KuroTypeScale.current.update(.accessibility5)
+        defer { KuroTypeScale.current.update(category: savedCategory ?? .large) }
+        let url = outDir.appendingPathComponent("home-busy-anime-ax5-390.png")
+        try await Self.render(Self.home(graph, materials).environment(\.dynamicTypeSize, .accessibility5),
+                              width: 390, height: 4_000, to: url)
+        #expect(FileManager.default.fileExists(atPath: url.path))
+    }
+
+    private static func graph(_ scenario: Scenario) throws -> AppGraph {
+        let defaults = try #require(UserDefaults(suiteName: "home-anime-lane-\(UUID().uuidString)"))
+        let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter())
+        graph.home.seedForVisualQA(anime: Self.bundle(scenario), manga: nil, medium: "anime")
+        graph.releases.schedule = Self.schedule(scenario)
+        return graph
+    }
+
+    private static func home(_ graph: AppGraph, _ materials: ArtworkMaterialStore) -> some View {
+        HomeView(skipNetworkLoad: true)
+            .environment(graph.home)
+            .environment(graph.library)
+            .environment(graph.libraryActions)
+            .environment(graph.imports)
+            .environment(graph.releases)
+            .environment(NetworkMonitor())
+            .environment(materials)
+            .environment(\.kuroRoutes, KuroRoutes.unhandled)
+            .background(Color.kuroCanvasHome)
+            // The pager places Home under the header, never under the status bar.
+            .ignoresSafeArea()
     }
 
     // MARK: Fixture support
@@ -297,15 +437,19 @@ struct HomeAnimeLaneTests {
         """
     }
 
+    /// Quiet (the reference's caught-up account): Demon Slayer has watched every aired episode of 12
+    /// (the next one is still ahead: the schedule-gated ✓ and "Caught up 5 / 12"), Attack on Titan is
+    /// finished at 8 / 8, Jujutsu Kaisen has watched the 9 aired, and the finished titles are at their
+    /// totals, as the reference's ✓ keys show.
     static func bundle(_ scenario: Scenario) -> HomeBundle? {
         let quiet = scenario == .quiet
         let cards = [
             cardJSON(1, progress: quiet ? 5 : 4, episodes: 12, status: "RELEASING", season: 1),
             cardJSON(2, progress: quiet ? 8 : 7, episodes: quiet ? 8 : 12, status: quiet ? "FINISHED" : "RELEASING", season: 2),
-            cardJSON(3, progress: 6, episodes: 23, status: "RELEASING", season: 2),
-            cardJSON(4, progress: 11, episodes: 37, status: "FINISHED", season: nil),
-            cardJSON(5, progress: 3, episodes: 12, status: "FINISHED", season: 2),
-            cardJSON(6, progress: 8, episodes: 64, status: "FINISHED", season: nil)
+            cardJSON(3, progress: quiet ? 9 : 6, episodes: 23, status: "RELEASING", season: 2),
+            cardJSON(4, progress: quiet ? 37 : 11, episodes: 37, status: "FINISHED", season: nil),
+            cardJSON(5, progress: quiet ? 12 : 3, episodes: 12, status: "FINISHED", season: 2),
+            cardJSON(6, progress: quiet ? 64 : 8, episodes: 64, status: "FINISHED", season: nil)
         ].joined(separator: ",")
         let club = """
         {"state":"ready","label":"Sunday Club","items":[
@@ -321,10 +465,12 @@ struct HomeAnimeLaneTests {
     }
 
     /// The account's schedule relative to now (rows behind now never show). Quiet keeps the busy dates;
-    /// the caught-up titles' next episodes are still ahead.
+    /// the caught-up titles' next episodes are still ahead. Busy and full: Jujutsu Kaisen's rows carry no
+    /// episode number (the source did not state one), so how many episodes are out stays unknown: its
+    /// key keeps the +1 and it adds nothing to "2 new episodes" (the reference's composition, honestly).
     static func schedule(_ scenario: Scenario) -> [ReleaseScheduleItem] {
         let now = Date()
-        func row(_ id: Int, _ unit: Double, _ offset: TimeInterval?) -> ReleaseScheduleItem {
+        func row(_ id: Int, _ unit: Double?, _ offset: TimeInterval?) -> ReleaseScheduleItem {
             ReleaseScheduleItem(medium: .anime, mediaId: id, title: titles.first { $0.id == id }?.title ?? "",
                                 coverImage: art(id).cover, unitKind: .episode, unitNumber: unit,
                                 releaseAt: offset.map { now.addingTimeInterval($0) },
@@ -335,13 +481,24 @@ struct HomeAnimeLaneTests {
         switch scenario {
         case .undated:
             return undated
-        case .busy, .quiet:
-            return [row(1, 6, 0.2 * hour), row(2, 9, 0.4 * hour), row(3, 7, 0.6 * hour),
+        case .busy:
+            return [row(1, 6, 0.2 * hour), row(2, 9, 0.4 * hour), row(3, nil, 0.6 * hour),
+                    row(4, 38, day), row(5, 13, day + hour), row(6, 65, 6 * day)] + undated
+        case .quiet:
+            return [row(1, 6, 0.2 * hour), row(2, 9, 0.4 * hour), row(3, 10, 0.6 * hour),
                     row(4, 38, day), row(5, 13, day + hour), row(6, 65, 6 * day)] + undated
         case .full:
-            var rows = [row(1, 6, 0.2 * hour), row(2, 9, 0.4 * hour), row(3, 7, 0.6 * hour)]
+            // The reference's 48 dated releases: six today, then seven a week for six weeks (the last
+            // about 41 days ahead, so the span reads "6 weeks").
+            var rows = [row(1, 6, 0.2 * hour), row(2, 9, 0.4 * hour), row(3, nil, 0.6 * hour),
+                        row(4, 38, 0.8 * hour), row(5, 13, 1.0 * hour), row(6, 65, 1.2 * hour)]
             for week in 1...6 {
-                for id in 1...6 { rows.append(row(id, Double(6 + week + id), Double(week) * 7 * day + Double(id) * hour)) }
+                let start = Double(week * 7 - 1) * day
+                for slot in 0..<7 {
+                    let id = slot % 6 + 1
+                    let unit: Double? = id == 3 ? nil : Double(6 + week * 2 + slot / 6 + id)
+                    rows.append(row(id, unit, start + Double(slot) * hour))
+                }
             }
             return rows + undated
         }
@@ -393,8 +550,11 @@ struct HomeAnimeLaneTests {
         // 1 px = 1 pt, as the reference captures (PROTOTYPE_SPEC.md §1).
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
-        let image = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { _ in
-            host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
+        let image = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { context in
+            // A very tall hierarchy (AX5) can be refused by the render server: fall back to the layer.
+            if !host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true) {
+                host.view.layer.render(in: context.cgContext)
+            }
         }
         guard let data = image.pngData() else {
             Issue.record("png encode failed for \(url.lastPathComponent)")

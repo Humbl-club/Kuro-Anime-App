@@ -216,6 +216,13 @@ struct HomeView: View {
         actionScope.launch(origin: origin, session: libraryActions.accountSession) { _ in await operation() }
     }
 
+    /// `perform`, handing the operation its ticket so it can check the account again after an await
+    /// (`AccountActionScope`: callers check again after awaits).
+    private func performTicketed(origin: AccountActionScope.Ticket?,
+                                 operation: @escaping @MainActor (AccountActionScope.Ticket) async -> Void) {
+        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in await operation(ticket) }
+    }
+
     // MARK: Import recovery
 
     @ViewBuilder
@@ -442,6 +449,8 @@ struct HomeView: View {
             moreTitlesButton(origin: origin)
             calendarSection
             clubSection
+            // TASK 10 EMBED (lane 5 → lane 4): `HomeFooter()` ("Your pace. Your place. · KURO") goes here,
+            // last in the scroll content, inside this column's gutter.
         }
         .task(id: "\(inProgressPagesKey)|\(home.bundle?.nextCursor ?? "")|\(split.inProgress.isEmpty)|\(scene == .inProgress)") {
             guard !skipNetworkLoad else { return }
@@ -644,34 +653,21 @@ struct HomeView: View {
         return HomeShelfPolicy.availableUnits(catalogueStatus: card.catalogueStatus, total: total, nextUnit: nextUnit)
     }
 
-    /// What the opening line may claim: titles with a released unit the reader has not reached, and
-    /// whether every lead title is known to be caught up (the quiet card). Anime counts the two scene
-    /// titles, as the prototype; manga counts every book in progress.
+    /// What the opening line may claim (`HomeShelfPolicy.opening`), over every title in progress in
+    /// this medium (scenes and Also watching alike): released units not reached yet, summed, and
+    /// whether nothing is new and nothing unknown (the quiet card).
     private func openingState(_ inProgress: [HomeCard]) -> (available: Int, caughtUp: Bool) {
-        let lead = mediumKind == .manga ? inProgress : HomeShelfPolicy.scenes(inProgress).scenes
-        guard !lead.isEmpty else { return (0, false) }
-        var available = 0
-        var allCaughtUp = true
-        for card in lead {
-            let progress = home.displayedProgress(for: card)
-            let units = availableUnits(card)
-            if HomeShelfPolicy.hasNewUnit(progress: progress, available: units, catalogueStatus: card.catalogueStatus) {
-                available += 1
-            }
-            if !HomeShelfPolicy.isKnownCaughtUp(progress: progress, available: units) { allCaughtUp = false }
+        let entries = inProgress.map { card in
+            HomeShelfPolicy.OpeningEntry(progress: home.displayedProgress(for: card), available: availableUnits(card),
+                                         catalogueStatus: card.catalogueStatus)
         }
-        return (available, allCaughtUp)
+        let opening = HomeShelfPolicy.opening(entries)
+        return (opening.newUnits, opening.nothingNew)
     }
 
-    /// Club members who wrote about this title (real display names only, never invented).
+    /// Club members who wrote about this title, in this medium (real display names only, never invented).
     private func clubNames(_ card: HomeCard) -> [String] {
-        var names: [String] = []
-        for item in home.bundle?.club.items ?? [] where item.mediaId == card.mediaId {
-            guard let name = item.displayName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty,
-                  !names.contains(name) else { continue }
-            names.append(name)
-        }
-        return names
+        HomeShelfPolicy.clubNames(home.bundle?.club.items ?? [], mediaId: card.mediaId, medium: home.medium)
     }
 
     private func animeScenes(_ cards: [HomeCard]) -> some View {
@@ -685,7 +681,8 @@ struct HomeView: View {
         let units = availableUnits(card)
         let fact = HomeSceneFact.make(
             hasNew: HomeShelfPolicy.hasNewUnit(progress: state.progress, available: units, catalogueStatus: card.catalogueStatus),
-            knownCaughtUp: HomeShelfPolicy.isKnownCaughtUp(progress: state.progress, available: units),
+            // The same rule as the key and the readout, so the card never says "Up to date" beside a +1.
+            knownCaughtUp: state.caughtUp,
             clubNames: clubNames(card), medium: mediumKind)
         return HomeSceneCard(
             title: card.title,
@@ -716,7 +713,7 @@ struct HomeView: View {
                             posterURL: (card.coverImage ?? card.bannerImage).flatMap(URL.init(string:)),
                             material: material(card),
                             stamp: HomeSeasonTab.make(card),
-                            readout: readout(card, state: state),
+                            readout: readout(card, state: state, onTile: true),
                             compact: compactColumn,
                             onOpen: { open(card) }
                         ) {
@@ -840,7 +837,11 @@ struct HomeView: View {
         let label = home.displayedProgressLabel(medium: home.medium, mediaId: card.mediaId,
             serverLabel: card.progressLabel, lifecycleId: UUID(uuidString: card.lifecycleId)) ?? String(progress)
         let cap = mediumKind == .manga ? card.chapters : card.episodes
-        let caughtUp = cap.map { progress >= $0 } ?? false
+        // Anime scenes and tiles: also caught up when every released episode is watched (the next one
+        // has not aired), so Home never offers a +1 for an unaired episode. Manga keeps the total cap.
+        let caughtUp = mediumKind == .anime
+            ? HomeShelfPolicy.homeKeyCaughtUp(progress: progress, total: cap, available: availableUnits(card))
+            : (cap.map { progress >= $0 } ?? false)
         let unitId = home.displayedUnitId(medium: home.medium, mediaId: card.mediaId,
             serverUnitId: card.unitId, lifecycleId: UUID(uuidString: card.lifecycleId))
         return KeyState(progress: progress, label: label, cap: cap, caughtUp: caughtUp,
@@ -851,7 +852,7 @@ struct HomeView: View {
         let state = keyState(card)
         let unit = mediumKind == .manga ? KuroLocale.text("Ch.", "Kap.") : KuroLocale.text("Ep.", "F.")
         return VStack(alignment: .leading, spacing: 1) {
-            Text(state.caughtUp ? KuroLocale.text("Caught up", "Aktuell") : unit)
+            Text(state.caughtUp ? KuroAdvanceCopy.caughtUpLabel(title: nil, german: KuroLocale.isGerman) : unit)
                 .font(.kuroCustom(11, relativeTo: .caption1, maxSize: 20))
                 .foregroundStyle(Color.kuroInkQuiet)
             HStack(alignment: .lastTextBaseline, spacing: 2) {
@@ -872,13 +873,15 @@ struct HomeView: View {
         .accessibilityLabel(progressSpoken(card, state: state))
     }
 
-    /// The prototype readout's values for a scene or tile: "Ep." (or "Caught up"), the count, the
-    /// catalogue total when known, and how far along the scrub is.
-    private func readout(_ card: HomeCard, state: KeyState) -> HomeProgressReadout {
+    /// The prototype readout's values for a scene or tile: "Ep." (or "Caught up" on a scene; a tile
+    /// keeps "Ep.", as the prototype hides the completion word there), the count, the catalogue total
+    /// when known, and how far along the scrub is. One caught-up string for the readout, the key and
+    /// the spoken label (`KuroAdvanceCopy.caughtUpLabel`).
+    private func readout(_ card: HomeCard, state: KeyState, onTile: Bool = false) -> HomeProgressReadout {
         let unit = mediumKind == .manga ? KuroLocale.text("Ch.", "Kap.") : KuroLocale.text("Ep.", "Folge")
         let fraction = state.cap.flatMap { $0 > 0 ? min(1, Double(state.progress) / Double($0)) : nil }
         return HomeProgressReadout(
-            unit: state.caughtUp ? KuroLocale.text("Caught up", "Aktuell") : unit,
+            unit: state.caughtUp && !onTile ? KuroAdvanceCopy.caughtUpLabel(title: nil, german: KuroLocale.isGerman) : unit,
             value: state.label,
             total: state.cap,
             caughtUp: state.caughtUp,
@@ -928,11 +931,16 @@ struct HomeView: View {
                 if state.needsChoice {
                     open(card)
                 } else {
-                    perform(origin: origin) {
+                    performTicketed(origin: origin) { ticket in
                         guard home.medium == renderedMedium else { return }
                         let before = home.displayedProgress(for: card)
                         await home.advance(card)
-                        guard home.medium == renderedMedium, home.displayedProgress(for: card) > before else { return }
+                        // The account can change during the save (`resetPresentationForAccount` clears the
+                        // stamps): stamp only for the same presentation, medium, and a raised count.
+                        let current = actionScope.isCurrent(ticket, session: libraryActions.accountSession)
+                        guard HomeShelfPolicy.shouldStamp(
+                            before: before, after: current ? home.displayedProgress(for: card) : before,
+                            ticketCurrent: current, mediumUnchanged: home.medium == renderedMedium) else { return }
                         confirmations[stampKey, default: 0] += 1
                     }
                 }
@@ -1106,13 +1114,20 @@ struct HomeView: View {
 
     /// The full calendar, only when it has rows: an empty schedule is said once, by Coming up, never
     /// again under a second heading.
+    ///
+    /// TASK 10 EMBED (lane 5 → lane 4): replace this whole section's body with
+    /// `HomeCalendarCard(groups: groups, coverage: scheduleCoverage, coverFor: coverURL(for:),
+    /// titleFor: { ... }, medium: mediumKind)` (it draws this same "Coming up." heading and summary
+    /// itself), keep `.id("upcoming-calendar")` and `.accessibilityFocused($calendarFocused)` on it, and
+    /// move `HomeGlanceSummary.calendarSummary` / `HomeScheduleSpan` onto lane 5's
+    /// `HomeCalendarPresentation.summary` so the glance and the heading share one span rule.
     @ViewBuilder
     private var calendarSection: some View {
         let copy = ReleaseCopy.current()
         let groups = HomeCalendarPresentation.groups(scheduleItems, copy: copy)
         if !groups.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                KuroSectionHeader(KuroLocale.text("Calendar.", "Kalender."), size: .title)
+            VStack(alignment: .leading, spacing: 17) {
+                calendarHeading(groups, copy: copy)
                     .accessibilityFocused($calendarFocused)
                 VStack(spacing: 0) {
                     ForEach(Array(groups.enumerated()), id: \.element.id) { index, day in
@@ -1120,9 +1135,34 @@ struct HomeView: View {
                     }
                 }
             }
+            // 32 pt above the heading (the shelf's 24 pt spacing plus 8).
+            .padding(.top, 8)
             .id("upcoming-calendar")
             .accessibilityElement(children: .contain)
+            .accessibilityLabel(KuroLocale.text("Upcoming from your list", "Demnächst aus deiner Liste"))
         }
+    }
+
+    /// The prototype's calendar heading (PROTOTYPE_SPEC.md §4 "Calendar"): "Coming up." SF 24/26.4
+    /// w550, tracking −0.85, ink, with the summary ("6 releases · 7 days", "From your list") SF 10
+    /// `#656c66` on the right; 22 / 9 pt at 320 pt. Stacks at accessibility sizes.
+    private func calendarHeading(_ groups: [HomeCalendarDay], copy: ReleaseCopy) -> some View {
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 9))
+        return layout {
+            Text(KuroLocale.text("Coming up.", "Demnächst."))
+                .font(.kuroCustom(compactColumn ? 22 : 24, weight: .semibold, relativeTo: .title2, maxSize: 40))
+                .tracking(-0.85)
+                .foregroundStyle(Color.kuroInk)
+                .accessibilityAddTraits(.isHeader)
+            if !stacked { Spacer(minLength: 8) }
+            Text(HomeGlanceSummary.calendarSummary(groups, coverage: scheduleCoverage, copy: copy))
+                .font(.kuroCustom(compactColumn ? 9 : 10, relativeTo: .caption2, maxSize: 20))
+                .foregroundStyle(HomeInk.calendarSummary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func calendarBinding(_ id: String, initiallyOpen: Bool) -> Binding<Bool> {
@@ -1209,6 +1249,10 @@ struct HomeView: View {
 
     // MARK: Private club room (only with real, authorized notes)
 
+    /// TASK 10 EMBED (lane 5 → lane 4): replace this section with `HomeClubRoom(club:notes:...)` for
+    /// `HomeClubRoom.pick(clubs:)` (nil hides the room), keeping the "Couldn't load club notes." state
+    /// as its `notesFailed` / `onRetry`. Then add `HomeFooter()` as the last view of the scroll content
+    /// (see the marker at the end of `populatedShelf`).
     @ViewBuilder
     private var clubSection: some View {
         let club = home.bundle?.club
