@@ -72,52 +72,55 @@ struct ImportSourceChooser: View {
                     if owner?.beginAniListSelection() == true { showAniList = true }
                 }
 
-                sourceButton(
-                    kicker: isGerman ? "MAL-Datei" : "MAL file",
-                    title: isGerman ? "XML von diesem Gerät" : "XML from this device",
-                    label: isGerman ? "MAL-Datei importieren" : "Import a MAL file"
-                ) {
-                    if owner?.beginMALFileSelection() == true { showMALImporter = true }
-                }
+                // Without `series_foundation_v1` the coordinator refuses both MAL paths: AniList only.
+                if flags.seriesFoundationV1Enabled {
+                    sourceButton(
+                        kicker: isGerman ? "MAL-Datei" : "MAL file",
+                        title: isGerman ? "XML von diesem Gerät" : "XML from this device",
+                        label: isGerman ? "MAL-Datei importieren" : "Import a MAL file"
+                    ) {
+                        if owner?.beginMALFileSelection() == true { showMALImporter = true }
+                    }
 
-                if imports.malAccountAvailable {
-                    if let identity = imports.malAccountIdentity {
-                        Text(isGerman ? "Verbunden: \(identity)" : "Connected: \(identity)")
-                            .font(.kuroMeta())
-                            .foregroundStyle(Color.kuroInkSecondary)
+                    if imports.malAccountAvailable {
+                        if let identity = imports.malAccountIdentity {
+                            Text(isGerman ? "Verbunden: \(identity)" : "Connected: \(identity)")
+                                .font(.kuroMeta())
+                                .foregroundStyle(Color.kuroInkSecondary)
+                            sourceButton(
+                                kicker: "MAL",
+                                title: isGerman ? "Verbundenes Konto" : "Connected account",
+                                label: isGerman ? "Verbundenes MAL-Konto importieren" : "Import the connected MAL account"
+                            ) {
+                                owner?.prepareConnectedMAL()
+                            }
+                        }
                         sourceButton(
                             kicker: "MAL",
-                            title: isGerman ? "Verbundenes Konto" : "Connected account",
-                            label: isGerman ? "Verbundenes MAL-Konto importieren" : "Import the connected MAL account"
+                            title: isGerman ? "Konto verbinden" : "Connect an account",
+                            label: isGerman ? "MAL-Konto verbinden" : "Connect a MAL account"
                         ) {
-                            owner?.prepareConnectedMAL()
+                            guard let malAnchor else { return }
+                            owner?.connectAndImportMAL(presentationAnchor: malAnchor)
                         }
-                    }
-                    sourceButton(
-                        kicker: "MAL",
-                        title: isGerman ? "Konto verbinden" : "Connect an account",
-                        label: isGerman ? "MAL-Konto verbinden" : "Connect a MAL account"
-                    ) {
-                        guard let malAnchor else { return }
-                        owner?.connectAndImportMAL(presentationAnchor: malAnchor)
-                    }
-                    .disabled(malAnchor == nil)
-                    Text(ImportCopy.malNotesLimitation(german: isGerman))
-                        .font(.kuroMeta())
-                        .foregroundStyle(Color.kuroInkSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(isGerman ? "MAL-Konto" : "MAL account")
-                            .kuroKicker()
-                        Text(isGerman
-                             ? "Die Kontoverbindung ist noch nicht verfügbar. AniList und die XML-Datei funktionieren trotzdem."
-                             : "Account connection is not available yet. AniList and the XML file still work.")
-                            .font(.kuroBody())
+                        .disabled(malAnchor == nil)
+                        Text(ImportCopy.malNotesLimitation(german: isGerman))
+                            .font(.kuroMeta())
                             .foregroundStyle(Color.kuroInkSecondary)
                             .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(isGerman ? "MAL-Konto" : "MAL account")
+                                .kuroKicker()
+                            Text(isGerman
+                                 ? "Die Kontoverbindung ist noch nicht verfügbar. AniList und die XML-Datei funktionieren trotzdem."
+                                 : "Account connection is not available yet. AniList and the XML file still work.")
+                                .font(.kuroBody())
+                                .foregroundStyle(Color.kuroInkSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                 }
             }
             .padding(.horizontal, 20)

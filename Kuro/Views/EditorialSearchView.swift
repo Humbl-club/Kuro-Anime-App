@@ -305,8 +305,6 @@ struct EditorialSearchView: View {
         }
 
         if reset {
-            // The owner keeps its last failure across queries; a new query starts without it.
-            search.errorMessage = nil
             switch scope {
             case .all:
                 search.resetCombinedSearch(query: trimmed)

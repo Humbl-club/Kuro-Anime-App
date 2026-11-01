@@ -106,7 +106,7 @@ struct ProfileView: View {
             await importCoordinator?.refreshMALIdentity()
             await collection.loadListPreview()
             // Keep the profile "club context" warm so Clubs opens instantly.
-            await clubs.fetchMyClubs()
+            await clubs.refreshMyClubsIfStale()
             if flags.isStreamingAvailabilityV1Enabled {
                 await refreshStreamingObservability()
             }

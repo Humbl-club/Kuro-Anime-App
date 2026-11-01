@@ -254,12 +254,8 @@ struct OnboardingView: View {
 }
 
 extension OnboardingView {
-    /// Whether the signed-in account has completed onboarding (read when the signed-in tree is built;
-    /// that tree is keyed by the account, so it is re-read on every account switch).
-    static var hasCompletedOnboarding: Bool {
-        hasCompletedOnboarding(for: AppComposition.shared.identity.currentUserId)
-    }
-
+    /// Whether `userId`'s account has completed onboarding (read by the main view on appear; the
+    /// signed-in tree is keyed by the account, so it is re-read on every account switch).
     static func hasCompletedOnboarding(for userId: String?) -> Bool {
         OnboardingCompletion.isCompleted(userId: userId)
     }

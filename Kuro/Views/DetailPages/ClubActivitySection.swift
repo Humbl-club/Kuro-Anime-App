@@ -71,7 +71,7 @@ struct ClubActivitySection: View {
             .task {
                 // If the user just opened detail pages, the clubs list might not be warm yet.
                 if clubs.myClubs.isEmpty {
-                    await clubs.fetchMyClubs()
+                    await clubs.refreshMyClubsIfStale()
                 }
             }
             .sheet(isPresented: $showAddSheet) {

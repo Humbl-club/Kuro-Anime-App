@@ -394,11 +394,9 @@ struct ClubSettingsSheet: View {
                             }
 
                             ShareLink(
-                                // Code only, case kept: the kuro://join link path still uppercases codes
-                                // (DeepLinkRouter, outside this lane), which breaks mixed-case codes.
                                 item: KuroLocale.text(
-                                    "Join my club \u{201C}\(bundle.club.name)\u{201D} in Kuro with the invite code \(code).",
-                                    "Tritt meinem Club „\(bundle.club.name)“ in Kuro mit dem Einladungscode \(code) bei."
+                                    "Join my club \u{201C}\(bundle.club.name)\u{201D} in Kuro: kuro://join/\(code). Or enter the code \(code) in the app.",
+                                    "Tritt meinem Club „\(bundle.club.name)“ in Kuro bei: kuro://join/\(code). Oder gib den Code \(code) in der App ein."
                                 ),
                                 subject: Text(KuroLocale.text("Join \(bundle.club.name) on Kuro", "Tritt \(bundle.club.name) in Kuro bei")),
                                 message: Text(KuroLocale.text("Invite code: \(code)", "Einladungscode: \(code)"))
