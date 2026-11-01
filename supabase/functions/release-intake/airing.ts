@@ -5,8 +5,16 @@
 //   - anime.next_episode_number / next_airing_at are patched from the nested
 //     media.nextAiringEpisode (AniList's own "next"), only when the value differs. A title that is
 //     not in the window is never touched by the window pass.
-//   - Stale sweep (optional): RELEASING titles whose next_airing_at is more than 6 h past are
-//     re-read with Page.media(id_in:[...]) (<= 50 per request) and patched the same way.
+//   - Stale sweep (optional): RELEASING titles re-read with Page.media(id_in:[...]) (one request,
+//     <= 50 titles) and patched the same way; AniList's nextAiringEpisode is written as a row, so
+//     a delayed episode rewrites its own natural key. Candidates, in this order:
+//       1. next_airing_at more than 6 h past (the cached pointer itself is stale);
+//       2. a v2 AniList episode row still 'scheduled'/'delayed' more than 6 h after its instant
+//          (at most STALE_ROW_LOOKBACK_SECONDS old). A delay or hiatus that moved the episode out
+//          of the window leaves such a row behind while bulk-import already moved next_airing_at
+//          forward, so (1) never sees it. The lookback bound keeps a row the provider can no
+//          longer correct (its episode has passed) from being re-read on every run forever; the
+//          read RPCs already ignore it (20261101000000, section 4).
 //   - mediaIds that are not in the catalog are counted and sampled, never imported here.
 // Writes go per page, so a later failure keeps earlier pages. A limiter stop (budget / rate
 // limit) before a request ends the pass cleanly; any other provider error fails the run.
@@ -15,6 +23,8 @@ import { type ReleaseEventRow, writeReleaseEvents } from "./contract.ts";
 
 export const WINDOW_PAST_SECONDS = 6 * 3600;
 export const WINDOW_FUTURE_SECONDS = 8 * 86400;
+export const STALE_ROW_LOOKBACK_SECONDS = 14 * 86400;
+const STALE_MEDIA_PER_REQUEST = 50;
 
 export const AIRING_WINDOW_QUERY = `
   query ($page: Int, $perPage: Int, $from: Int, $to: Int) {
@@ -55,6 +65,7 @@ export type AiringResult = {
   unknownSample: number[];
   stalePatched: number;
   staleChecked: number;
+  staleScheduleTitles: number;
   stoppedEarly: string | null;
   sampleRows: ReleaseEventRow[];
 };
@@ -122,6 +133,52 @@ function eventRow(row: CatalogAnime, scheduleId: number, episode: number, airing
   };
 }
 
+/**
+ * RELEASING titles (not in `exclude`) with a v2 AniList episode row still 'scheduled'/'delayed'
+ * more than WINDOW_PAST_SECONDS after its instant, newest first, at most `limit`.
+ */
+async function staleScheduleTitles(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  nowSec: number,
+  exclude: Set<number>,
+  limit: number,
+): Promise<CatalogAnime[]> {
+  if (limit <= 0) return [];
+  const { data: events, error } = await supabase
+    .from("release_events")
+    .select("anime_id, utc_instant")
+    .eq("medium", "anime")
+    .eq("source", "anilist")
+    .eq("basis", "confirmed")
+    .eq("unit_kind", "episode")
+    .in("status", ["scheduled", "delayed"])
+    .lt("utc_instant", iso(nowSec - WINDOW_PAST_SECONDS))
+    .not("anime_id", "is", null)
+    .order("utc_instant", { ascending: false })
+    .limit(200);
+  if (error) throw new Error(`stale release_events lookup failed: ${error.message ?? error}`);
+  const oldestMs = (nowSec - STALE_ROW_LOOKBACK_SECONDS) * 1000;
+  const ids: number[] = [];
+  for (const e of (events ?? []) as { anime_id: number; utc_instant: string | null }[]) {
+    const id = Number(e.anime_id);
+    const at = Date.parse(String(e.utc_instant ?? ""));
+    if (!Number.isInteger(id) || id <= 0 || !Number.isFinite(at) || at < oldestMs) continue;
+    if (exclude.has(id) || ids.includes(id)) continue;
+    ids.push(id);
+  }
+  if (ids.length === 0) return [];
+  const { data: titles, error: titleError } = await supabase
+    .from("anime")
+    .select("id, anilist_id, next_episode_number, next_airing_at")
+    .in("id", ids)
+    .eq("status", "RELEASING")
+    .not("anilist_id", "is", null);
+  if (titleError) throw new Error(`stale schedule anime lookup failed: ${titleError.message ?? titleError}`);
+  const byId = new Map<number, CatalogAnime>(((titles ?? []) as CatalogAnime[]).map((r) => [Number(r.id), r]));
+  return ids.map((id) => byId.get(id)).filter((r): r is CatalogAnime => r !== undefined).slice(0, limit);
+}
+
 // deno-lint-ignore no-explicit-any
 export async function runAiringWindow(supabase: any, anilist: AniListClient, opts: AiringOptions): Promise<AiringResult> {
   const nowSec = Math.floor(opts.nowMs / 1000);
@@ -135,6 +192,7 @@ export async function runAiringWindow(supabase: any, anilist: AniListClient, opt
     unknownSample: [],
     stalePatched: 0,
     staleChecked: 0,
+    staleScheduleTitles: 0,
     stoppedEarly: null,
     sampleRows: [],
   };
@@ -197,9 +255,16 @@ export async function runAiringWindow(supabase: any, anilist: AniListClient, opt
       .lt("next_airing_at", cutoff)
       .not("anilist_id", "is", null)
       .order("popularity", { ascending: false })
-      .limit(Math.min(opts.staleLimit, 50));
+      .limit(Math.min(opts.staleLimit, STALE_MEDIA_PER_REQUEST));
     if (error) throw new Error(`stale anime lookup failed: ${error.message ?? error}`);
-    const staleRows = ((stale ?? []) as CatalogAnime[]).filter((r) => !patched.has(r.id));
+    const cap = Math.min(opts.staleLimit, STALE_MEDIA_PER_REQUEST);
+    const staleRows = ((stale ?? []) as CatalogAnime[]).filter((r) => !patched.has(r.id)).slice(0, cap);
+    if (staleRows.length < cap) {
+      const seen = new Set<number>([...patched, ...staleRows.map((r) => r.id)]);
+      const extra = await staleScheduleTitles(supabase, nowSec, seen, cap - staleRows.length);
+      result.staleScheduleTitles = extra.length;
+      staleRows.push(...extra);
+    }
     if (staleRows.length > 0) {
       try {
         const data = await anilist.query(STALE_MEDIA_QUERY, { ids: staleRows.map((r) => Number(r.anilist_id)) }, {
