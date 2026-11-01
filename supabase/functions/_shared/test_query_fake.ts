@@ -2,7 +2,8 @@
 //
 // A small stand-in for the read-mostly supabase-js surface the concierge-parse and concierge-recommend
 // handlers use: `auth.getUser()`, `rpc(name, args)` and `from(table)` with
-// select/eq/in/not(is null)/order/limit/maybeSingle/upsert. It models EXTERNAL outcomes only (rows,
+// select/eq/in/lt/not(is null)/order/limit/maybeSingle/single/upsert, plus update(...).eq(...) and
+// insert(...).select().single() for the service-role intake jobs (release-intake). It models EXTERNAL outcomes only (rows,
 // RPC replies, errors, an unauthenticated caller); every policy under test stays in production code.
 // Every executed call is recorded in `calls`, so tests can assert that work did NOT happen.
 // Write semantics are deliberately minimal (upsert merges on its onConflict columns); the list-write
@@ -15,7 +16,9 @@ export type RpcReply = RpcResult | ((args: Record<string, unknown>) => RpcResult
 export type Call =
   | { kind: "rpc"; name: string; args: Record<string, unknown> }
   | { kind: "select"; table: string; filters: Array<[string, string, unknown]> }
-  | { kind: "upsert"; table: string; body: Row };
+  | { kind: "upsert"; table: string; body: Row }
+  | { kind: "update"; table: string; body: Row; filters: Array<[string, string, unknown]> }
+  | { kind: "insert"; table: string; body: Row };
 
 export type FakeOptions = {
   /** The verified caller; null means `auth.getUser()` returns an auth error. */
@@ -25,6 +28,8 @@ export type FakeOptions = {
   tableErrors?: Record<string, string>;
   /** RPC replies by name. Unlisted RPCs return `{ data: null, error: null }`. */
   rpc?: Record<string, RpcReply>;
+  /** A table whose update(...) returns `{ data: null, error: { message } }`. */
+  updateErrors?: Record<string, string>;
 };
 
 export type QueryFake = {
@@ -47,19 +52,45 @@ export function queryFake(opts: FakeOptions = {}): QueryFake {
     const filters: Array<[string, string, unknown]> = [];
     let orderBy: { col: string; ascending: boolean } | null = null;
     let limitN: number | null = null;
+    let mode: "select" | "update" | "insert" = "select";
+    let body: Row | null = null;
+    let seq = 1000;
+
+    const matches = (r: Row) =>
+      filters.every(([op, col, v]) => {
+        if (op === "eq") return same(r[col], v);
+        if (op === "in") return (v as unknown[]).some((x) => same(r[col], x));
+        if (op === "not-is-null") return r[col] != null;
+        if (op === "lt") {
+          if (r[col] == null) return false;
+          const a = Date.parse(String(r[col]));
+          const b = Date.parse(String(v));
+          return Number.isFinite(a) && Number.isFinite(b) ? a < b : Number(r[col]) < Number(v);
+        }
+        return true;
+      });
+
+    const write = (): RpcResult => {
+      const rows = (tables[table] ??= []);
+      if (mode === "insert") {
+        const row = { id: seq++, ...(body as Row) };
+        calls.push({ kind: "insert", table, body: { ...(body as Row) } });
+        rows.push(row);
+        return { data: { ...row }, error: null };
+      }
+      calls.push({ kind: "update", table, body: { ...(body as Row) }, filters: [...filters] });
+      const err = opts.updateErrors?.[table];
+      if (err) return { data: null, error: { message: err } };
+      for (const r of rows) if (matches(r)) Object.assign(r, body);
+      return { data: null, error: null };
+    };
 
     const run = (): RpcResult => {
+      if (mode !== "select") return write();
       calls.push({ kind: "select", table, filters: [...filters] });
       const err = opts.tableErrors?.[table];
       if (err) return { data: null, error: { message: err } };
-      let rows = (tables[table] ?? []).filter((r) =>
-        filters.every(([op, col, v]) => {
-          if (op === "eq") return same(r[col], v);
-          if (op === "in") return (v as unknown[]).some((x) => same(r[col], x));
-          if (op === "not-is-null") return r[col] != null;
-          return true;
-        })
-      );
+      let rows = (tables[table] ?? []).filter(matches);
       if (orderBy) {
         const { col, ascending } = orderBy;
         rows = [...rows].sort((a, b) => (Number(a[col] ?? 0) - Number(b[col] ?? 0)) * (ascending ? 1 : -1));
@@ -79,6 +110,23 @@ export function queryFake(opts: FakeOptions = {}): QueryFake {
       in(col: string, vs: unknown[]) {
         filters.push(["in", col, vs]);
         return builder;
+      },
+      lt(col: string, v: unknown) {
+        filters.push(["lt", col, v]);
+        return builder;
+      },
+      update(patch: Row) {
+        mode = "update";
+        body = patch;
+        return builder;
+      },
+      insert(row: Row) {
+        mode = "insert";
+        body = row;
+        return builder;
+      },
+      single(): Promise<RpcResult> {
+        return Promise.resolve(run());
       },
       not(col: string, op: string, v: unknown) {
         if (op === "is" && v === null) filters.push(["not-is-null", col, null]);
