@@ -216,6 +216,54 @@ Deno.test("airing: the stale sweep re-reads past next_airing_at titles and nulls
   assert.deepEqual((c.anilistSeen[1].body as { variables: { ids: number[] } }).variables.ids, [3001, 3002]);
 });
 
+Deno.test("airing: the stale sweep re-reads a title whose v2 episode row was left 'scheduled' by a long delay", async () => {
+  // Ep 7 was written at T1 (now - 2 d) while inside the window; AniList then moved it three weeks
+  // out. bulk-import already moved next_airing_at forward (so the pointer is NOT stale), but the
+  // v2 row keeps T1. The sweep must rewrite the same natural key (episode 7) at the new time.
+  const locks = { held: new Set<string>() };
+  const t1 = new Date((NOW_S - 2 * 86400) * 1000).toISOString();
+  const t2s = NOW_S + 21 * 86400;
+  const fake = queryFake({
+    tables: {
+      anime: [
+        { id: 30, anilist_id: 4001, status: "RELEASING", popularity: 5, next_episode_number: 7, next_airing_at: new Date(t2s * 1000).toISOString() },
+        { id: 31, anilist_id: 4002, status: "FINISHED", popularity: 4, next_episode_number: null, next_airing_at: null },
+        { id: 32, anilist_id: 4003, status: "RELEASING", popularity: 3, next_episode_number: 3, next_airing_at: new Date((NOW_S + 86400) * 1000).toISOString() },
+      ],
+      release_events: [
+        // the stale row of title 30
+        { anime_id: 30, medium: "anime", source: "anilist", basis: "confirmed", unit_kind: "episode", unit_number: 7, status: "scheduled", utc_instant: t1 },
+        // a finished title is not swept
+        { anime_id: 31, medium: "anime", source: "anilist", basis: "confirmed", unit_kind: "episode", unit_number: 12, status: "scheduled", utc_instant: t1 },
+        // beyond the lookback: never re-read again
+        { anime_id: 32, medium: "anime", source: "anilist", basis: "confirmed", unit_kind: "episode", unit_number: 2, status: "scheduled", utc_instant: new Date((NOW_S - 30 * 86400) * 1000).toISOString() },
+        // released, or still inside the 6 h grace: not stale
+        { anime_id: 32, medium: "anime", source: "anilist", basis: "confirmed", unit_kind: "episode", unit_number: 3, status: "released", utc_instant: t1 },
+        { anime_id: 32, medium: "anime", source: "anilist", basis: "confirmed", unit_kind: "episode", unit_number: 4, status: "scheduled", utc_instant: new Date((NOW_S - 3600) * 1000).toISOString() },
+      ],
+    },
+    rpc: lockRpc(locks),
+  });
+  const c = clients([
+    airingPage([], false),
+    { body: { data: { Page: { media: [
+      { id: 4001, status: "RELEASING", nextAiringEpisode: { id: 8807, episode: 7, airingAt: t2s } },
+    ] } } } },
+  ]);
+  const res = await run({ mode: "airing" }, { supabase: fake.client, ...c, readMangaDexLinks: () => Promise.resolve(null) });
+  const out = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(out));
+  assert.equal(out.results.staleScheduleTitles, 1);
+  assert.equal(out.results.staleChecked, 1);
+  assert.equal(out.results.stalePatched, 0, "the pointer was already current");
+  assert.deepEqual((c.anilistSeen[1].body as { variables: { ids: number[] } }).variables.ids, [4001]);
+  const rows = writtenRows(fake);
+  assert.deepEqual(rows.map((r) => [r.media_id, r.unit_number, r.release_at, r.status, r.external_id]), [
+    [30, 7, new Date(t2s * 1000).toISOString(), "scheduled", "airing:8807"],
+  ]);
+  assert.equal(locks.held.size, 0);
+});
+
 Deno.test("airing: dryRun reads and samples rows but writes nothing", async () => {
   const locks = { held: new Set<string>() };
   const fake = queryFake({ tables: { anime: [{ id: 10, anilist_id: 966, next_episode_number: null, next_airing_at: null }] }, rpc: lockRpc(locks) });

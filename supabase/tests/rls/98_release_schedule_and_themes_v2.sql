@@ -192,6 +192,146 @@ select tests.raises('invalid medium raises INVALID_MEDIUM', $q$select * from pub
 select tests.raises('missing id raises INVALID_MEDIA_ID', $q$select * from public.media_release_schedule_v1('anime', null)$q$, 'INVALID_MEDIA_ID:%');
 select tests.reset();
 
+-- ---- 5b. AniList's live next pointer beats a stale v2 AniList row (long delay / hiatus) ----
+-- The intake only rewrites rows inside [now-6h, now+8d]. When AniList moves ep 7 three weeks out,
+-- bulk-import moves anime.next_airing_at but the v2 ep-7 row keeps the cancelled instant.
+--   990005: AFTER the old instant (v2 ep 7 in the past, still 'scheduled'; ep 6 really released)
+--   990006: BEFORE the old instant (v2 ep 7 at +2 days; an ep 8 row at +9 days that cannot air
+--           before ep 7 is stale too)
+-- Own user and ids, so the section-3 per-user aggregates above are unaffected.
+select tests.make_user(983);
+insert into public.anime (id, title_romaji, anilist_id, next_episode_number, next_airing_at) values
+  (990005, 'Long Delay Show', 12347, 7, now() + interval '21 days'),
+  (990006, 'Pre Delay Show', 12348, 7, now() + interval '21 days');
+insert into public.anime_user_lists (user_id, anime_id, list_type, progress) values
+  (tests.uid(983)::text, 990005, 'WATCHING', 6),
+  (tests.uid(983)::text, 990006, 'WATCHING', 6);
+select to_char(next_airing_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US') as t2_utc
+  from public.anime where id = 990005 \gset
+:as_service
+select public.upsert_release_events_v1(jsonb_build_array(
+  jsonb_build_object('medium', 'anime', 'media_id', 990005, 'unit_kind', 'episode', 'unit_number', 6,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() - interval '8 days'),
+  jsonb_build_object('medium', 'anime', 'media_id', 990005, 'unit_kind', 'episode', 'unit_number', 7,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() - interval '1 day', 'status', 'scheduled'),
+  jsonb_build_object('medium', 'anime', 'media_id', 990006, 'unit_kind', 'episode', 'unit_number', 7,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() + interval '2 days'),
+  jsonb_build_object('medium', 'anime', 'media_id', 990006, 'unit_kind', 'episode', 'unit_number', 8,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() + interval '9 days')
+)) as w_stale \gset
+select tests.reset();
+select tests.eq('stale-row seed: four rows, ep 6 released, the stale ep 7 still scheduled',
+  (select string_agg(anime_id || ':' || unit_label || '=' || status, ',' order by anime_id, unit_number)
+     from public.release_events where anime_id in (990005, 990006)),
+  '990005:Ep. 6=released,990005:Ep. 7=scheduled,990006:Ep. 7=scheduled,990006:Ep. 8=scheduled');
+select tests.as_user(tests.uid(983));
+select tests.eq('after the cancelled instant: the user schedule keeps the title, ep 7 at the pointer''s new time',
+  (select unit_label || '@' || to_char(release_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US') || '/' || basis || '/' || source
+     from public.user_release_schedule_v1() where media_id = 990005),
+  'Ep. 7@' || :'t2_utc' || '/confirmed/anilist');
+select tests.eq('before the cancelled instant: ep 7 at the pointer''s new time, not the stale +2 days',
+  (select unit_label || '@' || to_char(release_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US')
+     from public.user_release_schedule_v1() where media_id = 990006),
+  'Ep. 7@' || :'t2_utc');
+select tests.reset();
+select tests.as_anon();
+select tests.eq('media schedule 990005: the past row is the released ep 6, never the un-aired ep 7; ep 7 upcoming at the new time',
+  (select string_agg(unit_label || ':' || is_past || '@' || to_char(release_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US'), ',')
+     from public.media_release_schedule_v1('anime', 990005) where unit_number = 7 or is_past),
+  'Ep. 6:true@' || to_char((select utc_instant from public.release_events where source_identity = 'anilist:anime:990005:episode:6') at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US')
+    || ',Ep. 7:false@' || :'t2_utc');
+select tests.eq('media schedule 990005: no is_past row claims ep 7 aired',
+  (select count(*) from public.media_release_schedule_v1('anime', 990005) where is_past and unit_number = 7), 0::bigint);
+select tests.eq('media schedule 990006: only ep 7 at the new time (stale ep 7 and the impossible earlier ep 8 dropped)',
+  (select string_agg(unit_label || ':' || is_past || '@' || to_char(release_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US'), ',')
+     from public.media_release_schedule_v1('anime', 990006)),
+  'Ep. 7:false@' || :'t2_utc');
+select tests.reset();
+-- a v2 row LATER than the pointer for the same episode still wins (fresh delay, cached pointer lags)
+:as_service
+select public.upsert_release_events_v1(jsonb_build_array(
+  jsonb_build_object('medium', 'anime', 'media_id', 990006, 'unit_kind', 'episode', 'unit_number', 7,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() + interval '28 days', 'status', 'delayed')
+)) as w_later \gset
+select tests.reset();
+select tests.as_anon();
+select tests.ok('a v2 ep 7 later than the pointer suppresses the fallback (one ep 7, at +28 days)',
+  (select count(*) = 1 and min(release_at) > now() + interval '27 days'
+     from public.media_release_schedule_v1('anime', 990006) where unit_number = 7));
+select tests.reset();
+-- each rule on its own (the pointer-drop above would otherwise mask them):
+--   990007: no pointer at all, so nothing is dropped; a passed but never-released ep 4 must not
+--           be the "last aired" unit (status rule in media_release_schedule_v1)
+--   990008: a RELEASED v2 ep 7 is kept (not stale), the pointer says ep 7 is next at +21 days;
+--           the upcoming fallback must win the unit over the past row (tier 0 of the DISTINCT ON pick)
+insert into public.anime (id, title_romaji, anilist_id, next_episode_number, next_airing_at) values
+  (990007, 'No Pointer Show', 12349, null, null),
+  (990008, 'Released Then Moved Show', 12350, 7, now() + interval '21 days');
+insert into public.anime_user_lists (user_id, anime_id, list_type, progress) values
+  (tests.uid(983)::text, 990007, 'WATCHING', 3),
+  (tests.uid(983)::text, 990008, 'WATCHING', 6);
+select to_char(next_airing_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US') as t2_008_utc
+  from public.anime where id = 990008 \gset
+:as_service
+select public.upsert_release_events_v1(jsonb_build_array(
+  jsonb_build_object('medium', 'anime', 'media_id', 990007, 'unit_kind', 'episode', 'unit_number', 3,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() - interval '10 days'),
+  jsonb_build_object('medium', 'anime', 'media_id', 990007, 'unit_kind', 'episode', 'unit_number', 4,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() - interval '1 day', 'status', 'scheduled'),
+  jsonb_build_object('medium', 'anime', 'media_id', 990008, 'unit_kind', 'episode', 'unit_number', 7,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() - interval '1 day', 'status', 'released')
+)) as w_rules \gset
+select tests.reset();
+select tests.as_anon();
+select tests.eq('media schedule 990007: the last aired unit is the released ep 3, not the passed-but-scheduled ep 4',
+  (select string_agg(unit_label, ',') from public.media_release_schedule_v1('anime', 990007) where is_past), 'Ep. 3');
+select tests.reset();
+select tests.as_user(tests.uid(983));
+select tests.eq('user schedule 990008: the upcoming fallback ep 7 wins the unit over a past released ep 7 row',
+  (select unit_label || '@' || to_char(release_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US')
+     from public.user_release_schedule_v1() where media_id = 990008),
+  'Ep. 7@' || :'t2_008_utc');
+select tests.reset();
+-- the upcoming-first pick is limited to confirmed candidates (a v2 instant or the live pointer):
+-- a RELEASED unit is never re-listed as upcoming because a leftover estimate or an announced
+-- window for it is still open (manga.ts keeps the last >= 0.7 estimate when a later run, e.g.
+-- after an early release, produces none).
+--   990106: ch 101 released (mangaupdates, 2 days ago) + the kuro_estimate for ch 101 at +5 days
+--   990107: ch 101 released (mangaupdates, 2 days ago) + a publisher month window for ch 101 this month
+insert into public.manga (id, title_english) values
+  (990106, 'Early Release Manga'), (990107, 'Announced Window Manga');
+insert into public.manga_user_lists (user_id, manga_id, list_type, progress) values
+  (tests.uid(983)::text, 990106, 'READING', 100),
+  (tests.uid(983)::text, 990107, 'READING', 100);
+:as_service
+select public.upsert_release_events_v1(jsonb_build_array(
+  jsonb_build_object('medium', 'manga', 'media_id', 990106, 'unit_kind', 'chapter', 'unit_number', 101,
+    'basis', 'announced', 'source', 'mangaupdates', 'precision', 'day', 'status', 'released',
+    'source_local_date', to_char(now() - interval '2 days', 'YYYY-MM-DD'), 'source_zone', 'Asia/Tokyo'),
+  jsonb_build_object('medium', 'manga', 'media_id', 990106, 'unit_kind', 'chapter', 'unit_number', 101,
+    'basis', 'estimated', 'source', 'kuro_estimate', 'confidence', 0.8, 'release_at', now() + interval '5 days'),
+  jsonb_build_object('medium', 'manga', 'media_id', 990107, 'unit_kind', 'chapter', 'unit_number', 101,
+    'basis', 'announced', 'source', 'mangaupdates', 'precision', 'day', 'status', 'released',
+    'source_local_date', to_char(now() - interval '2 days', 'YYYY-MM-DD'), 'source_zone', 'Asia/Tokyo'),
+  jsonb_build_object('medium', 'manga', 'media_id', 990107, 'unit_kind', 'chapter', 'unit_number', 101,
+    'basis', 'announced', 'source', 'publisher', 'precision', 'month',
+    'source_local_date', to_char(date_trunc('month', now()), 'YYYY-MM-DD'))
+)) as w_released_wins \gset
+select tests.reset();
+select tests.eq('released-vs-leftover seed: four rows written', :'w_released_wins'::jsonb, '{"inserted":4,"updated":0,"unchanged":0}'::jsonb);
+select tests.as_user(tests.uid(983));
+select tests.eq('user schedule 990106: a released ch 101 is not re-listed as an upcoming estimate',
+  (select count(*) from public.user_release_schedule_v1() where media_id = 990106), 0::bigint);
+select tests.eq('user schedule 990107: a released ch 101 is not re-listed by an open announced window',
+  (select count(*) from public.user_release_schedule_v1() where media_id = 990107), 0::bigint);
+select tests.reset();
+select tests.as_anon();
+select tests.eq('media schedule 990106: no upcoming ch 101 next to the released one',
+  (select count(*) from public.media_release_schedule_v1('manga', 990106) where not is_past), 0::bigint);
+select tests.eq('media schedule 990107: no upcoming ch 101 next to the released one',
+  (select count(*) from public.media_release_schedule_v1('manga', 990107) where not is_past), 0::bigint);
+select tests.reset();
+
 -- ---- 6. idempotency and natural keys --------------------------------------------
 select revision as rev_before from public.release_events where source_identity = 'anilist:anime:990002:episode:3' \gset
 :as_service

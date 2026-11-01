@@ -25,6 +25,8 @@
 --      The release RPCs read only rows written through the v2 contract (basis IS NOT NULL;
 --      legacy bridge rows carry no source and are not shown) plus the existing
 --      anime.next_airing_at / next_episode_number fallback (basis confirmed, source anilist).
+--      That live AniList pointer is authoritative over a stale, unreleased v2 AniList row
+--      scheduled before it (section 4), and a past unit counts as aired only when released.
 --   5. Service-role writers for the intake code (D11: that code ships UNSCHEDULED):
 --        upsert_release_events_v1(jsonb)   upsert_theme_links_v1(jsonb)
 --      Validation is all-or-nothing per call (one bad row raises, nothing is written);
@@ -212,17 +214,26 @@ grant execute on function public.home_events_page_v1(text,integer,integer,text) 
 
 -- ---------------------------------------------------------------------------
 -- 4. Internal: candidate units for a set of titles (owner-only helper)
---    One row per (medium, media_id, unit_kind, unit_number) with the best basis:
---    v2 confirmed (rank 0) > anime.next_airing_at fallback (1) > announced (2) > estimated (3).
+--    One row per (medium, media_id, unit_kind, unit_number): an upcoming confirmed candidate
+--    (v2 instant or the anime.next_airing_at fallback) > a released row > any other upcoming
+--    candidate > a past row never marked released; within a tier the best basis: v2 confirmed
+--    (rank 0) > fallback (1) > announced (2) > estimated (3).
 --    release_at: precision instant -> the instant; day/month/quarter/year -> the START of the
 --    stated window at 00:00 in source_zone (UTC when unknown); unknown -> NULL.
 --    release_end: the END of that window (instant: the instant). A unit is past when its
---    window has ended or its status is 'released'.
+--    window has ended or its status is 'released'. status is the stored row status (fallback:
+--    'scheduled'); media_release_schedule_v1 only calls a unit "aired" when it is 'released'.
+--    AniList's live next pointer (anime.next_episode_number / next_airing_at, kept current by
+--    bulk-import and the intake) is authoritative over v2 AniList rows: the intake only rewrites
+--    rows inside its [now-6h, now+8d] window, so a row for episode >= the pointer's episode that
+--    is not released and sits BEFORE the pointer's instant is a stale schedule (a delay or hiatus
+--    moved it out of the window) and is dropped. A v2 row LATER than the pointer for the same
+--    episode stays and suppresses the fallback (the pointer cache lags a fresh delay).
 -- ---------------------------------------------------------------------------
 create or replace function public._release_schedule_units_v1(p_anime_ids integer[], p_manga_ids integer[])
 returns table (medium text, media_id integer, unit_kind text, unit_number numeric, unit_label text,
   release_at timestamptz, release_end timestamptz, basis text, confidence real, source text,
-  source_url text, release_precision text, is_past boolean, basis_rank integer)
+  source_url text, release_precision text, is_past boolean, basis_rank integer, status text)
 language sql
 stable
 security definer
@@ -236,6 +247,7 @@ as $$
            end as release_at,
            r.precision, r.basis, r.confidence, r.source, r.source_url, r.status, r.observed_at
     from public.release_events r
+    left join public.anime a on r.medium = 'anime' and a.id = r.anime_id
     where r.basis is not null
       and ((r.medium = 'anime' and r.anime_id = any (coalesce(p_anime_ids, '{}')))
         or (r.medium = 'manga' and r.manga_id = any (coalesce(p_manga_ids, '{}'))))
@@ -243,6 +255,13 @@ as $$
       -- compare in real: confidence is real, and 0.7::real widens to 0.699999988 against a
       -- numeric 0.7, which would hide every estimate scored exactly 0.70
       and (r.basis <> 'estimated' or r.confidence >= 0.7::real)
+      -- a stale AniList schedule superseded by the live next pointer (see the section comment).
+      -- Only while that pointer is upcoming, i.e. exactly when the fallback below replaces it.
+      -- coalesce: a NULL inside NOT (...) would drop every row without a pointer.
+      and not coalesce(r.source = 'anilist' and r.unit_kind = 'episode' and r.status <> 'released'
+                       and a.next_airing_at >= now()
+                       and a.next_episode_number <= r.unit_number
+                       and a.next_airing_at > r.utc_instant, false)
   ), ev2 as (
     select ev.*,
            case ev.precision when 'instant' then ev.release_at
@@ -256,32 +275,48 @@ as $$
            ev2.basis, coalesce(ev2.confidence, 1)::real as confidence, ev2.source, ev2.source_url, ev2.precision,
            (ev2.status = 'released' or coalesce(ev2.release_end < now(), false)) as is_past,
            case ev2.basis when 'confirmed' then 0 when 'announced' then 2 else 3 end as basis_rank,
-           ev2.observed_at
+           ev2.status, ev2.observed_at
     from ev2
   ), fallback as (
-    -- The existing AniList-imported single next episode. Suppressed when a v2 AniList
-    -- confirmed upcoming row exists for the title (that row is fresher, e.g. a delay).
+    -- The existing AniList-imported single next episode. Suppressed only by an upcoming v2
+    -- AniList row for the SAME episode at or after the pointer's instant (a fresh delay the
+    -- cached pointer has not caught up with). An earlier v2 row for that episode was already
+    -- dropped as stale above; a v2 row for another episode never hides this one.
     select 'anime'::text, a.id, 'episode'::text, a.next_episode_number::numeric,
            case when a.next_episode_number is null then 'Next episode' else 'Ep. ' || a.next_episode_number end,
            a.next_airing_at, a.next_airing_at, 'confirmed'::text, 1::real, 'anilist'::text,
            case when a.anilist_id is not null then 'https://anilist.co/anime/' || a.anilist_id end,
-           'instant'::text, false, 1, null::timestamptz
+           'instant'::text, false, 1, 'scheduled'::text, null::timestamptz
     from public.anime a
     where a.id = any (coalesce(p_anime_ids, '{}'))
       and a.next_airing_at >= now()
       and not exists (select 1 from scored s
                       where s.medium = 'anime' and s.media_id = a.id and s.source = 'anilist'
-                        and s.basis = 'confirmed' and not s.is_past)
+                        and s.basis = 'confirmed' and not s.is_past and s.unit_kind = 'episode'
+                        and s.unit_number = a.next_episode_number
+                        and s.release_at >= a.next_airing_at)
   ), allrows as (
     select * from scored
     union all
     select * from fallback
   )
+  -- Unit pick, by tier then basis_rank then freshest observation:
+  --   0 an upcoming CONFIRMED candidate (a v2 instant or the live pointer fallback): it must win
+  --     over a past row for the same unit (incl. a released one), or the unit vanishes;
+  --   1 a released row: a fact, so a leftover estimate (manga.ts keeps the last >= 0.7 estimate
+  --     when a later run produces none) or a still-open announced window never re-lists it;
+  --   2 any other upcoming candidate (announced / estimated);
+  --   3 a past row that was never marked released.
   select distinct on (x.medium, x.media_id, x.unit_kind, x.unit_number)
          x.medium, x.media_id, x.unit_kind, x.unit_number, x.unit_label, x.release_at, x.release_end,
-         x.basis, x.confidence, x.source, x.source_url, x.precision, x.is_past, x.basis_rank
+         x.basis, x.confidence, x.source, x.source_url, x.precision, x.is_past, x.basis_rank, x.status
   from allrows x
-  order by x.medium, x.media_id, x.unit_kind, x.unit_number, x.basis_rank, x.observed_at desc nulls last
+  order by x.medium, x.media_id, x.unit_kind, x.unit_number,
+           case when not x.is_past and x.basis_rank <= 1 then 0
+                when x.status = 'released' then 1
+                when not x.is_past then 2
+                else 3 end,
+           x.basis_rank, x.observed_at desc nulls last
 $$;
 revoke all on function public._release_schedule_units_v1(integer[], integer[]) from public, anon, authenticated;
 
@@ -377,8 +412,10 @@ begin
       case when p_medium = 'anime' then array[p_media_id] end,
       case when p_medium = 'manga' then array[p_media_id] end)
   ), past as (
-    -- the last confirmed unit whose release has passed
-    select * from u where u.is_past and u.basis = 'confirmed' and u.release_at is not null
+    -- the last confirmed unit that has actually been released. A confirmed row whose instant
+    -- merely passed while it still says 'scheduled'/'delayed' is not evidence it aired (a delay
+    -- the intake has not rewritten yet), so it is never shown as the last aired unit.
+    select * from u where u.is_past and u.basis = 'confirmed' and u.status = 'released' and u.release_at is not null
     order by u.release_at desc, u.unit_number desc limit 1
   ), upcoming as (
     select * from u where not u.is_past
@@ -400,7 +437,7 @@ $$;
 revoke all on function public.media_release_schedule_v1(text, integer, integer) from public;
 grant execute on function public.media_release_schedule_v1(text, integer, integer) to anon, authenticated;
 comment on function public.media_release_schedule_v1(text, integer, integer) is
-  'Spec 3.2 (2026-11-01). Public read for one title: up to p_limit (1-24, default 6) upcoming units (one per unit, best basis) plus the last confirmed past unit (is_past = true, listed first). Same columns as user_release_schedule_v1 plus is_past, then release_precision. Raises INVALID_MEDIUM: / INVALID_MEDIA_ID:.';
+  'Spec 3.2 (2026-11-01). Public read for one title: up to p_limit (1-24, default 6) upcoming units (one per unit: an upcoming confirmed candidate, then a released row, then any other upcoming candidate, then best basis; a released unit is never re-listed by a leftover estimate or announced window) plus the last confirmed unit with status released (is_past = true, listed first; a passed instant never marked released is not shown as aired). Same columns as user_release_schedule_v1 plus is_past, then release_precision. Raises INVALID_MEDIUM: / INVALID_MEDIA_ID:.';
 
 -- ---------------------------------------------------------------------------
 -- 7. media_themes_v1 (spec 3.3): public catalog read
