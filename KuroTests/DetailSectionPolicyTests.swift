@@ -124,11 +124,122 @@ struct DetailSectionPolicyTests {
         #expect(aired == 5)
         #expect(DetailSectionPolicy.nextUnit(progress: 5, total: nil, airedThrough: aired) == nil)
         #expect(DetailSectionPolicy.nextUnit(progress: 4, total: nil, airedThrough: aired) == 5)
-        // A past airing time or a finished show sets no ceiling.
+        // A stale row whose airing time has passed: episode 6 has aired, 7 has not (a ceiling, not none).
         #expect(DetailSectionPolicy.airedThrough(status: "RELEASING", nextEpisode: 6,
-                                                 nextAiringAt: now.addingTimeInterval(-60), now: now) == nil)
+                                                 nextAiringAt: now.addingTimeInterval(-60), now: now) == 6)
+        // A next episode with no time is treated as not yet aired.
+        #expect(DetailSectionPolicy.airedThrough(status: "RELEASING", nextEpisode: 6, nextAiringAt: nil, now: now) == 5)
+        // The release schedule wins over the catalogue row (here: a stale row says 6, the schedule 9).
+        #expect(DetailSectionPolicy.airedThrough(status: "RELEASING", nextEpisode: 6,
+                                                 nextAiringAt: now.addingTimeInterval(-60), scheduledNext: 9, now: now) == 8)
+        // A finished show is capped by its total only.
         #expect(DetailSectionPolicy.airedThrough(status: "FINISHED", nextEpisode: 6,
                                                  nextAiringAt: now.addingTimeInterval(3_600), now: now) == nil)
+    }
+
+    @Test("A title not yet released offers no Up next, even with a known episode count")
+    func notYetReleasedHasNoNextUnit() {
+        let aired = DetailSectionPolicy.airedThrough(status: "NOT_YET_RELEASED", nextEpisode: nil, nextAiringAt: nil)
+        #expect(aired == 0)
+        #expect(DetailSectionPolicy.nextUnit(progress: 0, total: 12, airedThrough: aired) == nil)
+        let input = DetailInput(hasSynopsis: true, isTracked: true, unitCount: 0, hasNextUnit: false)
+        #expect(!DetailSectionPolicy.showsUpNext(for: input))
+    }
+
+    @Test("The schedule's next unit of the right kind sets the ceiling")
+    func scheduledNextUnit() {
+        let at = Date(timeIntervalSince1970: 1_800_000_000)
+        let rows = [
+            ReleaseScheduleItem(medium: .anime, mediaId: 1, title: "T", unitKind: .season, unitNumber: 2,
+                                releaseAt: at, basis: .confirmed, source: "anilist", precision: .instant),
+            ReleaseScheduleItem(medium: .anime, mediaId: 1, title: "T", unitKind: .episode, unitNumber: 9,
+                                releaseAt: at, basis: .confirmed, source: "anilist", precision: .instant)
+        ]
+        #expect(DetailSectionPolicy.scheduledNext(rows, kind: .episode) == 9)
+        #expect(DetailSectionPolicy.scheduledNext(rows, kind: .chapter) == nil)
+        #expect(DetailSectionPolicy.scheduledNext([], kind: .episode) == nil)
+    }
+
+    @Test("social_activity_v1 off hides Between us notes and the club presence row")
+    func socialKillSwitch() {
+        let flagOff = DetailInput(hasSynopsis: true, clubPeopleCount: 3, hasClubs: true, socialEnabled: false)
+        let sections = DetailSectionPolicy.sections(for: flagOff)
+        #expect(!sections.contains(.betweenUs))
+        #expect(!sections.contains(.clubPresence))
+        // Fail-closed default: an input that never says the flag is on shows neither.
+        #expect(!DetailSectionPolicy.sections(for: DetailInput(clubPeopleCount: 2, hasClubs: true)).contains(.betweenUs))
+        let flagOn = DetailInput(hasSynopsis: true, clubPeopleCount: 3, hasClubs: true, socialEnabled: true)
+        #expect(DetailSectionPolicy.sections(for: flagOn).contains(.betweenUs))
+        #expect(DetailSectionPolicy.sections(for: flagOn).contains(.clubPresence))
+        // Club rails holding the title keep the card (the legacy club section ignored the social flag).
+        let railsOnly = DetailInput(hasSynopsis: true, clubPeopleCount: 3, hasClubs: true, socialEnabled: false, clubRailCount: 1)
+        #expect(DetailSectionPolicy.sections(for: railsOnly).contains(.betweenUs))
+        #expect(!DetailSectionPolicy.sections(for: railsOnly).contains(.clubPresence))
+        // No clubs: nothing, whatever the flag.
+        #expect(!DetailSectionPolicy.sections(for: DetailInput(hasClubs: false, socialEnabled: true, clubRailCount: 1)).contains(.betweenUs))
+    }
+
+    @Test("Chain walk: a confirmed walk to the first season is proven")
+    func chainWalkProven() async {
+        // S1 (1) ← S2 (2) ← S3 (3, open). Each prequel's ladder lists its child among its sequels.
+        let ladders: [Int: MediaLadderResponse] = [
+            2: Self.ladder(prequels: [Self.item(1, "S1", "TV", 2018)], sequels: [Self.item(3, "S3", "TV", 2023)]),
+            1: Self.ladder(prequels: [], sequels: [Self.item(2, "S2", "TV", 2020)])
+        ]
+        let open = Self.ladder(prequels: [Self.item(2, "S2", "TV", 2020)], sequels: [])
+        let walk = await LadderSeasons.walk(from: open, current: LadderChainEntry(mediaId: 3, title: "S3", format: "TV")) { id in
+            ladders[id] ?? Self.ladder(prequels: [], sequels: [])
+        }
+        #expect(walk.proven)
+        #expect(walk.entries.map(\.mediaId) == [1, 2, 3])
+        let seasons = LadderSeasons.seasons(chain: walk.entries, current: 3)
+        #expect(LadderSeasons.currentNumber(seasons.numbered) == 3)
+    }
+
+    @Test("Chain walk: a failed or unconfirmed middle hop leaves the chain unnumbered")
+    func chainWalkFailedHopIsUnproven() async {
+        // The open title is S3; S2's ladder read fails (`fetchMediaLadder` answers `.empty`).
+        let open = Self.ladder(prequels: [Self.item(2, "S2", "TV", 2020)], sequels: [])
+        let failed = await LadderSeasons.walk(from: open, current: LadderChainEntry(mediaId: 3, title: "S3", format: "TV")) { _ in
+            Self.ladder(prequels: [], sequels: [])
+        }
+        #expect(!failed.proven)
+        #expect(failed.entries.map(\.mediaId) == [2, 3])
+        // S2's ladder answers but does not name S3 (relations not computed both ways): unproven too.
+        let unconfirmed = await LadderSeasons.walk(from: open, current: LadderChainEntry(mediaId: 3, title: "S3", format: "TV")) { _ in
+            Self.ladder(prequels: [], sequels: [Self.item(99, "Other", "TV", 2021)])
+        }
+        #expect(!unconfirmed.proven)
+        #expect(LadderSeasons.confirmsLink(Self.ladder(prequels: [], sequels: [Self.item(3, "S3", "TV", 2023)]), from: 3))
+        #expect(!LadderSeasons.confirmsLink(Self.ladder(prequels: [], sequels: []), from: 3))
+    }
+
+    @Test("The status mark wires every action it is given")
+    func statusMarkWiresActions() {
+        let mark = DetailStatusMark(entry: nil, kind: .anime, onListSettings: {}, onFavourite: {}, onVerdict: {},
+                                    onProviders: {}, onAddToClub: {}, onShare: {})
+        for action in DetailStatusAction.allCases {
+            #expect(mark.handler(action) != nil, "\(action) has no closure")
+        }
+        // Optional actions the page did not pass are left out, never shown dead.
+        let bare = DetailStatusMark(entry: nil, onListSettings: {}, onFavourite: {}, onVerdict: {}, onProviders: {})
+        #expect(bare.handler(.share) == nil)
+        #expect(bare.handler(.verdict) != nil)
+    }
+
+    @Test("Only shown characters count: a cast of background roles adds no heading")
+    func backgroundOnlyCastHidesCharacters() {
+        let extra = Character(id: 1, anilistId: nil, nameFull: "Passer-by", nameNative: nil, imageLarge: nil,
+                              description: nil, gender: nil, age: nil)
+        #expect(DetailCharactersRail.shown([(character: extra, role: "BACKGROUND")]).isEmpty)
+        #expect(DetailCharactersRail.shown([(character: extra, role: "MAIN")]).count == 1)
+    }
+
+    @Test("Detail load parts: the story shows while reads are pending; the rest after")
+    func loadingKeepsLowerSectionsBack() {
+        let sections: [DetailSection] = [.hero, .story, .seasons, .progress, .credits]
+        #expect(DetailLoadPart.visibleSections(sections, settled: false) == [.story])
+        #expect(DetailLoadPart.visibleSections(sections, settled: true) == [.story, .seasons, .progress, .credits])
     }
 
     @Test("Chain walk steps to the nearest season-format neighbour")
@@ -152,6 +263,14 @@ struct DetailSectionPolicyTests {
         #expect(DetailPageCopy.progressCaption(total: nil, releasing: false, german: false) == nil)
         #expect(DetailPageCopy.aboutTitle(isSeason: true, german: false) == "About this season")
         #expect(DetailPageCopy.aboutTitle(isSeason: false, german: true) == "Über diese Geschichte")
+        // Song kickers: "Folge N" / "Folgen N–M" in German, never "F.".
+        #expect(DetailSoundPanel.episodes("1–5", german: true) == "Folgen 1–5")
+        #expect(DetailSoundPanel.episodes("3", german: true) == "Folge 3")
+        #expect(DetailSoundPanel.episodes("1–5", german: false) == "Ep. 1–5")
+        // Spoiler rows name the stored scope; no season number exists to show.
+        #expect(FriendsActivitySection.spoilerLabel("story", german: false) == "Spoiler · Story")
+        #expect(FriendsActivitySection.spoilerLabel("ending", german: true) == "Spoiler · Ende")
+        #expect(FriendsActivitySection.spoilerLabel("unknown", german: false) == "Spoiler")
     }
 
     // MARK: Fixtures

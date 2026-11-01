@@ -44,6 +44,7 @@ struct FriendsActivitySection: View {
     /// Prototype card only: the "Who's watching" roster and the compose field start folded.
     @State private var showsRoster = false
     @State private var composing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// The prototype detail card's presentation (`DetailBetweenUs`): presentation only, same reads/writes.
     private var prototypeStyle: Bool { !showsHeading }
@@ -53,6 +54,16 @@ struct FriendsActivitySection: View {
         let mediaType: String
         let mediaId: Int
         let friendScope: Int
+    }
+
+    /// "Spoiler · Story" / "Spoiler · Ending" (prototype "Spoiler · Season N"). The stored scope is only
+    /// `none`/`story`/`ending` (the `title_comments` check), so no season number is ever shown.
+    static func spoilerLabel(_ scope: String?, german: Bool) -> String {
+        switch scope?.lowercased() {
+        case "story": return german ? "Spoiler · Handlung" : "Spoiler · Story"
+        case "ending": return german ? "Spoiler · Ende" : "Spoiler · Ending"
+        default: return "Spoiler"
+        }
     }
 
     private var hasClubs: Bool {
@@ -172,7 +183,7 @@ struct FriendsActivitySection: View {
         let manga = mediaType.uppercased() == "MANGA"
         VStack(alignment: .leading, spacing: 10) {
             Button {
-                withAnimation(KuroMotion.settle) { showsRoster.toggle() }
+                withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsRoster.toggle() }
             } label: {
                 HStack {
                     Text(manga ? KuroLocale.text("Who's reading", "Wer liest mit") : KuroLocale.text("Who's watching", "Wer schaut mit"))
@@ -330,7 +341,7 @@ struct FriendsActivitySection: View {
                 if prototypeStyle {
                     Button { revealed.insert(comment.id) } label: {
                         HStack {
-                            Text(KuroLocale.text("Spoiler", "Spoiler"))
+                            Text(Self.spoilerLabel(comment.spoiler_scope, german: KuroLocale.isGerman))
                             Spacer()
                             Text(KuroLocale.text("Reveal", "Anzeigen"))
                                 .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 20))
@@ -527,7 +538,7 @@ struct FriendsActivitySection: View {
     private var leaveThoughtCard: some View {
         let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         return Button {
-            withAnimation(KuroMotion.settle) { composing = true }
+            withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { composing = true }
         } label: {
             HStack(spacing: 12) {
                 Text("＋")

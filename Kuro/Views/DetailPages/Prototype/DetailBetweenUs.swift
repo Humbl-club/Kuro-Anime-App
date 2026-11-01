@@ -7,11 +7,19 @@ import SwiftUI
 // notes, spoiler reveal and "Leave a thought". The notes, reactions, compose, edit and delete stay in
 // `FriendsActivitySection` (its friend-scope and cancellation lifecycle is privacy-critical and is not
 // re-implemented here); this card only draws the chrome around it. Hidden outside clubs.
+// - `social_activity_v1` off (server kill switch): no notes, reactions, compose or roster.
+// - The clubs holding this title in a rail (`ClubActivityCard`, the legacy club section's cards with
+//   their sharing-level rules) show inside the card whatever the social flag says, as they did before.
+//   This block is an addition beyond the prototype, kept so live users lose nothing.
 
 struct DetailBetweenUs: View {
     let mediaType: String
     let mediaId: Int
     let coverURL: URL?
+    /// `social_activity_v1`; off hides every note, reaction and the roster.
+    var socialEnabled = true
+    /// The viewer's clubs holding this title in a rail (`ClubsStore.clubActivityForMedia`).
+    var clubRails: [ClubMediaActivity] = []
     /// Reports the members tracking this title (the page's club presence row reads the same answer).
     var onRoster: ([SocialActivityStore.FriendTitleActivity]) -> Void = { _ in }
     /// Fixture renders only.
@@ -20,6 +28,7 @@ struct DetailBetweenUs: View {
     var bookish = false
 
     @Environment(ClubsStore.self) private var clubs
+    @Environment(IdentityStore.self) private var identity
     @State private var roster: [SocialActivityStore.FriendTitleActivity] = []
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -45,14 +54,23 @@ struct DetailBetweenUs: View {
                                          bottomTrailingRadius: 8, topTrailingRadius: 22, style: .continuous)
             VStack(alignment: .leading, spacing: 0) {
                 heading
-                FriendsActivitySection(mediaId: mediaId, mediaType: mediaType, editorial: true, showsHeading: false,
-                                       onRoster: { list in
-                                           roster = list
-                                           onRoster(list)
-                                       }, preview: preview)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 13)
-                    .padding(.bottom, 13)
+                if !clubRails.isEmpty {
+                    railPresence
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+                }
+                if socialEnabled {
+                    FriendsActivitySection(mediaId: mediaId, mediaType: mediaType, editorial: true, showsHeading: false,
+                                           onRoster: { list in
+                                               roster = list
+                                               onRoster(list)
+                                           }, preview: preview)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 13)
+                        .padding(.bottom, 13)
+                } else {
+                    Spacer().frame(height: 16)
+                }
             }
             .background {
                 ZStack {
@@ -73,6 +91,18 @@ struct DetailBetweenUs: View {
             .shadow(color: bookish ? .clear : Color(hex: "2B463B", opacity: Double(0x06) / 255), radius: 6, x: 0, y: 5)
             .padding(.horizontal, -6)
         }
+    }
+
+    /// "In your club rails": one card per club with the title in a rail (aggregate statuses, you, and
+    /// member details where the club shares them).
+    private var railPresence: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            DetailEyebrow(text: KuroLocale.text("In your club rails", "In deinen Club-Leisten"), size: 7, tracking: 1.2)
+            ForEach(clubRails, id: \.club.id) { activity in
+                ClubActivityCard(activity: activity, currentUserId: identity.currentUserId)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var heading: some View {

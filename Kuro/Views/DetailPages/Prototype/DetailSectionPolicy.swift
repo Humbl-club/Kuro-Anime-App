@@ -35,6 +35,12 @@ struct DetailInput: Equatable, Sendable {
     var creditCount = 0
     /// The viewer belongs to at least one club ("Between us." lives only inside clubs).
     var hasClubs = false
+    /// `social_activity_v1` (the server kill switch for title comments, reactions and the roster).
+    /// Fail-closed: off unless the page passes the live flag.
+    var socialEnabled = false
+    /// The viewer's clubs that hold this title in a rail (`ClubsStore.clubActivityForMedia`). Shown in
+    /// "Between us." whatever the social flag says, as the legacy club section was.
+    var clubRailCount = 0
 }
 
 enum DetailSectionPolicy {
@@ -44,7 +50,8 @@ enum DetailSectionPolicy {
             switch section {
             case .hero: return true
             case .story: return input.hasSynopsis || input.hasHook
-            case .clubPresence: return input.clubPeopleCount > 0
+            // The roster comes from title activity: off with the social kill switch.
+            case .clubPresence: return input.socialEnabled && input.clubPeopleCount > 0
             // One entry is not a series: no "Seasons" heading for a single title.
             case .seasons: return input.seasonCount > 1
             // Untracked: the hero says "Not in your list" with Add; no progress until it is saved.
@@ -54,7 +61,8 @@ enum DetailSectionPolicy {
             case .songs: return input.songCount > 0
             case .characters: return input.characterCount > 0
             case .credits: return input.creditCount > 0
-            case .betweenUs: return input.hasClubs
+            // Notes need the social flag; the club-rail presence keeps the card for rail members.
+            case .betweenUs: return input.hasClubs && (input.socialEnabled || input.clubRailCount > 0)
             }
         }
     }
@@ -73,12 +81,55 @@ enum DetailSectionPolicy {
         return next
     }
 
-    /// The last aired episode of an airing title: the episode before its next scheduled airing.
-    /// nil when nothing is scheduled ahead (no ceiling is invented).
-    static func airedThrough(status: String?, nextEpisode: Int?, nextAiringAt: Date?, now: Date = Date()) -> Int? {
-        guard status?.uppercased() == "RELEASING", let nextEpisode, nextEpisode > 0,
-              let nextAiringAt, nextAiringAt > now else { return nil }
-        return nextEpisode - 1
+    /// The last aired unit of a title, as a ceiling for `nextUnit`; nil means no ceiling (a finished
+    /// title is capped by its total). Never offers a unit that has not been released:
+    /// - not yet released: 0 (nothing to advance to);
+    /// - airing: the unit before the next scheduled one (`scheduledNext`, from the release schedule,
+    ///   wins over the catalogue row); a catalogue airing time already past means `nextEpisode` has
+    ///   aired; a next episode without a time is treated as not yet aired.
+    static func airedThrough(status: String?, nextEpisode: Int?, nextAiringAt: Date?,
+                             scheduledNext: Int? = nil, now: Date = Date()) -> Int? {
+        switch status?.uppercased() {
+        case "NOT_YET_RELEASED":
+            return 0
+        case "RELEASING":
+            if let scheduledNext, scheduledNext > 0 { return scheduledNext - 1 }
+            guard let nextEpisode, nextEpisode > 0 else { return nil }
+            if let nextAiringAt, nextAiringAt <= now { return nextEpisode }
+            return nextEpisode - 1
+        default:
+            return nil
+        }
+    }
+
+    /// The next scheduled unit number of the given kind from a title's upcoming release rows.
+    static func scheduledNext(_ upcoming: [ReleaseScheduleItem], kind: ReleaseUnitKind) -> Int? {
+        upcoming.lazy
+            .filter { $0.unitKind == kind }
+            .compactMap { $0.unitNumber.map { Int($0.rounded(.down)) } }
+            .first { $0 > 0 }
+    }
+}
+
+/// The first reads a detail page waits for before it shows its lower sections (spec: branded loading,
+/// no sections popping in under the reader).
+enum DetailLoadPart: CaseIterable, Hashable, Sendable {
+    /// The ladder walk (seasons, the source card) and, alongside it, the series bundle.
+    case ladder
+    /// The first episode or chapter rows.
+    case units
+    /// Characters, staff, studios or authors (credits_cast_v1).
+    case credits
+    /// Manga: the legal read links ("Read with the publisher", chapter rows).
+    case links
+
+    static let anime: Set<DetailLoadPart> = [.ladder, .units, .credits]
+    static let manga: Set<DetailLoadPart> = [.ladder, .units, .credits, .links]
+
+    /// The sections drawn under the hero: only the story while reads are pending (the skeleton holds
+    /// the rest), everything once they settle.
+    static func visibleSections(_ sections: [DetailSection], settled: Bool) -> [DetailSection] {
+        sections.filter { $0 != .hero && (settled || $0 == .story) }
     }
 }
 
@@ -166,6 +217,46 @@ enum LadderSeasons {
         let pool = seasonal.isEmpty ? candidates : seasonal
         // Nearest neighbour: the newest prequel, the oldest sequel (the RPC lists by year ascending).
         return towardsOlder ? pool.last : pool.first
+    }
+
+    /// True when a prequel's own ladder names the title the walk came from among its sequels. A failed
+    /// read (`fetchMediaLadder` answers `.empty`) or relations not yet computed server-side fail this,
+    /// so the chain stays unproven and no season numbers are shown.
+    static func confirmsLink(_ prequelLadder: MediaLadderResponse, from childId: Int) -> Bool {
+        prequelLadder.sequels.contains { $0.mediaId == childId }
+    }
+
+    /// Walks a title's ladder back to the first season and on to the last (at most `maxHops` each way).
+    /// The chain is proven only when every backward hop was confirmed by the prequel's own ladder and
+    /// the walk ended at a title without prequels; a failed or unconfirmed hop keeps the entries found
+    /// so far but leaves the chain unproven (no numbers are invented).
+    static func walk(from ladder: MediaLadderResponse, current: LadderChainEntry, maxHops: Int = 8,
+                     fetch: (Int) async -> MediaLadderResponse) async -> (entries: [LadderChainEntry], proven: Bool) {
+        var seen: Set<Int> = [current.mediaId]
+        var older: [LadderChainEntry] = []
+        var newer: [LadderChainEntry] = []
+        var proven = false
+        var node = ladder
+        var child = current.mediaId
+        for _ in 0..<maxHops {
+            guard let previous = step(node.prequels, excluding: seen, towardsOlder: true) else { proven = true; break }
+            seen.insert(previous.mediaId)
+            older.insert(LadderChainEntry(previous), at: 0)
+            let fetched = await fetch(previous.mediaId)
+            if Task.isCancelled { return ([current], false) }
+            guard confirmsLink(fetched, from: child) else { break }
+            child = previous.mediaId
+            node = fetched
+        }
+        node = ladder
+        for _ in 0..<maxHops {
+            guard let following = step(node.sequels, excluding: seen, towardsOlder: false) else { break }
+            seen.insert(following.mediaId)
+            newer.append(LadderChainEntry(following))
+            node = await fetch(following.mediaId)
+            if Task.isCancelled { return ([current], false) }
+        }
+        return (older + [current] + newer, proven)
     }
 
     /// The season number of the open title, when it has one and the chain has more than one season.

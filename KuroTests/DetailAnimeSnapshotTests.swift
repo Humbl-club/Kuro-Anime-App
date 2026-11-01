@@ -31,8 +31,10 @@ struct DetailAnimeSnapshotTests {
         let backend = FakeLibraryBackend()
         backend.setRows([FakeLibraryBackend.entry(.anime, 2, rowId: 2, status: .current, progress: 6)],
                         for: LifecycleFixtures.userA)
+        // social_activity_v1 on (live: 100 %): "Between us." and the club row need it.
+        let flags = FeatureFlags(userDefaults: defaults, launchArguments: ["--ff-on=social_activity_v1"])
         let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(),
-                                                libraryBackend: backend)
+                                                libraryBackend: backend, flags: flags)
         _ = await graph.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
         try? await graph.library.refresh()
         graph.clubs.myClubs = try Self.clubs()
@@ -43,8 +45,14 @@ struct DetailAnimeSnapshotTests {
         await render(page, width: 390, height: 844, name: "detail-anime-390.png", fullPage: true)
         await render(page, width: 390, height: 844, name: "detail-anime-top-390.png")
         await render(page, width: 320, height: 844, name: "detail-anime-top-320.png")
-        // Review focus 1: the hero and Up next at the largest accessibility size.
+        // Review focus 1: the hero and Up next at the largest accessibility size, then the whole page.
         await renderAX5(page, width: 320, name: "detail-anime-top-ax5-320.png")
+        await renderAX5(page, width: 320, name: "detail-anime-ax5-320.png", fullPage: true)
+        // German, tracked, the whole page: long headings, the sound panel and "Unter uns.".
+        let germanTracked = await withGerman {
+            await render(page, width: 390, height: 844, name: "detail-anime-de-390.png", fullPage: true)
+        }
+        #expect(germanTracked, "KuroLocale did not pick up the volatile AppleLanguages override")
 
         // Series flags on with bundle data: the `detail_copy` hook and the manga coverage disclosure.
         var withBundle = Self.trackedContent()
@@ -268,7 +276,7 @@ struct DetailAnimeSnapshotTests {
         content.chainIsProven = true
         content.source = MediaLadderItem(mediaType: "MANGA", mediaId: 30, title: "Jujutsu Kaisen", coverImage: nil, year: 2018,
                                          format: "MANGA", rating: nil, reasonLabel: nil, sourceAuthorName: "Gege Akutami")
-        content.characters = [("Yuji Itadori", 21), ("Megumi Fushiguro", 22), ("Nobara Kugisaki", 23), ("Satoru Gojo", 24)]
+        content.characters = [("Yuji Itadori", 22), ("Megumi Fushiguro", 21), ("Nobara Kugisaki", 23), ("Satoru Gojo", 24)]
             .enumerated().map { index, item in
                 (character: Character(id: index + 1, anilistId: nil, nameFull: item.0, nameNative: nil,
                                       imageLarge: artURL("detail-character-\(item.1).png"), description: nil, gender: nil, age: nil),

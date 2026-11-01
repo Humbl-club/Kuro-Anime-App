@@ -12,7 +12,12 @@ import SwiftUI
 // | `mediaSchedule` / `themes`             | ReleasesStore (`.detailReleases`) | next airing line, "The sound of it."  |
 // | `detailBundle` (series flags on only)  | HomeStore                   | `detail_copy` hook, manga coverage, songs  |
 // | `resolveWatchLinks`                    | ProviderAvailabilityStore   | Where to watch                             |
-// | friend activity (`FriendsActivitySection`) | SocialActivityStore     | club presence, "Between us."               |
+// | friend activity (`FriendsActivitySection`) | SocialActivityStore     | club presence, "Between us." (social_activity_v1) |
+// | `clubActivityForMedia` (cached bundles) | ClubsStore                 | club rails holding this title ("Between us.") |
+// Loading: the hero and story draw at once; the other sections wait behind `KuroSkeleton(.detailSection)`
+// until the ladder walk, the first units and credits settle (no pop-in), and an offline band with Try
+// again sits under the hero. The owners answer a failed read with an empty result, so a failure reads
+// as "no data" (the section stays hidden); there is no separate failed state to show.
 // Tracking writes go through `LibraryViewActions.markProgress` (the live detail's path) and the shared
 // tracking editor route; the page acts only on the entry that is open.
 
@@ -71,6 +76,7 @@ struct AnimeDetailPage: View {
         self.anime = anime
         self.preview = preview
         self._content = State(initialValue: preview ?? AnimeDetailContent())
+        self._pending = State(initialValue: preview == nil ? DetailLoadPart.anime : [])
     }
 
     @Environment(CatalogStore.self) private var catalog
@@ -85,6 +91,9 @@ struct AnimeDetailPage: View {
     @Environment(OutboundLinkTelemetry.self) private var outboundLinks
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Optional: fixture hosts may not inject one (then the page counts as online).
+    @Environment(NetworkMonitor.self) private var network: NetworkMonitor?
 
     @State private var content: AnimeDetailContent
     @State private var releaseItems: [ReleaseScheduleItem]?
@@ -99,16 +108,28 @@ struct AnimeDetailPage: View {
     @State private var confirmTrigger = 0
     @State private var savingNext = false
     @State private var loadGeneration = UUID()
+    @State private var creditsGeneration = UUID()
+    /// First loads still pending (the skeleton holds the page's lower sections until they settle).
+    @State private var pending: Set<DetailLoadPart>
+    /// Try again (offline band) and a reconnect reload the page's reads.
+    @State private var reloadToken = 0
 
     private var german: Bool { KuroLocale.isGerman }
     private var entry: LibraryEntry? { library.entry(for: anime.libraryKey) }
     private var progress: Int { entry?.progress ?? 0 }
     private var total: Int? { anime.episodeCount.flatMap { $0 > 0 ? $0 : nil } }
+    /// The schedule's upcoming rows (the catalogue's own next airing until the schedule answers).
+    private var upcoming: [ReleaseScheduleItem] {
+        DetailNextReleaseSection.upcoming((releaseItems?.isEmpty == false ? releaseItems : nil)
+                                          ?? DetailNextReleaseSection.seed(for: anime))
+    }
+
     private var nextUnit: Int? {
         DetailSectionPolicy.nextUnit(progress: progress, total: total,
                                      airedThrough: DetailSectionPolicy.airedThrough(status: anime.status,
                                                                                     nextEpisode: anime.nextEpisodeNumber,
-                                                                                    nextAiringAt: anime.nextAiringAt))
+                                                                                    nextAiringAt: anime.nextAiringAt,
+                                                                                    scheduledNext: DetailSectionPolicy.scheduledNext(upcoming, kind: .episode)))
     }
 
     private var heroURL: URL? {
@@ -144,8 +165,15 @@ struct AnimeDetailPage: View {
                               sourceAuthor: content.source?.sourceAuthorName, german: german)
     }
 
+    /// `social_activity_v1`: the server kill switch for notes, reactions and the club roster.
+    private var socialEnabled: Bool { flags.isSocialActivityV1Enabled }
+
     private var clubPeople: Int {
-        clubs.myClubs.isEmpty ? 0 : roster.count
+        socialEnabled && !clubs.myClubs.isEmpty ? roster.count : 0
+    }
+
+    private var clubRails: [ClubMediaActivity] {
+        clubs.clubActivityForMedia(mediaId: anime.id, mediaType: "ANIME")
     }
 
     private var input: DetailInput {
@@ -159,10 +187,18 @@ struct AnimeDetailPage: View {
                     hasNextUnit: nextUnit != nil,
                     hasSource: content.source != nil,
                     songCount: songs.count,
-                    characterCount: content.characters.count,
+                    // The rail's own filter (no background roles): never an empty "The characters.".
+                    characterCount: DetailCharactersRail.shown(content.characters).count,
                     creditCount: credits.count,
-                    hasClubs: !clubs.myClubs.isEmpty)
+                    hasClubs: !clubs.myClubs.isEmpty,
+                    socialEnabled: socialEnabled,
+                    clubRailCount: clubRails.count)
     }
+
+    private var isOffline: Bool { network?.isConnected == false }
+
+    /// Try again, or the network coming back, reloads the reads.
+    private var reloadKey: String { "\(reloadToken)-\(network?.reconnectionGeneration ?? 0)" }
 
     var body: some View {
         let sections = DetailSectionPolicy.sections(for: input)
@@ -171,11 +207,26 @@ struct AnimeDetailPage: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     hero
+                    if isOffline {
+                        KuroOfflineView(hasContent: true) { reloadToken += 1 }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 14)
+                            .kuroReadableWidth()
+                    }
                     VStack(alignment: .leading, spacing: 0) {
-                        ForEach(sections.filter { $0 != .hero }, id: \.self) { section in
+                        ForEach(DetailLoadPart.visibleSections(sections, settled: pending.isEmpty), id: \.self) { section in
                             sectionView(section, sections: sections, origin: origin, proxy: proxy)
                         }
+                        if !pending.isEmpty {
+                            VStack(alignment: .leading, spacing: 28) {
+                                KuroSkeleton(kind: .detailSection)
+                                KuroSkeleton(kind: .detailSection)
+                            }
+                            .padding(.top, 12)
+                            .transition(.opacity)
+                        }
                     }
+                    .animation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion), value: pending.isEmpty)
                     .padding(.horizontal, 24)
                     .padding(.top, 23)
                     .padding(.bottom, 24)
@@ -194,11 +245,18 @@ struct AnimeDetailPage: View {
             actionScope.deactivate()
             toastTask?.cancel()
             loadGeneration = UUID()
+            creditsGeneration = UUID()
+            savingNext = false
         }
-        .task(id: anime.id) { await loadPage() }
-        .task(id: "\(anime.id)-\(flags.isCreditsCastV1Enabled)") { await loadCredits() }
-        .task(id: "\(anime.id)-episodes-\(progress)") { await loadEpisodes() }
-        .task(id: "\(anime.id)-links-\(progress)") { await loadWatchLinks() }
+        .task(id: "\(anime.id)-\(reloadKey)") { await loadPage() }
+        .task(id: "\(anime.id)-\(flags.isCreditsCastV1Enabled)-\(reloadKey)") { await loadCredits() }
+        .task(id: "\(anime.id)-episodes-\(progress)-\(reloadKey)") { await loadEpisodes() }
+        .task(id: "\(anime.id)-links-\(progress)-\(reloadKey)") { await loadWatchLinks() }
+        // A cold open (deep link) before the Clubs page ran: warm the clubs so "Between us." can show.
+        .task(id: anime.id) {
+            guard preview == nil, clubs.myClubs.isEmpty else { return }
+            await clubs.refreshMyClubsIfStale()
+        }
         .detailReleases(kind: .anime, id: anime.id, schedule: $releaseItems, songs: $releaseSongs)
         .sheet(isPresented: $showVerdict) {
             QuickVerdictPickerSheet(media: anime, onToast: showToast)
@@ -238,7 +296,10 @@ struct AnimeDetailPage: View {
                                expectation: (anime.genreList ?? []).prefix(3).joined(separator: " · ").detailNonEmpty)
         case .clubPresence:
             DetailClubPresence(names: DetailBetweenUs.rosterNames(roster), count: clubPeople) {
-                withAnimation(KuroMotion.medium) { proxy.scrollTo(DetailSection.betweenUs, anchor: .top) }
+                // Reduce Motion: the jump is instant (prototype §6).
+                withAnimation(KuroMotion.detail(KuroMotion.medium, reduceMotion: reduceMotion)) {
+                    proxy.scrollTo(DetailSection.betweenUs, anchor: .top)
+                }
             }
             .padding(.bottom, 15)
         case .seasons:
@@ -262,6 +323,7 @@ struct AnimeDetailPage: View {
             DetailCreditsList(title: KuroLocale.text("Behind the frames.", "Hinter den Bildern."), rows: credits)
         case .betweenUs:
             DetailBetweenUs(mediaType: "ANIME", mediaId: anime.id, coverURL: coverURL,
+                            socialEnabled: socialEnabled, clubRails: clubRails,
                             onRoster: { roster = $0 }, preview: content.friendsPreview)
                 .padding(.top, 28)
                 .padding(.bottom, 18)
@@ -282,8 +344,7 @@ struct AnimeDetailPage: View {
             if showsUnits {
             AnimeUnitsSection(anime: anime, episodes: content.episodes, progress: progress, total: total,
                               isTracked: entry != nil, nextUnit: nextUnit, seasonNumber: seasonNumber,
-                              nextRelease: DetailNextReleaseSection.upcoming((releaseItems?.isEmpty == false ? releaseItems : nil)
-                                                                             ?? DetailNextReleaseSection.seed(for: anime)).first,
+                              nextRelease: upcoming.first,
                               material: material, coverURL: coverURL, savingNext: savingNext,
                               confirmTrigger: confirmTrigger) { next in
                 advance(to: next, origin: origin)
@@ -320,7 +381,7 @@ struct AnimeDetailPage: View {
         let key = anime.libraryKey
         let capped = total.map { min(next, $0) } ?? next
         savingNext = true
-        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+        let launched = actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
             let outcome = await LibraryViewActions.markProgress(key, to: capped, actions: libraryActions)
             savingNext = false
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
@@ -340,6 +401,12 @@ struct AnimeDetailPage: View {
                                      subtitle: nil,
                                      actionTitle: KuroLocale.text("Undo", "Rückgängig"),
                                      onAction: { undo(to: previous, from: capped) }))
+        }
+        // The key never stays on "Saving": not launched, or cancelled before the write ran.
+        guard let launched else { savingNext = false; return }
+        Task { @MainActor in
+            await launched.value
+            savingNext = false
         }
     }
 
@@ -407,11 +474,12 @@ struct AnimeDetailPage: View {
     @MainActor
     private func showToast(_ next: KuroToastState) {
         toastTask?.cancel()
-        withAnimation(KuroMotion.settle) { toast = next }
+        let motion = KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)
+        withAnimation(motion) { toast = next }
         toastTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 3_200_000_000)
             guard !Task.isCancelled else { return }
-            withAnimation(KuroMotion.settle) { toast = nil }
+            withAnimation(motion) { toast = nil }
         }
     }
 
@@ -419,62 +487,60 @@ struct AnimeDetailPage: View {
 
     private func loadPage() async {
         guard preview == nil else { return }
+        defer { pending.remove(.ladder) }
         let generation = UUID()
         loadGeneration = generation
+        #if canImport(Supabase)
+        // Series flags on: the bundle adds `detail_copy` hooks, manga coverage and songs when it has
+        // them. Read alongside the ladder walk, not after it.
+        async let bundleRead = readBundle()
+        #endif
         let ladder = await catalog.fetchMediaLadder(mediaType: "ANIME", mediaId: anime.id)
         guard !Task.isCancelled, loadGeneration == generation else { return }
         content.source = ladder.primarySource ?? ladder.sourceMaterial.first
-        let chain = await walkChain(from: ladder)
+        let current = LadderChainEntry(mediaId: anime.id, title: anime.displayTitle, format: anime.format,
+                                       year: anime.seasonYear, coverImage: anime.coverImageLarge)
+        let chain = await LadderSeasons.walk(from: ladder, current: current) { id in
+            await catalog.fetchMediaLadder(mediaType: "ANIME", mediaId: id)
+        }
         guard !Task.isCancelled, loadGeneration == generation else { return }
         let seasons = LadderSeasons.seasons(chain: chain.entries, current: anime.id)
         content.numbered = seasons.numbered
         content.extras = seasons.extras
         content.chainIsProven = chain.proven
-        await catalog.enqueueMediaRelationRefreshIfNeeded(mediaType: "ANIME", mediaId: anime.id, ladder: ladder, reason: "detail_open")
         #if canImport(Supabase)
-        // Series flags on: the bundle adds `detail_copy` hooks, manga coverage and songs when it has them.
-        if flags.seriesHomeNativeV1Enabled, let bundle = try? await home.detailBundle(medium: "anime", mediaId: anime.id, sectionId: nil) {
+        if let bundle = await bundleRead {
             guard !Task.isCancelled, loadGeneration == generation else { return }
             content.bundle = bundle
         }
         #endif
+        await catalog.enqueueMediaRelationRefreshIfNeeded(mediaType: "ANIME", mediaId: anime.id, ladder: ladder, reason: "detail_open")
     }
 
-    /// Walks the cached ladder back to the first season and on to the last (at most 8 hops each way).
-    /// The chain is proven only when the walk back ended at a title without prequels.
-    private func walkChain(from ladder: MediaLadderResponse) async -> (entries: [LadderChainEntry], proven: Bool) {
-        let current = LadderChainEntry(mediaId: anime.id, title: anime.displayTitle, format: anime.format,
-                                       year: anime.seasonYear, coverImage: anime.coverImageLarge)
-        var seen: Set<Int> = [anime.id]
-        var older: [LadderChainEntry] = []
-        var newer: [LadderChainEntry] = []
-        var proven = false
-        var step = ladder
-        for _ in 0..<8 {
-            guard let previous = LadderSeasons.step(step.prequels, excluding: seen, towardsOlder: true) else { proven = true; break }
-            seen.insert(previous.mediaId)
-            older.insert(LadderChainEntry(previous), at: 0)
-            step = await catalog.fetchMediaLadder(mediaType: "ANIME", mediaId: previous.mediaId)
-            if Task.isCancelled { return ([current], false) }
-        }
-        step = ladder
-        for _ in 0..<8 {
-            guard let following = LadderSeasons.step(step.sequels, excluding: seen, towardsOlder: false) else { break }
-            seen.insert(following.mediaId)
-            newer.append(LadderChainEntry(following))
-            step = await catalog.fetchMediaLadder(mediaType: "ANIME", mediaId: following.mediaId)
-            if Task.isCancelled { return ([current], false) }
-        }
-        return (older + [current] + newer, proven)
+    #if canImport(Supabase)
+    private func readBundle() async -> SeriesDetailBundle? {
+        guard flags.seriesHomeNativeV1Enabled else { return nil }
+        return try? await home.detailBundle(medium: "anime", mediaId: anime.id, sectionId: nil)
     }
+    #endif
 
     private func loadCredits() async {
-        guard preview == nil, flags.isCreditsCastV1Enabled else { return }
+        guard preview == nil else { return }
+        defer { pending.remove(.credits) }
+        let generation = UUID()
+        creditsGeneration = generation
+        guard flags.isCreditsCastV1Enabled else {
+            // The flag turned off: the sections go with it.
+            content.studios = []
+            content.staff = []
+            content.characters = []
+            return
+        }
         async let studios = catalog.fetchStudiosForAnime(animeId: anime.id)
         async let staff = catalog.fetchStaffForAnime(animeId: anime.id)
         async let cast = catalog.fetchCharactersForAnime(animeId: anime.id)
         let (loadedStudios, loadedStaff, loadedCast) = await (studios, staff, cast)
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, creditsGeneration == generation, flags.isCreditsCastV1Enabled else { return }
         content.studios = loadedStudios
         content.staff = loadedStaff
         content.characters = loadedCast
@@ -482,6 +548,7 @@ struct AnimeDetailPage: View {
 
     private func loadEpisodes() async {
         guard preview == nil else { return }
+        defer { pending.remove(.units) }
         let loaded = await catalog.fetchEpisodesNext(animeId: anime.id, fromNumber: max(1, progress), limit: 10)
         guard !Task.isCancelled else { return }
         content.episodes = loaded
@@ -517,6 +584,7 @@ struct DetailStorySection: View {
     /// The `detail_copy` premise under the hook (manga prototype; SF 12/19.8).
     var premise: String? = nil
     @State private var expanded = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// Without a `detail_copy` hook the synopsis opens the section (spec §4); long text folds.
     private var opensWithSynopsis: Bool { hook == nil }
@@ -550,7 +618,7 @@ struct DetailStorySection: View {
             }
             if let synopsis, !opensWithSynopsis || foldsSynopsis {
                 Button {
-                    withAnimation(KuroMotion.settle) { expanded.toggle() }
+                    withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { expanded.toggle() }
                 } label: {
                     HStack {
                         Text(opensWithSynopsis && expanded ? KuroLocale.text("Show less", "Weniger zeigen") : aboutTitle)
@@ -566,19 +634,19 @@ struct DetailStorySection: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(expanded ? .isSelected : [])
                 if expanded, !opensWithSynopsis {
-                    synopsisText(synopsis).padding(.vertical, 13)
+                    synopsisText(synopsis).padding(.top, 13)
+                }
+                // The prototype keeps the expectation line inside the open disclosure, after the
+                // synopsis: the collapsed story is the hook and "About this season +" only.
+                if expanded, let expectation {
+                    Text(expectation)
+                        .font(.detailSF(10, relativeTo: .footnote))
+                        .tracking(0.05)
+                        .foregroundStyle(DetailInk.expectation)
+                        .padding(.top, 12)
                 }
             }
-            if let expectation {
-                Text(expectation)
-                    .font(.detailSF(10, relativeTo: .footnote))
-                    .tracking(0.05)
-                    .foregroundStyle(DetailInk.expectation)
-                    .padding(.top, 12)
-                    .padding(.bottom, 18)
-            } else {
-                Spacer().frame(height: 18)
-            }
+            Spacer().frame(height: 18)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -798,19 +866,10 @@ struct DetailProgressCard: View {
                 .accessibilityLabel(SeriesCopy.position(isManga: false, label: "\(progress)", total: total))
             }
             .padding(.bottom, 12)
-            // The scrub: a hairline track with the watched share traced in ink.
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Rectangle().fill(DetailInk.track)
-                    if let total, total > 0 {
-                        Rectangle().fill(Color.kuroInk)
-                            .frame(width: geo.size.width * min(1, CGFloat(progress) / CGFloat(total)))
-                            .kuroAnimation(.timingCurve(0.22, 0.8, 0.24, 1, duration: 0.28), value: progress)
-                    }
-                }
-            }
-            .frame(height: 1)
-            .accessibilityHidden(true)
+            // The prototype row's bottom border (`#344a3914`); its scrub track measures 0 × 1, so no
+            // trace is drawn (the count carries the position).
+            Rectangle().fill(DetailInk.rowRule).frame(height: 1)
+                .accessibilityHidden(true)
         }
     }
 }
@@ -839,6 +898,7 @@ struct AnimeUnitsSection: View {
     @State private var hasMore = true
     @State private var loadingMore = false
     @State private var openEpisode: Int?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var upNext: Int? { isTracked ? nextUnit : nil }
 
@@ -880,7 +940,7 @@ struct AnimeUnitsSection: View {
             if hasMoreToShow || showsAll {
                 Button {
                     if showsAll {
-                        withAnimation(KuroMotion.settle) { showsAll = false }
+                        withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsAll = false }
                     } else {
                         showsAll = true
                         Task { await loadAll() }
@@ -967,7 +1027,7 @@ struct AnimeUnitsSection: View {
         return VStack(alignment: .leading, spacing: 0) {
             Button {
                 guard expandable else { return }
-                withAnimation(KuroMotion.settle) { openEpisode = isOpen ? nil : episode.number }
+                withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { openEpisode = isOpen ? nil : episode.number }
             } label: {
                 HStack(spacing: 12) {
                     Text(String(format: "%02d", episode.number))
@@ -999,6 +1059,8 @@ struct AnimeUnitsSection: View {
                             .foregroundStyle(DetailInk.finished)
                     }
                 }
+                // 57 pt as measured; at large type the padding keeps text off the row rules.
+                .padding(.vertical, 10)
                 .frame(minHeight: 57)
                 .contentShape(Rectangle())
             }
@@ -1116,6 +1178,7 @@ struct DetailSourceCard: View {
     let seasonNumber: Int?
     let onOpen: () -> Void
     @State private var showsCoverage = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var mapped: SeriesDetailBundle.Coverage? {
         guard let coverage, coverage.mappingState == "exact" || coverage.mappingState == "partial" else { return nil }
@@ -1168,7 +1231,7 @@ struct DetailSourceCard: View {
 
             if let mapped {
                 Button {
-                    withAnimation(KuroMotion.settle) { showsCoverage.toggle() }
+                    withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsCoverage.toggle() }
                 } label: {
                     HStack {
                         Text(KuroLocale.text("Where this season meets the manga", "Wo diese Staffel im Manga steht"))
@@ -1246,6 +1309,7 @@ struct DetailSoundPanel: View {
     @State private var showsAll = false
     @State private var revealed: Set<ThemeSong> = []
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private static let collapsed = 4
 
@@ -1276,7 +1340,7 @@ struct DetailSoundPanel: View {
             }
             if songs.count > Self.collapsed {
                 Button {
-                    withAnimation(KuroMotion.settle) { showsAll.toggle() }
+                    withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsAll.toggle() }
                 } label: {
                     Text(showsAll ? KuroLocale.text("Show fewer", "Weniger zeigen")
                                   : KuroLocale.text("Show all \(songs.count) songs", "Alle \(songs.count) Songs zeigen"))
@@ -1312,8 +1376,15 @@ struct DetailSoundPanel: View {
         case .insert: kind = german ? "Insert-Song" : "Insert song"
         }
         var parts = [song.sequence.map { "\(kind) \($0)" } ?? kind]
-        if let episodes = song.episodes?.detailNonEmpty { parts.append((german ? "F. " : "Ep. ") + episodes) }
+        if let episodes = song.episodes?.detailNonEmpty { parts.append(Self.episodes(episodes, german: german)) }
         return parts.joined(separator: " · ")
+    }
+
+    /// "Ep. 1–5" / "Folge 3" / "Folgen 1–5" (§7.1 uses "Folge N"; "F." is not a German abbreviation).
+    static func episodes(_ value: String, german: Bool) -> String {
+        guard german else { return "Ep. " + value }
+        let plural = value.contains(where: { "–-—,&".contains($0) }) || value.lowercased().contains("bis")
+        return (plural ? "Folgen " : "Folge ") + value
     }
 
     private func row(_ song: ThemeSong) -> some View {
@@ -1406,7 +1477,11 @@ struct DetailCharactersRail: View {
     /// 67 pt cards (prototype); wider at accessibility sizes so names never break inside a word.
     private var cardWidth: CGFloat { dynamicTypeSize.isAccessibilitySize ? 124 : 67 }
 
-    private var shown: [(character: Character, role: String)] {
+    private var shown: [(character: Character, role: String)] { Self.shown(characters) }
+
+    /// The rail's cards: background roles dropped, main then supporting, at most 12. The page's section
+    /// input counts this same list, so a cast of only background roles shows no heading.
+    static func shown(_ characters: [(character: Character, role: String)]) -> [(character: Character, role: String)] {
         let rank: (String) -> Int = { role in
             switch role.uppercased() { case "MAIN": return 0; case "SUPPORTING": return 1; default: return 2 }
         }

@@ -10,8 +10,11 @@ import SwiftUI
 //   `wash`/`edge` on the progress card and the Up next row.
 // - Type is SF (system sans) at the prototype's sizes and tracking; the serif is used only where the
 //   prototype uses Georgia ("Between us." on this page).
-// - The status mark folds in List settings (tap), Favourite, Verdict, Where to watch, Add to a club and
-//   Share (spec §3b): nothing the live dock offered is removed.
+// - The status mark: tapping "○ Watching" opens List settings; a separate 44 pt "⋯" beside it opens the
+//   menu with Favourite, Verdict, Where to watch, Add to a club and Share (spec §3b): nothing the live
+//   dock offered is removed, and nothing hides behind a long-press.
+// - Motion: every disclosure, scroll jump and toast goes through `KuroMotion.detail(_:reduceMotion:)`,
+//   so Reduce Motion and Low Power show the final frame.
 
 /// The prototype's measured detail colours (PROTOTYPE_SPEC.md §4, detail tables).
 enum DetailInk {
@@ -54,6 +57,13 @@ enum DetailInk {
     static let creditRule = Color(hex: "26382E", opacity: Double(0x14) / 255)
     static let kicker = Color(hex: "C6CECA")
     static let statusInk = Color(hex: "DAE4DF")
+}
+
+extension KuroMotion {
+    /// The page's animation, or nil (the final frame at once) under Reduce Motion or Low Power.
+    static func detail(_ animation: Animation, reduceMotion: Bool) -> Animation? {
+        playsMotionNow(reduceMotion: reduceMotion) ? animation : nil
+    }
 }
 
 /// SF at a prototype size that still follows Dynamic Type (capped so AX sizes stay legible).
@@ -224,9 +234,10 @@ struct DetailHero<Mark: View>: View {
 
 // MARK: - Status mark
 
-/// The hero's status mark ("○ Watching" / "Not in your list" + Add). Tapping it opens List settings
-/// (the tracking editor, which also offers the status choice for an untracked title); its menu holds
-/// Favourite, Verdict, Where to watch, Add to a club and Share.
+/// The hero's status mark ("○ Watching" / "Not in your list" + Add). Tapping the mark opens List settings
+/// (the tracking editor, which also offers the status choice for an untracked title). The "⋯" beside
+/// it opens the menu with Favourite, Verdict, Where to watch, Add to a club and Share on a plain tap;
+/// VoiceOver gets the same actions as custom actions on the mark.
 struct DetailStatusMark: View {
     let entry: LibraryEntry?
     var kind: MediaKind = .anime
@@ -239,6 +250,9 @@ struct DetailStatusMark: View {
     /// `.onArt` on the anime's dark band; `.onPaper` on the manga's light folio band.
     var tone: DetailMarkTone = .onArt
 
+    /// The prototype's 5 pt ring, scaled with the label so it never shrinks beside large type.
+    @ScaledMetric(relativeTo: .caption) private var ring: CGFloat = 5
+
     private var isTracked: Bool { entry != nil }
     private var german: Bool { KuroLocale.isGerman }
 
@@ -246,60 +260,76 @@ struct DetailStatusMark: View {
         // German untracked ("Nicht in deiner Liste" + "Hinzufügen") is wider than a narrow hero column:
         // Add then drops under the mark instead of clipping.
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) {
-                statusMenu
-                addButton
+            HStack(spacing: 0) {
+                markButton
+                moreMenu
+                addButton.padding(.leading, 4)
             }
             .fixedSize()
             VStack(alignment: .leading, spacing: 0) {
-                statusMenu
+                HStack(spacing: 0) {
+                    markButton
+                    moreMenu
+                }
                 addButton
             }
             .fixedSize()
         }
     }
 
-    private var statusMenu: some View {
-            Menu {
-                ForEach(DetailStatusCopy.actions(isTracked: isTracked), id: \.self) { action in
-                    if handler(action) != nil {
-                        // Removing a saved title drops its progress, notes and score: marked destructive.
-                        Button(role: action == .favourite && isTracked ? .destructive : nil) {
-                            handler(action)?()
-                        } label: {
-                            Label(DetailStatusCopy.actionTitle(action, isTracked: isTracked, kind: kind, german: german),
-                                  systemImage: icon(action))
-                        }
+    private var markButton: some View {
+        Button(action: onListSettings) {
+            HStack(spacing: 6) {
+                Circle()
+                    .strokeBorder(tone.ink, lineWidth: 1)
+                    .frame(width: min(ring, 12), height: min(ring, 12))
+                Text(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
+                    .font(.detailSF(10, relativeTo: .caption1))
+                    .foregroundStyle(tone.ink)
+                    .lineLimit(1)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(KuroPressStyle())
+        .accessibilityLabel(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
+        .accessibilityHint(isTracked ? KuroLocale.text("Opens list settings.", "Öffnet die Listeneinstellungen.")
+                                     : KuroLocale.text("Opens the status choice.", "Öffnet die Statusauswahl."))
+        .accessibilityActions {
+            ForEach(DetailStatusCopy.actions(isTracked: isTracked).filter { $0 != .listSettings }, id: \.self) { action in
+                if let run = handler(action) {
+                    Button(DetailStatusCopy.actionTitle(action, isTracked: isTracked, kind: kind, german: german), action: run)
+                }
+            }
+        }
+    }
+
+    /// The actions menu: a plain tap opens it (no long-press).
+    private var moreMenu: some View {
+        Menu {
+            ForEach(DetailStatusCopy.actions(isTracked: isTracked).filter { $0 != .listSettings }, id: \.self) { action in
+                if handler(action) != nil {
+                    // Removing a saved title drops its progress, notes and score: marked destructive.
+                    Button(role: action == .favourite && isTracked ? .destructive : nil) {
+                        handler(action)?()
+                    } label: {
+                        Label(DetailStatusCopy.actionTitle(action, isTracked: isTracked, kind: kind, german: german),
+                              systemImage: icon(action))
                     }
                 }
-            } label: {
-                HStack(spacing: 6) {
-                    Circle()
-                        .strokeBorder(tone.ink, lineWidth: 1)
-                        .frame(width: 5, height: 5)
-                    Text(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
-                        .font(.detailSF(10, relativeTo: .caption1))
-                        .foregroundStyle(tone.ink)
-                        .lineLimit(1)
-                    Image(systemName: "chevron.down")
-                        .font(.detailSF(7, .semibold, relativeTo: .caption2))
-                        .foregroundStyle(tone.ink.opacity(0.7))
-                }
-                .frame(minHeight: 44)
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(tone.ink.opacity(0.85))
+                .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
-            } primaryAction: {
-                onListSettings()
-            }
-            .accessibilityLabel(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
-            .accessibilityHint(KuroLocale.text("Opens list settings. More actions in the menu.",
-                                               "Öffnet die Listeneinstellungen. Weitere Aktionen im Menü."))
-            .accessibilityActions {
-                ForEach(DetailStatusCopy.actions(isTracked: isTracked), id: \.self) { action in
-                    if let run = handler(action) {
-                        Button(DetailStatusCopy.actionTitle(action, isTracked: isTracked, kind: kind, german: german), action: run)
-                    }
-                }
-            }
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .accessibilityLabel(KuroLocale.text("More actions", "Weitere Aktionen"))
+        .accessibilityHint(KuroLocale.text("Favourite, verdict, where to watch, clubs and share.",
+                                           "Merken, Urteil, wo ansehen, Clubs und Teilen."))
     }
 
     @ViewBuilder
@@ -320,7 +350,9 @@ struct DetailStatusMark: View {
             }
     }
 
-    private func handler(_ action: DetailStatusAction) -> (() -> Void)? {
+    /// The closure each action runs (internal for the wiring test); nil only for an optional action
+    /// the page did not pass.
+    func handler(_ action: DetailStatusAction) -> (() -> Void)? {
         switch action {
         case .listSettings: return onListSettings
         case .favourite: return onFavourite
@@ -390,7 +422,9 @@ struct DetailAvatars: View {
         HStack(spacing: -4) {
             ForEach(Array(names.prefix(3).enumerated()), id: \.offset) { _, name in
                 Text(String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-                    .font(.detailSF(size > 23 ? 9 : 8, relativeTo: .caption2))
+                    // A fixed size: the discs are decorative (hidden from VoiceOver), and a scaled initial
+                    // would spill out of a fixed circle at accessibility sizes.
+                    .font(.system(size: size > 23 ? 9 : 8))
                     .foregroundStyle(DetailInk.avatarInk)
                     .frame(width: size - 4, height: size - 4)
                     .background(DetailInk.avatarFill, in: Circle())
@@ -405,6 +439,7 @@ struct DetailAvatars: View {
 /// The page's transient line after +1, Undo or a failed write (prototype §3.4 toast).
 struct DetailToastOverlay: ViewModifier {
     @Binding var toast: KuroToastState?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
@@ -412,7 +447,9 @@ struct DetailToastOverlay: ViewModifier {
                 KuroToast(toast: toast)
                     .padding(.horizontal, 13)
                     .padding(.bottom, 12)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    // Reduce Motion / Low Power: a fade, no slide.
+                    .transition(KuroMotion.playsMotionNow(reduceMotion: reduceMotion)
+                                ? .move(edge: .bottom).combined(with: .opacity) : .opacity)
             }
         }
     }

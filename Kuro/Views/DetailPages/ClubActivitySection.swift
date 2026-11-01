@@ -1,96 +1,16 @@
 import KuroCore
 import SwiftUI
 
-// MARK: - Club Activity Section for Media Detail Views
-// Shows club context for a media item: which clubs have it in a rail,
-// aggregate member status counts, and (if sharing level allows) member details.
-// Privacy is enforced server-side; this view renders whatever data is returned.
-
-struct ClubActivitySection: View {
-    let mediaId: Int
-    let mediaType: String
-
-    @Environment(IdentityStore.self) private var identity
-    @Environment(ClubsStore.self) private var clubs
-    @State private var showAddSheet = false
-
-    private var activities: [ClubMediaActivity] {
-        clubs.clubActivityForMedia(mediaId: mediaId, mediaType: mediaType)
-    }
-
-    var body: some View {
-        let hasClubs = !clubs.myClubs.isEmpty
-        let currentUserId = identity.currentUserId
-
-        if hasClubs || !activities.isEmpty {
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                EditorialLayout.divider()
-
-                HStack(spacing: 10) {
-                    Text(KuroLocale.text("Clubs", "Clubs"))
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(1.6)
-                        .textCase(.uppercase)
-                        .foregroundColor(.kuroBlack80)
-                        .accessibilityAddTraits(.isHeader)
-
-                    Spacer(minLength: 0)
-
-                    if hasClubs {
-                        Button {
-                            KuroAccessibility.impactHaptic(.light)
-                            showAddSheet = true
-                        } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "plus")
-                                        .font(.kuroMicro(weight: .semibold))
-                                    Text(KuroLocale.text("Add", "Hinzufügen"))
-                                        .font(.kuroMeta(weight: .medium))
-                                }
-                            .foregroundColor(.kuroBlack80)
-                            .padding(.horizontal, 12)
-                            .frame(minHeight: 44)
-                            .background(
-                                Capsule()
-                                    .stroke(Color.kuroBlack12, lineWidth: 0.8)
-                                    .padding(.vertical, 4)
-                            )
-                            .contentShape(Capsule())
-                        }
-                        .buttonStyle(KuroPressStyle())
-                        .accessibilityLabel(KuroLocale.text("Add to a club rail", "Zu einer Club-Leiste hinzufügen"))
-                    }
-                }
-
-                if activities.isEmpty {
-                    Text(KuroLocale.text(
-                        "Add this to a club rail to share it with your club.",
-                        "Füge den Titel einer Club-Leiste hinzu, um ihn mit deinem Club zu teilen."))
-                        .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.kuroInkQuiet)
-                } else {
-                    ForEach(activities, id: \.club.id) { activity in
-                        ClubActivityCard(activity: activity, currentUserId: currentUserId)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .task {
-                // If the user just opened detail pages, the clubs list might not be warm yet.
-                if clubs.myClubs.isEmpty {
-                    await clubs.refreshMyClubsIfStale()
-                }
-            }
-            .sheet(isPresented: $showAddSheet) {
-                AddToClubRailSheet(mediaId: mediaId, mediaType: mediaType)
-            }
-        }
-    }
-}
+// MARK: - Club rail presence for the detail pages
+// Which of the viewer's clubs hold a title in a rail: aggregate member statuses and (when the club's
+// sharing level allows) member details. Privacy is enforced server-side; these views render whatever
+// the cached club bundles return. Since the prototype-fidelity pass (2026-11-01) the cards are drawn
+// inside the detail page's "Between us." card (`DetailBetweenUs`); the old standalone section and its
+// Add button are gone (Add to a club lives in the status mark's menu).
 
 // MARK: - Card per club
 
-private struct ClubActivityCard: View {
+struct ClubActivityCard: View {
     let activity: ClubMediaActivity
     let currentUserId: String?
 
