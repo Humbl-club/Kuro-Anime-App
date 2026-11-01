@@ -17,6 +17,14 @@ struct FriendsActivitySection: View {
     let mediaId: Int
     let mediaType: String
     var editorial = false
+    /// The divider and "Between us." heading; the prototype detail draws its own card heading.
+    var showsHeading = true
+    /// Reports the club members tracking this title whenever the shown activity changes ([] when it
+    /// is cleared by a title or friend-scope change), so the page's club presence follows the same
+    /// read and the same permission lifecycle.
+    var onRoster: (([SocialActivityStore.FriendTitleActivity]) -> Void)? = nil
+    /// Fixture renders only (KuroTests): shown instead of reading the activity.
+    var preview: SocialActivityStore.FriendActivityResponse? = nil
 
     @Environment(ClubsStore.self) private var clubs
     @Environment(SocialActivityStore.self) private var social
@@ -50,13 +58,15 @@ struct FriendsActivitySection: View {
         let permission = social.friendScopeGeneration
         if hasClubs {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                EditorialLayout.divider()
+                if showsHeading {
+                    EditorialLayout.divider()
 
-                Text(editorial ? KuroLocale.text("Between us.", "Unter uns.") : KuroLocale.text("FRIENDS", "FREUNDE"))
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(1.6)
-                    .foregroundColor(.kuroBlack80)
-                    .accessibilityAddTraits(.isHeader)
+                    Text(editorial ? KuroLocale.text("Between us.", "Unter uns.") : KuroLocale.text("FRIENDS", "FREUNDE"))
+                        .font(.kuroCaption(weight: .medium))
+                        .tracking(1.6)
+                        .foregroundColor(.kuroBlack80)
+                        .accessibilityAddTraits(.isHeader)
+                }
 
                 if isLoading && activity == nil {
                     HStack(spacing: 10) {
@@ -130,7 +140,16 @@ struct FriendsActivitySection: View {
             }
             .task(id: ActivityKey(mediaType: mediaType, mediaId: mediaId, friendScope: social.friendScopeGeneration)) {
                 resetTitleState()
+                if let preview {
+                    // Fixture renders only: the given activity, no read.
+                    activity = preview
+                    isLoading = false
+                    return
+                }
                 await loadActivity()
+            }
+            .onChange(of: activity?.friends_tracking.map(\.user_id) ?? [], initial: true) { _, _ in
+                onRoster?(activity?.friends_tracking ?? [])
             }
         }
     }

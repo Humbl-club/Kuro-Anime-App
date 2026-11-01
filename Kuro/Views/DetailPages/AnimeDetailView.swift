@@ -2,324 +2,18 @@ import KuroCore
 import KuroLibrary
 import SwiftUI
 
-// MARK: - ANIME DETAIL VIEW - iOS 26 Mobile-First
-// Comprehensive anime detail page with elegant minimalism
-//
-// Loading (the page's one documented load coordinator; docs/modules/detail-pages.md). Initial/keyed
-// loads use SwiftUI tasks; unit-sheet sentinel paging owns a task cancelled on dismissal. Each run
-// rejects cancelled/superseded results before publishing or changing loading state.
-// Row limits: similar 14, sub-genre tags 12 (one row read, trimmed client-side), episode preview 10,
-// episode sheet 50 per page, next-episode stream link 1. NOT row-limited: the credits queries (every
-// studio / staff / cast row of the title), the ladder RPC and the title's external links.
-//
-// | Loader                                        | Key                       | Work                                                                                                   | Lifetime   |
-// | --------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------ | ---------- |
-// | Screen (`AnimeDetailView`)                    | anime id                  | top tags, similar, ladder -> `enqueueMediaRelationRefreshIfNeeded` (server write, cooldown) -> FM synopsis | page       |
-// | Credits (`AnimeDetailView`)                   | anime id + credits_cast_v1 | studios, staff, cast                                                                                   | page       |
-// | Units preview (`EpisodesSection`)             | next episode number       | next 10 episodes                                                                                       | section    |
-// | Units sheet (`EpisodeListSheet`)              | sheet appear + load-more  | episodes, pages of 50                                                                                  | sheet      |
-// | Watch links (`ActionButtons`)                 | viewer progress           | `ProviderAvailabilityStore.resolveWatchLinks`: stream link of episode progress + 1 (`getStreamLinkForEpisode`), legal external links, and behind streaming_availability_v1 status / provider v2 / `enqueueAvailabilityRefreshIfStale` (server write); a cancelled (superseded) run publishes nothing | action bar |
-// | `ClubActivitySection`, `FriendsActivitySection` | own `.task`             | club activity, friend comments                                                                         | section    |
-//
-// Shared chrome: DetailSharedComponents.swift; provider sheet: ProviderLinkViews.swift; link builders:
-// Kuro/Providers/ProviderLinkBuilders.swift.
+// MARK: - ANIME DETAIL VIEW
+// The anime detail for everybody (series flags on or off) is the prototype page,
+// `AnimeDetailPage` (Kuro/Views/DetailPages/Prototype/AnimeDetailSections.swift; its load table is in
+// that file's header). The legacy body (genre pills, bottom dock) was removed in the prototype-fidelity
+// pass (spec §5.2); its actions live on the hero status mark. The structs below (episode rows/sheet,
+// action dock, hero, similar rail) are kept for their other callers and earlier evidence renders.
 
 struct AnimeDetailView: View {
     let anime: Anime
-    @Environment(\.dismiss) private var dismiss
-    @Environment(CatalogStore.self) private var catalog
-    @Environment(RecommendationsReader.self) private var recommendations
-    @Environment(AppleFMService.self) private var deviceIntelligence
-    @Environment(FeatureFlags.self) private var flags
-    @State private var scrollOffset: CGFloat = 0
-    @State private var showFullDescription = false
-    @State private var toast: KuroToastState? = nil
-    @State private var toastDismissTask: Task<Void, Never>? = nil
-    @State private var topTags: [TagFacet] = []
-    @State private var similar: [Anime] = []
-    @State private var condensedSynopsis: String?
-    @State private var studios: [Studio] = []
-    @State private var staffItems: [(staff: Staff, role: String)] = []
-    @State private var castItems: [(character: Character, role: String)] = []
-    @State private var mediaLadder: MediaLadderResponse = .empty
-    @State private var didLoadCredits = false
-    @State private var didLoadLadder = false
-    @State private var screenLoadGeneration = UUID()
-    @State private var creditsLoadGeneration = UUID()
-    @State private var releaseItems: [ReleaseScheduleItem]?
-    @State private var releaseSongs: [ThemeSong]?
 
     var body: some View {
-        if flags.seriesHomeNativeV1Enabled {
-            // Spec D15: the series page shows these legacy sections when its bundle has no series data.
-            SeriesAnimeDetailView(anime: anime, legacy: { AnyView(legacyAnimeDetail) })
-        } else {
-            legacyAnimeDetail
-        }
-    }
-
-    private var legacyAnimeDetail: some View {
-        GeometryReader { geometry in
-            // In sheets, SwiftUI sometimes reserves a top "cap" area that isn't reflected as a
-            // typical safe-area inset on some OS/device combinations. Enforce a minimum so the
-            // hero always reaches the sheet's top edge.
-            let safeTop = max(geometry.safeAreaInsets.top, 24)
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
-                    GeometryReader { proxy in
-                        Color.clear
-                            .preference(
-                                key: KuroDetailScrollOffsetPreferenceKey.self,
-                                value: proxy.frame(in: .named("detail_scroll")).minY
-                            )
-                    }
-                    .frame(height: 0)
-
-                    // Hero Section with Parallax Effect
-                    // In a sheet presentation, SwiftUI can reserve top insets (rounded corners / drag affordance)
-                    // which can leave a visible cap above the hero image. Pull the hero up by the sheet-safe inset
-                    // so the banner truly reaches the top edge.
-                    HeroSection(anime: anime, geometry: geometry, scrollOffset: $scrollOffset)
-                        .offset(y: -safeTop)
-                        .padding(.bottom, -safeTop)
-                    
-                    // Content Section
-                    VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width)) {
-                        // Title with its one metadata line (score, year, format, episodes, status).
-                        TitleSection(anime: anime)
-
-                        // The store's answer; the catalogue row's own future airing while it loads or when it has none.
-                        DetailNextReleaseSection(items: (releaseItems?.isEmpty == false ? releaseItems : nil)
-                                                 ?? DetailNextReleaseSection.seed(for: anime))
-                        
-                        // Description
-                        if anime.hasMeaningfulSynopsis {
-                            DescriptionSection(
-                                description: anime.displayDescription,
-                                showFull: $showFullDescription,
-                                condensedSynopsis: condensedSynopsis
-                            )
-                        }
-                        
-                        // Genres
-                        if let genres = anime.genreList, !genres.isEmpty {
-                            GenresSection(genres: genres)
-                        }
-
-                        if !topTags.isEmpty {
-                            TagChipsSection(title: KuroLocale.text("SUB‑GENRES", "UNTERGENRES"), tags: topTags.map(\.name))
-                        }
-
-                        if flags.isCreditsCastV1Enabled {
-                            if didLoadCredits {
-                                if !castItems.isEmpty {
-                                    CastSection(characters: castItems)
-                                }
-
-                                if !studios.isEmpty || !staffItems.isEmpty {
-                                    ProductionSection(studios: studios, staffItems: staffItems)
-                                }
-                            } else {
-                                DetailCreditsSkeleton()
-                            }
-                        }
-
-                        if didLoadLadder {
-                            AdaptationPathSection(ladder: mediaLadder, mediaType: .anime)
-                        } else {
-                            DetailLadderSkeleton()
-                        }
-
-                        // Episodes Section (if available)
-                        if let episodeCount = anime.episodeCount ?? anime.nextEpisodeNumber.map({ max(0, $0 - 1) }), episodeCount > 0 {
-                            EpisodesSection(
-                                anime: anime,
-                                episodeCount: episodeCount,
-                                countLabel: anime.episodeCount == nil ? KuroLocale.text("SO FAR", "BISHER") : KuroLocale.text("TOTAL", "INSGESAMT"),
-                                onError: showToast
-                            )
-                        }
-
-                        DetailSongsSection(songs: releaseSongs ?? [])
-
-                        // "NEXT" pick when user has completed this series
-                        if !similar.isEmpty {
-                            NextPickSection(
-                                mediaId: anime.id,
-                                mediaType: "anime",
-                                similar: similar
-                            )
-                        }
-
-                        if !similar.isEmpty {
-                            SimilarSection(title: KuroLocale.text("MORE LIKE THIS", "ÄHNLICHE TITEL"), items: similar, containerWidth: geometry.size.width)
-                        }
-
-                        ClubActivitySection(mediaId: anime.id, mediaType: "ANIME")
-
-                        if flags.isSocialActivityV1Enabled {
-                            FriendsActivitySection(mediaId: anime.id, mediaType: "ANIME")
-                        }
-
-                        // The page's deep link; it always parses for an integer id (no force unwrap).
-                        if let shareURL = URL(string: "kuro://anime/\(anime.id)") {
-                            ShareLink(
-                                item: shareURL,
-                                subject: Text(anime.displayTitle)
-                            ) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .font(.kuroCustom(11, weight: .medium, maxSize: 18))
-                                    Text(KuroLocale.text("SHARE", "TEILEN"))
-                                        .font(.kuroMicro(weight: .medium))
-                                        .tracking(1.2)
-                                }
-                                .foregroundColor(.kuroTextSecondary)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color.kuroBlack04)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .stroke(Color.kuroBlack08, lineWidth: 0.5)
-                                        )
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .simultaneousGesture(TapGesture().onEnded { KuroAccessibility.impactHaptic(.light) })
-                        }
-
-                    }
-                    .padding(.horizontal, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
-                    .padding(.top, KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width))
-                    .padding(.bottom, KuroDesignSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width))
-                }
-            }
-            .transaction { $0.animation = nil }
-            .coordinateSpace(name: "detail_scroll")
-            .onPreferenceChange(KuroDetailScrollOffsetPreferenceKey.self) { v in
-                scrollOffset = v
-            }
-            .background(Color.kuroBackground)
-            .ignoresSafeArea(edges: .top)
-            .overlay(alignment: .topLeading) {
-                // Custom Back Button
-                BackButton(dismiss: dismiss)
-                    .padding(.top, safeTop + KuroSpacing.md)
-                    .padding(.leading, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
-            }
-            // The opaque dock reserves its own height at the end of the scroll content (no ghosting).
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                DetailDockBar(horizontalPadding: geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding) {
-                    ActionButtons(anime: anime, onToast: showToast)
-                }
-            }
-            .overlay(alignment: .bottom) {
-                if let toast {
-                    KuroToast(toast: toast)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 96)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-            }
-        }
-        // In a SwiftUI sheet, the root view is often constrained to the sheet's safe area, which can
-        // leave a visible "white cap" above the hero image. Make the entire detail view truly
-        // full-bleed within the sheet container.
-        .background(Color.kuroBackground.ignoresSafeArea())
-        .ignoresSafeArea(edges: .top)
-        #if os(iOS)
-        .toolbar(.hidden, for: .navigationBar)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        #else
-        .toolbar(.hidden, for: .windowToolbar)
-        #endif
-        .task(id: anime.id) {
-            guard !Task.isCancelled else { return }
-            let generation = UUID()
-            screenLoadGeneration = generation
-            async let tags = catalog.fetchTopTagsForAnime(animeId: anime.id, limit: 12)
-            async let sim = recommendations.fetchSimilarAnime(seed: anime, limit: 14)
-            async let ladder = catalog.fetchMediaLadder(mediaType: "ANIME", mediaId: anime.id)
-            let loadedTags = await tags
-            guard !Task.isCancelled, screenLoadGeneration == generation else { return }
-            topTags = loadedTags
-            let loadedSimilar = await sim
-            guard !Task.isCancelled, screenLoadGeneration == generation else { return }
-            similar = loadedSimilar
-            let loadedLadder = await ladder
-            guard !Task.isCancelled, screenLoadGeneration == generation else { return }
-            mediaLadder = loadedLadder
-            didLoadLadder = true
-            await catalog.enqueueMediaRelationRefreshIfNeeded(
-                mediaType: "ANIME",
-                mediaId: anime.id,
-                ladder: mediaLadder,
-                reason: "detail_open"
-            )
-
-            guard !Task.isCancelled, screenLoadGeneration == generation else { return }
-
-            // Condense long synopses on-device via Apple FM (no-op on unsupported devices)
-            let sourceSynopsis = anime.displayDescription
-            let hasReadyEnhanced = (anime.synopsisEnhancedState ?? "").lowercased() == "ready"
-            if !hasReadyEnhanced, sourceSynopsis.count > 200 {
-                let synopsis = await deviceIntelligence.condenseSynopsis(
-                    mediaKind: "ANIME",
-                    mediaId: anime.id,
-                    description: sourceSynopsis,
-                    title: anime.displayTitle,
-                    genres: anime.genreList ?? []
-                )
-                guard !Task.isCancelled, screenLoadGeneration == generation else { return }
-                condensedSynopsis = synopsis
-            }
-        }
-        .task(id: "\(anime.id)-\(flags.isCreditsCastV1Enabled)") {
-            guard !Task.isCancelled else { return }
-            let generation = UUID()
-            creditsLoadGeneration = generation
-            guard flags.isCreditsCastV1Enabled else { return }
-            async let studioFetch = catalog.fetchStudiosForAnime(animeId: anime.id)
-            async let staffFetch = catalog.fetchStaffForAnime(animeId: anime.id)
-            async let castFetch = catalog.fetchCharactersForAnime(animeId: anime.id)
-            let loadedStudios = await studioFetch
-            guard !Task.isCancelled, creditsLoadGeneration == generation, flags.isCreditsCastV1Enabled else { return }
-            studios = loadedStudios
-            let loadedStaffItems = await staffFetch
-            guard !Task.isCancelled, creditsLoadGeneration == generation, flags.isCreditsCastV1Enabled else { return }
-            staffItems = loadedStaffItems
-            let loadedCastItems = await castFetch
-            guard !Task.isCancelled, creditsLoadGeneration == generation, flags.isCreditsCastV1Enabled else { return }
-            castItems = loadedCastItems
-            didLoadCredits = true
-        }
-        .onDisappear {
-            screenLoadGeneration = UUID()
-            creditsLoadGeneration = UUID()
-            toastDismissTask?.cancel()
-        }
-        .detailReleases(kind: .anime, id: anime.id, schedule: $releaseItems, songs: $releaseSongs)
-        // This detail sheet's own presentation context: the cards and the action bar inside open their
-        // routes here (stacked on this detail, as before).
-        .routePresenter()
-    }
-
-    @MainActor
-    private func showToast(_ next: KuroToastState) {
-        toastDismissTask?.cancel()
-        withAnimation(.easeInOut(duration: 0.2)) {
-            toast = next
-        }
-        toastDismissTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: UInt64(2.2 * 1_000_000_000))
-            if !Task.isCancelled {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    toast = nil
-                }
-            }
-        }
+        AnimeDetailPage(anime: anime)
     }
 }
 
@@ -831,8 +525,8 @@ struct EpisodeItemRow: View {
             Spacer()
 
             if isMarking {
-                ProgressView()
-                    .scaleEffect(0.75)
+                KuroBusyMark(width: 24)
+                    .frame(minWidth: 44, minHeight: 44)
             } else if isWatched {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
@@ -971,7 +665,7 @@ struct EpisodeListSheet: View {
                     }
 
                     if isLoading {
-                        ProgressView()
+                        KuroLoadingView(scope: .inline)
                             .padding(.vertical, 16)
                     }
                 }

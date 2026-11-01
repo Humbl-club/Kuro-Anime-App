@@ -821,8 +821,8 @@ struct ChapterItemRow: View {
             Spacer()
 
             if isMarking {
-                ProgressView()
-                    .scaleEffect(0.75)
+                KuroBusyMark(width: 24)
+                    .frame(minWidth: 44, minHeight: 44)
             } else if isRead {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
@@ -982,7 +982,7 @@ struct ChapterListSheet: View {
                     }
 
                     if isLoading {
-                        ProgressView()
+                        KuroLoadingView(scope: .inline)
                             .padding(.vertical, 16)
                     }
                 }
