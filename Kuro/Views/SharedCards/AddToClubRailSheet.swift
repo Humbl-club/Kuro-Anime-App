@@ -2,7 +2,7 @@
 // clubs (pick a club, load its rails, add). Moved verbatim from DetailPages/ClubActivitySection.swift
 // (placement only; see docs/plans/2026-10-05-modular-architecture-large-file-review.md §9 item 3).
 //
-// Reads: ClubsStore (`myClubs`, `fetchMyClubs`, `fetchClubBundle`, `addRailItem`,
+// Reads: ClubsStore (`myClubs`, `myClubsPhase`, `refreshMyClubsIfStale`, `fetchMyClubs` (Retry), `fetchClubBundle`, `addRailItem`,
 // `refreshClubBundle`, `revocationEpoch`, remembered add-to-club id), FeatureFlags
 // (`isClubsInteractionV2Enabled`), InteractionTelemetry (`clubs_add_to_rail_*` events) and
 // `\.dismiss`. Uses `ClubSelectionRevocation` (ClubViewLifecycle.swift) and `ClubError`.
@@ -24,6 +24,7 @@ struct AddToClubRailSheet: View {
     @Environment(InteractionTelemetry.self) private var interactionTelemetry
     @Environment(FeatureFlags.self) private var flags
     @Environment(ClubsStore.self) private var clubs
+    @Environment(NetworkMonitor.self) private var networkMonitor
 
     @State private var actionScope = AccountActionScope()
     @State private var selectedClubId: String? = nil
@@ -40,148 +41,65 @@ struct AddToClubRailSheet: View {
         flags.isClubsInteractionV2Enabled
     }
 
+    private var eligibleClubs: [ClubListRow] {
+        clubs.myClubs.filter { !$0.is_archived }
+    }
+
     var body: some View {
         let origin = actionScope.capture(session: clubs.accountSession)
         return NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
-                    Text("ADD TO CLUB")
-                        .font(.kuroCaption(weight: .medium))
-                        .tracking(2.4)
-                        .foregroundColor(.black.opacity(0.60))
-                        .padding(.top, KuroDesignSpacing.md)
+                    ClubSheetTitle(kicker: KuroLocale.text("Clubs", "Clubs"),
+                                   title: KuroLocale.text("Add to a club.", "Zu einem Club hinzufügen."))
 
-                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                        Text("Choose a club")
-                            .font(.kuroCaption(weight: .medium))
-                            .foregroundColor(.black.opacity(0.55))
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(KuroLocale.text("Club", "Club"))
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .accessibilityAddTraits(.isHeader)
+                            .padding(.bottom, KuroDesignSpacing.xs)
 
-                        ForEach(clubs.myClubs.filter { !$0.is_archived }) { club in
-                            Button {
-                                KuroAccessibility.impactHaptic(.light)
-                                selectClub(club.id, origin: origin)
-                            } label: {
-                                HStack(spacing: 10) {
-                                    Text(club.name)
-                                        .font(.kuroBody(weight: .light))
-                                        .foregroundColor(.black.opacity(0.85))
-                                        .lineLimit(1)
-
-                                    Spacer(minLength: 0)
-
-                                    if selectedClubId == club.id {
-                                        Image(systemName: "checkmark")
-                                            .font(.kuroCaption(weight: .semibold))
-                                            .foregroundColor(.black.opacity(0.55))
-                                    } else {
-                                        Image(systemName: "chevron.right")
-                                            .font(.kuroCaption(weight: .regular))
-                                            .foregroundColor(.kuroTextTertiary)
-                                    }
-                                }
-                                .padding(.vertical, 10)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        clubChoices(origin: origin)
                     }
 
-                    EditorialLayout.divider()
+                    Rectangle().fill(Color.kuroHairline).frame(height: 1)
 
-                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                        Text("Choose a rail")
-                            .font(.kuroCaption(weight: .medium))
-                            .foregroundColor(.black.opacity(0.55))
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(KuroLocale.text("Rail", "Liste"))
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .accessibilityAddTraits(.isHeader)
+                            .padding(.bottom, KuroDesignSpacing.xs)
 
-                        if isLoading {
-                            HStack(spacing: 10) {
-                                ProgressView().scaleEffect(0.9).tint(.black.opacity(0.45))
-                                Text("Loading rails...")
-                                    .font(.kuroCaption(weight: .light))
-                                    .foregroundColor(.black.opacity(0.45))
-                            }
-                            .padding(.vertical, 6)
-                        } else if let errorText {
-                            Text(errorText)
-                                .font(.kuroCaption())
-                                .foregroundColor(.red.opacity(0.85))
-                        } else if let bundle {
-                            if bundle.rails.isEmpty {
-                                Text("No rails yet. Ask an admin to create one.")
-                                    .font(.kuroCaption(weight: .light))
-                                    .foregroundColor(.black.opacity(0.45))
-                            } else {
-                                ForEach(bundle.rails) { rail in
-                                    let canAdd = !(rail.is_locked && !["owner", "admin"].contains(bundle.my_role))
-
-                                    Button {
-                                        guard canAdd, !isSubmitting else { return }
-                                        KuroAccessibility.impactHaptic(.light)
-                                        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await addToRail(railId: rail.id, clubId: bundle.club.id, origin: ticket) }
-                                    } label: {
-                                        HStack(spacing: 10) {
-                                            Text(rail.title)
-                                                .font(.kuroBody(weight: .light))
-                                                .foregroundColor(.black.opacity(canAdd ? 0.85 : 0.30))
-                                                .lineLimit(1)
-
-                                            Spacer(minLength: 0)
-
-                                            if rail.is_locked {
-                                                Image(systemName: "lock.fill")
-                                                    .font(.kuroMicro(weight: .regular))
-                                                    .foregroundColor(.kuroTextTertiary)
-                                            }
-
-                                            if clubsInteractionV2Enabled && pendingRailId == rail.id && isSubmitting {
-                                                ProgressView()
-                                                    .scaleEffect(0.8)
-                                                    .tint(.black.opacity(0.55))
-                                            } else if clubsInteractionV2Enabled && pendingRailId == rail.id {
-                                                Image(systemName: "checkmark")
-                                                    .font(.kuroCaption(weight: .semibold))
-                                                    .foregroundColor(.black.opacity(0.55))
-                                            } else {
-                                                Image(systemName: "plus")
-                                                    .font(.kuroCaption(weight: .semibold))
-                                                    .foregroundColor(.black.opacity(canAdd ? 0.55 : 0.20))
-                                            }
-                                        }
-                                        .padding(.vertical, 10)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .disabled(!canAdd || isSubmitting)
-                                }
-                            }
-                        } else {
-                            Text("Pick a club to see its rails.")
-                                .font(.kuroCaption(weight: .light))
-                                .foregroundColor(.black.opacity(0.45))
-                        }
+                        railChoices(origin: origin)
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, KuroDesignSpacing.padding)
+                .padding(.top, KuroDesignSpacing.md)
                 .padding(.bottom, KuroDesignSpacing.xxl)
+                .kuroReadableWidth()
             }
-            .background(Color.kuroBackground)
+            .background(Color.kuroCanvasPage)
             .safeAreaInset(edge: .bottom) {
-                Color.clear.frame(height: 24)
+                Color.clear.frame(height: KuroDesignSpacing.lg)
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .font(.kuroBody(weight: .light))
+                    Button(KuroLocale.text("Cancel", "Abbrechen")) { dismiss() }
+                        .font(.kuroBody(weight: .regular))
+                        .tint(Color.kuroInk)
                 }
             }
         }
         .onAppear { actionScope.activate(session: clubs.accountSession) }
         .task(id: origin) {
             guard let origin, actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
-            if clubs.myClubs.isEmpty {
-                await clubs.fetchMyClubs()
-                guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
-            }
+            // Reuses a read from the last minute; a failed or missing read asks again.
+            await clubs.refreshMyClubsIfStale()
+            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             if clubsInteractionV2Enabled {
-                let eligible = clubs.myClubs.filter { !$0.is_archived }
+                let eligible = eligibleClubs
                 guard selectedClubId == nil, !eligible.isEmpty else { return }
                 if let remembered = clubs.rememberedAddToClubId(),
                    eligible.contains(where: { $0.id == remembered }) {
@@ -202,6 +120,139 @@ struct AddToClubRailSheet: View {
             guard ClubSelectionRevocation.isRevocation(current: epoch, captured: selectedClubEpoch),
                   let epoch else { return }
             selectedClubRevoked(epoch: epoch)
+        }
+    }
+
+    // MARK: - Club choices
+
+    @ViewBuilder
+    private func clubChoices(origin: AccountActionScope.Ticket?) -> some View {
+        let state = ClubsListRules.state(phase: clubs.myClubsPhase, hasClubs: !eligibleClubs.isEmpty,
+                                         isConnected: networkMonitor.isConnected)
+        switch state {
+        case .loading:
+            KuroStateView(.loading, title: KuroLocale.text("Loading your clubs.", "Deine Clubs werden geladen."), layout: .inline)
+        case .empty:
+            KuroStateView(.empty,
+                          title: KuroLocale.text("You're not in a club yet.", "Du bist noch in keinem Club."),
+                          message: KuroLocale.text("Start or join one on the Clubs page.", "Gründe oder finde einen auf der Clubs-Seite."),
+                          layout: .inline)
+        case .offline:
+            KuroStateView(.offline(hasCachedContent: false), layout: .inline, retry: { retryClubs(origin: origin) })
+        case .failed:
+            KuroStateView(.failed(hasCachedContent: false),
+                          title: KuroLocale.text("Couldn't load your clubs.", "Deine Clubs konnten nicht geladen werden."),
+                          layout: .inline,
+                          retry: { retryClubs(origin: origin) })
+        case .list:
+            ForEach(eligibleClubs) { club in
+                let isSelected = selectedClubId == club.id
+                Button {
+                    KuroAccessibility.selectionHaptic()
+                    selectClub(club.id, origin: origin)
+                } label: {
+                    HStack(spacing: KuroDesignSpacing.md) {
+                        Text(club.name)
+                            .font(.kuroBody(weight: isSelected ? .semibold : .regular))
+                            .foregroundStyle(Color.kuroInk)
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "checkmark")
+                            .font(.kuroMeta(weight: .semibold))
+                            .foregroundStyle(Color.kuroInk)
+                            .opacity(isSelected ? 1 : 0)
+                            .accessibilityHidden(true)
+                    }
+                    .frame(minHeight: 48)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+                .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+                .overlay(alignment: .bottom) {
+                    Rectangle().fill(Color.kuroHairline).frame(height: 1)
+                }
+            }
+        }
+    }
+
+    // MARK: - Rail choices
+
+    @ViewBuilder
+    private func railChoices(origin: AccountActionScope.Ticket?) -> some View {
+        if isLoading {
+            KuroStateView(.loading, title: KuroLocale.text("Loading rails.", "Listen werden geladen."), layout: .inline)
+        } else if let bundle {
+            if let errorText {
+                // A failed add keeps the rails on screen with the reason above them.
+                ClubInlineError(text: errorText)
+                    .padding(.vertical, KuroDesignSpacing.sm)
+            }
+            if bundle.rails.isEmpty {
+                KuroStateView(.empty,
+                              title: KuroLocale.text("No rails yet.", "Noch keine Listen."),
+                              message: KuroLocale.text("Ask an admin to start one.", "Bitte einen Admin, eine anzulegen."),
+                              layout: .inline)
+            } else {
+                ForEach(bundle.rails) { rail in
+                    let canAdd = !(rail.is_locked && !["owner", "admin"].contains(bundle.my_role))
+                    let isPending = clubsInteractionV2Enabled && pendingRailId == rail.id
+
+                    Button {
+                        guard canAdd, !isSubmitting else { return }
+                        KuroAccessibility.impactHaptic(.light)
+                        actionScope.launch(origin: origin, session: clubs.accountSession) { ticket in await addToRail(railId: rail.id, clubId: bundle.club.id, origin: ticket) }
+                    } label: {
+                        HStack(spacing: KuroDesignSpacing.md) {
+                            Text(rail.title)
+                                .font(.kuroBody(weight: .regular))
+                                .foregroundStyle(canAdd ? Color.kuroInk : Color.kuroInkQuiet)
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            if rail.is_locked {
+                                Image(systemName: "lock")
+                                    .font(.kuroMeta())
+                                    .foregroundStyle(Color.kuroInkQuiet)
+                                    .accessibilityHidden(true)
+                            }
+
+                            if isPending && isSubmitting {
+                                ProgressView().tint(Color.kuroInk)
+                            } else {
+                                Image(systemName: isPending ? "checkmark" : "plus")
+                                    .font(.kuroMeta(weight: .semibold))
+                                    .foregroundStyle(canAdd ? Color.kuroInk : Color.kuroInkQuiet)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                        .frame(minHeight: 48)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+                    .disabled(!canAdd || isSubmitting)
+                    .accessibilityLabel(rail.is_locked
+                        ? KuroLocale.text("\(rail.title), locked", "\(rail.title), gesperrt")
+                        : rail.title)
+                    .accessibilityHint(canAdd ? KuroLocale.text("Adds the title to this rail.", "Fügt den Titel dieser Liste hinzu.") : "")
+                    .overlay(alignment: .bottom) {
+                        Rectangle().fill(Color.kuroHairline).frame(height: 1)
+                    }
+                }
+            }
+        } else if let errorText {
+            ClubInlineError(text: errorText)
+                .padding(.vertical, KuroDesignSpacing.sm)
+        } else {
+            Text(KuroLocale.text("Pick a club to see its rails.", "Wähle einen Club, um seine Listen zu sehen."))
+                .font(.kuroMeta())
+                .foregroundStyle(Color.kuroInkSecondary)
+                .padding(.vertical, KuroDesignSpacing.sm)
+        }
+    }
+
+    private func retryClubs(origin: AccountActionScope.Ticket?) {
+        actionScope.launch(origin: origin, session: clubs.accountSession) { _ in
+            await clubs.fetchMyClubs()
         }
     }
 
@@ -232,7 +283,8 @@ struct AddToClubRailSheet: View {
                 bundle = fetched
             } catch {
                 guard actionScope.isCurrent(ticket, session: clubs.accountSession), selectedClubId == clubId else { return }
-                errorText = "Could not load rails."
+                guard !(error is CancellationError) else { return }
+                errorText = KuroLocale.text("Couldn't load the rails. Pick the club again to retry.", "Die Listen konnten nicht geladen werden. Wähle den Club erneut, um es noch einmal zu versuchen.")
             }
         }
     }
@@ -245,7 +297,7 @@ struct AddToClubRailSheet: View {
         bundle = nil
         isLoading = false
         pendingRailId = nil
-        errorText = "You're no longer a member of this club."
+        errorText = KuroLocale.text("You're no longer a member of this club.", "Du bist nicht mehr Mitglied dieses Clubs.")
     }
 
     private func addToRail(railId: String, clubId: String, origin: AccountActionScope.Ticket) async {
@@ -284,10 +336,10 @@ struct AddToClubRailSheet: View {
             guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             KuroAccessibility.errorHaptic()
             if (error as? ClubError) == .notAMember {
-                errorText = "You're no longer a member of this club."
+                errorText = KuroLocale.text("You're no longer a member of this club.", "Du bist nicht mehr Mitglied dieses Clubs.")
                 bundle = nil
-            } else {
-                errorText = "Could not add to rail."
+            } else if !(error is CancellationError) {
+                errorText = ClubCopy.addRailItemError(error as? ClubError, german: KuroLocale.isGerman)
             }
             pendingRailId = nil
             interactionTelemetry.trackInteractionEvent(

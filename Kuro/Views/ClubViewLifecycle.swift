@@ -427,6 +427,16 @@ nonisolated enum ClubReactionGlyph {
         }
     }
 
+    /// The symbol when the reaction is yours (filled where SF Symbols has a filled form).
+    static func selectedSymbol(for key: String) -> String? {
+        switch key {
+        case "fire": return "flame.fill"
+        case "heart": return "heart.fill"
+        case "eyes": return "eyes.inverse"
+        default: return nil
+        }
+    }
+
     static func spokenName(for key: String, german: Bool) -> String {
         switch key {
         case "fire": return german ? "Feuer" : "Fire"
@@ -434,6 +444,110 @@ nonisolated enum ClubReactionGlyph {
         case "eyes": return german ? "Augen" : "Eyes"
         case "100": return german ? "Hundert" : "Hundred"
         default: return key
+        }
+    }
+}
+
+// MARK: - Room and rail copy (EN/DE)
+
+nonisolated enum ClubRoomCopy {
+    /// "5 members · 3 rails · 1 open poll" (only real, non-zero counts after members).
+    static func summary(memberCount: Int, railCount: Int, openPolls: Int, german: Bool) -> String {
+        var parts: [String] = []
+        if let members = ClubsListCardRules.memberCountText(memberCount, german: german) { parts.append(members) }
+        if railCount > 0 {
+            parts.append(german ? (railCount == 1 ? "1 Liste" : "\(railCount) Listen")
+                                : (railCount == 1 ? "1 rail" : "\(railCount) rails"))
+        }
+        if openPolls > 0 {
+            parts.append(german ? (openPolls == 1 ? "1 offene Umfrage" : "\(openPolls) offene Umfragen")
+                                : (openPolls == 1 ? "1 open poll" : "\(openPolls) open polls"))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    struct Note: Equatable, Sendable {
+        let text: String
+        let author: String?
+        let title: String
+        let itemId: String
+    }
+
+    /// Member notes of a rail, in rail order (non-empty only). `author` is the adding member's
+    /// display name when the bundle discloses it.
+    static func notes(in rail: ClubRail, members: [ClubMember]) -> [Note] {
+        rail.items.compactMap { item in
+            guard let text = item.note?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
+            let author = item.added_by.flatMap { id in
+                members.first { $0.user_id == id }?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines)
+            }.flatMap { $0.isEmpty ? nil : $0 }
+            return Note(text: text, author: author, title: item.title_display, itemId: item.id)
+        }
+    }
+
+    /// The room's one pull-quote: the first member note in rail order, or nothing.
+    static func firstNote(in bundle: ClubBundle) -> Note? {
+        for rail in bundle.rails {
+            if let note = notes(in: rail, members: bundle.members).first { return note }
+        }
+        return nil
+    }
+
+    static func titleCount(_ count: Int, german: Bool) -> String {
+        german ? (count == 1 ? "1 Titel" : "\(count) Titel") : (count == 1 ? "1 title" : "\(count) titles")
+    }
+
+    /// "Ep. 3 of 12" / "F. 3 von 12", "Ch. 40" / "Kap. 40"; nil without progress.
+    static func progress(_ progress: Int?, total: Int?, isManga: Bool, german: Bool) -> String? {
+        guard let progress, progress > 0 else { return nil }
+        let unit = isManga ? (german ? "Kap." : "Ch.") : (german ? "F." : "Ep.")
+        if let total, total > 0 {
+            return german ? "\(unit) \(progress) von \(total)" : "\(unit) \(progress) of \(total)"
+        }
+        return "\(unit) \(progress)"
+    }
+
+    /// "Mia, Jo watching" / "Mia, Jo +3"; nil when nobody is current. Names come only from the
+    /// statuses the server disclosed for this club's sharing level.
+    static func membersCurrent(names: [String?], isManga: Bool, german: Bool) -> String? {
+        guard !names.isEmpty else { return nil }
+        let known = names.prefix(2).compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        let verb: String = isManga ? (german ? "lesen" : "reading") : (german ? "schauen" : "watching")
+        let verbOne: String = isManga ? (german ? "liest" : "reading") : (german ? "schaut" : "watching")
+        if known.isEmpty { return "\(names.count) \(verb)" }
+        if names.count > 2 { return known.joined(separator: ", ") + " +\(names.count - 2)" }
+        return known.joined(separator: ", ") + " " + (names.count == 1 ? verbOne : verb)
+    }
+}
+
+/// The sentence of one member activity row, split around the title so the title can be set apart.
+nonisolated enum ClubActivityProse {
+    struct Parts: Equatable, Sendable {
+        let beforeTitle: String
+        let afterTitle: String
+    }
+
+    static func parts(status: String?, progress: Int?, isManga: Bool, german: Bool) -> Parts {
+        let unit = isManga ? (german ? "Kapitel" : "chapter") : (german ? "Folge" : "episode")
+        switch status?.uppercased() ?? "" {
+        case "COMPLETED":
+            return german ? Parts(beforeTitle: " hat ", afterTitle: " beendet") : Parts(beforeTitle: " finished ", afterTitle: "")
+        case "CURRENT", "WATCHING", "READING":
+            if let progress, progress > 0 {
+                return german ? Parts(beforeTitle: " ist bei \(unit) \(progress) von ", afterTitle: "")
+                              : Parts(beforeTitle: " reached \(unit) \(progress) of ", afterTitle: "")
+            }
+            if german { return Parts(beforeTitle: isManga ? " liest jetzt " : " schaut jetzt ", afterTitle: "") }
+            return Parts(beforeTitle: isManga ? " started reading " : " started watching ", afterTitle: "")
+        case "PAUSED":
+            return german ? Parts(beforeTitle: " pausiert ", afterTitle: "") : Parts(beforeTitle: " paused ", afterTitle: "")
+        case "DROPPED":
+            return german ? Parts(beforeTitle: " hat ", afterTitle: " abgebrochen") : Parts(beforeTitle: " dropped ", afterTitle: "")
+        case "PLANNING", "PLANNED":
+            if german { return Parts(beforeTitle: " hat ", afterTitle: " vorgemerkt") }
+            return Parts(beforeTitle: isManga ? " plans to read " : " plans to watch ", afterTitle: "")
+        default:
+            return german ? Parts(beforeTitle: " hat ", afterTitle: " aktualisiert") : Parts(beforeTitle: " updated ", afterTitle: "")
         }
     }
 }
