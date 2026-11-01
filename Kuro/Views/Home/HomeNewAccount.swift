@@ -19,6 +19,13 @@ import SwiftUI
 // - The picks read only `DiscoveryStore.ensureDiscoverBundle()` (the launch's one bundle read, shared
 //   with Discover and Taste; never a forced reload). A failed or empty read hides the picks row; the
 //   block above stands on its own.
+// - Latch the mount condition. The first one-tap Plan here adds the account's first title, so a live
+//   `allEntries.isEmpty` check would unmount this block under the user's finger. Decide "new account"
+//   once, when the Library first reports `.loaded` with no entries (`TastePageCopy.latchNewAccount`),
+//   and keep it until the Library leaves `.loaded` (sign-out, account switch) or the next visit.
+// - Plan results: install `.tastePlanHost(controller)` (with a `@State TastePlanController`) on the
+//   Home page outside its ScrollView, so the toast with Undo sits at the screen foot. Without a host,
+//   this block installs its own, and the toast is drawn at the foot of the block instead.
 
 struct HomeNewAccount: View {
     let medium: MediaKind
@@ -33,6 +40,9 @@ struct HomeNewAccount: View {
 
     @Environment(DiscoveryStore.self) private var discovery
     @Environment(LibraryStore.self) private var library
+    /// The Home page's Plan controller, when HomeView installed one (`tastePlanHost`).
+    @Environment(TastePlanController.self) private var hostPlans: TastePlanController?
+    @State private var ownPlans = TastePlanController()
 
     /// The loaded picks per medium (empty until the bundle answers; stays empty when it fails).
     @State private var picks: [MediaKind: [TasteCard]] = [:]
@@ -40,10 +50,15 @@ struct HomeNewAccount: View {
     @State private var width: CGFloat = 0
 
     var body: some View {
-        HomeNewAccountContent(medium: medium, picks: picks[medium] ?? [], width: width,
-                              onImport: onImport, onExploreTaste: onExploreTaste)
+        let content = HomeNewAccountContent(medium: medium, picks: picks[medium] ?? [], width: width,
+                                            onImport: onImport, onExploreTaste: onExploreTaste)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
             .task(id: medium) { await loadPicks(for: medium) }
+        if hostPlans != nil {
+            content
+        } else {
+            content.tastePlanHost(ownPlans)
+        }
     }
 
     private func loadPicks(for medium: MediaKind) async {
@@ -65,7 +80,9 @@ struct HomeNewAccountContent: View {
     let onImport: () -> Void
     let onExploreTaste: () -> Void
 
-    private var german: Bool { KuroLocale.isGerman }
+    @Environment(\.tasteGerman) private var germanOverride
+
+    private var german: Bool { germanOverride ?? KuroLocale.isGerman }
     private var metrics: TasteMetrics { TasteMetrics(pageWidth: width) }
 
     var body: some View {

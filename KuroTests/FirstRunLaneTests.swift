@@ -95,12 +95,18 @@ struct FirstRunLaneTests {
 
     // MARK: Plan key
 
-    @Test("Plan key rule: plan when missing, un-plan when planned, edit for any other status")
+    @Test("Plan key rule: plan when missing, un-plan only a bare plan, edit anything else")
     func planKeyRule() {
+        typealias E = FakeLibraryBackend
         #expect(TastePlanAction.action(for: nil) == .plan)
-        #expect(TastePlanAction.action(for: .planning) == .unplan)
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning)) == .unplan)
+        // A plan the user has since added to is never removed from Taste: the editor opens.
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, notes: "for the weekend")) == .edit)
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, notes: "  ")) == .unplan)
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, rating: 8)) == .edit)
+        #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: .planning, progress: 2)) == .edit)
         for status in [ListStatus.current, .completed, .paused, .dropped] {
-            #expect(TastePlanAction.action(for: status) == .edit)
+            #expect(TastePlanAction.action(for: E.entry(.anime, 1, status: status)) == .edit)
         }
         #expect(TastePageCopy.planLabel(medium: .anime, status: nil, german: false) == "Plan to watch")
         #expect(TastePageCopy.planLabel(medium: .manga, status: nil, german: false) == "Plan to read")
@@ -110,37 +116,152 @@ struct FirstRunLaneTests {
         #expect(TastePageCopy.planLabel(medium: .anime, status: .current, german: false) == "On your list")
     }
 
-    @Test("One-tap Plan saves through LibraryActions with .planning; a second tap takes it off; another status edits")
+    @Test("Plan toast copy follows the prototype, EN and DE")
+    func planToastCopy() {
+        #expect(TastePlanCopy.message(.added, german: false) == "Added to your list.")
+        #expect(TastePlanCopy.message(.removed, german: false) == "Removed from your list.")
+        #expect(TastePlanCopy.message(.undone, german: false) == "Undone.")
+        #expect(TastePlanCopy.message(.failed, german: false) == "Not saved. Your list is unchanged.")
+        #expect(TastePlanCopy.message(.added, german: true) == "Zu deiner Liste hinzugefügt.")
+        #expect(TastePlanCopy.message(.removed, german: true) == "Von deiner Liste entfernt.")
+        #expect(TastePlanCopy.message(.undone, german: true) == "Rückgängig gemacht.")
+        #expect(TastePlanCopy.message(.failed, german: true) == "Nicht gespeichert. Deine Liste ist unverändert.")
+        #expect(TastePlanCopy.undo(german: false) == "Undo")
+        #expect(TastePlanCopy.undo(german: true) == "Rückgängig")
+    }
+
+    @Test("One-tap Plan saves .planning through LibraryActions; a double tap writes once; Undo removes (German toasts)")
     func oneTapPlanSaves() async throws {
         let harness = try FacadeHarness()
         let service = harness.service
         await harness.signIn()
         let card = try TasteCard(anime: Self.animeCard(42, title: "Your Name."))
+        let plans = TastePlanController()
         var edited: [Int] = []
         var routes = KuroRoutes.unhandled
         routes.presentTrackingEditor = { edited.append($0.media.id) }
 
-        let plan = TastePlan.perform(TastePlanAction.action(for: service.library.entry(for: card.key)?.status),
-                                     card: card, actions: service.libraryActions, routes: routes)
+        let plan = plans.tap(card, library: service.library, actions: service.libraryActions, routes: routes, german: true)
         #expect(plan != nil)
+        // A second tap while the first write is in flight does nothing.
+        let second = plans.tap(card, library: service.library, actions: service.libraryActions, routes: routes, german: true)
+        #expect(second == nil)
         await plan?.value
         #expect(service.library.entry(for: card.key)?.status == .planning)
-        #expect(harness.backend.writeCalls.count == 1)
+        #expect(harness.backend.writeCalls == [.insertIfMissing(card.key, .planning)])
+        #expect(plans.toast?.message == "Zu deiner Liste hinzugefügt.")
+        #expect(plans.toast?.undo?.step == .remove)
+        // The banner the other cards use is not raised (no English "Added to collection").
+        #expect(service.banner.message == nil)
 
-        let unplan = TastePlan.perform(TastePlanAction.action(for: service.library.entry(for: card.key)?.status),
-                                       card: card, actions: service.libraryActions, routes: routes)
-        await unplan?.value
+        let undo = plans.undo(library: service.library, actions: service.libraryActions, german: true)
+        #expect(undo != nil)
+        await undo?.value
         #expect(service.library.isTracked(card.key) == false)
-
-        // Another status: the editor opens, nothing is written or removed.
-        let writesBefore = harness.backend.writeCalls.count
-        let none = TastePlan.perform(TastePlanAction.action(for: .current), card: card,
-                                     actions: service.libraryActions, routes: routes)
-        #expect(none == nil)
-        #expect(edited == [42])
-        #expect(harness.backend.writeCalls.count == writesBefore)
+        #expect(harness.backend.writeCalls.last == .remove(card.key))
+        #expect(plans.toast?.message == "Rückgängig gemacht.")
+        #expect(plans.toast?.undo == nil, "an Undo is not undone again")
+        #expect(edited.isEmpty)
         await harness.settleSinks()
         await harness.tearDown()
+    }
+
+    @Test("A bare plan comes off with one tap and Undo plans it again; a plan with notes opens the editor")
+    func unplanAndUndo() async throws {
+        let backend = FakeLibraryBackend()
+        let harness = try FacadeHarness(backend: backend)
+        let service = harness.service
+        let bare = try TasteCard(anime: Self.animeCard(42, title: "Your Name."))
+        let noted = try TasteCard(anime: Self.animeCard(43, title: "A Silent Voice"))
+        backend.setRows([FakeLibraryBackend.entry(.anime, 42, rowId: 1, status: .planning),
+                         FakeLibraryBackend.entry(.anime, 43, rowId: 2, status: .planning, notes: "with Sam")],
+                        for: FacadeHarness.userA)
+        await harness.signIn()
+        let plans = TastePlanController()
+        var edited: [Int] = []
+        var routes = KuroRoutes.unhandled
+        routes.presentTrackingEditor = { edited.append($0.media.id) }
+
+        let unplan = plans.tap(bare, library: service.library, actions: service.libraryActions, routes: routes, german: false)
+        await unplan?.value
+        #expect(service.library.isTracked(bare.key) == false)
+        #expect(plans.toast?.message == "Removed from your list.")
+        let undo = plans.undo(library: service.library, actions: service.libraryActions, german: false)
+        await undo?.value
+        #expect(service.library.entry(for: bare.key)?.status == .planning)
+        #expect(plans.toast?.message == "Undone.")
+
+        let writes = backend.writeCalls.count
+        let none = plans.tap(noted, library: service.library, actions: service.libraryActions, routes: routes, german: false)
+        #expect(none == nil)
+        #expect(edited == [43])
+        #expect(backend.writeCalls.count == writes, "a plan with notes is never removed from Taste")
+        #expect(service.library.entry(for: noted.key)?.notes == "with Sam")
+        await harness.settleSinks()
+        await harness.tearDown()
+    }
+
+    @Test("A failed Plan says so and offers no Undo; Undo after an account switch writes nothing")
+    func planFailureAndAccountSwitch() async throws {
+        let backend = FakeLibraryBackend()
+        let harness = try FacadeHarness(backend: backend)
+        let service = harness.service
+        await harness.signIn()
+        let card = try TasteCard(anime: Self.animeCard(42, title: "Your Name."))
+        let plans = TastePlanController()
+
+        backend.failNextWrite(with: .unavailable(message: "offline"))
+        await plans.tap(card, library: service.library, actions: service.libraryActions, routes: .unhandled, german: true)?.value
+        #expect(service.library.isTracked(card.key) == false)
+        #expect(plans.toast?.message == "Nicht gespeichert. Deine Liste ist unverändert.")
+        #expect(plans.toast?.undo == nil)
+
+        await plans.tap(card, library: service.library, actions: service.libraryActions, routes: .unhandled, german: false)?.value
+        #expect(plans.toast?.undo != nil)
+        // Another account signs in before Undo: nothing is written for it.
+        await harness.signIn(FacadeHarness.userB)
+        let writes = backend.writeCalls.count
+        let undo = plans.undo(library: service.library, actions: service.libraryActions, german: false)
+        #expect(undo == nil)
+        #expect(backend.writeCalls.count == writes)
+        #expect(plans.toast == nil)
+        await harness.settleSinks()
+        await harness.tearDown()
+    }
+
+    @Test("The new-account heading is decided once: a first Plan keeps \"A first favourite.\"")
+    func newAccountLatch() {
+        #expect(TastePageCopy.latchNewAccount(current: nil, loaded: false, entryCount: 0) == nil)
+        #expect(TastePageCopy.latchNewAccount(current: nil, loaded: true, entryCount: 0) == true)
+        #expect(TastePageCopy.latchNewAccount(current: nil, loaded: true, entryCount: 2) == false)
+        // After the first Plan the Library holds one title; the latched decision stands.
+        #expect(TastePageCopy.latchNewAccount(current: true, loaded: true, entryCount: 1) == true)
+        #expect(TastePageCopy.latchNewAccount(current: false, loaded: true, entryCount: 0) == false)
+    }
+
+    @Test("Because-you picks borrow a banner only from a title the loaded bundle holds")
+    func bannerJoin() throws {
+        let empty: [[String: Any]] = []
+        let object: [String: Any] = [
+            "anime": ["essentials": empty, "classics": empty,
+                      "new_to_you": [["id": 7, "title_english": "A", "banner_image": "https://example.invalid/b7.jpg"]],
+                      "trending": [["id": 8, "title_english": "B", "banner_image": "  "]],
+                      "top_rated": [["id": 9, "title_english": "C", "banner_image": "https://example.invalid/b9.jpg"]],
+                      "newly_added": empty, "airing_today": empty, "current_season": empty],
+            "manga": ["essentials": empty, "classics": empty, "new_to_you": empty, "trending": empty, "top_rated": empty,
+                      "newly_added": empty]
+        ]
+        let bundle = try JSONDecoder().decode(DiscoverBundle.self, from: JSONSerialization.data(withJSONObject: object))
+        let map = TasteBanners.map(bundle)
+        #expect(map == [7: "https://example.invalid/b7.jpg", 9: "https://example.invalid/b9.jpg"])
+        #expect(TasteBanners.map(nil).isEmpty)
+
+        let joined = try TasteCard(because: Self.becauseCard(9, title: "C", synopsis: "A quiet story. More."))
+            .withBanner(map[9])
+        #expect(joined.bannerURL == "https://example.invalid/b9.jpg")
+        #expect(joined.premise == "A quiet story.")
+        let alone = try TasteCard(because: Self.becauseCard(10, title: "D", synopsis: nil)).withBanner(map[10])
+        #expect(alone.bannerURL == nil)
     }
 
     // MARK: Taste page
@@ -165,6 +286,7 @@ struct FirstRunLaneTests {
         #expect(TastePageCopy.kind(format: "MOVIE", genres: ["Romance", "Drama"], german: false) == "FILM · ROMANCE")
         #expect(TastePageCopy.kind(format: "MOVIE", genres: ["Romance"], german: true) == "FILM · ROMANTIK")
         #expect(TastePageCopy.kind(format: "MANGA", genres: ["Supernatural"], german: false) == "MANGA · SUPERNATURAL")
+        #expect(TastePageCopy.kind(format: "MANGA", genres: ["Historical"], german: true) == "MANGA · HISTORISCH")
         #expect(TastePageCopy.kind(format: nil, genres: ["Drama"], german: false) == "DRAMA")
         #expect(TastePageCopy.kind(format: nil, genres: nil, german: false) == nil)
         #expect(TastePageCopy.kind(format: " ", genres: [], german: false) == nil)

@@ -26,6 +26,11 @@ struct TastePicksView: View {
     /// Per medium: the last load could not settle that medium's picks and nothing is on screen.
     @State private var animeFailed = false
     @State private var mangaFailed = false
+    /// "A first favourite." is decided once per visit (`TastePageCopy.latchNewAccount`): a Plan on
+    /// this page never swaps the heading under the user's finger.
+    @State private var startedAsNewAccount: Bool?
+    /// The Plan keys' writes, their double-tap guard and the result toast with Undo.
+    @State private var plans = TastePlanController()
 
     private let cap = 4
 
@@ -36,21 +41,39 @@ struct TastePicksView: View {
                 TastePageContent(
                     medium: $medium,
                     state: state,
-                    newAccount: TastePageCopy.isNewAccount(loaded: library.loadState == .loaded,
-                                                           entryCount: library.allEntries.count),
+                    newAccount: startedAsNewAccount ?? false,
                     material: switchMaterial,
                     width: width,
                     retry: { Task { await load() } }
                 )
             }
             .scrollDisabled(false)
-            .background(TastePageContent.canvas(for: medium))
+            .background(TastePageContent.canvas(for: medium).ignoresSafeArea())
         }
-        .task { await load() }
+        .tastePlanHost(plans)
+        .task {
+            startedAsNewAccount = nil
+            latchNewAccount()
+            await load()
+        }
+        .onChange(of: library.loadState) { _, state in
+            // Leaving `.loaded` (sign-out, account switch, reload) ends the latch and the toast.
+            if state != .loaded {
+                startedAsNewAccount = nil
+                plans.dismiss()
+            }
+            latchNewAccount()
+        }
         .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
             guard networkMonitor.isConnected, animeFailed || mangaFailed else { return }
             Task { await load() }
         }
+    }
+
+    private func latchNewAccount() {
+        startedAsNewAccount = TastePageCopy.latchNewAccount(current: startedAsNewAccount,
+                                                            loaded: library.loadState == .loaded,
+                                                            entryCount: library.allEntries.count)
     }
 
     private var picks: [TasteCard] { medium == .anime ? animePicks : mangaPicks }
@@ -87,7 +110,11 @@ struct TastePicksView: View {
     private func apply(because: [BecauseYouCard]?, bundle: DiscoverBundle?) {
         let german = KuroLocale.isGerman
         let rows = because ?? []
-        let animePersonal = open(rows.filter { $0.mediaType.uppercased() != "MANGA" }.map(TasteCard.init(because:)))
+        // The because-you rows carry no banner; a title the launch's bundle also holds lends its banner
+        // to the landscape card (no extra read).
+        let banners = TasteBanners.map(bundle)
+        let animePersonal = open(rows.filter { $0.mediaType.uppercased() != "MANGA" }
+            .map { TasteCard(because: $0).withBanner(banners[$0.mediaId]) })
         let mangaPersonal = open(rows.filter { $0.mediaType.uppercased() == "MANGA" }.map(TasteCard.init(because:)))
         let animeChoice = TastePicksCopy.choose(
             personal: animePersonal,
@@ -152,8 +179,10 @@ struct TastePageContent: View {
         medium == .manga ? Color.kuroCanvasHomeManga : Color.kuroCanvasHome
     }
 
+    @Environment(\.tasteGerman) private var germanOverride
+
     private var metrics: TasteMetrics { TasteMetrics(pageWidth: width) }
-    private var german: Bool { KuroLocale.isGerman }
+    private var german: Bool { germanOverride ?? KuroLocale.isGerman }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -225,6 +254,15 @@ nonisolated enum TastePageCopy {
         loaded && entryCount == 0
     }
 
+    /// The new-account decision, made once: nil until the Library has loaded, then fixed (a Plan on
+    /// the page that adds the first title keeps "A first favourite."). The caller clears it when the
+    /// Library leaves `.loaded` (sign-out, account switch) and on the next page visit.
+    static func latchNewAccount(current: Bool?, loaded: Bool, entryCount: Int) -> Bool? {
+        if let current { return current }
+        guard loaded else { return nil }
+        return isNewAccount(loaded: loaded, entryCount: entryCount)
+    }
+
     /// The Plan key's words for a title in `status` (nil: not on the list).
     static func planLabel(medium: MediaKind, status: ListStatus?, german: Bool) -> String {
         switch status {
@@ -255,6 +293,8 @@ nonisolated enum TastePageCopy {
         switch genre {
         case "Adventure": return "Abenteuer"
         case "Comedy": return "Komödie"
+        case "Historical": return "Historisch"
+        case "Music": return "Musik"
         case "Psychological": return "Psychologisch"
         case "Romance": return "Romantik"
         case "Slice of Life": return "Alltag"
@@ -374,6 +414,13 @@ struct TasteCard: Identifiable {
         self.init(media: card.toMedia(), bannerURL: nil, premise: card.synopsis)
     }
 
+    /// The same card with `banner` when it has none yet (the because-you rows carry no banner).
+    func withBanner(_ banner: String?) -> TasteCard {
+        guard bannerURL == nil, let banner else { return self }
+        // `premise` is already one sentence; `storySentence` leaves it as it is.
+        return TasteCard(media: media, bannerURL: banner, premise: premise)
+    }
+
     /// The catalogue's stand-ins for a missing title or description (never shown as content).
     nonisolated static func isPlaceholderText(_ text: String) -> Bool {
         let plain = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -386,6 +433,23 @@ struct TasteCard: Identifiable {
         Media(id: id, kind: kind, title: title, imageURL: imageURL, year: year, displayDescription: "",
               episodes: episodes, chapters: chapters, rating: rating, genres: genres, statusRaw: statusRaw,
               formatRaw: formatRaw, popularityValue: nil, trendingValue: nil, createdAtValue: nil)
+    }
+}
+
+/// Anime banners the launch's Discover bundle already holds, by AniList id, across every anime rail
+/// (the first non-empty banner wins). Lets a because-you pick that the bundle also carries become the
+/// landscape card without a second read; a title the bundle does not hold stays a portrait card.
+nonisolated enum TasteBanners {
+    static func map(_ bundle: DiscoverBundle?) -> [Int: String] {
+        guard let rails = bundle?.anime else { return [:] }
+        var result: [Int: String] = [:]
+        for card in rails.essentials + rails.classics + rails.newToYou + rails.trending + rails.topRated
+            + rails.newlyAdded + rails.airingToday + rails.currentSeason {
+            guard result[card.id] == nil,
+                  let banner = card.bannerImage?.trimmingCharacters(in: .whitespaces), !banner.isEmpty else { continue }
+            result[card.id] = banner
+        }
+        return result
     }
 }
 
@@ -410,36 +474,244 @@ nonisolated enum FirstFavouritePicks {
 
 // MARK: - Plan key rule (pure) and write
 
-/// What one tap on a story card's Plan key does for a title in `status`: plan it (not on the list),
-/// take it off again (it was planned here), or open the list editor (another status; never removed).
+/// What one tap on a story card's Plan key does: plan a title that is not on the list, take a bare
+/// plan off again (planned, no progress, no notes, rating or verdict: nothing a removal would lose),
+/// or open the list editor for anything else (another status, or a plan the user has since added to;
+/// never removed from here).
 nonisolated enum TastePlanAction: Equatable {
     case plan, unplan, edit
 
-    static func action(for status: ListStatus?) -> TastePlanAction {
-        switch status {
-        case nil: return .plan
-        case .planning?: return .unplan
-        default: return .edit
+    static func action(for entry: LibraryEntry?) -> TastePlanAction {
+        guard let entry else { return .plan }
+        return isBarePlan(entry) ? .unplan : .edit
+    }
+
+    static func isBarePlan(_ entry: LibraryEntry) -> Bool {
+        entry.status == .planning
+            && entry.progress == 0
+            && (entry.notes?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            && entry.rating == nil
+            && entry.verdict == nil
+    }
+}
+
+/// The Plan key's result toast, EN/DE (PROTOTYPE_SPEC.md §3.4, §7.1 "Toasts").
+nonisolated enum TastePlanCopy {
+    enum Result: Equatable { case added, removed, undone, failed }
+
+    static func message(_ result: Result, german: Bool) -> String {
+        switch result {
+        case .added: return german ? "Zu deiner Liste hinzugefügt." : "Added to your list."
+        case .removed: return german ? "Von deiner Liste entfernt." : "Removed from your list."
+        case .undone: return german ? "Rückgängig gemacht." : "Undone."
+        case .failed: return german ? "Nicht gespeichert. Deine Liste ist unverändert." : "Not saved. Your list is unchanged."
+        }
+    }
+
+    static func undo(german: Bool) -> String { german ? "Rückgängig" : "Undo" }
+    static func dismiss(german: Bool) -> String { german ? "Schließen" : "Dismiss" }
+}
+
+/// The Plan keys' writer for one page (Taste, or the new-account Home): plans through
+/// `LibraryActions.save(_:status: .planning)`, takes a bare plan off through `LibraryActions.remove`,
+/// ignores a second tap while the title's write is in flight, and shows the result toast with Undo.
+/// Undo acts only for the account that made the change (`AccountSessionCoordinator.isCurrent`) and
+/// only while the title is still in the state the change left it in.
+@MainActor
+@Observable
+final class TastePlanController {
+    struct Toast: Identifiable, Equatable {
+        let id = UUID()
+        let message: String
+        let undo: Undo?
+    }
+
+    struct Undo: Equatable {
+        enum Step: Equatable { case remove, replan }
+        let key: MediaKey
+        let step: Step
+        let account: AccountContext
+    }
+
+    /// The toast on screen, if any.
+    private(set) var toast: Toast?
+    /// Titles whose Plan write (or its Undo) is in flight.
+    private(set) var inFlight: Set<MediaKey> = []
+
+    @ObservationIgnored private var dismissTask: Task<Void, Never>?
+    @ObservationIgnored private let holdSeconds: Double
+
+    init(holdSeconds: Double = 4) {
+        self.holdSeconds = holdSeconds
+    }
+
+    /// Runs one Plan key tap. Returns the write's task (nil for the editor, a tap while the title's
+    /// write is in flight, or no session).
+    @discardableResult
+    func tap(_ card: TasteCard, library: LibraryStore, actions: LibraryActions, routes: KuroRoutes,
+             german: Bool) -> Task<Void, Never>? {
+        let key = card.key
+        switch TastePlanAction.action(for: library.entry(for: key)) {
+        case .edit:
+            routes.presentTrackingEditor(TrackingEditorRequest(media: card.media))
+            return nil
+        case .plan:
+            return write(key, step: .plan, actions: actions, german: german)
+        case .unplan:
+            return write(key, step: .remove, actions: actions, german: german)
+        }
+    }
+
+    /// The toast's Undo: reverses the change it reports, once.
+    @discardableResult
+    func undo(library: LibraryStore, actions: LibraryActions, german: Bool) -> Task<Void, Never>? {
+        guard let undo = toast?.undo else { return nil }
+        toast = nil
+        guard actions.accountSession.isCurrent(undo.account) else { return nil }
+        switch undo.step {
+        case .remove:
+            // Only the bare plan this toast reported; anything the user has added since stays.
+            guard let entry = library.entry(for: undo.key), TastePlanAction.isBarePlan(entry) else { return nil }
+            return write(undo.key, step: .undoRemove, actions: actions, german: german)
+        case .replan:
+            guard library.entry(for: undo.key) == nil else { return nil }
+            return write(undo.key, step: .undoPlan, actions: actions, german: german)
+        }
+    }
+
+    func dismiss() {
+        dismissTask?.cancel()
+        toast = nil
+    }
+
+    private enum WriteStep { case plan, remove, undoPlan, undoRemove }
+
+    private func write(_ key: MediaKey, step: WriteStep, actions: LibraryActions, german: Bool) -> Task<Void, Never>? {
+        guard let account = actions.accountSession.current, !inFlight.contains(key) else { return nil }
+        inFlight.insert(key)
+        return Task.immediate { @MainActor [weak self] in
+            let outcome: LibraryOutcome
+            switch step {
+            case .plan, .undoPlan: outcome = await actions.save(key, status: .planning)
+            case .remove, .undoRemove: outcome = await actions.remove(key)
+            }
+            guard let self else { return }
+            self.inFlight.remove(key)
+            // A write that outlives its account shows nothing to the next account.
+            guard actions.accountSession.isCurrent(account) else { return }
+            guard case .applied = outcome else {
+                self.show(TastePlanCopy.message(.failed, german: german), undo: nil)
+                return
+            }
+            switch step {
+            case .plan:
+                self.show(TastePlanCopy.message(.added, german: german),
+                          undo: Undo(key: key, step: .remove, account: account))
+            case .remove:
+                self.show(TastePlanCopy.message(.removed, german: german),
+                          undo: Undo(key: key, step: .replan, account: account))
+            case .undoPlan, .undoRemove:
+                self.show(TastePlanCopy.message(.undone, german: german), undo: nil)
+            }
+        }
+    }
+
+    private func show(_ message: String, undo: Undo?) {
+        dismissTask?.cancel()
+        let toast = Toast(message: message, undo: undo)
+        self.toast = toast
+        let hold = holdSeconds
+        dismissTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(hold))
+            guard !Task.isCancelled, let self, self.toast?.id == toast.id else { return }
+            self.toast = nil
         }
     }
 }
 
-@MainActor
-enum TastePlan {
-    /// Runs one Plan key tap. Plan and un-plan go through `LibraryActions` (the guarded toggle: a
-    /// missing title is saved as `.planning`; a planned one is removed); another status opens the
-    /// list editor. Returns the write's task (nil for the editor, a duplicate tap or no session).
-    @discardableResult
-    static func perform(_ action: TastePlanAction, card: TasteCard, actions: LibraryActions,
-                        routes: KuroRoutes) -> Task<Void, Never>? {
-        switch action {
-        case .plan, .unplan:
-            return LibraryViewActions.toggleTracked(card.key, actions: actions)
-        case .edit:
-            routes.presentTrackingEditor(TrackingEditorRequest(media: card.media))
-            return nil
+/// The prototype toast (§3.4): `#282f2bf5`, 12 pt white text, radius 18, padding 5/5/5/14, inset
+/// 13/13/12 from the page foot, then "Undo" and a dismiss ×.
+struct TastePlanToastView: View {
+    let toast: TastePlanController.Toast
+    let german: Bool
+    let onUndo: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(toast.message)
+                .font(.kuroCustom(12, relativeTo: .footnote, maxSize: 22))
+                .foregroundStyle(Color.white)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if toast.undo != nil {
+                Button(action: onUndo) {
+                    Text(TastePlanCopy.undo(german: german))
+                        .font(.kuroCustom(12, weight: .semibold, relativeTo: .footnote, maxSize: 22))
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 10)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(KuroPressStyle(pressedScale: 0.97))
+            }
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.8))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(KuroPressStyle(pressedScale: 0.97))
+            .accessibilityLabel(TastePlanCopy.dismiss(german: german))
         }
+        .padding(.leading, 14)
+        .padding([.top, .bottom, .trailing], 5)
+        .background(Color(hex: "282F2B", opacity: Double(0xF5) / 255),
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: Color(hex: "18241C", opacity: Double(0x30) / 255), radius: 15, y: 8)
+        .padding(.horizontal, 13)
+        .padding(.bottom, 12)
+        .accessibilityElement(children: .contain)
     }
+}
+
+/// Installs a page's Plan controller for the story cards below it and draws its toast at the foot of
+/// the modified view (put it outside the page's ScrollView so the toast stays put).
+struct TastePlanHost: ViewModifier {
+    let controller: TastePlanController
+
+    @Environment(LibraryStore.self) private var library
+    @Environment(LibraryActions.self) private var actions
+    @Environment(\.tasteGerman) private var germanOverride
+
+    func body(content: Content) -> some View {
+        let german = germanOverride ?? KuroLocale.isGerman
+        content
+            .environment(controller)
+            .overlay(alignment: .bottom) {
+                if let toast = controller.toast {
+                    TastePlanToastView(toast: toast, german: german,
+                                       onUndo: { controller.undo(library: library, actions: actions, german: german) },
+                                       onDismiss: { controller.dismiss() })
+                        .id(toast.id)
+                        .transition(.opacity)
+                        .onAppear { AccessibilityNotification.Announcement(toast.message).post() }
+                }
+            }
+            .kuroAnimation(KuroMotion.contact, value: controller.toast?.id)
+    }
+}
+
+extension View {
+    func tastePlanHost(_ controller: TastePlanController) -> some View {
+        modifier(TastePlanHost(controller: controller))
+    }
+}
+
+extension EnvironmentValues {
+    /// Fixture override for the first-run lane's words (nil: the reader's language, `KuroLocale`).
+    @Entry var tasteGerman: Bool? = nil
 }
 
 // MARK: - Metrics
@@ -483,29 +755,45 @@ struct TasteOpening: View {
                 .overlay(alignment: .bottom) {
                     Rectangle().fill(Self.rule).frame(height: 1).accessibilityHidden(true)
                 }
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(kicker)
-                    .font(.kuroCustom(metrics.compact ? 8 : 9, relativeTo: .caption2, maxSize: 16))
-                    .tracking(1.05)
-                    .foregroundStyle(Color(hex: "666C68"))
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Text(headline)
-                    .font(.kuroCustom(metrics.compact ? 13 : 14, weight: .semibold, relativeTo: .subheadline, maxSize: 24))
-                    .tracking(-0.3)
-                    .foregroundStyle(Color.kuroInk)
-                    .multilineTextAlignment(.trailing)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
+            // The prototype's row (kicker left, line right); stacked when the two do not fit side by
+            // side (large text sizes, long German words), so the kicker is never cut.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    kickerText
+                    Spacer(minLength: 8)
+                    headlineText.multilineTextAlignment(.trailing)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    kickerText.fixedSize(horizontal: false, vertical: true)
+                    headlineText.multilineTextAlignment(.leading)
+                }
             }
         }
         .padding(.horizontal, metrics.openingGutter)
         .padding(.top, 7)
         .padding(.bottom, 18)
     }
+
+    private var kickerText: some View {
+        Text(kicker)
+            .font(.kuroCustom(metrics.compact ? 8 : 9, relativeTo: .caption2, maxSize: 16))
+            .tracking(1.05)
+            .foregroundStyle(Color(hex: "666C68"))
+            .lineLimit(1)
+    }
+
+    private var headlineText: some View {
+        Text(headline)
+            .font(.kuroCustom(metrics.compact ? 13 : 14, weight: .semibold, relativeTo: .subheadline, maxSize: 24))
+            .tracking(-0.3)
+            .foregroundStyle(Color.kuroInk)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.isHeader)
+    }
 }
 
-/// The section heading ("Your next story."): SF 24 w550 −0.85 (manga w500 −0.65, at most 210 wide).
+/// The section heading ("Your next story."): SF 24 w550 −0.85 (manga w500 −0.65, at most 210 wide;
+/// SwiftUI has no w550, so both media use `.medium`, w500).
 struct TasteSectionHeading: View {
     let title: String
     let medium: MediaKind
@@ -515,8 +803,7 @@ struct TasteSectionHeading: View {
 
     var body: some View {
         Text(title)
-            .font(.kuroCustom(metrics.compact ? 22 : 24, weight: medium == .manga ? .regular : .medium,
-                              relativeTo: .title2, maxSize: 40))
+            .font(.kuroCustom(metrics.compact ? 22 : 24, weight: .medium, relativeTo: .title2, maxSize: 40))
             .tracking(medium == .manga ? -0.65 : -0.85)
             .foregroundStyle(Color.kuroInk)
             .fixedSize(horizontal: false, vertical: true)
@@ -536,8 +823,17 @@ struct TasteStoryList: View {
     let medium: MediaKind
     let metrics: TasteMetrics
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        if medium == .manga {
+        if medium == .manga && dynamicTypeSize.isAccessibilitySize {
+            // Accessibility sizes: one leaf per row, so titles and keys keep the full width.
+            VStack(alignment: .leading, spacing: 28) {
+                ForEach(cards) { card in
+                    TasteLeafCard(card: card, metrics: metrics)
+                }
+            }
+        } else if medium == .manga {
             Grid(horizontalSpacing: metrics.mangaColumnSpacing, verticalSpacing: 28) {
                 ForEach(Array(stride(from: 0, to: cards.count, by: 2)), id: \.self) { index in
                     GridRow(alignment: .top) {
@@ -630,6 +926,7 @@ private struct TasteOpenButton<Label: View>: View {
 
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
+    @Environment(\.tasteGerman) private var germanOverride
 
     var body: some View {
         // A Button so the press state cancels on scroll/drag (rulebook §7).
@@ -643,7 +940,7 @@ private struct TasteOpenButton<Label: View>: View {
         .buttonStyle(KuroPressStyle(pressedScale: 0.987))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(card.media.title))
-        .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))
+        .accessibilityHint((germanOverride ?? KuroLocale.isGerman) ? "Öffnet die Details" : "Opens details")
         .accessibilityAddTraits(.isButton)
     }
 }
@@ -652,6 +949,10 @@ private struct TasteOpenButton<Label: View>: View {
 private struct TasteLandscapeCard: View {
     let card: TasteCard
     let metrics: TasteMetrics
+
+    @Environment(\.tasteGerman) private var germanOverride
+    /// `max-width: 29ch` at 12 pt, growing with the premise's text size.
+    @ScaledMetric(relativeTo: .footnote) private var premiseWidth: CGFloat = 245
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -662,15 +963,14 @@ private struct TasteLandscapeCard: View {
                         .frame(maxWidth: .infinity)
                     VStack(alignment: .leading, spacing: 0) {
                         if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres,
-                                                         german: KuroLocale.isGerman) {
+                                                         german: germanOverride ?? KuroLocale.isGerman) {
                             TasteType.kind(kind, size: 8, tracking: 0.5)
                         }
                         TasteType.title(card.media.title, size: 26, tracking: -0.6)
                             .padding(.top, 6)
                         if let premise = card.premise {
                             TasteType.premise(premise, size: 12, lineSpacing: 3.6)
-                                // `max-width: 29ch` at 12 pt.
-                                .frame(maxWidth: 245, alignment: .leading)
+                                .frame(maxWidth: premiseWidth, alignment: .leading)
                                 .padding(.top, 6)
                         }
                     }
@@ -689,48 +989,72 @@ private struct TasteLandscapeCard: View {
     }
 }
 
-/// The portrait anime card: the cover beside the copy, the Plan key under the copy.
+/// The portrait anime card: the cover beside the copy, the Plan key under the copy. At accessibility
+/// text sizes the cover sits above the copy so the title and the key keep the card's full width.
 private struct TastePortraitCard: View {
     let card: TasteCard
     let metrics: TasteMetrics
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.tasteGerman) private var germanOverride
+
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
-            TasteOpenButton(card: card) {
-                TasteArt(url: card.media.imageURL)
-                    .frame(width: metrics.portraitArtWidth, height: 180)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-            // The copy below is the same open target; VoiceOver hears the title once.
-            .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 0) {
-                TasteOpenButton(card: card) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres,
-                                                         german: KuroLocale.isGerman) {
-                            TasteType.kind(kind, size: 9, tracking: 0.5)
-                        }
-                        TasteType.title(card.media.title, size: metrics.compact ? 19 : 21, tracking: -0.6)
-                            .padding(.top, 8)
-                        if let premise = card.premise {
-                            TasteType.premise(premise, size: metrics.compact ? 11 : 12, lineSpacing: 3.6)
-                                .padding(.top, 9)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 12)
-                    .padding(.trailing, 9)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 0) {
+                    art
+                    copy.padding(.horizontal, 4)
+                    TastePlanKey(card: card, variant: .portrait, compact: metrics.compact)
+                        .padding(.top, 12)
+                        .padding(.horizontal, 4)
+                        .padding(.bottom, 4)
                 }
-                Spacer(minLength: 12)
-                TastePlanKey(card: card, variant: .portrait, compact: metrics.compact)
-                    .padding(.trailing, 4)
-                    .padding(.bottom, 4)
+            } else {
+                HStack(alignment: .top, spacing: 0) {
+                    art
+                    VStack(alignment: .leading, spacing: 0) {
+                        copy.padding(.trailing, 9)
+                        Spacer(minLength: 12)
+                        TastePlanKey(card: card, variant: .portrait, compact: metrics.compact)
+                            .padding(.trailing, 4)
+                            .padding(.bottom, 4)
+                    }
+                    .padding(.leading, metrics.portraitCopyLeading)
+                    .frame(minHeight: 180)
+                }
             }
-            .padding(.leading, metrics.portraitCopyLeading)
-            .frame(minHeight: 180)
         }
         .padding(8)
         .background { TasteCardFace() }
+    }
+
+    private var art: some View {
+        TasteOpenButton(card: card) {
+            TasteArt(url: card.media.imageURL)
+                .frame(width: metrics.portraitArtWidth, height: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        // The copy is the same open target; VoiceOver hears the title once.
+        .accessibilityHidden(true)
+    }
+
+    private var copy: some View {
+        TasteOpenButton(card: card) {
+            VStack(alignment: .leading, spacing: 0) {
+                if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres,
+                                                 german: germanOverride ?? KuroLocale.isGerman) {
+                    TasteType.kind(kind, size: 9, tracking: 0.5)
+                }
+                TasteType.title(card.media.title, size: metrics.compact ? 19 : 21, tracking: -0.6)
+                    .padding(.top, 8)
+                if let premise = card.premise {
+                    TasteType.premise(premise, size: metrics.compact ? 11 : 12, lineSpacing: 3.6)
+                        .padding(.top, 9)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 12)
+        }
     }
 }
 
@@ -748,6 +1072,8 @@ private struct TasteCardFace: View {
 private struct TasteLeafCard: View {
     let card: TasteCard
     let metrics: TasteMetrics
+
+    @Environment(\.tasteGerman) private var germanOverride
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -768,7 +1094,7 @@ private struct TasteLeafCard: View {
                         }
                     VStack(alignment: .leading, spacing: 0) {
                         if let kind = TastePageCopy.kind(format: card.media.formatRaw, genres: card.media.genres,
-                                                         german: KuroLocale.isGerman) {
+                                                         german: germanOverride ?? KuroLocale.isGerman) {
                             TasteType.kind(kind, size: 9, tracking: 0.2)
                         }
                         TasteType.title(card.media.title, size: metrics.compact ? 18 : 20, tracking: -0.5)
@@ -801,6 +1127,12 @@ struct TastePlanKey: View {
     @Environment(LibraryStore.self) private var library
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(\.kuroRoutes) private var routes
+    @Environment(\.tasteGerman) private var germanOverride
+    /// The page's Plan controller (`tastePlanHost`); a key outside any host keeps its own, and its
+    /// result goes to the app banner instead (no Undo there).
+    @Environment(TastePlanController.self) private var hostController: TastePlanController?
+    @Environment(BannerCenter.self) private var banner: BannerCenter?
+    @State private var localController = TastePlanController()
 
     private static let ink = Color(hex: "36433A")
 
@@ -818,12 +1150,13 @@ struct TastePlanKey: View {
 
     var body: some View {
         let status = status
-        let action = TastePlanAction.action(for: status)
+        let action = TastePlanAction.action(for: library.entry(for: card.key))
         let saved = status != nil
-        let german = KuroLocale.isGerman
+        let german = germanOverride ?? KuroLocale.isGerman
+        let controller = hostController ?? localController
         Button {
             KuroAccessibility.impactHaptic(.light)
-            TastePlan.perform(action, card: card, actions: libraryActions, routes: routes)
+            controller.tap(card, library: library, actions: libraryActions, routes: routes, german: german)
         } label: {
             HStack(spacing: 5) {
                 Text(TastePageCopy.planLabel(medium: card.media.kind, status: status, german: german))
@@ -857,6 +1190,10 @@ struct TastePlanKey: View {
         .buttonStyle(KuroPressStyle(pressedScale: 0.97))
         .accessibilityLabel(Self.spokenLabel(action: action, title: card.media.title, german: german))
         .accessibilityAddTraits(status == .planning ? [.isSelected] : [])
+        .onChange(of: localController.toast?.id) { _, _ in
+            guard hostController == nil, let message = localController.toast?.message else { return }
+            banner?.show(message)
+        }
     }
 
     static func spokenLabel(action: TastePlanAction, title: String, german: Bool) -> String {
@@ -876,7 +1213,9 @@ private struct TasteStorySkeleton: View {
     let medium: MediaKind
     let metrics: TasteMetrics
 
-    private var block: Color { Color.kuroCanvasQuiet }
+    /// Black at 0.08: visible on the white story cards and on both canvases (`kuroCanvasQuiet` vanished
+    /// on the manga canvas, #F6F6F6 on #F5F5F3).
+    private var block: Color { Color.kuroBlack08 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: metrics.listSpacing) {
@@ -928,9 +1267,11 @@ private struct TasteStorySkeleton: View {
 
 /// The page footer (`.app-end`): "Your pace. Your place." and the KURO mark.
 struct TasteFooter: View {
+    @Environment(\.tasteGerman) private var germanOverride
+
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(KuroLocale.text("Your pace. Your place.", "Dein Tempo. Dein Ort."))
+            Text((germanOverride ?? KuroLocale.isGerman) ? "Dein Tempo. Dein Ort." : "Your pace. Your place.")
             Spacer(minLength: 8)
             Text(verbatim: "KURO")
                 .fontWeight(.bold)
