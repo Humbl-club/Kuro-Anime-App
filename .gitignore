@@ -83,3 +83,6 @@ fastlane/README.md
 # Generated test result bundles and Python caches
 *.xcresult/
 __pycache__/
+
+# Playwright MCP scratch output
+.playwright-mcp/
