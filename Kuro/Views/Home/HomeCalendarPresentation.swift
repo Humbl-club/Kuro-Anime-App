@@ -83,8 +83,10 @@ enum HomeCalendarPresentation {
     }
 
     /// The glance's status line: "3 this week" / "Dates still to come" / "Nothing scheduled". With no
-    /// rows while offline (or before an answer settled) it never claims "Nothing scheduled" (§9).
-    static func glanceCaption(items: [ReleaseScheduleItem], copy: ReleaseCopy, offline: Bool = false) -> String {
+    /// rows it claims "Nothing scheduled" only after the schedule answered for this medium (§9):
+    /// offline, before the answer, after a failed read or without a source it says so instead.
+    static func glanceCaption(items: [ReleaseScheduleItem], copy: ReleaseCopy, offline: Bool = false,
+                              coverage: ReleaseScheduleCoverage = .complete) -> String {
         let german = copy.german
         let week = countThisWeek(items, copy: copy)
         if week > 0 { return german ? "\(week) diese Woche" : "\(week) this week" }
@@ -92,6 +94,18 @@ enum HomeCalendarPresentation {
             return german ? "Termine folgen" : "Dates still to come"
         }
         if offline { return german ? "Offline. Termine laden, wenn du verbunden bist" : "Offline. Dates load when you connect" }
-        return german ? "Nichts angekündigt" : "Nothing scheduled"
+        switch coverage {
+        case .pending: return german ? "Termine werden geprüft" : "Checking dates"
+        case .complete: return german ? "Nichts angekündigt" : "Nothing scheduled"
+        case .nextSevenDays: return german ? "Diese Woche ist nichts angekündigt" : "Nothing scheduled this week"
+        case .noSource: return german ? "Termine folgen" : "Dates to come"
+        case .failed: return german ? "Termine konnten nicht geladen werden" : "Couldn't load dates"
+        }
+    }
+
+    /// Whether the glance should offer Try again: the last read failed and nothing upcoming is shown.
+    static func offersRetry(items: [ReleaseScheduleItem], copy: ReleaseCopy, offline: Bool,
+                            coverage: ReleaseScheduleCoverage) -> Bool {
+        coverage == .failed && !offline && !items.contains(where: copy.isAhead)
     }
 }

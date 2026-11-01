@@ -45,13 +45,24 @@ private struct DetailReleaseLoader: ViewModifier {
 /// last released unit as a quiet line under them. Hidden when nothing upcoming is known (never "TBA").
 struct DetailNextReleaseSection: View {
     let items: [ReleaseScheduleItem]
+    /// The reference time: a unit whose moment has passed since the read is no longer "coming up".
+    let now: Date
 
-    init(items: [ReleaseScheduleItem]) {
+    init(items: [ReleaseScheduleItem], now: Date = Date()) {
         self.items = items
+        self.now = now
     }
 
     private var upcoming: [ReleaseScheduleItem] {
-        Array(items.filter { $0.isDisplayable && !$0.isPast }.prefix(3))
+        Self.upcoming(items, now: now)
+    }
+
+    /// The next (at most three) units still ahead of `now` (spec D10): a row the server called
+    /// upcoming at read time but whose time has passed is dropped, never shown in confirmed-upcoming
+    /// wording, and never promoted to "released" either (only the server says that).
+    static func upcoming(_ items: [ReleaseScheduleItem], now: Date = Date()) -> [ReleaseScheduleItem] {
+        let copy = ReleaseCopy.current(now: now)
+        return Array(items.filter(copy.isAhead).prefix(3))
     }
 
     private var lastReleased: ReleaseScheduleItem? {

@@ -27,7 +27,11 @@ import Supabase
 // "not deployed" answer (PGRST202/PGRST205/404/undecodable payload) is remembered for a while and the
 // owner falls back silently (anime next episode from `user_airing_next` / `anime.next_airing_at`;
 // manga and themes empty, so the UI hides the section). Results are cached per account for 5 min;
-// transient failures (offline, 5xx) are never cached.
+// transient failures (offline, 5xx) are never cached. A release whose moment has passed is never
+// served as upcoming (spec D10): reads, cache hits and `nextRelease` keep only rows still ahead of
+// now, a cache holding an elapsed row is stale, and the 60 s clock tick drops elapsed rows and
+// re-reads so the next unit appears (`releaseClockDidTick`; `refreshScheduleIfStale` on foreground).
+// `scheduleCoverage(for:)` says whether an empty schedule is an answer or unknown (rulebook §9).
 
 @MainActor
 @Observable
@@ -112,6 +116,14 @@ final class ReleasesStore: AccountScopedState {
     var schedule: [ReleaseScheduleItem] = []
     /// Where `schedule` came from (`.airingFallback`: manga dates are unknown, not absent).
     var scheduleSource: ScheduleSource = .none
+    /// What the last schedule answer can claim per medium (read `scheduleCoverage(for:)`). Empty until
+    /// the first answer for this account.
+    var scheduleCoverageByMedium: [MediaKind: ReleaseScheduleCoverage] = [:]
+    /// The reader's local day ("yyyy-MM-dd") at the last clock tick. Read by the schedule accessors, so
+    /// "Today"/"Tomorrow" phrases re-render when the day changes.
+    var releaseClockDay: String = ""
+    /// The re-read started when a loaded release has passed (the next unit is fetched).
+    @ObservationIgnored var scheduleRefreshTask: Task<Void, Never>? = nil
     /// Per-account response caches (5 min), keyed by "<user>|<call>|<arguments>". Cleared on every
     /// account transition.
     @ObservationIgnored var scheduleCache: [String: TimedCache<[ReleaseScheduleItem]>] = [:]
@@ -129,6 +141,8 @@ final class ReleasesStore: AccountScopedState {
     func cancelAccountWork() {
         libraryChangeTask?.cancel()
         libraryChangeTask = nil
+        scheduleRefreshTask?.cancel()
+        scheduleRefreshTask = nil
         upcomingLoads.cancelAll()
         scheduleLoads.cancelAll()
         themeLoads.cancelAll()
@@ -143,6 +157,7 @@ final class ReleasesStore: AccountScopedState {
         lastUpcomingDays = 7
         schedule = []
         scheduleSource = .none
+        scheduleCoverageByMedium = [:]
         scheduleCache = [:]
         themesCache = [:]
     }
@@ -162,8 +177,9 @@ final class ReleasesStore: AccountScopedState {
     /// `fetchUpcomingForUser`, reporting whether `upcomingAirings` now holds a successful read for
     /// this account: true after a fresh success, or when the throttle skipped the call because a
     /// success landed within the last `upcomingThrottle` seconds; false on failure, backoff or no
-    /// account (the rows are then stale or empty and must not be cached).
-    func refreshUpcomingForUser(days: Int = 7) async -> Bool {
+    /// account (the rows are then stale or empty and must not be cached). `ignoringBackoff`: a user
+    /// action (Try again) sends the read even inside the failure backoff window.
+    func refreshUpcomingForUser(days: Int = 7, ignoringBackoff: Bool = false) async -> Bool {
         guard let context = accountSession.current else { return false }
         // Joining this account's in-flight fetch skips the throttle, as before.
         if !upcomingLoads.isRunning(Self.upcomingLoadKey, for: context) {
@@ -172,7 +188,7 @@ final class ReleasesStore: AccountScopedState {
             if days == lastUpcomingDays, let last = lastUpcomingFetchAt, now.timeIntervalSince(last) < Self.upcomingThrottle {
                 return true
             }
-            guard upcomingBackoff.canAttempt(now: now) else { return false }
+            guard ignoringBackoff || upcomingBackoff.canAttempt(now: now) else { return false }
             lastUpcomingDays = days
         }
         do {
@@ -268,6 +284,7 @@ final class ReleasesStore: AccountScopedState {
             guard let strongSelf = self else { return }
             Task { @MainActor in
                 strongSelf.updateCountdowns()
+                strongSelf.releaseClockDidTick()
             }
         }
     }

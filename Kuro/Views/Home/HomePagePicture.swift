@@ -57,6 +57,11 @@ struct HomePagePicture: View {
 }
 
 /// Letter-mask crop of the same Home picture (ridge for empty, first title for populated).
+///
+/// Title art gets a contrast floor: no colour channel of the fill is lighter than `kuroInkSecondary`
+/// (about 6.7:1 on paper, darker than the unselected word's `kuroInkQuiet`), so pale art never erases
+/// the selected word's strokes and the selection never reads lighter than the other word. Darker art
+/// passes through untouched (a per-channel darken, not a wash). The mountain keeps its own treatment.
 struct HomePagePictureFill: View {
     @Environment(HomeStore.self) private var home
 
@@ -67,17 +72,27 @@ struct HomePagePictureFill: View {
 
     var body: some View {
         if let card = coverCard {
-            if home.medium == "manga" {
-                remote(card.coverImage)
-            } else {
-                remote(card.bannerImage ?? card.coverImage)
+            ZStack {
+                Color.kuroInkSecondary
+                titleArt(card).blendMode(.darken)
             }
+            // Blend inside the fill only, never against what sits behind the word.
+            .compositingGroup()
         } else {
             Image("KuroZenMountains")
                 .resizable()
                 .scaledToFill()
                 .scaleEffect(1.8, anchor: .bottom)
                 .saturation(0.55)
+        }
+    }
+
+    @ViewBuilder
+    private func titleArt(_ card: HomeCard) -> some View {
+        if home.medium == "manga" {
+            remote(card.coverImage)
+        } else {
+            remote(card.bannerImage ?? card.coverImage)
         }
     }
 
