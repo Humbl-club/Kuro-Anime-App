@@ -22,7 +22,19 @@ struct ImportWorkflowSheet: View {
     @State private var reviewGroup: ReviewGroup?
 
     private enum ReviewGroup: String, CaseIterable {
-        case new = "New titles", existing = "Already in Kuro", changes = "Changes available", needsReview = "Needs review"
+        case new, existing, changes, needsReview
+        func title(german: Bool) -> String {
+            switch (self, german) {
+            case (.new, false): return "New titles"
+            case (.new, true): return "Neue Titel"
+            case (.existing, false): return "Already in Kuro"
+            case (.existing, true): return "Schon in Kuro"
+            case (.changes, false): return "Changes available"
+            case (.changes, true): return "Änderungen verfügbar"
+            case (.needsReview, false): return "Needs review"
+            case (.needsReview, true): return "Zu prüfen"
+            }
+        }
         func includes(_ item: ImportReviewItem) -> Bool {
             switch self {
             case .new: return item.disposition == .new
@@ -39,6 +51,8 @@ struct ImportWorkflowSheet: View {
         _model = State(initialValue: ImportWorkflowPresentation(imports: imports, job: job))
     }
 
+    private var german: Bool { KuroLocale.isGerman }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -50,23 +64,35 @@ struct ImportWorkflowSheet: View {
                             controls(job)
                             titlePages(job)
                         } else {
-                            Text("Imports").font(.kuroDisplay())
+                            Text(german ? "Importe." : "Imports.")
+                                .font(.kuroHeadline(weight: .light))
+                                .foregroundStyle(Color.kuroInk)
+                                .accessibilityAddTraits(.isHeader)
                             if let failure = model.failure { failureCard(failure) }
                             history
                         }
                     }
                 }
-                .padding(KuroDesignSpacing.lg)
+                .padding(.horizontal, KuroDesignSpacing.padding)
+                .padding(.vertical, KuroDesignSpacing.lg)
+                .kuroReadableWidth()
             }
-            .background(Color.kuroBackground.ignoresSafeArea())
+            .background(Color.kuroCanvasPage.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Stay here") { model.close(); dismiss() }
+                    // Closing keeps the saved job; it can be resumed from Profile.
+                    Button(ImportCopy.close(german: german)) { model.close(); dismiss() }
+                        .foregroundStyle(Color.kuroInk)
                 }
             }
-            .overlay { if model.busy && model.job == nil { ProgressView("Reading import history") } }
+            .overlay {
+                if model.busy && model.job == nil {
+                    KuroStateView(.loading, title: german ? "Importverlauf wird gelesen." : "Reading import history.")
+                }
+            }
         }
+        .tint(Color.kuroInk)
         .presentationDetents([.large])
         .task { model.activate(); await model.load() }
         .onDisappear { model.close() }
@@ -78,113 +104,154 @@ struct ImportWorkflowSheet: View {
                 Task { await model.match(item, mediaId: mediaId) }
             }
         }
-        .confirmationDialog("Stop remaining import work?", isPresented: $confirmStop, titleVisibility: .visible) {
-            Button("Stop remaining work", role: .destructive) { Task { await model.stop() } }
-        } message: { Text("Titles already saved stay in your Library. You can undo eligible saved changes separately.") }
-        .confirmationDialog("Undo saved changes?", isPresented: $confirmUndo, titleVisibility: .visible) {
-            Button("Undo saved changes", role: .destructive) { Task { await model.undo() } }
-        } message: { Text("Later edits and replaced titles are kept. Pending local changes must be synchronized first.") }
+        .confirmationDialog(german ? "Restliche Arbeit anhalten?" : "Stop remaining import work?", isPresented: $confirmStop, titleVisibility: .visible) {
+            Button(german ? "Restliche Arbeit anhalten" : "Stop remaining work", role: .destructive) { Task { await model.stop() } }
+        } message: {
+            Text(german ? "Bereits gespeicherte Titel bleiben in deiner Bibliothek. Gespeicherte Änderungen kannst du separat rückgängig machen."
+                        : "Titles already saved stay in your Library. You can undo eligible saved changes separately.")
+        }
+        .confirmationDialog(german ? "Gespeicherte Änderungen rückgängig machen?" : "Undo saved changes?", isPresented: $confirmUndo, titleVisibility: .visible) {
+            Button(german ? "Änderungen rückgängig machen" : "Undo saved changes", role: .destructive) { Task { await model.undo() } }
+        } message: {
+            Text(german ? "Spätere Änderungen und ersetzte Titel bleiben erhalten. Offene Änderungen müssen zuerst synchronisiert sein."
+                        : "Later edits and replaced titles are kept. Pending local changes must be synchronized first.")
+        }
     }
 
     private func summary(_ job: ImportOutcome) -> some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            Text(heading(job)).font(.kuroHeadline())
-            Text("\(job.selection.provider.rawValue) · \(job.selection.sourceIdentity)")
-                .font(.kuroCaption()).foregroundStyle(Color.kuroTextSecondary)
-            Text("Anime and Manga keep their own identities. Existing Kuro values are kept unless you approve individual updates.")
-                .font(.kuroBody()).foregroundStyle(Color.kuroTextSecondary)
+            Text(heading(job))
+                .font(.kuroHeadline(weight: .light))
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            Text(ImportCopy.source(job.selection, german: german))
+                .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+            Text(german ? "Anime und Manga bleiben getrennt. Deine Kuro-Werte bleiben, solange du keine Änderung bestätigst."
+                        : "Anime and Manga stay separate. Your Kuro values stay unless you approve a change.")
+                .font(.kuroBody()).foregroundStyle(Color.kuroInkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             if !job.selection.media.allSatisfy({ job.exhaustedMedia[$0] == true }) {
-                Text("Reading is incomplete. Resume the same import before confirming.")
-                    .font(.kuroBody()).accessibilityIdentifier("import.read.incomplete")
+                Text(german ? "Noch nicht alles gelesen. Setz denselben Import fort, bevor du bestätigst."
+                            : "Reading isn't finished. Resume the same import before confirming.")
+                    .font(.kuroBody()).foregroundStyle(Color.kuroInk)
+                    .accessibilityIdentifier("import.read.incomplete")
             }
-            Text("\(job.counts.added) added · \(job.counts.updated) updated · \(job.counts.unchanged) kept · \(job.counts.needsReview) need review · \(job.counts.pending) pending")
-                .font(.kuroBody()).accessibilityIdentifier("import.saved.counts")
+            Text(ImportCopy.counts(job.counts, german: german))
+                .font(.kuroBody()).foregroundStyle(Color.kuroInk)
+                .monospacedDigit()
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("import.saved.counts")
             if job.phase == .undone || job.phase == .undoing {
                 let sameActiveJob = imports.activeImport?.jobId == job.jobId
                 let reverted = sameActiveJob ? imports.importUndoReverted : (model.manifest?.undoReverted ?? 0)
                 let skipped = sameActiveJob ? imports.importUndoSkipped : (model.manifest?.undoSkipped ?? 0)
-                Text("Undo: \(reverted) reverted · \(skipped) kept with their later changes. The saved counts above describe the original import.")
-                    .font(.kuroBody())
+                Text(german ? "Rückgängig: \(reverted) zurückgesetzt · \(skipped) mit späteren Änderungen behalten. Die Zahlen oben beschreiben den ursprünglichen Import."
+                            : "Undo: \(reverted) reverted · \(skipped) kept with their later changes. The counts above describe the original import.")
+                    .font(.kuroBody()).foregroundStyle(Color.kuroInk)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if job.counts.applied > 0, !job.projectionReady, job.phase != .undone {
-                Text("Saved; refreshing your Library. The committed titles are safe.")
-                    .font(.kuroBody()).accessibilityIdentifier("import.projection.pending")
+                Text(german ? "Gespeichert. Deine Bibliothek wird aktualisiert; die Titel sind sicher."
+                            : "Saved. Your Library is refreshing; the saved titles are safe.")
+                    .font(.kuroBody()).foregroundStyle(Color.kuroInk)
+                    .accessibilityIdentifier("import.projection.pending")
             }
-            if model.busy || imports.importBusy { ProgressView("Working on this import") }
+            if model.busy || imports.importBusy {
+                KuroStateView(.loading, title: german ? "Import läuft." : "Working on this import.", layout: .inline)
+            }
         }
         .accessibilityElement(children: .contain)
     }
 
     private func heading(_ job: ImportOutcome) -> String {
-        if job.phase == .undone { return "Import undone" }
-        if job.phase == .reviewing { return "Review before saving" }
-        if job.allRejected { return "Nothing was applied" }
-        if job.isTerminal, job.counts.applied == 0, job.counts.unchanged > 0 { return "Already in your Library" }
+        let g = german
+        if job.phase == .undone { return g ? "Import rückgängig gemacht." : "Import undone." }
+        if job.phase == .reviewing { return g ? "Vor dem Speichern prüfen." : "Review before saving." }
+        if job.allRejected { return g ? "Nichts übernommen." : "Nothing was applied." }
+        if job.isTerminal, job.counts.applied == 0, job.counts.unchanged > 0 { return g ? "Schon in deiner Bibliothek." : "Already in your Library." }
         switch job.phase {
-        case .preparing: return "Reading your source"
-        case .applying: return "Saving approved titles"
-        case .finalizing: return "Saved; refreshing your Library"
-        case .cancelled: return "Import stopped"
-        case .failed: return "Import needs attention"
-        case .undoing: return "Undoing saved changes"
-        case .ready: return job.counts.needsReview > 0 ? "Saved with items to review" : "Import results"
+        case .preparing: return g ? "Deine Quelle wird gelesen." : "Reading your source."
+        case .applying: return g ? "Bestätigte Titel werden gespeichert." : "Saving approved titles."
+        case .finalizing: return g ? "Gespeichert. Bibliothek wird aktualisiert." : "Saved. Refreshing your Library."
+        case .cancelled: return g ? "Import angehalten." : "Import stopped."
+        case .failed: return g ? "Der Import braucht dich." : "The import needs attention."
+        case .undoing: return g ? "Änderungen werden rückgängig gemacht." : "Undoing saved changes."
+        case .ready: return job.counts.needsReview > 0
+            ? (g ? "Gespeichert, einiges ist zu prüfen." : "Saved, with items to review.")
+            : (g ? "Import abgeschlossen." : "Import complete.")
         case .reviewing, .undone: return "Import"
         }
     }
 
     @ViewBuilder private func controls(_ job: ImportOutcome) -> some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+            let g = german
             if job.phase == .reviewing, model.manifest == nil {
-                Text("This review started on another device. Inspect or stop it here; approve changes on the device with the original source input.").font(.kuroBody())
+                note(g ? "Diese Prüfung begann auf einem anderen Gerät. Hier kannst du sie ansehen oder anhalten; bestätigen kannst du sie auf dem Gerät mit der ursprünglichen Quelle."
+                       : "This review started on another device. Inspect or stop it here; approve changes on the device that has the original source.")
             }
             if job.phase == .reviewing, let manifest = model.manifest, manifest.decisions != nil {
-                Text("Your approved choices are already saved for this action. Resume them without approving a second time.").font(.kuroBody())
+                note(g ? "Deine bestätigte Auswahl ist schon gesichert. Setz sie fort, ohne erneut zu bestätigen."
+                       : "Your approved choices are already saved. Resume them without approving a second time.")
             }
             if job.phase == .reviewing, model.manifest?.phase == .reviewing, model.manifest?.decisions == nil {
-                Text("Nothing from this review is saved until you confirm.").font(.kuroBody())
-                Toggle("Review updates to existing titles", isOn: $reviewUpdates)
+                note(g ? "Aus dieser Prüfung wird nichts gespeichert, bis du bestätigst." : "Nothing from this review is saved until you confirm.")
+                Toggle(g ? "Änderungen an vorhandenen Titeln prüfen" : "Review updates to existing titles", isOn: $reviewUpdates)
                     .font(.kuroBody())
+                    .foregroundStyle(Color.kuroInk)
                     .disabled(model.busy || imports.importBusy)
-                Button("Save reviewed choices") { Task { await model.apply() } }
-                    .buttonStyle(.borderedProminent).tint(Color.kuroBlack80)
-                    .disabled(!model.mayApply)
-                    .accessibilityIdentifier("import.approve")
+                KuroInkButton(g ? "Geprüfte Auswahl speichern" : "Save reviewed choices", isLoading: model.busy) {
+                    Task { await model.apply() }
+                }
+                .disabled(!model.mayApply)
+                .accessibilityIdentifier("import.approve")
             }
             if let manifest = model.manifest, (!job.isTerminal || !job.projectionReady),
                job.phase != .reviewing || manifest.phase != .reviewing || manifest.decisions != nil {
-                Button("Resume this import") { Task { await model.resume(actionId: manifest.actionId) } }
-                    .disabled(model.busy || imports.importBusy)
-                    .accessibilityIdentifier("import.resume")
+                KuroInkButton(g ? "Diesen Import fortsetzen" : "Resume this import", role: .secondary) {
+                    Task { await model.resume(actionId: manifest.actionId) }
+                }
+                .disabled(model.busy || imports.importBusy)
+                .accessibilityIdentifier("import.resume")
             } else if !job.isTerminal, job.phase != .reviewing {
-                Text("This job can be inspected or stopped here. Continue source reading on the device that started it.")
-                    .font(.kuroCaption()).foregroundStyle(Color.kuroTextSecondary)
+                note(g ? "Hier kannst du den Import ansehen oder anhalten. Weiterlesen geht auf dem Gerät, das ihn begonnen hat."
+                       : "You can inspect or stop this import here. Reading continues on the device that started it.", quiet: true)
             }
-            if !job.isTerminal {
-                Button("Stop remaining work", role: .destructive) { confirmStop = true }
+            if job.counts.applied > 0 || job.isTerminal {
+                KuroInkButton(g ? "Importierte Titel ansehen" : "View imported titles", role: .secondary) {
+                    navigate(.importedTitles(model.affectedKeys))
+                }
+                .disabled(model.affectedKeys.isEmpty || !job.projectionReady || model.busy)
+                .accessibilityIdentifier("import.view.titles")
+                KuroInkButton(g ? "Ganze Sammlung ansehen" : "View full Collection", role: .secondary) {
+                    navigate(.fullCollection)
+                }
+                .disabled(!job.projectionReady || model.busy)
+                .accessibilityIdentifier("import.view.collection")
             }
+            if job.isTerminal, job.counts.needsReview > 0, job.historyAvailable {
+                KuroInkButton(g ? "Offene Titel in neuem Import prüfen" : "Review unresolved titles in a new import", role: .secondary) {
+                    reviewUpdates = false; visibleCount = 50
+                    Task { await model.reviewUnresolved() }
+                }
+                .disabled(model.busy || imports.importBusy)
+            }
+            textAction(g ? "Status und Bibliothek aktualisieren" : "Refresh status and Library") {
+                Task { await model.refreshPresentation() }
+            }
+            .disabled(model.busy || imports.importBusy)
             if job.undoAvailable {
-                Button("Undo saved changes") { confirmUndo = true }
+                textAction(g ? "Gespeicherte Änderungen rückgängig machen" : "Undo saved changes") { confirmUndo = true }
                     .disabled(model.busy || imports.importBusy)
                     .accessibilityIdentifier("import.undo")
             } else if !job.historyAvailable {
-                Text("Detailed history and Undo are no longer available for this older import.").font(.kuroCaption())
+                note(g ? "Für diesen älteren Import gibt es keinen Verlauf und kein Rückgängig mehr."
+                       : "History and Undo are no longer available for this older import.", quiet: true)
             }
-            if job.isTerminal, job.counts.needsReview > 0, job.historyAvailable {
-                Button("Review unresolved items in a new import") {
-                    reviewUpdates = false; visibleCount = 50
-                    Task { await model.reviewUnresolved() }
-                }.disabled(model.busy || imports.importBusy)
+            if !job.isTerminal {
+                textAction(g ? "Restliche Arbeit anhalten" : "Stop remaining work", destructive: true) { confirmStop = true }
             }
-            if job.counts.applied > 0 || job.isTerminal {
-                Button("View imported titles") { navigate(.importedTitles(model.affectedKeys)) }
-                    .disabled(model.affectedKeys.isEmpty || !job.projectionReady || model.busy)
-                    .accessibilityIdentifier("import.view.titles")
-                Button("View full Collection") { navigate(.fullCollection) }
-                    .disabled(!job.projectionReady || model.busy)
-                    .accessibilityIdentifier("import.view.collection")
-            }
-            Button("Refresh status and Library") { Task { await model.refreshPresentation() } }
-                .disabled(model.busy || imports.importBusy)
         }
     }
 
@@ -193,103 +260,157 @@ struct ImportWorkflowSheet: View {
         model.close(); dismiss(); onNavigate(destination)
     }
 
+    private func note(_ text: String, quiet: Bool = false) -> some View {
+        Text(text)
+            .font(quiet ? .kuroMeta() : .kuroBody())
+            .foregroundStyle(quiet ? Color.kuroInkSecondary : Color.kuroInk)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func textAction(_ title: String, destructive: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.kuroMeta(weight: .medium))
+                .foregroundStyle(destructive ? Color.kuroDestructiveInk : Color.kuroInk)
+                .underline(!destructive, color: Color.kuroInk)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+    }
+
     private func failureCard(_ failure: ImportFailure) -> some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            Text(failure.localizedDescription).font(.kuroBody())
-            if failure == .reconnect {
-                Text("Reconnect MAL in Profile, then resume this same saved job.").font(.kuroCaption())
-            } else if case .invalidInput = failure {
-                Text("Choose another source or file in Profile. This job's saved changes remain available.").font(.kuroCaption())
+        let g = german
+        return HStack(alignment: .top, spacing: KuroDesignSpacing.sm) {
+            Image(systemName: "exclamationmark.circle")
+                .font(.kuroCustom(15, relativeTo: .body, maxSize: 24))
+                .foregroundStyle(Color.kuroError)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+                Text(ImportCopy.failure(failure, german: g))
+                    .font(.kuroBody()).foregroundStyle(Color.kuroInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                if failure == .reconnect {
+                    Text(g ? "Verbinde MAL in deinem Profil neu und setz dann denselben Import fort."
+                           : "Reconnect MAL in Profile, then resume this same import.")
+                        .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                } else if case .invalidInput = failure {
+                    Text(g ? "Wähle in deinem Profil eine andere Quelle oder Datei. Bereits Gespeichertes bleibt."
+                           : "Choose another source or file in Profile. Anything already saved stays.")
+                        .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                }
             }
         }
-        .padding(KuroDesignSpacing.md).background(Color.kuroBlack04, in: RoundedRectangle(cornerRadius: KuroRadius.md))
+        .padding(KuroDesignSpacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.kuroCanvasQuiet, in: RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
+        .accessibilityElement(children: .combine)
         .accessibilityIdentifier("import.failure")
     }
 
     @ViewBuilder private func titlePages(_ job: ImportOutcome) -> some View {
         if !model.items.isEmpty {
-            Text(job.phase == .reviewing ? "Titles to review" : "Title results").font(.kuroTitle())
+            let g = german
+            Text(job.phase == .reviewing ? (g ? "Titel zum Prüfen" : "Titles to review") : (g ? "Ergebnis je Titel" : "Results by title"))
+                .font(.kuroTitle())
+                .foregroundStyle(Color.kuroInk)
+                .accessibilityAddTraits(.isHeader)
             if job.phase == .reviewing {
-                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                    Button("All titles (\(model.items.count))") { reviewGroup = nil; visibleCount = 50 }
-                    ForEach(ReviewGroup.allCases, id: \.self) { group in
-                        Button("\(group.rawValue) (\(model.items.filter(group.includes).count))") {
-                            reviewGroup = group; visibleCount = 50
-                        }.accessibilityAddTraits(reviewGroup == group ? .isSelected : [])
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: KuroDesignSpacing.md) {
+                        groupWord(g ? "Alle (\(model.items.count))" : "All (\(model.items.count))", selected: reviewGroup == nil) {
+                            reviewGroup = nil; visibleCount = 50
+                        }
+                        ForEach(ReviewGroup.allCases, id: \.self) { group in
+                            groupWord("\(group.title(german: g)) (\(model.items.filter(group.includes).count))", selected: reviewGroup == group) {
+                                reviewGroup = group; visibleCount = 50
+                            }
+                        }
                     }
-                }.font(.kuroCaption())
+                }
             }
             let displayed = model.items.filter { job.phase != .reviewing || reviewGroup?.includes($0) != false }
             LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
                 ForEach(Array(displayed.prefix(visibleCount))) { item in reviewRow(item, job: job) }
             }
             if displayed.count > visibleCount {
-                Button("Show next \(min(50, displayed.count - visibleCount)) titles") { visibleCount += 50 }
+                let next = min(50, displayed.count - visibleCount)
+                textAction(german ? "Nächste \(next) Titel zeigen" : "Show the next \(next) titles") { visibleCount += 50 }
                     .accessibilityIdentifier("import.titles.next")
             }
         }
     }
 
+    private func groupWord(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.kuroMeta(weight: selected ? .semibold : .regular))
+                .foregroundStyle(selected ? Color.kuroInk : Color.kuroInkQuiet)
+                .underline(selected, color: Color.kuroInk)
+                .lineLimit(1)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
     private func reviewRow(_ item: ImportReviewItem, job: ImportOutcome) -> some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            Text(item.title).font(.kuroTitle()).fixedSize(horizontal: false, vertical: true)
-            Text("\(item.medium.capitalized) · \(dispositionLabel(item.disposition))")
-                .font(.kuroCaption()).foregroundStyle(Color.kuroTextSecondary)
-            if let detail = item.detail { Text(detail).font(.kuroCaption()) }
-            if let undo = item.undoDisposition { Text("Undo: \(undo)").font(.kuroCaption()) }
+        let g = german
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            Text(item.title).font(.kuroTitle()).foregroundStyle(Color.kuroInk).fixedSize(horizontal: false, vertical: true)
+            Text("\(ImportCopy.medium(item.medium, german: g)) · \(ImportCopy.disposition(item.disposition, german: g))")
+                .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+            if let detail = item.detail { Text(detail).font(.kuroMeta()).foregroundStyle(Color.kuroInk) }
+            if let undo = item.undoDisposition { Text((g ? "Rückgängig: " : "Undo: ") + undo).font(.kuroMeta()).foregroundStyle(Color.kuroInk) }
             if job.phase == .reviewing {
                 if item.current == nil {
-                    Text(ImportFieldCopy.overview(item.incoming)).font(.kuroCaption())
-                    DisclosureGroup("Incoming fields") {
+                    Text(ImportFieldCopy.overview(item.incoming)).font(.kuroMeta()).foregroundStyle(Color.kuroInk)
+                    DisclosureGroup(g ? "Übernommene Felder" : "Incoming fields") {
                         ForEach(ImportFieldCopy.presentFields(in: item.incoming), id: \.self) { field in
                             Text("\(ImportFieldCopy.label(field).capitalized): \(ImportFieldCopy.value(field, in: item.incoming))")
-                                .font(.kuroCaption()).fixedSize(horizontal: false, vertical: true)
+                                .font(.kuroMeta()).foregroundStyle(Color.kuroInk).fixedSize(horizontal: false, vertical: true)
                         }
-                    }.font(.kuroCaption())
+                    }.font(.kuroMeta()).tint(Color.kuroInk)
                 } else if item.changedFields.isEmpty {
-                    Text("Already in Kuro. Your values will be kept.").font(.kuroCaption())
+                    Text(g ? "Schon in Kuro. Deine Werte bleiben." : "Already in Kuro. Your values stay.")
+                        .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
                 } else {
-                    Text("Existing Kuro values will be kept by default.").font(.kuroCaption())
+                    Text(g ? "Deine Kuro-Werte bleiben, wenn du nichts änderst." : "Your Kuro values stay unless you change them.")
+                        .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
                     if reviewUpdates {
                         ForEach(item.changedFields, id: \.self) { field in
                             VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
                                 Text("Kuro: \(ImportFieldCopy.value(field, in: item.current))")
-                                Text("Incoming: \(ImportFieldCopy.value(field, in: item.incoming))")
-                                Toggle("Update \(ImportFieldCopy.label(field))", isOn: Binding(
+                                Text((g ? "Neu: " : "Incoming: ") + ImportFieldCopy.value(field, in: item.incoming))
+                                Toggle((g ? "Übernehmen: " : "Update ") + ImportFieldCopy.label(field), isOn: Binding(
                                     get: { model.approval.contains(field, for: item) },
                                     set: { model.approval.set(field, approved: $0, for: item) }
                                 ))
                                 .disabled(model.busy || imports.importBusy)
-                            }.font(.kuroCaption())
+                            }
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInk)
                         }
                     }
                 }
                 if !item.incoming.unavailableFields.isEmpty {
-                    Text("Unavailable from this source: \(item.incoming.unavailableFields.joined(separator: ", ")). Missing values never clear Kuro fields.")
-                        .font(.kuroCaption()).foregroundStyle(Color.kuroTextSecondary)
+                    Text(g ? "Diese Quelle liefert nicht: \(item.incoming.unavailableFields.joined(separator: ", ")). Fehlende Werte löschen nie etwas in Kuro."
+                           : "This source doesn't provide: \(item.incoming.unavailableFields.joined(separator: ", ")). Missing values never clear anything in Kuro.")
+                        .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if item.disposition == .unmatched, item.mediaId == nil {
-                    Button("Match to a catalog title") { matchingItem = item }
+                    textAction(g ? "Einem Katalogtitel zuordnen" : "Match to a catalogue title") { matchingItem = item }
                         .disabled(model.busy || imports.importBusy)
                 }
             }
         }
-        .padding(KuroDesignSpacing.md)
-        .background(Color.kuroBlack04, in: RoundedRectangle(cornerRadius: KuroRadius.md))
+        .padding(.vertical, KuroDesignSpacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
         .accessibilityElement(children: .contain)
-    }
-
-    private func dispositionLabel(_ disposition: ImportDisposition) -> String {
-        switch disposition {
-        case .new: return "New title"
-        case .existing: return "Already in Kuro"
-        case .changes: return "Changes available"
-        case .added: return "Added"
-        case .updated: return "Updated"
-        case .unchanged: return "Kept / unchanged"
-        case .pending: return "Pending"
-        case .unmatched, .conflict, .invalid, .sourceChanged: return "Needs review"
-        }
     }
 
     private var history: some View {
@@ -297,46 +418,69 @@ struct ImportWorkflowSheet: View {
             ForEach(model.manifests.filter { manifest in
                 manifest.jobId == nil || !model.jobs.contains(where: { $0.jobId == manifest.jobId })
             }) { manifest in
-                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                    Text("\(manifest.selection.provider.rawValue) · \(manifest.selection.sourceIdentity)").font(.kuroTitle())
-                    Text("Saved on this device · \(manifest.phase.rawValue)").font(.kuroCaption())
-                    Button(manifest.phase == .preparing ? "Resume source reading" : "Open saved import") { Task { await model.resume(actionId: manifest.actionId) } }
-                        .disabled(model.busy || imports.importBusy)
+                let g = german
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+                    Text(ImportCopy.source(manifest.selection, german: g)).font(.kuroTitle()).foregroundStyle(Color.kuroInk)
+                    Text((g ? "Auf diesem Gerät gesichert · " : "Saved on this device · ") + ImportCopy.phase(manifest.phase, german: g))
+                        .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                    textAction(manifest.phase == .preparing ? (g ? "Weiterlesen" : "Resume reading") : (g ? "Gesicherten Import öffnen" : "Open saved import")) {
+                        Task { await model.resume(actionId: manifest.actionId) }
+                    }
+                    .disabled(model.busy || imports.importBusy)
                     if manifest.jobId == nil {
-                        Text("Stopping discards this retained source input. Your Library is kept.").font(.kuroCaption())
-                        Button("Stop preparation", role: .destructive) { Task { await model.stopPreparation(actionId: manifest.actionId) } }
-                            .disabled(model.busy || imports.importBusy)
+                        Text(g ? "Anhalten verwirft die gesicherte Quelle. Deine Bibliothek bleibt." : "Stopping discards the saved source. Your Library stays.")
+                            .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                        textAction(g ? "Vorbereitung anhalten" : "Stop preparation", destructive: true) {
+                            Task { await model.stopPreparation(actionId: manifest.actionId) }
+                        }
+                        .disabled(model.busy || imports.importBusy)
                     }
                 }
+                .padding(.vertical, KuroDesignSpacing.sm)
+                .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
             }
             ForEach(model.jobs) { job in
                 Button { Task { visibleCount = 50; await model.inspect(job) } } label: {
                     VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
-                        Text("\(job.selection.provider.rawValue) · \(job.selection.sourceIdentity)").font(.kuroTitle())
-                        Text("\(job.phase.rawValue) · \(job.counts.applied) saved · \(job.counts.needsReview) need review").font(.kuroCaption())
-                    }.foregroundStyle(Color.kuroBlack80)
-                }.disabled(model.busy)
+                        Text(ImportCopy.source(job.selection, german: german)).font(.kuroTitle()).foregroundStyle(Color.kuroInk)
+                        Text(ImportCopy.phase(job.phase, german: german) + " · "
+                             + ImportCopy.savedSummary(applied: job.counts.applied, needsReview: job.counts.needsReview, german: german))
+                            .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .padding(.vertical, KuroDesignSpacing.sm)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+                .disabled(model.busy)
+                .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
             }
             if model.jobs.isEmpty, model.manifests.isEmpty, !model.busy {
-                Text("No recent imports. Choose AniList or MAL in Profile.").font(.kuroBody())
+                KuroStateView(.empty, title: german ? "Keine letzten Importe." : "No recent imports.",
+                              message: german ? "Wähle AniList oder MAL in deinem Profil." : "Choose AniList or MAL in Profile.",
+                              layout: .inline)
             }
         }
     }
 }
 
+/// Field names and values of an import row, EN/DE (pure apart from the reader's language).
 enum ImportFieldCopy {
+    private static var german: Bool { KuroLocale.isGerman }
+
     static func label(_ field: ImportField) -> String {
+        let g = german
         switch field {
-        case .status: return "status"
-        case .progress: return "progress and unit identity"
-        case .score: return "rating and score provenance"
-        case .notes: return "notes"
-        case .privacy: return "privacy"
-        case .volumes: return "volume progress"
-        case .repeats: return "repeat count"
-        case .dates: return "start and finish dates"
-        case .memberships: return "list memberships"
-        case .sourceOptions: return "source list options"
+        case .status: return g ? "Status" : "status"
+        case .progress: return g ? "Fortschritt" : "progress"
+        case .score: return g ? "Wertung" : "rating"
+        case .notes: return g ? "Notizen" : "notes"
+        case .privacy: return g ? "Sichtbarkeit" : "privacy"
+        case .volumes: return g ? "Bände" : "volume progress"
+        case .repeats: return g ? "Wiederholungen" : "repeat count"
+        case .dates: return g ? "Start- und Enddatum" : "start and finish dates"
+        case .memberships: return g ? "Listen" : "list memberships"
+        case .sourceOptions: return g ? "Listenoptionen der Quelle" : "source list options"
         }
     }
     static func presentFields(in values: ImportValues) -> [ImportField] {
@@ -359,21 +503,30 @@ enum ImportFieldCopy {
         [value(.status, in: values), value(.progress, in: values), value(.score, in: values)].joined(separator: " · ")
     }
     static func value(_ field: ImportField, in values: ImportValues?) -> String {
-        guard let values else { return "Not provided" }
+        let g = german
+        let none = g ? "Nicht angegeben" : "Not provided"
+        guard let values else { return none }
         switch field {
-        case .status: return values.status ?? "Not provided"
-        case .progress: return values.progress.map { "\($0)\(values.progressLabel.map { " (\($0))" } ?? "")" } ?? "Not provided"
-        case .score: return values.scoreRaw.map { "\($0) / \(values.scoreScale ?? "source scale") · Kuro \(values.normalizedRating.map(String.init) ?? "unrated")" } ?? values.normalizedRating.map { "Kuro \($0); no stored source score" } ?? "Not provided"
-        case .notes: return values.notes.flatMap { $0.isEmpty ? nil : $0 } ?? "No supplied note; keep Kuro"
-        case .privacy: return values.isPrivate.map { $0 ? "Private" : "Public" } ?? "Not provided"
-        case .volumes: return values.volumesProgress.map(String.init) ?? "Not provided"
-        case .repeats: return values.repeatCount.map(String.init) ?? "Not provided"
-        case .dates: return "\(values.startedRaw ?? "No start") → \(values.finishedRaw ?? "No finish")"
-        case .memberships: return values.customLists?.joined(separator: ", ") ?? "Not provided"
+        case .status: return values.status ?? none
+        case .progress: return values.progress.map { "\($0)\(values.progressLabel.map { " (\($0))" } ?? "")" } ?? none
+        case .score:
+            let kuro = values.normalizedRating.map(String.init) ?? (g ? "ohne Wertung" : "unrated")
+            if let raw = values.scoreRaw {
+                return "\(raw) / \(values.scoreScale ?? (g ? "Skala der Quelle" : "source scale")) · Kuro \(kuro)"
+            }
+            return values.normalizedRating.map { g ? "Kuro \($0); keine Wertung der Quelle" : "Kuro \($0); no source score" } ?? none
+        case .notes: return values.notes.flatMap { $0.isEmpty ? nil : $0 } ?? (g ? "Keine Notiz; Kuro bleibt" : "No note; Kuro's stays")
+        case .privacy: return values.isPrivate.map { $0 ? (g ? "Privat" : "Private") : (g ? "Öffentlich" : "Public") } ?? none
+        case .volumes: return values.volumesProgress.map(String.init) ?? none
+        case .repeats: return values.repeatCount.map(String.init) ?? none
+        case .dates: return "\(values.startedRaw ?? (g ? "Kein Start" : "No start")) → \(values.finishedRaw ?? (g ? "Kein Ende" : "No finish"))"
+        case .memberships: return values.customLists?.joined(separator: ", ") ?? none
         case .sourceOptions:
-            let hidden = values.hiddenFromStatusLists.map { $0 ? "Hidden from status lists" : "Visible in status lists" }
+            let hidden = values.hiddenFromStatusLists.map {
+                $0 ? (g ? "In Statuslisten versteckt" : "Hidden from status lists") : (g ? "In Statuslisten sichtbar" : "Visible in status lists")
+            }
             let parts = [values.sourceListOptions, hidden].compactMap { $0 }
-            return parts.isEmpty ? "Not provided" : parts.joined(separator: " · ")
+            return parts.isEmpty ? none : parts.joined(separator: " · ")
         }
     }
 }

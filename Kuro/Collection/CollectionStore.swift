@@ -60,6 +60,22 @@ final class CollectionStore: AccountScopedState {
     var collectionFeedCursorRowId: Int? = nil
 
     var currentCollectionStatusFilter: ListStatus? = nil
+    /// The medium the feed is scoped to (the Collection lists show one medium at a time); nil reads
+    /// both media (the default, kept by every caller that does not set it). See `feedListTypes`.
+    var feedMedium: MediaKind? = nil
+    /// Wide art (`banner_image`) per loaded anime row: `Media` carries no banner, and the Shelf's
+    /// anime scenes prefer it to a cropped cover.
+    var feedBanners: [MediaKey: String] = [:]
+    /// A list Profile asked the Collection page to open ("Your lists"). The page consumes it once.
+    var requestedListFilter: CollectionListRequest? = nil
+    /// Profile "Your lists": the newest covers per status, both media (`loadListPreview`).
+    var listPreview: [ListStatus: [Media]] = [:]
+    var listPreviewFailed = false
+    @ObservationIgnored var listPreviewLoadedAt: Date? = nil
+    @ObservationIgnored var listPreviewTask: Task<Void, Never>? = nil
+    @ObservationIgnored var listPreviewGeneration = 0
+    /// The last +1 the Collection lists admitted, for its Undo (`advanceFromList` / `undoListAdvance`).
+    var lastListAdvance: CollectionAdvanceReceipt? = nil
     private(set) var importPublicationRevision = 0
     weak var home: HomeStore?
     weak var library: LibraryStore?
@@ -109,6 +125,8 @@ final class CollectionStore: AccountScopedState {
         seriesGeneration += 1
         seriesPageLoading = false
         seriesChildrenLoading = []
+        listPreviewGeneration += 1
+        listPreviewTask?.cancel(); listPreviewTask = nil
     }
 
     /// Empties the feed, cursor, flags, filter and error. Account cancellation already invalidated
@@ -124,6 +142,11 @@ final class CollectionStore: AccountScopedState {
         seriesGroups = []
         seriesNextCursor = nil
         seriesScope = nil
+        feedBanners = [:]
+        feedMedium = nil
+        requestedListFilter = nil
+        listPreview = [:]; listPreviewFailed = false; listPreviewLoadedAt = nil
+        lastListAdvance = nil
     }
 
     // MARK: - Collection feed (anime + manga interleaved)
@@ -148,6 +171,7 @@ final class CollectionStore: AccountScopedState {
 
     private struct CollectionPagingSnapshot: Sendable {
         let feed: [Media]
+        let banners: [MediaKey: String]
         let feedHasMore: Bool
         let feedCursorUpdatedAt: Date?
         let feedCursorSourceRank: Int?
@@ -162,6 +186,7 @@ final class CollectionStore: AccountScopedState {
 
         let snapshot = CollectionPagingSnapshot(
             feed: collectionFeedItems,
+            banners: feedBanners,
             feedHasMore: hasMoreCollectionFeed,
             feedCursorUpdatedAt: collectionFeedCursorUpdatedAt,
             feedCursorSourceRank: collectionFeedCursorSourceRank,
@@ -171,13 +196,12 @@ final class CollectionStore: AccountScopedState {
         do {
             resetCollectionFeedPaging()
 
-            let listTypeAnime = status.map { dbListType(for: $0, mediaType: "anime") }
-            let listTypeManga = status.map { dbListType(for: $0, mediaType: "manga") }
+            let listTypes = feedListTypes(status: status, medium: feedMedium)
 
             _ = try await fetchNextCollectionFeedPage(
                 limit: 90,
-                listTypeAnime: listTypeAnime,
-                listTypeManga: listTypeManga,
+                listTypeAnime: listTypes.anime,
+                listTypeManga: listTypes.manga,
                 generation: generation,
                 context: context
             )
@@ -193,6 +217,7 @@ final class CollectionStore: AccountScopedState {
 
     private func restoreCollectionSnapshot(_ snapshot: CollectionPagingSnapshot) {
         collectionFeedItems = snapshot.feed
+        feedBanners = snapshot.banners
         hasMoreCollectionFeed = snapshot.feedHasMore
         collectionFeedCursorUpdatedAt = snapshot.feedCursorUpdatedAt
         collectionFeedCursorSourceRank = snapshot.feedCursorSourceRank
@@ -201,6 +226,7 @@ final class CollectionStore: AccountScopedState {
 
     func resetCollectionFeedPaging() {
         collectionFeedItems = []
+        feedBanners = [:]
         hasMoreCollectionFeed = true
         isLoadingMoreCollectionFeed = false
         collectionFeedCursorUpdatedAt = nil
@@ -219,6 +245,18 @@ final class CollectionStore: AccountScopedState {
         case .paused: return "PAUSED"
         case .repeating: return isManga ? "READING" : "WATCHING"
         }
+    }
+
+    /// A `list_type` no row ever has. `collection_feed_page` filters each medium's list type on its
+    /// own, so passing this for one medium leaves only the other medium's rows (a medium-scoped page
+    /// without a backend change; `list_type` is plain text, so the comparison is valid).
+    nonisolated static let excludedMediumListType = "KURO_EXCLUDED_MEDIUM"
+
+    /// The feed RPC's two list-type arguments for a status (nil: every status) and a medium (nil: both).
+    func feedListTypes(status: ListStatus?, medium: MediaKind?) -> (anime: String?, manga: String?) {
+        let anime = medium == .manga ? Self.excludedMediumListType : status.map { dbListType(for: $0, mediaType: "anime") }
+        let manga = medium == .anime ? Self.excludedMediumListType : status.map { dbListType(for: $0, mediaType: "manga") }
+        return (anime, manga)
     }
 
     struct CollectionFeedRow: Decodable, Sendable {
@@ -282,12 +320,11 @@ final class CollectionStore: AccountScopedState {
         if importedTitleKeys != nil { await fetchImportedTitles(medium: nil, reset: false); return importedHasMore }
         let context = accountSession.current
         do {
-            let listTypeAnime = currentCollectionStatusFilter.map { dbListType(for: $0, mediaType: "anime") }
-            let listTypeManga = currentCollectionStatusFilter.map { dbListType(for: $0, mediaType: "manga") }
+            let listTypes = feedListTypes(status: currentCollectionStatusFilter, medium: feedMedium)
             return try await fetchNextCollectionFeedPage(
                 limit: limit,
-                listTypeAnime: listTypeAnime,
-                listTypeManga: listTypeManga,
+                listTypeAnime: listTypes.anime,
+                listTypeManga: listTypes.manga,
                 generation: collectionFeedFetchGeneration,
                 context: context
             )
@@ -338,6 +375,11 @@ final class CollectionStore: AccountScopedState {
         }
 
         let items = rows.map(\.media)
+        for row in rows {
+            if let banner = row.banner_image, !banner.isEmpty {
+                feedBanners[MediaKey(kind: row.media.kind, id: row.id)] = banner
+            }
+        }
         collectionFeedItems.append(contentsOf: items)
         hasMoreCollectionFeed = rows.count == params.p_limit
         if let last = rows.last {
@@ -358,6 +400,8 @@ final class CollectionStore: AccountScopedState {
     func libraryDidChange(_ change: LibraryChange) {
         guard accountSession.isCurrent(change.account) else { return }
         guard !change.isProgressOnly else { return }
+        // Profile's "Your lists" covers are re-read on its next open.
+        listPreviewLoadedAt = nil
         if change.kind == .removed {
             dropFromCollectionPages(change.key)
         }

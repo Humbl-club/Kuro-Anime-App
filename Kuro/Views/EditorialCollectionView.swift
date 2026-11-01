@@ -1,6 +1,12 @@
-// Editorial Collection View
-// Vogue/Miu Miu inspired personal collection
-// Refined grid, elegant filters, sophisticated presentation
+// Collection page: the Folio lists (spec D9, rulebook §14.4), in both worlds.
+// One data path whatever the series flags say: the Collection feed (title, cover, totals; scoped to
+// the selected medium and status) joined with the Library store (status, progress, rating: the one
+// tracking authority) and the release schedule. Flags off it replaces the legacy grid; flags on it
+// replaces the bare series text list. Writes: +1 and its guarded Undo through the owner
+// (`CollectionStore.advanceFromList` / `undoListAdvance`: the durable progress outbox with the unit cap,
+// or one capped progress edit when the outbox is unavailable; never `HomeStore`, so Home's Undo is not
+// armed by a Collection +1); status and removal through `LibraryActions` (via `CollectionStore`'s
+// batch scopes for batches). Search covers every status of the medium (rulebook §14.4).
 
 import KuroCore
 import KuroLibrary
@@ -9,967 +15,678 @@ import SwiftUI
 struct EditorialCollectionView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(CollectionStore.self) private var collection
-    @Environment(SocialActivityStore.self) private var social
-    @Environment(ProviderAvailabilityStore.self) private var availability
+    @Environment(ReleasesStore.self) private var releases
     @Environment(NetworkMonitor.self) private var networkMonitor
-    @Environment(AppleFMService.self) private var deviceIntelligence
-    @Environment(FeatureFlags.self) private var flags
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(HomeStore.self) private var home
     @Environment(\.kuroRoutes) private var routes
-    @State private var selectedFilter: CollectionFilter = .all
-    @State private var selectedSort: CollectionSort = .lastUpdated
-    @State private var showListView = false
-    @State private var didInitialLoad = false
-    @State private var bannerMessage: String? = nil
-    @State private var showSearch = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var medium: MediaKind = .anime
+    /// The last medium chosen here (a per-device convenience; "" until the first choice).
+    @AppStorage("kuro.folio.medium") private var storedMedium: String = ""
+    @State private var status: FolioStatus = .watching
+    @State private var sort: FolioSort = .recent
+    @State private var verdictFilter: FolioVerdictFilter = .all
+    @AppStorage("kuro.folio.density.anime") private var animeDensity: FolioDensity = .index
+    @AppStorage("kuro.folio.density.manga") private var mangaDensity: FolioDensity = .shelf
+    @State private var isSearching = false
     @State private var searchText = ""
-    @State private var searchResults: [Media]?
-    @State private var isEditMode = false
+    @FocusState private var searchFocused: Bool
+    @State private var isSelecting = false
     @State private var selectedKeys: Set<String> = []
-    @State private var showBatchStatusPicker = false
-    @State private var selectedMediaType: MediaTypeFilter = .all
-    @State private var selectedVerdictFilter: CompletedVerdictFilter = .all
-    @State private var selectedServiceFilter: String? = nil
-    @State private var selectedLanguageFilter: String? = nil
-    @State private var includeUnknownLanguage: Bool = true
-    @State private var searchDebounceTask: Task<Void, Never>?
-    @State private var showBatchRemoveConfirm = false
+    @State private var showRemoveConfirm = false
+    @State private var notice: FolioNotice?
+    @State private var noticeTask: Task<Void, Never>?
+    @State private var pendingAdvance: Set<MediaKey> = []
+    @State private var classifyTarget: ClassifyTarget?
+    @State private var showImportChooser = false
     @State private var mountedAccount: AccountContext?
+    @State private var didInitialLoad = false
+    @State private var isLoadingAll = false
+    /// The bounded read for search/sort stopped with titles still unread (shown as an honest line).
+    @State private var localOrderingTruncated = false
 
-    enum CollectionFilter: String, CaseIterable {
-        case all = "ALL"
-        case watching = "WATCHING"
-        case completed = "COMPLETED"
-        case planned = "PLANNED"
-        case paused = "PAUSED"
-        case dropped = "DROPPED"
+    private struct ClassifyTarget: Identifiable {
+        let media: Media
+        var id: String { media.stableKey }
+    }
 
-        var displayName: String { rawValue }
+    private var german: Bool { KuroLocale.isGerman }
+    /// The current account while this page is mounted (writes never start from an unmounted page).
+    private var activeAccount: AccountContext? {
+        mountedAccount == nil ? nil : collection.accountSession.current
+    }
+    private var isImportedView: Bool { collection.importedTitleKeys != nil }
 
-        var listStatus: ListStatus? {
-            switch self {
-            case .all: return nil
-            case .watching: return .current
-            case .completed: return .completed
-            case .planned: return .planning
-            case .paused: return .paused
-            case .dropped: return .dropped
+    private var density: Binding<FolioDensity> {
+        medium == .manga ? $mangaDensity : $animeDensity
+    }
+
+    /// An active search reads every status of the medium (search covers the whole list, rulebook §14.4).
+    private var isQueryActive: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// The server-side status filter of the feed this page reads.
+    private var feedStatus: ListStatus? {
+        isImportedView || isQueryActive ? nil : status.listStatus
+    }
+
+    // MARK: Rows
+
+    /// Every loaded row of the selected medium joined with its Library entry and next release.
+    private var loadedItems: [FolioItem] {
+        collection.displayedFeedItems.compactMap { media -> FolioItem? in
+            guard media.kind == medium, let entry = library.entry(for: media.libraryKey) else { return nil }
+            let progress = library.displayedProgress(for: entry.key, server: entry.progress, lifecycleId: entry.lifecycleId)
+            // Only a displayable date (an estimate needs confidence): sort, row and VoiceOver agree.
+            let next = entry.status == .completed || entry.status == .dropped
+                ? nil : releases.nextRelease(for: entry.key).flatMap { $0.isDisplayable ? $0 : nil }
+            return FolioItem(media: media, entry: entry, progress: progress, next: next,
+                             banner: collection.feedBanners[entry.key])
+        }
+    }
+
+    /// The rows the list shows: status (Library authority), verdict, search, then sort. A search spans
+    /// every status of the medium. Computed once per render (`body`).
+    private var visibleItems: [FolioItem] {
+        var rows = loadedItems
+        if !isImportedView && !isQueryActive {
+            rows = rows.filter { status.listStatuses.contains($0.entry.status) }
+            if status == .completed {
+                rows = rows.filter { verdictFilter.includes($0.entry.verdict) }
             }
         }
+        rows = rows.filter { FolioPolicy.matches($0, query: searchText) }
+        return FolioPolicy.sorted(rows, by: sort)
     }
 
-    enum MediaTypeFilter: String, CaseIterable {
-        case all = "ALL"
-        case anime = "ANIME"
-        case manga = "MANGA"
+    private var counts: [FolioStatus: Int] {
+        FolioPolicy.counts(library.allEntries, medium: medium)
     }
 
-    enum CompletedVerdictFilter: String, CaseIterable {
-        case all = "ALL"
-        case unsorted = "UNSORTED"
-        case masterpiece = "MASTERPIECE"
-        case okay = "OKAY"
-        case bad = "BAD"
-
-        func displayName(isGerman: Bool) -> String {
-            switch self {
-            case .all: return isGerman ? "Alle" : "All"
-            case .unsorted: return isGerman ? "Ohne Urteil" : "Unsorted"
-            case .masterpiece: return isGerman ? "Meisterwerk" : "Masterpiece"
-            case .okay: return "Okay"
-            case .bad: return isGerman ? "Schwach" : "Bad"
-            }
-        }
-
-        var verdict: Verdict? {
-            switch self {
-            case .all, .unsorted: return nil
-            case .masterpiece: return .masterpiece
-            case .okay: return .okay
-            case .bad: return .bad
-            }
-        }
+    private var unsortedCompleted: Int {
+        library.allEntries.filter { $0.key.kind == medium && $0.status == .completed && $0.verdict == nil }.count
     }
 
-    enum CollectionSort: String, CaseIterable {
-        case lastUpdated = "LAST UPDATED"
-        case titleAZ = "TITLE A-Z"
-        case rating = "RATING"
-        case myRating = "MY RATING"
-        case progress = "PROGRESS"
+    private var actions: FolioRowActions {
+        FolioRowActions(
+            open: { item in
+                KuroAccessibility.impactHaptic(.light)
+                routes.openMedia(MediaRoute(item.key))
+            },
+            advance: { item in advance(item) },
+            edit: { item in routes.presentTrackingEditor(TrackingEditorRequest(media: item.media)) },
+            classify: { item in classifyTarget = ClassifyTarget(media: item.media) },
+            remove: { item in removeOne(item) },
+            toggleSelection: { item in
+                KuroAccessibility.impactHaptic(.light)
+                if selectedKeys.contains(item.id) { selectedKeys.remove(item.id) } else { selectedKeys.insert(item.id) }
+            },
+            keyPhase: { item in keyPhase(item) }
+        )
     }
 
-    private var items: [Media] { collection.displayedFeedItems }
-    private var isGermanLocale: Bool {
-        Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
-    }
-
-    private var displayItems: [Media] {
-        if collection.importedTitleKeys != nil { return items }
-        var base = searchResults ?? items
-
-        // Media type filter
-        switch selectedMediaType {
-        case .all: break
-        case .anime: base = base.filter { $0.kind == .anime }
-        case .manga: base = base.filter { $0.kind == .manga }
-        }
-
-        // Streaming service filter
-        if flags.isStreamingAvailabilityV1Enabled, let slug = selectedServiceFilter {
-            let available = availability.collectionItemsAvailableOn(slug: slug)
-            base = base.filter { available.contains("\($0.kind == .anime ? "ANIME" : "MANGA")-\($0.id)") }
-        }
-
-        // Language filter
-        if flags.isStreamingAvailabilityV1Enabled, let lang = selectedLanguageFilter {
-            let available = availability.collectionItemsWithLanguage(lang: lang, includeUnknown: includeUnknownLanguage)
-            base = base.filter { available.contains("\($0.kind == .anime ? "ANIME" : "MANGA")-\($0.id)") }
-        }
-
-        if selectedFilter == .completed {
-            base = base.filter { media in
-                guard let entry = library.entry(for: media.libraryKey) else {
-                    return false
-                }
-                switch selectedVerdictFilter {
-                case .all:
-                    return true
-                case .unsorted:
-                    return entry.verdict == nil
-                case .masterpiece, .okay, .bad:
-                    return entry.verdict == selectedVerdictFilter.verdict
-                }
-            }
-        }
-
-        switch selectedSort {
-        case .lastUpdated:
-            return base
-        case .titleAZ:
-            return base.sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
-        case .rating:
-            return base.sorted { ($0.rating ?? 0) > ($1.rating ?? 0) }
-        case .myRating:
-            return base.sorted {
-                (library.entry(for: $0.libraryKey)?.rating?.value ?? 0) >
-                (library.entry(for: $1.libraryKey)?.rating?.value ?? 0)
-            }
-        case .progress:
-            return base.sorted {
-                let p0 = library.entry(for: $0.libraryKey)?.progress ?? 0
-                let p1 = library.entry(for: $1.libraryKey)?.progress ?? 0
-                return p0 > p1
-            }
-        }
-    }
-
-    private var hasContent: Bool {
-        !displayItems.isEmpty
-    }
-
-    private var statusCounts: [(label: String, count: Int)] {
-        var counts: [String: Int] = [:]
-        for media in items {
-            if let entry = library.entry(for: media.libraryKey) {
-                let label: String
-                switch entry.status {
-                case .current: label = "WATCHING"
-                case .completed: label = "COMPLETED"
-                case .planning: label = "PLANNED"
-                case .paused: label = "PAUSED"
-                case .dropped: label = "DROPPED"
-                case .repeating: label = "REWATCHING"
-                }
-                counts[label, default: 0] += 1
-            }
-        }
-        return counts.sorted { $0.value > $1.value }.map { (label: $0.key, count: $0.value) }
-    }
+    // MARK: Body
 
     var body: some View {
         GeometryReader { geometry in
-            VStack(spacing: 0) {
-                if collection.importedTitleKeys != nil {
-                    HStack {
-                        Text("Imported titles").font(.kuroCaption())
-                        Spacer()
-                        Button("View full Collection") { collection.clearImportedTitles() }
-                            .font(.kuroCaption()).frame(minHeight: 44)
-                    }.padding(.horizontal, KuroDesignSpacing.md)
+            let width = geometry.size.width
+            let gutter = FolioPolicy.gutter(forWidth: width)
+            let rows = visibleItems
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    header(gutter: gutter, canSelect: !rows.isEmpty)
+                    content(rows: rows, width: width, gutter: gutter)
+                        .padding(.top, KuroDesignSpacing.md)
+                    Color.clear.frame(height: KuroDesignSpacing.xl)
                 }
-                statusSummarySection
-                if collection.importedTitleKeys == nil {
-                    collectionHeaderSection
-                    searchFieldSection
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .refreshable { await reload(refreshLibrary: true) }
+            .background(Color.kuroCanvasPage)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: KuroDesignSpacing.sm) {
+                    if let notice {
+                        FolioNoticeBar(notice: notice) { performNoticeAction() }
+                            .transition(.opacity)
+                    }
+                    if isSelecting && !selectedKeys.isEmpty {
+                        FolioBatchBar(count: selectedKeys.count, medium: medium,
+                                      onChangeStatus: { target in Task { await batchChangeStatus(target) } },
+                                      onRemove: { showRemoveConfirm = true })
+                            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
-                collectionContent(geometry: geometry)
-                batchActionBar
+                .padding(.bottom, isSelecting && !selectedKeys.isEmpty ? 0 : KuroDesignSpacing.sm)
+                .kuroAnimation(KuroMotion.settle, value: notice?.id)
             }
         }
         .confirmationDialog(
-            "Change status for \(selectedKeys.count) item\(selectedKeys.count == 1 ? "" : "s")",
-            isPresented: $showBatchStatusPicker,
+            german ? "\(selectedKeys.count) Titel aus deinen Listen entfernen?"
+                   : "Remove \(selectedKeys.count) \(selectedKeys.count == 1 ? "title" : "titles") from your lists?",
+            isPresented: $showRemoveConfirm,
             titleVisibility: .visible
         ) {
-            Button("Watching") { Task { await batchChangeStatus(.current) } }
-            Button("Completed") { Task { await batchChangeStatus(.completed) } }
-            Button("Planned") { Task { await batchChangeStatus(.planning) } }
-            Button("Paused") { Task { await batchChangeStatus(.paused) } }
-            Button("Cancel", role: .cancel) { }
+            Button(german ? "Entfernen" : "Remove", role: .destructive) { Task { await confirmBatchRemove() } }
+            Button(german ? "Abbrechen" : "Cancel", role: .cancel) {}
+        } message: {
+            Text(german ? "Status, Fortschritt und Notizen dieser Titel werden gelöscht."
+                        : "Their status, progress and notes are deleted.")
         }
-        .confirmationDialog(
-            "Remove \(selectedKeys.count) item\(selectedKeys.count == 1 ? "" : "s") from collection?",
-            isPresented: $showBatchRemoveConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("Remove", role: .destructive) {
-                Task { await confirmBatchRemove() }
+        .sheet(item: $classifyTarget) { target in
+            QuickVerdictActionSheet(media: target.media) { toast in
+                show(FolioNotice(tone: toast.kind == .error ? .problem : .confirmation, message: toast.title, actionTitle: nil))
             }
-            Button("Cancel", role: .cancel) { }
+        }
+        .sheet(isPresented: $showImportChooser) {
+            ImportSourceChooser { destination in
+                showImportChooser = false
+                switch destination {
+                case .importedTitles(let keys): collection.showImportedTitles(keys)
+                case .fullCollection: collection.clearImportedTitles()
+                }
+            }
         }
         .onAppear { mountedAccount = collection.accountSession.current }
-        .onDisappear { mountedAccount = nil }
-        .task {
-            if !didInitialLoad {
-                didInitialLoad = true
-                if flags.seriesHomeNativeV1Enabled {
-                    await reloadSeriesCollection()
-                } else {
-                    await collection.fetchCollectionFeed(status: selectedFilter.listStatus)
-                    await prefetchCollectionMetadata(for: Array(collection.collectionFeedItems.prefix(80)))
-                }
-            }
+        .onDisappear {
+            mountedAccount = nil
+            noticeTask?.cancel()
         }
-        .onChange(of: selectedFilter) { _, _ in
-            searchText = ""
-            searchResults = nil
-            selectedVerdictFilter = .all
-            Task {
-                if flags.seriesHomeNativeV1Enabled { await reloadSeriesCollection() }
-                else { await collection.fetchCollectionFeed(status: selectedFilter.listStatus) }
+        .task {
+            guard !didInitialLoad else { return }
+            didInitialLoad = true
+            if let request = collection.consumeListRequest() {
+                apply(request)
+            } else if let stored = MediaKind(rawValue: storedMedium) {
+                medium = stored
+            } else {
+                medium = home.medium == "manga" ? .manga : .anime
             }
+            await reload()
+            await releases.loadSchedule()
+        }
+        .onChange(of: collection.requestedListFilter) { _, request in
+            guard request != nil, let request = collection.consumeListRequest() else { return }
+            apply(request)
+            Task { await reload() }
+        }
+        .onChange(of: medium) { _, value in
+            storedMedium = value.rawValue
+            resetTransientState()
+            Task { await reload() }
+        }
+        .onChange(of: status) { _, _ in
+            selectedKeys.removeAll()
+            verdictFilter = .all
+            // Choosing a status ends a search (which spans every status); the query change reloads.
+            if isQueryActive {
+                searchText = ""
+                isSearching = false
+                return
+            }
+            Task { await reload() }
         }
         .onChange(of: collection.importedTitleKeys) { _, _ in
-            Task {
-                if flags.seriesHomeNativeV1Enabled { await reloadSeriesCollection() }
-                else { await collection.fetchCollectionFeed(status: selectedFilter.listStatus) }
-            }
+            resetTransientState()
+            Task { await reload() }
         }
-        .onChange(of: collection.importPublicationRevision) { _, _ in
-            let origin = mountedAccount
-            guard !flags.seriesHomeNativeV1Enabled, collection.importedTitleKeys == nil,
-                  !searchText.isEmpty else { return }
-            Task {
-                guard mountedAccount == origin, collection.accountSession.isCurrent(origin) else { return }
-                await performSearch()
-            }
+        .onChange(of: collection.currentCollectionStatusFilter) { _, filter in
+            // Another surface re-read the feed for a different filter (sync, realtime, import):
+            // read the list this page is showing again.
+            // Latest wins in the store, so this read replaces the other one; ours already match.
+            guard !isImportedView, filter != feedStatus else { return }
+            Task { await reload() }
         }
-        .onChange(of: home.medium) { _, _ in
-            if flags.seriesHomeNativeV1Enabled { Task { await reloadSeriesCollection() } }
+        .onChange(of: isQueryActive) { _, _ in
+            // Starting a search reads the whole medium; clearing it reads the selected status again.
+            guard !isImportedView else { return }
+            Task { await reload() }
+        }
+        .onChange(of: collection.isCollectionLoading) { _, loading in
+            // Any feed refresh (batch end, a Library change) reads the first page again: a sorted or
+            // searched list reads the rest again so it is never silently incomplete.
+            guard !loading, sort != .recent || isQueryActive else { return }
+            Task { await loadAllForLocalOrdering() }
+        }
+        .onChange(of: sort) { _, value in
+            if value != .recent { Task { await loadAllForLocalOrdering() } }
         }
     }
 
-    private func reloadSeriesCollection(reset: Bool = true) async {
-        let status: String?
-        switch selectedFilter {
-        case .all: status = nil
-        case .watching: status = home.medium == "manga" ? "READING" : "WATCHING"
-        case .completed: status = "COMPLETED"
-        case .planned: status = "PLANNING"
-        case .paused: status = "PAUSED"
-        case .dropped: status = "DROPPED"
-        }
-        await collection.fetchSeriesPage(medium: home.medium, status: status, query: searchText, reset: reset)
-    }
-
-    private var completedUnsortedCount: Int {
-        items.filter { media in
-            guard let entry = library.entry(for: media.libraryKey) else {
-                return false
-            }
-            return entry.status == .completed && entry.verdict == nil
-        }.count
-    }
+    // MARK: Header
 
     @ViewBuilder
-    private var statusSummarySection: some View {
-        if !items.isEmpty && !statusCounts.isEmpty {
-            HStack(spacing: 0) {
-                ForEach(Array(statusCounts.enumerated()), id: \.element.label) { index, item in
-                    if index > 0 {
-                        Text(" · ")
-                            .font(.kuroMicro(weight: .medium))
-                            .foregroundColor(.kuroTextTertiary)
-                    }
-                    Text("\(item.count) \(item.label)")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.0)
-                        .foregroundColor(.kuroTextSecondary)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 8)
-        }
-    }
-
-    private var collectionHeaderSection: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                EditorialFilterBar(
-                    filters: CollectionFilter.allCases,
-                    selectedFilter: $selectedFilter
-                )
-
-                Button {
-                    withAnimation(KuroAnimation.fast) {
-                        showSearch.toggle()
-                        if !showSearch {
-                            searchText = ""
-                            searchResults = nil
-                        }
-                    }
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundColor(showSearch ? .black : .black.opacity(0.40))
-                }
-                .padding(.trailing, EditorialLayout.marginEditorial)
-            }
-            .padding(.vertical, 20)
-
-            collectionControlsSection
-                .padding(.bottom, 12)
-
-            if selectedFilter == .completed {
-                completedVerdictFilterSection
-                    .padding(.bottom, 12)
-            }
-        }
-    }
-
-    private var completedVerdictFilterSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(CompletedVerdictFilter.allCases, id: \.self) { filter in
-                        Button {
-                            KuroAccessibility.impactHaptic(.light)
-                            withAnimation(KuroAnimation.fast) {
-                                selectedVerdictFilter = filter
-                            }
-                        } label: {
-                            Text(filter.displayName(isGerman: isGermanLocale).uppercased())
-                                .font(.system(size: 9, weight: .medium))
-                                .tracking(1.0)
-                                .foregroundColor(selectedVerdictFilter == filter ? .black : .black.opacity(0.35))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, EditorialLayout.marginEditorial)
-            }
-
-            if completedUnsortedCount > 0 {
-                Text(
-                    isGermanLocale
-                        ? "\(completedUnsortedCount) fertige Titel haben noch kein Urteil."
-                        : "\(completedUnsortedCount) completed titles still need a verdict."
-                )
-                .font(.kuroMicro(weight: .medium))
-                .foregroundColor(.kuroTextSecondary)
-                .padding(.horizontal, EditorialLayout.marginEditorial)
-            }
-        }
-    }
-
-    private var collectionControlsSection: some View {
-        HStack(spacing: 0) {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(CollectionSort.allCases, id: \.self) { sort in
-                        sortButton(for: sort)
-                    }
-                }
-                .padding(.horizontal, EditorialLayout.marginEditorial)
-            }
-
-            mediaTypeMenu
-            serviceFilterMenu
-            languageFilterMenu
-
-            Spacer(minLength: 8)
-
-            Button {
-                KuroAccessibility.impactHaptic(.light)
-                withAnimation(KuroAnimation.fast) {
-                    showListView.toggle()
-                }
-            } label: {
-                Image(systemName: showListView ? "square.grid.2x2" : "list.bullet")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(.black.opacity(0.45))
-            }
-            .buttonStyle(.plain)
-
-            if hasContent {
-                Button {
-                    KuroAccessibility.impactHaptic(.light)
-                    withAnimation(KuroAnimation.fast) {
-                        isEditMode.toggle()
-                        if !isEditMode {
-                            selectedKeys.removeAll()
-                        }
-                    }
-                } label: {
-                    Text(isEditMode ? "DONE" : "EDIT")
-                        .font(.kuroMicro(weight: .semibold))
-                        .tracking(1.0)
-                        .foregroundColor(isEditMode ? .black : .black.opacity(0.45))
-                }
-                .buttonStyle(.plain)
-                .padding(.leading, 12)
-            }
-
-            Spacer().frame(width: EditorialLayout.marginEditorial)
-        }
-    }
-
-    private func sortButton(for sort: CollectionSort) -> some View {
-        Button {
-            KuroAccessibility.impactHaptic(.light)
-            withAnimation(KuroAnimation.fast) {
-                selectedSort = sort
-            }
-        } label: {
-            Text(sort.rawValue)
-                .font(.system(size: 9, weight: .medium))
-                .tracking(1.0)
-                .foregroundColor(selectedSort == sort ? .black : .black.opacity(0.35))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Sort by \(sort.rawValue)")
-        .accessibilityAddTraits(selectedSort == sort ? .isSelected : [])
-    }
-
-    private var mediaTypeMenu: some View {
-        Menu {
-            ForEach(MediaTypeFilter.allCases, id: \.self) { type in
-                Button(type.rawValue) {
-                    selectedMediaType = type
-                }
-            }
-        } label: {
-            HStack(spacing: 3) {
-                Image(systemName: "rectangle.stack")
-                    .font(.system(size: 9, weight: .regular))
-                Text(selectedMediaType == .all ? "TYPE" : selectedMediaType.rawValue)
-                    .font(.system(size: 9, weight: .medium))
-                    .tracking(0.8)
-            }
-            .foregroundColor(selectedMediaType != .all ? .black : .black.opacity(0.35))
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private var serviceFilterMenu: some View {
-        if flags.isStreamingAvailabilityV1Enabled,
-           !availability.userStreamingServices.isEmpty {
-            Menu {
-                Button("ALL SERVICES") {
-                    selectedServiceFilter = nil
-                }
-                ForEach(availability.streamingServiceRegistry.filter({
-                    availability.userStreamingServices.contains($0.slug)
-                })) { svc in
-                    Button(svc.display_name) {
-                        selectedServiceFilter = svc.slug
-                    }
-                }
-            } label: {
-                HStack(spacing: 3) {
-                    Image(systemName: "play.tv")
-                        .font(.system(size: 9, weight: .regular))
-                    Text(selectedServiceFilter != nil
-                         ? (availability.streamingServiceRegistry.first(where: { $0.slug == selectedServiceFilter })?.display_name ?? "SERVICE")
-                         : "SERVICE")
-                        .font(.system(size: 9, weight: .medium))
-                        .tracking(0.8)
-                }
-                .foregroundColor(selectedServiceFilter != nil ? .black : .black.opacity(0.35))
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    @ViewBuilder
-    private var languageFilterMenu: some View {
-        if flags.isStreamingAvailabilityV1Enabled {
-            Menu {
-                Button("ANY LANGUAGE") {
-                    selectedLanguageFilter = nil
-                }
-                Button("ENGLISH") { selectedLanguageFilter = "en" }
-                Button("GERMAN") { selectedLanguageFilter = "de" }
-                Button("JAPANESE") { selectedLanguageFilter = "ja" }
-                Divider()
-                Toggle("Include unlabeled", isOn: $includeUnknownLanguage)
-            } label: {
-                HStack(spacing: 3) {
-                    Image(systemName: "globe")
-                        .font(.system(size: 9, weight: .regular))
-                    Text(selectedLanguageFilter?.uppercased() ?? "LANG")
-                        .font(.system(size: 9, weight: .medium))
-                        .tracking(0.8)
-                }
-                .foregroundColor(selectedLanguageFilter != nil ? .black : .black.opacity(0.35))
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    @ViewBuilder
-    private var searchFieldSection: some View {
-        if showSearch {
-            HStack(spacing: 8) {
-                TextField("Search your collection...", text: $searchText)
-                    .font(.kuroBody())
-                    .textFieldStyle(.plain)
-                    .onSubmit { Task { await performSearch() } }
-                    .onChange(of: searchText) { _, newValue in
-                        searchDebounceTask?.cancel()
-                        let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if trimmed.isEmpty {
-                            searchResults = nil
-                            if flags.seriesHomeNativeV1Enabled { Task { await reloadSeriesCollection() } }
-                            return
-                        }
-                        searchDebounceTask = Task {
-                            try? await Task.sleep(for: .milliseconds(300))
-                            guard !Task.isCancelled else { return }
-                            if flags.seriesHomeNativeV1Enabled { await reloadSeriesCollection() }
-                            else { searchResults = items.filter { $0.title.localizedCaseInsensitiveContains(trimmed) } }
-                        }
-                    }
-
-                if !searchText.isEmpty {
+    private func header(gutter: CGFloat, canSelect: Bool) -> some View {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            if isImportedView {
+                HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.md) {
+                    Text(german ? "Importierte Titel" : "Imported titles")
+                        .font(.kuroTitle())
+                        .foregroundStyle(Color.kuroInk)
+                        .accessibilityAddTraits(.isHeader)
+                    Spacer(minLength: 0)
                     Button {
-                        searchText = ""
-                        searchResults = nil
+                        collection.clearImportedTitles()
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.kuroTextTertiary)
-                    }
-                }
-            }
-            .padding(.horizontal, EditorialLayout.marginEditorial)
-            .padding(.bottom, 12)
-            .transition(.opacity.combined(with: .move(edge: .top)))
-        }
-    }
-
-    private func collectionContent(geometry: GeometryProxy) -> some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            collectionScrollContent(geometry: geometry)
-        }
-        .scrollDisabled(false)
-        .refreshable {
-            await refreshCollection()
-        }
-        .background(Color.kuroBackground)
-        .overlay(alignment: .top) {
-            if let bannerMessage {
-                KuroTransientBanner(message: bannerMessage)
-                    .padding(.top, 10)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func collectionScrollContent(geometry: GeometryProxy) -> some View {
-        if flags.seriesHomeNativeV1Enabled {
-            seriesCollection
-        } else if collection.isCollectionLoading {
-            EditorialCollectionLoading()
-        } else if !hasContent {
-            collectionEmptyState
-        } else {
-            collectionLoadedContent(geometry: geometry)
-        }
-    }
-
-    private var seriesCollection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            if collection.isCollectionLoading && collection.displayedSeriesGroups.isEmpty {
-                EditorialCollectionLoading()
-            } else if collection.displayedSeriesGroups.isEmpty,let error = collection.collectionErrorMessage {
-                Text(error).font(.kuroBody())
-                Button("Try again") { Task { await reloadSeriesCollection() } }.frame(minHeight:44)
-            } else if collection.displayedSeriesGroups.isEmpty {
-                Text("Nothing in this collection yet.")
-                    .font(.kuroTitle())
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if collection.importedTitleKeys != nil, collection.displayedSeriesNextCursor != nil {
-                    Button("More imported titles") { Task { await reloadSeriesCollection(reset: false) } }
-                        .frame(minHeight: 44)
-                }
-            } else {
-                ForEach(collection.displayedSeriesGroups) { group in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(group.children.first?.title ?? "Series")
-                            .font(.kuroTitle())
-                            .accessibilityAddTraits(.isHeader)
-                        ForEach(group.children) { child in
-                            let childMedium = child.mediaKind?.rawValue.lowercased() ?? home.medium
-                            let progress = home.displayedProgress(
-                                medium: childMedium,
-                                mediaId: child.mediaId,
-                                server: child.progress, lifecycleId:UUID(uuidString:child.lifecycleId)
-                            )
-                            HStack {
-                                Button {
-                                    routes.openMedia(MediaRoute(kind: childMedium == "manga" ? .manga : .anime, id: child.mediaId))
-                                } label: { Text(child.title).font(.kuroBody()).frame(maxWidth: .infinity, minHeight: 44, alignment: .leading) }
-                                .buttonStyle(.plain)
-                                Spacer()
-                                Button {
-                                    Task {
-                                        await home.advance(
-                                            medium: childMedium,
-                                            mediaId: child.mediaId,
-                                            lifecycleId: child.lifecycleId,
-                                            baseRevision: child.serverRevision,
-                                            serverProgress: child.progress
-                                        )
-                                    }
-                                } label: {
-                                    Text("\(progress)")
-                                        .font(.kuroCaption())
-                                        .frame(minWidth: 44, minHeight: 44)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Progress \(progress)")
-                                .accessibilityHint("Advances progress by one")
-                            }
+                        Text(german ? "Alle Listen" : "All lists")
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .underline(true, color: Color.kuroInk)
                             .frame(minHeight: 44)
-                        }
-                        if group.childrenNext != nil {
-                            Button(home.medium == "manga" ? "More titles" : "More seasons") { Task { await collection.fetchMoreSeriesChildren(groupKey: group.groupKey) } }
-                                .font(.kuroCaption()).frame(minHeight: 44)
-                        }
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, gutter)
+            }
+
+            KuroMediumSwitch(selection: $medium, size: .compact)
+                .padding(.horizontal, gutter)
+                .padding(.top, KuroDesignSpacing.sm)
+
+            if !isImportedView {
+                FolioStatusStrip(selection: $status, counts: counts, medium: medium, gutter: gutter)
+            }
+
+            FolioControlsRow(
+                density: density,
+                sort: $sort,
+                isSearching: isSearching,
+                isSelecting: isSelecting,
+                canSelect: canSelect,
+                onToggleSearch: toggleSearch,
+                onToggleSelect: toggleSelect,
+                gutter: gutter
+            )
+
+            if isSearching {
+                FolioSearchField(text: $searchText, medium: medium, focused: $searchFocused, gutter: gutter)
+                    .transition(.opacity)
+            }
+
+            if status == .completed && !isImportedView {
+                FolioVerdictWords(selection: $verdictFilter, unsortedCount: unsortedCompleted, gutter: gutter)
+            }
+
+            Rectangle()
+                .fill(Color.kuroHairline)
+                .frame(height: 0.5)
+                .padding(.horizontal, gutter)
+                .padding(.top, KuroDesignSpacing.xs)
+        }
+    }
+
+    // MARK: Content and states
+
+    @ViewBuilder
+    private func content(rows: [FolioItem], width: CGFloat, gutter: CGFloat) -> some View {
+        let hasError = collection.collectionErrorMessage?.isEmpty == false
+        let offline = !networkMonitor.isConnected
+        if collection.isCollectionLoading && rows.isEmpty {
+            FolioSkeleton(density: density.wrappedValue, medium: medium, width: width)
+        } else if rows.isEmpty {
+            emptyState(hasError: hasError, offline: offline, gutter: gutter)
+        } else {
+            VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+                if hasError || offline {
+                    KuroStateView(offline ? .offline(hasCachedContent: true) : .failed(hasCachedContent: true),
+                                  layout: .inline, retry: offline ? nil : { Task { await reload(refreshLibrary: true) } })
+                        .padding(.horizontal, gutter)
+                }
+                Group {
+                    if density.wrappedValue == .shelf {
+                        FolioShelf(items: rows, medium: medium, width: width, isSelecting: isSelecting,
+                                   selectedKeys: selectedKeys, actions: actions)
+                    } else {
+                        FolioIndex(items: rows, width: width, isSelecting: isSelecting,
+                                   selectedKeys: selectedKeys, actions: actions)
                     }
                 }
-                if let message = collection.collectionErrorMessage { Text(message).font(.kuroCaption()) }
-                if collection.displayedSeriesNextCursor != nil {
-                    Button("More") {
-                        Task { await reloadSeriesCollection(reset: false) }
+                // The density switch is a crossfade, never rows travelling between layouts (§8).
+                .id(density.wrappedValue)
+                .transition(.opacity)
+                if sort == .recent && !isQueryActive {
+                    KuroLoadMoreSentinel(
+                        itemCount: collection.displayedFeedItems.count,
+                        hasMore: collection.hasMoreDisplayedFeed,
+                        isLoading: collection.isLoadingMoreCollectionFeed
+                    ) {
+                        _ = await collection.fetchNextCollectionFeedPage(limit: 90)
                     }
-                    .frame(minHeight: 44)
+                } else if isLoadingAll {
+                    ProgressView()
+                        .tint(Color.kuroInkQuiet)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .accessibilityLabel(german ? "Weitere Titel werden geladen" : "Loading more titles")
+                } else if localOrderingTruncated {
+                    truncationLine(gutter: gutter)
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+    }
+
+    /// The bounded read stopped early: say so instead of implying the order or the matches are complete.
+    private func truncationLine(gutter: CGFloat) -> some View {
+        Text(FolioCopy.showingFirst(collection.displayedFeedItems.count, german: german))
+            .font(.kuroMeta())
+            .foregroundStyle(Color.kuroInkSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, gutter)
     }
 
     @ViewBuilder
-    private var collectionEmptyState: some View {
-        if searchResults != nil {
-            VStack(spacing: 8) {
-                Text("NO RESULTS")
-                    .font(.kuroCaption())
-                    .tracking(1.5)
-                    .foregroundColor(.black.opacity(0.5))
-                Text("Try a different search term")
-                    .font(.kuroMicro(weight: .light))
-                    .foregroundColor(.black.opacity(0.4))
-            }
-            .padding(.top, 80)
-        } else if let msg = collection.collectionErrorMessage, !msg.isEmpty {
-            collectionErrorState(message: msg)
-        } else {
-            EditorialCollectionEmpty(
-                onExploreDiscover: {
-                    if let url = URL(string: "kuro://discover") {
-                        UIApplication.shared.open(url)
-                    }
-                },
-                onExploreConcierge: {
-                    if let url = URL(string: "kuro://concierge") {
-                        UIApplication.shared.open(url)
-                    }
+    private func emptyState(hasError: Bool, offline: Bool, gutter: CGFloat) -> some View {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let libraryKnown = library.loadState == .loaded || !library.allEntries.isEmpty
+        // The Library (the tracking authority) knows this status is empty: that is an honest empty
+        // line, never a failure, even offline (rulebook §9).
+        let knownEmptyStatus = !isImportedView && query.isEmpty && libraryKnown && (counts[status] ?? 0) == 0
+            && counts.values.reduce(0, +) > 0
+        if !libraryKnown && library.loadState != .failed {
+            // The Library has not answered yet: keep stable geometry instead of an "empty" claim.
+            KuroStateView(.loading, title: german ? "Deine Listen werden geladen." : "Loading your lists.", layout: .inline)
+                .padding(.horizontal, gutter)
+        } else if knownEmptyStatus {
+            KuroStateView(.empty, title: status.emptyLine(medium: medium, german: german), layout: .inline)
+                .padding(.horizontal, gutter)
+        } else if hasError || library.loadState == .failed && library.allEntries.isEmpty
+                    || (offline && collection.displayedFeedItems.isEmpty && !library.allEntries.isEmpty) {
+            KuroStateView(offline ? .offline(hasCachedContent: false) : .failed(hasCachedContent: false),
+                          retry: { Task { await reload(refreshLibrary: true) } })
+                .frame(minHeight: 280)
+        } else if !query.isEmpty {
+            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                KuroStateView(.empty, title: FolioCopy.noMatches(query, german: german), layout: .inline)
+                if isLoadingAll {
+                    ProgressView()
+                        .tint(Color.kuroInkQuiet)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .accessibilityLabel(german ? "Weitere Titel werden geladen" : "Loading more titles")
+                } else if localOrderingTruncated {
+                    Text(FolioCopy.showingFirst(collection.displayedFeedItems.count, german: german))
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-            )
+            }
+            .padding(.horizontal, gutter)
+        } else if library.allEntries.isEmpty && !isImportedView {
+            libraryInvitation(gutter: gutter)
+        } else if !isImportedView && counts.values.reduce(0, +) == 0 {
+            otherMediumShortcut(gutter: gutter)
+        } else if isImportedView {
+            KuroStateView(.empty, title: german ? "Keine importierten Titel in diesem Medium." : "No imported titles in this medium.",
+                          layout: .inline)
+                .padding(.horizontal, gutter)
+        } else {
+            KuroStateView(.empty, title: status.emptyLine(medium: medium, german: german), layout: .inline)
+                .padding(.horizontal, gutter)
         }
     }
 
-    private func collectionErrorState(message: String) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: networkMonitor.isConnected ? "exclamationmark.triangle" : "wifi.slash")
-                .font(.system(size: 32, weight: .light))
-                .foregroundColor(.kuroTextTertiary)
-            Text(networkMonitor.isConnected ? "COULDN'T LOAD COLLECTION" : "YOU'RE OFFLINE")
-                .font(.kuroCaption(weight: .medium))
-                .tracking(1.6)
-                .foregroundColor(.kuroTextSecondary)
-            Text(networkMonitor.isConnected ? message : "Your collection will appear when you reconnect.")
+    /// The whole Library is empty: two invitation actions, Find and Import (rulebook §7, §9).
+    private func libraryInvitation(gutter: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+            Text(german ? "Deine Listen beginnen hier." : "Your lists start here.")
+                .font(.kuroHeadline(weight: .light))
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            Text(german
+                 ? "Speichere einen Titel oder bring deine Liste von AniList oder MyAnimeList mit."
+                 : "Save a title, or bring your list from AniList or MyAnimeList.")
                 .font(.kuroBody())
-                .foregroundColor(.kuroTextTertiary)
-                .multilineTextAlignment(.center)
-            Button {
-                Task {
-                    try? await library.refresh()
-                    await collection.fetchCollectionFeed(status: nil)
-                }
-            } label: {
-                Text("RETRY")
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(1.6)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(Capsule().fill(Color.black))
+                .foregroundStyle(Color.kuroInkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            KuroInkButton(german ? "Titel finden" : "Find a title", role: .secondary) { routes.openBrowse() }
+            KuroInkButton(german ? "Liste importieren" : "Import your list", role: .secondary) { showImportChooser = true }
+        }
+        .padding(.horizontal, gutter)
+        .padding(.top, KuroDesignSpacing.lg)
+    }
+
+    /// Nothing in this medium, but the other medium has titles: an honest shortcut, never an auto-switch.
+    @ViewBuilder
+    private func otherMediumShortcut(gutter: CGFloat) -> some View {
+        let other: MediaKind = medium == .anime ? .manga : .anime
+        let otherCount = library.allEntries.filter { $0.key.kind == other }.count
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+            Text(medium == .anime
+                 ? (german ? "Noch keine Anime in deinen Listen." : "No anime in your lists yet.")
+                 : (german ? "Noch keine Manga in deinen Listen." : "No manga in your lists yet."))
+                .font(.kuroTitle())
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+            if otherCount > 0 {
+                KuroInkButton(other == .manga
+                              ? (german ? "Deine Manga zeigen (\(otherCount))" : "Show your manga (\(otherCount))")
+                              : (german ? "Deine Anime zeigen (\(otherCount))" : "Show your anime (\(otherCount))"),
+                              role: .secondary) { medium = other }
             }
-            .buttonStyle(.plain)
+            KuroInkButton(german ? "Titel finden" : "Find a title", role: .secondary) { routes.openBrowse() }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, gutter)
+        .padding(.top, KuroDesignSpacing.md)
     }
 
-    @ViewBuilder
-    private func collectionLoadedContent(geometry: GeometryProxy) -> some View {
-        if !networkMonitor.isConnected {
-            Text("SHOWING CACHED DATA")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.2)
-                .foregroundColor(.kuroTextTertiary)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(.bottom, 4)
-        }
+    // MARK: Loading
 
-        if showListView {
-            CollectionListView(
-                items: displayItems,
-                isEditMode: isEditMode,
-                onQuickActionMessage: { message in showBanner(message) },
-                selectedKeys: $selectedKeys
-            )
-        } else {
-            EditorialCollectionGrid(
-                items: displayItems,
-                geometry: geometry,
-                title: nil,
-                isEditMode: isEditMode,
-                onQuickActionMessage: { message in showBanner(message) },
-                selectedKeys: $selectedKeys
-            )
-        }
+    private func apply(_ request: CollectionListRequest) {
+        if let requested = request.medium { medium = requested }
+        status = FolioStatus(listStatus: request.status)
+        resetTransientState()
+    }
 
-        if searchResults == nil {
-            collectionPaginationSentinel
+    private func resetTransientState() {
+        isSelecting = false
+        selectedKeys.removeAll()
+        searchText = ""
+        isSearching = false
+        verdictFilter = .all
+    }
+
+    /// Reads the selected medium and status from the feed (the Library store keeps the tracking values).
+    private func reload(refreshLibrary: Bool = false) async {
+        guard let context = collection.accountSession.current else { return }
+        if refreshLibrary {
+            try? await library.refresh()
+            guard collection.accountSession.isCurrent(context) else { return }
+        }
+        collection.feedMedium = isImportedView ? nil : medium
+        localOrderingTruncated = false
+        await collection.fetchCollectionFeed(status: feedStatus)
+        guard collection.accountSession.isCurrent(context) else { return }
+        if sort != .recent || isQueryActive { await loadAllForLocalOrdering() }
+        if refreshLibrary { await releases.loadSchedule(force: true) }
+    }
+
+    /// Title/score/date sorts and search need the whole list: read the remaining pages (bounded at
+    /// `FolioPolicy.localOrderingPageLimit`; past it the page says "Showing the first N titles").
+    private func loadAllForLocalOrdering() async {
+        guard !isLoadingAll, let context = collection.accountSession.current else { return }
+        isLoadingAll = true
+        // Reset whatever the account did meanwhile: a flag left set would block the next account.
+        defer { isLoadingAll = false }
+        var pages = 0
+        while collection.hasMoreDisplayedFeed, pages < FolioPolicy.localOrderingPageLimit, !Task.isCancelled {
+            let loaded = await collection.fetchNextCollectionFeedPage(limit: 120)
+            guard loaded, collection.accountSession.isCurrent(context) else { return }
+            pages += 1
+        }
+        guard collection.accountSession.isCurrent(context) else { return }
+        localOrderingTruncated = collection.hasMoreDisplayedFeed && pages >= FolioPolicy.localOrderingPageLimit
+    }
+
+    // MARK: Controls
+
+    private func toggleSearch() {
+        withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
+            isSearching.toggle()
+            if !isSearching { searchText = "" }
+        }
+        searchFocused = isSearching
+    }
+
+    private func toggleSelect() {
+        withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
+            isSelecting.toggle()
+            if !isSelecting { selectedKeys.removeAll() }
         }
     }
 
-    private var collectionPaginationSentinel: some View {
-        KuroLoadMoreSentinel(
-            itemCount: items.count,
-            hasMore: collection.hasMoreDisplayedFeed,
-            isLoading: collection.isLoadingMoreCollectionFeed
-        ) {
-            let countBefore = collection.collectionFeedItems.count
-            let loaded = await collection.fetchNextCollectionFeedPage(limit: 90)
-            guard loaded else { return }
-            let newItems = Array(collection.collectionFeedItems.dropFirst(countBefore))
-            await prefetchCollectionMetadata(for: newItems)
-        }
+    // MARK: Progress
+
+    private func keyPhase(_ item: FolioItem) -> FolioKeyPhase? {
+        let entry = item.entry
+        let unit = library.displayedUnitId(for: entry.key, serverUnitId: entry.unitId, lifecycleId: entry.lifecycleId)
+        let label = library.displayedProgressLabel(for: entry.key, serverLabel: entry.progressLabel, lifecycleId: entry.lifecycleId)
+        let needsChoice = unit != nil || (label.map { Int($0) != item.progress } ?? false)
+        return FolioPolicy.keyPhase(status: entry.status, progress: item.progress, total: item.total,
+                                    needsChoice: needsChoice, isPending: pendingAdvance.contains(entry.key))
     }
 
-    @ViewBuilder
-    private var batchActionBar: some View {
-        if isEditMode && !selectedKeys.isEmpty {
-            CollectionBatchBar(
-                count: selectedKeys.count,
-                onChangeStatus: { showBatchStatusPicker = true },
-                onRemove: { batchRemove() }
-            )
-            .transition(.move(edge: .bottom).combined(with: .opacity))
-        }
+    private func displayedProgress(_ key: MediaKey) -> Int? {
+        guard let entry = library.entry(for: key) else { return nil }
+        return library.displayedProgress(for: key, server: entry.progress, lifecycleId: entry.lifecycleId)
     }
 
-    @MainActor
-    private func performSearch() async {
-        guard let context = mountedAccount, collection.accountSession.isCurrent(context) else { return }
-        if flags.seriesHomeNativeV1Enabled { await reloadSeriesCollection(); return }
-        let query = searchText
-        guard !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            searchResults = nil
+    /// +1 with the cap through the owner (`CollectionStore.advanceFromList`: the durable outbox with its
+    /// caught-up guard, or one capped edit). A title at its total never advances. One notice per tap.
+    private func advance(_ item: FolioItem) {
+        guard let context = activeAccount else { return }
+        let key = item.key
+        switch keyPhase(item) {
+        case .needsChoice:
+            show(FolioNotice(tone: .confirmation, message: FolioCopy.needsChoice(german: german), actionTitle: nil))
+            routes.openMedia(MediaRoute(key))
+            return
+        case .advance:
+            break
+        case .caughtUp, .pending, .none:
             return
         }
-
-        // Try FM intent parsing first (no-op on unsupported devices)
-        if let intent = await deviceIntelligence.parseSearchIntent(query: query) {
-            guard mountedAccount == context, collection.accountSession.isCurrent(context), searchText == query else { return }
-            var filtered = items
-            if let genre = intent.genre, !genre.isEmpty {
-                filtered = filtered.filter { media in
-                    media.genres?.contains(where: { $0.localizedCaseInsensitiveContains(genre) }) == true
-                }
+        guard FolioPolicy.mayAdvance(progress: item.progress, total: item.total) else { return }
+        let entry = item.entry
+        let before = item.progress
+        pendingAdvance.insert(key)
+        Task {
+            // Released whatever happens meanwhile: a key left pending would show "pending" forever.
+            defer { pendingAdvance.remove(key) }
+            let result = await collection.advanceFromList(key, cap: item.total)
+            guard collection.accountSession.isCurrent(context) else { return }
+            switch result {
+            case .admitted(let path):
+                let after = displayedProgress(key) ?? before
+                // Admitted without moving: the outbox found the title already at its total.
+                guard after > before else { return }
+                KuroAccessibility.successHaptic()
+                collection.recordListAdvance(CollectionAdvanceReceipt(
+                    key: key, title: item.media.title, lifecycleId: entry.lifecycleId,
+                    prior: before, advancedTo: after, account: context, path: path))
+                show(FolioNotice(tone: .confirmation, message: FolioCopy.advanced(medium: key.kind, to: after, german: german),
+                                 actionTitle: FolioCopy.undoTitle(german: german)), seconds: UIAccessibility.isVoiceOverRunning ? 12 : 5)
+            case .refused:
+                return
+            case .failed:
+                KuroAccessibility.errorHaptic()
+                show(FolioNotice(tone: .problem, message: FolioCopy.advanceFailed(german: german), actionTitle: nil))
             }
-            if let status = intent.status, !status.isEmpty {
-                filtered = filtered.filter { $0.statusRaw?.uppercased() == status.uppercased() }
-            }
-            if let yearFrom = intent.yearFrom {
-                filtered = filtered.filter { media in
-                    guard let y = Int(media.year) else { return true }
-                    return y >= yearFrom
-                }
-            }
-            if let yearTo = intent.yearTo {
-                filtered = filtered.filter { media in
-                    guard let y = Int(media.year) else { return true }
-                    return y <= yearTo
-                }
-            }
-            if !intent.keywords.isEmpty {
-                filtered = filtered.filter { media in
-                    intent.keywords.contains(where: { keyword in
-                        media.title.localizedCaseInsensitiveContains(keyword)
-                    })
-                }
-            }
-            searchResults = filtered
-        } else {
-            guard mountedAccount == context, collection.accountSession.isCurrent(context), searchText == query else { return }
-            // Fallback: simple substring match
-            searchResults = items.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
         }
     }
 
-    @MainActor
-    private func refreshCollection() async {
-        if flags.seriesHomeNativeV1Enabled { await reloadSeriesCollection(); return }
-        let hadContentBefore = hasContent
-        try? await library.refresh()
-        await collection.fetchCollectionFeed(status: selectedFilter.listStatus)
-        if hadContentBefore, let msg = collection.collectionErrorMessage, !msg.isEmpty {
-            showBanner("Couldn't refresh. Try again.")
-            return
-        }
-        await prefetchCollectionMetadata(for: Array(collection.collectionFeedItems.prefix(80)))
+    private func performNoticeAction() {
+        guard notice?.actionTitle != nil else { return }
+        hideNotice()
+        undoLastAdvance()
     }
 
-    @MainActor
-    private func prefetchCollectionMetadata(for mediaItems: [Media]) async {
-        let urls = mediaItems.compactMap { URL(string: $0.imageURL ?? "") }
-        if !urls.isEmpty {
-            Task { await ImagePipeline.shared.prefetch(urls: urls) }
-        }
-
-        let feedItems = mediaItems.map {
-            (mediaType: $0.kind == .anime ? "ANIME" : "MANGA", mediaId: $0.id)
-        }
-
-        guard !feedItems.isEmpty else { return }
-
-        if flags.isSocialActivityV1Enabled {
-            social.prefetchFriendCounts(items: feedItems)
-        }
-        if flags.isStreamingAvailabilityV1Enabled {
-            let preferredAudio = Locale.current.identifier.lowercased().hasPrefix("de") ? "de" : "en"
-            availability.prefetchProviderAvailabilityV2(
-                items: feedItems,
-                preferredAudioLang: preferredAudio,
-                preferredSubLang: nil,
-                includeUnknown: true
-            )
-            availability.prefetchProviders(items: feedItems)
+    /// Guarded Undo through the owner: the receipt's own path (the durable outbox's cancel/compensate,
+    /// or the prior position for a plain edit), only while the title still shows the advanced position.
+    private func undoLastAdvance() {
+        guard let context = activeAccount else { return }
+        Task {
+            let result = await collection.undoListAdvance()
+            guard collection.accountSession.isCurrent(context) else { return }
+            switch result {
+            case .undone:
+                return
+            case .alreadySending:
+                show(FolioNotice(tone: .problem, message: FolioCopy.undoInFlight(german: german), actionTitle: nil))
+            case .failed:
+                show(FolioNotice(tone: .problem, message: FolioCopy.undoFailed(german: german), actionTitle: nil))
+            }
         }
     }
 
-    @MainActor
-    private func batchChangeStatus(_ status: ListStatus) async {
-        guard let context = mountedAccount, !Task.isCancelled,
-              collection.accountSession.isCurrent(context) else { return }
-        let selected = selectedMediaItems()
-        guard !selected.isEmpty else { return }
-        // CollectionStore owns the one visible-filter refresh. Per-item outcomes stay on `updatedCount`.
-        let outcomes = await collection.applyBatchStatusChange(
-            status,
-            to: selected.map(\.libraryKey),
-            visibleFilter: selectedFilter.listStatus
-        ) { edit, key, createIfMissing in
-            await libraryActions.apply(edit, to: key, createIfMissing: createIfMissing)
+    // MARK: Removal and batch
+
+    private func removeOne(_ item: FolioItem) {
+        guard let context = activeAccount else { return }
+        Task {
+            let removed = await LibraryViewActions.remove(item.key, actions: libraryActions)
+            guard collection.accountSession.isCurrent(context) else { return }
+            show(FolioNotice(tone: removed ? .confirmation : .problem,
+                             message: FolioCopy.removed(removed ? 1 : 0, of: 1, german: german), actionTitle: nil))
         }
-        guard !Task.isCancelled, mountedAccount == context,
-              collection.accountSession.isCurrent(context) else { return }
-        let updatedCount = outcomes.filter { $0.change != nil }.count
-        if updatedCount == selected.count {
-            KuroAccessibility.successHaptic()
-            showBanner("Updated \(selected.count) item\(selected.count == 1 ? "" : "s")")
-        } else if updatedCount > 0 {
-            KuroAccessibility.impactHaptic(.medium)
-            showBanner("Updated \(updatedCount) of \(selected.count) — \(selected.count - updatedCount) failed")
-        } else {
-            KuroAccessibility.errorHaptic()
-            showBanner("Couldn't update items — check your connection")
+    }
+
+    private func selectedItemKeys() -> [MediaKey] {
+        loadedItems.filter { selectedKeys.contains($0.id) }.map(\.key)
+    }
+
+    private func batchChangeStatus(_ target: FolioStatus) async {
+        guard let context = activeAccount else { return }
+        let keys = selectedItemKeys()
+        guard !keys.isEmpty else { return }
+        let outcomes = await collection.applyBatchStatusChange(target.listStatus, to: keys, visibleFilter: feedStatus) { edit, key, create in
+            await libraryActions.apply(edit, to: key, createIfMissing: create)
         }
-        withAnimation(KuroAnimation.fast) {
+        guard collection.accountSession.isCurrent(context), mountedAccount != nil else { return }
+        let updated = outcomes.filter { $0.change != nil }.count
+        if updated == keys.count { KuroAccessibility.successHaptic() } else if updated == 0 { KuroAccessibility.errorHaptic() }
+        show(FolioNotice(tone: updated == keys.count ? .confirmation : .problem,
+                         message: FolioCopy.updated(updated, of: keys.count, german: german), actionTitle: nil))
+        withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
             selectedKeys.removeAll()
-            isEditMode = false
+            isSelecting = false
         }
     }
 
-    private func batchRemove() {
-        showBatchRemoveConfirm = true
-    }
-
-    @MainActor
     private func confirmBatchRemove() async {
-        guard let context = mountedAccount, !Task.isCancelled,
-              collection.accountSession.isCurrent(context) else { return }
-        let selected = selectedMediaItems()
-        guard !selected.isEmpty else { return }
-        // Collection owns the originating account and the one refresh for the whole removal.
-        let removedCount = await collection.applyBatchRemoval(to: selected.map(\.libraryKey)) { key in
+        guard let context = activeAccount else { return }
+        let keys = selectedItemKeys()
+        guard !keys.isEmpty else { return }
+        let removed = await collection.applyBatchRemoval(to: keys) { key in
             await LibraryViewActions.remove(key, actions: libraryActions)
         }
-        guard !Task.isCancelled, mountedAccount == context,
-              collection.accountSession.isCurrent(context) else { return }
-        if removedCount == selected.count {
-            KuroAccessibility.successHaptic()
-            showBanner("Removed \(selected.count) item\(selected.count == 1 ? "" : "s")")
-        } else if removedCount > 0 {
-            KuroAccessibility.impactHaptic(.medium)
-            showBanner("Removed \(removedCount) of \(selected.count) — \(selected.count - removedCount) failed")
-        } else {
-            KuroAccessibility.errorHaptic()
-            showBanner("Couldn't remove items — check your connection")
-        }
-        withAnimation(KuroAnimation.fast) {
+        guard collection.accountSession.isCurrent(context), mountedAccount != nil else { return }
+        if removed == keys.count { KuroAccessibility.successHaptic() } else if removed == 0 { KuroAccessibility.errorHaptic() }
+        show(FolioNotice(tone: removed == keys.count ? .confirmation : .problem,
+                         message: FolioCopy.removed(removed, of: keys.count, german: german), actionTitle: nil))
+        withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
             selectedKeys.removeAll()
-            isEditMode = false
+            isSelecting = false
         }
     }
 
-    private func selectedMediaItems() -> [Media] {
-        displayItems.filter { selectedKeys.contains($0.stableKey) }
+    // MARK: Notice
+
+    private func show(_ next: FolioNotice, seconds: Double = 3) {
+        noticeTask?.cancel()
+        notice = next
+        UIAccessibility.post(notification: .announcement, argument: next.message)
+        noticeTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled else { return }
+            notice = nil
+        }
     }
 
-    @MainActor
-    private func showBanner(_ message: String) {
-        withAnimation(.easeInOut(duration: 0.18)) {
-            bannerMessage = message
-        }
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 1_800_000_000)
-            withAnimation(.easeInOut(duration: 0.18)) {
-                bannerMessage = nil
-            }
-        }
+    private func hideNotice() {
+        noticeTask?.cancel()
+        notice = nil
     }
 }
-
-// Collection helper components extracted to EditorialCollectionComponents.swift

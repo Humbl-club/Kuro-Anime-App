@@ -27,9 +27,7 @@ struct ImportSourceChooser: View {
     @State private var workflowJob: ImportOutcome?
     @State private var sheetDetent: PresentationDetent = .large
 
-    private var isGerman: Bool {
-        Locale.current.language.languageCode?.identifier.lowercased().hasPrefix("de") == true
-    }
+    private var isGerman: Bool { KuroLocale.isGerman }
 
     var body: some View {
         let owner = coordinator
@@ -37,16 +35,23 @@ struct ImportSourceChooser: View {
             VStack(alignment: .leading, spacing: 22) {
                 HStack {
                     Spacer()
-                    Button(isGerman ? "Schließen" : "Close") { dismiss() }
-                        .kuroKicker()
-                        .frame(minHeight: 44)
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text(isGerman ? "Schließen" : "Close")
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
                 Text(isGerman ? "Importiere deine Liste" : "Import your list")
                     .font(.kuroDisplay(weight: .light))
                     .tracking(-0.8)
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: 300, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityAddTraits(.isHeader)
                 Rectangle()
                     .fill(Color.kuroInk)
@@ -57,7 +62,7 @@ struct ImportSourceChooser: View {
                     .font(.kuroBody())
                     .foregroundStyle(Color.kuroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: 300, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 sourceButton(
                     kicker: "AniList",
@@ -78,7 +83,7 @@ struct ImportSourceChooser: View {
                 if imports.malAccountAvailable {
                     if let identity = imports.malAccountIdentity {
                         Text(isGerman ? "Verbunden: \(identity)" : "Connected: \(identity)")
-                            .font(.kuroCaption())
+                            .font(.kuroMeta())
                             .foregroundStyle(Color.kuroInkSecondary)
                         sourceButton(
                             kicker: "MAL",
@@ -97,9 +102,10 @@ struct ImportSourceChooser: View {
                         owner?.connectAndImportMAL(presentationAnchor: malAnchor)
                     }
                     .disabled(malAnchor == nil)
-                    Text(MALAccountList.notesLimitation)
-                        .font(.kuroCaption())
-                        .foregroundStyle(Color.kuroInkQuiet)
+                    Text(ImportCopy.malNotesLimitation(german: isGerman))
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(isGerman ? "MAL-Konto" : "MAL account")
@@ -117,6 +123,7 @@ struct ImportSourceChooser: View {
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .padding(.bottom, 28)
+            .kuroReadableWidth()
         }
         .background(Color.kuroCanvasPage)
         .presentationDetents([.medium, .large], selection: $sheetDetent)
@@ -189,7 +196,7 @@ struct ImportSourceChooser: View {
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 8)
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 20))
                         .foregroundStyle(Color.kuroInk)
                         .accessibilityHidden(true)
                 }

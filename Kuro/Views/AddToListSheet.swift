@@ -36,26 +36,31 @@ struct AddToListSheet: View {
         (draft.status == .current || draft.status == .completed || draft.status == .repeating) && maxProgress > 0
     }
 
+    private var german: Bool { KuroLocale.isGerman }
+
     private var progressUnitLabel: String {
-        mediaType == "manga" ? "CHAPTERS" : "EPISODES"
+        switch (mediaType == "manga", german) {
+        case (true, false): return "chapters"
+        case (true, true): return "Kapiteln"
+        case (false, false): return "episodes"
+        case (false, true): return "Folgen"
+        }
     }
 
     private func statusLabel(_ status: ListStatus) -> String {
-        if mediaType == "manga" {
-            switch status {
-            case .current: return "Reading"
-            case .planning: return "Planned"
-            case .completed: return "Completed"
-            case .dropped: return "Dropped"
-            case .paused: return "Paused"
-            case .repeating: return "Rereading"
+        if status == .repeating {
+            switch (media.kind, german) {
+            case (.manga, false): return "Rereading"
+            case (.manga, true): return "Lese ich erneut"
+            case (.anime, false): return "Rewatching"
+            case (.anime, true): return "Schaue ich erneut"
             }
         }
-        return status.displayName
+        return FolioStatus(listStatus: status).title(medium: media.kind, german: german)
     }
 
     private var offlineMutationMessage: String {
-        "You're offline. Reconnect to update your list."
+        german ? "Du bist offline. Verbinde dich, um deine Liste zu ändern." : "You're offline. Reconnect to update your list."
     }
 
     private var mutationStatusMessage: String? {
@@ -64,23 +69,11 @@ struct AddToListSheet: View {
     }
 
     private var mutationStatusColor: Color {
-        networkMonitor.isConnected ? .red : .kuroTextTertiary
+        networkMonitor.isConnected ? .kuroDestructiveInk : .kuroInkSecondary
     }
 
     private var scoreLabel: String {
-        switch draft.score {
-        case 1: return "SKIP"
-        case 2: return "WEAK"
-        case 3: return "FLAT"
-        case 4: return "MEH"
-        case 5: return "DECENT"
-        case 6: return "GOOD"
-        case 7: return "STANDOUT"
-        case 8: return "MUST-SEE"
-        case 9: return "BRILLIANT"
-        case 10: return "CANON"
-        default: return "TAP TO RATE"
-        }
+        AddToListCopy.scoreWord(draft.score, german: german)
     }
 
     var body: some View {
@@ -104,19 +97,20 @@ struct AddToListSheet: View {
                             progress: $draft.progress,
                             isEditing: $isEditingProgress,
                             maxProgress: maxProgress,
-                            unitLabel: progressUnitLabel
+                            unitLabel: progressUnitLabel,
+                            german: german
                         )
 
                         EditorialLayout.divider()
                             .padding(.horizontal, KuroSpacing.lg)
                     }
 
-                    SpreadScoreSection(score: $draft.score, scoreLabel: scoreLabel)
+                    SpreadScoreSection(score: $draft.score, scoreLabel: scoreLabel, german: german)
 
                     EditorialLayout.divider()
                         .padding(.horizontal, KuroSpacing.lg)
 
-                    SpreadNotesSection(notes: $draft.notes)
+                    SpreadNotesSection(notes: $draft.notes, german: german)
 
                     Color.clear.frame(height: KuroSpacing.xl)
                 }
@@ -124,6 +118,7 @@ struct AddToListSheet: View {
             .scrollIndicators(.hidden)
             .safeAreaInset(edge: .bottom) {
                 SpreadSaveDock(
+                    german: german,
                     isExistingEntry: isExistingEntry,
                     isSaving: isSaving,
                     isOffline: !networkMonitor.isConnected,
@@ -134,19 +129,23 @@ struct AddToListSheet: View {
                 )
             }
             .overlay(alignment: .topTrailing) {
-                Button { dismiss() } label: {
+                Button {
+                    KuroAccessibility.impactHaptic(.light)
+                    dismiss()
+                } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 32, height: 32)
-                        .background(Color.black.opacity(0.35))
-                        .clipShape(Circle())
+                        .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 22))
+                        .foregroundStyle(Color.kuroInk)
+                        .frame(width: 44, height: 44)
+                        .background(Circle().fill(Color.kuroWhite).overlay(Circle().strokeBorder(Color.kuroHairline, lineWidth: 0.5)))
                 }
-                .padding(.trailing, KuroSpacing.lg)
-                .padding(.top, KuroSpacing.md)
+                .buttonStyle(KuroPressStyle())
+                .accessibilityLabel(german ? "Schließen" : "Close")
+                .padding(.trailing, 12)
+                .padding(.top, 12)
             }
         }
-        .background(Color.kuroBackground)
+        .background(Color.kuroCanvasPage)
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
         .onDisappear { actionScope.deactivate(); isSaving = false }
         .task(id: EditorIdentity(media: media.libraryKey, origin: origin)) {
@@ -183,7 +182,7 @@ struct AddToListSheet: View {
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             isSaving = false
             if let error = outcome.error {
-                saveError = friendlyListMutationMessage(error, isGerman: false)
+                saveError = friendlyListMutationMessage(error, isGerman: german)
                 return
             }
             KuroAccessibility.successHaptic()
@@ -205,7 +204,7 @@ struct AddToListSheet: View {
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             isSaving = false
             if let error = outcome.error {
-                saveError = friendlyListMutationMessage(error, isGerman: false)
+                saveError = friendlyListMutationMessage(error, isGerman: german)
                 return
             }
             KuroAccessibility.successHaptic()
@@ -220,12 +219,15 @@ private struct SpreadHeroSection: View {
     let media: any MediaDisplayable
     let containerWidth: CGFloat
 
+    private var heroHeight: CGFloat { min(300, max(200, floor(containerWidth * 0.66))) }
+
     private var metaText: String {
-        var parts: [String] = [media.year]
-        if let eps = media.episodes {
-            parts.append("\(eps) EPISODES")
-        } else if let chs = media.chapters {
-            parts.append("\(chs) CHAPTERS")
+        let german = KuroLocale.isGerman
+        var parts: [String] = media.year.isEmpty ? [] : [media.year]
+        if let eps = media.episodes, eps > 0 {
+            parts.append(german ? "\(eps) Folgen" : "\(eps) episodes")
+        } else if let chs = media.chapters, chs > 0 {
+            parts.append(german ? "\(chs) Kapitel" : "\(chs) chapters")
         }
         return parts.joined(separator: " · ")
     }
@@ -238,27 +240,22 @@ private struct SpreadHeroSection: View {
                     image
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: containerWidth, height: 280)
+                        .frame(width: containerWidth, height: heroHeight)
                         .clipped()
                 case .failure, .empty:
                     Rectangle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color(white: 0.17), Color(white: 0.25), Color(white: 0.17)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(Color.kuroInk)
                 @unknown default:
                     EmptyView()
                 }
             }
+            .accessibilityHidden(true)
 
             LinearGradient(
                 stops: [
                     .init(color: .clear, location: 0),
                     .init(color: .clear, location: 0.35),
-                    .init(color: Color.black.opacity(0.7), location: 1.0)
+                    .init(color: Color.kuroInk.opacity(0.78), location: 1.0)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -267,17 +264,22 @@ private struct SpreadHeroSection: View {
             VStack(alignment: .leading, spacing: KuroSpacing.xs) {
                 Text(media.title)
                     .font(.kuroHeadline())
-                    .foregroundColor(.white)
-                    .lineLimit(2)
+                    .foregroundStyle(Color.kuroWhite)
+                    .lineLimit(3)
+                    .accessibilityAddTraits(.isHeader)
 
-                Text(metaText)
-                    .font(.kuroMicro(weight: .regular))
-                    .tracking(1.5)
-                    .foregroundColor(.white.opacity(0.65))
+                if !metaText.isEmpty {
+                    Text(metaText)
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroWhite.opacity(0.85))
+                }
             }
-            .padding(KuroSpacing.lg)
+            .padding(.horizontal, KuroDesignSpacing.padding)
+            .padding(.bottom, KuroSpacing.lg)
+            .padding(.trailing, 44)
         }
-        .frame(height: 280)
+        .frame(height: heroHeight)
+        .clipped()
     }
 }
 
@@ -291,29 +293,22 @@ private struct SpreadStatusRow: View {
     var body: some View {
         FlowLayout(spacing: KuroSpacing.sm) {
             ForEach(ListStatus.allCases, id: \.self) { status in
+                let selected = selectedStatus == status
                 Button {
                     selectedStatus = status
                     KuroAccessibility.impactHaptic(.light)
                 } label: {
                     Text(statusLabel(status))
-                        .font(.kuroMicro(weight: selectedStatus == status ? .medium : .regular))
-                        .tracking(1.2)
-                        .foregroundColor(selectedStatus == status ? .kuroBlack80 : .kuroTextTertiary)
+                        .font(.kuroMeta(weight: selected ? .semibold : .regular))
+                        .foregroundStyle(selected ? Color.kuroWhite : Color.kuroInk)
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(
-                            Capsule()
-                                .fill(selectedStatus == status ? Color.black.opacity(0.06) : Color.clear)
-                        )
-                        .overlay(
-                            Capsule()
-                                .stroke(
-                                    selectedStatus == status ? Color.black.opacity(0.3) : Color.black.opacity(0.1),
-                                    lineWidth: 1
-                                )
-                        )
+                        .frame(minHeight: 44)
+                        .background(Capsule().fill(selected ? Color.kuroInk : Color.clear))
+                        .overlay(Capsule().strokeBorder(selected ? Color.kuroInk : Color.kuroKeyRim, lineWidth: 1))
+                        .contentShape(Capsule())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(KuroPressStyle())
+                .accessibilityAddTraits(selected ? [.isSelected] : [])
             }
         }
         .padding(.horizontal, KuroSpacing.lg)
@@ -328,54 +323,62 @@ private struct SpreadProgressSection: View {
     @Binding var isEditing: Bool
     let maxProgress: Int
     let unitLabel: String
+    let german: Bool
+    @FocusState private var fieldFocused: Bool
 
     var body: some View {
         VStack(spacing: KuroSpacing.sm) {
             if isEditing {
                 TextField("", value: $progress, format: .number)
-                    .font(.system(size: 34, weight: .light, design: .serif))
-                    .foregroundColor(.kuroBlack80)
+                    .font(.kuroCustom(34, weight: .light, design: .serif, relativeTo: .largeTitle, maxSize: 56))
+                    .foregroundStyle(Color.kuroInk)
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.center)
-                    .frame(width: 80)
+                    .frame(minWidth: 80)
+                    .fixedSize()
+                    .focused($fieldFocused)
+                    .onAppear { fieldFocused = true }
+                    .accessibilityLabel(german ? "Fortschritt" : "Progress")
 
                 Button {
                     progress = min(max(0, progress), maxProgress)
                     isEditing = false
                 } label: {
-                    Text("DONE")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.5)
-                        .foregroundColor(.kuroBlack80)
+                    Text(german ? "Fertig" : "Done")
+                        .font(.kuroMeta(weight: .semibold))
+                        .foregroundStyle(Color.kuroInk)
                         .padding(.horizontal, KuroSpacing.md)
-                        .padding(.vertical, 6)
-                        .background(Color.black.opacity(0.06))
-                        .clipShape(Capsule())
+                        .frame(minHeight: 44)
+                        .overlay(Capsule().strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                        .contentShape(Capsule())
                 }
+                .buttonStyle(KuroPressStyle())
             } else {
                 Button {
                     isEditing = true
                 } label: {
                     Text("\(progress)")
-                        .font(.system(size: 34, weight: .light, design: .serif))
-                        .foregroundColor(.kuroBlack80)
+                        .font(.kuroCustom(34, weight: .light, design: .serif, relativeTo: .largeTitle, maxSize: 56))
+                        .foregroundStyle(Color.kuroInk)
+                        .monospacedDigit()
+                        .frame(minWidth: 44, minHeight: 44)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Progress: \(progress) of \(maxProgress). Tap to edit.")
+                .accessibilityLabel(german ? "Fortschritt: \(progress) von \(maxProgress)" : "Progress: \(progress) of \(maxProgress)")
+                .accessibilityHint(german ? "Zum Eingeben tippen" : "Tap to type a number")
             }
 
-            Text("OF \(maxProgress) \(unitLabel)")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.5)
-                .foregroundColor(.kuroTextTertiary)
+            Text(german ? "von \(maxProgress) \(unitLabel)" : "of \(maxProgress) \(unitLabel)")
+                .font(.kuroMeta())
+                .foregroundStyle(Color.kuroInkSecondary)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     Capsule()
-                        .fill(Color.black.opacity(0.08))
+                        .fill(Color.kuroHairline)
                         .frame(height: 2)
                     Capsule()
-                        .fill(Color.black.opacity(0.5))
+                        .fill(Color.kuroInk)
                         .frame(
                             width: maxProgress > 0
                                 ? geo.size.width * CGFloat(min(progress, maxProgress)) / CGFloat(maxProgress)
@@ -394,22 +397,30 @@ private struct SpreadProgressSection: View {
                     KuroAccessibility.impactHaptic(.light)
                 } label: {
                     Image(systemName: "minus")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.kuroTextSecondary)
-                        .frame(width: 32, height: 32)
-                        .overlay(Circle().stroke(Color.black.opacity(0.15), lineWidth: 1))
+                        .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 22))
+                        .foregroundStyle(Color.kuroInk)
+                        .frame(width: 44, height: 44)
+                        .overlay(Circle().strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                        .contentShape(Circle())
                 }
+                .buttonStyle(KuroPressStyle())
+                .disabled(progress <= 0)
+                .accessibilityLabel(german ? "Eins weniger" : "One less")
 
                 Button {
                     progress = min(maxProgress, progress + 1)
                     KuroAccessibility.impactHaptic(.light)
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.kuroTextSecondary)
-                        .frame(width: 32, height: 32)
-                        .overlay(Circle().stroke(Color.black.opacity(0.15), lineWidth: 1))
+                        .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 22))
+                        .foregroundStyle(Color.kuroInk)
+                        .frame(width: 44, height: 44)
+                        .overlay(Circle().strokeBorder(Color.kuroKeyRim, lineWidth: 1))
+                        .contentShape(Circle())
                 }
+                .buttonStyle(KuroPressStyle())
+                .disabled(progress >= maxProgress)
+                .accessibilityLabel(german ? "Eins mehr" : "One more")
             }
             .padding(.top, KuroSpacing.xs)
         }
@@ -424,45 +435,55 @@ private struct SpreadProgressSection: View {
 private struct SpreadScoreSection: View {
     @Binding var score: Int
     let scoreLabel: String
+    let german: Bool
 
     var body: some View {
         VStack(spacing: KuroSpacing.sm) {
             Text(score > 0 ? "\(score)" : "—")
-                .font(.system(size: 44, weight: .light, design: .serif))
-                .foregroundColor(.kuroBlack80)
+                .font(.kuroCustom(44, weight: .light, design: .serif, relativeTo: .largeTitle, maxSize: 64))
+                .foregroundStyle(Color.kuroInk)
                 .contentTransition(.numericText())
-                .animation(KuroAnimation.fast, value: score)
+                .kuroAnimation(KuroMotion.contact, value: score)
 
             Text(scoreLabel)
-                .font(.kuroMicro(weight: .medium))
-                .tracking(2)
-                .foregroundColor(.kuroTextSecondary)
-                .animation(KuroAnimation.fast, value: score)
+                .font(.kuroMeta(weight: .medium))
+                .foregroundStyle(Color.kuroInkSecondary)
 
-            HStack(spacing: 6) {
-                ForEach(1...10, id: \.self) { dot in
-                    Button {
-                        if score == dot {
-                            score = 0
-                        } else {
-                            score = dot
+            // Ten dots in two rows of five, each a full 44 x 44 pt target (220 pt wide, fits 320 pt);
+            // VoiceOver adjusts the score as one control instead.
+            VStack(spacing: 0) {
+                ForEach([1, 6], id: \.self) { first in
+                    HStack(spacing: 0) {
+                        ForEach(first..<(first + 5), id: \.self) { dot in
+                            Button {
+                                score = score == dot ? 0 : dot
+                                KuroAccessibility.impactHaptic(.light)
+                            } label: {
+                                Circle()
+                                    .fill(dot <= score ? Color.kuroInk : Color.kuroHairline)
+                                    .frame(width: 10, height: 10)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
                         }
-                        KuroAccessibility.impactHaptic(.light)
-                    } label: {
-                        Circle()
-                            .fill(dot <= score ? Color.black.opacity(0.7) : Color.black.opacity(0.1))
-                            .frame(width: 10, height: 10)
-                            .animation(KuroAnimation.fast, value: score)
                     }
                 }
             }
-            .padding(.top, KuroSpacing.xs)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, KuroSpacing.lg)
         .padding(.vertical, KuroSpacing.lg)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Score: \(scoreLabel)")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(german ? "Wertung" : "Score")
+        .accessibilityValue(score > 0 ? "\(score), \(scoreLabel)" : scoreLabel)
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: score = min(10, score + 1)
+            case .decrement: score = max(0, score - 1)
+            @unknown default: break
+            }
+        }
     }
 }
 
@@ -470,34 +491,38 @@ private struct SpreadScoreSection: View {
 
 private struct SpreadNotesSection: View {
     @Binding var notes: String
+    let german: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroSpacing.sm) {
-            Text("YOUR TAKE")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.8)
-                .foregroundColor(.kuroTextTertiary)
+            Text(german ? "Deine Notiz" : "Your take")
+                .font(.kuroTitle())
+                .foregroundStyle(Color.kuroInk)
+                .accessibilityAddTraits(.isHeader)
 
             HStack(alignment: .top, spacing: KuroSpacing.md) {
                 RoundedRectangle(cornerRadius: 1)
-                    .fill(Color.black.opacity(0.15))
+                    .fill(Color.kuroKeyRim)
                     .frame(width: 2)
+                    .accessibilityHidden(true)
 
                 ZStack(alignment: .topLeading) {
                     if notes.isEmpty {
-                        Text("What would you tell a friend?")
-                            .font(.system(size: 15, weight: .light, design: .serif))
-                            .foregroundColor(.kuroTextTertiary)
+                        Text(german ? "Was würdest du einer Freundin oder einem Freund erzählen?" : "What would you tell a friend?")
+                            .font(.kuroCustom(15, weight: .light, design: .serif, relativeTo: .body))
+                            .foregroundStyle(Color.kuroInkQuiet)
                             .padding(.top, 8)
                             .padding(.leading, 5)
                             .allowsHitTesting(false)
+                            .accessibilityHidden(true)
                     }
 
                     TextEditor(text: $notes)
-                        .font(.system(size: 15, weight: .light, design: .serif))
-                        .foregroundColor(.kuroBlack80)
+                        .font(.kuroCustom(15, weight: .light, design: .serif, relativeTo: .body))
+                        .foregroundStyle(Color.kuroInk)
                         .scrollContentBackground(.hidden)
                         .frame(minHeight: 60)
+                        .accessibilityLabel(german ? "Notiz" : "Note")
                 }
             }
         }
@@ -509,6 +534,7 @@ private struct SpreadNotesSection: View {
 // MARK: - Pinned Save Dock
 
 private struct SpreadSaveDock: View {
+    let german: Bool
     let isExistingEntry: Bool
     let isSaving: Bool
     let isOffline: Bool
@@ -518,46 +544,53 @@ private struct SpreadSaveDock: View {
     let onRemove: () -> Void
 
     var body: some View {
-        VStack(spacing: KuroSpacing.sm) {
-            Button(action: onSave) {
-                Text(isExistingEntry ? "SAVE" : "ADD TO LIST")
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(1.8)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(Color.black.opacity(0.85))
-                    .clipShape(RoundedRectangle(cornerRadius: KuroRadius.sm))
-            }
-            .disabled(isSaving || isOffline)
-            .opacity(isSaving || isOffline ? 0.4 : 1)
+        VStack(spacing: KuroSpacing.xs) {
+            KuroInkButton(isExistingEntry ? (german ? "Sichern" : "Save") : (german ? "Zur Liste hinzufügen" : "Add to list"),
+                          isLoading: isSaving, action: onSave)
+                .disabled(isSaving || isOffline)
+                .opacity(isOffline ? 0.45 : 1)
 
             if isExistingEntry {
                 Button(action: onRemove) {
-                    Text("REMOVE")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.5)
-                        .foregroundColor(.red.opacity(0.65))
+                    Text(german ? "Aus der Liste entfernen" : "Remove from list")
+                        .font(.kuroMeta(weight: .medium))
+                        .foregroundStyle(Color.kuroDestructiveInk)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
+                .buttonStyle(KuroPressStyle())
                 .disabled(isSaving || isOffline)
+                .opacity(isSaving || isOffline ? 0.45 : 1)
             }
 
             if let message = mutationMessage {
                 Text(message)
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(0.8)
-                    .foregroundColor(mutationColor)
+                    .font(.kuroMeta(weight: .medium))
+                    .foregroundStyle(mutationColor)
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.horizontal, KuroSpacing.lg)
+        .padding(.horizontal, KuroDesignSpacing.padding)
         .padding(.top, KuroSpacing.md)
-        .padding(.bottom, KuroSpacing.md)
+        .padding(.bottom, KuroSpacing.sm)
         .background(
-            Rectangle()
-                .fill(Color.kuroBackground.opacity(0.92))
+            Color.kuroCanvasPage
+                .overlay(alignment: .top) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
                 .ignoresSafeArea()
         )
+    }
+}
+
+// MARK: - Copy
+
+/// EN/DE words of the tracking editor (pure).
+enum AddToListCopy {
+    static func scoreWord(_ score: Int, german: Bool) -> String {
+        let english = ["Tap to rate", "Skip", "Weak", "Flat", "Meh", "Decent", "Good", "Standout", "Must-see", "Brilliant", "Canon"]
+        let deutsch = ["Zum Bewerten tippen", "Auslassen", "Schwach", "Flach", "Naja", "Ordentlich", "Gut", "Herausragend", "Pflicht", "Brillant", "Kanon"]
+        let index = (1...10).contains(score) ? score : 0
+        return german ? deutsch[index] : english[index]
     }
 }
 
@@ -573,10 +606,9 @@ struct QuickVerdictBadge: View {
     }
 
     var body: some View {
-        Text(title.uppercased())
-            .font(.kuroMicro(weight: .medium))
-            .tracking(1.0)
-            .foregroundColor(verdict == nil ? .kuroTextSecondary : .kuroBlack80)
+        Text(title)
+            .font(.kuroMeta(weight: .medium))
+            .foregroundStyle(verdict == nil ? Color.kuroInkSecondary : Color.kuroInk)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .background(
