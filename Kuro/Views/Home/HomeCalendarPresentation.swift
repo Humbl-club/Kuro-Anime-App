@@ -108,4 +108,84 @@ enum HomeCalendarPresentation {
                             coverage: ReleaseScheduleCoverage) -> Bool {
         coverage == .failed && !offline && !items.contains(where: copy.isAhead)
     }
+
+    // MARK: Prototype calendar card (PROTOTYPE_SPEC.md §4 "Calendar", "Dates to come")
+
+    /// Day groups the card shows before "Next N dates" (the prototype's four).
+    static let visibleDayGroups = 4
+    /// Rows an open day shows before "Show N more releases" (the prototype's three).
+    static let visibleRowsPerDay = 3
+
+    /// The date chip's month: "OCT" / "OKT". The short month comes from `ReleaseCopy.dayHeading`
+    /// ("Oct" / "Okt."); the chip drops the abbreviation point and sets it in capitals.
+    static func chipMonth(_ month: String, locale: Locale) -> String {
+        var trimmed = month.trimmingCharacters(in: .whitespacesAndNewlines)
+        while trimmed.hasSuffix(".") { trimmed.removeLast() }
+        return trimmed.uppercased(with: locale)
+    }
+
+    /// "1 release" / "3 releases" (German keeps the app's existing "Termin(e)").
+    static func releaseCount(_ count: Int, german: Bool) -> String {
+        if german { return count == 1 ? "1 Termin" : "\(count) Termine" }
+        return count == 1 ? "1 release" : "\(count) releases"
+    }
+
+    /// "3 announcements" for the Dates to come group.
+    static func announcementCount(_ count: Int, german: Bool) -> String {
+        if german { return count == 1 ? "1 Ankündigung" : "\(count) Ankündigungen" }
+        return count == 1 ? "1 announcement" : "\(count) announcements"
+    }
+
+    /// The heading's summary: "6 releases · 7 days", "48 releases · 6 weeks", or "From your list"
+    /// when nothing is dated. The span is what the rows themselves cover (the next seven days for
+    /// the airing fallback); a month/quarter/year window drops the span rather than guess one.
+    static func summary(_ groups: [HomeCalendarDay], coverage: ReleaseScheduleCoverage, copy: ReleaseCopy) -> String {
+        let german = copy.german
+        let dated = groups.filter { $0.kind != .undated }
+        let count = dated.reduce(0) { $0 + $1.items.count }
+        guard count > 0 else { return german ? "Aus deiner Liste" : "From your list" }
+        let releases = releaseCount(count, german: german)
+        if coverage == .nextSevenDays { return releases + (german ? " · 7 Tage" : " · 7 days") }
+        if dated.contains(where: { $0.kind == .later }) { return releases }
+        // Today plus the next seven days reads "7 days" (the prototype's week ends on day 7).
+        let furthest = dated.flatMap(\.items).compactMap(copy.daysFromToday).max() ?? 0
+        if furthest <= 7 { return releases + (german ? " · 7 Tage" : " · 7 days") }
+        let weeks = Int((Double(furthest) / 7).rounded(.up))
+        return releases + (german ? " · \(weeks) Wochen" : " · \(weeks) weeks")
+    }
+
+    /// The right-hand column of one release row, in the row's own certainty: the time of an exact
+    /// release ("16:00"), the window of a later one ("November"), "expected" for an estimate, the
+    /// unit's kind of release for a manga day ("Chapter release"), "Time TBA" for an anime day and
+    /// "Date TBA" for an undated row. Never a time the row does not carry.
+    static func rowWhen(_ item: ReleaseScheduleItem, copy: ReleaseCopy) -> String {
+        let german = copy.german
+        guard item.releaseAt != nil else { return german ? "Datum offen" : "Date TBA" }
+        if item.basis == .estimated { return german ? "Voraussichtlich" : "Expected" }
+        switch item.effectivePrecision {
+        case .instant:
+            if item.showsTime, let phrase = copy.datePhrase(item), let comma = phrase.lastIndex(of: ",") {
+                return phrase[phrase.index(after: comma)...].trimmingCharacters(in: .whitespaces)
+            }
+            return german ? "Uhrzeit offen" : "Time TBA"
+        case .day:
+            switch item.unitKind {
+            case .chapter: return german ? "Neues Kapitel" : "Chapter release"
+            case .volume: return german ? "Neuer Band" : "Volume release"
+            case .episode, .season: return german ? "Uhrzeit offen" : "Time TBA"
+            }
+        case .month, .quarter, .year:
+            return copy.datePhrase(item) ?? (german ? "Datum offen" : "Date TBA")
+        }
+    }
+
+    /// The groups shown before "Next N dates", the hidden dated groups, and the undated group (always
+    /// last and always shown: "Dates to come" exists only when rows without a date exist).
+    static func paged(_ groups: [HomeCalendarDay], showAll: Bool)
+        -> (visible: [HomeCalendarDay], hidden: [HomeCalendarDay], undated: HomeCalendarDay?) {
+        let undated = groups.first { $0.kind == .undated }
+        let dated = groups.filter { $0.kind != .undated }
+        guard !showAll, dated.count > visibleDayGroups else { return (dated, [], undated) }
+        return (Array(dated.prefix(visibleDayGroups)), Array(dated.dropFirst(visibleDayGroups)), undated)
+    }
 }
