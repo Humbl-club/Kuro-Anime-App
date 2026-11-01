@@ -36,6 +36,9 @@ struct AddToClubRailSheet: View {
     @State private var loadBundleTask: Task<Void, Never>? = nil
     /// The selected club's revocation epoch when it was selected (`ClubsStore.revocationEpoch`).
     @State private var selectedClubEpoch: Int? = nil
+    /// The automatic pre-selection happens at most once per presentation (never after a revocation
+    /// or a disclosure reload changes the club list).
+    @State private var didAutoSelect = false
 
     private var clubsInteractionV2Enabled: Bool {
         flags.isClubsInteractionV2Enabled
@@ -263,7 +266,8 @@ struct AddToClubRailSheet: View {
     private func autoSelectIfNeeded(origin: AccountActionScope.Ticket?) {
         guard clubsInteractionV2Enabled, actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
         let eligible = eligibleClubs
-        guard selectedClubId == nil, !eligible.isEmpty else { return }
+        guard !didAutoSelect, selectedClubId == nil, !eligible.isEmpty else { return }
+        didAutoSelect = true
         if let remembered = clubs.rememberedAddToClubId(),
            eligible.contains(where: { $0.id == remembered }) {
             selectClub(remembered, origin: origin)
