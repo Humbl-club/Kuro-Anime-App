@@ -1246,64 +1246,11 @@ struct MangaActionButtons: View {
     var body: some View {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Button { toggleSaved(origin: origin) } label: {
-                    DetailDockCapsule(role: .secondary, iconOnly: true) {
-                        Image(systemName: isSaved ? "heart.fill" : "heart")
-                    }
-                }
-                .buttonStyle(KuroPressStyle())
-                .accessibilityLabel(isSaved ? KuroLocale.text("Saved", "Gemerkt") : KuroLocale.text("Save", "Merken"))
-
-                Button {
-                    KuroAccessibility.impactHaptic(.medium)
-                    routes.presentTrackingEditor(TrackingEditorRequest(media: manga))
-                } label: {
-                    DetailDockCapsule(role: .primary) {
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "plus")
-                                Text(listButtonTitle)
-                            }
-                            Image(systemName: "plus")
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-                .buttonStyle(KuroPressStyle())
-                .accessibilityLabel(listButtonTitle)
-
-                Button {
-                    KuroAccessibility.impactHaptic(.light)
-                    showQuickVerdict = true
-                } label: {
-                    DetailDockCapsule(role: .secondary) {
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "tag")
-                                Text(verdictButtonTitle)
-                            }
-                            Image(systemName: "tag")
-                        }
-                    }
-                }
-                .buttonStyle(KuroPressStyle())
-                .accessibilityLabel(userEntry?.verdict == nil ? KuroLocale.text("Set verdict", "Urteil festlegen") : KuroLocale.text("Edit verdict, \(verdictButtonTitle)", "Urteil bearbeiten, \(verdictButtonTitle)"))
-
-                // Shown only with a legal link to open; without one the line below says so (no greyed button).
-                if hasReadLink {
-                    Button(action: handleReadAction) {
-                        DetailDockCapsule(role: .secondary, iconOnly: true) {
-                            Image(systemName: "book.fill")
-                        }
-                    }
-                    .buttonStyle(KuroPressStyle())
-                    .accessibilityLabel(
-                        allLinks.count > 1
-                            ? KuroLocale.text("Choose reading provider", "Anbieter zum Lesen wählen")
-                            : KuroLocale.text("Open reading provider", "Anbieter zum Lesen öffnen")
-                    )
-                }
+            ViewThatFits(in: .horizontal) {
+                dockRow(origin: origin, listForm: .full, verdictForm: .full)
+                dockRow(origin: origin, listForm: .full, verdictForm: .icon)
+                dockRow(origin: origin, listForm: .text, verdictForm: .icon)
+                dockRow(origin: origin, listForm: .icon, verdictForm: .icon)
             }
 
             Text(readStatusLine)
@@ -1333,6 +1280,60 @@ struct MangaActionButtons: View {
                 } else {
                     onToast(.init(kind: .error, title: KuroLocale.text("Couldn’t open link", "Link konnte nicht geöffnet werden"), subtitle: KuroLocale.text("Try a different provider.", "Versuch einen anderen Anbieter."), actionTitle: nil, onAction: nil))
                 }
+            }
+        }
+    }
+
+    /// One arrangement of the dock's buttons. `body` offers the widest first and steps down (verdict
+    /// to its icon, then the list button to its word, then to its glyph) so nothing truncates.
+    @ViewBuilder
+    private func dockRow(origin: AccountActionScope.Ticket?, listForm: DetailDockLabelForm, verdictForm: DetailDockLabelForm) -> some View {
+        HStack(spacing: 8) {
+            Button { toggleSaved(origin: origin) } label: {
+                DetailDockCapsule(role: .secondary, iconOnly: true) {
+                    Image(systemName: isSaved ? "heart.fill" : "heart")
+                }
+            }
+            .buttonStyle(KuroPressStyle())
+            .accessibilityLabel(isSaved ? KuroLocale.text("Saved", "Gemerkt") : KuroLocale.text("Save", "Merken"))
+
+            Button {
+                KuroAccessibility.impactHaptic(.medium)
+                routes.presentTrackingEditor(TrackingEditorRequest(media: manga))
+            } label: {
+                DetailDockCapsule(role: .primary, iconOnly: listForm == .icon) {
+                    // The glyph says which action this is (add vs edit) when the word does not fit.
+                    DetailDockLabel(form: listForm, systemImage: isSaved ? "pencil" : "plus", title: listButtonTitle)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(KuroPressStyle())
+            .accessibilityLabel(listButtonTitle)
+
+            Button {
+                KuroAccessibility.impactHaptic(.light)
+                showQuickVerdict = true
+            } label: {
+                DetailDockCapsule(role: .secondary, iconOnly: verdictForm == .icon) {
+                    DetailDockLabel(form: verdictForm, systemImage: "tag", title: verdictButtonTitle)
+                }
+            }
+            .buttonStyle(KuroPressStyle())
+            .accessibilityLabel(userEntry?.verdict == nil ? KuroLocale.text("Set verdict", "Urteil festlegen") : KuroLocale.text("Edit verdict, \(verdictButtonTitle)", "Urteil bearbeiten, \(verdictButtonTitle)"))
+
+            // Shown only with a legal link to open; without one the line below says so (no greyed button).
+            if hasReadLink {
+                Button(action: handleReadAction) {
+                    DetailDockCapsule(role: .secondary, iconOnly: true) {
+                        Image(systemName: "book.fill")
+                    }
+                }
+                .buttonStyle(KuroPressStyle())
+                .accessibilityLabel(
+                    allLinks.count > 1
+                        ? KuroLocale.text("Choose reading provider", "Anbieter zum Lesen wählen")
+                        : KuroLocale.text("Open reading provider", "Anbieter zum Lesen öffnen")
+                )
             }
         }
     }

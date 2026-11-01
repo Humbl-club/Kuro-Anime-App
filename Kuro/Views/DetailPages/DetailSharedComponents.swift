@@ -145,6 +145,33 @@ struct DetailDockCapsule<Content: View>: View {
     }
 }
 
+/// How much of a dock button's label fits: glyph and word, the word alone, or the glyph alone.
+enum DetailDockLabelForm {
+    case full
+    case text
+    case icon
+}
+
+struct DetailDockLabel: View {
+    let form: DetailDockLabelForm
+    let systemImage: String
+    let title: String
+
+    var body: some View {
+        switch form {
+        case .full:
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                Text(title)
+            }
+        case .text:
+            Text(title)
+        case .icon:
+            Image(systemName: systemImage)
+        }
+    }
+}
+
 /// The dock's bar: opaque page colour with a top hairline, reaching under the home indicator, so
 /// scrolled content never shows through. Used inside `.safeAreaInset(edge: .bottom)`, which reserves
 /// the dock's height (plus the safe area) at the end of the scroll content.
