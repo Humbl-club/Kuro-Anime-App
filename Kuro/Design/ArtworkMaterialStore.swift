@@ -11,8 +11,8 @@
 //  bucket, and derived from that thumbnail, not the full-size file: the port's own 64×96 / 104×32
 //  downsample follows it. For nearly every artwork this lands in the same hue bin as the full-size
 //  reference (pinned by `ArtworkMaterialTests.thumbnailDecodeMatchesReference`); a cover whose two
-//  strongest bins are almost tied can flip to the neighbour bin (measured: `journal-manga-23-cover.jpg`,
-//  #493431 full size vs #493134 at 360 px). Accepted: the decode stays small and the material stays a
+//  strongest bins are almost tied can flip to the neighbour bin (reported in review on macOS:
+//  `journal-manga-23-cover.jpg`, #493431 full size vs #493134 at 360 px). Accepted: the decode stays small and the material stays a
 //  close, contrast-safe tint of the artwork.
 //
 //  Artwork with no qualifying hue (greyscale, black-and-white manga covers) keeps the AniList seed (or
@@ -20,7 +20,8 @@
 //  like a material (`method == "no-hue"`).
 //
 //  A URL whose image fails to load or decode keeps its seed (or the neutral base) and is tried again
-//  after `failureRetryInterval` (60 s), so an offline launch recovers once the connection is back. The
+//  on the first `material(for:)` call at least `failureRetryInterval` (60 s) later, i.e. the next time a
+//  view showing it re-renders, so an offline launch recovers after the connection is back. The
 //  memory cache keeps the `memoryLimit` most recent materials and evicts the oldest first. Loading,
 //  decoding, derivation and disk IO run off the main actor.
 //
