@@ -16,6 +16,8 @@ import UIKit
 struct ClubsView: View {
     @Environment(ClubsStore.self) private var clubs
     @Environment(NetworkMonitor.self) private var networkMonitor
+    /// Set while the pager is swiping: a swipe never opens a club (rulebook §7).
+    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @State private var actionScope = AccountActionScope()
 
     @Binding var pendingJoinCode: String?
@@ -160,6 +162,7 @@ struct ClubsView: View {
                 ForEach(clubs.myClubs) { club in
                     let hasUnseen = clubs.hasUnseenActivity(club: club)
                     Button {
+                        guard !suppressCardTaps else { return }
                         KuroAccessibility.impactHaptic(.light)
                         selectedClubId = club.id
                     } label: {
@@ -172,7 +175,7 @@ struct ClubsView: View {
                         memberCount: club.member_count,
                         sharingLevel: club.sharing_level,
                         hasUnseen: hasUnseen,
-                        recentLine: ClubsListCardRules.recentLine(club.activity_preview),
+                        recentLine: ClubsListCardRules.recentLine(club.activity_preview, german: german),
                         german: german
                     ))
                     .accessibilityHint(KuroLocale.text("Opens the club.", "Öffnet den Club."))
@@ -432,7 +435,7 @@ private struct ClubListCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                if let line = ClubsListCardRules.recentLine(club.activity_preview) {
+                if let line = ClubsListCardRules.recentLine(club.activity_preview, german: KuroLocale.isGerman) {
                     Text(line)
                         .font(.kuroBody(weight: .light))
                         .foregroundStyle(Color.kuroInkSecondary)
@@ -551,7 +554,9 @@ private struct CreateClubSheet: View {
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var trimmedDescription: String { description.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var canSubmit: Bool {
-        !trimmedName.isEmpty && trimmedName.count <= Self.nameLimit && trimmedDescription.count <= Self.descriptionLimit
+        !trimmedName.isEmpty
+            && ClubFormField.serverLength(trimmedName) <= Self.nameLimit
+            && ClubFormField.serverLength(trimmedDescription) <= Self.descriptionLimit
     }
 
     var body: some View {

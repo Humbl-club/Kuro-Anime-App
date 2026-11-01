@@ -471,7 +471,7 @@ final class ClubsStore: AccountScopedState {
                 if error is CancellationError || (error as? URLError)?.code == .cancelled {
                     myClubsPhase = previous
                 } else {
-                    myClubsPhase = .failed(transport: error is URLError)
+                    myClubsPhase = .failed(transport: MyClubsPhase.isConnectivityFailure(error))
                 }
             }
         }

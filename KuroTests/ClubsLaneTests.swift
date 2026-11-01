@@ -58,7 +58,8 @@ struct ClubsLaneStoreTests {
                 switch n {
                 case 1: return ClubJSON.myClubs(["club-1"])
                 case 2: return ClubJSON.error(message: "boom", code: "XX000", status: 500)
-                default: return .failure(.notConnectedToInternet)
+                case 3: return .failure(.notConnectedToInternet)
+                default: return .failure(.timedOut)
                 }
             case "rpc/fetch_my_clubs_enriched":
                 return ClubJSON.myClubs(["club-wrong"])
@@ -78,6 +79,10 @@ struct ClubsLaneStoreTests {
         await clubs.fetchMyClubs()
         #expect(clubs.myClubsPhase == .failed(transport: true))
         #expect(clubs.myClubs.map(\.id) == ["club-1"])
+
+        // A timeout while online is a failure, not "offline".
+        await clubs.fetchMyClubs()
+        #expect(clubs.myClubsPhase == .failed(transport: false))
 
         #expect(harness.requests(to: "rpc/fetch_my_clubs_enriched").isEmpty, "a non-missing-function failure fell back")
         await harness.tearDown()
@@ -279,11 +284,66 @@ struct ClubsLaneRuleTests {
         #expect(ClubsListCardRules.memberCountText(1, german: true) == "1 Mitglied")
         #expect(ClubsListCardRules.memberCountText(5, german: false) == "5 members")
         #expect(ClubsListCardRules.memberCountText(nil, german: false) == nil, "an unknown count is omitted, never 0")
-        #expect(ClubsListCardRules.recentLine("   ") == nil)
+        #expect(ClubsListCardRules.recentLine("   ", german: false) == nil)
         #expect(ClubsListCardRules.memberInitials(sharingLevel: "private", memberNames: ["Ada"]).isEmpty)
         let label = ClubsListCardRules.accessibilityLabel(name: "Friday", memberCount: 3, sharingLevel: "status",
                                                           hasUnseen: true, recentLine: nil, german: false)
         #expect(label == "Friday, 3 members, Statuses shared, New activity")
+    }
+
+    @Test("Recent lines: the server's English prefixes are localized; unknown text never shows")
+    func recentLineLocalized() {
+        #expect(ClubsListCardRules.recentLine("Added: Frieren", german: false) == "Added Frieren")
+        #expect(ClubsListCardRules.recentLine("Added: Frieren", german: true) == "Neu: Frieren")
+        #expect(ClubsListCardRules.recentLine("Poll: Next pick?", german: true) == "Umfrage: Next pick?")
+        #expect(ClubsListCardRules.recentLine("Vote on: Next pick?", german: false) == "Vote on Next pick?")
+        #expect(ClubsListCardRules.recentLine("Vote on: Next pick?", german: true) == "Abstimmung: Next pick?")
+        #expect(ClubsListCardRules.recentLine("Added: ", german: false) == nil)
+        #expect(ClubsListCardRules.recentLine("Something new happened", german: true) == nil)
+    }
+
+    @Test("Leave copy: deletion only for a last member; a successor only from a complete member list")
+    func leaveCopy() {
+        func member(_ id: String, _ role: String, _ name: String?, _ joined: String) -> ClubMember {
+            ClubMember(user_id: id, display_name: name, role: role, sharing_level: "status", joined_at: joined)
+        }
+        let me = member("me", "owner", "Me", "2026-01-01T00:00:00Z")
+        let deleted = "You're the only member. The club will be deleted."
+        let generic = "Another member will become the owner. You'll need a new invite code to rejoin."
+        // 2-member club: the server lists only the caller.
+        #expect(ClubLeaveCopy.message(clubName: "C", myRole: "owner", memberCount: 2, members: [me], german: false) == generic)
+        // Private club of 5: the list is withheld too.
+        #expect(ClubLeaveCopy.message(clubName: "C", myRole: "owner", memberCount: 5, members: [me], german: false) == generic)
+        #expect(ClubLeaveCopy.message(clubName: "C", myRole: "owner", memberCount: 1, members: [me], german: false) == deleted)
+        // Complete list: the oldest admin, else the oldest member.
+        let full = [me,
+                    member("b", "member", "Bo", "2026-01-02T00:00:00Z"),
+                    member("c", "admin", "Cy", "2026-01-05T00:00:00Z")]
+        #expect(ClubLeaveCopy.message(clubName: "C", myRole: "owner", memberCount: 3, members: full, german: false)
+                == "Cy will become the owner. You'll need a new invite code to rejoin.")
+        let noAdmin = [me, member("b", "member", "Bo", "2026-01-02T00:00:00Z"), member("d", "member", "Di", "2026-01-03T00:00:00Z")]
+        #expect(ClubLeaveCopy.message(clubName: "C", myRole: "owner", memberCount: 3, members: noAdmin, german: true)
+                == "Bo wird Inhaber:in des Clubs. Zum Wiederkommen brauchst du einen neuen Einladungscode.")
+        #expect(ClubLeaveCopy.message(clubName: "C", myRole: "member", memberCount: 1, members: [], german: false)
+                == "Leave C? You'll need a new invite code to rejoin.")
+    }
+
+    @Test("Only connectivity codes count as offline for the my-clubs read")
+    func connectivityClassification() {
+        #expect(MyClubsPhase.isConnectivityFailure(URLError(.notConnectedToInternet)))
+        #expect(MyClubsPhase.isConnectivityFailure(URLError(.networkConnectionLost)))
+        #expect(!MyClubsPhase.isConnectivityFailure(URLError(.timedOut)))
+        #expect(!MyClubsPhase.isConnectivityFailure(URLError(.cannotConnectToHost)))
+        #expect(!MyClubsPhase.isConnectivityFailure(URLError(.badServerResponse)))
+        #expect(!MyClubsPhase.isConnectivityFailure(ClubError.other(message: "x")))
+    }
+
+    @Test("Form limits count Unicode code points like Postgres char_length")
+    func serverLength() {
+        #expect(ClubFormField.serverLength("  abc  ") == 3)
+        // Family emoji: 1 grapheme, 7 code points (4 people + 3 joiners).
+        #expect(ClubFormField.serverLength("\u{1F468}\u{200D}\u{1F469}\u{200D}\u{1F467}\u{200D}\u{1F466}") == 7)
+        #expect(ClubFormField.serverLength("e\u{301}") == 2)
     }
 
     // MARK: Detail

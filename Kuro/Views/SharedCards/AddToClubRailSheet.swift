@@ -97,17 +97,12 @@ struct AddToClubRailSheet: View {
             guard let origin, actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
             // Reuses a read from the last minute; a failed or missing read asks again.
             await clubs.refreshMyClubsIfStale()
-            guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
-            if clubsInteractionV2Enabled {
-                let eligible = eligibleClubs
-                guard selectedClubId == nil, !eligible.isEmpty else { return }
-                if let remembered = clubs.rememberedAddToClubId(),
-                   eligible.contains(where: { $0.id == remembered }) {
-                    selectClub(remembered, origin: origin)
-                } else if let first = eligible.first?.id {
-                    selectClub(first, origin: origin)
-                }
-            }
+            autoSelectIfNeeded(origin: origin)
+        }
+        .onChange(of: eligibleClubs.map(\.id)) { _, _ in
+            // `refreshMyClubsIfStale()` returns at once while another caller's read is in flight
+            // (opened from a detail page that just started one): pick when that read lands.
+            autoSelectIfNeeded(origin: actionScope.capture(session: clubs.accountSession))
         }
         .onDisappear {
             actionScope.deactivate()
@@ -127,7 +122,8 @@ struct AddToClubRailSheet: View {
 
     @ViewBuilder
     private func clubChoices(origin: AccountActionScope.Ticket?) -> some View {
-        let state = ClubsListRules.state(phase: clubs.myClubsPhase, hasClubs: !eligibleClubs.isEmpty,
+        // "Not in a club" is decided from all clubs; archived-only is its own honest line.
+        let state = ClubsListRules.state(phase: clubs.myClubsPhase, hasClubs: !clubs.myClubs.isEmpty,
                                          isConnected: networkMonitor.isConnected)
         switch state {
         case .loading:
@@ -144,7 +140,19 @@ struct AddToClubRailSheet: View {
                           title: KuroLocale.text("Couldn't load your clubs.", "Deine Clubs konnten nicht geladen werden."),
                           layout: .inline,
                           retry: { retryClubs(origin: origin) })
-        case .list:
+        case let .list(notice):
+            if let notice {
+                // The last refresh failed: the clubs stay with the reason and Retry (as ClubsView).
+                KuroStateView(notice == .offline ? .offline(hasCachedContent: true) : .failed(hasCachedContent: true),
+                              layout: .inline,
+                              retry: { retryClubs(origin: origin) })
+            }
+            if eligibleClubs.isEmpty {
+                KuroStateView(.empty,
+                              title: KuroLocale.text("Your clubs are archived.", "Deine Clubs sind archiviert."),
+                              message: KuroLocale.text("Start or join one on the Clubs page.", "Gründe oder finde einen auf der Clubs-Seite."),
+                              layout: .inline)
+            }
             ForEach(eligibleClubs) { club in
                 let isSelected = selectedClubId == club.id
                 Button {
@@ -247,6 +255,20 @@ struct AddToClubRailSheet: View {
                 .font(.kuroMeta())
                 .foregroundStyle(Color.kuroInkSecondary)
                 .padding(.vertical, KuroDesignSpacing.sm)
+        }
+    }
+
+    /// clubs_interaction_v2: pre-select the remembered club, else the first eligible one, once there
+    /// are clubs and nothing is selected yet.
+    private func autoSelectIfNeeded(origin: AccountActionScope.Ticket?) {
+        guard clubsInteractionV2Enabled, actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+        let eligible = eligibleClubs
+        guard selectedClubId == nil, !eligible.isEmpty else { return }
+        if let remembered = clubs.rememberedAddToClubId(),
+           eligible.contains(where: { $0.id == remembered }) {
+            selectClub(remembered, origin: origin)
+        } else if let first = eligible.first?.id {
+            selectClub(first, origin: origin)
         }
     }
 

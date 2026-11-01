@@ -161,11 +161,15 @@ struct JournalHeroSection: View {
 
             if let note = ClubRoomCopy.firstNote(in: bundle) {
                 ClubNoteCard(note: note.text, author: note.author, title: note.title)
+                    // A different (or edited) note is a new card: it starts hidden again.
+                    .id(note.itemId + "\u{1F}" + note.text)
             }
         }
         .padding(.horizontal, KuroDesignSpacing.padding)
         .padding(.top, topInset)
         .padding(.bottom, KuroDesignSpacing.lg)
+        // iPad: the room stays full-bleed; its art and text keep the readable column (spec D3).
+        .kuroReadableWidth()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.kuroRoom)
     }
@@ -234,7 +238,7 @@ struct ClubNoteCard: View {
             )
             .contentShape(RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(isRevealed ? "\(byline): \(note)" : byline)
         .accessibilityHint(isRevealed ? "" : KuroLocale.text("May contain spoilers. Double-tap to read.", "Kann spoilern. Doppeltippen zum Lesen."))

@@ -58,7 +58,7 @@ struct JournalTabBar: View {
                     .fixedSize(horizontal: true, vertical: false)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(KuroPressStyle())
                 .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
             }
         }
@@ -342,6 +342,7 @@ struct JournalRailSection: View {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
                     ForEach(notes, id: \.itemId) { note in
                         ClubNoteCard(note: note.text, author: note.author, title: note.title)
+                            .id(note.text) // an edited note starts hidden again
                     }
                 }
                 .padding(.horizontal, KuroDesignSpacing.padding)
@@ -923,7 +924,6 @@ struct JournalPollCard: View {
             RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
                 .strokeBorder(Color.kuroHairline, lineWidth: 1)
         )
-        .opacity(poll.is_closed ? 0.75 : 1)
         .padding(.horizontal, KuroDesignSpacing.padding)
         .accessibilityElement(children: .contain)
     }
@@ -1082,7 +1082,7 @@ struct ClubReactionMenu: View {
                     }
                 }
             }
-            .frame(minHeight: 44, alignment: .leading)
+            .frame(minWidth: 44, minHeight: 44, alignment: .leading)
             .contentShape(Rectangle())
         }
         .accessibilityLabel(accessibilityText)

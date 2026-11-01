@@ -184,8 +184,21 @@ nonisolated indirect enum MyClubsPhase: Equatable, Sendable {
     case loading(previous: MyClubsPhase)
     /// The last read succeeded at `at`.
     case loaded(at: Date)
-    /// The last read failed. `transport`: a network failure (offline, timeout, connection lost).
+    /// The last read failed. `transport`: a connectivity failure (no connection, connection lost,
+    /// data not allowed); a timeout or a bad server answer while online is not one.
     case failed(transport: Bool)
+
+    /// Whether a read error means the device could not reach the network (shown as offline). The
+    /// same codes `ClubDetailIssue.forLoadError` treats as offline.
+    static func isConnectivityFailure(_ error: any Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff:
+            return true
+        default:
+            return false
+        }
+    }
 
     /// The phase without an in-flight read.
     var settled: MyClubsPhase {

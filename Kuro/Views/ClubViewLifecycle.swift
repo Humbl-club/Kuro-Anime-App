@@ -182,10 +182,26 @@ extension ClubsListCardRules {
         return count == 1 ? "1 member" : "\(count) members"
     }
 
-    /// The one recent line a card may show: the server's activity preview, trimmed, or nothing.
-    static func recentLine(_ preview: String?) -> String? {
+    /// The one recent line a card may show, localized. The server builds `activity_preview` as English
+    /// text from three known prefixes ('Added: ', 'Poll: ', 'Vote on: ' plus a title or question);
+    /// those are re-worded in EN/DE around the label. Anything else is nil: raw server text never shows.
+    static func recentLine(_ preview: String?, german: Bool) -> String? {
         guard let trimmed = preview?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
-        return trimmed
+        func label(after prefix: String) -> String? {
+            guard trimmed.hasPrefix(prefix) else { return nil }
+            let rest = trimmed.dropFirst(prefix.count).trimmingCharacters(in: .whitespacesAndNewlines)
+            return rest.isEmpty ? nil : rest
+        }
+        if let title = label(after: "Added:") {
+            return german ? "Neu: \(title)" : "Added \(title)"
+        }
+        if let question = label(after: "Vote on:") {
+            return german ? "Abstimmung: \(question)" : "Vote on \(question)"
+        }
+        if let question = label(after: "Poll:") {
+            return german ? "Umfrage: \(question)" : "Poll: \(question)"
+        }
+        return nil
     }
 
     /// The VoiceOver label of a club card: name, members, audience, unread, then the recent line.
@@ -197,6 +213,40 @@ extension ClubsListCardRules {
         if hasUnseen { parts.append(german ? "Neue Aktivität" : "New activity") }
         if let recentLine { parts.append(recentLine) }
         return parts.joined(separator: ", ")
+    }
+}
+
+// MARK: - Leave confirmation copy
+
+/// The confirmation text before leaving a club (settings sheet). Pure, so the deletion and successor
+/// lines are decided from what the server actually disclosed.
+///
+/// `fetch_club_bundle` lists only the caller in `members` for a private club or a club with fewer
+/// than three members, so the list alone cannot tell "only member" from "list withheld":
+/// - deletion is announced only when `memberCount <= 1` (the server deletes a club whose last member
+///   leaves);
+/// - a successor is named only when the list is complete (`members.count == memberCount`), using
+///   the server's rule (`_club_member_depart`: oldest admin, else oldest member);
+/// - otherwise the line stays generic ("Another member will become the owner.").
+enum ClubLeaveCopy {
+    static func message(clubName: String, myRole: String, memberCount: Int,
+                        members: [ClubMember], german: Bool) -> String {
+        let rejoin = german ? "Zum Wiederkommen brauchst du einen neuen Einladungscode." : "You'll need a new invite code to rejoin."
+        guard myRole == "owner" else {
+            return german ? "\(clubName) verlassen? \(rejoin)" : "Leave \(clubName)? \(rejoin)"
+        }
+        if memberCount <= 1 {
+            return german ? "Du bist das einzige Mitglied. Der Club wird gelöscht." : "You're the only member. The club will be deleted."
+        }
+        let generic = german ? "Ein anderes Mitglied wird Inhaber:in des Clubs. \(rejoin)" : "Another member will become the owner. \(rejoin)"
+        guard members.count == memberCount else { return generic }
+        let others = members.filter { $0.role != "owner" }
+        let admins = others.filter { $0.role == "admin" }.sorted { $0.joined_at < $1.joined_at }
+        let successor = admins.first ?? others.sorted { $0.joined_at < $1.joined_at }.first
+        if let name = successor?.display_name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
+            return german ? "\(name) wird Inhaber:in des Clubs. \(rejoin)" : "\(name) will become the owner. \(rejoin)"
+        }
+        return generic
     }
 }
 

@@ -41,7 +41,7 @@ struct ClubDetailView: View {
         var title: String {
             switch self {
             case .rails: return KuroLocale.text("Rails", "Listen")
-            case .active: return KuroLocale.text("Active", "Aktiv")
+            case .active: return KuroLocale.text("Active", "Aktivität")
             case .polls: return KuroLocale.text("Polls", "Umfragen")
             }
         }
@@ -655,6 +655,7 @@ private struct ClubDetailInitialState: View {
                 .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.top, KuroDesignSpacing.md)
                 .padding(.bottom, KuroDesignSpacing.lg)
+                .kuroReadableWidth()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.kuroRoom)
 

@@ -394,9 +394,11 @@ struct ClubSettingsSheet: View {
                             }
 
                             ShareLink(
+                                // Code only, case kept: the kuro://join link path still uppercases codes
+                                // (DeepLinkRouter, outside this lane), which breaks mixed-case codes.
                                 item: KuroLocale.text(
-                                    "Join my club \u{201C}\(bundle.club.name)\u{201D} in Kuro: kuro://join/\(code). Or enter the code \(code) in the app.",
-                                    "Tritt meinem Club „\(bundle.club.name)“ in Kuro bei: kuro://join/\(code). Oder gib den Code \(code) in der App ein."
+                                    "Join my club \u{201C}\(bundle.club.name)\u{201D} in Kuro with the invite code \(code).",
+                                    "Tritt meinem Club „\(bundle.club.name)“ in Kuro mit dem Einladungscode \(code) bei."
                                 ),
                                 subject: Text(KuroLocale.text("Join \(bundle.club.name) on Kuro", "Tritt \(bundle.club.name) in Kuro bei")),
                                 message: Text(KuroLocale.text("Invite code: \(code)", "Einladungscode: \(code)"))
@@ -417,6 +419,18 @@ struct ClubSettingsSheet: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(KuroPressStyle())
+                        }
+
+                        hairline
+                    } else {
+                        // Members get no code from the server: say who can invite instead of a dead end.
+                        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                            KuroSectionHeader(KuroLocale.text("Invite", "Einladen"), size: .title)
+                            Text(KuroLocale.text("Ask an owner or admin for the invite code.",
+                                                 "Frag Inhaber:in oder Admin nach dem Einladungscode."))
+                                .font(.kuroBody(weight: .light))
+                                .foregroundStyle(Color.kuroInkSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
 
                         hairline
@@ -525,22 +539,9 @@ struct ClubSettingsSheet: View {
     }
 
     private func computeLeaveMessage() -> String {
-        let german = KuroLocale.isGerman
-        let rejoin = german ? "Zum Wiederkommen brauchst du einen neuen Einladungscode." : "You'll need a new invite code to rejoin."
-        guard bundle.my_role == "owner" else {
-            return german ? "\(bundle.club.name) verlassen? \(rejoin)" : "Leave \(bundle.club.name)? \(rejoin)"
-        }
-        // Owner leaving: the server promotes the oldest admin, else the oldest member.
-        let others = bundle.members.filter { $0.role != "owner" }
-        if others.isEmpty {
-            return german ? "Du bist das einzige Mitglied. Der Club wird gelöscht." : "You're the only member. The club will be deleted."
-        }
-        let admins = others.filter { $0.role == "admin" }.sorted { $0.joined_at < $1.joined_at }
-        let successor = admins.first ?? others.sorted { $0.joined_at < $1.joined_at }.first
-        if let successor, let name = successor.display_name?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
-            return german ? "\(name) wird Inhaber:in des Clubs. \(rejoin)" : "\(name) will become the owner. \(rejoin)"
-        }
-        return german ? "Ein anderes Mitglied wird Inhaber:in des Clubs. \(rejoin)" : "Another member will become the owner. \(rejoin)"
+        ClubLeaveCopy.message(clubName: bundle.club.name, myRole: bundle.my_role,
+                              memberCount: bundle.member_count, members: bundle.members,
+                              german: KuroLocale.isGerman)
     }
 
     private func leaveClub(origin: AccountActionScope.Ticket?) {

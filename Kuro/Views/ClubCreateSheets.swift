@@ -34,7 +34,13 @@ struct ClubFormField: View {
     var limit: Int? = nil
     var axis: Axis = .horizontal
 
-    private var count: Int { text.trimmingCharacters(in: .whitespacesAndNewlines).count }
+    /// The length the server checks: Postgres `char_length` counts Unicode code points, not the
+    /// grapheme clusters of `String.count` (an emoji with joiners is several code points).
+    static func serverLength(_ text: String) -> Int {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars.count
+    }
+
+    private var count: Int { Self.serverLength(text) }
     private var isOverLimit: Bool { limit.map { count > $0 } ?? false }
 
     var body: some View {
@@ -200,7 +206,7 @@ struct CreateClubRailSheet: View {
 
     private var canSubmit: Bool {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && description.trimmingCharacters(in: .whitespacesAndNewlines).count <= Self.descriptionLimit
+            && ClubFormField.serverLength(description) <= Self.descriptionLimit
     }
 
     private func create(origin: AccountActionScope.Ticket) async {
