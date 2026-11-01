@@ -111,6 +111,51 @@ struct ClubsLaneStoreTests {
         await harness.tearDown()
     }
 
+    @Test("A read answered after a disclosure reset never restores the old phase: the list keeps loading, never the invitation, until the reload answers")
+    func supersededReadTouchesNothing() async throws {
+        let gateA = StubGate()
+        let gateB = StubGate()
+        let calls = Mutex(0)
+        let (reload, reloadArrived) = AsyncStream<Void>.makeStream()
+        let (readAStream, readAArrived) = AsyncStream<Void>.makeStream()
+        let harness = try ClubsHarness { request in
+            guard request.resource == "rpc/fetch_my_clubs_loading" else { return .emptyArray }
+            switch calls.withLock({ $0 += 1; return $0 }) {
+            case 1: return ClubJSON.myClubs(["club-1"])
+            case 2:
+                readAArrived.yield()
+                return ClubJSON.myClubs(["club-1"]).held(by: gateA)
+            default:
+                reloadArrived.yield()
+                return ClubJSON.myClubs(["club-1"]).held(by: gateB)
+            }
+        }
+        let clubs = harness.clubs
+        await harness.service.session.applySession(userId: Self.userA, email: "a@example.com")
+        await clubs.fetchMyClubs()
+        #expect(clubs.myClubs.map(\.id) == ["club-1"])
+
+        // Read A is in flight when a disclosure signal drops the rows and schedules the reload B.
+        let readA = Task.immediate { @MainActor in await clubs.fetchMyClubs() }
+        var readAArrivals = readAStream.makeAsyncIterator()
+        _ = await readAArrivals.next()
+        clubs.invalidateSharedDisclosure()
+        var arrivals = reload.makeAsyncIterator()
+        _ = await arrivals.next()
+
+        gateA.open()
+        await readA.value
+        #expect(clubs.myClubsPhase.isLoading, "A restored a phase it no longer owns: \(clubs.myClubsPhase)")
+        #expect(clubs.myClubs.isEmpty)
+        #expect(ClubsListRules.state(phase: clubs.myClubsPhase, hasClubs: !clubs.myClubs.isEmpty, isConnected: true) == .loading)
+
+        gateB.open()
+        await clubs.disclosureReloadTask?.value
+        #expect(clubs.myClubs.map(\.id) == ["club-1"])
+        if case .loaded = clubs.myClubsPhase {} else { Issue.record("reload did not publish: \(clubs.myClubsPhase)") }
+        await harness.tearDown()
+    }
+
     @Test("fetchMyClubs always asks the server (writes and the disclosure reload rely on it)")
     func explicitFetchIgnoresWindow() async throws {
         let harness = try ClubsHarness { request in
