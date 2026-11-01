@@ -185,6 +185,13 @@ struct FolioItem: Identifiable {
 
 /// The lists' pure rules (tested in `KuroTests/ProfileLaneTests.swift`).
 enum FolioPolicy {
+    /// The advance key's face, as the prototype keys its media (plan Task 9): the light raised key on
+    /// anime, the dark `ink` key (`#444a47 → #2c322f`, PROTOTYPE_SPEC §2) on manga. Folio rows have no
+    /// artwork material, so neither uses `.material`.
+    static func keyStyle(for medium: MediaKind) -> KuroAdvanceKey.Style {
+        medium == .manga ? .ink : .light
+    }
+
     /// The unit total for the medium, or nil when unknown (never 0; rulebook §10).
     static func total(of media: Media) -> Int? {
         let value = media.kind == .manga ? media.chapters : media.episodes

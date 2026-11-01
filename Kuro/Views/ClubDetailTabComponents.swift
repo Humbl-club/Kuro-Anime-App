@@ -259,7 +259,7 @@ struct JournalRailSection: View {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
                     HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.sm) {
                         Text(rail.title)
-                            .font(.kuroTitle(weight: .regular))
+                            .kuroRoleText(.title)
                             .foregroundStyle(Color.kuroInk)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
@@ -305,11 +305,9 @@ struct JournalRailSection: View {
             }
 
             if rail.items.isEmpty {
-                Text(KuroLocale.text("Nothing here yet.", "Hier ist noch nichts."))
-                    .font(.kuroMeta())
-                    .foregroundStyle(Color.kuroInkQuiet)
+                KuroStateView(.empty, title: KuroLocale.text("Nothing here yet.", "Hier ist noch nichts."),
+                              layout: .inline)
                     .padding(.horizontal, KuroDesignSpacing.padding)
-                    .padding(.vertical, KuroDesignSpacing.md)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: KuroDesignSpacing.md) {
@@ -592,7 +590,7 @@ struct JournalActivityContent: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(groupedByDay, id: \.date) { group in
                     Text(group.date)
-                        .font(.kuroTitle(weight: .regular))
+                        .kuroRoleText(.title)
                         .foregroundStyle(Color.kuroInk)
                         .accessibilityAddTraits(.isHeader)
                         .padding(.horizontal, KuroDesignSpacing.padding)
@@ -742,7 +740,7 @@ struct JournalMilestoneCard: View {
                 .kuroKicker()
             Text(KuroLocale.text("All \(memberCount) members finished \(item.title_display).",
                                  "Alle \(memberCount) Mitglieder haben \(item.title_display) beendet."))
-                .font(.kuroTitle(weight: .regular))
+                .kuroRoleText(.title)
                 .foregroundStyle(Color.kuroInk)
                 .fixedSize(horizontal: false, vertical: true)
             Rectangle()
@@ -808,7 +806,7 @@ struct JournalPollsContent: View {
 
                 if !closedPolls.isEmpty {
                     Text(KuroLocale.text("Closed", "Geschlossen"))
-                        .font(.kuroTitle(weight: .regular))
+                        .kuroRoleText(.title)
                         .foregroundStyle(Color.kuroInk)
                         .padding(.horizontal, KuroDesignSpacing.padding)
                         .padding(.top, KuroDesignSpacing.md)
@@ -894,7 +892,7 @@ struct JournalPollCard: View {
             }
 
             Text(poll.question)
-                .font(.kuroTitle(weight: .regular))
+                .kuroRoleText(.title)
                 .foregroundStyle(Color.kuroInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)

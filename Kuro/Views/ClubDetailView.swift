@@ -1,7 +1,7 @@
 // MARK: - CLUB DETAIL VIEW
 // Three-tab detail view for a club: RAILS, ACTIVE, POLLS (the tab cases and raw values are fixed;
 // labels are localized at display).
-// The club's identity surface is the dark neutral room (`kuroRoom`) with real rail artwork, the
+// The club's identity surface is the prototype's club room (`ClubRoomPalette.room`) with real rail artwork, the
 // audience line, member initials and one spoiler-hidden member note; tab content sits on the white
 // page. Loading, offline, failed and membership states are distinct (`ClubDetailIssue`).
 // Uses @Observable owners via @Environment, KuroDesignSystem tokens throughout.
@@ -633,7 +633,7 @@ private struct ClubDetailInitialState: View {
 
                         if let loadingBundle {
                             Text(loadingBundle.club.name)
-                                .font(.kuroFeature(weight: .light))
+                                .font(.kuroEditorial(size: 30)).tracking(-0.6)
                                 .foregroundStyle(Color.kuroRoomText)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
@@ -657,7 +657,7 @@ private struct ClubDetailInitialState: View {
                 .padding(.bottom, KuroDesignSpacing.lg)
                 .kuroReadableWidth()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.kuroRoom)
+                .background(ClubRoomPalette.room)
 
                 stateView(german: german)
                     .frame(minHeight: 280)
@@ -669,13 +669,21 @@ private struct ClubDetailInitialState: View {
     @ViewBuilder
     private func stateView(german: Bool) -> some View {
         if let issue = phase.initialIssue {
-            let kind: KuroStateView.Kind = issue.isMembership
-                ? .denied
-                : (issue == .offline ? .offline(hasCachedContent: false) : .failed(hasCachedContent: false))
-            KuroStateView(kind,
-                          title: issue.title(german: german),
-                          message: issue.message(german: german, hasContent: false),
-                          retry: issue.isMembership ? nil : onRetry)
+            switch issue.brandedState {
+            case .failed:
+                KuroErrorView(headline: issue.title(german: german),
+                              message: issue.message(german: german, hasContent: false),
+                              retry: onRetry)
+            case .offline:
+                KuroStateView(.offline(hasCachedContent: false),
+                              title: issue.title(german: german),
+                              message: issue.message(german: german, hasContent: false),
+                              retry: onRetry)
+            case .loading, .empty, nil:
+                KuroStateView(.denied,
+                              title: issue.title(german: german),
+                              message: issue.message(german: german, hasContent: false))
+            }
         } else {
             KuroStateView(.loading,
                           title: loadingBundle.map { KuroLocale.text("Opening \($0.club.name).", "\($0.club.name) wird geöffnet.") }

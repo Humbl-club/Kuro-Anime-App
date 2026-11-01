@@ -157,15 +157,19 @@ struct EditorialDiscoverView: View {
     @ViewBuilder
     private func content(width: CGFloat, minHeight: CGFloat) -> some View {
         let gutter = DiscoverLayout.gutter(for: width)
-        if isLoadingSections && !hasAnyContent {
+        // One switch on the branded state (`DiscoverPageRules.brandedState`, tested in RestyleLaneTests).
+        switch DiscoverPageRules.brandedState(isLoading: isLoadingSections, hasContent: hasAnyContent,
+                                              failed: loadError, isConnected: networkMonitor.isConnected) {
+        case .loading:
             DiscoverLoadingSkeleton(containerWidth: width)
-        } else if loadError && !hasAnyContent {
-            KuroStateView(
-                networkMonitor.isConnected ? .failed(hasCachedContent: false) : .offline(hasCachedContent: false),
-                retry: { Task { await refreshSections(force: true) } }
-            )
-            .frame(minHeight: minHeight * 0.8)
-        } else if !isLoadingSections && !hasAnyContent {
+        case .failed(hasContent: false):
+            KuroErrorView(headline: KuroLocale.text("Couldn't load Discover.", "Entdecken konnte nicht geladen werden."),
+                          retry: { Task { await refreshSections(force: true) } })
+                .frame(minHeight: minHeight * 0.8)
+        case .offline(hasContent: false):
+            KuroOfflineView(hasContent: false, retry: { Task { await refreshSections(force: true) } })
+                .frame(minHeight: minHeight * 0.8)
+        case .empty:
             VStack(spacing: KuroDesignSpacing.lg) {
                 KuroStateView(
                     .empty,
@@ -180,7 +184,7 @@ struct EditorialDiscoverView: View {
                 }
             }
             .frame(minHeight: minHeight * 0.8)
-        } else {
+        case .offline(hasContent: true), .failed(hasContent: true), nil:
             sections(width: width, gutter: gutter)
         }
     }
@@ -190,7 +194,8 @@ struct EditorialDiscoverView: View {
         return VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
             VStack(alignment: .leading, spacing: 0) {
                 if !networkMonitor.isConnected {
-                    KuroStateView(.offline(hasCachedContent: true), layout: .inline)
+                    // The branded offline band over earlier content.
+                    KuroOfflineView(hasContent: true)
                         .padding(.horizontal, gutter)
                 }
 
@@ -757,7 +762,7 @@ private struct DiscoverFullSectionSheet<Item: MediaDisplayable>: View {
                     VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
                         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
                             Text(title)
-                                .font(.kuroHeadline(weight: .light))
+                                .kuroRoleText(.headline)
                                 .foregroundStyle(Color.kuroInk)
                                 .fixedSize(horizontal: false, vertical: true)
                                 .accessibilityAddTraits(.isHeader)
@@ -927,4 +932,18 @@ struct GenrePickerSheet: View {
         .environment(AppComposition.shared.flags)
         .environment(AppComposition.shared.libraryActions)
         .environment(NetworkMonitor())
+}
+
+// MARK: - Branded state (prototype-fidelity Task 9)
+
+/// What the Discover page draws instead of its sections. Pure. The order is the page's own: content
+/// always wins (with the offline band when the connection is gone), then a first load in flight, then
+/// a failed first load (offline when the connection is gone), then the empty invitation.
+nonisolated enum DiscoverPageRules {
+    static func brandedState(isLoading: Bool, hasContent: Bool, failed: Bool, isConnected: Bool) -> KuroBrandedState? {
+        if hasContent { return isConnected ? nil : .offline(hasContent: true) }
+        if isLoading { return .loading }
+        if failed { return isConnected ? .failed(hasContent: false) : .offline(hasContent: false) }
+        return .empty
+    }
 }

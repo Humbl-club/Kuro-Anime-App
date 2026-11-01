@@ -29,7 +29,7 @@ struct ImportCatalogMatchPicker: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
                 Text(g ? "„\(item.title)“ zuordnen" : "Match “\(item.title)”")
-                    .font(.kuroHeadline(weight: .light))
+                    .kuroRoleText(.headline)
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
@@ -101,7 +101,7 @@ struct ImportCatalogMatchPicker: View {
             HStack(alignment: .center, spacing: KuroDesignSpacing.sm) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
                     Text(candidate.title)
-                        .font(.kuroTitle())
+                        .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                         .foregroundStyle(Color.kuroInk)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)

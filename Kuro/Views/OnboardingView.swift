@@ -59,7 +59,7 @@ struct OnboardingView: View {
                             .frame(height: bandHeight * 0.82)
                             .accessibilityHidden(true)
 
-                        KuroWordmark()
+                        KuroFormWordmark()
 
                         frameContent
                             .id(frame)
@@ -192,8 +192,7 @@ struct OnboardingView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(line)
-                .font(.kuroDisplay(weight: .light))
-                .tracking(-0.8)
+                .kuroRoleText(.feature)
                 .foregroundStyle(Color.kuroInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)

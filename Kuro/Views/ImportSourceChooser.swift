@@ -6,8 +6,9 @@ import UniformTypeIdentifiers
 
 /// Focused AniList / MAL account / MAL XML choice. Uses the existing Profile import coordinator.
 /// Does not create a credential store or skip review.
-/// Renders every coordinator outcome itself (it is offered from Onboarding and the empty Collection,
-/// where no Profile is mounted): the progress line, the toast, a retry for an uncertain delivery, and
+/// Renders every coordinator outcome itself (it is offered from Onboarding, the empty Collection and
+/// Profile's new-account block; it owns its own coordinator instance, so it never relies on Profile's):
+/// the progress line, the toast, a retry for an uncertain delivery, and
 /// the result card with Undo (an applied legacy AniList import) or the Concierge review handoff (an
 /// import that needs review). The sheet cannot be closed while an import runs, because closing stops
 /// the coordinator and would cancel the write without a word.
@@ -73,8 +74,7 @@ struct ImportSourceChooser: View {
                     .disabled(busy)
                 }
                 Text(isGerman ? "Importiere deine Liste" : "Import your list")
-                    .font(.kuroDisplay(weight: .light))
-                    .tracking(-0.8)
+                    .kuroRoleText(.feature)
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -303,8 +303,7 @@ struct ImportSourceChooser: View {
 
     private func statusLine(_ text: String) -> some View {
         HStack(spacing: 10) {
-            ProgressView()
-                .tint(Color.kuroInkSecondary)
+            KuroBusyMark(width: 24)
                 .accessibilityHidden(true)
             Text(text)
                 .font(.kuroMeta())
@@ -322,7 +321,7 @@ struct ImportSourceChooser: View {
                     .kuroKicker()
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text(title)
-                        .font(.kuroTitle())
+                        .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                         .foregroundStyle(Color.kuroInk)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -372,7 +371,7 @@ private struct ImportChooserResultCard: View {
                         .kuroKicker()
                         .accessibilityHidden(true)
                     Text(result.titleText)
-                        .font(.kuroTitle())
+                        .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                         .foregroundStyle(Color.kuroInk)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)

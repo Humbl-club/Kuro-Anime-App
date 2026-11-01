@@ -42,6 +42,8 @@ struct ProfileView: View {
     @State private var showImportWorkflow = false
     @State private var importWorkflowJob: ImportOutcome?
     @State private var showDataSources = false
+    @State private var showImportChooser = false
+    @State private var showFindSheet = false
     @State private var streamingObservability: ProviderAvailabilityStore.StreamingObservabilitySnapshot? = nil
     @State private var isRefreshingStreamingObservability: Bool = false
 
@@ -160,7 +162,7 @@ struct ProfileView: View {
                     .toolbar {
                         ToolbarItem(placement: .principal) {
                             Text(isGermanLocale ? "Clubs" : "Clubs")
-                                .font(.kuroTitle())
+                                .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 28)).tracking(-0.2)
                                 .foregroundStyle(Color.kuroInk)
                                 .accessibilityAddTraits(.isHeader)
                         }
@@ -174,6 +176,33 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showDataSources) {
             DataSourcesView()
+        }
+        .sheet(isPresented: $showImportChooser) {
+            ImportSourceChooser { destination in
+                showImportChooser = false
+                guard profileActionScope.capture(session: imports.accountSession) != nil else { return }
+                onImportNavigation?(destination)
+            }
+        }
+        .sheet(isPresented: $showFindSheet) {
+            NavigationStack {
+                // EditorialSearchView installs its own `.routePresenter()`; the close control matches
+                // the header's Search sheet (ContentView).
+                EditorialSearchView()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button(action: { showFindSheet = false }) {
+                                Image(systemName: "xmark")
+                                    .font(.kuroBody(weight: .light))
+                                    .foregroundColor(.kuroBlack60)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(KuroLocale.text("Close", "Schließen"))
+                        }
+                    }
+            }
         }
         .fileImporter(isPresented: $showMALImporter, allowedContentTypes: [.xml]) { result in
             profileImports?.receiveMALFile(result)
@@ -250,7 +279,7 @@ struct ProfileView: View {
 
             HStack(alignment: .center, spacing: KuroDesignSpacing.md) {
                 Text(identity.currentUserInitial)
-                    .font(.kuroCustom(26, weight: .light, design: .serif, relativeTo: .title2, maxSize: 40))
+                    .font(.kuroCustom(24, weight: .semibold, relativeTo: .title2, maxSize: 38)).tracking(-0.6)
                     .foregroundStyle(Color.kuroInk)
                     .frame(width: 56, height: 56)
                     .background(Circle().fill(Color.kuroWhite))
@@ -304,26 +333,22 @@ struct ProfileView: View {
 
     private var librarySection: some View {
         let entries = library.allEntries
+        let german = isGermanLocale
         return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            sectionHeader(isGermanLocale ? "Deine Bibliothek." : "Your library.")
-            if entries.isEmpty && library.loadState != .loaded {
-                KuroStateView(library.loadState == .failed ? .failed(hasCachedContent: false) : .loading,
-                              title: library.loadState == .failed
-                                ? (isGermanLocale ? "Bibliothek konnte nicht geladen werden." : "Your library couldn't load.")
-                                : (isGermanLocale ? "Deine Bibliothek wird geladen." : "Loading your library."),
-                              layout: .inline)
-            } else if entries.isEmpty {
-                Text(isGermanLocale
-                     ? "Noch leer. Speichere einen Titel oder importiere deine Liste unten."
-                     : "Empty for now. Save a title, or import your list below.")
-                    .font(.kuroBody())
-                    .foregroundStyle(Color.kuroInkSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                KuroInkButton(isGermanLocale ? "Sammlung öffnen" : "Open Collection", role: .secondary) {
-                    onOpenCollection?()
-                }
-            } else {
-                Text(ProfileListsPolicy.summary(entries, german: isGermanLocale))
+            sectionHeader(german ? "Deine Bibliothek." : "Your library.")
+            switch ProfileListsPolicy.libraryState(entryCount: entries.count, loadState: library.loadState) {
+            case .loading:
+                KuroLoadingView(scope: .inline,
+                                label: german ? "Deine Bibliothek wird geladen." : "Loading your library.")
+            case .failed, .offline:
+                // Nothing on screen: the branded error, whose Try again is the same account-scoped
+                // re-read as "Refresh your lists".
+                KuroErrorView(headline: german ? "Bibliothek konnte nicht geladen werden." : "Your library couldn't load.",
+                              retry: { if !isSyncing { syncLists() } })
+            case .empty:
+                newAccountLibrary
+            case nil:
+                Text(ProfileListsPolicy.summary(entries, german: german))
                     .font(.kuroBody())
                     .foregroundStyle(Color.kuroInkSecondary)
                     .monospacedDigit()
@@ -344,6 +369,40 @@ struct ProfileView: View {
                 .padding(.top, KuroDesignSpacing.xs)
             }
         }
+    }
+
+    /// A new account (amendment 10, spec §5.3): no zero tiles or counts. "Your library." stays the
+    /// section's only heading; under it "Nothing saved yet." sits on the row-title ramp (15 w600,
+    /// −0.2), one muted line, then Import (the import chooser) and Find (Search) as the prototype's
+    /// outlined buttons.
+    private var newAccountLibrary: some View {
+        let german = isGermanLocale
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(ProfileListsPolicy.newAccountHeadline(german: german))
+                .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 30))
+                .tracking(-0.2)
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(ProfileListsPolicy.newAccountLine(german: german))
+                .font(.kuroCustom(13, relativeTo: .footnote, maxSize: 26))
+                .foregroundStyle(Color.kuroMuted)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 6)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: KuroDesignSpacing.sm) { newAccountActions }
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) { newAccountActions }
+            }
+            .padding(.top, 16)
+        }
+        .padding(.vertical, KuroDesignSpacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var newAccountActions: some View {
+        let german = isGermanLocale
+        KuroOutlineButton(ProfileListsPolicy.importTitle(german: german)) { showImportChooser = true }
+        KuroOutlineButton(ProfileListsPolicy.findTitle(german: german)) { showFindSheet = true }
     }
 
     // MARK: Imports and connections
@@ -769,8 +828,14 @@ struct ProfileView: View {
     }
 
     private func sectionHeader(_ title: String) -> some View {
-        KuroSectionHeader(title, size: .title)
+        // The prototype's in-page section heading ("Seasons": SF 18 w550, −0.7), not the shared
+        // header's regular-weight title.
+        Text(title)
+            .kuroRoleText(.title)
+            .foregroundStyle(Color.kuroInk)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
     }
 
     private func profileGroup<Content: View>(@ViewBuilder content: () -> Content) -> some View {
@@ -797,8 +862,7 @@ struct ProfileView: View {
 
     private func statusLine(_ text: String) -> some View {
         HStack(spacing: 10) {
-            ProgressView()
-                .tint(Color.kuroInkSecondary)
+            KuroBusyMark(width: 24)
                 .accessibilityHidden(true)
             Text(text)
                 .font(.kuroMeta())
@@ -819,7 +883,7 @@ private struct ProfileLinkRow: View {
         Link(destination: url) {
             HStack(spacing: KuroDesignSpacing.sm) {
                 Text(title)
-                    .font(.kuroTitle())
+                    .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                     .foregroundStyle(Color.kuroInk)
                 Spacer(minLength: KuroDesignSpacing.sm)
                 Image(systemName: "arrow.up.right")
@@ -852,7 +916,7 @@ private struct ProfileQuietRow: View {
             HStack(alignment: .center, spacing: KuroDesignSpacing.sm) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.kuroTitle())
+                        .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                         .foregroundStyle(titleColor)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -962,7 +1026,7 @@ private struct StreamingServicePickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(KuroLocale.text("Streaming services", "Streamingdienste"))
-                        .font(.kuroTitle())
+                        .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 28)).tracking(-0.2)
                         .foregroundStyle(Color.kuroInk)
                         .accessibilityAddTraits(.isHeader)
                 }
@@ -979,8 +1043,9 @@ private struct StreamingServicePickerSheet: View {
                         }
                     } label: {
                         if isSaving {
-                            ProgressView()
-                                .tint(Color.kuroInkSecondary)
+                            KuroBusyMark(width: 28)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .accessibilityLabel(KuroLocale.text("Saving", "Wird gesichert"))
                         } else {
                             Text(KuroLocale.text("Save", "Sichern"))
                                 .font(.kuroBody(weight: .medium))
@@ -1068,7 +1133,7 @@ private struct ProfileImportResultCard: View {
                         .accessibilityHidden(true)
 
                     Text(result.titleText)
-                        .font(.kuroTitle())
+                        .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 28)).tracking(-0.2)
                         .foregroundStyle(Color.kuroInk)
                         .fixedSize(horizontal: false, vertical: true)
 
