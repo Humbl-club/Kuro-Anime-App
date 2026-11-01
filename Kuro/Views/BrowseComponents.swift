@@ -2,7 +2,10 @@ import KuroCore
 import KuroLibrary
 import SwiftUI
 
-// MARK: - Filter Chip
+// Browse helper components: the control bar (medium switch, filter words), the filter sheet, the
+// equal-frame grid and its placeholders, and the empty state. Ink tokens only; words, not chips.
+
+// MARK: - Filter Chip (used by the unreferenced genre picker sheet)
 struct FilterChip: View {
     let title: String
     let isSelected: Bool
@@ -14,23 +17,33 @@ struct FilterChip: View {
             KuroAccessibility.impactHaptic(.light)
         }) {
             Text(title)
-                .font(.kuroMicro(weight: isSelected ? .semibold : .regular))
-                .tracking(1.0)
-                .foregroundColor(isSelected ? .kuroWhite : .kuroBlack60)
+                .font(.kuroMeta(weight: isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? Color.kuroWhite : Color.kuroInkSecondary)
                 .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .frame(minHeight: 44)
                 .background(
                     Capsule()
-                        .fill(isSelected ? Color.kuroBlack : Color.kuroBlack05)
+                        .fill(isSelected ? Color.kuroInk : Color.kuroCanvasQuiet)
                 )
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .accessibilityHint("Filters results")
+        .accessibilityHint(KuroLocale.text("Filters results", "Filtert die Ergebnisse"))
     }
 }
 
-// MARK: - Control Bar (browse as a "lens" instead of a wall of chips)
+extension DiscoveryStore.BrowseSort {
+    func title(german: Bool) -> String {
+        switch self {
+        case .popular: return german ? "Beliebt" : "Popular"
+        case .trending: return german ? "Im Trend" : "Trending"
+        case .topRated: return german ? "Bestbewertet" : "Top rated"
+        case .newlyAdded: return german ? "Neu im Katalog" : "Newly added"
+        }
+    }
+}
+
+// MARK: - Control Bar
 struct BrowseControlBar: View {
     @Binding var showAnime: Bool
     @Binding var selectedSort: DiscoveryStore.BrowseSort
@@ -43,148 +56,161 @@ struct BrowseControlBar: View {
     let allGenres: [String]
     let hasActiveFilters: Bool
     let activeFiltersLabel: String
+    var gutter: CGFloat = KuroDesignSpacing.padding
     let onOpenFilters: () -> Void
     let onClear: () -> Void
 
+    private var medium: Binding<MediaKind> {
+        Binding(
+            get: { showAnime ? .anime : .manga },
+            set: { next in
+                withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
+                    showAnime = next == .anime
+                }
+            }
+        )
+    }
+
     var body: some View {
-        VStack(spacing: 10) {
-            HStack {
-                BrowseModeToggle(showAnime: $showAnime)
-                Spacer()
-                Button(action: {
+        let german = KuroLocale.isGerman
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+            HStack(alignment: .center) {
+                KuroMediumSwitch(selection: medium, size: .compact)
+                Spacer(minLength: KuroDesignSpacing.md)
+                Button {
                     KuroAccessibility.impactHaptic(.light)
                     onOpenFilters()
-                }) {
-                    HStack(spacing: 8) {
+                } label: {
+                    HStack(spacing: KuroDesignSpacing.xs) {
                         Image(systemName: "slider.horizontal.3")
-                            .font(.kuroCaption(weight: .semibold))
-                        Text("FILTERS")
-                            .font(.kuroMicro(weight: .semibold))
-                            .tracking(1.2)
-                        if hasActiveFilters {
-                            Text("\(activeCount)")
-                                .font(.kuroMicro(weight: .bold))
-                                .foregroundColor(.kuroWhite)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
-                                .background(Capsule().fill(Color.kuroBlack))
-                                .accessibilityHidden(true)
-                        }
+                            .font(.kuroMeta(weight: .regular))
+                        Text(hasActiveFilters
+                             ? KuroLocale.text("Filters · \(activeCount)", "Filter · \(activeCount)")
+                             : KuroLocale.text("Filters", "Filter"))
+                            .font(.kuroMeta(weight: .medium))
                     }
-                    .foregroundColor(.kuroBlack)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(
-                        Capsule()
-                            .fill(Color.kuroBlack05)
-                            .overlay(Capsule().stroke(Color.kuroBlack12, lineWidth: 0.5))
-                    )
+                    .foregroundStyle(Color.kuroInk)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(hasActiveFilters ? "Filters, \(activeCount) active" : "Filters")
-                .accessibilityHint("Opens filter editor")
+                .buttonStyle(KuroPressStyle())
+                .accessibilityLabel(hasActiveFilters
+                                    ? KuroLocale.text("Filters, \(activeCount) active", "Filter, \(activeCount) aktiv")
+                                    : KuroLocale.text("Filters", "Filter"))
+                .accessibilityHint(KuroLocale.text("Opens all filters", "Öffnet alle Filter"))
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
+            .padding(.horizontal, gutter)
+            .padding(.top, KuroDesignSpacing.sm)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
+                HStack(spacing: KuroDesignSpacing.lg) {
                     Menu {
                         ForEach(DiscoveryStore.BrowseSort.allCases, id: \.self) { sort in
-                            Button(sort.rawValue) { selectedSort = sort }
+                            Button(sort.title(german: german)) { selectedSort = sort }
                         }
                     } label: {
-                        FilterPill(label: selectedSort.rawValue, isActive: selectedSort != .popular, icon: "arrow.up.arrow.down")
+                        BrowseMenuWord(title: selectedSort.title(german: german), isActive: selectedSort != .popular)
                     }
+                    .accessibilityLabel(KuroLocale.text("Sort: \(selectedSort.title(german: false))", "Sortierung: \(selectedSort.title(german: true))"))
 
                     Menu {
-                        Button("ALL") { selectedStatusFilter = nil }
+                        Button(KuroLocale.text("Any status", "Jeder Status")) { selectedStatusFilter = nil }
                         ForEach(BrowseView.StatusFilter.allCases, id: \.self) { s in
-                            Button(s.rawValue) { selectedStatusFilter = s }
+                            Button(s.title(german: german, anime: showAnime)) { selectedStatusFilter = s }
                         }
                     } label: {
-                        FilterPill(label: selectedStatusFilter?.rawValue ?? "ALL", isActive: selectedStatusFilter != nil, icon: "dot.radiowaves.left.and.right")
+                        BrowseMenuWord(
+                            title: selectedStatusFilter?.title(german: german, anime: showAnime) ?? KuroLocale.text("Any status", "Jeder Status"),
+                            isActive: selectedStatusFilter != nil
+                        )
                     }
 
                     Menu {
-                        Button("ANY LENGTH") { selectedLengthFilter = nil }
+                        Button(KuroLocale.text("Any length", "Jede Länge")) { selectedLengthFilter = nil }
                         let valid = BrowseView.LengthFilter.allCases.filter { f in
                             (showAnime && f != .manga200) || (!showAnime && f == .manga200)
                         }
                         ForEach(valid, id: \.self) { l in
-                            Button(l.rawValue) { selectedLengthFilter = l }
+                            Button(l.title(german: german)) { selectedLengthFilter = l }
                         }
                     } label: {
-                        FilterPill(label: selectedLengthFilter?.rawValue ?? "ANY LENGTH", isActive: selectedLengthFilter != nil, icon: "clock")
+                        BrowseMenuWord(
+                            title: selectedLengthFilter?.title(german: german) ?? KuroLocale.text("Any length", "Jede Länge"),
+                            isActive: selectedLengthFilter != nil
+                        )
                     }
 
                     Menu {
-                        Button("ALL GENRES") { selectedGenre = nil }
+                        Button(KuroLocale.text("All genres", "Alle Genres")) { selectedGenre = nil }
                         ForEach(allGenres, id: \.self) { g in
-                            Button(g.uppercased()) { selectedGenre = g }
+                            Button(BrowseView.genreTitle(g, german: german)) { selectedGenre = g }
                         }
                     } label: {
-                        FilterPill(label: (selectedGenre ?? "ALL GENRES").uppercased(), isActive: selectedGenre != nil, icon: "tag")
+                        BrowseMenuWord(
+                            title: selectedGenre.map { BrowseView.genreTitle($0, german: german) } ?? KuroLocale.text("All genres", "Alle Genres"),
+                            isActive: selectedGenre != nil
+                        )
                     }
 
                     Menu {
-                        Button("ANY YEAR") { selectedDecade = nil }
+                        Button(KuroLocale.text("Any year", "Jedes Jahr")) { selectedDecade = nil }
                         ForEach(BrowseView.DecadeFilter.allCases, id: \.self) { d in
-                            Button(d.rawValue) { selectedDecade = d }
+                            Button(d.title(german: german)) { selectedDecade = d }
                         }
                     } label: {
-                        FilterPill(label: selectedDecade?.rawValue ?? "ANY YEAR", isActive: selectedDecade != nil, icon: "calendar")
+                        BrowseMenuWord(
+                            title: selectedDecade?.title(german: german) ?? KuroLocale.text("Any year", "Jedes Jahr"),
+                            isActive: selectedDecade != nil
+                        )
                     }
 
                     Menu {
-                        Button("ANY FORMAT") { selectedFormat = nil }
+                        Button(KuroLocale.text("Any format", "Jedes Format")) { selectedFormat = nil }
                         ForEach(BrowseView.FormatFilter.allCases, id: \.self) { f in
-                            Button(f.rawValue) { selectedFormat = f }
+                            Button(f.title(german: german)) { selectedFormat = f }
                         }
                     } label: {
-                        FilterPill(label: selectedFormat?.rawValue ?? "ANY FORMAT", isActive: selectedFormat != nil, icon: "film")
+                        BrowseMenuWord(
+                            title: selectedFormat?.title(german: german) ?? KuroLocale.text("Any format", "Jedes Format"),
+                            isActive: selectedFormat != nil
+                        )
                     }
 
                     if hasActiveFilters {
-                        Button(action: {
+                        Button {
                             KuroAccessibility.impactHaptic(.light)
                             onClear()
-                        }) {
-                            FilterPill(label: "CLEAR", isActive: true, icon: "xmark")
+                        } label: {
+                            Text(KuroLocale.text("Clear", "Zurücksetzen"))
+                                .font(.kuroMeta(weight: .medium))
+                                .foregroundStyle(Color.kuroInk)
+                                .underline()
+                                .frame(minHeight: 44)
+                                .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Clear filters")
+                        .buttonStyle(KuroPressStyle())
+                        .accessibilityLabel(KuroLocale.text("Clear filters", "Filter zurücksetzen"))
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, gutter)
             }
             .kuroSwipeExclusionZone()
 
             if hasActiveFilters {
-                HStack(spacing: 12) {
-                    Text(activeFiltersLabel)
-                        .font(.kuroMicro(weight: .regular))
-                        .tracking(1.0)
-                        .foregroundColor(.kuroTextSecondary)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 2)
-                .accessibilityLabel("Active filters: \(activeFiltersLabel)")
+                Text(activeFiltersLabel)
+                    .font(.kuroMeta())
+                    .foregroundStyle(Color.kuroInkSecondary)
+                    .lineLimit(2)
+                    .padding(.horizontal, gutter)
+                    .padding(.bottom, KuroDesignSpacing.xs)
+                    .accessibilityLabel(KuroLocale.text("Active filters: \(activeFiltersLabel)", "Aktive Filter: \(activeFiltersLabel)"))
             }
 
             Rectangle()
-                .fill(Color.kuroBlack08)
-                .frame(height: 0.5)
+                .fill(Color.kuroHairline)
+                .frame(height: 1)
         }
-        .background(
-            LinearGradient(
-                colors: [Color.kuroWhite, Color.kuroWhite, Color.kuroBlack02],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
+        .background(Color.kuroCanvasPage)
     }
 
     private var activeCount: Int {
@@ -199,226 +225,34 @@ struct BrowseControlBar: View {
     }
 }
 
-struct BrowseModeToggle: View {
-    @Binding var showAnime: Bool
-
-    var body: some View {
-        HStack(spacing: 16) {
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showAnime = true
-                }
-                KuroAccessibility.impactHaptic(.light)
-            }) {
-                Text("ANIME")
-                    .font(.kuroCaption(weight: showAnime ? .semibold : .regular))
-                    .tracking(1.0)
-                    .foregroundColor(showAnime ? .kuroBlack : .kuroTextTertiary)
-                    .padding(.vertical, 6)
-                    .overlay(
-                        Rectangle()
-                            .fill(Color.kuroBlack)
-                            .frame(height: 1.5)
-                            .opacity(showAnime ? 1 : 0),
-                        alignment: .bottom
-                    )
-            }
-            .buttonStyle(.plain)
-            .accessibilityAddTraits(showAnime ? .isSelected : [])
-
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    showAnime = false
-                }
-                KuroAccessibility.impactHaptic(.light)
-            }) {
-                Text("MANGA")
-                    .font(.kuroCaption(weight: showAnime ? .regular : .semibold))
-                    .tracking(1.0)
-                    .foregroundColor(showAnime ? .kuroTextTertiary : .kuroBlack)
-                    .padding(.vertical, 6)
-                    .overlay(
-                        Rectangle()
-                            .fill(Color.kuroBlack)
-                            .frame(height: 1.5)
-                            .opacity(showAnime ? 0 : 1),
-                        alignment: .bottom
-                    )
-            }
-            .buttonStyle(.plain)
-            .accessibilityAddTraits(showAnime ? [] : .isSelected)
-        }
-    }
-}
-
-struct FilterPill: View {
-    let label: String
-    let isActive: Bool
-    let icon: String
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.kuroCaption(weight: .semibold))
-            Text(label)
-                .font(.kuroMicro(weight: .semibold))
-                .tracking(1.0)
-                .lineLimit(1)
-            Image(systemName: "chevron.down")
-                .font(.kuroMicro(weight: .semibold))
-                .opacity(0.55)
-        }
-        .foregroundColor(isActive ? .kuroWhite : .kuroBlack70)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            Capsule()
-                .fill(isActive ? Color.kuroBlack : Color.kuroBlack05)
-                .overlay(Capsule().stroke(isActive ? Color.clear : Color.kuroBlack12, lineWidth: 0.5))
-        )
-    }
-}
-
-struct BrowseResultsHeader: View {
+/// A filter menu's label: an ink word with a disclosure chevron, underlined while it narrows.
+struct BrowseMenuWord: View {
     let title: String
-    let subtitle: String
-    let countLabel: String
+    let isActive: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+            HStack(spacing: KuroDesignSpacing.xs) {
                 Text(title)
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(1.6)
-                    .foregroundColor(.kuroTextSecondary)
-                Text(subtitle)
-                    .font(.kuroMicro(weight: .light))
-                    .foregroundColor(.kuroTextTertiary)
-                    .lineLimit(2)
+                    .font(.kuroMeta(weight: isActive ? .semibold : .regular))
+                    .lineLimit(1)
+                    .fixedSize()
+                Image(systemName: "chevron.down")
+                    .font(.kuroCaption(weight: .regular))
+                    .accessibilityHidden(true)
             }
-
-            Spacer(minLength: 12)
-
-            Text(countLabel)
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.2)
-                .foregroundColor(.kuroTextTertiary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(
-                    Capsule()
-                        .fill(Color.kuroBlack05)
-                )
+            .foregroundStyle(isActive ? Color.kuroInk : Color.kuroInkSecondary)
+            Rectangle()
+                .fill(isActive ? Color.kuroInk : Color.clear)
+                .frame(width: 16, height: 1.5)
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.kuroBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(Color.kuroBlack08, lineWidth: 0.8)
-                )
-        )
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+        .accessibilityAddTraits(isActive ? [.isSelected] : [])
     }
 }
 
-struct BrowseHeroCard: View {
-    let media: any MediaDisplayable
-    let geometry: GeometryProxy
-    @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
-    @Environment(LibraryStore.self) private var library
-    @Environment(\.kuroRoutes) private var routes
-
-    private var isInCollection: Bool {
-        library.isTracked(media.libraryKey)
-    }
-
-    var body: some View {
-        let width = geometry.size.width - 40
-        let height = max(204, floor(width * 0.5))
-
-        Button(action: {
-            guard !suppressCardTaps else { return }
-            KuroAccessibility.impactHaptic(.light)
-            routes.openMedia(MediaRoute(media.libraryKey))
-        }) {
-            ZStack(alignment: .bottomLeading) {
-                KuroCachedAsyncImage(url: URL(string: media.imageURL ?? ""), maxPixelSize: 700) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: width, height: height)
-                            .clipped()
-                    default:
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color.kuroBlack05)
-                            .frame(width: width, height: height)
-                    }
-                }
-                .frame(width: width, height: height)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-
-                LinearGradient(
-                    colors: [Color.kuroBlack.opacity(0.0), Color.kuroBlack75],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("PICK FOR YOU")
-                            .font(.kuroMicro(weight: .semibold))
-                            .tracking(1.8)
-                            .foregroundColor(.kuroWhite80)
-                        Spacer()
-                        if isInCollection {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.kuroBody(weight: .semibold))
-                                .foregroundColor(.kuroWhite85)
-                        }
-                    }
-
-                    Text(media.title)
-                        .font(.kuroHeadline(weight: .semibold))
-                        .foregroundColor(.kuroWhite)
-                        .lineLimit(2)
-
-                    HStack(spacing: 8) {
-                        Text(media.year)
-                            .font(.kuroCaption(weight: .regular))
-                            .foregroundColor(.kuroWhite80)
-
-                        if let episodes = media.episodes, episodes > 0 {
-                            Text("· \(episodes) eps")
-                                .font(.kuroCaption(weight: .regular))
-                                .foregroundColor(.kuroWhite80)
-                        } else if let chapters = media.chapters, chapters > 0 {
-                            Text("· \(chapters) ch")
-                                .font(.kuroCaption(weight: .regular))
-                                .foregroundColor(.kuroWhite80)
-                        }
-
-                        Spacer(minLength: 0)
-
-                        Image(systemName: "chevron.right")
-                            .font(.kuroCaption(weight: .semibold))
-                            .foregroundColor(.kuroWhite90)
-                    }
-                }
-                .padding(18)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(media.title), \(media.year)")
-        .accessibilityHint("Opens details")
-    }
-}
-
+// MARK: - Filters Sheet
 struct BrowseFiltersSheet: View {
     struct Selection {
         var showAnime: Bool
@@ -452,286 +286,223 @@ struct BrowseFiltersSheet: View {
         self.onApply = onApply
     }
 
+    private var medium: Binding<MediaKind> {
+        Binding(
+            get: { draft.showAnime ? .anime : .manga },
+            set: { next in
+                draft.showAnime = next == .anime
+                // A length that does not exist for the other medium is dropped.
+                if let length = draft.length, (draft.showAnime && length == .manga200) || (!draft.showAnime && length != .manga200) {
+                    draft.length = nil
+                }
+            }
+        )
+    }
+
     var body: some View {
+        let german = KuroLocale.isGerman
         NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
-                    SectionTitle(title: "MODE")
-                    BrowseModeToggle(showAnime: $draft.showAnime)
-                        .padding(.horizontal, 20)
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
+                    KuroMediumSwitch(selection: medium, size: .compact)
 
-                    SectionTitle(title: "SORT")
-                    FlowLayout(spacing: 10) {
+                    group(KuroLocale.text("Sort", "Sortierung")) {
                         ForEach(DiscoveryStore.BrowseSort.allCases, id: \.self) { s in
-                            OptionChip(title: s.rawValue, isSelected: draft.sort == s) {
+                            DiscoverWordButton(title: s.title(german: german), isSelected: draft.sort == s) {
                                 draft.sort = s
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
 
-                    SectionTitle(title: "STATUS")
-                    FlowLayout(spacing: 10) {
-                        OptionChip(title: "ALL", isSelected: draft.status == nil) {
+                    group(KuroLocale.text("Status", "Status")) {
+                        DiscoverWordButton(title: KuroLocale.text("Any", "Alle"), isSelected: draft.status == nil) {
                             draft.status = nil
                         }
                         ForEach(BrowseView.StatusFilter.allCases, id: \.self) { s in
-                            OptionChip(title: s.rawValue, isSelected: draft.status == s) {
+                            DiscoverWordButton(title: s.title(german: german, anime: draft.showAnime), isSelected: draft.status == s) {
                                 draft.status = s
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
 
-                    SectionTitle(title: draft.showAnime ? "EPISODE LENGTH" : "CHAPTER LENGTH")
-                    FlowLayout(spacing: 10) {
-                        OptionChip(title: "ANY", isSelected: draft.length == nil) {
+                    group(draft.showAnime ? KuroLocale.text("Episodes", "Folgen") : KuroLocale.text("Chapters", "Kapitel")) {
+                        DiscoverWordButton(title: KuroLocale.text("Any", "Alle"), isSelected: draft.length == nil) {
                             draft.length = nil
                         }
                         let valid = BrowseView.LengthFilter.allCases.filter { f in
                             (draft.showAnime && f != .manga200) || (!draft.showAnime && f == .manga200)
                         }
                         ForEach(valid, id: \.self) { l in
-                            OptionChip(title: l.rawValue, isSelected: draft.length == l) {
+                            DiscoverWordButton(title: l.title(german: german), isSelected: draft.length == l) {
                                 draft.length = l
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
 
-                    SectionTitle(title: "GENRE")
-                    FlowLayout(spacing: 10) {
-                        OptionChip(title: "ALL", isSelected: draft.genre == nil) {
+                    group(KuroLocale.text("Genre", "Genre")) {
+                        DiscoverWordButton(title: KuroLocale.text("All", "Alle"), isSelected: draft.genre == nil) {
                             draft.genre = nil
                         }
                         ForEach(allGenres, id: \.self) { g in
-                            OptionChip(title: g.uppercased(), isSelected: draft.genre == g) {
+                            DiscoverWordButton(title: BrowseView.genreTitle(g, german: german), isSelected: draft.genre == g) {
                                 draft.genre = g
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
 
-                    SectionTitle(title: "YEAR")
-                    FlowLayout(spacing: 10) {
-                        OptionChip(title: "ANY", isSelected: draft.decade == nil) {
+                    group(KuroLocale.text("Year", "Jahr")) {
+                        DiscoverWordButton(title: KuroLocale.text("Any", "Alle"), isSelected: draft.decade == nil) {
                             draft.decade = nil
                         }
                         ForEach(BrowseView.DecadeFilter.allCases, id: \.self) { d in
-                            OptionChip(title: d.rawValue, isSelected: draft.decade == d) {
+                            DiscoverWordButton(title: d.title(german: german), isSelected: draft.decade == d) {
                                 draft.decade = d
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
 
-                    SectionTitle(title: "FORMAT")
-                    FlowLayout(spacing: 10) {
-                        OptionChip(title: "ANY", isSelected: draft.format == nil) {
+                    group(KuroLocale.text("Format", "Format")) {
+                        DiscoverWordButton(title: KuroLocale.text("Any", "Alle"), isSelected: draft.format == nil) {
                             draft.format = nil
                         }
                         ForEach(BrowseView.FormatFilter.allCases, id: \.self) { f in
-                            OptionChip(title: f.rawValue, isSelected: draft.format == f) {
+                            DiscoverWordButton(title: f.title(german: german), isSelected: draft.format == f) {
                                 draft.format = f
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
-
-                    Spacer(minLength: 24)
                 }
-                .padding(.top, 14)
-                .padding(.bottom, 24)
+                .padding(.horizontal, KuroDesignSpacing.padding)
+                .padding(.top, KuroDesignSpacing.md)
+                .padding(.bottom, KuroDesignSpacing.xl)
+                .kuroReadableWidth()
             }
-            .background(Color.kuroBackground)
-            .navigationTitle("FILTERS")
+            .background(Color.kuroCanvasPage)
+            .navigationTitle(KuroLocale.text("Filters", "Filter"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
+                    Button(KuroLocale.text("Cancel", "Abbrechen")) {
                         KuroAccessibility.impactHaptic(.light)
                         dismiss()
                     }
-                    .font(.kuroCaption(weight: .regular))
+                    .font(.kuroMeta(weight: .regular))
+                    .foregroundStyle(Color.kuroInk)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Apply") {
+                    Button(KuroLocale.text("Apply", "Anwenden")) {
                         KuroAccessibility.impactHaptic(.light)
                         onApply(draft)
                         dismiss()
                     }
-                    .font(.kuroCaption(weight: .semibold))
+                    .font(.kuroMeta(weight: .semibold))
+                    .foregroundStyle(Color.kuroInk)
                 }
             }
         }
         .presentationDetents([.medium, .large])
     }
-}
 
-struct SectionTitle: View {
-    let title: String
-    var body: some View {
-        Text(title)
-            .font(.kuroMicro(weight: .semibold))
-            .tracking(1.6)
-            .foregroundColor(.kuroTextSecondary)
-            .padding(.horizontal, 20)
+    /// One labelled group of choice words, wrapping across lines.
+    private func group<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+            Text(title)
+                .font(.kuroMeta(weight: .semibold))
+                .foregroundStyle(Color.kuroInk)
+                .accessibilityAddTraits(.isHeader)
+            FlowLayout(spacing: KuroDesignSpacing.md) {
+                content()
+            }
+        }
     }
 }
 
-struct OptionChip: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
+// MARK: - Grid
 
-    var body: some View {
-        Button(action: {
-            KuroAccessibility.impactHaptic(.light)
-            action()
-        }) {
-            Text(title)
-                .font(.kuroMicro(weight: isSelected ? .semibold : .regular))
-                .tracking(1.0)
-                .foregroundColor(isSelected ? .kuroWhite : .kuroBlack70)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(
-                    Capsule()
-                        .fill(isSelected ? Color.kuroBlack : Color.kuroBlack05)
-                        .overlay(Capsule().stroke(isSelected ? Color.clear : Color.kuroBlack12, lineWidth: 0.5))
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+/// Grid metrics shared by the grid and its placeholders (columns follow the width, at least two).
+private struct BrowseGridMetrics {
+    let gutter: CGFloat
+    let columns: Int
+    let frameWidth: CGFloat
+
+    init(width: CGFloat) {
+        gutter = DiscoverLayout.gutter(for: width)
+        let inner = max(0, width - gutter * 2)
+        columns = DiscoverLayout.columnCount(for: inner)
+        frameWidth = DiscoverLayout.gridFrameWidth(for: inner, columns: columns)
+    }
+
+    var gridItems: [GridItem] {
+        Array(repeating: GridItem(.fixed(frameWidth), spacing: DiscoverLayout.frameSpacing, alignment: .top), count: columns)
     }
 }
 
 struct BrowseGridSkeleton: View {
-    let geometry: GeometryProxy
+    let width: CGFloat
 
     var body: some View {
-        let horizontalPadding: CGFloat = 20
-        let spacing: CGFloat = 12
-        let totalHorizontalPadding = horizontalPadding * 2
-        let totalSpacing = spacing
-        let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
-        let cardWidth = floor(availableWidth / 2)
-        let imageHeight = floor(cardWidth / 0.7)
-        let textBlockHeight: CGFloat = 64
-        let cardSpacing: CGFloat = 8
-        let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
-
-        let columns = [
-            GridItem(.fixed(cardWidth), spacing: spacing),
-            GridItem(.fixed(cardWidth), spacing: spacing)
-        ]
-
-        LazyVGrid(columns: columns, spacing: 14) {
-            ForEach(0..<10, id: \.self) { _ in
-                VStack(alignment: .leading, spacing: 8) {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.kuroBlack05)
-                        .frame(width: cardWidth, height: imageHeight)
-                    VStack(alignment: .leading, spacing: 6) {
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Color.kuroBlack06)
-                            .frame(height: 10)
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Color.kuroBlack05)
-                            .frame(height: 9)
-                            .frame(maxWidth: cardWidth * 0.6, alignment: .leading)
-                    }
-                    .frame(height: textBlockHeight, alignment: .top)
-                }
-                .frame(width: cardWidth, height: totalCardHeight, alignment: .top)
-                .redacted(reason: .placeholder)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
+        BrowsePlaceholderGrid(width: width, count: 10)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(KuroLocale.text("Loading", "Wird geladen"))
     }
 }
 
 struct BrowsePaginationSkeleton: View {
-    let geometry: GeometryProxy
+    let width: CGFloat
 
     var body: some View {
-        let horizontalPadding: CGFloat = 20
-        let spacing: CGFloat = 12
-        let totalHorizontalPadding = horizontalPadding * 2
-        let totalSpacing = spacing
-        let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
-        let cardWidth = floor(availableWidth / 2)
-        let imageHeight = floor(cardWidth / 0.7)
-        let textBlockHeight: CGFloat = 64
-        let cardSpacing: CGFloat = 8
-        let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
+        BrowsePlaceholderGrid(width: width, count: BrowseGridMetrics(width: width).columns * 2)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(KuroLocale.text("Loading more", "Lädt weitere"))
+    }
+}
 
-        let columns = [
-            GridItem(.fixed(cardWidth), spacing: spacing),
-            GridItem(.fixed(cardWidth), spacing: spacing)
-        ]
+private struct BrowsePlaceholderGrid: View {
+    let width: CGFloat
+    let count: Int
 
-        LazyVGrid(columns: columns, spacing: 14) {
-            ForEach(0..<4, id: \.self) { _ in
-                VStack(alignment: .leading, spacing: 8) {
-                    RoundedRectangle(cornerRadius: 12)
+    var body: some View {
+        let metrics = BrowseGridMetrics(width: width)
+        LazyVGrid(columns: metrics.gridItems, alignment: .leading, spacing: KuroDesignSpacing.lg) {
+            ForEach(0..<count, id: \.self) { _ in
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                    RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous)
                         .fill(Color.kuroBlack05)
-                        .frame(width: cardWidth, height: imageHeight)
-                    VStack(alignment: .leading, spacing: 6) {
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Color.kuroBlack06)
-                            .frame(height: 10)
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(Color.kuroBlack04)
-                            .frame(width: cardWidth * 0.6, height: 10)
-                    }
-                    .frame(height: textBlockHeight, alignment: .top)
+                        .frame(width: metrics.frameWidth, height: floor(metrics.frameWidth / KuroCardMetrics.imageAspectRatio))
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(Color.kuroBlack05)
+                        .frame(width: metrics.frameWidth * 0.8, height: 12)
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(Color.kuroBlack05)
+                        .frame(width: metrics.frameWidth * 0.5, height: 10)
                 }
-                .frame(width: cardWidth, height: totalCardHeight, alignment: .top)
-                .kuroShimmer()
             }
         }
-        .padding(.horizontal, horizontalPadding)
-        .padding(.vertical, 14)
+        .padding(.horizontal, metrics.gutter)
+        .padding(.vertical, KuroDesignSpacing.md)
     }
 }
 
 // MARK: - Browse Grid
 struct BrowseGrid: View {
     let items: [any MediaDisplayable]
-    let geometry: GeometryProxy
+    let width: CGFloat
     let loadMore: () async -> Void
 
     var body: some View {
-        let horizontalPadding: CGFloat = 20
-        let spacing: CGFloat = 12
-        let totalHorizontalPadding = horizontalPadding * 2
-        let totalSpacing = spacing
-        let availableWidth = geometry.size.width - totalHorizontalPadding - totalSpacing
-        let cardWidth = floor(availableWidth / 2)
-        let imageHeight = floor(cardWidth / 0.7)
-        let textBlockHeight: CGFloat = 64
-        let cardSpacing: CGFloat = 8
-        let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
-
-        let columns = [
-            GridItem(.fixed(cardWidth), spacing: spacing),
-            GridItem(.fixed(cardWidth), spacing: spacing)
-        ]
-
-        LazyVGrid(columns: columns, spacing: 14) {
-            ForEach(items, id: \.id) { media in
-                GridAnimeCard(media: media, cardWidth: cardWidth, cardHeight: totalCardHeight)
+        let metrics = BrowseGridMetrics(width: width)
+        LazyVGrid(columns: metrics.gridItems, alignment: .leading, spacing: KuroDesignSpacing.lg) {
+            ForEach(items, id: \.stableKey) { media in
+                DiscoverFrame(media: media, width: metrics.frameWidth)
                     .onAppear {
-                        if media.id == items.last?.id {
+                        if media.stableKey == items.last?.stableKey {
                             Task { await loadMore() }
                         }
                     }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
+        .padding(.horizontal, metrics.gutter)
+        .padding(.vertical, KuroDesignSpacing.md)
     }
 }
 
@@ -742,56 +513,27 @@ struct BrowseEmptyState: View {
     let onClearFilters: () -> Void
 
     var body: some View {
-        VStack(spacing: 14) {
-            Image(systemName: "slider.horizontal.3")
-                .font(.kuroCustom(40, weight: .ultraLight, relativeTo: .largeTitle))
-                .foregroundColor(.kuroBlack15)
-
-            VStack(spacing: 8) {
-                if activeFilterCount > 0 {
-                    Text("NO MATCHES FOR \(activeFilterCount) FILTER\(activeFilterCount == 1 ? "" : "S")")
-                        .font(.kuroCaption(weight: .semibold))
-                        .tracking(1.0)
-                        .foregroundColor(.kuroTextTertiary)
-
-                    Text(activeFilterSummary)
-                        .font(.kuroMicro(weight: .regular))
-                        .tracking(0.8)
-                        .foregroundColor(.kuroTextSecondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
-
-                    Button {
-                        KuroAccessibility.impactHaptic(.light)
-                        onClearFilters()
-                    } label: {
-                        Text("CLEAR FILTERS")
-                            .font(.kuroCaption(weight: .medium))
-                            .tracking(1.6)
-                            .foregroundColor(.kuroWhite)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Capsule().fill(Color.kuroBlack))
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.top, KuroDesignSpacing.sm)
-                    .accessibilityLabel("Clear all filters")
-                } else {
-                    Text("NO MATCHES")
-                        .font(.kuroCaption(weight: .semibold))
-                        .tracking(1.0)
-                        .foregroundColor(.kuroTextTertiary)
-
-                    Text("Try different filters")
-                        .font(.kuroMicro(weight: .regular))
-                        .tracking(0.8)
-                        .foregroundColor(.kuroTextSecondary)
+        VStack(spacing: KuroDesignSpacing.md) {
+            if activeFilterCount > 0 {
+                KuroStateView(
+                    .empty,
+                    title: KuroLocale.text("No titles match these filters.", "Keine Titel passen zu diesen Filtern."),
+                    message: activeFilterSummary
+                )
+                KuroInkButton(KuroLocale.text("Clear filters", "Filter zurücksetzen"), role: .secondary) {
+                    onClearFilters()
                 }
+                .frame(maxWidth: 280)
+            } else {
+                KuroStateView(
+                    .empty,
+                    title: KuroLocale.text("No titles here yet.", "Hier sind noch keine Titel."),
+                    message: KuroLocale.text("Pull to refresh.", "Zum Aktualisieren ziehen.")
+                )
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 72)
+        .padding(.top, KuroDesignSpacing.xl)
     }
 }
 
