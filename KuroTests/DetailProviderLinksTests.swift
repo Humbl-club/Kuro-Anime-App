@@ -92,6 +92,10 @@ struct DetailProviderLinksTests {
     /// Refreshed recently: no refresh is enqueued.
     nonisolated static let freshStatus = StubResponse.json(
         #"[{"has_rows":true,"status":"ready","last_refreshed_at":"\#(ListRowJSON.createdAt)","next_refresh_at":null,"stale_days":1}]"#)
+    /// Rows 40 days old, status still 'ok': a refresh is enqueued and the status does not turn pending
+    /// in this stub (it never changes).
+    nonisolated static let staleStatus = StubResponse.json(
+        #"[{"has_rows":true,"status":"ok","last_refreshed_at":"\#(ListRowJSON.createdAt)","next_refresh_at":null,"stale_days":40}]"#)
     /// Never refreshed: a refresh is enqueued.
     nonisolated static let missingStatus = StubResponse.json(
         #"[{"has_rows":false,"status":"missing","last_refreshed_at":null,"next_refresh_at":null,"stale_days":null}]"#)
@@ -210,14 +214,52 @@ struct DetailProviderLinksTests {
         #expect(first.note == "Catalog links only. Verified availability is still being refreshed.")
         #expect(first.all.map(\.title) == ["VIZ"])
 
-        // Inside the 10-minute cooldown: no second write.
+        // Inside the 10-minute cooldown: no second write, and the caption still says refreshing (the
+        // cached status predates the enqueue and still looks stale, so the refresh is still pending).
         let second = try #require(await harness.availability.resolveReadLinks(mangaId: Self.mangaId, locale: "en_US"))
         #expect(harness.requests(to: "rpc/enqueue_media_availability_refresh").count == 1)
-        #expect(second.statusCaption == nil)
+        #expect(second.statusCaption == "Refreshing verified availability now.")
         // Same page life: the status, provider v2 answer and external links are reused.
         #expect(harness.requests(to: "rpc/get_media_availability_status").count == 1)
         #expect(harness.requests(to: "rpc/batch_provider_availability_for_media_v2").count == 1)
         #expect(harness.requests(to: "external_links").count == 1)
+        await harness.tearDown()
+    }
+
+    @Test("A stale title keeps the refreshing caption through the cooldown: rows 40 days old, status 'ok' (no flip to 'Last checked')")
+    func staleRowsKeepRefreshingCaption() async throws {
+        let harness = try DetailLinksHarness(streamingAvailability: true) { request in
+            switch request.resource {
+            case "external_links":
+                return Self.externalLinks([(id: 3, site: "VIZ", url: "https://www.viz.com/x")], mediaType: "MANGA", mediaId: Self.mangaId)
+            case "rpc/get_media_availability_status": return Self.staleStatus
+            case "rpc/enqueue_media_availability_refresh": return .json("true")
+            default: return .emptyArray
+            }
+        }
+        let first = try #require(await harness.availability.resolveReadLinks(mangaId: Self.mangaId, locale: "en_US"))
+        let second = try #require(await harness.availability.resolveReadLinks(mangaId: Self.mangaId, locale: "en_US"))
+
+        #expect(harness.requests(to: "rpc/enqueue_media_availability_refresh").count == 1)
+        #expect(first.statusCaption == "Refreshing verified availability now.")
+        #expect(second.statusCaption == "Refreshing verified availability now.")
+        await harness.tearDown()
+    }
+
+    @Test("A fresh title never says refreshing: no enqueue, no cooldown, the caption is the status date")
+    func freshRowsNeverSayRefreshing() async throws {
+        let harness = try DetailLinksHarness(streamingAvailability: true) { request in
+            switch request.resource {
+            case "external_links":
+                return Self.externalLinks([(id: 3, site: "VIZ", url: "https://www.viz.com/x")], mediaType: "MANGA", mediaId: Self.mangaId)
+            case "rpc/get_media_availability_status": return Self.freshStatus
+            default: return .emptyArray
+            }
+        }
+        let snapshot = try #require(await harness.availability.resolveReadLinks(mangaId: Self.mangaId, locale: "en_US"))
+        #expect(harness.requests(to: "rpc/enqueue_media_availability_refresh").isEmpty)
+        #expect(snapshot.statusCaption != "Refreshing verified availability now.")
+        #expect(snapshot.statusCaption?.hasPrefix("Last checked") == true)
         await harness.tearDown()
     }
 

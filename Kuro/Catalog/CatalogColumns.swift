@@ -101,8 +101,16 @@ enum CatalogColumns {
     static let creditsRowLimit = 50
 
     /// Row bound for an entity sheet's works (studio, staff, author, character). The sheets sort
-    /// client-side; the bound caps a very large studio.
+    /// client-side; the bound caps a very large studio. The read is ordered by `entityWorksOrder`
+    /// first, so the rows kept are the highest-rated, matching the sheets' default sort.
     static let entityWorksRowLimit = 500
+
+    /// The server order of an entity works read: the parent join rows ordered by the embedded title's
+    /// `average_score` (PostgREST to-one embed ordering, `order=anime(average_score).desc.nullslast`;
+    /// the hosted PostgREST is v14). Not `referencedTable:`, which would order inside the embed only.
+    static func entityWorksOrder(embed: String) -> String {
+        "\(embed)(average_score)"
+    }
 
     /// Every list above, for the internal-column guard test.
     static var allColumnLists: [String: [String]] {

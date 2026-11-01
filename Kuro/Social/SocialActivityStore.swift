@@ -142,6 +142,15 @@ final class SocialActivityStore: AccountScopedState {
         clearPrivateState()
     }
 
+    /// Marks every friend count stale without dropping it or moving the friend scope: for a friend set
+    /// that GREW (the caller created or joined a club, or a member joined one of theirs), so the next
+    /// prefetch asks again instead of serving a 0 stored within `friendCountTTL`. The counts on screen
+    /// stay until that answer lands. A shrinking friend set uses `invalidateFriendProjection()`.
+    /// To be called by the Clubs owner after `create_club` / `join_club` succeed.
+    func invalidateFriendCountFreshness() {
+        friendCountFetchedAt.removeAll()
+    }
+
     /// What a friend-scoped call was started under: the account and the friend scope.
     private struct FriendScope {
         let context: AccountContext?

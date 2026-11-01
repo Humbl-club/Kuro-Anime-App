@@ -582,8 +582,10 @@ final class CatalogStore: MemoryPressureTrimmable {
 
     // -- Entity sheet fetches (reverse joins: entity → media) --
 
-    // Each sheet read joins a concurrent duplicate (in-flight join per entity key), is ordered by the
-    // join row id for a deterministic page and is bounded by `CatalogColumns.entityWorksRowLimit`.
+    // Each sheet read joins a concurrent duplicate (in-flight join per entity key), is ordered on the
+    // server by the embedded title's score (the sheets' default "rating" sort; join row id breaks ties)
+    // and is bounded by `CatalogColumns.entityWorksRowLimit`, so a very large entity keeps its
+    // highest-rated works rather than its first-imported ones.
 
     func fetchAnimeByStudio(studioId: Int) async -> [Media] {
         let key = "studio-\(studioId)"
@@ -604,6 +606,7 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .select("anime!inner(id, title_english, title_romaji, cover_image_large, average_score, season_year, format, status, genres, is_adult, episodes)")
                 .eq("studio_id", value: studioId)
                 .eq("anime.is_adult", value: false)
+                .order(CatalogColumns.entityWorksOrder(embed: "anime"), ascending: false)
                 .order("id", ascending: true)
                 .limit(CatalogColumns.entityWorksRowLimit)
                 .execute()
@@ -642,6 +645,7 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .select("role, anime!inner(id, title_english, title_romaji, cover_image_large, average_score, season_year, format, status, genres, is_adult, episodes)")
                 .eq("staff_id", value: staffId)
                 .eq("anime.is_adult", value: false)
+                .order(CatalogColumns.entityWorksOrder(embed: "anime"), ascending: false)
                 .order("id", ascending: true)
                 .limit(CatalogColumns.entityWorksRowLimit)
                 .execute()
@@ -685,6 +689,7 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .select("role, manga!inner(id, title_english, title_romaji, cover_image_large, average_score, start_date_year, format, status, genres, is_adult, chapters)")
                 .eq("author_id", value: authorId)
                 .eq("manga.is_adult", value: false)
+                .order(CatalogColumns.entityWorksOrder(embed: "manga"), ascending: false)
                 .order("id", ascending: true)
                 .limit(CatalogColumns.entityWorksRowLimit)
                 .execute()
@@ -728,6 +733,7 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .select("anime!inner(id, title_english, title_romaji, cover_image_large, average_score, season_year, format, status, genres, is_adult, episodes)")
                 .eq("character_id", value: characterId)
                 .eq("anime.is_adult", value: false)
+                .order(CatalogColumns.entityWorksOrder(embed: "anime"), ascending: false)
                 .order("id", ascending: true)
                 .limit(CatalogColumns.entityWorksRowLimit)
                 .execute()
@@ -737,6 +743,7 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .select("manga!inner(id, title_english, title_romaji, cover_image_large, average_score, start_date_year, format, status, genres, is_adult, chapters)")
                 .eq("character_id", value: characterId)
                 .eq("manga.is_adult", value: false)
+                .order(CatalogColumns.entityWorksOrder(embed: "manga"), ascending: false)
                 .order("id", ascending: true)
                 .limit(CatalogColumns.entityWorksRowLimit)
                 .execute()

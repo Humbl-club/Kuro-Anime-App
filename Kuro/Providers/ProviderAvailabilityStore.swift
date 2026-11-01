@@ -171,9 +171,22 @@ final class ProviderAvailabilityStore: AccountScopedState {
     // MARK: Public state (not account-scoped; survives sign-out)
 
     var providerCache: [String: [ProviderInfo]] = [:]
+    /// The most recently started catalog-provider prefetch (callers and tests may await it).
     @ObservationIgnored var providerPrefetchTask: Task<Void, Never>?
     var providerAvailabilityCache: [String: [ProviderAvailabilityProvider]] = [:]
+    /// The most recently started provider v2 prefetch (callers and tests may await it).
     @ObservationIgnored var providerAvailabilityPrefetchTask: Task<Void, Never>?
+    /// Every batch prefetch still running, by id. Prefetches of different screens no longer cancel
+    /// each other (a Collection refresh used to drop a Club page's batch, and vice versa).
+    @ObservationIgnored private var providerPrefetchTasks: [UUID: Task<Void, Never>] = [:]
+    /// Prefetch keys being requested right now, with the prefetch that owns them
+    /// (`providerPrefetchKey` / `providerAvailabilityPrefetchKey`).
+    @ObservationIgnored private var providerPrefetchInFlight: [String: UUID] = [:]
+    /// When each prefetch key last answered successfully (`providerPrefetchTTL`): a fresh key is not
+    /// requested again.
+    @ObservationIgnored private var providerPrefetchFetchedAt: [String: Date] = [:]
+    /// How long a batch prefetch answer is reused (matches `detailAvailabilityTTL`).
+    nonisolated static let providerPrefetchTTL: TimeInterval = 10 * 60
     var availabilityRefreshEnqueueCooldown: [String: Date] = [:]
     var streamingServiceRegistry: [StreamingServiceRecord] = []
     /// When the registry was last read successfully (`streamingServiceRegistryTTL`).
@@ -372,29 +385,54 @@ final class ProviderAvailabilityStore: AccountScopedState {
         }
     }
 
+    /// Prefetches provider v2 for `items`. Keys answered within `providerPrefetchTTL` (for the same
+    /// languages and unknown policy) or already being requested by another prefetch are skipped;
+    /// when nothing is left, no request is made. A key is marked fresh only after a successful read.
     func prefetchProviderAvailabilityV2(
         items: [(mediaType: String, mediaId: Int)],
         preferredAudioLang: String? = nil,
         preferredSubLang: String? = nil,
         includeUnknown: Bool = true
     ) {
-        providerAvailabilityPrefetchTask?.cancel()
-        providerAvailabilityPrefetchTask = Task { [weak self] in
+        let keyOf: ((mediaType: String, mediaId: Int)) -> String = { item in
+            Self.providerAvailabilityPrefetchKey(
+                mediaType: item.mediaType,
+                mediaId: item.mediaId,
+                audio: preferredAudioLang,
+                sub: preferredSubLang,
+                includeUnknown: includeUnknown
+            )
+        }
+        guard let claim = beginProviderPrefetch(items: items, key: keyOf) else { return }
+        let (id, keys, requested) = claim
+        let task = Task { [weak self] in
             guard let self else { return }
-            await self.fetchProviderAvailabilityV2(
-                items: items,
+            defer { self.finishProviderPrefetch(id, keys: keys) }
+            let loaded = await self.loadProviderAvailabilityV2(
+                items: requested,
                 preferredAudioLang: preferredAudioLang,
                 preferredSubLang: preferredSubLang,
                 includeUnknown: includeUnknown
             )
+            if loaded { self.markProviderPrefetchFresh(keys) }
         }
+        providerPrefetchTasks[id] = task
+        providerAvailabilityPrefetchTask = task
     }
 
+    /// Prefetches the catalog providers of `items` with the freshness and in-flight rules of
+    /// `prefetchProviderAvailabilityV2`. Every requested key is marked fresh after a successful
+    /// answer, including titles the server omitted (no providers), so they are not asked again.
     func prefetchProviders(items: [(mediaType: String, mediaId: Int)]) {
-        providerPrefetchTask?.cancel()
-        providerPrefetchTask = Task { [weak self] in
-            guard let self, !items.isEmpty else { return }
-            let payload = items.map { ["media_type": $0.mediaType, "media_id": "\($0.mediaId)"] }
+        let keyOf: ((mediaType: String, mediaId: Int)) -> String = { item in
+            Self.providerPrefetchKey(mediaType: item.mediaType, mediaId: item.mediaId)
+        }
+        guard let claim = beginProviderPrefetch(items: items, key: keyOf) else { return }
+        let (id, keys, requested) = claim
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer { self.finishProviderPrefetch(id, keys: keys) }
+            let payload = requested.map { ["media_type": $0.mediaType, "media_id": "\($0.mediaId)"] }
             guard let jsonData = try? JSONSerialization.data(withJSONObject: payload),
                   let jsonString = String(data: jsonData, encoding: .utf8) else { return }
             do {
@@ -408,11 +446,90 @@ final class ProviderAvailabilityStore: AccountScopedState {
                 for item in raw {
                     self.providerCache["\(item.media_type)-\(item.media_id)"] = item.providers
                 }
+                self.markProviderPrefetchFresh(keys)
             } catch {
                 #if DEBUG
                 print("[Streaming] prefetchProviders error: \(error.localizedDescription)")
                 #endif
             }
+        }
+        providerPrefetchTasks[id] = task
+        providerPrefetchTask = task
+    }
+
+    /// Claims the stale, not-in-flight keys of `items` for a new prefetch: returns its id, the
+    /// claimed keys and the de-duplicated items to request, or nil when nothing needs requesting.
+    private func beginProviderPrefetch(
+        items: [(mediaType: String, mediaId: Int)],
+        key: ((mediaType: String, mediaId: Int)) -> String
+    ) -> (UUID, [String], [(mediaType: String, mediaId: Int)])? {
+        let pending = Self.providerPrefetchKeysToRequest(
+            items.map(key),
+            fetchedAt: providerPrefetchFetchedAt,
+            inFlight: Set(providerPrefetchInFlight.keys),
+            now: Date(),
+            ttl: Self.providerPrefetchTTL
+        )
+        guard !pending.isEmpty else { return nil }
+        let pendingSet = Set(pending)
+        var seen = Set<String>()
+        let requested = items.filter { item in
+            let itemKey = key(item)
+            return pendingSet.contains(itemKey) && seen.insert(itemKey).inserted
+        }
+        let id = UUID()
+        for pendingKey in pending { providerPrefetchInFlight[pendingKey] = id }
+        return (id, pending, requested)
+    }
+
+    /// Releases the keys a prefetch still owns.
+    private func finishProviderPrefetch(_ id: UUID, keys: [String]) {
+        providerPrefetchTasks[id] = nil
+        for key in keys where providerPrefetchInFlight[key] == id {
+            providerPrefetchInFlight[key] = nil
+        }
+    }
+
+    private func markProviderPrefetchFresh(_ keys: [String]) {
+        let now = Date()
+        if providerPrefetchFetchedAt.count > 1_000 {
+            let cutoff = now.addingTimeInterval(-Self.providerPrefetchTTL)
+            providerPrefetchFetchedAt = providerPrefetchFetchedAt.filter { $0.value > cutoff }
+        }
+        for key in keys { providerPrefetchFetchedAt[key] = now }
+    }
+
+    /// The freshness key of one catalog-provider prefetch ("v1|ANIME-42").
+    nonisolated static func providerPrefetchKey(mediaType: String, mediaId: Int) -> String {
+        "v1|\(availabilityKey(mediaType: mediaType, mediaId: mediaId))"
+    }
+
+    /// The freshness key of one provider v2 prefetch: the media plus every parameter that changes the
+    /// answer ("v2|ANIME-42|a=en|s=|u=1").
+    nonisolated static func providerAvailabilityPrefetchKey(
+        mediaType: String,
+        mediaId: Int,
+        audio: String?,
+        sub: String?,
+        includeUnknown: Bool
+    ) -> String {
+        "v2|\(availabilityKey(mediaType: mediaType, mediaId: mediaId))|a=\(audio ?? "")|s=\(sub ?? "")|u=\(includeUnknown ? 1 : 0)"
+    }
+
+    /// The keys of `keys` a prefetch should request: de-duplicated in first-seen order, without keys
+    /// being requested (`inFlight`) or answered less than `ttl` ago.
+    nonisolated static func providerPrefetchKeysToRequest(
+        _ keys: [String],
+        fetchedAt: [String: Date],
+        inFlight: Set<String>,
+        now: Date,
+        ttl: TimeInterval
+    ) -> [String] {
+        var seen = Set<String>()
+        return keys.filter { key in
+            guard seen.insert(key).inserted, !inFlight.contains(key) else { return false }
+            if let answered = fetchedAt[key], now.timeIntervalSince(answered) < ttl { return false }
+            return true
         }
     }
 
@@ -471,7 +588,9 @@ final class ProviderAvailabilityStore: AccountScopedState {
         }
     }
 
-    private func isAvailabilityRefreshCoolingDown(mediaType: String, mediaId: Int) -> Bool {
+    /// Whether a refresh of this media was enqueued within the last 10 minutes (the detail caption
+    /// keeps saying "Refreshing" while the status still looks stale).
+    func isAvailabilityRefreshCoolingDown(mediaType: String, mediaId: Int) -> Bool {
         guard let last = availabilityRefreshEnqueueCooldown[Self.availabilityKey(mediaType: mediaType, mediaId: mediaId)] else {
             return false
         }

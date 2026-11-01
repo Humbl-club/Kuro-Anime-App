@@ -6,7 +6,8 @@
 //  `safety_*` / `synopsis_enhanced_*` column ever selected, every decoder field kept), the card
 //  projection of "More like this" (never served as a detail model, no per-id N+1), the cached
 //  external links, the size-aware image cache keys, the friend-count freshness rule and the parallel
-//  combined search. Pure helpers are tested directly; owner behaviour runs the real owners over the
+//  combined search, the provider prefetch freshness rule, the entity works server order and the
+//  shared per-URL image download. Pure helpers are tested directly; owner behaviour runs the real owners over the
 //  real supabase-swift client answered in-process (StubPostgREST, no network).
 //
 
@@ -14,6 +15,9 @@ import Testing
 import Foundation
 import KuroCore
 import Synchronization
+#if canImport(UIKit)
+import UIKit
+#endif
 @testable import Kuro
 
 // MARK: - Column lists (pure)
@@ -114,7 +118,9 @@ struct ImagePipelineKeyTests {
         #expect(ImagePipeline.pixelBucket(for: 900) == 900)
         #expect(ImagePipeline.pixelBucket(for: 901) == 1200)
         #expect(ImagePipeline.pixelBucket(for: 4_200) == 1200)
-        #expect(ImagePipeline.pixelBucket(for: ImagePipeline.defaultPrefetchPixelSize) == 900)
+        // A prefetch decodes at the bucket the cards resolve to (point size x displayScale, clamped).
+        #expect(ImagePipeline.pixelBucket(for: ImagePipeline.defaultPrefetchPixelSize) == ImagePipeline.maxDecodePixelSize)
+        #expect(ImagePipeline.pixelBucket(for: 700 * 3) == ImagePipeline.pixelBucket(for: ImagePipeline.defaultPrefetchPixelSize))
         #expect(ImagePipeline.pixelBuckets == ImagePipeline.pixelBuckets.sorted())
         #expect(ImagePipeline.pixelBuckets.last == ImagePipeline.maxDecodePixelSize)
     }
@@ -185,6 +191,29 @@ struct DataLaneRuleTests {
         #expect(ProviderAvailabilityStore.shouldQueueAvailabilityRefresh(stale))
         #expect(!ProviderAvailabilityStore.shouldQueueAvailabilityRefresh(fresh))
         #expect(ProviderAvailabilityStore.availabilityKey(mediaType: "anime", mediaId: 42) == "ANIME-42")
+    }
+
+    @Test("Provider prefetch keys: fresh and in-flight keys are skipped, duplicates collapse, stale keys are asked again")
+    func providerPrefetchKeys() {
+        let now = Date(timeIntervalSince1970: 50_000)
+        let ttl = ProviderAvailabilityStore.providerPrefetchTTL
+        let key = { (id: Int) in ProviderAvailabilityStore.providerPrefetchKey(mediaType: "ANIME", mediaId: id) }
+        let pending = ProviderAvailabilityStore.providerPrefetchKeysToRequest(
+            [key(1), key(2), key(1), key(3), key(4)],
+            fetchedAt: [key(2): now.addingTimeInterval(-60), key(4): now.addingTimeInterval(-(ttl + 1))],
+            inFlight: [key(3)],
+            now: now,
+            ttl: ttl
+        )
+        #expect(pending == [key(1), key(4)])
+        // The bookkeeping key is case-normalized (the v1 payload keeps the caller's spelling).
+        #expect(ProviderAvailabilityStore.providerPrefetchKey(mediaType: "anime", mediaId: 7) == key(7))
+        // v2 keys carry every parameter that changes the answer.
+        let v2 = { (audio: String?, sub: String?, unknown: Bool) in
+            ProviderAvailabilityStore.providerAvailabilityPrefetchKey(
+                mediaType: "ANIME", mediaId: 7, audio: audio, sub: sub, includeUnknown: unknown)
+        }
+        #expect(Set([v2("en", nil, true), v2("de", nil, true), v2("en", "en", true), v2("en", nil, false), key(7)]).count == 5)
     }
 }
 
@@ -375,3 +404,135 @@ struct DataLaneFriendCountTests {
         await harness.tearDown()
     }
 }
+
+@MainActor
+@Suite("Data lane: provider prefetches", .timeLimit(.minutes(1)))
+struct DataLaneProviderPrefetchTests {
+
+    @Test("Catalog providers: overlapping prefetches each request a key once, neither cancels the other, a fresh key (also one the server omitted) is not asked again")
+    func catalogProviderPrefetchIsDeduplicated() async throws {
+        let harness = try PublicDataHarness { request in
+            guard request.resource == "rpc/batch_providers_for_media" else { return .emptyArray }
+            let items = request.jsonObject?["p_items"] as? String ?? ""
+            // 990402 has no providers: the server omits it.
+            return items.contains(#""990401""#)
+                ? .json(#"[{"media_type":"ANIME","media_id":990401,"providers":[{"slug":"crunchyroll","display_name":"Crunchyroll","language":"en"}]}]"#)
+                : .emptyArray
+        }
+        let availability = harness.service.availability
+
+        availability.prefetchProviders(items: [(mediaType: "ANIME", mediaId: 990_401)])
+        let first = try #require(availability.providerPrefetchTask)
+        availability.prefetchProviders(items: [(mediaType: "ANIME", mediaId: 990_402), (mediaType: "ANIME", mediaId: 990_401)])
+        let second = try #require(availability.providerPrefetchTask)
+        await first.value
+        await second.value
+        #expect(!first.isCancelled)
+        #expect(availability.providers(mediaId: 990_401, mediaType: "ANIME").map(\.slug) == ["crunchyroll"])
+        let requests = harness.requests(to: "rpc/batch_providers_for_media")
+        #expect(requests.count == 2, "\(requests)")
+        let bodies = requests.map { $0.jsonObject?["p_items"] as? String ?? "" }
+        #expect(bodies.filter { $0.contains(#""990401""#) }.count == 1, "\(bodies)")
+        #expect(bodies.filter { $0.contains(#""990402""#) }.count == 1, "\(bodies)")
+
+        // Both fresh (990402 answered with no row): no request.
+        availability.prefetchProviders(items: [(mediaType: "ANIME", mediaId: 990_401), (mediaType: "ANIME", mediaId: 990_402)])
+        #expect(harness.requests(to: "rpc/batch_providers_for_media").count == 2)
+        await harness.tearDown()
+    }
+
+    @Test("Provider v2: a fresh key is skipped for the same languages, asked again for others; a failed read is not marked fresh")
+    func providerAvailabilityPrefetchIsDeduplicated() async throws {
+        let fail = Mutex(true)
+        let harness = try PublicDataHarness { request in
+            guard request.resource == "rpc/batch_provider_availability_for_media_v2" else { return .emptyArray }
+            if fail.withLock({ $0 }) { return .json(#"{"code":"PGRST100","details":null,"hint":null,"message":"boom"}"#, status: 400) }
+            return .emptyArray
+        }
+        let availability = harness.service.availability
+        let items: [(mediaType: String, mediaId: Int)] = [(mediaType: "ANIME", mediaId: 990_411)]
+
+        availability.prefetchProviderAvailabilityV2(items: items, preferredAudioLang: "en")
+        await availability.providerAvailabilityPrefetchTask?.value
+        fail.withLock { $0 = false }
+        // The failed read was not marked fresh: asked again.
+        availability.prefetchProviderAvailabilityV2(items: items, preferredAudioLang: "en")
+        await availability.providerAvailabilityPrefetchTask?.value
+        #expect(harness.requests(to: "rpc/batch_provider_availability_for_media_v2").count == 2)
+        // Fresh for "en": no request.
+        availability.prefetchProviderAvailabilityV2(items: items, preferredAudioLang: "en")
+        #expect(harness.requests(to: "rpc/batch_provider_availability_for_media_v2").count == 2)
+        // Another audio language is another answer: asked.
+        availability.prefetchProviderAvailabilityV2(items: items, preferredAudioLang: "de")
+        await availability.providerAvailabilityPrefetchTask?.value
+        #expect(harness.requests(to: "rpc/batch_provider_availability_for_media_v2").count == 3)
+        await harness.tearDown()
+    }
+}
+
+@MainActor
+@Suite("Data lane: entity works order", .timeLimit(.minutes(1)))
+struct DataLaneEntityWorksTests {
+
+    @Test("Entity sheets order the join rows by the embedded title's score before the row bound (to-one embed ordering, not referencedTable)")
+    func entityWorksKeepHighestRated() async throws {
+        let harness = try PublicDataHarness()
+        let catalog = harness.service.catalog
+        _ = await catalog.fetchAnimeByStudio(studioId: 990_501)
+        _ = await catalog.fetchAnimeByStaff(staffId: 990_502)
+        _ = await catalog.fetchMangaByAuthor(authorId: 990_503)
+        _ = await catalog.fetchMediaByCharacter(characterId: 990_504)
+        let expected: [String: String] = [
+            "anime_studios": "anime", "anime_staff": "anime", "manga_authors": "manga",
+            "anime_characters": "anime", "manga_characters": "manga",
+        ]
+        for (resource, embed) in expected {
+            let request = try #require(harness.requests(to: resource).first, "\(resource)")
+            #expect(request.query("order") == "\(embed)(average_score).desc.nullslast,id.asc.nullslast", "\(resource)")
+            #expect(request.query("\(embed).order") == nil, "\(resource)")
+            #expect(request.query("limit") == "\(CatalogColumns.entityWorksRowLimit)", "\(resource)")
+        }
+        await harness.tearDown()
+    }
+}
+
+#if canImport(UIKit)
+@Suite("Data lane: image downloads", .timeLimit(.minutes(1)))
+struct DataLaneImageDownloadTests {
+
+    @Test("A card request (1200 px) made while a smaller prefetch of the same URL is downloading joins that download: one network load")
+    func differentBucketsShareOneDownload() async throws {
+        let server = StubServer()
+        defer { server.shutDown() }
+        // Wider than every bucket, so the 640 decode is stored at 640 and cannot serve the 1200 request.
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let png = UIGraphicsImageRenderer(size: CGSize(width: 1_600, height: 16), format: format).pngData { context in
+            UIColor.gray.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 1_600, height: 16))
+        }
+        let gate = StubGate()
+        server.respond { _ in
+            StubResponse(status: 200, body: png, headers: ["Content-Type": "image/png"]).held(by: gate)
+        }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        let pipeline = ImagePipeline(
+            session: URLSession(configuration: configuration),
+            urlCache: URLCache(memoryCapacity: 0, diskCapacity: 0, directory: nil)
+        )
+        let url = server.baseURL.appendingPathComponent("cover/990601.png")
+
+        await pipeline.prefetch(urls: [url], maxPixelSize: 640)
+        _ = await server.waitForRequest { _ in true }
+        let card = Task { await pipeline.image(url: url, maxPixelSize: 1_200) }
+        // Let the card request reach the shared download before the server answers.
+        try await Task.sleep(nanoseconds: 200_000_000)
+        gate.open()
+        let image = await card.value
+
+        #expect(image != nil)
+        #expect(server.requests.count == 1, "\(server.requests)")
+    }
+}
+#endif

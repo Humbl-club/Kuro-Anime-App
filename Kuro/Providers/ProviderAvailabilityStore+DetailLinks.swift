@@ -103,8 +103,8 @@ extension ProviderAvailabilityStore {
         if isStreamingAvailabilityEnabled {
             // One status read per media id within `detailAvailabilityTTL` (the anime page re-resolves on
             // every progress change); the enqueue decision reuses it instead of reading it again, and a
-            // requested refresh is reported by `requestedRefresh` (the caption says "Refreshing"), so the
-            // status is not re-read after the write either.
+            // requested refresh is reported by `requestedRefresh` (the caption says "Refreshing", also on
+            // later resolutions within the enqueue cooldown), so the status is not re-read after the write.
             let statusRows = await detailAvailabilityStatusRows(mediaType: mediaType, mediaId: mediaId)
             availabilityStatus = statusRows?.first
             if shouldFetchDetailProviderAvailability(mediaType: mediaType, mediaId: mediaId, audio: preferredAudio) {
@@ -119,11 +119,19 @@ extension ProviderAvailabilityStore {
                 }
             }
             if let statusRows {
-                requestedRefresh = await enqueueAvailabilityRefresh(
+                let enqueued = await enqueueAvailabilityRefresh(
                     mediaType: mediaType,
                     mediaId: mediaId,
                     reason: "detail_open",
                     knownStatusRows: statusRows
+                )
+                // The cached status predates a refresh enqueued within the cooldown: while it still
+                // looks stale, the refresh is still pending, so the caption keeps saying "Refreshing"
+                // on the next resolution (a progress change or a reopen) instead of falling back to
+                // "Last checked <old date>".
+                requestedRefresh = enqueued || (
+                    isAvailabilityRefreshCoolingDown(mediaType: mediaType, mediaId: mediaId)
+                        && Self.shouldQueueAvailabilityRefresh(statusRows.first)
                 )
             }
         }

@@ -11,9 +11,11 @@ import ImageIO
 //   and for a 1200 px hero are two entries, and a request is served only by a decode of its own size
 //   bucket or larger (never by a smaller one, which would look soft), or by the full image
 // - URLCache-backed disk cache via URLRequest cachePolicy (the bytes are shared by every size)
-// - de-dup in-flight requests (a request joins a running decode of its size or larger)
-// - prefetch decodes at card size (`defaultPrefetchPixelSize`) unless the caller names a size, so a
-//   rail prefetch no longer fills the memory cache with full-resolution decodes
+// - de-dup in-flight work at two levels: a request joins a running decode of its size or larger, and
+//   every decode of one URL (any size) shares one running download, so a card asking for 1200 px while
+//   a smaller prefetch of the same cover is still downloading never downloads it a second time
+// - prefetch decodes at the card bucket (`defaultPrefetchPixelSize`) unless the caller names a size,
+//   so a rail prefetch no longer fills the memory cache with full-resolution decodes
 //
 // Intentionally minimal (no third-party dependency) to keep the app snappy.
 actor ImagePipeline {
@@ -27,8 +29,11 @@ actor ImagePipeline {
     /// Smallest and largest decode size; requests are clamped into this range first.
     nonisolated static let minDecodePixelSize = 180
     nonisolated static let maxDecodePixelSize = 1200
-    /// The decode size of a prefetch that names none: a standard card (300 pt at 3x).
-    nonisolated static let defaultPrefetchPixelSize = 900
+    /// The decode size of a prefetch that names none: the bucket the grid and rail cards resolve to.
+    /// `KuroCachedAsyncImage` asks for point size x displayScale, and the common cards (420-900 pt) all
+    /// land in the top bucket on a 2x/3x device, so a prefetch decoded smaller would never serve them.
+    /// A source smaller than this (AniList `coverImage.large`) is stored as the full image anyway.
+    nonisolated static let defaultPrefetchPixelSize = maxDecodePixelSize
 
     /// The bucket a request decodes at: nil (full image) stays nil; otherwise the requested size is
     /// clamped to [min, max] and rounded up to the next bucket.
@@ -63,11 +68,18 @@ actor ImagePipeline {
 #if canImport(UIKit)
     private let memory = NSCache<NSString, UIImage>()
     private var inFlight: [String: Task<UIImage?, Never>] = [:]
+    /// One running download per URL, shared by the decodes of every size bucket.
+    private var inFlightData: [URL: Task<Data?, Never>] = [:]
+    private let session: URLSession
+    private let urlCache: URLCache
     private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Kuro", category: "image")
     private let maxPrefetchFanout = 12
     private let maxInFlightCap = 40
 
-    init() {
+    /// `session` and `urlCache` are injectable for tests; the app uses the shared ones.
+    init(session: URLSession = .shared, urlCache: URLCache = .shared) {
+        self.session = session
+        self.urlCache = urlCache
         // ~80MB in-memory images (roughly, cost is RGBA bytes).
         memory.totalCostLimit = 80 * 1024 * 1024
     }
@@ -77,7 +89,7 @@ actor ImagePipeline {
     }
 
     /// Warms the caches for `urls` (at most `maxPrefetchFanout` new loads per call). `maxPixelSize`
-    /// nil decodes at card size (`defaultPrefetchPixelSize`), not at full resolution.
+    /// nil decodes at the card bucket (`defaultPrefetchPixelSize`), not at full resolution.
     func prefetch(urls: [URL], maxPixelSize: Int? = nil) {
         let bucket = Self.pixelBucket(for: maxPixelSize ?? Self.defaultPrefetchPixelSize)
         var queued = 0
@@ -159,44 +171,60 @@ actor ImagePipeline {
 
     private func load(url: URL, maxPixelSize: Int?) async -> UIImage? {
         let perf = KuroPerf.begin("image.load")
-        var request = URLRequest(url: url)
-        request.cachePolicy = .returnCacheDataElseLoad
-        request.timeoutInterval = 20
+        let request = Self.request(for: url)
         let decodePixelSize = maxPixelSize
 
         // Fast path: decode from URLCache first to avoid network/decode jitter.
-        if let cached = URLCache.shared.cachedResponse(for: request),
+        if let cached = urlCache.cachedResponse(for: request),
            let image = decodeImage(data: cached.data, maxPixelSize: decodePixelSize) {
             store(image, url: url, requested: maxPixelSize)
             KuroPerf.end(perf, message: "disk cache hit")
             return image
         }
 
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            if let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) == false {
-                KuroPerf.end(perf, message: "http \(http.statusCode)")
-                return nil
-            }
-
-            let image = decodeImage(data: data, maxPixelSize: decodePixelSize)
-
-            guard let image else {
-                KuroPerf.end(perf, message: "decode failed")
-                return nil
-            }
-
-            // Populate URLCache explicitly so other call sites benefit too.
-            let cached = CachedURLResponse(response: response, data: data)
-            URLCache.shared.storeCachedResponse(cached, for: request)
-
-            store(image, url: url, requested: maxPixelSize)
-            KuroPerf.end(perf, message: "ok")
-            return image
-        } catch {
-            KuroPerf.end(perf, message: "error")
+        guard let data = await sharedData(for: url, request: request) else {
+            KuroPerf.end(perf, message: "download failed")
             return nil
         }
+        guard let image = decodeImage(data: data, maxPixelSize: decodePixelSize) else {
+            KuroPerf.end(perf, message: "decode failed")
+            return nil
+        }
+        store(image, url: url, requested: maxPixelSize)
+        KuroPerf.end(perf, message: "ok")
+        return image
+    }
+
+    private static func request(for url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.cachePolicy = .returnCacheDataElseLoad
+        request.timeoutInterval = 20
+        return request
+    }
+
+    /// The bytes of `url`: joins the download already running for this URL (whatever size it decodes
+    /// at), otherwise starts one. A 2xx answer is stored in the URL cache so other call sites benefit;
+    /// a failure or non-2xx answer is nil.
+    private func sharedData(for url: URL, request: URLRequest) async -> Data? {
+        if let running = inFlightData[url] { return await running.value }
+        let session = self.session
+        let urlCache = self.urlCache
+        let task = Task<Data?, Never> {
+            do {
+                let (data, response) = try await session.data(for: request)
+                if let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) == false {
+                    return nil
+                }
+                urlCache.storeCachedResponse(CachedURLResponse(response: response, data: data), for: request)
+                return data
+            } catch {
+                return nil
+            }
+        }
+        inFlightData[url] = task
+        let data = await task.value
+        if inFlightData[url] == task { inFlightData[url] = nil }
+        return data
     }
 
     private func decodeImage(data: Data, maxPixelSize: Int?) -> UIImage? {
