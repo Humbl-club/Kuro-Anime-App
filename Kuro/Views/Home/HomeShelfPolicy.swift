@@ -102,6 +102,50 @@ enum HomeShelfPolicy {
         cards.first { isInProgress(listType: $0.listType) }
     }
 
+    // MARK: Anime scenes (prototype Poster Home, PROTOTYPE_SPEC.md §4 "Scene card" / "Also watching")
+
+    /// How many titles in progress get a scene card; the rest go to Also watching.
+    static let sceneCount = 2
+
+    /// The first `sceneCount` titles in progress become scene cards, the rest Also watching tiles.
+    /// Only in-progress cards are accepted, so a planned title can never take either slot.
+    static func scenes(_ cards: [HomeCard]) -> (scenes: [HomeCard], alsoWatching: [HomeCard]) {
+        let active = cards.filter { isInProgress(listType: $0.listType) }
+        return (Array(active.prefix(sceneCount)), Array(active.dropFirst(sceneCount)))
+    }
+
+    /// Units released so far, when Home can know it; nil when it cannot (never a guess):
+    /// - a finished (or cancelled) title: its total, when the catalogue has one
+    /// - a releasing title: one before the next known, non-estimated release of this title
+    ///   (`ReleasesStore.nextRelease(for:)`), never more than the total
+    /// - anything else (not yet released, hiatus, no schedule): unknown
+    static func availableUnits(catalogueStatus: String?, total: Int?, nextUnit: Int?) -> Int? {
+        let knownTotal = total.flatMap { $0 > 0 ? $0 : nil }
+        switch catalogueStatus?.uppercased() {
+        case "FINISHED", "CANCELLED":
+            return knownTotal
+        case "RELEASING":
+            guard let nextUnit, nextUnit >= 1 else { return nil }
+            let aired = nextUnit - 1
+            return knownTotal.map { min($0, aired) } ?? aired
+        default:
+            return nil
+        }
+    }
+
+    /// A released unit the reader has not reached yet, on a title that is still releasing. A finished
+    /// title's backlog is not "new", so it is never counted or called new.
+    static func hasNewUnit(progress: Int, available: Int?, catalogueStatus: String?) -> Bool {
+        guard let available, catalogueStatus?.uppercased() == "RELEASING" else { return false }
+        return progress < available
+    }
+
+    /// Caught up only when the released count is known and reached; unknown is never caught up.
+    static func isKnownCaughtUp(progress: Int, available: Int?) -> Bool {
+        guard let available else { return false }
+        return progress >= available
+    }
+
     private static func inProgress(_ listTypes: [String]) -> Bool {
         listTypes.contains(where: isInProgress(listType:))
     }

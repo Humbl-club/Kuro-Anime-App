@@ -119,6 +119,7 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.imports)
                     .environment(graph.releases)
                     .environment(NetworkMonitor())
+                    .environment(graph.artworkMaterials)
                     .environment(\.kuroRoutes, KuroRoutes.unhandled),
                 width: width,
                 name: "anime-home-\(Int(width)).png"
@@ -135,6 +136,7 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.imports)
                     .environment(graph.releases)
                     .environment(NetworkMonitor())
+                    .environment(graph.artworkMaterials)
                     .environment(\.kuroRoutes, KuroRoutes.unhandled),
                 width: width,
                 name: "manga-home-\(Int(width)).png"
@@ -158,6 +160,7 @@ struct HomeCompositionSnapshotTests {
                 .environment(graph.imports)
                 .environment(graph.releases)
                 .environment(NetworkMonitor())
+                .environment(graph.artworkMaterials)
                 .environment(\.kuroRoutes, KuroRoutes.unhandled),
             width: 390,
             name: "empty-home-390.png"
