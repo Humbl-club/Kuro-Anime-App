@@ -260,7 +260,7 @@ Flags defined in `FeatureFlags.swift` (selected):
 
 ## FILE MAP (exact; iOS app, package and gates current as of 2026-10-31, other subsections carry their own dates)
 
-### iOS app — 195 Swift files in `Kuro/`
+### iOS app — 211 Swift files in `Kuro/`
 
 Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 45 in `KuroTests/` and 3 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
 
@@ -396,7 +396,7 @@ Since 2026-10-05: `concierge-apply`, `concierge-undo` and `delete-account` are s
 - Unscheduled (deprecated): club message pruning (was 30-day, at 03:15 — chat replaced by social activity layer)
 
 ### Scripts & quality gates
-- `scripts/quality-gates/` — gate scripts (`check_secrets.sh`, `check_migrations.sh`, `test_concierge_corpora.sh`, `test_router_offline.sh`, `test_edge_functions.sh`, `check_live_services.sh`, `audit_rails.sh`, `check_docs_current_state.sh`, `test_packages.sh`, `check_architecture.sh`, `check_branded_states.sh` (2026-11-01: no stray `ProgressView(` anywhere in `Kuro/` outside `KuroBrandedStates.swift`; warning-only, reported as WARN by `run_all.sh` until prototype-fidelity Phase 3 makes it blocking), `build_ios.sh`, `test_ios_unit.sh`); a gate registered with blocking flag `0` in `run_all.sh` is recorded as WARN, never FAIL; `run_all.sh` orchestrator, `router_test_cases.js` offline router test data, and `check_docs_current_state.py` docs-current-state checker (package-aware: also counts `Packages/` Swift files). The corpus/router gates now run the production `rules.ts`/`router.ts` with `deno`.
+- `scripts/quality-gates/` — gate scripts (`check_secrets.sh`, `check_migrations.sh`, `test_concierge_corpora.sh`, `test_router_offline.sh`, `test_edge_functions.sh`, `check_live_services.sh`, `audit_rails.sh`, `check_docs_current_state.sh`, `test_packages.sh`, `check_architecture.sh`, `check_branded_states.sh` (2026-11-01: no stray `ProgressView(` anywhere in `Kuro/` outside `KuroBrandedStates.swift`; blocking since prototype-fidelity Task 10, 0 offenders), `build_ios.sh`, `test_ios_unit.sh`); a gate registered with blocking flag `0` in `run_all.sh` is recorded as WARN, never FAIL; `run_all.sh` orchestrator, `router_test_cases.js` offline router test data, and `check_docs_current_state.py` docs-current-state checker (package-aware: also counts `Packages/` Swift files). The corpus/router gates now run the production `rules.ts`/`router.ts` with `deno`.
 - `scripts/db/` — disposable local database test harness (`run_local_db_tests.sh`, `guard_env.sh`, `test_guard_env.sh`, `replay_migrations.sh`); refuses production and non-local targets; not part of `run_all.sh`
 - `.githooks/pre-commit` — secrets + migration name checks
 - `scripts/` — 19+ operational scripts (imports, audits, load tests, generators), including `audit_curated_rails_quality.js` (rail quality checks)

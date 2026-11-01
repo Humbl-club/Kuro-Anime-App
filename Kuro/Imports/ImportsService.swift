@@ -105,7 +105,8 @@ final class ImportsService: AccountScopedState, MemoryPressureTrimmable {
         catalog: CatalogStore,
         libraryHook: LibraryRefreshHook,
         malRegistration: MALNativeRegistration? = nil,
-        importJournal: LibraryImportPageJournal? = nil
+        importJournal: LibraryImportPageJournal? = nil,
+        malCredentials: any MALCredentialStore = KeychainMALCredentialStore()
     ) {
         self.client = client
         self.accountSession = accountSession
@@ -113,7 +114,8 @@ final class ImportsService: AccountScopedState, MemoryPressureTrimmable {
         self.catalog = catalog
         self.libraryHook = libraryHook
         self.importJournal = importJournal ?? Self.makeImportJournal()
-        self.malAccount = MALNativeAccountConnector(registration: malRegistration, accounts: accountSession)
+        self.malAccount = MALNativeAccountConnector(registration: malRegistration, accounts: accountSession,
+                                                    credentials: malCredentials)
     }
 
     // MARK: State

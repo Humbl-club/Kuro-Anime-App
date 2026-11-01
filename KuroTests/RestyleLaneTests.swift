@@ -135,10 +135,27 @@ struct RestyleLaneTests {
 
     // MARK: Folio keys
 
-    @Test("Folio keys: light on anime, dark ink on manga")
+    @Test("Folio keys: light on anime, the solid manga-leaf key on manga (amendment 4)")
     func folioKeyStyles() {
         #expect(FolioPolicy.keyStyle(for: .anime) == .light)
-        #expect(FolioPolicy.keyStyle(for: .manga) == .ink)
+        #expect(FolioPolicy.keyStyle(for: .manga) == .dark)
+        let face = KuroKeyFace(style: FolioPolicy.keyStyle(for: .manga))
+        #expect(face.size == 38 && face.radius == 6)
+    }
+
+    // MARK: Skeleton blocks
+
+    @Test("Skeleton blocks stay visible on every canvas (Home, manga Home, detail paper)")
+    func skeletonBlocksVisibleOnEveryCanvas() throws {
+        for hex in ["#fffef8", "#f5f5f3", "#f5f5f4"] {
+            let canvas = try #require(KuroRGB(hex: hex))
+            let block = KuroSkeleton.block(on: canvas)
+            // At least 12/255 darker on every channel than the canvas it lands on.
+            #expect(canvas.r - block.r >= 12.0 / 255, "\(hex)")
+            #expect(canvas.g - block.g >= 12.0 / 255, "\(hex)")
+            #expect(canvas.b - block.b >= 12.0 / 255, "\(hex)")
+        }
+        #expect(KuroSkeleton.deepBlockInkOpacity > KuroSkeleton.blockInkOpacity)
     }
 
     // MARK: Club room metrics

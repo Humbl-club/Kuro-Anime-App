@@ -936,6 +936,9 @@ German drafts follow the existing Kuro tone (du-form, short, no exclamation mark
 | Calendar row (anime) | S2 · Episode 9 · 16:00 · Time TBA | S2 · Folge 9 · 16:00 · Uhrzeit offen |
 | Calendar row (manga) | Chapter 26 · Volume 11 · Chapter release · English edition | Kapitel 26 · Band 11 · Neues Kapitel · Englische Ausgabe |
 | Dates to come | Dates to come · N announcements · Date TBA · No confirmed dates yet. | Termine folgen · N Ankündigungen · Datum offen · Noch keine bestätigten Termine. |
+| Calendar more (ships) | Show N more releases · Show fewer releases · Next N dates | N weitere Veröffentlichungen zeigen · Weniger Veröffentlichungen zeigen · N weitere Tage |
+| Release count (Task 10 ruling: every count, glance, calendar heading, day, row toggles) | N release(s) | N Veröffentlichung(en); never "Termin(e)" (a "Termin" is a date, kept only in "Termine folgen", "Termine werden geprüft") |
+| Caught up (Task 10 ruling: key, scene readout, manga leaf, detail progress, toast) | Caught up · Up to date | Auf dem neuesten Stand |
 | Club room | YOUR PRIVATE CLUB · Finished {title} › · Hide spoiler · {name} started · Shared stories. Your people. · N updates | DEIN PRIVATER CLUB · Hat {Titel} beendet › · Spoiler ausblenden · {Name} hat angefangen · Geteilte Geschichten. Deine Leute. · N Neuigkeiten |
 | Club room spoiler | {name}’s thought on the ending | {Name}s Gedanke zum Ende |
 | Footer | Your pace. Your place. · KURO | Dein Tempo. Dein Ort. · KURO |

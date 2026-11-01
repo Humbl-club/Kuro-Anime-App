@@ -36,6 +36,20 @@ struct HomeAnimeLaneTests {
         #expect(HomeOpeningLine.kicker(newAccount: true, medium: .anime, german: false) == "Your collection")
     }
 
+    @Test("New-account Home (Task 10): latched new accounts keep the block through Plans; the invitation stays for an empty medium beside an occupied one")
+    func newAccountPresentation() {
+        // Latched new account: the block stays through planned titles, gives way to a title in progress.
+        #expect(HomeShelfPolicy.showsNewAccount(latched: true, scene: .invitation, otherMediumOccupied: false))
+        #expect(HomeShelfPolicy.showsNewAccount(latched: true, scene: .saved, otherMediumOccupied: false),
+                "the first one-tap Plan must not unmount the block")
+        #expect(!HomeShelfPolicy.showsNewAccount(latched: true, scene: .inProgress, otherMediumOccupied: true))
+        // Not latched: an empty medium with the other occupied keeps the approved invitation.
+        #expect(!HomeShelfPolicy.showsNewAccount(latched: false, scene: .invitation, otherMediumOccupied: true))
+        #expect(!HomeShelfPolicy.showsNewAccount(latched: nil, scene: .invitation, otherMediumOccupied: true))
+        #expect(HomeShelfPolicy.showsNewAccount(latched: nil, scene: .invitation, otherMediumOccupied: false))
+        #expect(!HomeShelfPolicy.showsNewAccount(latched: false, scene: .saved, otherMediumOccupied: false))
+    }
+
     @Test("Caught up (amendment 3): the headline is 'Keep watching.' and the quiet line is a separate card")
     func caughtUpQuietCard() {
         let headline = HomeOpeningLine.headline(available: 0, caughtUp: true, newAccount: false, medium: .anime, german: false)
@@ -277,13 +291,13 @@ struct HomeAnimeLaneTests {
         #expect(summary.caption == "Today · 3 releases")
         #expect(summary.count == 4 && summary.countLabel == "this week")
         let busyGroups = HomeCalendarPresentation.groups(busy, copy: copy)
-        #expect(HomeGlanceSummary.calendarSummary(busyGroups, coverage: .complete, copy: copy) == "4 releases · 7 days")
+        #expect(HomeCalendarPresentation.summary(busyGroups, coverage: .complete, copy: copy) == "4 releases · 7 days")
 
         // Full: every dated release the calendar lists, labelled by how far ahead they reach.
         let full = today + (1...5).map { row(10 + $0, now.addingTimeInterval(Double($0) * 8 * 86_400)) }
         let fullSummary = HomeGlanceSummary.make(items: full, copy: copy, offline: false, coverage: .complete, checked: true)
         #expect(fullSummary.count == 8 && fullSummary.countLabel == "6 weeks", "40 days ahead reads 6 weeks.")
-        #expect(HomeGlanceSummary.calendarSummary(HomeCalendarPresentation.groups(full, copy: copy), coverage: .complete,
+        #expect(HomeCalendarPresentation.summary(HomeCalendarPresentation.groups(full, copy: copy), coverage: .complete,
                                                   copy: copy) == "8 releases · 6 weeks")
         #expect(fullSummary.countLabel != "later", "Never the invented 'later'.")
         // The airing fallback knows seven days only.
@@ -295,9 +309,9 @@ struct HomeAnimeLaneTests {
                                         source: "anilist", precision: .month)
         let windowed = HomeGlanceSummary.make(items: today + [month], copy: copy, offline: false, coverage: .complete, checked: true)
         #expect(windowed.count == 4 && windowed.countLabel == nil)
-        #expect(HomeGlanceSummary.calendarSummary(HomeCalendarPresentation.groups(today + [month], copy: copy),
+        #expect(HomeCalendarPresentation.summary(HomeCalendarPresentation.groups(today + [month], copy: copy),
                                                   coverage: .complete, copy: copy) == "4 releases")
-        #expect(HomeGlanceSummary.calendarSummary([], coverage: .complete, copy: copy) == "From your list")
+        #expect(HomeCalendarPresentation.summary([], coverage: .complete, copy: copy) == "From your list")
         #expect(summary.art.map(\.mediaId) == [1, 2, 3])
         #expect(summary.linksToCalendar)
 
@@ -319,9 +333,9 @@ struct HomeAnimeLaneTests {
         #expect(de.caption == "Heute · 3 Veröffentlichungen" && de.countLabel == "diese Woche")
         #expect(HomeGlanceSummary.make(items: full, copy: german, offline: false, coverage: .complete, checked: true)
                 .countLabel == "6 Wochen")
-        #expect(HomeGlanceSummary.calendarSummary(HomeCalendarPresentation.groups(busy, copy: german), coverage: .complete,
+        #expect(HomeCalendarPresentation.summary(HomeCalendarPresentation.groups(busy, copy: german), coverage: .complete,
                                                   copy: german) == "4 Veröffentlichungen · 7 Tage")
-        #expect(HomeGlanceSummary.calendarSummary([], coverage: .complete, copy: german) == "Aus deiner Liste")
+        #expect(HomeCalendarPresentation.summary([], coverage: .complete, copy: german) == "Aus deiner Liste")
     }
 
     // MARK: Fixture renders (evidence; written only with TEST_RUNNER_KURO_WRITE_SNAPSHOTS=1)
@@ -376,6 +390,8 @@ struct HomeAnimeLaneTests {
             .environment(graph.library)
             .environment(graph.libraryActions)
             .environment(graph.imports)
+            .environment(graph.clubs)
+            .environment(graph.discovery)
             .environment(graph.releases)
             .environment(NetworkMonitor())
             .environment(materials)

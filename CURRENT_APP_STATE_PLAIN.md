@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 195 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 211 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2016,3 +2016,13 @@ Local branch only; nothing on the live server changed.
 - **Artwork colours** are more careful: black-and-white covers keep AniList's own colour instead of an invented tint, and a cover that failed to load (for example while offline) is tried again a minute later.
 - **The header** keeps the page name on screen even at the largest text sizes, and the Taste page and manga Home get their prototype backgrounds.
 - Thin leftover heading weights now draw in the prototype's strong sans-serif.
+
+### Change Log — 1 November 2026: The prototype screens joined into one app (step 10 of the prototype pass)
+
+Local branch only; nothing on the live server changed.
+- **Home is now one page in the prototype's style:** the "Coming up." calendar card, your private club's room (only for a real club, with notes only when you are in one club so a note is never credited to the wrong club), the manga "Now reading" leaves and the "Your pace. Your place." footer.
+- **A brand-new account** sees the prototype's welcome block on Home (＋, "Your stories belong here.", Explore Taste, Import and a few first picks) on the plain Home background. The block stays put while you plan your first titles and gives way once something is in progress.
+- **German wording:** release counts read "Veröffentlichungen" everywhere, and caught up reads "Auf dem neuesten Stand", also on manga leaves.
+- **Taste** uses the same Anime / Manga switch as Home, with the first pick's artwork showing through the chosen word.
+- **Your manga lists** use the dark manga key, as in the prototype; loading blocks stay visible on every background; error and empty screens use the same bold headline.
+- **Tests:** account-deletion tests no longer touch the device's Keychain (they failed on unsigned test builds), and a telemetry test that sometimes raced is fixed.

@@ -42,6 +42,80 @@ private final class MALRedirectRefusal: NSObject, URLSessionTaskDelegate, @unche
     }
 }
 
+/// Where each Kuro account's MAL tokens are kept (the encoded token record per account id). The app
+/// uses the device Keychain; an object graph built for tests uses its own in-memory store, so a test
+/// never reads, writes or deletes the device's Keychain record (an unsigned test host has no Keychain
+/// entitlement at all: `errSecMissingEntitlement`, -34018) and graphs never share credentials.
+nonisolated protocol MALCredentialStore: Sendable {
+    /// The account's record, nil when there is none.
+    func read(account: String) throws -> Data?
+    func save(_ data: Data, account: String) throws
+    /// Removes the account's record; no record is not an error.
+    func delete(account: String) throws
+}
+
+/// The device Keychain: one generic password per Kuro account (service `com.Kuro.app.myanimelist`,
+/// account id lower-cased), readable only while unlocked on this device.
+nonisolated struct KeychainMALCredentialStore: MALCredentialStore {
+    private func key(account: String) -> [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword,
+         kSecAttrService as String: "com.Kuro.app.myanimelist",
+         kSecAttrAccount as String: account.lowercased()]
+    }
+
+    func read(account: String) throws -> Data? {
+        var query = key(account: account)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { return nil }
+        guard status == errSecSuccess, let data = result as? Data else {
+            throw MALConnectionError.secureStorage(status)
+        }
+        return data
+    }
+
+    func save(_ data: Data, account: String) throws {
+        let query = key(account: account)
+        var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        if status == errSecItemNotFound {
+            var attributes = query
+            attributes[kSecValueData as String] = data
+            attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            status = SecItemAdd(attributes as CFDictionary, nil)
+        }
+        guard status == errSecSuccess else { throw MALConnectionError.secureStorage(status) }
+    }
+
+    func delete(account: String) throws {
+        let status = SecItemDelete(key(account: account) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw MALConnectionError.secureStorage(status)
+        }
+    }
+}
+
+/// An in-memory credential store, private to one object graph (`AppComposition.testingGraph`).
+nonisolated final class InMemoryMALCredentialStore: MALCredentialStore, @unchecked Sendable {
+    private let lock = NSLock()
+    private var records: [String: Data] = [:]
+
+    init() {}
+
+    func read(account: String) throws -> Data? {
+        lock.withLock { records[account.lowercased()] }
+    }
+
+    func save(_ data: Data, account: String) throws {
+        lock.withLock { records[account.lowercased()] = data }
+    }
+
+    func delete(account: String) throws {
+        _ = lock.withLock { records.removeValue(forKey: account.lowercased()) }
+    }
+}
+
 /// Private credentials belong to a Kuro account, never to whichever account happens to be visible
 /// when a browser callback or token refresh completes. Provider field/paging qualification remains
 /// a separate prerequisite before composition exposes the account import workflow.
@@ -66,6 +140,7 @@ final class MALNativeAccountConnector: NSObject, AccountScopedState, ASWebAuthen
     private let registration: MALNativeRegistration?
     private let accounts: AccountSessionCoordinator
     private let transport: URLSession
+    private let credentials: any MALCredentialStore
     private var connecting: UUID?
     private var connectionGeneration: UInt64 = 0
     private var browser: BrowserFlow?
@@ -73,8 +148,9 @@ final class MALNativeAccountConnector: NSObject, AccountScopedState, ASWebAuthen
     private var refreshing: (context: AccountContext, generation: UInt64, id: UUID, task: Task<String, Error>)?
 
     init(registration: MALNativeRegistration?, accounts: AccountSessionCoordinator,
-         transport: URLSession? = nil) {
+         transport: URLSession? = nil, credentials: any MALCredentialStore = KeychainMALCredentialStore()) {
         self.registration = registration; self.accounts = accounts
+        self.credentials = credentials
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil
         self.transport = transport ?? URLSession(configuration: configuration,
@@ -252,15 +328,12 @@ final class MALNativeAccountConnector: NSObject, AccountScopedState, ASWebAuthen
     }
 
     /// A confirmed Kuro deletion may complete after its session has ended. Its explicit identity
-    /// chooses the Keychain record; the currently visible account must never be used as a fallback.
+    /// chooses the credential record; the currently visible account must never be used as a fallback.
     func removeCredentials(forDeletedAccount accountId: String) throws {
         if let current = accounts.current, AccountSessionCoordinator.sameUser(current.userId, accountId) {
             cancelAccountWork()
         }
-        let status = SecItemDelete(key(account: accountId) as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw MALConnectionError.secureStorage(status)
-        }
+        try credentials.delete(account: accountId)
     }
 
     private func browserCallback(url: URL) async throws -> URL {
@@ -320,36 +393,13 @@ final class MALNativeAccountConnector: NSObject, AccountScopedState, ASWebAuthen
             expiresAt: Date().addingTimeInterval(TimeInterval(value.expires_in)))
     }
 
-    private func key(account: String) -> [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: "com.Kuro.app.myanimelist",
-         kSecAttrAccount as String: account.lowercased()]
-    }
-
     private func read(account: String) throws -> Tokens? {
-        var query = key(account: account)
-        query[kSecReturnData as String] = true
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        if status == errSecItemNotFound { return nil }
-        guard status == errSecSuccess, let data = result as? Data else {
-            throw MALConnectionError.secureStorage(status)
-        }
+        guard let data = try credentials.read(account: account) else { return nil }
         return try JSONDecoder().decode(Tokens.self, from: data)
     }
 
     private func save(_ tokens: Tokens, account: String) throws {
-        let data = try JSONEncoder().encode(tokens)
-        let query = key(account: account)
-        var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
-        if status == errSecItemNotFound {
-            var attributes = query
-            attributes[kSecValueData as String] = data
-            attributes[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-            status = SecItemAdd(attributes as CFDictionary, nil)
-        }
-        guard status == errSecSuccess else { throw MALConnectionError.secureStorage(status) }
+        try credentials.save(try JSONEncoder().encode(tokens), account: account)
     }
 
     private static func randomValue() throws -> String {

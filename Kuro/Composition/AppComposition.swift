@@ -169,7 +169,8 @@ final class AppComposition {
         userListChannels: any UserListChannelFactory,
         libraryRealtimeDebounce: Duration,
         malRegistration: MALNativeRegistration? = nil,
-        progressOutbox: ProgressOutbox? = nil
+        progressOutbox: ProgressOutbox? = nil,
+        malCredentials: any MALCredentialStore = KeychainMALCredentialStore()
     ) -> AppGraph {
         let accountSession = AccountSessionCoordinator()
         let shell = makeShell(
@@ -202,7 +203,8 @@ final class AppComposition {
             accountSession: accountSession,
             library: wiring.store,
             catalog: publicData.catalog,
-            malRegistration: malRegistration
+            malRegistration: malRegistration,
+            malCredentials: malCredentials
         )
         let collection = makeCollection(client: client, accountSession: accountSession)
         let home = HomeStore(client: client, accountSession: accountSession, library: wiring.store,
@@ -333,7 +335,9 @@ final class AppComposition {
             clubRefreshDebounce: clubRefreshDebounce,
             userListChannels: userListChannels ?? SupabaseUserListChannelFactory(client: client),
             libraryRealtimeDebounce: libraryRealtimeDebounce,
-            progressOutbox: progressOutbox
+            progressOutbox: progressOutbox,
+            // A test graph never touches the device Keychain, and graphs never share MAL credentials.
+            malCredentials: InMemoryMALCredentialStore()
         )
     }
 
@@ -419,7 +423,8 @@ final class AppComposition {
         library: LibraryStore,
         catalog: CatalogStore,
         deviceIntelligence: AppleFMService? = nil,
-        malRegistration: MALNativeRegistration? = nil
+        malRegistration: MALNativeRegistration? = nil,
+        malCredentials: any MALCredentialStore = KeychainMALCredentialStore()
     ) -> AssistantOwners {
         let libraryHook = LibraryRefreshHook()
         let imports = ImportsService(
@@ -428,7 +433,8 @@ final class AppComposition {
             library: library,
             catalog: catalog,
             libraryHook: libraryHook,
-            malRegistration: malRegistration
+            malRegistration: malRegistration,
+            malCredentials: malCredentials
         )
         let concierge = ConciergeStore(client: client, accountSession: accountSession)
         let taste = TasteStore(client: client, accountSession: accountSession, libraryHook: libraryHook)

@@ -6,9 +6,9 @@
 // `refreshClubBundle`, `revocationEpoch`, remembered add-to-club id), FeatureFlags
 // (`isClubsInteractionV2Enabled`), InteractionTelemetry (`clubs_add_to_rail_*` events) and
 // `\.dismiss`. Uses `ClubSelectionRevocation` (ClubViewLifecycle.swift) and `ClubError`.
-// Consumers (constructors): ClubActivitySection.swift (its ADD button sheet) and
-// Routing/KuroRoutes.swift (`RouteDestinationView` for `.addToClub`, reached through
-// `routes.presentAddToClub` from GridAnimeCard and KuroRefinedCard). Mentioned in comments by
+// Consumer (constructor): Routing/KuroRoutes.swift (`RouteDestinationView` for `.addToClub`, reached
+// through `routes.presentAddToClub` from GridAnimeCard, KuroRefinedCard and the detail pages' status
+// mark menu). The standalone detail section that once had its own ADD button is gone (2026-11-01). Mentioned in comments by
 // ClubViewLifecycle.swift, KuroTests/ClubsViewRulesTests.swift and KuroTests/RoutingTests.swift.
 
 import KuroCore

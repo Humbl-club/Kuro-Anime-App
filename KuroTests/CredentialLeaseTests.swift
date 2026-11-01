@@ -270,8 +270,12 @@ struct TelemetryAttributionTests {
         // Same account across a same-user refresh: kept.
         await service.session.applySession(userId: Self.userB, email: "b@example.com")
         telemetry.trackInteractionEvent("b_still_b", surface: "club_detail_polls", result: "ok", startedAt: startedUnderB)
-        _ = await server.waitForRequest { request in
-            request.resource == "concierge_events" && (request.canonicalBody?.contains("b_still_b") ?? false)
+        // Each event is its own fire-and-forget send, so the two B events can arrive in either order:
+        // wait for both (waiting only for the last one tracked raced the first one's request).
+        for name in ["b_vote_success", "b_still_b"] {
+            _ = await server.waitForRequest { request in
+                request.resource == "concierge_events" && (request.canonicalBody?.contains(name) ?? false)
+            }
         }
 
         let sent = TelemetryOwnerTests.sentEvents(server)

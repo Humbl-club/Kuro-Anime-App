@@ -43,6 +43,18 @@ enum HomeShelfPolicy {
         selectedMedium == "manga" ? animeCount > 0 : mangaCount > 0
     }
 
+    /// Whether Home shows the prototype's new-account block (`HomeNewAccount`) instead of the shelf.
+    /// `latched` is `TastePageCopy.latchNewAccount` over the whole Library, decided once when it first
+    /// loads (ContentView holds it, so the page background and Home agree): while latched, the block
+    /// stays through the first one-tap Plans (a planned title never unmounts it under the finger) and
+    /// gives way as soon as a title is in progress (an import). Unlatched (not known, or the Library
+    /// had titles), an empty medium shows the block only when the other medium is empty too; with the
+    /// other medium occupied the approved invitation ("Go to your anime") stays.
+    static func showsNewAccount(latched: Bool?, scene: HomeShelfScene, otherMediumOccupied: Bool) -> Bool {
+        if latched == true { return scene != .inProgress }
+        return scene == .invitation && !otherMediumOccupied
+    }
+
     /// Watching or reading (the only cards that get a scene, a book and a +1 key).
     static func isInProgress(listType: String) -> Bool {
         switch listType.uppercased() {

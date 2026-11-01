@@ -25,7 +25,7 @@ Initial/keyed loaders use SwiftUI `.task(id:)` (or `.task`) with cancellation an
 | Units preview (`EpisodesSection` / `ChaptersSection`) | next unit number | next 10 units (Manga: + chapter status + best legal read link) | section |
 | Units sheet (`EpisodeListSheet` / `ChapterListSheet`) | sheet appear + load-more | paged units | sheet |
 | Watch / read links (`ActionButtons` / `MangaActionButtons`) | viewer progress / manga id | `resolveWatchLinks` (Anime: + stream link of episode progress + 1) / `resolveReadLinks` (below) | action bar |
-| `ClubActivitySection`, `FriendsActivitySection` | own `.task` | club activity, friend comments | section |
+| `DetailBetweenUs` ("Between us.": `ClubActivityCard` from `ClubActivitySection.swift`, `FriendsActivitySection`) | own `.task` | club activity, friend comments | section |
 
 ## Provider-link snapshot (owner: ProviderAvailability)
 

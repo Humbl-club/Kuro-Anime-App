@@ -9,7 +9,7 @@ import SwiftUI
 // the owner-approved additions (spec §5.3, amendment 5): the Import action, then "A first favourite."
 // with up to four real starter titles (story cards with a one-tap Plan key, the same cards as Taste).
 //
-// Integration (Lane 4 embeds it by type name; this lane does not edit HomeView):
+// Integration (embedded by `HomeView.newAccountShelf` since Task 10):
 // - It is the feed only. The medium switch, the "YOUR COLLECTION / Begin here." opening line
 //   (`HomeOpeningLine`, Task 4) and the page footer (`HomeFooter`, Task 5) belong to HomeView; the
 //   coming-up glance is hidden for a new account (PROTOTYPE_SPEC §8.3).
@@ -19,14 +19,14 @@ import SwiftUI
 // - The picks read only `DiscoveryStore.ensureDiscoverBundle()` (the launch's one bundle read, shared
 //   with Discover and Taste; never a forced reload). A failed or empty read hides the picks row; the
 //   block above stands on its own.
-// - Latch the mount condition. The first one-tap Plan here adds the account's first title, so a live
-//   `allEntries.isEmpty` check would unmount this block under the user's finger. Decide "new account"
-//   once, when the Library first reports `.loaded` with no entries (`TastePageCopy.latchNewAccount`),
-//   and keep it until the Library leaves `.loaded` (sign-out, account switch) or the page is mounted
-//   again (the pager keeps the current page and its neighbours mounted).
-// - Plan results: install `.tastePlanHost(controller)` (with a `@State TastePlanController`) on the
-//   Home page outside its ScrollView, so the toast with Undo sits at the screen foot. Without a host,
-//   this block installs its own, and the toast is drawn at the foot of the block instead.
+// - The mount condition is latched. The first one-tap Plan here adds the account's first title, so a
+//   live `allEntries.isEmpty` check would unmount this block under the user's finger. The pager
+//   (`ContentView`) decides "new account" once, when the Library first reports `.loaded` with no entries
+//   (`TastePageCopy.latchNewAccount`), keeps it until the Library leaves `.loaded` (sign-out, account
+//   switch), and `HomeShelfPolicy.showsNewAccount` keeps the block until a title is in progress.
+// - Plan results: `HomeView` installs `.tastePlanHost(controller)` outside its ScrollView, so the toast
+//   with Undo sits at the screen foot. Without a host (fixtures), this block installs its own, and the
+//   toast is drawn at the foot of the block instead.
 
 struct HomeNewAccount: View {
     let medium: MediaKind

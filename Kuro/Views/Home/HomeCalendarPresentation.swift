@@ -124,9 +124,10 @@ enum HomeCalendarPresentation {
         return trimmed.uppercased(with: locale)
     }
 
-    /// "1 release" / "3 releases" (German keeps the app's existing "Termin(e)").
+    /// "1 release" / "3 releases"; German "1 Veröffentlichung" / "3 Veröffentlichungen" (PROTOTYPE_SPEC
+    /// §7.1). The one release count of Home: the glance, the calendar heading, its days and its rows.
     static func releaseCount(_ count: Int, german: Bool) -> String {
-        if german { return count == 1 ? "1 Termin" : "\(count) Termine" }
+        if german { return count == 1 ? "1 Veröffentlichung" : "\(count) Veröffentlichungen" }
         return count == 1 ? "1 release" : "\(count) releases"
     }
 
@@ -139,19 +140,17 @@ enum HomeCalendarPresentation {
     /// The heading's summary: "6 releases · 7 days", "48 releases · 6 weeks", or "From your list"
     /// when nothing is dated. The span is what the rows themselves cover (the next seven days for
     /// the airing fallback); a month/quarter/year window drops the span rather than guess one.
+    /// The span comes from `HomeScheduleSpan`, the same rule the Coming up glance labels its count
+    /// with, so the glance and this heading never disagree.
     static func summary(_ groups: [HomeCalendarDay], coverage: ReleaseScheduleCoverage, copy: ReleaseCopy) -> String {
         let german = copy.german
-        let dated = groups.filter { $0.kind != .undated }
-        let count = dated.reduce(0) { $0 + $1.items.count }
+        let count = groups.filter { $0.kind != .undated }.reduce(0) { $0 + $1.items.count }
         guard count > 0 else { return german ? "Aus deiner Liste" : "From your list" }
         let releases = releaseCount(count, german: german)
-        if coverage == .nextSevenDays { return releases + (german ? " · 7 Tage" : " · 7 days") }
-        if dated.contains(where: { $0.kind == .later }) { return releases }
-        // Today plus the next seven days reads "7 days" (the prototype's week ends on day 7).
-        let furthest = dated.flatMap(\.items).compactMap(copy.daysFromToday).max() ?? 0
-        if furthest <= 7 { return releases + (german ? " · 7 Tage" : " · 7 days") }
-        let weeks = Int((Double(furthest) / 7).rounded(.up))
-        return releases + (german ? " · \(weeks) Wochen" : " · \(weeks) weeks")
+        guard let span = HomeScheduleSpan.of(groups, coverage: coverage, copy: copy).summarySpan(german: german) else {
+            return releases
+        }
+        return "\(releases) · \(span)"
     }
 
     /// The right-hand column of one release row, in the row's own certainty: the time of an exact

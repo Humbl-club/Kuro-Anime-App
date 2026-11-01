@@ -152,6 +152,9 @@ struct KuroMainView: View {
     @State private var searchSession = 0
     @State private var pendingSearchScope: EditorialSearchView.SearchScope = .all
 	@State private var mountedSections: Set<Section> = [.discover]
+	/// Home's new-account decision (`TastePageCopy.latchNewAccount` over the whole Library), held
+	/// here so the page background and `HomeView` agree; cleared when the Library leaves `.loaded`.
+	@State private var homeNewAccountLatch: Bool?
 	/// Every swipe-exclusion frame reported in `kuro_root` space (filtered to the viewport on use).
 	@State private var swipeExclusions: [CGRect] = []
     /// The measured size of the root (`kuro_root`) container: the pager's real width on any device.
@@ -180,14 +183,32 @@ struct KuroMainView: View {
     }
 
     /// The mountain invitation. A saved anime or manga shelf is the white page instead.
+    /// The approved empty-medium invitation, with the page picture behind it. A new account sees the
+    /// prototype's new-account block on the plain Home canvas instead (`HomeShelfPolicy.showsNewAccount`).
     private var homeInvitation: Bool {
         guard selection == .home else { return false }
         let kind: MediaKind = home.medium == "manga" ? .manga : .anime
+        let other: MediaKind = kind == .manga ? .anime : .manga
         let statuses = library.allEntries.filter { $0.key.kind == kind }.map(\.status)
-        return HomeShelfPolicy.scene(
+        let scene = HomeShelfPolicy.scene(
             activeListTypes: home.bundle?.active.map(\.listType) ?? [],
             libraryStatuses: statuses
-        ) == .invitation
+        )
+        guard scene == .invitation else { return false }
+        let otherCount = max(library.allEntries.filter { $0.key.kind == other }.count,
+                             (other == .manga ? home.manga : home.anime)?.active.count ?? 0)
+        let otherOccupied = HomeShelfPolicy.otherMediumOccupied(
+            selectedMedium: home.medium,
+            animeCount: other == .anime ? otherCount : 0,
+            mangaCount: other == .manga ? otherCount : 0)
+        return !HomeShelfPolicy.showsNewAccount(latched: homeNewAccountLatch, scene: scene,
+                                                otherMediumOccupied: otherOccupied)
+    }
+
+    private func latchHomeNewAccount() {
+        homeNewAccountLatch = TastePageCopy.latchNewAccount(current: homeNewAccountLatch,
+                                                            loaded: library.loadState == .loaded,
+                                                            entryCount: library.allEntries.count)
     }
     private let swipeThreshold: CGFloat = 40
     private let swipeEdgeMargin: CGFloat = KuroGesturePolicy.edgeMarginPt
@@ -302,6 +323,17 @@ struct KuroMainView: View {
                                 mountedSections.insert(.browse)
                             },
                             onImportNavigation: navigateFromImport,
+                            onExploreTaste: {
+                                guard swipeOrder.contains(.taste) else { return }
+                                selection = .taste
+                                mountedSections.insert(.taste)
+                            },
+                            onOpenClubs: {
+                                guard swipeOrder.contains(.clubs) else { return }
+                                selection = .clubs
+                                mountedSections.insert(.clubs)
+                            },
+                            homeNewAccountLatch: homeNewAccountLatch,
                             bottomInset: pagerProxy.safeAreaInsets.bottom
 	                    )
 	                    .offset(x: edgeBounceOffset)
@@ -324,6 +356,13 @@ struct KuroMainView: View {
 	                swipeExclusions = v
 	            }
 	        }
+            .onAppear { latchHomeNewAccount() }
+            .onChange(of: library.loadState) { _, state in
+                // Leaving `.loaded` (sign-out, account switch, reload) ends the decision; it is made
+                // again from the next account's first load.
+                if state != .loaded { homeNewAccountLatch = nil }
+                latchHomeNewAccount()
+            }
             .onAppear {
                 // Debug support: launch directly into Concierge for screenshots or manual QA.
                 // Example: `xcrun simctl launch booted com.Kuro.app --args --kuro-start=concierge`
@@ -676,6 +715,11 @@ private struct KuroSectionPager: View {
     /// Collection's "Find a title" in the live order (the pager's own Browse page; spec D2).
     var onOpenBrowse: () -> Void = {}
     var onImportNavigation: (ImportResultDestination) -> Void
+    /// Home's "Explore Taste ←" and the club room's "+N other clubs ›".
+    var onExploreTaste: () -> Void = {}
+    var onOpenClubs: () -> Void = {}
+    /// Home's new-account decision (`KuroMainView.homeNewAccountLatch`).
+    var homeNewAccountLatch: Bool?
     /// Bottom safe-area inset captured before the pager ignores it. The Deck's art
     /// runs edge-to-edge; every other page gets the inset back as padding.
     var bottomInset: CGFloat = 0
@@ -722,7 +766,9 @@ private struct KuroSectionPager: View {
                     TastePicksView()
                 case .home:
                     HomeView(onOpenImport: onOpenImport, onFindTitle: onFindTitle,
-                             onOpenCollection: onOpenCollection, onImportNavigation: onImportNavigation)
+                             onOpenCollection: onOpenCollection, onImportNavigation: onImportNavigation,
+                             onExploreTaste: onExploreTaste, onOpenClubs: onOpenClubs,
+                             newAccountLatch: homeNewAccountLatch)
                 case .concierge:
                     ConciergeView(assistantEnabled: true, initialPrompt: pendingConciergePrompt,
                                   onImportNavigation: onImportNavigation)

@@ -3,8 +3,8 @@ import SwiftUI
 // MARK: - Home page footer (PROTOTYPE_SPEC.md §4 "Footer")
 // "Your pace. Your place." on the left and the KURO mark on the right, both SF 10 in the muted ink
 // (KURO w700, tracking 2), padded 20 / 22 / 28. No background, so it sits on either Home canvas.
-// Integration: `HomeView` (lane 4) places `HomeFooter()` last in the scroll content, with the page's
-// own horizontal gutter already applied (the footer adds none).
+// `HomeView` places `HomeFooter()` last in the scroll content (populated shelf and new-account block),
+// with the page's own horizontal gutter already applied (the footer adds none).
 
 struct HomeFooter: View {
     var body: some View {

@@ -221,6 +221,24 @@ struct LibraryRealtimeTests {
     }
 }
 
+// MARK: - MAL credentials: a test graph never touches the device Keychain
+
+@Suite("MAL credentials: per-graph store")
+struct MALCredentialStoreTests {
+    @Test("The in-memory store keeps one record per account (case-insensitive) and deleting a missing record is not an error")
+    func inMemoryStoreRoundTrip() throws {
+        let store = InMemoryMALCredentialStore()
+        let account = "4F3C0B6E-0000-4000-8000-000000000001"
+        #expect(try store.read(account: account) == nil)
+        try store.save(Data("a".utf8), account: account)
+        #expect(try store.read(account: account.lowercased()) == Data("a".utf8))
+        #expect(try InMemoryMALCredentialStore().read(account: account) == nil, "stores never share records")
+        try store.delete(account: account)
+        #expect(try store.read(account: account) == nil)
+        try store.delete(account: account)
+    }
+}
+
 // MARK: - Composition: the single construction path
 
 @MainActor
@@ -862,7 +880,7 @@ struct SessionSDKTests {
             }
         }
 
-        #expect(order.error == nil)
+        #expect(order.error == nil, "\(String(describing: order.error))")
         #expect(h.requests(StubAuth.isDeleteAccount).count == 1)
         #expect(order.first == .logoutRequest, "the funnel awaited the channel teardown before the local SDK sign-out")
         #expect(order.teardownsBeforeLogoutAnswered == 0, "the channel teardown started before the SDK sign-out returned")
@@ -903,7 +921,7 @@ struct SessionSDKTests {
         #expect(request.jsonObject?["confirm"] as? String == "true")
         switch deletion {
         case .confirmed:
-            #expect(thrown == nil)
+            #expect(thrown == nil, "\(String(describing: thrown))")
             #expect(h.graph.accountSession.current == nil)
             #expect(!h.identity.isAuthenticated)
             #expect(h.client.auth.currentSession == nil, "the SDK's persisted session survived the deletion")
@@ -985,7 +1003,8 @@ extension SessionSDKTests {
             try await h.session.signInWithEmail(email: "b@example.com", password: "pw")
         }
         logout.open()
-        #expect(await ending.value == nil)
+        let endError = await ending.value
+        #expect(endError == nil, "\(String(describing: endError))")
         try await newer.value
         #expect(h.graph.accountSession.current?.userId == StubAuth.userB)
         #expect(h.client.auth.currentSession?.user.id.uuidString == StubAuth.userB)

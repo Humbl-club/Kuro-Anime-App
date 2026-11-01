@@ -35,7 +35,8 @@ private struct ImportWorkflowHarness {
         let hook = LibraryRefreshHook()
         hook.connect(to: graph.libraryActions)
         return ImportsService(client: StubSupabase.makeClient(server: server), accountSession: graph.accountSession,
-            library: graph.library, catalog: graph.catalog, libraryHook: hook, importJournal: journal)
+            library: graph.library, catalog: graph.catalog, libraryHook: hook, importJournal: journal,
+            malCredentials: InMemoryMALCredentialStore())
     }
 
     func signIn() async {

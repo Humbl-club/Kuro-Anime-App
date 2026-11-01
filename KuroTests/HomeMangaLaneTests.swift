@@ -62,7 +62,7 @@ struct HomeMangaLaneTests {
         #expect(HomeMangaLeafMetrics.readoutLabel(caughtUp: false, german: false) == "Ch.")
         #expect(HomeMangaLeafMetrics.readoutLabel(caughtUp: false, german: true) == "Kap.")
         #expect(HomeMangaLeafMetrics.readoutLabel(caughtUp: true, german: false) == "Caught up")
-        #expect(HomeMangaLeafMetrics.readoutLabel(caughtUp: true, german: true) == "Aktuell")
+        #expect(HomeMangaLeafMetrics.readoutLabel(caughtUp: true, german: true) == "Auf dem neuesten Stand")
         // The loading leaves take the real leaf's height (cover, gap, title box, row).
         #expect(regular.leafHeight == 240) // 138 + 8 + 44 + 50
         #expect(small.leafHeight == 219) // 119 + 6 + 44 + 50
@@ -116,7 +116,7 @@ struct HomeMangaLaneTests {
         let groups = HomeCalendarPresentation.groups(week, copy: en)
         #expect(HomeCalendarPresentation.summary(groups, coverage: .complete, copy: en) == "6 releases · 7 days")
         #expect(HomeCalendarPresentation.summary(HomeCalendarPresentation.groups(week, copy: de),
-                                                 coverage: .complete, copy: de) == "6 Termine · 7 Tage")
+                                                 coverage: .complete, copy: de) == "6 Veröffentlichungen · 7 Tage")
         let far = week + [Self.row(40, Self.now.addingTimeInterval(38 * 86_400))]
         #expect(HomeCalendarPresentation.summary(HomeCalendarPresentation.groups(far, copy: en),
                                                  coverage: .complete, copy: en) == "7 releases · 6 weeks")

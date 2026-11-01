@@ -17,7 +17,6 @@ struct TastePicksView: View {
     @Environment(DiscoveryStore.self) private var discovery
     @Environment(LibraryStore.self) private var library
     @Environment(NetworkMonitor.self) private var networkMonitor
-    @Environment(ArtworkMaterialStore.self) private var materials
 
     @State private var medium: MediaKind = .anime
     @State private var animePicks: [TasteCard] = []
@@ -44,7 +43,7 @@ struct TastePicksView: View {
                     medium: $medium,
                     state: state,
                     newAccount: startedAsNewAccount ?? false,
-                    material: switchMaterial,
+                    switchArt: switchArt,
                     width: width,
                     retry: { Task { await load() } }
                 )
@@ -88,10 +87,10 @@ struct TastePicksView: View {
         return .cards(picks)
     }
 
-    /// The selected medium word takes the first pick's artwork material (neutral until it is known).
-    private var switchMaterial: ArtworkMaterial? {
-        guard let raw = picks.first?.media.imageURL, let url = URL(string: raw) else { return nil }
-        return materials.material(for: url, seedHex: nil)
+    /// The selected medium word shows the first pick's artwork clipped into its letters, as Home's
+    /// does with its lead title (LANE_AMENDMENTS 7: Taste follows Home); the solid word until it is known.
+    private var switchArt: String? {
+        picks.first?.media.imageURL
     }
 
     private func load() async {
@@ -171,7 +170,8 @@ struct TastePageContent: View {
     @Binding var medium: MediaKind
     let state: State
     let newAccount: Bool
-    var material: ArtworkMaterial?
+    /// The artwork the selected medium word shows (the first pick's), nil for the solid word.
+    var switchArt: String?
     let width: CGFloat
     var retry: () -> Void = {}
 
@@ -188,7 +188,7 @@ struct TastePageContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            TasteOpening(medium: $medium, material: material, metrics: metrics,
+            TasteOpening(medium: $medium, artURL: switchArt, metrics: metrics,
                          kicker: TastePageCopy.kicker(german: german),
                          headline: TastePageCopy.opening(medium: medium, german: german))
 
@@ -743,20 +743,20 @@ struct TasteMetrics {
 /// The medium words over the hairline, then the kicker and the right-aligned opening line.
 struct TasteOpening: View {
     @Binding var medium: MediaKind
-    let material: ArtworkMaterial?
+    /// The artwork clipped into the selected word (the first pick's), nil for the solid word.
+    let artURL: String?
     let metrics: TasteMetrics
     let kicker: String
     let headline: String
 
-    /// `.family-control` bottom border (`#20302744`).
-    private static let rule = Color(hex: "203027", opacity: Double(0x44) / 255)
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            KuroMediumSwitch(selection: $medium, size: .large, material: material)
-                .overlay(alignment: .bottom) {
-                    Rectangle().fill(Self.rule).frame(height: 1).accessibilityHidden(true)
-                }
+            // Home's switch (art-filled selected word, two-column grid, hairline and rule).
+            KuroPosterMediumSwitch(selection: medium,
+                                   contentWidth: max(0, metrics.pageWidth - metrics.openingGutter * 2),
+                                   onSelect: { medium = $0 }) {
+                KuroArtWordFill(raw: artURL)
+            }
             // The prototype's row (kicker left, line right); stacked when the two do not fit side by
             // side (large text sizes, long German words), so the kicker is never cut.
             ViewThatFits(in: .horizontal) {

@@ -185,11 +185,12 @@ struct FolioItem: Identifiable {
 
 /// The lists' pure rules (tested in `KuroTests/ProfileLaneTests.swift`).
 enum FolioPolicy {
-    /// The advance key's face, as the prototype keys its media (plan Task 9): the light raised key on
-    /// anime, the dark `ink` key (`#444a47 → #2c322f`, PROTOTYPE_SPEC §2) on manga. Folio rows have no
-    /// artwork material, so neither uses `.material`.
+    /// The advance key's face, as the prototype keys its media (plan Task 9; LANE_AMENDMENTS 4): the
+    /// light raised key on anime, the solid manga-leaf key (`.dark`, `#2b342e`, 38 × 38, radius 6,
+    /// ink `#f8faf7`) on manga. The `#444a47 → #2c322f` gradient is not used on Poster screens. Folio
+    /// rows have no artwork material, so neither uses `.material`.
     static func keyStyle(for medium: MediaKind) -> KuroAdvanceKey.Style {
-        medium == .manga ? .ink : .light
+        medium == .manga ? .dark : .light
     }
 
     /// The unit total for the medium, or nil when unknown (never 0; rulebook §10).

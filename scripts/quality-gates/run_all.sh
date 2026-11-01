@@ -19,7 +19,7 @@ declare -a GATES=(
   "docs-current-state:check_docs_current_state.sh:1"
   "swift-packages:test_packages.sh:1"                # Packages/KuroModules swift test (host, no network)
   "architecture:check_architecture.sh:1"             # retired facade, flags injection, SDK imports, tracking-table/writer boundaries (rg)
-  "branded-states:check_branded_states.sh:0"         # no stray ProgressView( in Kuro/ (prototype-fidelity Task 3); REPORTED (WARN) until Phase 3 flips it to :1
+  "branded-states:check_branded_states.sh:1"         # no stray ProgressView( in Kuro/ (prototype-fidelity Task 3; blocking since Task 10)
   "ios-build:build_ios.sh:1"
   "ios-test:test_ios_unit.sh:1"
 )

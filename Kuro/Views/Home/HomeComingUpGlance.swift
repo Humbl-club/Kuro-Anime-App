@@ -9,9 +9,9 @@ import SwiftUI
 // 320, caption 9 pt, art 34 pt high). Tapping it scrolls to the calendar (HomeView). Hidden for a new
 // account. It summarises the same schedule the calendar lists, never a second source.
 
-/// How far ahead the dated releases reach (pure). The glance's count label and the calendar heading's
-/// summary read the same span, so the two never disagree. Mirrors lane 5's
-/// `HomeCalendarPresentation.summary` rule (Task 10 dedupes the two onto one helper).
+/// How far ahead the dated releases reach (pure). The one span rule of Home: the glance's count label
+/// and the calendar heading's summary (`HomeCalendarPresentation.summary`) both read it, so the two
+/// never disagree.
 enum HomeScheduleSpan: Equatable {
     /// Everything dated falls within the next seven days (or only those are known: the airing fallback).
     case week
@@ -64,8 +64,7 @@ struct HomeGlanceSummary: Equatable {
     let linksToCalendar: Bool
 
     static func releases(_ count: Int, german: Bool) -> String {
-        if german { return count == 1 ? "1 Veröffentlichung" : "\(count) Veröffentlichungen" }
-        return count == 1 ? "1 release" : "\(count) releases"
+        HomeCalendarPresentation.releaseCount(count, german: german)
     }
 
     /// `checked`: the schedule has been asked for at least once (until then "Checking dates").
@@ -97,20 +96,6 @@ struct HomeGlanceSummary: Equatable {
             ? HomeCalendarPresentation.glanceCaption(items: items, copy: copy, offline: offline, coverage: coverage)
             : (german ? "Termine werden geprüft" : "Checking dates")
         return HomeGlanceSummary(caption: caption, count: nil, countLabel: nil, art: [], linksToCalendar: false)
-    }
-
-    /// The calendar heading's summary (PROTOTYPE_SPEC.md §4 "Calendar"): "6 releases · 7 days",
-    /// "48 releases · 6 weeks", "N releases" without a span, or "From your list" when nothing is dated.
-    static func calendarSummary(_ groups: [HomeCalendarDay], coverage: ReleaseScheduleCoverage,
-                                copy: ReleaseCopy) -> String {
-        let german = copy.german
-        let count = groups.filter { $0.kind != .undated }.reduce(0) { $0 + $1.items.count }
-        guard count > 0 else { return german ? "Aus deiner Liste" : "From your list" }
-        let head = releases(count, german: german)
-        guard let span = HomeScheduleSpan.of(groups, coverage: coverage, copy: copy).summarySpan(german: german) else {
-            return head
-        }
-        return "\(head) · \(span)"
     }
 
     /// The spoken summary: "Coming up: Today · 3 releases, 6 this week".

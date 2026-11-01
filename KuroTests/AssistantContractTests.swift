@@ -1087,7 +1087,8 @@ extension ImportsContractTests {
         hook.connect(to: harness.service.libraryActions)
         let imports = ImportsService(client: StubSupabase.makeClient(server: harness.server),
             accountSession: harness.service.accountSession, library: harness.service.library,
-            catalog: harness.service.catalog, libraryHook: hook, importJournal: journal)
+            catalog: harness.service.catalog, libraryHook: hook, importJournal: journal,
+            malCredentials: InMemoryMALCredentialStore())
         let loseFirst = Mutex(true)
         harness.server.respond { request in
             switch request.path {

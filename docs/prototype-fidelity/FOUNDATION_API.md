@@ -83,4 +83,4 @@ Task 3:
     - + `static func pageNameSize(traits:)`
     - `scaled(_:_:max:traits: = nil)`, `measure(_:size:weight:tracking:)`
   - `KuroMainView.Section.canvas(mangaHome: Bool) -> Color` replaces the `canvas` property
-- Gate: `scripts/quality-gates/check_branded_states.sh` scans `Kuro/` (was `Kuro/Views`). It is still registered in run_all.sh as `branded-states:check_branded_states.sh:0`, and Task 10 flips it to `:1`.
+- Gate: `scripts/quality-gates/check_branded_states.sh` scans `Kuro/` (was `Kuro/Views`). Task 10 flipped it to blocking: `branded-states:check_branded_states.sh:1` (0 offenders).

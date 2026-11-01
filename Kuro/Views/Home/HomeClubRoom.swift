@@ -22,10 +22,11 @@ import SwiftUI
 // - "N updates" counts the rows shown; "+N other clubs ›" counts the reader's other clubs.
 // - The activity row carries no artwork: the server's newest cover can belong to a different rail
 //   item than its preview, so a cover beside the preview's title could be the wrong one.
-// Integration: Home builds `ClubSummary` values from `ClubsStore.myClubs` (refreshing with
-// `refreshMyClubsIfStale()`), calls `pick`, and embeds
-//   HomeClubRoom(club:notes:otherClubCount:medium:onOpenClubs:)
-// with `HomeClubRoom.Note`s built from `roomNotes(...)` and its title lookup.
+// Embedded by `HomeView.clubSection` (Task 10): `ClubSummary` values from `ClubsStore.myClubs`
+// (refreshed with `refreshMyClubsIfStale()`), `pick`, `presentation` (a failed clubs read with no club
+// known draws `HomeClubRoomFailure`), notes from `roomNotes(...)` with Home's title/cover lookup, and
+// `notesFailed` only when the reader has one club (with several no note is shown, so none failed).
+// Colours and the room's drop come from `ClubRoomStyle.swift` (`ClubRoomPalette`, `ClubRoomBackground`).
 
 /// One of the reader's clubs, as Home shows it. Built only from a real `ClubListRow`.
 struct ClubSummary: Equatable, Identifiable, Sendable {
@@ -277,7 +278,6 @@ struct HomeClubRoom: View {
     static func isCompact(width: CGFloat) -> Bool { width > 0 && width < 330 }
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         VStack(alignment: .leading, spacing: 0) {
             masthead
                 .padding(.bottom, 19)
@@ -302,9 +302,7 @@ struct HomeClubRoom: View {
         .padding(.horizontal, compact ? 12 : 16)
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background { HomeClubRoomShell(radius: radius) }
-        .overlay(shape.inset(by: 1).stroke(Color.white.opacity(Double(0x21) / 255), lineWidth: 1).mask(
-            VStack { Rectangle().frame(height: 2); Spacer(minLength: 0) }))
+        .background { ClubRoomBackground(cornerRadius: radius) }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { roomWidth = $0 }
         .accessibilityElement(children: .contain)
     }
@@ -321,11 +319,11 @@ struct HomeClubRoom: View {
                         .font(.kuroCustom(7, relativeTo: .caption2, maxSize: 14))
                         .tracking(1.4)
                         .textCase(.uppercase)
-                        .foregroundStyle(Color(hex: "C0CBBB"))
+                        .foregroundStyle(ClubRoomPalette.kicker)
                     Text(club.name)
                         .font(.kuroEditorial(size: compact ? 19 : 22))
                         .tracking(-0.6)
-                        .foregroundStyle(Color(hex: "F0F4EF"))
+                        .foregroundStyle(ClubRoomPalette.text)
                         .lineLimit(narrow ? 3 : 1)
                         .minimumScaleFactor(0.8)
                         .accessibilityAddTraits(.isHeader)
@@ -347,10 +345,10 @@ struct HomeClubRoom: View {
             ForEach(Array(Self.initials(club.memberNames).enumerated()), id: \.offset) { index, letter in
                 Text(letter)
                     .font(.kuroCustom(7, relativeTo: .caption2, maxSize: 12))
-                    .foregroundStyle(Color(hex: "33412E"))
+                    .foregroundStyle(ClubRoomPalette.memberInk)
                     .frame(width: compact ? 20 : 22, height: compact ? 20 : 22)
                     .background(Circle().fill(Self.memberFills[index % Self.memberFills.count]))
-                    .overlay(Circle().strokeBorder(Color(hex: "2F3730"), lineWidth: 2))
+                    .overlay(Circle().strokeBorder(ClubRoomPalette.memberRim, lineWidth: 2))
             }
         }
         .accessibilityElement(children: .ignore)
@@ -358,7 +356,7 @@ struct HomeClubRoom: View {
     }
 
     /// The member initials are shaded by position (`.member-stack>span:nth-child(2|3)`).
-    static let memberFills: [Color] = [Color(hex: "D0D8CB"), Color(hex: "ADBBA6"), Color(hex: "899A82")]
+    static let memberFills: [Color] = ClubRoomPalette.memberFills
 
     private var memberSpoken: String {
         let count = club.memberCount ?? club.memberNames.count
@@ -376,18 +374,18 @@ struct HomeClubRoom: View {
                     HomeCalendarArt(raw: note.coverImage)
                         .frame(width: narrow ? 40 : (compact ? 48 : 60), height: narrow ? 60 : (compact ? 72 : 90))
                         .clipShape(RoundedRectangle(cornerRadius: noteArtRadius, style: .continuous))
-                        .shadow(color: Color(hex: "252B26", opacity: Double(0x25) / 255), radius: 3, y: 3)
+                        .shadow(color: ClubRoomPalette.noteArtShadow, radius: 3, y: 3)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 0) {
                         HStack(alignment: .firstTextBaseline) {
                             Text(note.author ?? KuroLocale.text("A club member", "Ein Clubmitglied"))
                                 .font(.kuroCustom(compact ? 10 : 11, weight: .semibold, relativeTo: .caption1, maxSize: 22))
-                                .foregroundStyle(Color(hex: "2E342C"))
+                                .foregroundStyle(ClubRoomPalette.noteInk)
                             Spacer(minLength: 6)
                             if let ago = Self.timeAgo(note.createdAt, now: now, german: german) {
                                 Text(ago)
                                     .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 20))
-                                    .foregroundStyle(Color(hex: "656E65"))
+                                    .foregroundStyle(ClubRoomPalette.noteMeta)
                             }
                         }
                         if let text = note.text {
@@ -395,7 +393,7 @@ struct HomeClubRoom: View {
                                 .font(.kuroEditorial(size: compact ? 16 : 18))
                                 .tracking(-0.3)
                                 .lineSpacing(3)
-                                .foregroundStyle(Color(hex: "2E342C"))
+                                .foregroundStyle(ClubRoomPalette.noteInk)
                                 .multilineTextAlignment(.leading)
                                 .lineLimit(narrow ? nil : 4)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -404,7 +402,7 @@ struct HomeClubRoom: View {
                         if let title = note.title {
                             Text("\(title) ›")
                                 .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
-                                .foregroundStyle(Color(hex: "66705D"))
+                                .foregroundStyle(ClubRoomPalette.noteLink)
                                 .lineLimit(2)
                                 // `.club-title`: a 44 pt box with 8 pt top padding.
                                 .padding(.top, 8)
@@ -429,10 +427,10 @@ struct HomeClubRoom: View {
         .padding(compact ? 14 : 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            shape.fill(Color(hex: "F5F6EF"))
-                .shadow(color: .black.opacity(Double(0x22) / 255), radius: 3.5, y: 3)
+            shape.fill(ClubRoomPalette.note)
+                .shadow(color: ClubRoomPalette.noteShadow, radius: 3.5, y: 3)
         }
-        .overlay(shape.strokeBorder(Color.white.opacity(Double(0x88) / 255), lineWidth: 1))
+        .overlay(shape.strokeBorder(ClubRoomPalette.noteBorder, lineWidth: 1))
     }
 
     /// A spoiler note: its line opens the title, where the reader can choose to reveal it.
@@ -441,19 +439,19 @@ struct HomeClubRoom: View {
             HStack(spacing: 10) {
                 Text(Self.spoilerLine(author: note.author, scope: scope, german: german))
                     .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
-                    .foregroundStyle(Color(hex: "59664E"))
+                    .foregroundStyle(ClubRoomPalette.quietInk)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Image(systemName: "chevron.right")
                     .font(.kuroCustom(12, weight: .regular, relativeTo: .footnote, maxSize: 20))
-                    .foregroundStyle(Color(hex: "59664E"))
+                    .foregroundStyle(ClubRoomPalette.quietInk)
                     .frame(width: 24, height: 24)
                     .accessibilityHidden(true)
             }
             .padding(.vertical, 7)
             .padding(.horizontal, 10)
             .frame(minHeight: 46)
-            .background(Color(hex: "E9EDE2"), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color(hex: "CCD4C3"), lineWidth: 1))
+            .background(ClubRoomPalette.quiet, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(ClubRoomPalette.quietBorder, lineWidth: 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(HomeContactStyle())
@@ -500,19 +498,19 @@ struct HomeClubRoom: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(first)
                     .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 22))
-                    .foregroundStyle(Color(hex: "F1F5ED"))
+                    .foregroundStyle(ClubRoomPalette.rowInk)
                     .fixedSize(horizontal: false, vertical: true)
                 if let second {
                     Text(second)
                         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
-                        .foregroundStyle(Color(hex: "C1CDB7"))
+                        .foregroundStyle(ClubRoomPalette.rowSecondary)
                         .lineLimit(2)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Image(systemName: "chevron.right")
                 .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 20))
-                .foregroundStyle(Color(hex: "F1F5ED"))
+                .foregroundStyle(ClubRoomPalette.rowInk)
                 .accessibilityHidden(true)
         }
         .padding(.vertical, 13)
@@ -537,7 +535,7 @@ struct HomeClubRoom: View {
                 }
             }
             .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 16))
-            .foregroundStyle(Color(hex: "B4C2A9"))
+            .foregroundStyle(ClubRoomPalette.footer)
             .padding(.top, 10)
             .padding(.horizontal, 2)
             if otherClubCount > 0, let onOpenClubs {
@@ -546,14 +544,14 @@ struct HomeClubRoom: View {
                                              : KuroLocale.text("+\(otherClubCount) other clubs ›",
                                                                "+\(otherClubCount) weitere Clubs ›"))
                         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
-                        .foregroundStyle(Color(hex: "C1CDB7"))
+                        .foregroundStyle(ClubRoomPalette.rowSecondary)
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .trailing)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(HomeContactStyle())
             }
         }
-        .overlay(alignment: .top) { Rectangle().fill(Color(hex: "C5D2B8", opacity: Double(0x1C) / 255)).frame(height: 1) }
+        .overlay(alignment: .top) { Rectangle().fill(ClubRoomPalette.footerRule).frame(height: 1) }
     }
 
     private func open(_ note: Note) {
@@ -569,9 +567,9 @@ private struct ClubSeal: View {
 
     var body: some View {
         ZStack {
-            Circle().strokeBorder(Color(hex: "899C8C"), lineWidth: 1)
+            Circle().strokeBorder(ClubRoomPalette.seal, lineWidth: 1)
             ClubKnot()
-                .stroke(Color(hex: "D2DACD"), lineWidth: 0.9 * 28 / 40)
+                .stroke(ClubRoomPalette.sealKnot, lineWidth: 0.9 * 28 / 40)
                 .frame(width: 28, height: 28)
         }
         .frame(width: ring, height: ring)
@@ -597,26 +595,6 @@ private struct ClubKnot: Shape {
     }
 }
 
-/// The dark room behind the content: fill, top-left glow, rule, and the prototype's tight shadow
-/// `0 10px 20px -14px #10171066`. SwiftUI has no shadow spread, so the shadow is cast by the shape
-/// inset by the spread (14 pt) and hidden under the room itself.
-private struct HomeClubRoomShell: View {
-    let radius: CGFloat
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
-        ZStack {
-            shape.inset(by: 14)
-                .fill(Color(hex: "252B28"))
-                .shadow(color: Color(hex: "101710", opacity: Double(0x66) / 255), radius: 10, y: 10)
-            shape.fill(Color(hex: "252B28"))
-                .overlay(shape.fill(RadialGradient(colors: [Color(hex: "444A46"), .clear], center: .topLeading,
-                                                   startRadius: 0, endRadius: 300)))
-                .overlay(shape.strokeBorder(Color(hex: "535A55", opacity: Double(0x4C) / 255), lineWidth: 1))
-        }
-    }
-}
-
 /// The room's failure: the dark room shell with the branded failure line (spec §5.4), used when the
 /// clubs could not be read (`HomeClubRoom.Presentation.failed` / `.offline`).
 struct HomeClubRoomFailure: View {
@@ -636,7 +614,7 @@ struct HomeClubRoomFailure: View {
                 .font(.kuroCustom(7, relativeTo: .caption2, maxSize: 14))
                 .tracking(1.4)
                 .textCase(.uppercase)
-                .foregroundStyle(Color(hex: "C0CBBB"))
+                .foregroundStyle(ClubRoomPalette.kicker)
             HomeClubRoomFailureLine(kind: offline ? .offline : .failed(
                 headline: KuroLocale.text("Couldn't load your clubs.", "Deine Clubs konnten nicht geladen werden.")),
                                     onRetry: onRetry)
@@ -645,7 +623,7 @@ struct HomeClubRoomFailure: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background { HomeClubRoomShell(radius: medium == .manga ? 13 : 24) }
+        .background { ClubRoomBackground(cornerRadius: medium == .manga ? 13 : 24) }
         .accessibilityElement(children: .contain)
     }
 }
@@ -680,7 +658,7 @@ struct HomeClubRoomFailureLine: View {
             KuroMotionAllowance { plays in
                 KuroRidgeShape()
                     .trim(from: 0, to: (kind != .offline && plays) ? drawn : 1)
-                    .stroke(Color(hex: "C1CDB7"), style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
+                    .stroke(ClubRoomPalette.rowSecondary, style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
                     .onAppear {
                         guard drawn < 1 else { return }
                         if kind != .offline && plays { withAnimation(KuroMotion.ease(1.2)) { drawn = 1 } } else { drawn = 1 }
@@ -691,20 +669,20 @@ struct HomeClubRoomFailureLine: View {
             Text(text.headline)
                 .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 30))
                 .tracking(-0.3)
-                .foregroundStyle(Color(hex: "F0F4EF"))
+                .foregroundStyle(ClubRoomPalette.text)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
             Text(text.message)
                 .font(.kuroCustom(11, relativeTo: .caption1, maxSize: 22))
-                .foregroundStyle(Color(hex: "C1CDB7"))
+                .foregroundStyle(ClubRoomPalette.rowSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             if let onRetry {
                 Button(action: onRetry) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(KuroBrandedCopy.retryTitle(german: KuroLocale.isGerman) + " →")
                             .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 22))
-                            .foregroundStyle(Color(hex: "F1F5ED"))
-                        Rectangle().fill(Color(hex: "F1F5ED").opacity(0.6)).frame(height: 1)
+                            .foregroundStyle(ClubRoomPalette.rowInk)
+                        Rectangle().fill(ClubRoomPalette.rowInk.opacity(0.6)).frame(height: 1)
                     }
                     .fixedSize()
                     .frame(minHeight: 44)

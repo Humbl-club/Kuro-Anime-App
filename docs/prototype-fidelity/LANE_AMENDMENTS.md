@@ -48,3 +48,14 @@ These rulings override the plan and spec where they conflict, applying the owner
     - A lane runs tests and fixture renders only on its clone (by UUID), with `-parallel-testing-enabled NO`.
     - Clones are deleted at Task 10. Never touch any other simulator.
 13. **Local signing:** builds use `CODE_SIGNING_ALLOWED=NO` (the local profile lacks Sign in with Apple and Associated Domains).
+
+## Task 10 integration rulings (lead, 2026-11-01)
+
+14. **German counts and caught up:** every release count reads "N Veröffentlichung(en)" (glance, calendar heading, day, "Show N more releases"); caught up reads "Auf dem neuesten Stand" everywhere, the manga leaf included (the word takes the count's lines, up to three, in the same row height). Both are in `PROTOTYPE_SPEC.md` §7.1.
+15. **One span rule:** `HomeScheduleSpan` decides the glance's count label and the calendar heading's span (`HomeCalendarPresentation.summary`); `HomeGlanceSummary.calendarSummary` is gone, and `HomeCalendarPresentation.releaseCount` is the one count.
+16. **Taste follows Home (amendment 7):** Taste's medium switch is Home's `KuroPosterMediumSwitch` (two-column grid, hairline and rule) with the first pick's artwork clipped into the selected word (`KuroArtWordFill`, same contrast floor), not the material gradient.
+17. **Folio manga key:** the solid manga-leaf key (`.dark`, `#2b342e`); anime keeps the light raised key.
+18. **Skeleton blocks** are translucent ink (`KuroSkeleton.blockInkOpacity` 0.08, the deep tone 0.13), so they stay visible on `#fffef8`, `#f5f5f3` and `#f5f5f4` (pinned in `RestyleLaneTests`).
+19. **Branded states:** `KuroStateLayout`'s headline is the prototype's empty-block headline (SF 24 w700, tracking −0.8), as `KuroEmptyView`. `check_branded_states.sh` is blocking in `run_all.sh`.
+20. **Home club room** draws with `ClubRoomStyle.swift` (`ClubRoomPalette`, `ClubRoomBackground`'s drop approximation), no inline hex.
+21. **New account:** the pager (`ContentView`) holds the latch (`TastePageCopy.latchNewAccount` over the whole Library) and `HomeShelfPolicy.showsNewAccount` decides the block for both the page background and `HomeView`, so the mountain picture never shows behind the new-account block; the approved invitation stays for an empty medium beside an occupied one.

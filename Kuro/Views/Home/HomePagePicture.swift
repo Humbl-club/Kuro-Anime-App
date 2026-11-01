@@ -1,3 +1,4 @@
+import KuroCore
 import SwiftUI
 
 /// The one Home field: mountain when the shelf is empty (or nothing is in progress), the first
@@ -79,10 +80,22 @@ struct HomePagePictureFill: View {
     }
 
     var body: some View {
-        if let card = coverCard {
+        KuroArtWordFill(raw: coverCard.map { $0.coverImage ?? $0.bannerImage ?? "" }, fallback: fallback)
+    }
+}
+
+/// The medium word's artwork fill for one artwork (Home's lead title, Taste's first pick): the cover
+/// under the prototype's scrim, darkened per channel to `HomeMediumWordInk.floor` so it never reads
+/// lighter than the unselected word. `raw` nil: the prototype's solid `#253a2a`, or the mountain.
+struct KuroArtWordFill: View {
+    let raw: String?
+    var fallback: HomePagePictureFill.Fallback = .solid
+
+    var body: some View {
+        if let raw {
             ZStack {
                 HomeMediumWordInk.floor.color
-                remote(card.coverImage ?? card.bannerImage).blendMode(.darken)
+                remote(raw).blendMode(.darken)
                 LinearGradient(colors: [HomeMediumWordInk.scrimTop, HomeMediumWordInk.scrimBottom],
                                startPoint: .top, endPoint: .bottom)
             }
@@ -100,8 +113,8 @@ struct HomePagePictureFill: View {
     }
 
     @ViewBuilder
-    private func remote(_ raw: String?) -> some View {
-        if let raw, let url = URL(string: raw) {
+    private func remote(_ raw: String) -> some View {
+        if let url = URL(string: raw), !raw.isEmpty {
             KuroCachedAsyncImage(url: url, maxPixelSize: 800) { phase in
                 if case .success(let image) = phase {
                     image.resizable().scaledToFill()
@@ -112,6 +125,83 @@ struct HomePagePictureFill: View {
         } else {
             HomeInk.switchUnlit
         }
+    }
+}
+
+/// The prototype's Poster medium switch (PROTOTYPE_SPEC.md §4 "Medium switch"; LANE_AMENDMENTS 7),
+/// shared by Home and Taste (Taste follows Home): two equal columns 12 pt apart over a 1 pt
+/// `#20302744` hairline; heavy sans uppercase words (36 pt, 30 on small phones); the selected word
+/// shows `fill` (the artwork, `KuroArtWordFill`) clipped into its letters with a 28 × 2 `#203027`
+/// rule on the hairline; the other word is solid `#6e786f`. At accessibility sizes the words stack,
+/// so each keeps the full width and neither is cut to "Ma…" (rulebook §4).
+struct KuroPosterMediumSwitch<Fill: View>: View {
+    let selection: MediaKind
+    /// The content column's width (the word size follows it, never the screen).
+    let contentWidth: CGFloat
+    let onSelect: (MediaKind) -> Void
+    let fill: Fill
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    init(selection: MediaKind, contentWidth: CGFloat, onSelect: @escaping (MediaKind) -> Void,
+         @ViewBuilder fill: () -> Fill) {
+        self.selection = selection
+        self.contentWidth = contentWidth
+        self.onSelect = onSelect
+        self.fill = fill()
+    }
+
+    var body: some View {
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+            : AnyLayout(HStackLayout(alignment: .bottom, spacing: 12))
+        return layout {
+            word(.anime, title: "Anime", stacked: stacked)
+            word(.manga, title: "Manga", stacked: stacked)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(HomeInk.switchHairline).frame(height: 1).accessibilityHidden(true)
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private func word(_ value: MediaKind, title: String, stacked: Bool) -> some View {
+        let selected = selection == value
+        let size = KuroMediumSwitch.wordSize(for: .large, containerWidth: contentWidth)
+        let lettering = Text(title)
+            .kuroMediumWordStyle(size: size)
+            .lineLimit(1)
+            // The single-word switch is the one place a scale factor is allowed (rulebook §4).
+            .minimumScaleFactor(0.6)
+        return Button {
+            if !selected { KuroAccessibility.impactHaptic(.light); onSelect(value) }
+        } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                // The fill takes the word's own frame (an overlay), so the artwork never sizes the row.
+                lettering
+                    .foregroundStyle(selected ? Color.clear : HomeInk.switchUnselected)
+                    .overlay {
+                        if selected {
+                            fill.mask(lettering)
+                        }
+                    }
+                    .padding(.top, 4)
+                Spacer(minLength: 4)
+                // A fixed rule that fades in place on the hairline: it never travels between the words.
+                Rectangle()
+                    .fill(HomeInk.switchMark)
+                    .frame(width: 28, height: 2)
+                    .opacity(selected ? 1 : 0)
+            }
+            .frame(maxWidth: .infinity, minHeight: stacked ? 52 : 56, alignment: .leading)
+            .padding(.bottom, 1)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(HomeContactStyle())
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityLabel(title)
+        .accessibilityHint(selected ? "" : KuroLocale.text("Shows your \(title.lowercased()).", "Zeigt deine \(title)-Titel."))
     }
 }
 

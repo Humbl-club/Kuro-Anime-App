@@ -6,8 +6,9 @@ import SwiftUI
 /// `ref-home-{busy,full,undated,quiet}-anime-390.png`, PROTOTYPE_SPEC.md §4): the medium switch with the
 /// lead title's artwork clipped into the selected word, the Coming up glance, the opening line (with
 /// the caught-up quiet card), two anime scene cards on their artwork material, a 2-column Also
-/// watching grid, then quiet rows for planned titles, the calendar and the private club room only
-/// when real notes exist. Suggestions stay on Taste.
+/// watching grid (manga: the "Now reading" leaves), then quiet rows for planned titles, the calendar
+/// card, the private club room only for a real club, and the page footer. A new account sees the
+/// prototype's new-account block (`HomeNewAccount`) instead. Suggestions stay on Taste.
 ///
 /// Planned titles never take an in-progress slot (a scene, a book or a +1 key). Coming up and the
 /// calendar read the account's release schedule from `ReleasesStore` and say how certain each date
@@ -22,7 +23,10 @@ struct HomeView: View {
     @Environment(ReleasesStore.self) private var releases
     @Environment(NetworkMonitor.self) private var network
     @Environment(ArtworkMaterialStore.self) private var materials
+    @Environment(ClubsStore.self) private var clubs
     @State private var actionScope = AccountActionScope()
+    /// The new-account block's Plan results (toast with Undo at the screen foot, `tastePlanHost`).
+    @State private var plans = TastePlanController()
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -35,8 +39,6 @@ struct HomeView: View {
     @State private var animeScrollOffset: CGFloat = 0
     @State private var mangaScrollOffset: CGFloat = 0
     @State private var presentationAccount: AccountContext?
-    @State private var calendarExpansion: [String: Bool] = [:]
-    @State private var expandedDayItems: Set<String> = []
     @State private var containerSize: CGSize = .zero
     /// The release schedule has been asked for at least once (until then Coming up says so).
     @State private var scheduleChecked: Bool
@@ -52,16 +54,27 @@ struct HomeView: View {
     private let onFindTitle: ((String) -> Void)?
     private let onOpenCollection: (() -> Void)?
     private let onImportNavigation: ((ImportResultDestination) -> Void)?
+    private let onExploreTaste: (() -> Void)?
+    private let onOpenClubs: (() -> Void)?
+    /// `TastePageCopy.latchNewAccount` over the whole Library, held by the pager (`ContentView`) so
+    /// its background and this page agree; nil when not known (previews, fixtures).
+    private let newAccountLatch: Bool?
 
     init(skipNetworkLoad: Bool = false, onOpenImport: (() -> Void)? = nil,
          onFindTitle: ((String) -> Void)? = nil,
          onOpenCollection: (() -> Void)? = nil,
-         onImportNavigation: ((ImportResultDestination) -> Void)? = nil) {
+         onImportNavigation: ((ImportResultDestination) -> Void)? = nil,
+         onExploreTaste: (() -> Void)? = nil,
+         onOpenClubs: (() -> Void)? = nil,
+         newAccountLatch: Bool? = nil) {
         self.skipNetworkLoad = skipNetworkLoad
         self.onOpenImport = onOpenImport
         self.onFindTitle = onFindTitle
         self.onOpenCollection = onOpenCollection
         self.onImportNavigation = onImportNavigation
+        self.onExploreTaste = onExploreTaste
+        self.onOpenClubs = onOpenClubs
+        self.newAccountLatch = newAccountLatch
         self._scheduleChecked = State(initialValue: skipNetworkLoad)
     }
 
@@ -72,11 +85,15 @@ struct HomeView: View {
                     mediumSwitch
                     importRecoveryBanner
                     shelfBody(proxy: proxy)
+                    if showsFooter {
+                        // The page footer, last in the scroll content (PROTOTYPE_SPEC.md §4 "Footer").
+                        HomeFooter()
+                    }
                 }
                 .padding(.horizontal, gutter)
                 .padding(.top, 7)
-                .padding(.bottom, 40)
-                .frame(maxWidth: .infinity, minHeight: shelfScene == .invitation ? invitationHeight : 0, alignment: .topLeading)
+                .padding(.bottom, showsFooter ? 0 : 40)
+                .frame(maxWidth: .infinity, minHeight: showsInvitation ? invitationHeight : 0, alignment: .topLeading)
                 .kuroReadableWidth()
             }
             .id(home.medium)
@@ -84,11 +101,22 @@ struct HomeView: View {
         }
         .background(Color.clear)
         .tint(Color.kuroInk)
+        // Outside the scroll view, so the new-account block's Plan toast sits at the screen foot.
+        .tastePlanHost(plans)
         .onAppear {
             resetPresentationForAccount()
             actionScope.activate(session: libraryActions.accountSession)
         }
         .onChange(of: home.privacyEpoch) { _, _ in resetPresentationForAccount() }
+        // Leaving `.loaded` (sign-out, account switch, reload) ends the Plan toast and its Undo.
+        .onChange(of: library.loadState) { _, state in
+            if state != .loaded { plans.dismiss() }
+        }
+        // The private club room's clubs (`ClubsStore` keeps a 60 s window, so a revisit costs nothing).
+        .task(id: "\(home.privacyEpoch)|\(home.bundle?.homeRevision ?? -1)") {
+            guard !skipNetworkLoad else { return }
+            await clubs.refreshMyClubsIfStale()
+        }
         .onDisappear {
             actionScope.deactivate()
         }
@@ -163,11 +191,12 @@ struct HomeView: View {
         guard presentationAccount != account else { return }
         presentationAccount = account
         animeScrollOffset = 0; mangaScrollOffset = 0
-        calendarExpansion = [:]; expandedDayItems = []; calendarFocused = false
+        calendarFocused = false
         // The new account's schedule is not known yet: "Checking dates", never "Nothing scheduled".
         scheduleChecked = skipNetworkLoad
         inProgressPages = [:]; pagingForInProgress = false
         confirmations = [:]
+        plans.dismiss()
         seasonCard = nil; showImportRecovery = false; importRecoveryJob = nil; showImportChooser = false
     }
 
@@ -191,6 +220,18 @@ struct HomeView: View {
             mangaCount: other == .manga ? max(libraryCount, bundleCount) : 0
         )
     }
+
+    /// The prototype's new-account block instead of the shelf (`HomeShelfPolicy.showsNewAccount`).
+    private var showsNewAccount: Bool {
+        HomeShelfPolicy.showsNewAccount(latched: newAccountLatch, scene: shelfScene,
+                                        otherMediumOccupied: otherMediumOccupied)
+    }
+
+    /// The approved invitation (this medium empty, the other occupied): the page picture runs behind it.
+    private var showsInvitation: Bool { shelfScene == .invitation && !showsNewAccount }
+
+    /// The footer closes the populated shelf and the new-account block, once Home has a page.
+    private var showsFooter: Bool { home.bundle != nil && !showsInvitation }
 
     // MARK: Geometry (from the measured container, never the screen)
 
@@ -269,65 +310,14 @@ struct HomeView: View {
 
     // MARK: Medium switch (prototype Poster switch; LANE_AMENDMENTS 7)
 
-    /// The prototype's switch (PROTOTYPE_SPEC.md §4 "Medium switch"): two equal columns 12 pt apart over
-    /// a 1 pt `#20302744` hairline; heavy sans uppercase words (36 pt, 30 on phones ≤ 360 pt, tracking
-    /// −1.9 / −1.55); the selected word shows the lead title's artwork clipped into its letters with
-    /// a 28 × 2 `#203027` rule on the hairline; the other word is solid `#6e786f`. The artwork fill
-    /// keeps a contrast floor (`HomeMediumWordInk`), so it never reads lighter than the unselected word.
+    /// The prototype's switch (`KuroPosterMediumSwitch`, shared with Taste): the selected word shows the
+    /// lead title's artwork clipped into its letters with a contrast floor (`HomeMediumWordInk`), so it
+    /// never reads lighter than the unselected word; an empty shelf shows the mountain.
     private var mediumSwitch: some View {
-        // At accessibility sizes the words stack, so each keeps the full width and neither is cut to
-        // "Ma…" (rulebook §4).
-        let stacked = dynamicTypeSize.isAccessibilitySize
-        let layout = stacked
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
-            : AnyLayout(HStackLayout(alignment: .bottom, spacing: 12))
-        return layout {
-            mediumButton("anime", title: "Anime", stacked: stacked)
-            mediumButton("manga", title: "Manga", stacked: stacked)
+        KuroPosterMediumSwitch(selection: mediumKind, contentWidth: contentWidth,
+                               onSelect: { home.selectMedium($0 == .manga ? "manga" : "anime") }) {
+            HomePagePictureFill(fallback: shelfScene == .invitation ? .mountain : .solid)
         }
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(HomeInk.switchHairline).frame(height: 1).accessibilityHidden(true)
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    private func mediumButton(_ value: String, title: String, stacked: Bool) -> some View {
-        let selected = home.medium == value
-        let size = KuroMediumSwitch.wordSize(for: .large, containerWidth: contentWidth)
-        let lettering = Text(title)
-            .kuroMediumWordStyle(size: size)
-            .lineLimit(1)
-            // The single-word switch is the one place a scale factor is allowed (rulebook §4).
-            .minimumScaleFactor(0.6)
-        return Button {
-            if !selected { KuroAccessibility.impactHaptic(.light); home.selectMedium(value) }
-        } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                // The fill takes the word's own frame (an overlay), so the artwork never sizes the row.
-                lettering
-                    .foregroundStyle(selected ? Color.clear : HomeInk.switchUnselected)
-                    .overlay {
-                        if selected {
-                            HomePagePictureFill(fallback: shelfScene == .invitation ? .mountain : .solid)
-                                .mask(lettering)
-                        }
-                    }
-                    .padding(.top, 4)
-                Spacer(minLength: 4)
-                // A fixed rule that fades in place on the hairline: it never travels between the words.
-                Rectangle()
-                    .fill(HomeInk.switchMark)
-                    .frame(width: 28, height: 2)
-                    .opacity(selected ? 1 : 0)
-            }
-            .frame(maxWidth: .infinity, minHeight: stacked ? 52 : 56, alignment: .leading)
-            .padding(.bottom, 1)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(HomeContactStyle())
-        .accessibilityAddTraits(selected ? .isSelected : [])
-        .accessibilityLabel(title)
-        .accessibilityHint(selected ? "" : KuroLocale.text("Shows your \(title.lowercased()).", "Zeigt deine \(title)-Titel."))
     }
 
     // MARK: Shelf
@@ -363,7 +353,9 @@ struct HomeView: View {
 
     @ViewBuilder
     private func loadedShelf(proxy: ScrollViewProxy, origin: AccountActionScope.Ticket?, renderedMedium: String) -> some View {
-        if shelfScene == .invitation {
+        if showsNewAccount {
+            newAccountShelf
+        } else if shelfScene == .invitation {
             Spacer().frame(height: min(max(0, invitationHeight * 0.3), 280))
             invitationCopy
             invitationActions
@@ -376,6 +368,23 @@ struct HomeView: View {
         } else {
             populatedShelf(proxy: proxy, origin: origin)
             shelfStatus(origin: origin, renderedMedium: renderedMedium)
+        }
+    }
+
+    /// The prototype's new-account Home (PROTOTYPE_SPEC.md §4 "New-account Home"; amendment 5): the
+    /// opening row ("YOUR COLLECTION / Begin here."), then `HomeNewAccount` (＋, the two lines, Explore
+    /// Taste, Import, "A first favourite."). No Coming up glance for a new account (§8.3). The block
+    /// lays out its own gutters, so it runs the full column width.
+    private var newAccountShelf: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HomeOpeningLineView(
+                kicker: HomeOpeningLine.kicker(newAccount: true, medium: mediumKind),
+                headline: HomeOpeningLine.headline(available: 0, caughtUp: false, newAccount: true, medium: mediumKind),
+                compact: compactColumn)
+            HomeNewAccount(medium: mediumKind,
+                           onImport: { showImportChooser = true },
+                           onExploreTaste: { onExploreTaste?() })
+                .padding(.horizontal, -gutter)
         }
     }
 
@@ -432,7 +441,7 @@ struct HomeView: View {
             if !split.inProgress.isEmpty, mediumKind == .manga {
                 // Covers are sized from the measured column: wait for the first measurement.
                 if containerSize.width > 0 {
-                    mangaLibrary(split.inProgress)
+                    mangaLeaves(split.inProgress)
                 } else {
                     sceneLoadingShape
                 }
@@ -448,9 +457,7 @@ struct HomeView: View {
             quietShelf(title: KuroLocale.text("Saved", "Gespeichert"), cards: split.saved, state: nil)
             moreTitlesButton(origin: origin)
             calendarSection
-            clubSection
-            // TASK 10 EMBED (lane 5 → lane 4): `HomeFooter()` ("Your pace. Your place. · KURO") goes here,
-            // last in the scroll content, inside this column's gutter.
+            clubSection(origin: origin)
         }
         .task(id: "\(inProgressPagesKey)|\(home.bundle?.nextCursor ?? "")|\(split.inProgress.isEmpty)|\(scene == .inProgress)") {
             guard !skipNetworkLoad else { return }
@@ -475,9 +482,7 @@ struct HomeView: View {
     private var sceneLoadingShape: some View {
         Group {
             if mediumKind == .manga {
-                HStack(alignment: .top, spacing: KuroDesignSpacing.md) {
-                    ForEach(0..<2, id: \.self) { _ in KuroSkeleton(kind: .coverLeaf) }
-                }
+                HomeMangaLeavesLoading(containerWidth: contentWidth)
             } else {
                 KuroSkeleton(kind: .sceneCard)
             }
@@ -727,99 +732,21 @@ struct HomeView: View {
         }
     }
 
-    // MARK: Manga (equal covers, each book's own chapter ticket and dark raised key)
+    // MARK: Manga ("Now reading" leaves: equal covers, the chapter count and the solid manga key)
 
-    /// Two columns on phones (D5), more on a wide column; every frame equal (rulebook §6).
-    private var mangaSpacing: CGFloat { contentWidth < 300 ? 14 : 20 }
-
-    private var mangaColumns: Int {
-        let spacing = mangaSpacing
-        let minCover: CGFloat = 150
-        return max(2, Int((contentWidth + spacing) / (minCover + spacing)))
-    }
-
-    private func mangaLibrary(_ cards: [HomeCard]) -> some View {
-        let columns = mangaColumns
-        let spacing = mangaSpacing
-        let columnWidth = max(100, (contentWidth - spacing * CGFloat(columns - 1)) / CGFloat(columns))
-        return LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: spacing, alignment: .top), count: columns),
-            alignment: .leading,
-            spacing: 26
-        ) {
-            ForEach(cards) { card in mangaBook(card, columnWidth: columnWidth) }
-        }
-    }
-
-    private func mangaBook(_ card: HomeCard, columnWidth: CGFloat) -> some View {
-        // The cover fills an equal 0.7 frame (top-biased crop); the paper edge peeks 5 pt behind it.
-        let artWidth = max(80, columnWidth - 5)
-        let artHeight = (artWidth / KuroCardMetrics.imageAspectRatio).rounded()
-        return VStack(alignment: .leading, spacing: 9) {
-            ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: 2)
-                    .stroke(Color.kuroHairline, lineWidth: 1)
-                    .background(Color.kuroWhite)
-                    .padding(.leading, 5)
-                    .padding(.top, 5)
-                    .padding(.bottom, 24)
-                Button { open(card) } label: {
-                    mangaArt(card.coverImage)
-                        .frame(width: artWidth, height: artHeight, alignment: .top)
-                        .clipped()
-                        .clipShape(RoundedRectangle(cornerRadius: 3))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(HomeContactStyle())
-                .accessibilityLabel(KuroLocale.text("Open \(card.title)", "\(card.title) öffnen"))
-                chapterTicket(card)
-                    .padding(.horizontal, 9)
-            }
-            Button { open(card) } label: {
-                Text(card.title)
-                    .font(.kuroBody(weight: .medium))
-                    .tracking(-0.3)
-                    .foregroundStyle(Color.kuroInk)
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(HomeContactStyle())
-            .accessibilityHidden(true) // The cover button above carries "Open <title>".
-        }
-    }
-
-    private func chapterTicket(_ card: HomeCard) -> some View {
-        let shape = UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 3, bottomTrailingRadius: 9, topTrailingRadius: 3)
-        // At accessibility sizes the readout sits above the key so a four-digit chapter never truncates
-        // in a 137 pt column (320 pt phone, two columns).
-        let stacked = dynamicTypeSize.isAccessibilitySize
-        let layout = stacked
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-            : AnyLayout(HStackLayout(spacing: 4))
-        return layout {
-            progressReadout(card, large: true)
-            if !stacked { Spacer(minLength: 4) }
+    private func mangaLeaves(_ cards: [HomeCard]) -> some View {
+        HomeMangaLeaves(cards: cards, containerWidth: contentWidth,
+                        readout: { card in mangaReadout(card) },
+                        onOpen: { open($0) }) { card in
             advanceKey(card, style: .dark)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.leading, 12)
-        .padding(.trailing, 3)
-        .padding(.vertical, 6)
-        .frame(minHeight: 56)
-        .background(Color.kuroWhite)
-        .overlay(alignment: .topTrailing) {
-            RoundedRectangle(cornerRadius: 2)
-                .stroke(Color.kuroKeyRim, lineWidth: 1)
-                .background(Color.kuroWhite)
-                .frame(width: 13, height: 4)
-                .offset(x: -14, y: -4)
-                .accessibilityHidden(true)
-        }
-        .clipShape(shape)
-        .overlay(shape.stroke(Color.kuroKeyRim, lineWidth: 1))
-        .shadow(color: Color.kuroInk.opacity(0.06), radius: 2, y: 1)
+    }
+
+    /// One leaf's "Ch. N" readout: the same count, caught-up rule and spoken label as the key.
+    private func mangaReadout(_ card: HomeCard) -> HomeMangaLeafReadout {
+        let state = keyState(card)
+        return HomeMangaLeafReadout(label: state.label, caughtUp: state.caughtUp,
+                                    spoken: progressSpoken(card, state: state))
     }
 
     // MARK: Progress and the advance key
@@ -846,31 +773,6 @@ struct HomeView: View {
             serverUnitId: card.unitId, lifecycleId: UUID(uuidString: card.lifecycleId))
         return KeyState(progress: progress, label: label, cap: cap, caughtUp: caughtUp,
                         needsChoice: unitId != nil || Int(label) != progress)
-    }
-
-    private func progressReadout(_ card: HomeCard, large: Bool) -> some View {
-        let state = keyState(card)
-        let unit = mediumKind == .manga ? KuroLocale.text("Ch.", "Kap.") : KuroLocale.text("Ep.", "F.")
-        return VStack(alignment: .leading, spacing: 1) {
-            Text(state.caughtUp ? KuroAdvanceCopy.caughtUpLabel(title: nil, german: KuroLocale.isGerman) : unit)
-                .font(.kuroCustom(11, relativeTo: .caption1, maxSize: 20))
-                .foregroundStyle(Color.kuroInkQuiet)
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(state.caughtUp ? " " : state.label)
-                    .font(.kuroCustom(large ? 28 : 19, relativeTo: large ? .title1 : .title3, maxSize: large ? 36 : 30))
-                    .tracking(large ? -0.9 : -0.4)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                if let cap = state.cap, mediumKind == .anime, !state.caughtUp {
-                    Text("/ \(cap)")
-                        .font(.kuroCustom(12, relativeTo: .caption1, maxSize: 20))
-                        .foregroundStyle(Color.kuroInkQuiet)
-                }
-            }
-            .foregroundStyle(Color.kuroInk)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(progressSpoken(card, state: state))
     }
 
     /// The prototype readout's values for a scene or tile: "Ep." (or "Caught up" on a scene; a tile
@@ -1051,16 +953,6 @@ struct HomeView: View {
         return card?.coverImage ?? card?.bannerImage
     }
 
-    private func calendarArt(_ items: [ReleaseScheduleItem]) -> some View {
-        HStack(spacing: -7) {
-            ForEach(Array(items.prefix(3))) { item in
-                cover(coverURL(for: item)).frame(width: 27, height: 38).clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 2))
-                    .overlay(RoundedRectangle(cornerRadius: 2).stroke(Color.kuroWhite, lineWidth: 1))
-            }
-        }.accessibilityHidden(true)
-    }
-
     /// What the schedule can claim for the selected medium (previews and snapshots: an answer).
     private var scheduleCoverage: ReleaseScheduleCoverage {
         skipNetworkLoad ? .complete : releases.scheduleCoverage(for: mediumKind)
@@ -1112,227 +1004,72 @@ struct HomeView: View {
         }
     }
 
-    /// The full calendar, only when it has rows: an empty schedule is said once, by Coming up, never
-    /// again under a second heading.
-    ///
-    /// TASK 10 EMBED (lane 5 → lane 4): replace this whole section's body with
-    /// `HomeCalendarCard(groups: groups, coverage: scheduleCoverage, coverFor: coverURL(for:),
-    /// titleFor: { ... }, medium: mediumKind)` (it draws this same "Coming up." heading and summary
-    /// itself), keep `.id("upcoming-calendar")` and `.accessibilityFocused($calendarFocused)` on it, and
-    /// move `HomeGlanceSummary.calendarSummary` / `HomeScheduleSpan` onto lane 5's
-    /// `HomeCalendarPresentation.summary` so the glance and the heading share one span rule.
+    /// The prototype's calendar card (`HomeCalendarCard`: the "Coming up." heading and its summary, the
+    /// day groups, "Dates to come"), only when it has rows or the schedule is still being asked (its
+    /// in-place loading shape): an empty schedule is said once, by Coming up, never again under a
+    /// second heading. The glance scrolls here and moves VoiceOver focus to it.
     @ViewBuilder
     private var calendarSection: some View {
-        let copy = ReleaseCopy.current()
-        let groups = HomeCalendarPresentation.groups(scheduleItems, copy: copy)
-        if !groups.isEmpty {
-            VStack(alignment: .leading, spacing: 17) {
-                calendarHeading(groups, copy: copy)
-                    .accessibilityFocused($calendarFocused)
-                VStack(spacing: 0) {
-                    ForEach(Array(groups.enumerated()), id: \.element.id) { index, day in
-                        calendarDay(day, initiallyOpen: index == 0)
-                    }
-                }
-            }
-            // 32 pt above the heading (the shelf's 24 pt spacing plus 8).
-            .padding(.top, 8)
-            .id("upcoming-calendar")
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(KuroLocale.text("Upcoming from your list", "Demnächst aus deiner Liste"))
+        let groups = HomeCalendarPresentation.groups(scheduleItems, copy: ReleaseCopy.current())
+        let coverage = scheduleCoverage
+        if !groups.isEmpty || HomeCalendarCard.showsLoading(groups: groups, coverage: coverage) {
+            HomeCalendarCard(groups: groups, coverage: coverage,
+                             coverFor: { coverURL(for: $0) },
+                             titleFor: { item in home.bundle?.active.first { $0.mediaId == item.mediaId }?.title ?? "" },
+                             medium: mediumKind)
+                // 32 pt above the heading (the shelf's 24 pt spacing plus 8).
+                .padding(.top, 8)
+                .id("upcoming-calendar")
+                .accessibilityFocused($calendarFocused)
         }
     }
 
-    /// The prototype's calendar heading (PROTOTYPE_SPEC.md §4 "Calendar"): "Coming up." SF 24/26.4
-    /// w550, tracking −0.85, ink, with the summary ("6 releases · 7 days", "From your list") SF 10
-    /// `#656c66` on the right; 22 / 9 pt at 320 pt. Stacks at accessibility sizes.
-    private func calendarHeading(_ groups: [HomeCalendarDay], copy: ReleaseCopy) -> some View {
-        let stacked = dynamicTypeSize.isAccessibilitySize
-        let layout = stacked
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
-            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 9))
-        return layout {
-            Text(KuroLocale.text("Coming up.", "Demnächst."))
-                .font(.kuroCustom(compactColumn ? 22 : 24, weight: .semibold, relativeTo: .title2, maxSize: 40))
-                .tracking(-0.85)
-                .foregroundStyle(Color.kuroInk)
-                .accessibilityAddTraits(.isHeader)
-            if !stacked { Spacer(minLength: 8) }
-            Text(HomeGlanceSummary.calendarSummary(groups, coverage: scheduleCoverage, copy: copy))
-                .font(.kuroCustom(compactColumn ? 9 : 10, relativeTo: .caption2, maxSize: 20))
-                .foregroundStyle(HomeInk.calendarSummary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
+    // MARK: Private club room (only with real clubs and real, authorized notes)
 
-    private func calendarBinding(_ id: String, initiallyOpen: Bool) -> Binding<Bool> {
-        let key = home.medium + "|" + id
-        return Binding(get: { calendarExpansion[key] ?? initiallyOpen }, set: { calendarExpansion[key] = $0 })
-    }
-
-    private func releaseCount(_ count: Int) -> String {
-        count == 1
-            ? KuroLocale.text("1 release", "1 Termin")
-            : KuroLocale.text("\(count) releases", "\(count) Termine")
-    }
-
-    private func calendarDay(_ day: HomeCalendarDay, initiallyOpen: Bool) -> some View {
-        let key = home.medium + "|" + day.id
-        let all = expandedDayItems.contains(key)
-        let hidden = day.items.count - 3
-        return DisclosureGroup(isExpanded: calendarBinding(day.id, initiallyOpen: initiallyOpen)) {
-            ForEach(Array(day.items.prefix(all ? day.items.count : 3))) { item in calendarEvent(item) }
-            if hidden > 0 {
-                Button {
-                    if all { expandedDayItems.remove(key) } else { expandedDayItems.insert(key) }
-                } label: {
-                    Text(all
-                         ? KuroLocale.text("Show fewer", "Weniger zeigen")
-                         : KuroLocale.text("Show \(hidden) more", "\(hidden) weitere zeigen"))
-                        .font(.kuroMeta(weight: .medium))
-                        .foregroundStyle(Color.kuroInk)
-                        .frame(minHeight: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(HomeContactStyle())
-            }
-        } label: {
-            HStack(spacing: 12) {
-                VStack(spacing: 1) {
-                    Text(day.day).font(.kuroTitle()).monospacedDigit()
-                    if !day.month.isEmpty {
-                        Text(day.month).font(.kuroCustom(11, relativeTo: .caption1, maxSize: 18))
-                    }
-                }
-                .foregroundStyle(Color.kuroInk)
-                .frame(minWidth: 36)
-                .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(day.label)
-                        .font(.kuroBody(weight: .medium))
-                        .foregroundStyle(Color.kuroInk)
-                    Text(releaseCount(day.items.count))
-                        .font(.kuroMeta())
-                        .foregroundStyle(Color.kuroInkSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                if !dynamicTypeSize.isAccessibilitySize { calendarArt(day.items) }
-            }
-            .frame(minHeight: 60)
-            .accessibilityElement(children: .combine)
-        }
-        .padding(.vertical, 12)
-        .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
-    }
-
-    private func calendarEvent(_ item: ReleaseScheduleItem) -> some View {
-        Button { routes.openMedia(MediaRoute(kind: item.medium, id: item.mediaId)) } label: {
-            HStack(spacing: 10) {
-                cover(coverURL(for: item)).frame(width: 32, height: 48).clipped().accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.title.isEmpty ? (home.bundle?.active.first { $0.mediaId == item.mediaId }?.title ?? "") : item.title)
-                        .font(.kuroBody(weight: .medium))
-                        .foregroundStyle(Color.kuroInk)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    KuroReleaseLine(item, undatedFallback: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(minHeight: 44)
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
-            .accessibilityElement(children: .combine)
-        }
-        .buttonStyle(HomeContactStyle())
-    }
-
-    // MARK: Private club room (only with real, authorized notes)
-
-    /// TASK 10 EMBED (lane 5 → lane 4): replace this section with `HomeClubRoom(club:notes:...)` for
-    /// `HomeClubRoom.pick(clubs:)` (nil hides the room), keeping the "Couldn't load club notes." state
-    /// as its `notesFailed` / `onRetry`. Then add `HomeFooter()` as the last view of the scroll content
-    /// (see the marker at the end of `populatedShelf`).
+    /// The prototype's club room (`HomeClubRoom`) for the club with the latest real activity
+    /// (`HomeClubRoom.pick` over `ClubsStore.myClubs`); nothing without one. Notes come from Home's club
+    /// slice and are shown only when the reader has one club (`roomNotes`: the slice carries no club
+    /// id), so "Couldn't load club notes." is said only then. A failed clubs read with no club known is
+    /// the branded failure (or offline), never "no clubs".
     @ViewBuilder
-    private var clubSection: some View {
-        let club = home.bundle?.club
-        if club?.state == "error" {
-            Text(KuroLocale.text("Couldn't load club notes.", "Club-Notizen konnten nicht geladen werden."))
-                .font(.kuroMeta())
-                .foregroundStyle(Color.kuroInkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        } else if let club, !club.items.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(KuroLocale.text("Your private club", "Euer privater Club"))
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(2.1)
-                    .textCase(.uppercase)
-                    .foregroundStyle(Color.kuroRoomTextSecondary)
-                // The server's own label, or the section's name. Never an invented club name.
-                Text(club.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                     ? KuroLocale.text("Between us.", "Unter uns.")
-                     : club.label)
-                    .font(.kuroTitle())
-                    .foregroundStyle(Color.kuroRoomText)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                ForEach(club.items) { item in
-                    clubNote(item)
-                }
+    private func clubSection(origin: AccountActionScope.Ticket?) -> some View {
+        let rows = clubs.myClubs.compactMap(ClubSummary.init(row:))
+        let clubCount = rows.count
+        let slice = home.bundle?.club
+        let readFailure: (failed: Bool, transport: Bool) = {
+            if case .failed(let transport) = clubs.myClubsPhase.settled { return (true, transport) }
+            return (false, false)
+        }()
+        let offline = readFailure.transport || !network.isConnected
+        let presentation = HomeClubRoom.presentation(
+            picked: HomeClubRoom.pick(clubs: rows), clubsReadFailed: readFailure.failed,
+            notesFailed: slice?.state == "error" && clubCount <= 1, offline: offline)
+        switch presentation {
+        case .hidden:
+            EmptyView()
+        case .room(let club, let notesFailed):
+            HomeClubRoom(club: club, notes: roomNotes(slice, club: club, clubCount: clubCount),
+                         otherClubCount: max(0, clubCount - 1), medium: mediumKind,
+                         notesFailed: notesFailed, notesOffline: notesFailed && !network.isConnected,
+                         onRetry: { perform(origin: origin) { await home.load() } },
+                         onOpenClubs: onOpenClubs)
+        case .failed, .offline:
+            HomeClubRoomFailure(medium: mediumKind, offline: presentation == .offline) {
+                perform(origin: origin) { await clubs.fetchMyClubs() }
             }
-            .padding(KuroDesignSpacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.kuroRoom, in: RoundedRectangle(cornerRadius: KuroRadius.md))
         }
     }
 
-    private func clubNote(_ item: HomeClubItem) -> some View {
-        let kind: MediaKind = item.mediaType.lowercased() == "manga" ? .manga : .anime
-        let art = home.bundle?.active.first { $0.mediaId == item.mediaId && kind == mediumKind }
-        let hidden = item.spoilerScope != nil && item.spoilerScope != "none" && item.text == nil
-        return Button {
-            routes.openMedia(MediaRoute(kind: kind, id: item.mediaId))
-        } label: {
-            HStack(alignment: .top, spacing: 12) {
-                cover(art?.coverImage)
-                    .frame(width: dynamicTypeSize.isAccessibilitySize ? 40 : 60,
-                           height: dynamicTypeSize.isAccessibilitySize ? 60 : 90)
-                    .clipped()
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(item.displayName ?? KuroLocale.text("A club member", "Ein Clubmitglied"))
-                        .font(.kuroMeta(weight: .semibold))
-                        .foregroundStyle(Color.kuroRoomText)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(hidden ? KuroLocale.text("Spoiler hidden", "Spoiler verborgen") : (item.text ?? ""))
-                        .font(.kuroBody())
-                        .foregroundStyle(hidden ? Color.kuroRoomTextSecondary : Color.kuroRoomText)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .padding(.vertical, 12)
-            .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroWhite15).frame(height: 0.5) }
-            .contentShape(Rectangle())
+    /// The room's notes with the title and cover Home holds for each (either medium's page).
+    private func roomNotes(_ slice: HomeClubSlice?, club: ClubSummary, clubCount: Int) -> [HomeClubRoom.Note] {
+        HomeClubRoom.roomNotes(slice?.items ?? [], club: club, clubCount: clubCount).map { item in
+            let manga = item.mediaType.lowercased() == "manga"
+            let card = (manga ? home.manga : home.anime)?.active.first { $0.mediaId == item.mediaId }
+            return HomeClubRoom.Note(item: item, title: card?.title, coverImage: card?.coverImage ?? card?.bannerImage)
         }
-        .buttonStyle(HomeContactStyle())
-        .accessibilityHint(KuroLocale.text("Opens this title's private discussion", "Öffnet die private Diskussion zu diesem Titel"))
     }
 
     // MARK: Helpers
-
-    @ViewBuilder private func mangaArt(_ raw: String?) -> some View {
-        if let raw, let url = URL(string: raw) {
-            KuroCachedAsyncImage(url: url, maxPixelSize: 800) { phase in
-                // Top-biased crop into the equal cover frame (rulebook §6).
-                if case .success(let image) = phase { image.resizable().scaledToFill() }
-                else { Color.kuroMissingArt }
-            }
-        } else { Color.kuroMissingArt }
-    }
 
     private func open(_ card: HomeCard) {
         routes.openMedia(MediaRoute(kind: mediumKind, id: card.mediaId))

@@ -209,7 +209,7 @@ struct FirstRunSnapshotTests {
                                     german: Bool = false) -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                TasteOpening(medium: .constant(medium), material: nil, metrics: TasteMetrics(pageWidth: width),
+                TasteOpening(medium: .constant(medium), artURL: nil, metrics: TasteMetrics(pageWidth: width),
                              kicker: german ? "DEINE SAMMLUNG" : "YOUR COLLECTION",
                              headline: german ? "Fang hier an." : "Begin here.")
                 HomeNewAccountContent(medium: medium, picks: picks, width: width, onImport: {}, onExploreTaste: {})
@@ -220,11 +220,17 @@ struct FirstRunSnapshotTests {
         .environment(\.kuroRoutes, KuroRoutes.unhandled)
     }
 
+    /// The first pick's artwork, as the live page fills the selected medium word.
+    private static func firstArt(_ state: TastePageContent.State) -> String? {
+        if case .cards(let cards) = state { return cards.first?.media.imageURL }
+        return nil
+    }
+
     private static func tastePage(medium: MediaKind, state: TastePageContent.State, newAccount: Bool,
                                   width: CGFloat) -> some View {
         ScrollView {
             TastePageContent(medium: .constant(medium), state: state, newAccount: newAccount,
-                             material: nil, width: width)
+                             switchArt: Self.firstArt(state), width: width)
         }
         .background(TastePageContent.canvas(for: medium))
         .environment(\.kuroRoutes, KuroRoutes.unhandled)

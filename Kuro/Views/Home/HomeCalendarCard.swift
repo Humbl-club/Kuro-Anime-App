@@ -18,9 +18,9 @@ import SwiftUI
 // closes it on the other when Home keeps one card across a medium switch.
 // While the schedule is still being asked (`coverage == .pending`, no groups yet), the card shows
 // its branded loading shape in place (`HomeCalendarLoading`) instead of popping in later.
-// Integration: Home embeds `HomeCalendarCard(groups:coverage:)` where the calendar goes, with
-// `HomeCalendarPresentation.groups(...)` for the selected medium (lane 4 owns `HomeView`); pass
-// `medium:` so the loading shape and an empty card know their medium.
+// Embedded by `HomeView.calendarSection` (Task 10) with `HomeCalendarPresentation.groups(...)` for the
+// selected medium, its cover/title lookups and `medium:` (so the loading shape and an empty card know
+// their medium); the glance scrolls to it (`upcoming-calendar`) and moves VoiceOver focus to it.
 
 struct HomeCalendarCard: View {
     let groups: [HomeCalendarDay]
@@ -158,8 +158,8 @@ struct HomeCalendarCard: View {
             .accessibilityLabel(dayAccessibilityLabel(day))
             .accessibilityValue(open ? KuroLocale.text("Expanded", "Ausgeklappt")
                                      : KuroLocale.text("Collapsed", "Eingeklappt"))
-            .accessibilityHint(open ? KuroLocale.text("Hides the releases", "Blendet die Termine aus")
-                                    : KuroLocale.text("Shows the releases", "Zeigt die Termine"))
+            .accessibilityHint(open ? KuroLocale.text("Hides the releases", "Blendet die Veröffentlichungen aus")
+                                    : KuroLocale.text("Shows the releases", "Zeigt die Veröffentlichungen"))
             if open {
                 events(day).background(undated ? palette.pendingFill : palette.eventsFill,
                                        in: UnevenRoundedRectangle(bottomLeadingRadius: palette.eventsBottomRadius,
@@ -280,8 +280,8 @@ struct HomeCalendarCard: View {
                     if all { allRowsGroups.remove(key(day)) } else { allRowsGroups.insert(key(day)) }
                 } label: {
                     HStack {
-                        Text(all ? KuroLocale.text("Show fewer releases", "Weniger Termine zeigen")
-                                 : KuroLocale.text("Show \(hidden) more releases", "\(hidden) weitere Termine zeigen"))
+                        Text(all ? KuroLocale.text("Show fewer releases", "Weniger Veröffentlichungen zeigen")
+                                 : KuroLocale.text("Show \(hidden) more releases", "\(hidden) weitere Veröffentlichungen zeigen"))
                             .font(.kuroCustom(11, relativeTo: .caption1, maxSize: 22))
                             .foregroundStyle(Color(hex: "4F5A4F"))
                         Spacer(minLength: 8)

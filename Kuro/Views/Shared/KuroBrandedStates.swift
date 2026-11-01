@@ -333,7 +333,7 @@ struct KuroLoadingView: View {
 
 // MARK: - Skeletons
 
-/// Quiet blocks in the shape of the real component, on `kuroCanvasQuiet`, with the scrub line
+/// Quiet blocks in the shape of the real component, in translucent ink (visible on every canvas), with the scrub line
 /// travelling under them. Widths come from the container; nothing is hardcoded to a device.
 struct KuroSkeleton: View {
     enum Kind {
@@ -355,8 +355,20 @@ struct KuroSkeleton: View {
         self.kind = kind
     }
 
-    private var block: Color { Color.kuroCanvasQuiet }
-    private var deepBlock: Color { Color.kuroInk.opacity(0.09) }
+    /// The block is translucent ink, so it stays visible on every canvas it lands on (Home
+    /// `#fffef8`, manga Home `#f5f5f3`, detail paper `#f5f5f4`); an opaque light grey such as
+    /// `kuroCanvasQuiet` (`#f6f6f6`) vanishes on the two grey canvases. Pinned in `KuroTests`.
+    static let blockInkOpacity: Double = 0.08
+    /// The scene card's material foot: a second, deeper tone over the same canvas.
+    static let deepBlockInkOpacity: Double = 0.13
+
+    /// The block's colour composited over `canvas` (pure; the visibility test reads it).
+    nonisolated static func block(on canvas: KuroRGB) -> KuroRGB {
+        KuroRGB.mix(canvas, KuroRGB(0x25 / 255, 0x26 / 255, 0x25 / 255), blockInkOpacity)
+    }
+
+    private var block: Color { Color.kuroInk.opacity(Self.blockInkOpacity) }
+    private var deepBlock: Color { Color.kuroInk.opacity(Self.deepBlockInkOpacity) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
@@ -625,8 +637,10 @@ struct KuroStateLayout<Stroke: View, Actions: View>: View {
     var body: some View {
         VStack(spacing: KuroDesignSpacing.md) {
             stroke.frame(width: 148, height: 36)
+            // The prototype's empty-block headline (SF 24 w700, tracking −0.8), as `KuroEmptyView`.
             Text(headline)
-                .font(.kuroEditorial(size: 22))
+                .font(.kuroCustom(24, weight: .bold, relativeTo: .title2, maxSize: 44))
+                .tracking(-0.8)
                 .foregroundStyle(Color.kuroInk)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)

@@ -14,18 +14,19 @@ import SwiftUI
 //
 // Tracking stays in Home: the caller passes each card's readout and its `KuroAdvanceKey` (style
 // `.dark`, built through Home's own advance path with the caught-up guard and Undo). This view never
-// writes. Integration: `HomeView` (lane 4) embeds
-//   HomeMangaLeaves(cards: split.inProgress, containerWidth: contentWidth,
-//                   readout: { card in … }, onOpen: { card in open(card) }) { card in advanceKey(card, style: .dark) }
+// writes. `HomeView.mangaLeaves` embeds it for the manga titles in progress, and `HomeMangaLeavesLoading`
+// is its loading shape.
+
+/// What one leaf's row says: the chapter label ("24", or a unit label) and whether it is caught up.
+struct HomeMangaLeafReadout: Equatable {
+    let label: String
+    let caughtUp: Bool
+    /// VoiceOver: "Chapter 24 of 120" / "Caught up".
+    let spoken: String
+}
 
 struct HomeMangaLeaves<Key: View>: View {
-    /// What one leaf's row says: the chapter label ("24", or a unit label) and whether it is caught up.
-    struct Readout: Equatable {
-        let label: String
-        let caughtUp: Bool
-        /// VoiceOver: "Chapter 24 of 120" / "Caught up".
-        let spoken: String
-    }
+    typealias Readout = HomeMangaLeafReadout
 
     let cards: [HomeCard]
     let containerWidth: CGFloat
@@ -87,20 +88,25 @@ struct HomeMangaLeaves<Key: View>: View {
             : AnyLayout(HStackLayout(alignment: .center, spacing: 0))
         return layout {
             VStack(alignment: .leading, spacing: 0) {
+                // Caught up, the word takes the count's lines too (German "Auf dem neuesten Stand" is
+                // long for a 62 pt column): up to three lines in the same row height, never cut.
                 Text(HomeMangaLeafMetrics.readoutLabel(caughtUp: state.caughtUp, german: KuroLocale.isGerman))
                     .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 18))
                     .foregroundStyle(Color(hex: "59665A"))
-                    .lineLimit(1)
-                Text(state.caughtUp ? " " : state.label)
-                    .font(.kuroCustom(24, weight: .medium, relativeTo: .title2, maxSize: 40))
-                    .tracking(-0.8)
-                    .monospacedDigit()
-                    .foregroundStyle(Color(hex: "27322B"))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .kuroCountRoll(value: state.label, pageTurn: true)
+                    .lineLimit(state.caughtUp ? 3 : 1)
+                    .fixedSize(horizontal: false, vertical: state.caughtUp)
+                if !state.caughtUp {
+                    Text(state.label)
+                        .font(.kuroCustom(24, weight: .medium, relativeTo: .title2, maxSize: 40))
+                        .tracking(-0.8)
+                        .monospacedDigit()
+                        .foregroundStyle(Color(hex: "27322B"))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .kuroCountRoll(value: state.label, pageTurn: true)
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: HomeMangaLeafMetrics.readoutHeight, alignment: .topLeading)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(state.spoken)
             key(card)
@@ -149,11 +155,16 @@ struct HomeMangaLeafMetrics: Equatable {
     /// Two lines, then truncated, at every text size (plan edge case 1); the box grows with the text.
     static let titleLineLimit = 2
 
-    /// The small label over the count: "Ch." / "Kap.", or "Caught up" / "Aktuell".
+    /// The small label over the count: "Ch." / "Kap.", or the app's one caught-up word, "Caught up" /
+    /// "Auf dem neuesten Stand" (`KuroAdvanceCopy.caughtUpLabel`, PROTOTYPE_SPEC §7.1).
     static func readoutLabel(caughtUp: Bool, german: Bool) -> String {
-        if caughtUp { return german ? "Aktuell" : "Caught up" }
+        if caughtUp { return KuroAdvanceCopy.caughtUpLabel(title: nil, german: german) }
         return german ? "Kap." : "Ch."
     }
+
+    /// The readout column's height at regular sizes ("Ch." 9 pt over the 24 pt count), kept when the
+    /// caught-up word replaces the count, so a caught-up leaf's row stays level with its neighbours.
+    static let readoutHeight: CGFloat = 40
 
     /// One leaf's full height without accessibility sizes: cover, gap, title box, the "Ch." + key row.
     var leafHeight: CGFloat { coverHeight + storyGap + Self.titleBox + Self.actionRow }
@@ -215,8 +226,7 @@ private struct HomeLeafCover: View {
 
 /// The leaves' loading shape (spec §5.4): two rows of branded cover-leaf skeletons on the same grid
 /// and in the same leaf height as the real leaves, so nothing jumps when they arrive. Shown while
-/// Home's titles in progress load. Integration: replaces the manga branch of
-/// `HomeView.sceneLoadingShape`.
+/// Home's titles in progress load (the manga branch of `HomeView.sceneLoadingShape`).
 struct HomeMangaLeavesLoading: View {
     let containerWidth: CGFloat
 

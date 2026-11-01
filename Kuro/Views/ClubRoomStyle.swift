@@ -2,9 +2,8 @@ import SwiftUI
 
 // MARK: - Club room style
 // The prototype's club-room language (PROTOTYPE_SPEC §4 "Club room", §5 width changes), shared by the
-// Clubs invitation (`ClubsView`) and the club-detail room (hero, initial state, art strip), so a club
-// keeps one room colour from the invitation to its detail page. Task 5's `HomeClubRoom` draws the same
-// values inline; Task 10 can point it here when the lanes merge.
+// Clubs invitation (`ClubsView`), the club-detail room (hero, initial state, art strip) and Home's club
+// room (`HomeClubRoom`), so a club keeps one room colour from Home and the invitation to its detail page.
 
 /// The club room's colours. No foundation token carries them (`kuroRoom` is the older neutral
 /// charcoal `#222222`).
@@ -24,6 +23,22 @@ enum ClubRoomPalette {
     static let footerRule = Color(hex: "C5D2B8", opacity: Double(0x1C) / 255)
     /// The room's drop colour (`#10171066`).
     static let drop = Color(hex: "101710", opacity: Double(0x66) / 255)
+    /// The seal's knot (`#d2dacd`).
+    static let sealKnot = Color(hex: "D2DACD")
+    /// Member initials: ink, the rim against the room, and the three positional fills
+    /// (`.member-stack>span:nth-child(1|2|3)`).
+    static let memberInk = Color(hex: "33412E")
+    static let memberRim = Color(hex: "2F3730")
+    static let memberFills: [Color] = [Color(hex: "D0D8CB"), Color(hex: "ADBBA6"), Color(hex: "899A82")]
+    /// The light note card: its border, drop, the time-ago and "{title} ›" inks, and the cover's drop.
+    static let noteBorder = Color.white.opacity(Double(0x88) / 255)
+    static let noteShadow = Color.black.opacity(Double(0x22) / 255)
+    static let noteMeta = Color(hex: "656E65")
+    static let noteLink = Color(hex: "66705D")
+    static let noteArtShadow = Color(hex: "252B26", opacity: Double(0x25) / 255)
+    /// The room's own rows on the dark fill: first line and second line (also the failure copy).
+    static let rowInk = Color(hex: "F1F5ED")
+    static let rowSecondary = Color(hex: "C1CDB7")
     /// The manga leaf's solid key (`--mp-key`), used for the room's primary action.
     static let key = Color(hex: "2B342E")
     static let keyInk = Color(hex: "F8FAF7")
