@@ -29,9 +29,15 @@ enum DiscoverLayout {
         return regularWidth ? min(width, KuroReadableWidth.maxWidth) : width
     }
 
-    /// Columns for an equal-frame grid: as many `minimum`-wide frames as fit, never fewer than 2.
-    static func columnCount(for width: CGFloat, minimum: CGFloat = 150, spacing: CGFloat = frameSpacing) -> Int {
-        guard width > 0, minimum > 0 else { return 2 }
+    /// Columns for an equal-frame grid: as many `minimum`-wide frames as fit, never fewer than 2;
+    /// exactly 2 at accessibility text sizes (rulebook §6), so large titles reflow instead of clipping.
+    static func columnCount(
+        for width: CGFloat,
+        minimum: CGFloat = 150,
+        spacing: CGFloat = frameSpacing,
+        accessibilitySize: Bool = false
+    ) -> Int {
+        guard width > 0, minimum > 0, !accessibilitySize else { return 2 }
         return max(2, Int(((width + spacing) / (minimum + spacing)).rounded(.down)))
     }
 
@@ -513,6 +519,7 @@ struct DiscoverGridSection<Item: MediaDisplayable>: View {
     var showsFilters: Bool = false
 
     @State private var filter: DiscoverRailFilter = .all
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var shown: [Item] {
         items.filter { filter.includes(episodes: $0.episodes, statusRaw: $0.statusRaw) }
@@ -521,7 +528,7 @@ struct DiscoverGridSection<Item: MediaDisplayable>: View {
     var body: some View {
         let gutter = DiscoverLayout.gutter(for: containerWidth)
         let inner = max(0, containerWidth - gutter * 2)
-        let columns = DiscoverLayout.columnCount(for: inner)
+        let columns = DiscoverLayout.columnCount(for: inner, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
         let frameWidth = DiscoverLayout.gridFrameWidth(for: inner, columns: columns)
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             DiscoverSectionHeading(title: title, onSeeAll: onSeeAll)

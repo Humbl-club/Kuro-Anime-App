@@ -186,6 +186,10 @@ struct AiringTodayOrderTests {
         #expect(reads.first?.query("select") == "id,next_airing_at,next_episode_number")
         #expect(discovery.airingSlots[11]?.episode == 4)
         #expect(discovery.airingSlots[12] == nil, "a title without a stated time gets no slot")
+
+        // A new rail day reads again (a long-lived session never keeps yesterday's slots).
+        await discovery.loadAiringSlots(for: [11, 12], now: Date().addingTimeInterval(2 * 24 * 3600))
+        #expect(harness.requests(to: "anime").count == 2)
         await harness.tearDown()
     }
 }

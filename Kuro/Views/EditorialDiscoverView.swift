@@ -712,6 +712,7 @@ private struct DiscoverFullSectionSheet<Item: MediaDisplayable>: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var searchText = ""
 
     private var filtered: [Item] {
@@ -729,7 +730,7 @@ private struct DiscoverFullSectionSheet<Item: MediaDisplayable>: View {
                 let width = DiscoverLayout.contentWidth(container: geo.size.width, regularWidth: horizontalSizeClass == .regular)
                 let gutter = DiscoverLayout.gutter(for: width)
                 let inner = max(0, width - gutter * 2)
-                let columns = DiscoverLayout.columnCount(for: inner)
+                let columns = DiscoverLayout.columnCount(for: inner, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
                 let frameWidth = DiscoverLayout.gridFrameWidth(for: inner, columns: columns)
                 let shown = filtered
 

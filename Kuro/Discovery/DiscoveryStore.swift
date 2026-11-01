@@ -104,6 +104,7 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
         discoverBundleCache.removeAll()
         airingSlots.removeAll()
         airingSlotIdsRead.removeAll()
+        airingSlotsDay = nil
     }
 
     // MARK: - Discover bundle (single call)
@@ -416,8 +417,11 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     /// Stated air times of the "Airing today" titles read this session, by anime id. Public data
     /// (not account-scoped); trimmed under memory pressure.
     private(set) var airingSlots: [Int: DiscoverAiringSlot] = [:]
-    /// Ids already asked for this session (a title without a stated time is not asked again).
+    /// Ids already asked for on `airingSlotsDay` (a title without a stated time is not asked again
+    /// that day).
     @ObservationIgnored private var airingSlotIdsRead: Set<Int> = []
+    /// The rail day (Berlin) the slots were read on; a new day starts a fresh read.
+    @ObservationIgnored private var airingSlotsDay: DateComponents? = nil
 
     private struct AiringRow: Decodable {
         let id: Int
@@ -434,7 +438,15 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     /// Reads the stated next air time of up to 20 rail titles not read yet this session. The bundle
     /// rows carry no time, so the rail can only be ordered by air time from this read. A failure
     /// leaves the ids unread (a later load asks again) and the rail in server order.
-    func loadAiringSlots(for animeIds: [Int]) async {
+    func loadAiringSlots(for animeIds: [Int], now: Date = Date()) async {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = DiscoverAiringOrder.railTimeZone
+        let day = calendar.dateComponents([.year, .month, .day], from: now)
+        if day != airingSlotsDay {
+            airingSlotsDay = day
+            airingSlots.removeAll()
+            airingSlotIdsRead.removeAll()
+        }
         let wanted = Array(animeIds.filter { !airingSlotIdsRead.contains($0) }.prefix(20))
         guard !wanted.isEmpty else { return }
         do {

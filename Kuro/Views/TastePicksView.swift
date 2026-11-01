@@ -12,6 +12,7 @@ struct TastePicksView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @State private var medium: MediaKind = .anime
     @State private var animePicks: [Media] = []
@@ -54,7 +55,7 @@ struct TastePicksView: View {
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
 
-                        let columns = DiscoverLayout.columnCount(for: inner, minimum: 150, spacing: KuroDesignSpacing.md)
+                        let columns = DiscoverLayout.columnCount(for: inner, minimum: 150, spacing: KuroDesignSpacing.md, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
                         let frameWidth = DiscoverLayout.gridFrameWidth(for: inner, columns: columns, spacing: KuroDesignSpacing.md)
                         LazyVGrid(
                             columns: Array(repeating: GridItem(.fixed(frameWidth), spacing: KuroDesignSpacing.md, alignment: .top), count: columns),

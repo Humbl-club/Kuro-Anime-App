@@ -425,10 +425,10 @@ private struct BrowseGridMetrics {
     let columns: Int
     let frameWidth: CGFloat
 
-    init(width: CGFloat) {
+    init(width: CGFloat, accessibilitySize: Bool = false) {
         gutter = DiscoverLayout.gutter(for: width)
         let inner = max(0, width - gutter * 2)
-        columns = DiscoverLayout.columnCount(for: inner)
+        columns = DiscoverLayout.columnCount(for: inner, accessibilitySize: accessibilitySize)
         frameWidth = DiscoverLayout.gridFrameWidth(for: inner, columns: columns)
     }
 
@@ -449,9 +449,10 @@ struct BrowseGridSkeleton: View {
 
 struct BrowsePaginationSkeleton: View {
     let width: CGFloat
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        BrowsePlaceholderGrid(width: width, count: BrowseGridMetrics(width: width).columns * 2)
+        BrowsePlaceholderGrid(width: width, count: BrowseGridMetrics(width: width, accessibilitySize: dynamicTypeSize.isAccessibilitySize).columns * 2)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(KuroLocale.text("Loading more", "Lädt weitere"))
     }
@@ -460,9 +461,10 @@ struct BrowsePaginationSkeleton: View {
 private struct BrowsePlaceholderGrid: View {
     let width: CGFloat
     let count: Int
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        let metrics = BrowseGridMetrics(width: width)
+        let metrics = BrowseGridMetrics(width: width, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
         LazyVGrid(columns: metrics.gridItems, alignment: .leading, spacing: KuroDesignSpacing.lg) {
             ForEach(0..<count, id: \.self) { _ in
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
@@ -488,9 +490,10 @@ struct BrowseGrid: View {
     let items: [any MediaDisplayable]
     let width: CGFloat
     let loadMore: () async -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        let metrics = BrowseGridMetrics(width: width)
+        let metrics = BrowseGridMetrics(width: width, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
         LazyVGrid(columns: metrics.gridItems, alignment: .leading, spacing: KuroDesignSpacing.lg) {
             ForEach(items, id: \.stableKey) { media in
                 DiscoverFrame(media: media, width: metrics.frameWidth)
