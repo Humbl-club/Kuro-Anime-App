@@ -72,7 +72,7 @@ struct ProductionSection: View {
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
                             .background(
-                                Capsule().stroke(Color.black.opacity(0.12), lineWidth: 0.7)
+                                Capsule().stroke(Color.kuroBlack12, lineWidth: 0.7)
                             )
                     }
                     .buttonStyle(.plain)
@@ -209,7 +209,7 @@ struct AllCreditsSheet: View {
                         }
                     }
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.vertical, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)

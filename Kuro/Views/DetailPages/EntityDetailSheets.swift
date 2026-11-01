@@ -186,7 +186,7 @@ struct CharacterDetailSheet: View {
                         sortMode: $sortMode
                     )
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.vertical, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)
@@ -289,7 +289,7 @@ struct StaffDetailSheet: View {
                         sortMode: $sortMode
                     )
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.vertical, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)
@@ -380,7 +380,7 @@ struct AuthorDetailSheet: View {
                         sortMode: $sortMode
                     )
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.vertical, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)
@@ -447,7 +447,7 @@ struct StudioDetailSheet: View {
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
                                 .background(
-                                    Capsule().fill(Color.black.opacity(0.06))
+                                    Capsule().fill(Color.kuroBlack06)
                                 )
                         }
                     }
@@ -464,7 +464,7 @@ struct StudioDetailSheet: View {
                         sortMode: $sortMode
                     )
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.vertical, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)
@@ -509,7 +509,7 @@ struct EntityHeroSection: View {
                 }
                 .frame(width: 120, height: 120)
                 .clipShape(Circle())
-                .overlay(Circle().stroke(Color.black.opacity(0.08), lineWidth: 0.5))
+                .overlay(Circle().stroke(Color.kuroBlack08, lineWidth: 0.5))
             } else {
                 heroPlaceholder
                     .frame(width: 120, height: 120)
@@ -545,7 +545,7 @@ struct EntityHeroSection: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(
-                                    Capsule().fill(Color.black.opacity(0.06))
+                                    Capsule().fill(Color.kuroBlack06)
                                 )
                         }
                     }
@@ -559,11 +559,11 @@ struct EntityHeroSection: View {
 
     private var heroPlaceholder: some View {
         Circle()
-            .fill(Color.black.opacity(0.06))
+            .fill(Color.kuroBlack06)
             .overlay(
                 Image(systemName: "person.fill")
                     .font(.kuroCustom(36, weight: .light, maxSize: 58))
-                    .foregroundColor(.black.opacity(0.2))
+                    .foregroundColor(.kuroBlack20)
             )
     }
 }
@@ -623,7 +623,7 @@ struct EntityWorksRail: View {
                     }
                 }
                 .background(
-                    Capsule().fill(Color.black.opacity(0.04))
+                    Capsule().fill(Color.kuroBlack04)
                 )
             }
 
@@ -640,7 +640,7 @@ struct EntityWorksRail: View {
             } else if items.isEmpty {
                 Text("No works found")
                     .font(.kuroCaption(weight: .light))
-                    .foregroundColor(.black.opacity(0.45))
+                    .foregroundColor(.kuroInkQuiet)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.vertical, KuroSpacing.lg)
             } else {
@@ -689,7 +689,7 @@ struct EntityFilterBar<Option: Hashable & RawRepresentable>: View where Option.R
                             .padding(.vertical, 7)
                             .background(
                                 Capsule()
-                                    .fill(selected == option ? Color.black : Color.black.opacity(0.04))
+                                    .fill(selected == option ? Color.black : Color.kuroBlack04)
                             )
                     }
                     .buttonStyle(.plain)

@@ -225,6 +225,32 @@ nonisolated struct ReleaseCopy {
         return utcCalendar.dateComponents([.year, .month, .day], from: utcDate(date, reading))
     }
 
+    /// How many calendar days the row's day lies after the reader's today (negative: already past),
+    /// read exactly as `calendarDay` reads it. nil for windows and undated rows.
+    func daysFromToday(_ item: ReleaseScheduleItem) -> Int? {
+        guard let parts = calendarDay(item), let year = parts.year, let month = parts.month, let day = parts.day else {
+            return nil
+        }
+        let today = calendar.dateComponents([.year, .month, .day], from: now)
+        guard let todayYear = today.year, let todayMonth = today.month, let todayDay = today.day,
+              let rowNoon = utcCalendar.date(from: DateComponents(year: year, month: month, day: day, hour: 12)),
+              let todayNoon = utcCalendar.date(from: DateComponents(year: todayYear, month: todayMonth, day: todayDay, hour: 12))
+        else { return nil }
+        return utcCalendar.dateComponents([.day], from: todayNoon, to: rowNoon).day
+    }
+
+    /// Whether the row still lies ahead of the reader: an exact time not yet reached, a day not before
+    /// today, or any window. Rows without a date count as ahead (their date is still to come).
+    func isAhead(_ item: ReleaseScheduleItem) -> Bool {
+        guard item.isDisplayable, !item.isPast else { return false }
+        guard let at = item.releaseAt else { return true }
+        switch item.effectivePrecision {
+        case .instant: return at >= now
+        case .day: return (daysFromToday(item) ?? 0) >= 0
+        case .month, .quarter, .year: return true
+        }
+    }
+
     /// A calendar day as a heading: "Today" / "Tomorrow" / "Thu 15 Oct" (capitalized), plus the day
     /// numeral and short month for the date column. nil for incomplete components.
     func dayHeading(_ day: DateComponents) -> (label: String, day: String, month: String)? {

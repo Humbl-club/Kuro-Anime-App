@@ -42,7 +42,7 @@ private struct DetailReleaseLoader: ViewModifier {
 
 /// "Coming up." on a detail page: the next known units with their certainty ("Ep. 8 · Thu 15 Oct,
 /// 18:30", "Vol. 115 · November", "Ch. 1197 · expected around Sun 9 Nov") and their source, then the
-/// last released unit when the source has one. Hidden when nothing is known (never "TBA").
+/// last released unit as a quiet line under them. Hidden when nothing upcoming is known (never "TBA").
 struct DetailNextReleaseSection: View {
     let items: [ReleaseScheduleItem]
 
@@ -59,7 +59,8 @@ struct DetailNextReleaseSection: View {
     }
 
     var body: some View {
-        if !upcoming.isEmpty || lastReleased != nil {
+        // "Coming up." needs something ahead: a last released unit alone never fills the heading.
+        if !upcoming.isEmpty {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
                 KuroSectionHeader(KuroLocale.text("Coming up.", "Demnächst."), size: .title)
                 ForEach(Array(upcoming.enumerated()), id: \.element.id) { index, item in

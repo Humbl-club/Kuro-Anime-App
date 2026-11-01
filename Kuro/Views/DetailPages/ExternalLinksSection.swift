@@ -26,7 +26,7 @@ struct ExternalLinksSection: View {
                 Text("REFERENCE")
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.6)
-                    .foregroundColor(.black.opacity(0.3))
+                    .foregroundColor(.kuroInkQuiet)
 
                 HStack(spacing: 12) {
                     if let url = anilistURL {
@@ -57,15 +57,15 @@ private struct ExternalLinkButton: View {
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.2)
             }
-            .foregroundColor(.black.opacity(0.55))
+            .foregroundColor(.kuroTextSecondary)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.black.opacity(0.04))
+                    .fill(Color.kuroBlack04)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                            .stroke(Color.kuroBlack08, lineWidth: 0.5)
                     )
             )
         }

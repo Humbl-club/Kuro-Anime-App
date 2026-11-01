@@ -265,7 +265,11 @@ struct SeriesAnimeDetailView: View {
         }
     }
 
+    /// "The original story": only when the bundle names a source (an anime original or a title with no
+    /// known source shows nothing, rulebook §9). An unmapped source says where the gap is, in its kind.
+    @ViewBuilder
     private var coverage: some View {
+        if bundle?.coverage != nil {
         VStack(alignment: .leading, spacing: 6) {
             KuroSectionHeader(KuroLocale.text("The original story", "Die Vorlage"), size: .title)
             if let coverage = bundle?.coverage, coverage.mappingState == "exact" || coverage.mappingState == "partial" {
@@ -290,11 +294,12 @@ struct SeriesAnimeDetailView: View {
                     }
                 }
             } else {
-                Text(SeriesCopy.boundaryUnknown)
+                Text(SeriesCopy.boundaryUnknown(sourceKind: bundle?.coverage?.sourceKind))
                     .font(.kuroBody())
                     .foregroundStyle(Color.kuroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+        }
         }
     }
 
@@ -519,7 +524,7 @@ struct SeriesMangaDetailView: View {
         let selected=guides.first { ($0.sectionId ?? "anime:\($0.animeId ?? 0)") == watchedChoice }
         return DisclosureGroup(KuroLocale.text("I've watched the anime", "Ich habe den Anime gesehen")) {
             if guides.isEmpty {
-                Text(SeriesCopy.boundaryUnknown)
+                Text(SeriesCopy.boundaryUnknown(sourceKind: "manga"))
                     .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
@@ -546,7 +551,7 @@ struct SeriesMangaDetailView: View {
                          ? KuroLocale.text("The season ends exactly here.", "Die Staffel endet genau hier.")
                          : (selected.mappingState == "partial"
                             ? KuroLocale.text("Some chapters differ from the anime.", "Einige Kapitel weichen vom Anime ab.")
-                            : SeriesCopy.boundaryUnknown))
+                            : SeriesCopy.boundaryUnknown(sourceKind: "manga")))
                         .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -828,7 +833,9 @@ private struct SeriesBookmark: View {
                     KuroAdvanceKey(style: isManga ? .dark : .light,
                                    phase: needsUnitChoice ? .needsChoice : (caughtUp ? .caughtUp : .advance),
                                    accessibilityText: needsUnitChoice
-                                       ? KuroLocale.text("Choose the next available unit", "Nächste verfügbare Einheit auswählen")
+                                       ? (isManga
+                                          ? KuroLocale.text("Choose the next chapter of \(bundle.header.title)", "Nächstes Kapitel von \(bundle.header.title) auswählen")
+                                          : KuroLocale.text("Choose the next episode of \(bundle.header.title)", "Nächste Folge von \(bundle.header.title) auswählen"))
                                        : (caughtUp ? KuroAdvanceCopy.caughtUpLabel(title: bundle.header.title, german: KuroLocale.isGerman)
                                           : KuroAdvanceCopy.label(medium: isManga ? .manga : .anime, nextUnit: progress + 1,
                                                                   title: bundle.header.title, current: progress, total: cap,
@@ -875,7 +882,8 @@ private struct SeriesBookmark: View {
                         .buttonStyle(HomeContactStyle())
                     }
                 }
-                if let error { Text(error).font(.kuroMeta()).foregroundStyle(Color.kuroInk) }
+                // Inline validation error: the destructive ink (AA on white), never colour alone.
+                if let error { Text(error).font(.kuroMeta()).foregroundStyle(Color.kuroDestructiveInk) }
                 if let status=home.statusMessage { Text(HomeCopy.display(status)).font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary) }
             }
             .padding(.vertical, KuroDesignSpacing.md)
@@ -1176,9 +1184,19 @@ private struct SeriesTrackingAction: View {
 
 /// Series detail copy shared by both pages (rulebook §9: no internal words).
 enum SeriesCopy {
-    static var boundaryUnknown: String {
-        KuroLocale.text("Where the anime ends in the manga isn't known yet.",
-                        "Wo der Anime im Manga endet, ist noch nicht bekannt.")
+    /// Where an anime ends in its source is not mapped yet. Names the source's kind only when known.
+    static func boundaryUnknown(sourceKind: String?) -> String {
+        switch sourceKind?.lowercased() {
+        case "manga":
+            return KuroLocale.text("Where the anime ends in the manga isn't known yet.",
+                                   "Wo der Anime im Manga endet, ist noch nicht bekannt.")
+        case "novel":
+            return KuroLocale.text("Where the anime ends in the novel isn't known yet.",
+                                   "Wo der Anime im Roman endet, ist noch nicht bekannt.")
+        default:
+            return KuroLocale.text("Where the anime ends in its source isn't known yet.",
+                                   "Wo der Anime in seiner Vorlage endet, ist noch nicht bekannt.")
+        }
     }
 
     /// "Episode 7 of 25" / "Kapitel 24".

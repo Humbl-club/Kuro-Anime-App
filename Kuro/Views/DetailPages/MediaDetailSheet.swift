@@ -48,7 +48,10 @@ struct AnimeDetailLoaderView: View {
             failure = nil
             let perf = KuroPerf.begin("detail.anime")
             do {
-                if let loaded = try await catalog.fetchAnimeById(animeId) {
+                let loaded = try await catalog.fetchAnimeById(animeId)
+                // A retry or dismissal cancelled this load: the newer task (or nobody) owns the state.
+                guard !Task.isCancelled else { KuroPerf.end(perf, message: "cancelled"); return }
+                if let loaded {
                     anime = loaded
                     KuroPerf.end(perf, message: "ok")
                 } else {
@@ -56,6 +59,10 @@ struct AnimeDetailLoaderView: View {
                     KuroPerf.end(perf, message: "missing")
                 }
             } catch {
+                guard !Task.isCancelled, !DetailLoadFailure.isCancellation(error) else {
+                    KuroPerf.end(perf, message: "cancelled")
+                    return
+                }
                 failure = DetailLoadFailure(error)
                 KuroPerf.end(perf, message: "error")
             }
@@ -87,7 +94,10 @@ struct MangaDetailLoaderView: View {
             failure = nil
             let perf = KuroPerf.begin("detail.manga")
             do {
-                if let loaded = try await catalog.fetchMangaById(mangaId) {
+                let loaded = try await catalog.fetchMangaById(mangaId)
+                // A retry or dismissal cancelled this load: the newer task (or nobody) owns the state.
+                guard !Task.isCancelled else { KuroPerf.end(perf, message: "cancelled"); return }
+                if let loaded {
                     manga = loaded
                     KuroPerf.end(perf, message: "ok")
                 } else {
@@ -95,6 +105,10 @@ struct MangaDetailLoaderView: View {
                     KuroPerf.end(perf, message: "missing")
                 }
             } catch {
+                guard !Task.isCancelled, !DetailLoadFailure.isCancellation(error) else {
+                    KuroPerf.end(perf, message: "cancelled")
+                    return
+                }
                 failure = DetailLoadFailure(error)
                 KuroPerf.end(perf, message: "error")
             }
@@ -115,6 +129,12 @@ enum DetailLoadFailure: Equatable {
         } else {
             self = .failed
         }
+    }
+
+    /// A cancelled load (task cancellation or a cancelled URL request) is not a failure.
+    static func isCancellation(_ error: any Error) -> Bool {
+        if error is CancellationError { return true }
+        return (error as? URLError)?.code == .cancelled
     }
 
     var kind: KuroStateView.Kind {

@@ -109,7 +109,7 @@ struct AnimeDetailView: View {
                         }
 
                         if !topTags.isEmpty {
-                            TagChipsSection(title: "SUB‑GENRES", tags: topTags.map(\.name))
+                            TagChipsSection(title: KuroLocale.text("SUB‑GENRES", "UNTERGENRES"), tags: topTags.map(\.name))
                         }
 
                         if flags.isCreditsCastV1Enabled {
@@ -137,7 +137,7 @@ struct AnimeDetailView: View {
                             EpisodesSection(
                                 anime: anime,
                                 episodeCount: episodeCount,
-                                countLabel: anime.episodeCount == nil ? "SO FAR" : "TOTAL",
+                                countLabel: anime.episodeCount == nil ? KuroLocale.text("SO FAR", "BISHER") : KuroLocale.text("TOTAL", "INSGESAMT"),
                                 onError: showToast
                             )
                         }
@@ -154,7 +154,7 @@ struct AnimeDetailView: View {
                         }
 
                         if !similar.isEmpty {
-                            SimilarSection(title: "MORE LIKE THIS", items: similar, containerWidth: geometry.size.width)
+                            SimilarSection(title: KuroLocale.text("MORE LIKE THIS", "ÄHNLICHE TITEL"), items: similar, containerWidth: geometry.size.width)
                         }
 
                         ClubActivitySection(mediaId: anime.id, mediaType: "ANIME")
@@ -172,7 +172,7 @@ struct AnimeDetailView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "square.and.arrow.up")
                                         .font(.kuroCustom(11, weight: .medium, maxSize: 18))
-                                    Text("SHARE")
+                                    Text(KuroLocale.text("SHARE", "TEILEN"))
                                         .font(.kuroMicro(weight: .medium))
                                         .tracking(1.2)
                                 }
@@ -181,10 +181,10 @@ struct AnimeDetailView: View {
                                 .padding(.vertical, 10)
                                 .background(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color.black.opacity(0.04))
+                                        .fill(Color.kuroBlack04)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                                                .stroke(Color.kuroBlack08, lineWidth: 0.5)
                                         )
                                 )
                             }
@@ -193,7 +193,7 @@ struct AnimeDetailView: View {
                         }
 
                     }
-                    .padding(.horizontal, ResponsiveLayout.padding())
+                    .padding(.horizontal, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
                     .padding(.top, KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width))
                     .padding(.bottom, KuroDesignSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width))
                 }
@@ -209,11 +209,11 @@ struct AnimeDetailView: View {
                 // Custom Back Button
                 BackButton(dismiss: dismiss)
                     .padding(.top, safeTop + KuroSpacing.md)
-                    .padding(.leading, ResponsiveLayout.padding())
+                    .padding(.leading, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
             }
             .safeAreaInset(edge: .bottom) {
                 ActionButtons(anime: anime, onToast: showToast)
-                    .padding(.horizontal, ResponsiveLayout.padding())
+                    .padding(.horizontal, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
                     .padding(.top, 10)
                     .padding(.bottom, 10)
                     .background(
@@ -221,7 +221,7 @@ struct AnimeDetailView: View {
                             .fill(Color.kuroBackground.opacity(0.92))
                             .overlay(
                                 Rectangle()
-                                    .fill(Color.black.opacity(0.08))
+                                    .fill(Color.kuroBlack08)
                                     .frame(height: 0.5),
                                 alignment: .top
                             )
@@ -336,41 +336,12 @@ struct AnimeDetailView: View {
     }
 }
 
-/// The anime's own next airing (catalogue row), used by the episode preview before any episode rows
-/// load. Only a future airing time counts: an episode number is never guessed from a past time.
-private struct AnimeUpcomingEpisodeDisplay {
-    let number: Int
-    let airingAt: Date
-
-    private func relative(_ style: RelativeDateTimeFormatter.UnitsStyle) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = style
-        formatter.locale = KuroLocale.locale
-        return formatter.localizedString(for: airingAt, relativeTo: Date())
-    }
-
-    var sectionLine: String {
-        KuroLocale.text("Next airing: episode \(number).", "Als Nächstes: Folge \(number).")
-    }
-
-    var fallbackTitle: String {
-        KuroLocale.text("Next airing episode", "Nächste Folge")
-    }
-
-    var fallbackBadge: String {
-        KuroLocale.text("SCHEDULED", "GEPLANT")
-    }
-
-    var fallbackSubtitle: String {
-        relative(.full)
-    }
-}
-
 private extension Anime {
-    var effectiveUpcomingEpisodeDisplay: AnimeUpcomingEpisodeDisplay? {
-        guard let rawNextEpisode = nextEpisodeNumber, rawNextEpisode > 0,
-              let nextAiringAt, nextAiringAt > Date() else { return nil }
-        return AnimeUpcomingEpisodeDisplay(number: rawNextEpisode, airingAt: nextAiringAt)
+    /// A future airing time with its episode number. The page's "Coming up." block shows it (one
+    /// presentation of next airing, `KuroReleaseLine`); the episode list only stays quiet about it.
+    var hasFutureAiring: Bool {
+        guard let number = nextEpisodeNumber, number > 0, let nextAiringAt else { return false }
+        return nextAiringAt > Date()
     }
 }
 
@@ -395,7 +366,7 @@ struct MetaLineSection: View {
 
     var body: some View {
         let parts: [String] = [
-            scoreText.map { "SCORE \($0)" },
+            scoreText.map { KuroLocale.text("SCORE \($0)", "WERTUNG \($0)") },
             anime.displayYear.isEmpty ? nil : anime.displayYear,
             anime.format?.uppercased(),
             episodeText,
@@ -475,7 +446,7 @@ struct NextPickSection: View {
     var body: some View {
         if let anime = pick {
             VStack(alignment: .leading, spacing: KuroSpacing.md) {
-                Text("NEXT")
+                Text(KuroLocale.text("NEXT", "ALS NÄCHSTES"))
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.6)
                     .foregroundColor(.kuroBlack80)
@@ -519,12 +490,12 @@ struct NextPickSection: View {
 
                         Image(systemName: "chevron.right")
                             .font(.kuroCustom(12, weight: .medium, maxSize: 19))
-                            .foregroundColor(.kuroBlack30)
+                            .foregroundColor(.kuroInkQuiet)
                     }
                     .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+                            .stroke(Color.kuroBlack08, lineWidth: 0.8)
                     )
                 }
                 .buttonStyle(.plain)
@@ -544,7 +515,8 @@ struct HeroSection: View {
     @Binding var scrollOffset: CGFloat
     
     var body: some View {
-        let baseHeight = ResponsiveLayout.imageHeight(320)
+        // From the measured container (never the screen): about 320 pt on a 375 pt phone, capped on iPad.
+        let baseHeight = min(max(geometry.size.width * 0.85, 224), 480, max(geometry.size.height * 0.6, 224))
         let stretch = max(scrollOffset, 0)
         let parallax = min(scrollOffset, 0) * 0.32
 
@@ -594,13 +566,13 @@ struct HeroSection: View {
                         .stroke(Color.white.opacity(0.65), lineWidth: 0.6)
                         .blendMode(.overlay)
                 )
-                .shadow(color: Color.black.opacity(0.22), radius: 18, x: 0, y: 12)
+                .shadow(color: Color.kuroBlack20, radius: 18, x: 0, y: 12)
 
                 Spacer(minLength: 0)
 
                 KuroStyle.mediaBadge("ANIME", isAnime: true)
             }
-            .padding(.horizontal, ResponsiveLayout.padding())
+            .padding(.horizontal, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
             .padding(.bottom, 16)
         }
         .frame(height: baseHeight)
@@ -638,7 +610,7 @@ struct TitleSection: View {
                 
                 if let format = anime.format {
                     Text("•")
-                        .foregroundColor(.kuroBlack30)
+                        .foregroundColor(.kuroInkQuiet)
                     Text(format)
                         .font(.kuroMicro(weight: .light))
                         .tracking(1.0)
@@ -684,8 +656,8 @@ struct EpisodesSection: View {
         if shouldUseProgress {
             return max(1, userProgress + 1)
         }
-        if let releasePreview = anime.effectiveUpcomingEpisodeDisplay {
-            return releasePreview.number
+        if anime.hasFutureAiring, let upcoming = anime.nextEpisodeNumber {
+            return upcoming
         }
         return 1
     }
@@ -694,18 +666,10 @@ struct EpisodesSection: View {
         !episodes.isEmpty
     }
 
-    private var fallbackPreview: AnimeUpcomingEpisodeDisplay? {
-        guard episodes.isEmpty, !shouldUseProgress else { return nil }
-        return anime.effectiveUpcomingEpisodeDisplay
-    }
-
     private var progressLine: String? {
         if shouldUseProgress {
             guard hasEpisodePreview else { return nil }
-            return "Continue with episode \(nextEpisodeNumber)."
-        }
-        if let releasePreview = anime.effectiveUpcomingEpisodeDisplay {
-            return releasePreview.sectionLine
+            return KuroLocale.text("Continue with episode \(nextEpisodeNumber).", "Weiter mit Folge \(nextEpisodeNumber).")
         }
         return nil
     }
@@ -714,7 +678,7 @@ struct EpisodesSection: View {
         let origin = progressActionScope.capture(session: libraryActions.accountSession)
         return VStack(alignment: .leading, spacing: KuroSpacing.md) {
             HStack {
-                Text("EPISODES")
+                Text(KuroLocale.text("EPISODES", "FOLGEN"))
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.5)
                     .foregroundColor(.kuroBlack80)
@@ -740,11 +704,12 @@ struct EpisodesSection: View {
                     ForEach(0..<3, id: \.self) { _ in
                         EpisodeSkeletonRow()
                     }
-                } else if let fallbackPreview {
-                    EpisodePreviewFallbackRow(preview: fallbackPreview)
+                } else if episodes.isEmpty && anime.hasFutureAiring && !shouldUseProgress {
+                    // Next airing is shown once, in "Coming up." above (no second date format here).
+                    EmptyView()
                 } else if episodes.isEmpty {
                     HStack {
-                        Text("Episode data coming soon")
+                        Text(KuroLocale.text("Episode data coming soon", "Folgendaten folgen bald"))
                             .font(.kuroMicro(weight: .light))
                             .foregroundColor(.kuroBlack60)
                         Spacer()
@@ -771,8 +736,8 @@ struct EpisodesSection: View {
                         showAllEpisodes = true
                     }) {
                         DetailSectionUtilityButton(
-                            title: "VIEW ALL \(episodeCount) EPISODES",
-                            subtitle: "Browse the full release list"
+                            title: KuroLocale.text("VIEW ALL \(episodeCount) EPISODES", "ALLE \(episodeCount) FOLGEN"),
+                            subtitle: KuroLocale.text("Browse the full release list", "Die ganze Liste durchsehen")
                         )
                     }
                 }
@@ -821,8 +786,8 @@ struct EpisodesSection: View {
             onError?(
                 KuroToastState(
                     kind: .info,
-                    title: "No legal stream link yet",
-                    subtitle: "This episode does not have a verified legal provider.",
+                    title: KuroLocale.text("No legal stream link yet", "Noch kein legaler Stream-Link"),
+                    subtitle: KuroLocale.text("This episode does not have a verified legal provider.", "Für diese Folge gibt es noch keinen geprüften legalen Anbieter."),
                     actionTitle: nil,
                     onAction: nil
                 )
@@ -839,7 +804,7 @@ struct EpisodesSection: View {
             guard progressActionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             if outcome.error != nil {
                 KuroAccessibility.errorHaptic()
-                onError?(KuroToastState(kind: .error, title: "Update failed", subtitle: "Could not mark episode \(ep.number).", actionTitle: nil, onAction: nil))
+                onError?(KuroToastState(kind: .error, title: KuroLocale.text("Update failed", "Nicht gespeichert"), subtitle: KuroLocale.text("Could not mark episode \(ep.number).", "Folge \(ep.number) konnte nicht markiert werden."), actionTitle: nil, onAction: nil))
                 #if DEBUG
                 print("markWatched failed for episode \(ep.number): \(outcome)")
                 #endif
@@ -860,7 +825,7 @@ struct EpisodeItemRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("EP \(episode.number)".uppercased())
+                Text(KuroLocale.text("EP \(episode.number)", "F. \(episode.number)").uppercased())
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.0)
                     .foregroundColor(.kuroBlack80)
@@ -878,7 +843,7 @@ struct EpisodeItemRow: View {
                 }
 
                 HStack(spacing: 6) {
-                    Text(hasOpenLink ? "WATCH READY" : "LINK PENDING")
+                    Text(hasOpenLink ? KuroLocale.text("WATCH READY", "ANSEHEN") : KuroLocale.text("LINK PENDING", "LINK FOLGT"))
                         .font(.kuroMicro(weight: .medium))
                         .tracking(0.8)
                         .foregroundColor(hasOpenLink ? .kuroBlack80 : .kuroBlack60)
@@ -908,14 +873,17 @@ struct EpisodeItemRow: View {
                     Image(systemName: "plus.circle")
                         .font(.kuroCustom(16, weight: .regular, maxSize: 26))
                         .foregroundColor(.kuroBlack80)
+                        // 44 pt target (rulebook §8); the row's own tap opens the link.
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Mark watched")
+                .accessibilityLabel(KuroLocale.text("Mark watched", "Als gesehen markieren"))
             }
 
             Image(systemName: "chevron.right")
                 .font(.kuroMicro())
-                .foregroundColor(.kuroBlack30)
+                .foregroundColor(.kuroInkQuiet)
         }
         .padding(KuroSpacing.md)
         .background(Color.kuroBlack08)
@@ -927,9 +895,9 @@ struct EpisodeItemRow: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityValue(accessibilityValueText())
-        .accessibilityHint(hasOpenLink ? "Opens episode" : "Legal stream link not available yet")
+        .accessibilityHint(hasOpenLink ? KuroLocale.text("Opens episode", "Öffnet die Folge") : KuroLocale.text("Legal stream link not available yet", "Noch kein legaler Stream-Link"))
         .accessibilityAction { if hasOpenLink { onOpen() } }
-        .accessibilityAction(named: "Mark watched") {
+        .accessibilityAction(named: Text(KuroLocale.text("Mark watched", "Als gesehen markieren"))) {
             if !isWatched && !isMarking { onMarkWatched() }
         }
     }
@@ -946,8 +914,8 @@ struct EpisodeItemRow: View {
     }
 
     private func accessibilityValueText() -> Text {
-        if isMarking { return Text("Updating") }
-        return Text(isWatched ? "Watched" : "Not watched")
+        if isMarking { return Text(KuroLocale.text("Updating", "Wird gespeichert")) }
+        return Text(isWatched ? KuroLocale.text("Watched", "Gesehen") : KuroLocale.text("Not watched", "Nicht gesehen"))
     }
 }
 
@@ -968,51 +936,6 @@ struct EpisodeSkeletonRow: View {
         .cornerRadius(KuroRadius.sm)
         .redacted(reason: .placeholder)
         .accessibilityHidden(true)
-    }
-}
-
-private struct EpisodePreviewFallbackRow: View {
-    let preview: AnimeUpcomingEpisodeDisplay
-
-    var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("EP \(preview.number)")
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(1.0)
-                    .foregroundColor(.kuroBlack80)
-
-                Text(preview.fallbackTitle)
-                    .font(.kuroMicro(weight: .light))
-                    .foregroundColor(.kuroBlack60)
-                    .lineLimit(1)
-
-                HStack(spacing: 6) {
-                    Text(preview.fallbackBadge)
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(0.8)
-                        .foregroundColor(.kuroBlack80)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule()
-                                .fill(Color.kuroBlack05)
-                        )
-                }
-            }
-
-            Spacer(minLength: 0)
-
-            Text(preview.fallbackSubtitle)
-                .font(.kuroMicro(weight: .light))
-                .foregroundColor(.kuroBlack60)
-                .multilineTextAlignment(.trailing)
-                .frame(maxWidth: 120, alignment: .trailing)
-        }
-        .padding(KuroSpacing.md)
-        .background(Color.kuroBlack08)
-        .cornerRadius(KuroRadius.sm)
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -1048,13 +971,13 @@ struct EpisodeListSheet: View {
                 VStack(spacing: KuroSpacing.sm) {
                     if hasLoadedOnce && episodes.isEmpty && !isLoading {
                         VStack(spacing: 10) {
-                            Text("NO EPISODES FOUND")
+                            Text(KuroLocale.text("NO EPISODES FOUND", "KEINE FOLGEN GEFUNDEN"))
                                 .font(.kuroMicro(weight: .medium))
                                 .tracking(1.2)
                                 .foregroundColor(.kuroBlack60)
-                            Text("Episode data may still be importing.")
+                            Text(KuroLocale.text("Episode data may still be importing.", "Die Folgendaten werden vielleicht noch importiert."))
                                 .font(.kuroMicro(weight: .light))
-                                .foregroundColor(.kuroBlack30)
+                                .foregroundColor(.kuroInkQuiet)
                         }
                         .padding(.vertical, 32)
                     }
@@ -1080,7 +1003,7 @@ struct EpisodeListSheet: View {
                             .padding(.vertical, 16)
                     }
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.top, KuroSpacing.md)
                 .padding(.bottom, KuroSpacing.xl)
             }
@@ -1177,8 +1100,8 @@ struct EpisodeListSheet: View {
             showToast(
                 KuroToastState(
                     kind: .info,
-                    title: "No legal stream link yet",
-                    subtitle: "This episode does not have a verified legal provider.",
+                    title: KuroLocale.text("No legal stream link yet", "Noch kein legaler Stream-Link"),
+                    subtitle: KuroLocale.text("This episode does not have a verified legal provider.", "Für diese Folge gibt es noch keinen geprüften legalen Anbieter."),
                     actionTitle: nil,
                     onAction: nil
                 )
@@ -1195,7 +1118,7 @@ struct EpisodeListSheet: View {
             guard progressActionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             if outcome.error != nil {
                 KuroAccessibility.errorHaptic()
-                showToast(KuroToastState(kind: .error, title: "Update failed", subtitle: "Could not mark episode \(ep.number).", actionTitle: nil, onAction: nil))
+                showToast(KuroToastState(kind: .error, title: KuroLocale.text("Update failed", "Nicht gespeichert"), subtitle: KuroLocale.text("Could not mark episode \(ep.number).", "Folge \(ep.number) konnte nicht markiert werden."), actionTitle: nil, onAction: nil))
                 #if DEBUG
                 print("markWatched failed for episode \(ep.number): \(outcome)")
                 #endif
@@ -1224,7 +1147,7 @@ struct ActionButtons: View {
     @State private var watchAvailabilityStatusCaption: String? = nil
 
     private var isGermanLocale: Bool {
-        Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
+        KuroLocale.isGerman
     }
 
     private var isSaved: Bool {
@@ -1252,8 +1175,8 @@ struct ActionButtons: View {
             return note
         }
         return hasWatchLink
-            ? (isGermanLocale ? "Rechtlich verfuegbaren Link oeffnen." : "Open legal provider link.")
-            : (isGermanLocale ? "Noch kein legaler Link verfuegbar." : "No legal provider link is available yet.")
+            ? (isGermanLocale ? "Rechtlich verfügbaren Link öffnen." : "Open legal provider link.")
+            : (isGermanLocale ? "Noch kein legaler Link verfügbar." : "No legal provider link is available yet.")
     }
 
     var body: some View {
@@ -1264,12 +1187,12 @@ struct ActionButtons: View {
                     Image(systemName: isSaved ? "heart.fill" : "heart")
                         .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
                         .foregroundColor(.kuroBlack)
-                        .frame(width: 38, height: 38)
+                        .frame(width: 44, height: 44)
                         .background(Color.kuroBlack08)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(isSaved ? "Saved" : "Save")
+                .accessibilityLabel(isSaved ? KuroLocale.text("Saved", "Gemerkt") : KuroLocale.text("Save", "Merken"))
 
                 Button {
                     KuroAccessibility.impactHaptic(.medium)
@@ -1278,12 +1201,12 @@ struct ActionButtons: View {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
                             .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
-                        Text(isSaved ? "EDIT LIST" : "ADD TO LIST")
+                        Text(isSaved ? KuroLocale.text("EDIT LIST", "LISTE BEARBEITEN") : KuroLocale.text("ADD TO LIST", "ZUR LISTE"))
                             .font(.kuroMicro(weight: .medium))
                             .tracking(1.1)
                     }
                     .foregroundColor(.kuroWhite)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 44)
                     .padding(.vertical, 12)
                     .background(Color.kuroBlack)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -1305,6 +1228,7 @@ struct ActionButtons: View {
                     .foregroundColor(.kuroBlack70)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 10)
+                    .frame(minHeight: 44)
                     .background(
                         Capsule(style: .continuous)
                             .fill(Color.kuroBlack06)
@@ -1315,21 +1239,21 @@ struct ActionButtons: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(userEntry?.verdict == nil ? "Set verdict" : "Edit verdict")
+                .accessibilityLabel(userEntry?.verdict == nil ? KuroLocale.text("Set verdict", "Urteil festlegen") : KuroLocale.text("Edit verdict", "Urteil bearbeiten"))
 
                 Button(action: handleWatchAction) {
                     Image(systemName: hasWatchLink ? "play.fill" : "play.slash")
                         .font(.kuroCustom(13, weight: .semibold, maxSize: 21))
                         .foregroundColor(hasWatchLink ? .kuroBlack : .kuroBlack30)
-                        .frame(width: 38, height: 38)
+                        .frame(width: 44, height: 44)
                         .background(Color.kuroBlack08)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(
                     hasWatchLink
-                        ? (allLinks.count > 1 ? "Choose watch provider" : "Open watch provider")
-                        : "No legal watch link available"
+                        ? (allLinks.count > 1 ? KuroLocale.text("Choose watch provider", "Anbieter zum Ansehen wählen") : KuroLocale.text("Open watch provider", "Anbieter zum Ansehen öffnen"))
+                        : KuroLocale.text("No legal watch link available", "Kein legaler Link zum Ansehen verfügbar")
                 )
             }
 
@@ -1344,7 +1268,7 @@ struct ActionButtons: View {
                 .fill(Color.kuroBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.8)
+                        .strokeBorder(Color.kuroBlack08, lineWidth: 0.8)
                 )
         )
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
@@ -1357,7 +1281,7 @@ struct ActionButtons: View {
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(
-                title: "Watch On",
+                title: KuroLocale.text("Watch On", "Ansehen bei"),
                 links: allLinks,
                 statusCaption: watchAvailabilityStatusCaption
             ) { link in
@@ -1366,7 +1290,7 @@ struct ActionButtons: View {
                     outboundLinks.recordOutboundLink(mediaType: "ANIME", mediaId: anime.id, linkKind: "provider_sheet", provider: link.title)
                     openURL(url)
                 } else {
-                    onToast(.init(kind: .error, title: "Couldn’t open link", subtitle: "Try a different provider.", actionTitle: nil, onAction: nil))
+                    onToast(.init(kind: .error, title: KuroLocale.text("Couldn’t open link", "Link konnte nicht geöffnet werden"), subtitle: KuroLocale.text("Try a different provider.", "Versuch einen anderen Anbieter."), actionTitle: nil, onAction: nil))
                 }
             }
         }
@@ -1389,8 +1313,8 @@ struct ActionButtons: View {
                     onToast(
                         .init(
                             kind: .success,
-                            title: currentlySaved ? "Removed" : "Saved",
-                            subtitle: currentlySaved ? "Removed from your list" : "Added to Planning",
+                            title: currentlySaved ? KuroLocale.text("Removed", "Entfernt") : KuroLocale.text("Saved", "Gemerkt"),
+                            subtitle: currentlySaved ? KuroLocale.text("Removed from your list", "Aus deiner Liste entfernt") : KuroLocale.text("Added to Planning", "Zu „Geplant“ hinzugefügt"),
                             actionTitle: nil,
                             onAction: nil
                         )
@@ -1400,7 +1324,7 @@ struct ActionButtons: View {
                     onToast(
                         .init(
                             kind: .error,
-                            title: "Couldn't save",
+                            title: KuroLocale.text("Couldn't save", "Nicht gespeichert"),
                             subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: false) },
                             actionTitle: nil,
                             onAction: nil
@@ -1417,8 +1341,8 @@ struct ActionButtons: View {
             onToast(
                 .init(
                     kind: .info,
-                    title: "Link coming soon",
-                    subtitle: "No legal provider link is available yet.",
+                    title: KuroLocale.text("Link coming soon", "Link folgt bald"),
+                    subtitle: KuroLocale.text("No legal provider link is available yet.", "Noch kein legaler Anbieter-Link verfügbar."),
                     actionTitle: nil,
                     onAction: nil
                 )

@@ -33,7 +33,9 @@ enum HomeCalendarPresentation {
         var dayKeys: [String: (index: Int, sort: Int)] = [:]
         var later: [ReleaseScheduleItem] = []
         var undated: [ReleaseScheduleItem] = []
-        for item in items where item.isDisplayable && !item.isPast {
+        // Only rows still ahead of the reader: an aired instant or a day before today never reads as
+        // an upcoming calendar day (a stale fallback row can carry a past time).
+        for item in items where copy.isAhead(item) {
             guard item.releaseAt != nil else { undated.append(item); continue }
             guard let parts = copy.calendarDay(item),
                   let year = parts.year, let month = parts.month, let day = parts.day else {
@@ -66,25 +68,30 @@ enum HomeCalendarPresentation {
     }
 
     /// The Coming up glance (rulebook §14.1): how many dated releases fall in the next seven days.
-    static func countThisWeek(_ items: [ReleaseScheduleItem], now: Date) -> Int {
-        let end = now.addingTimeInterval(7 * 86_400)
-        let startOfToday = Calendar.current.startOfDay(for: now)
+    /// Exact times count from now; day-precision rows count from the reader's today (the release line's
+    /// own day reading, in `KuroLocale`'s calendar), so something that aired yesterday never counts.
+    static func countThisWeek(_ items: [ReleaseScheduleItem], copy: ReleaseCopy) -> Int {
+        let end = copy.now.addingTimeInterval(7 * 86_400)
         return items.filter { item in
-            guard item.isDisplayable, !item.isPast, let at = item.releaseAt else { return false }
+            guard copy.isAhead(item), let at = item.releaseAt else { return false }
             switch item.effectivePrecision {
-            case .instant, .day: return at >= startOfToday.addingTimeInterval(-86_400) && at < end
+            case .instant: return at < end
+            case .day: return (copy.daysFromToday(item) ?? 7) < 7
             case .month, .quarter, .year: return false
             }
         }.count
     }
 
-    /// The glance's status line: "3 this week" / "Dates still to come" / "Nothing scheduled".
-    static func glanceCaption(items: [ReleaseScheduleItem], now: Date, german: Bool) -> String {
-        let week = countThisWeek(items, now: now)
+    /// The glance's status line: "3 this week" / "Dates still to come" / "Nothing scheduled". With no
+    /// rows while offline (or before an answer settled) it never claims "Nothing scheduled" (§9).
+    static func glanceCaption(items: [ReleaseScheduleItem], copy: ReleaseCopy, offline: Bool = false) -> String {
+        let german = copy.german
+        let week = countThisWeek(items, copy: copy)
         if week > 0 { return german ? "\(week) diese Woche" : "\(week) this week" }
-        if items.contains(where: { $0.isDisplayable && !$0.isPast }) {
+        if items.contains(where: copy.isAhead) {
             return german ? "Termine folgen" : "Dates still to come"
         }
+        if offline { return german ? "Offline. Termine laden, wenn du verbunden bist" : "Offline. Dates load when you connect" }
         return german ? "Nichts angekündigt" : "Nothing scheduled"
     }
 }

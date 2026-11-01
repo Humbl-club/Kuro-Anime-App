@@ -18,7 +18,9 @@ struct HomeShelfPartition: Equatable {
     var inProgress: [HomeCard] = []
     /// Planned: a quiet row that opens the title.
     var planned: [HomeCard] = []
-    /// Anything else the server sends (paused): the same quiet row.
+    /// Paused: the same quiet row, labelled as paused.
+    var paused: [HomeCard] = []
+    /// Anything else the server sends: the same quiet row.
     var saved: [HomeCard] = []
 }
 
@@ -60,11 +62,38 @@ enum HomeShelfPolicy {
                 result.inProgress.append(card)
             } else if card.listType.uppercased() == "PLANNING" {
                 result.planned.append(card)
+            } else if isPaused(listType: card.listType) {
+                result.paused.append(card)
             } else {
                 result.saved.append(card)
             }
         }
         return result
+    }
+
+    /// Paused / on hold.
+    static func isPaused(listType: String) -> Bool {
+        switch listType.uppercased() {
+        case "PAUSED", "ON_HOLD":
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Pages `home_bundle_v1` returns per call. The Home page holds titles in progress and planned
+    /// titles mixed, most recently updated first, so after an import page 1 can hold only planned ones.
+    static let maxInProgressPages = 3
+
+    /// Whether Home should fetch the next page by itself to find a title in progress: the Library
+    /// says one exists in this medium (`scene == .inProgress`), none is loaded yet, more pages exist,
+    /// and fewer than `maxInProgressPages` extra pages were already fetched for this shelf.
+    static func shouldPageForInProgress(partition: HomeShelfPartition, scene: HomeShelfScene,
+                                        nextCursor: String?, pagesFetched: Int) -> Bool {
+        partition.inProgress.isEmpty
+            && scene == .inProgress
+            && nextCursor?.isEmpty == false
+            && pagesFetched < maxInProgressPages
     }
 
     /// The card whose art may stand for the shelf (the medium word's picture): the first title in

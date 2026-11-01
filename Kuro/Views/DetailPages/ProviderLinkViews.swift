@@ -54,7 +54,7 @@ struct ProviderSelectionSheet: View {
                         }
                     }
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.top, KuroSpacing.md)
                 .padding(.bottom, KuroSpacing.xl)
             }
@@ -107,7 +107,7 @@ private struct ProviderSelectionExplainerCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.kuroCustom(10, weight: .semibold, maxSize: 16))
-                        .foregroundColor(.kuroBlack30)
+                        .foregroundColor(.kuroInkQuiet)
                     Text(statusCaption)
                         .font(.kuroMicro(weight: .medium))
                         .foregroundColor(.kuroBlack60)
@@ -169,7 +169,7 @@ private struct ProviderSelectionLinkCard: View {
             VStack(spacing: 6) {
                 Image(systemName: "arrow.up.right")
                     .font(.kuroCustom(12, weight: .semibold, maxSize: 19))
-                    .foregroundColor(.kuroBlack30)
+                    .foregroundColor(.kuroInkQuiet)
                 Text("OPEN")
                     .font(.kuroMicro(weight: .medium))
                     .tracking(0.8)

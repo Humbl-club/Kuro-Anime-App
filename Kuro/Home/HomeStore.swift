@@ -559,7 +559,7 @@ final class HomeStore: AccountScopedState {
             if accountSession.isCurrent(account) { statusMessage = nil }
         } catch {
             if accountSession.isCurrent(account) {
-                statusMessage = (error as? LibraryError).map(LibraryActions.libraryErrorDescription) ?? HomeCopy.progressNotSaved
+                statusMessage = (error as? LibraryError).map(HomeCopy.libraryError) ?? HomeCopy.progressNotSaved
             }
         }
     }
@@ -689,8 +689,8 @@ enum HomeCopy {
     }
     static func chooseNextUnit(medium: String) -> String {
         medium == "manga"
-            ? KuroLocale.text("Choose the next chapter on its page.", "Wähle das nächste Kapitel auf seiner Seite.")
-            : KuroLocale.text("Choose the next episode on its page.", "Wähle die nächste Folge auf ihrer Seite.")
+            ? KuroLocale.text("Choose the next chapter on its page.", "Wähle das nächste Kapitel auf der Seite des Titels.")
+            : KuroLocale.text("Choose the next episode on its page.", "Wähle die nächste Folge auf der Seite des Titels.")
     }
 
     /// The raw Library progress message the Undo control keys on (`KuroLibrary/LibraryProgress.swift`).
@@ -705,7 +705,41 @@ enum HomeCopy {
         case "That progress needs another look.":
             return KuroLocale.text("That progress needs another look.", "Dieser Fortschritt braucht einen zweiten Blick.")
         default:
+            // Home's own status lines are already EN/DE and pass through unchanged. Library's state
+            // message is only ever one of the two cases above (`KuroLibrary/LibraryProgress.swift`).
             return raw
+        }
+    }
+
+    /// The message a Library `retryable`/`unavailable` error carries, as EN/DE copy. Wording Home does
+    /// not know (for example the internal "Incomplete progress receipts") never reaches the reader.
+    static func libraryMessage(_ raw: String) -> String {
+        switch raw {
+        case "That save is already on its way.":
+            return KuroLocale.text("That save is already on its way.", "Diese Speicherung ist schon unterwegs.")
+        case "Progress sync is paused.":
+            return KuroLocale.text("Progress sync is paused.", "Der Fortschrittsabgleich ist pausiert.")
+        case "This title is being changed by an import. Try again after Apply or Undo finishes.":
+            return KuroLocale.text("An import is changing this title. Try again when it's done.",
+                                   "Ein Import ändert diesen Titel gerade. Versuch es noch einmal, wenn er fertig ist.")
+        default:
+            return HomeCopy.progressNotSaved
+        }
+    }
+
+    /// A Library error as Home's EN/DE status line (Library's own text is English and partly internal).
+    static func libraryError(_ error: LibraryError) -> String {
+        switch error {
+        case .notAuthenticated:
+            return KuroLocale.text("You're signed out. Sign in and try again.", "Du bist abgemeldet. Melde dich an und versuch es noch einmal.")
+        case .notFound:
+            return KuroLocale.text("This title is no longer in your list.", "Dieser Titel ist nicht mehr in deiner Liste.")
+        case .conflict:
+            return KuroLocale.text("This changed on another device. Try again.", "Das wurde auf einem anderen Gerät geändert. Versuch es noch einmal.")
+        case .invalidValue:
+            return HomeCopy.progressNotSaved
+        case .retryable(let message), .unavailable(let message):
+            return libraryMessage(message)
         }
     }
 

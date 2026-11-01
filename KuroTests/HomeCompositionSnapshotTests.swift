@@ -77,9 +77,13 @@ struct HomeCompositionSnapshotTests {
         #expect(groups[2].kind == .later && groups[2].items.map(\.mediaId) == [3])
         #expect(groups[3].kind == .undated && groups[3].label == "Dates to come" && groups[3].day == "…")
         #expect(groups[3].items[0].releaseAt == nil, "An undated row never acquires a date.")
-        #expect(HomeCalendarPresentation.glanceCaption(items: items, now: now, german: false) == "3 this week")
-        #expect(HomeCalendarPresentation.glanceCaption(items: [row(4, nil)], now: now, german: false) == "Dates still to come")
-        #expect(HomeCalendarPresentation.glanceCaption(items: [], now: now, german: true) == "Nichts angekündigt")
+        #expect(HomeCalendarPresentation.glanceCaption(items: items, copy: copy) == "3 this week")
+        #expect(HomeCalendarPresentation.glanceCaption(items: [row(4, nil)], copy: copy) == "Dates still to come")
+        let german = ReleaseCopy(now: now, german: true, locale: Locale(identifier: "de_DE"),
+                                 timeZone: try #require(TimeZone(identifier: "Europe/Berlin")))
+        #expect(HomeCalendarPresentation.glanceCaption(items: [], copy: german) == "Nichts angekündigt")
+        #expect(HomeCalendarPresentation.glanceCaption(items: [], copy: copy, offline: true) != "Nothing scheduled",
+                "offline with no rows is unknown, not empty")
     }
     private let widths: [CGFloat] = [320, 390, 430]
     private let outDir: URL = {
@@ -109,6 +113,7 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.libraryActions)
                     .environment(graph.imports)
                     .environment(graph.releases)
+                    .environment(NetworkMonitor())
                     .environment(\.kuroRoutes, KuroRoutes.unhandled),
                 width: width,
                 name: "anime-home-\(Int(width)).png"
@@ -124,6 +129,7 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.libraryActions)
                     .environment(graph.imports)
                     .environment(graph.releases)
+                    .environment(NetworkMonitor())
                     .environment(\.kuroRoutes, KuroRoutes.unhandled),
                 width: width,
                 name: "manga-home-\(Int(width)).png"
@@ -146,6 +152,7 @@ struct HomeCompositionSnapshotTests {
                 .environment(graph.libraryActions)
                 .environment(graph.imports)
                 .environment(graph.releases)
+                .environment(NetworkMonitor())
                 .environment(\.kuroRoutes, KuroRoutes.unhandled),
             width: 390,
             name: "empty-home-390.png"

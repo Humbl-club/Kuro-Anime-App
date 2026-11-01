@@ -331,7 +331,7 @@ private struct FranchisePathSheet: View {
                         )
                     }
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.vertical, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)

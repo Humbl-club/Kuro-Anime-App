@@ -17,6 +17,7 @@ struct HomeView: View {
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(ImportsService.self) private var imports
     @Environment(ReleasesStore.self) private var releases
+    @Environment(NetworkMonitor.self) private var network
     @State private var actionScope = AccountActionScope()
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -34,6 +35,10 @@ struct HomeView: View {
     @State private var containerSize: CGSize = .zero
     /// The release schedule has been asked for at least once (until then Coming up says so).
     @State private var scheduleChecked: Bool
+    /// Extra Home pages fetched by Home itself to find a title in progress, per "medium|revision".
+    @State private var inProgressPages: [String: Int] = [:]
+    /// Home is fetching a page to find a title in progress (the scene keeps its loading shape).
+    @State private var pagingForInProgress = false
     @AccessibilityFocusState private var calendarFocused: Bool
     private let skipNetworkLoad: Bool
     private let onOpenImport: (() -> Void)?
@@ -150,6 +155,9 @@ struct HomeView: View {
         presentationAccount = account
         animeScrollOffset = 0; mangaScrollOffset = 0
         calendarExpansion = [:]; expandedDayItems = []; calendarFocused = false
+        // The new account's schedule is not known yet: "Checking dates", never "Nothing scheduled".
+        scheduleChecked = skipNetworkLoad
+        inProgressPages = [:]; pagingForInProgress = false
         seasonCard = nil; showImportRecovery = false; importRecoveryJob = nil; showImportChooser = false
     }
 
@@ -338,7 +346,7 @@ struct HomeView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, KuroDesignSpacing.sm)
         } else {
-            populatedShelf(proxy: proxy)
+            populatedShelf(proxy: proxy, origin: origin)
             shelfStatus(origin: origin, renderedMedium: renderedMedium)
         }
     }
@@ -360,31 +368,101 @@ struct HomeView: View {
         .accessibilityLabel(KuroLocale.text("Loading your Home", "Dein Home wird geladen"))
     }
 
-    private func populatedShelf(proxy: ScrollViewProxy) -> some View {
+    private var inProgressPagesKey: String {
+        "\(home.medium)|\(home.bundle?.homeRevision ?? -1)"
+    }
+
+    private func populatedShelf(proxy: ScrollViewProxy, origin: AccountActionScope.Ticket?) -> some View {
         let split = HomeShelfPolicy.partition(home.bundle?.active ?? [])
+        let scene = shelfScene
+        // The Home page mixes titles in progress and planned ones (most recently updated first): after
+        // an import page 1 can hold only planned titles while the Library has one in progress. Home
+        // then fetches up to `maxInProgressPages` pages by itself and keeps the scene's loading shape.
+        let wantsPage = HomeShelfPolicy.shouldPageForInProgress(
+            partition: split, scene: scene, nextCursor: home.bundle?.nextCursor,
+            pagesFetched: inProgressPages[inProgressPagesKey] ?? 0)
+        let awaitingInProgress = split.inProgress.isEmpty && scene == .inProgress
+            && (wantsPage || pagingForInProgress) && !skipNetworkLoad
         return VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
             comingUpLine(proxy: proxy)
             if !split.inProgress.isEmpty {
                 if mediumKind == .manga {
-                    mangaLibrary(split.inProgress)
+                    // Covers are sized from the measured column: wait for the first measurement.
+                    if containerSize.width > 0 {
+                        mangaLibrary(split.inProgress)
+                    } else {
+                        sceneLoadingShape
+                    }
                 } else {
                     animeScenes(Array(split.inProgress.prefix(2)))
                     animeAlsoWatching(Array(split.inProgress.dropFirst(2)))
                 }
-            } else if shelfScene != .inProgress {
-                restingBand(hasPlanned: !split.planned.isEmpty || !split.saved.isEmpty)
+            } else if awaitingInProgress {
+                sceneLoadingShape
+            } else if scene != .inProgress {
+                restingBand(hasPlanned: !split.planned.isEmpty, hasPaused: !split.paused.isEmpty)
             }
-            quietShelf(title: KuroLocale.text("Planned", "Geplant"), cards: split.planned)
-            quietShelf(title: KuroLocale.text("Saved", "Gespeichert"), cards: split.saved)
+            quietShelf(title: KuroLocale.text("Planned", "Geplant"), cards: split.planned,
+                       state: KuroLocale.text("planned", "geplant"))
+            quietShelf(title: KuroLocale.text("Paused", "Pausiert"), cards: split.paused,
+                       state: KuroLocale.text("paused", "pausiert"))
+            quietShelf(title: KuroLocale.text("Saved", "Gespeichert"), cards: split.saved, state: nil)
+            moreTitlesButton(origin: origin)
             calendarSection
             clubSection
+        }
+        .task(id: "\(inProgressPagesKey)|\(home.bundle?.nextCursor ?? "")|\(split.inProgress.isEmpty)|\(scene == .inProgress)") {
+            guard !skipNetworkLoad else { return }
+            let key = inProgressPagesKey
+            let cursor = home.bundle?.nextCursor
+            let fetched = inProgressPages[key] ?? 0
+            guard HomeShelfPolicy.shouldPageForInProgress(partition: split, scene: scene, nextCursor: cursor,
+                                                          pagesFetched: fetched) else {
+                pagingForInProgress = false
+                return
+            }
+            inProgressPages[key] = fetched + 1
+            pagingForInProgress = true
+            await home.loadMore()
+            guard !Task.isCancelled else { return }
+            // A failed page leaves the cursor as it was: stop waiting (More titles stays available).
+            if home.bundle?.nextCursor == cursor { pagingForInProgress = false }
+        }
+    }
+
+    /// The scene's loading shape (anime scene or two equal manga covers) while its titles arrive.
+    private var sceneLoadingShape: some View {
+        Group {
+            if mediumKind == .manga {
+                HStack(alignment: .top, spacing: KuroDesignSpacing.padding) {
+                    ForEach(0..<2, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 3).fill(Color.kuroBlack05)
+                            .aspectRatio(KuroCardMetrics.imageAspectRatio, contentMode: .fit)
+                    }
+                }
+            } else {
+                RoundedRectangle(cornerRadius: 5).fill(Color.kuroBlack05)
+                    .aspectRatio(2.4, contentMode: .fit)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(KuroLocale.text("Loading your titles in progress", "Deine laufenden Titel werden geladen"))
+    }
+
+    /// The next Home page, directly under the quiet shelves it extends.
+    @ViewBuilder
+    private func moreTitlesButton(origin: AccountActionScope.Ticket?) -> some View {
+        if home.bundle?.nextCursor?.isEmpty == false {
+            KuroInkButton(KuroLocale.text("More titles", "Weitere Titel"), role: .secondary) {
+                perform(origin: origin) { await home.loadMore() }
+            }
         }
     }
 
     /// Nothing in progress in this medium: the saved shelf, never "you have nothing" (rulebook §9).
-    private func restingBand(hasPlanned: Bool) -> some View {
+    private func restingBand(hasPlanned: Bool, hasPaused: Bool) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(hasPlanned
+            Text(hasPlanned || hasPaused
                  ? KuroLocale.text("Ready when you are.", "Bereit, wenn du es bist.")
                  : KuroLocale.text("You're caught up.", "Du bist auf dem neuesten Stand."))
                 .font(.kuroDisplay(weight: .light))
@@ -402,6 +480,12 @@ struct HomeView: View {
                     .font(.kuroBody())
                     .foregroundStyle(Color.kuroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
+            } else if hasPaused {
+                Text(KuroLocale.text("Paused titles wait here. Pick one up from its page.",
+                                     "Pausierte Titel warten hier. Mach auf ihrer Seite weiter."))
+                    .font(.kuroBody())
+                    .foregroundStyle(Color.kuroInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 invitationAction(
                     kicker: KuroLocale.text("Collection", "Sammlung"),
@@ -415,9 +499,10 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Planned (and other saved) titles: a picture, the title, one tap to its page. No +1 key.
+    /// Planned, paused and other saved titles: a picture, the title, one tap to its page. No +1 key.
+    /// `state` ("planned", "paused") is spoken with each row, so the kicker never carries it alone.
     @ViewBuilder
-    private func quietShelf(title: String, cards: [HomeCard]) -> some View {
+    private func quietShelf(title: String, cards: [HomeCard], state: String?) -> some View {
         if !cards.isEmpty {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
                 Text(title)
@@ -444,7 +529,8 @@ struct HomeView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(HomeContactStyle())
-                    .accessibilityLabel(KuroLocale.text("Open \(card.title)", "\(card.title) öffnen"))
+                    .accessibilityLabel(state.map { KuroLocale.text("Open \(card.title), \($0)", "\(card.title) öffnen, \($0)") }
+                                        ?? KuroLocale.text("Open \(card.title)", "\(card.title) öffnen"))
                 }
             }
         }
@@ -500,11 +586,6 @@ struct HomeView: View {
                 }
             }
         }
-        if home.bundle?.nextCursor?.isEmpty == false {
-            KuroInkButton(KuroLocale.text("More titles", "Weitere Titel"), role: .secondary) {
-                perform(origin: origin) { await home.loadMore() }
-            }
-        }
     }
 
     // MARK: Anime
@@ -525,7 +606,8 @@ struct HomeView: View {
                         .clipped()
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(KuroLocale.text("Open \(card.title)", "\(card.title) öffnen"))
+                // The foot's title button carries "Open <title>"; VoiceOver hears it once.
+                .accessibilityHidden(true)
                 seasonTab(card)
             }
             .clipShape(UnevenRoundedRectangle(topLeadingRadius: 5, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 5))
@@ -669,15 +751,17 @@ struct HomeView: View {
     // MARK: Manga (equal covers, each book's own chapter ticket and dark raised key)
 
     /// Two columns on phones (D5), more on a wide column; every frame equal (rulebook §6).
+    private var mangaSpacing: CGFloat { contentWidth < 300 ? 14 : 20 }
+
     private var mangaColumns: Int {
-        let spacing: CGFloat = 20
+        let spacing = mangaSpacing
         let minCover: CGFloat = 150
         return max(2, Int((contentWidth + spacing) / (minCover + spacing)))
     }
 
     private func mangaLibrary(_ cards: [HomeCard]) -> some View {
         let columns = mangaColumns
-        let spacing: CGFloat = contentWidth < 300 ? 14 : 20
+        let spacing = mangaSpacing
         let columnWidth = max(100, (contentWidth - spacing * CGFloat(columns - 1)) / CGFloat(columns))
         return LazyVGrid(
             columns: Array(repeating: GridItem(.flexible(), spacing: spacing, alignment: .top), count: columns),
@@ -729,11 +813,18 @@ struct HomeView: View {
 
     private func chapterTicket(_ card: HomeCard) -> some View {
         let shape = UnevenRoundedRectangle(topLeadingRadius: 3, bottomLeadingRadius: 3, bottomTrailingRadius: 9, topTrailingRadius: 3)
-        return HStack(spacing: 4) {
+        // At accessibility sizes the readout sits above the key so a four-digit chapter never truncates
+        // in a 137 pt column (320 pt phone, two columns).
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout(spacing: 4))
+        return layout {
             progressReadout(card, large: true)
-            Spacer(minLength: 4)
+            if !stacked { Spacer(minLength: 4) }
             advanceKey(card, style: .dark)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.leading, 12)
         .padding(.trailing, 3)
         .padding(.vertical, 6)
@@ -952,9 +1043,9 @@ struct HomeView: View {
 
     private func comingUpLine(proxy: ScrollViewProxy) -> some View {
         let items = scheduleItems
-        let german = KuroLocale.isGerman
-        let caption = scheduleChecked
-            ? HomeCalendarPresentation.glanceCaption(items: items, now: Date(), german: german)
+        let offline = !network.isConnected
+        let caption = scheduleChecked || (offline && items.isEmpty)
+            ? HomeCalendarPresentation.glanceCaption(items: items, copy: ReleaseCopy.current(), offline: offline)
             : KuroLocale.text("Checking dates", "Termine werden geprüft")
         return Button {
             if reduceMotion { proxy.scrollTo("upcoming-calendar", anchor: .top) }
@@ -993,7 +1084,14 @@ struct HomeView: View {
             KuroSectionHeader(KuroLocale.text("Calendar.", "Kalender."), size: .title)
                 .accessibilityFocused($calendarFocused)
             if groups.isEmpty {
-                if scheduleChecked {
+                if !network.isConnected {
+                    // Offline with no rows: the schedule is unknown, not empty (rulebook §9).
+                    Text(KuroLocale.text("Offline. Dates load when you connect.",
+                                         "Offline. Termine laden, wenn du verbunden bist."))
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if scheduleChecked {
                     Text(KuroLocale.text("Nothing scheduled.", "Nichts angekündigt."))
                         .font(.kuroMeta())
                         .foregroundStyle(Color.kuroInkSecondary)
@@ -1247,6 +1345,8 @@ private struct HomeSeasonOverview: View {
     @Environment(\.kuroRoutes) private var routes
     @State private var detail: SeriesDetailBundle?
     @State private var failed = false
+    /// The season read is not deployed (or answers another contract): seasons are not grouped yet.
+    @State private var notGrouped = false
     @State private var attempt = 0
 
     var body: some View {
@@ -1257,16 +1357,11 @@ private struct HomeSeasonOverview: View {
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
                 KuroSectionHeader(KuroLocale.text("Seasons", "Staffeln"), size: .title)
-                if let detail {
+                if notGrouped {
+                    notGroupedState
+                } else if let detail {
                     if detail.sections.isEmpty {
-                        Text(KuroLocale.text("Seasons aren't grouped for this title yet.",
-                                             "Für diesen Titel sind noch keine Staffeln zusammengestellt."))
-                            .font(.kuroBody())
-                            .foregroundStyle(Color.kuroInkSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        KuroInkButton(KuroLocale.text("Open title", "Titel öffnen"), role: .secondary) {
-                            routes.openMedia(MediaRoute(kind: .anime, id: card.mediaId))
-                        }
+                        notGroupedState
                     }
                     ForEach(detail.sections) { section in
                         ForEach(section.entries ?? []) { entry in
@@ -1294,15 +1389,33 @@ private struct HomeSeasonOverview: View {
                 guard epoch == home.privacyEpoch, !Task.isCancelled else { return }
                 detail = loaded
                 failed = false
+                notGrouped = false
             }
             catch is CancellationError {} catch {
                 guard epoch == home.privacyEpoch, !Task.isCancelled else { return }
-                failed = true
+                // A missing contract is not a failure a Retry could fix (spec §3.4): say what is true.
+                switch ReleaseFailure.classify(error) {
+                case .cancelled: return
+                case .notDeployed: notGrouped = true; failed = false
+                case .transient: failed = true
+                }
             }
             #endif
         }
-        .onChange(of: home.privacyEpoch) { _, _ in detail = nil; failed = false }
+        .onChange(of: home.privacyEpoch) { _, _ in detail = nil; failed = false; notGrouped = false }
         .presentationDetents([.medium, .large])
+    }
+
+    @ViewBuilder
+    private var notGroupedState: some View {
+        Text(KuroLocale.text("Seasons aren't grouped for this title yet.",
+                             "Für diesen Titel sind noch keine Staffeln zusammengestellt."))
+            .font(.kuroBody())
+            .foregroundStyle(Color.kuroInkSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+        KuroInkButton(KuroLocale.text("Open title", "Titel öffnen"), role: .secondary) {
+            routes.openMedia(MediaRoute(kind: .anime, id: card.mediaId))
+        }
     }
 
     private func seasonRow(section: SeriesDetailBundle.Section, entry: SeriesDetailBundle.Section.Entry) -> some View {

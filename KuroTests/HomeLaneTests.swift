@@ -9,6 +9,7 @@
 
 import Foundation
 import KuroCore
+import KuroLibrary
 import Testing
 @testable import Kuro
 
@@ -32,7 +33,8 @@ struct HomeLaneTests {
         let split = HomeShelfPolicy.partition(cards)
         #expect(split.inProgress.map(\.mediaId) == [2, 4])
         #expect(split.planned.map(\.mediaId) == [1, 3])
-        #expect(split.saved.map(\.mediaId) == [5])
+        #expect(split.paused.map(\.mediaId) == [5], "paused titles get their own labelled row")
+        #expect(split.saved.isEmpty)
         #expect(HomeShelfPolicy.leadCard(cards)?.mediaId == 2, "a planned title never stands for the shelf")
         #expect(HomeShelfPolicy.leadCard(try [Self.card(1, "PLANNING")]) == nil)
         #expect(HomeShelfPolicy.isInProgress(listType: "current"))
@@ -48,6 +50,80 @@ struct HomeLaneTests {
         #expect(HomeCopy.isOffline(URLError(.notConnectedToInternet)))
         #expect(!HomeCopy.isOffline(URLError(.badServerResponse)))
         #expect(!HomeCopy.isOffline(CancellationError()))
+    }
+
+    @Test("Home pages forward by itself when page 1 holds only planned titles but one is in progress")
+    func pagesForInProgress() throws {
+        // Page 1 after an import: twelve planned titles, newest first; the title in progress is on page 2.
+        let firstPage = try (1...12).map { try Self.card($0, "PLANNING") }
+        let split = HomeShelfPolicy.partition(firstPage)
+        #expect(split.inProgress.isEmpty)
+        #expect(HomeShelfPolicy.shouldPageForInProgress(partition: split, scene: .inProgress, nextCursor: "c2", pagesFetched: 0))
+        #expect(HomeShelfPolicy.shouldPageForInProgress(partition: split, scene: .inProgress, nextCursor: "c3", pagesFetched: 2))
+        #expect(!HomeShelfPolicy.shouldPageForInProgress(partition: split, scene: .inProgress, nextCursor: "c4",
+                                                         pagesFetched: HomeShelfPolicy.maxInProgressPages), "bounded")
+        #expect(!HomeShelfPolicy.shouldPageForInProgress(partition: split, scene: .inProgress, nextCursor: nil, pagesFetched: 0))
+        #expect(!HomeShelfPolicy.shouldPageForInProgress(partition: split, scene: .inProgress, nextCursor: "", pagesFetched: 0))
+        #expect(!HomeShelfPolicy.shouldPageForInProgress(partition: split, scene: .saved, nextCursor: "c2", pagesFetched: 0),
+                "nothing in progress in the Library: no paging")
+
+        // Page 2 arrives with the title in progress: paging stops.
+        let secondPage = try [Self.card(13, "PLANNING"), Self.card(14, "WATCHING")]
+        let merged = HomeShelfPolicy.partition(firstPage + secondPage)
+        #expect(merged.inProgress.map(\.mediaId) == [14])
+        #expect(!HomeShelfPolicy.shouldPageForInProgress(partition: merged, scene: .inProgress, nextCursor: "c3", pagesFetched: 1))
+    }
+
+    @Test("Library errors become EN/DE Home copy; internal wording never reaches the reader")
+    func libraryErrorCopy() {
+        let unsaved = HomeCopy.progressNotSaved
+        #expect(HomeCopy.libraryError(.retryable(message: "Incomplete progress receipts")) == unsaved)
+        #expect(HomeCopy.libraryError(.unavailable(message: "something new")) == unsaved)
+        #expect(HomeCopy.libraryError(.invalidValue(field: "progress")) == unsaved)
+        let inFlight = HomeCopy.libraryError(.retryable(message: "That save is already on its way."))
+        #expect(inFlight == "That save is already on its way." || inFlight == "Diese Speicherung ist schon unterwegs.")
+        let signedOut = HomeCopy.libraryError(.notAuthenticated)
+        #expect(signedOut.hasPrefix("You're signed out") || signedOut.hasPrefix("Du bist abgemeldet"))
+        #expect(!HomeCopy.chooseNextUnit(medium: "anime").contains("ihrer Seite"))
+    }
+
+    @Test("Calendar and glance never count or list what already aired")
+    func calendarPastRows() throws {
+        let now = Date(timeIntervalSince1970: 1_791_979_200) // Wed 14 Oct 2026, 12:00 UTC
+        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
+        let copy = ReleaseCopy(now: now, german: true, locale: Locale(identifier: "de_DE"), timeZone: berlin)
+        func row(_ id: Int, _ at: Date?, precision: ReleasePrecision? = nil, basis: ReleaseBasis = .confirmed) -> ReleaseScheduleItem {
+            ReleaseScheduleItem(medium: .anime, mediaId: id, title: "T\(id)", unitKind: .episode, unitNumber: 1,
+                                releaseAt: at, basis: basis, source: "anilist", precision: precision)
+        }
+        let airedYesterday = row(1, now.addingTimeInterval(-20 * 3_600))
+        let airedThisMorning = row(2, now.addingTimeInterval(-2 * 3_600))
+        let tonight = row(3, now.addingTimeInterval(6 * 3_600))
+        let todayByDay = row(4, Date(timeIntervalSince1970: 1_791_936_000), precision: .day, basis: .announced) // 14 Oct 00:00 UTC
+        let yesterdayByDay = row(5, Date(timeIntervalSince1970: 1_791_849_600), precision: .day, basis: .announced) // 13 Oct
+        let rows = [airedYesterday, airedThisMorning, tonight, todayByDay, yesterdayByDay]
+        #expect(HomeCalendarPresentation.countThisWeek(rows, copy: copy) == 2, "tonight and today's dated release only")
+        let groups = HomeCalendarPresentation.groups(rows, copy: copy)
+        #expect(groups.flatMap(\.items).map(\.mediaId).sorted() == [3, 4])
+        #expect(copy.daysFromToday(todayByDay) == 0)
+        #expect(copy.daysFromToday(yesterdayByDay) == -1)
+        #expect(copy.isAhead(row(6, nil)), "an undated row is still to come")
+    }
+
+    @Test("The original story names a source only when the bundle knows one")
+    func boundaryCopy() {
+        #expect(SeriesCopy.boundaryUnknown(sourceKind: "manga").contains("anga"))
+        #expect(SeriesCopy.boundaryUnknown(sourceKind: "novel").contains("Roman") || SeriesCopy.boundaryUnknown(sourceKind: "novel").contains("novel"))
+        let generic = SeriesCopy.boundaryUnknown(sourceKind: nil)
+        #expect(!generic.contains("manga") && !generic.contains("Manga"))
+    }
+
+    @Test("A cancelled detail load is not a failure")
+    func detailCancellation() {
+        #expect(DetailLoadFailure.isCancellation(CancellationError()))
+        #expect(DetailLoadFailure.isCancellation(URLError(.cancelled)))
+        #expect(!DetailLoadFailure.isCancellation(URLError(.timedOut)))
+        #expect(DetailLoadFailure(URLError(.notConnectedToInternet)) == .offline)
     }
 
     static func bundle(seriesId: String?, sections: String = "[]") throws -> SeriesDetailBundle {

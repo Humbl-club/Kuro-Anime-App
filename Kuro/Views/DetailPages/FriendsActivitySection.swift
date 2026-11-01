@@ -60,10 +60,10 @@ struct FriendsActivitySection: View {
 
                 if isLoading && activity == nil {
                     HStack(spacing: 10) {
-                        ProgressView().scaleEffect(0.8).tint(.black.opacity(0.45))
+                        ProgressView().scaleEffect(0.8).tint(.kuroInkQuiet)
                         Text("Loading...")
                             .font(.kuroCaption(weight: .light))
-                            .foregroundColor(.black.opacity(0.45))
+                            .foregroundColor(.kuroInkQuiet)
                     }
                 } else if let activity {
                     // Friend tracking pills
@@ -92,7 +92,7 @@ struct FriendsActivitySection: View {
                 } else {
                     Text(editorial ? "A quiet room. Leave the first thought." : "No friends tracking this yet")
                         .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.black.opacity(0.45))
+                        .foregroundColor(.kuroInkQuiet)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -144,22 +144,22 @@ struct FriendsActivitySection: View {
                     HStack(spacing: 4) {
                         Text(name)
                             .font(.kuroCaption(weight: .medium))
-                            .foregroundColor(.black.opacity(0.65))
+                            .foregroundColor(.kuroBlack65)
                             .lineLimit(1)
 
                         if !detail.isEmpty {
                             Text("\u{00B7}")
-                                .foregroundColor(.black.opacity(0.35))
+                                .foregroundColor(.kuroInkQuiet)
                             Text(detail)
                                 .font(.kuroCaption(weight: .light))
-                                .foregroundColor(.black.opacity(0.45))
+                                .foregroundColor(.kuroInkQuiet)
                                 .lineLimit(1)
                         }
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(
-                        Capsule().fill(Color.black.opacity(0.05))
+                        Capsule().fill(Color.kuroBlack05)
                     )
                 }
             }
@@ -207,20 +207,20 @@ struct FriendsActivitySection: View {
                 // Avatar initial
                 Text(String((comment.display_name ?? "?").prefix(1)).uppercased())
                     .font(.kuroMicro(weight: .semibold))
-                    .foregroundColor(.black.opacity(0.50))
+                    .foregroundColor(.kuroInkQuiet)
                     .frame(width: 20, height: 20)
                     .background(
                         RoundedRectangle(cornerRadius: KuroRadius.xs)
-                            .fill(Color.black.opacity(0.06))
+                            .fill(Color.kuroBlack06)
                     )
 
                 Text(comment.display_name ?? String(comment.user_id.prefix(6)))
                     .font(.kuroCaption(weight: .medium))
-                    .foregroundColor(.black.opacity(0.65))
+                    .foregroundColor(.kuroBlack65)
 
                 Text(relativeTime(comment.created_at))
                     .font(.kuroMicro())
-                    .foregroundColor(.black.opacity(0.30))
+                    .foregroundColor(.kuroInkQuiet)
 
                 Spacer(minLength: 0)
 
@@ -232,7 +232,7 @@ struct FriendsActivitySection: View {
                     } label: {
                         Image(systemName: "pencil")
                             .font(.kuroCustom(10, weight: .regular, maxSize: 16))
-                            .foregroundColor(.black.opacity(0.35))
+                            .foregroundColor(.kuroInkQuiet)
                     }
                     .buttonStyle(.plain)
                     .frame(minWidth: 44, minHeight: 44)
@@ -295,7 +295,7 @@ struct FriendsActivitySection: View {
                                 Text("\(comment.up_count)")
                                     .font(.kuroMicro())
                             }
-                            .foregroundColor(.black.opacity(0.35))
+                            .foregroundColor(.kuroInkQuiet)
                         }
                         if comment.down_count > 0 {
                             HStack(spacing: 3) {
@@ -304,7 +304,7 @@ struct FriendsActivitySection: View {
                                 Text("\(comment.down_count)")
                                     .font(.kuroMicro())
                             }
-                            .foregroundColor(.black.opacity(0.35))
+                            .foregroundColor(.kuroInkQuiet)
                         }
                     }
                     .padding(.top, 2)
@@ -338,7 +338,7 @@ struct FriendsActivitySection: View {
                         .font(.kuroMicro())
                 }
             }
-            .foregroundColor(.black.opacity(isActive ? 0.65 : 0.35))
+            .foregroundColor(isActive ? .kuroBlack80 : .kuroInkQuiet)
         }
         .buttonStyle(.plain)
         .frame(minWidth: 44, minHeight: 44)
@@ -369,7 +369,7 @@ struct FriendsActivitySection: View {
                 }
 
                 if isSubmitting {
-                    ProgressView().scaleEffect(0.75).tint(.black.opacity(0.45))
+                    ProgressView().scaleEffect(0.75).tint(.kuroInkQuiet)
                 } else {
                     Button {
                         let text = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -381,7 +381,7 @@ struct FriendsActivitySection: View {
                         Image(systemName: "arrow.up.circle.fill")
                             .font(.kuroCustom(24, weight: .regular, maxSize: 38))
                             .foregroundColor(
-                                canSubmit ? .black.opacity(0.70) : .black.opacity(0.20)
+                                canSubmit ? .kuroBlack70 : .kuroBlack20
                             )
                     }
                     .buttonStyle(.plain)
@@ -397,7 +397,7 @@ struct FriendsActivitySection: View {
                     } label: {
                         Text("Cancel")
                             .font(.kuroCaption(weight: .light))
-                            .foregroundColor(.black.opacity(0.45))
+                            .foregroundColor(.kuroInkQuiet)
                     }
                     .buttonStyle(.plain)
                     .frame(minWidth: 44, minHeight: 44)
@@ -406,7 +406,7 @@ struct FriendsActivitySection: View {
             .frame(minHeight: 44)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.black.opacity(0.08), lineWidth: 0.8))
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.kuroBlack08, lineWidth: 0.8))
             if editorial { Toggle("Contains spoilers", isOn: $containsSpoilers).font(.kuroCaption()).frame(minHeight: 44) }
         }
     }

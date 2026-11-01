@@ -35,7 +35,7 @@ struct DescriptionSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroSpacing.md) {
-            Text("SYNOPSIS")
+            Text(KuroLocale.text("SYNOPSIS", "INHALT"))
                 .font(.kuroMicro(weight: .medium))
                 .tracking(1.5)
                 .foregroundColor(.kuroBlack80)
@@ -68,7 +68,7 @@ struct DescriptionSection: View {
                     }
                     KuroAccessibility.impactHaptic(.light)
                 }) {
-                    Text(showFull ? "SHOW LESS" : "READ MORE")
+                    Text(showFull ? KuroLocale.text("SHOW LESS", "WENIGER") : KuroLocale.text("READ MORE", "MEHR LESEN"))
                         .font(.kuroMicro(weight: .medium))
                         .tracking(1.0)
                         .foregroundColor(.kuroBlack80)
@@ -85,7 +85,7 @@ struct GenresSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: KuroSpacing.md) {
-            Text("GENRES")
+            Text(KuroLocale.text("GENRES", "GENRES"))
                 .font(.kuroMicro(weight: .medium))
                 .tracking(1.5)
                 .foregroundColor(.kuroBlack80)
@@ -140,7 +140,7 @@ struct TagChipsSection: View {
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(
-                                Capsule().stroke(Color.black.opacity(0.10), lineWidth: 0.7)
+                                Capsule().stroke(Color.kuroHairline, lineWidth: 0.7)
                             )
                     }
                 }
@@ -171,7 +171,7 @@ struct DetailSectionUtilityButton: View {
 
             Image(systemName: "chevron.right")
                 .font(.kuroMicro())
-                .foregroundColor(.kuroBlack30)
+                .foregroundColor(.kuroInkQuiet)
         }
         .padding(KuroSpacing.md)
         .background(Color.kuroBlack08)
@@ -208,7 +208,7 @@ struct DetailCreditsSkeleton: View {
         VStack(alignment: .leading, spacing: KuroSpacing.md) {
             // "CAST" caption placeholder
             RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.06))
+                .fill(Color.kuroBlack06)
                 .frame(width: 40, height: 10)
                 .kuroShimmer()
 
@@ -217,7 +217,7 @@ struct DetailCreditsSkeleton: View {
                 HStack(spacing: 14) {
                     ForEach(0..<5, id: \.self) { _ in
                         Circle()
-                            .fill(Color.black.opacity(0.06))
+                            .fill(Color.kuroBlack06)
                             .frame(width: 64, height: 64)
                             .kuroShimmer()
                     }
@@ -226,18 +226,18 @@ struct DetailCreditsSkeleton: View {
 
             // "PRODUCTION" caption placeholder
             RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.06))
+                .fill(Color.kuroBlack06)
                 .frame(width: 80, height: 10)
                 .kuroShimmer()
 
             // Text line placeholders
             RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.05))
+                .fill(Color.kuroBlack05)
                 .frame(width: 180, height: 12)
                 .kuroShimmer()
 
             RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.05))
+                .fill(Color.kuroBlack05)
                 .frame(width: 140, height: 12)
                 .kuroShimmer()
         }
@@ -250,13 +250,13 @@ struct DetailLadderSkeleton: View {
         VStack(alignment: .leading, spacing: KuroSpacing.sm) {
             // Caption placeholder
             RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.06))
+                .fill(Color.kuroBlack06)
                 .frame(width: 100, height: 10)
                 .kuroShimmer()
 
             // Body text placeholder
             RoundedRectangle(cornerRadius: 3, style: .continuous)
-                .fill(Color.black.opacity(0.04))
+                .fill(Color.kuroBlack04)
                 .frame(width: 220, height: 14)
                 .kuroShimmer()
         }
