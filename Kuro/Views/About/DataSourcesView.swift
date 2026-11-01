@@ -13,7 +13,7 @@ struct DataSourcesView: View {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
                     Text(german ? "Datenquellen und Danksagung." : "Data sources and credits.")
-                        .font(.kuroHeadline(weight: .light))
+                        .kuroRoleText(.headline)
                         .foregroundStyle(Color.kuroInk)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
@@ -35,7 +35,7 @@ struct DataSourcesView: View {
 
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
                     Text(german ? "Musik" : "Music")
-                        .font(.kuroTitle())
+                        .kuroRoleText(.title)
                         .foregroundStyle(Color.kuroInk)
                         .accessibilityAddTraits(.isHeader)
                     Text(german
@@ -85,7 +85,7 @@ private struct DataSourceRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(source.name)
-                .font(.kuroTitle())
+                .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                 .foregroundStyle(Color.kuroInk)
             Text(source.use(german: german))
                 .font(.kuroBody())

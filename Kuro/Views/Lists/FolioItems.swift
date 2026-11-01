@@ -237,7 +237,7 @@ private struct FolioCoverCell: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
         .overlay(alignment: .bottomTrailing) {
             if let phase {
-                KuroAdvanceKey(style: .ink, phase: phase.advanceKeyPhase,
+                KuroAdvanceKey(style: FolioPolicy.keyStyle(for: item.media.kind), phase: phase.advanceKeyPhase,
                                accessibilityText: FolioAccessibility.keyLabel(item, phase: phase, german: german)) {
                     actions.advance(item)
                 }
@@ -310,7 +310,7 @@ private struct FolioSceneCell: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
         .overlay(alignment: .bottomTrailing) {
             if let phase {
-                KuroAdvanceKey(style: .light, phase: phase.advanceKeyPhase,
+                KuroAdvanceKey(style: FolioPolicy.keyStyle(for: item.media.kind), phase: phase.advanceKeyPhase,
                                accessibilityText: FolioAccessibility.keyLabel(item, phase: phase, german: german)) {
                     actions.advance(item)
                 }
@@ -397,7 +397,7 @@ private struct FolioIndexRow: View {
             .accessibilityAddTraits(isSelected ? [.isSelected] : [])
 
             if let phase {
-                KuroAdvanceKey(style: .light, phase: phase.advanceKeyPhase,
+                KuroAdvanceKey(style: FolioPolicy.keyStyle(for: item.media.kind), phase: phase.advanceKeyPhase,
                                accessibilityText: FolioAccessibility.keyLabel(item, phase: phase, german: german)) {
                     actions.advance(item)
                 }

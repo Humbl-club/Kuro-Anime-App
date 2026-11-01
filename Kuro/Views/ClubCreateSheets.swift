@@ -17,7 +17,7 @@ struct ClubSheetTitle: View {
                 .kuroKicker()
                 .accessibilityHidden(true)
             Text(title)
-                .font(.kuroHeadline(weight: .light))
+                .kuroRoleText(.headline)
                 .foregroundStyle(Color.kuroInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)

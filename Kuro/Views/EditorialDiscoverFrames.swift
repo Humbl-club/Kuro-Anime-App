@@ -394,7 +394,7 @@ struct DiscoverLeadFrame: View {
                             .accessibilityHidden(true)
                     }
                     Text(title)
-                        .font(.kuroHeadline(weight: .light))
+                        .kuroRoleText(.headline)
                         .foregroundStyle(Color.kuroInk)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
@@ -606,6 +606,10 @@ struct DiscoverLoadingSkeleton: View {
         let frameWidth = DiscoverLayout.railFrameWidth(for: containerWidth, large: true)
         VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
             DiscoverLeadSkeleton(width: max(0, containerWidth - gutter * 2))
+                .padding(.horizontal, gutter)
+            // The branded loading cue: the scrub line travelling under the lead frame.
+            KuroScrubLine()
+                .frame(maxWidth: 96)
                 .padding(.horizontal, gutter)
             ForEach(0..<2, id: \.self) { _ in
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {

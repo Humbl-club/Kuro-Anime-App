@@ -251,25 +251,30 @@ struct BrowseView: View {
                 // Results Grid
                 ScrollView(.vertical, showsIndicators: false) {
                     Group {
-                        if displayItems.isEmpty {
-                            if isLoadingResults {
-                                BrowseGridSkeleton(width: width)
-                            } else if loadError {
-                                KuroStateView(
-                                    networkMonitor.isConnected ? .failed(hasCachedContent: false) : .offline(hasCachedContent: false),
-                                    retry: {
-                                        Task { await reload(mode: .pullToRefresh) }
-                                    }
-                                )
+                        // One switch on the branded state (`BrowsePageRules.brandedState`, tested in
+                        // RestyleLaneTests); results on screen draw the grid.
+                        switch BrowsePageRules.brandedState(isLoading: isLoadingResults, hasResults: !displayItems.isEmpty,
+                                                            failed: loadError, isConnected: networkMonitor.isConnected) {
+                        case .loading:
+                            BrowseGridSkeleton(width: width)
+                        case .failed(hasContent: false):
+                            KuroErrorView(headline: KuroLocale.text("Couldn't load the catalogue.", "Der Katalog konnte nicht geladen werden."),
+                                          retry: { Task { await reload(mode: .pullToRefresh) } })
                                 .frame(minHeight: geometry.size.height * 0.6)
-                            } else {
-                                BrowseEmptyState(
-                                    activeFilterCount: activeFilterCount,
-                                    activeFilterSummary: activeFiltersLabel,
-                                    onClearFilters: { clearFilters() }
-                                )
+                        case .offline(hasContent: false):
+                            KuroOfflineView(hasContent: false, retry: { Task { await reload(mode: .pullToRefresh) } })
+                                .frame(minHeight: geometry.size.height * 0.6)
+                        case .empty:
+                            BrowseEmptyState(
+                                activeFilterCount: activeFilterCount,
+                                activeFilterSummary: activeFiltersLabel,
+                                onClearFilters: { clearFilters() }
+                            )
+                        case .offline(hasContent: true), .failed(hasContent: true), nil:
+                            if !networkMonitor.isConnected {
+                                // The branded offline band over the results already on screen.
+                                KuroOfflineView(hasContent: true)
                             }
-                        } else {
                             BrowseGrid(items: displayItems, width: width) {
                                 await fetchNextPage()
                             }
@@ -613,3 +618,17 @@ struct BrowseView: View {
 }
 
 // Browse helper components extracted to BrowseComponents.swift
+
+// MARK: - Branded state (prototype-fidelity Task 9)
+
+/// What the Browse results area draws instead of the grid. Pure. Results on screen always win (with
+/// the offline band when the connection is gone), then a first page in flight, then a failed read
+/// (offline when the connection is gone), then the empty state (no titles / no matches).
+nonisolated enum BrowsePageRules {
+    static func brandedState(isLoading: Bool, hasResults: Bool, failed: Bool, isConnected: Bool) -> KuroBrandedState? {
+        if hasResults { return isConnected ? nil : .offline(hasContent: true) }
+        if isLoading { return .loading }
+        if failed { return isConnected ? .failed(hasContent: false) : .offline(hasContent: false) }
+        return .empty
+    }
+}

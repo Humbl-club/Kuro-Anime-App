@@ -73,8 +73,7 @@ struct ImportSourceChooser: View {
                     .disabled(busy)
                 }
                 Text(isGerman ? "Importiere deine Liste" : "Import your list")
-                    .font(.kuroDisplay(weight: .light))
-                    .tracking(-0.8)
+                    .kuroRoleText(.feature)
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -303,8 +302,7 @@ struct ImportSourceChooser: View {
 
     private func statusLine(_ text: String) -> some View {
         HStack(spacing: 10) {
-            ProgressView()
-                .tint(Color.kuroInkSecondary)
+            KuroBusyMark(width: 24)
                 .accessibilityHidden(true)
             Text(text)
                 .font(.kuroMeta())
@@ -322,7 +320,7 @@ struct ImportSourceChooser: View {
                     .kuroKicker()
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text(title)
-                        .font(.kuroTitle())
+                        .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                         .foregroundStyle(Color.kuroInk)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -372,7 +370,7 @@ private struct ImportChooserResultCard: View {
                         .kuroKicker()
                         .accessibilityHidden(true)
                     Text(result.titleText)
-                        .font(.kuroTitle())
+                        .font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                         .foregroundStyle(Color.kuroInk)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)

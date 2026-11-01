@@ -22,15 +22,39 @@ enum ProfileListsPolicy {
         return entries.filter { covered.contains($0.status) }.count
     }
 
-    /// "42 anime · 86 manga · 51 completed" (real counts; never lifetime history).
+    /// "42 anime · 86 manga · 51 completed" (real counts; never lifetime history). A part whose count
+    /// is zero is left out, so the line never shows a zero ("12 manga", not "0 anime · 12 manga ·
+    /// 0 completed"); no entries at all give "" (Profile then shows the new-account block instead).
     static func summary(_ entries: [LibraryEntry], german: Bool) -> String {
         let anime = entries.filter { $0.key.kind == .anime }.count
         let manga = entries.filter { $0.key.kind == .manga }.count
         let done = entries.filter { $0.status == .completed }.count
-        return german
-            ? "\(anime) Anime · \(manga) Manga · \(done) abgeschlossen"
-            : "\(anime) anime · \(manga) manga · \(done) completed"
+        let parts: [(Int, String)] = german
+            ? [(anime, "\(anime) Anime"), (manga, "\(manga) Manga"), (done, "\(done) abgeschlossen")]
+            : [(anime, "\(anime) anime"), (manga, "\(manga) manga"), (done, "\(done) completed")]
+        return parts.filter { $0.0 > 0 }.map(\.1).joined(separator: " · ")
     }
+
+    /// What Profile's library section draws (prototype-fidelity Task 9): the branded loading or failed
+    /// state before the first read publishes, `.empty` (the new-account block: "Nothing saved yet",
+    /// Import, Find; never zero counts) for a loaded, empty library, or `nil` (the counts and lists).
+    /// `ProfileView.librarySection` switches on this value.
+    static func libraryState(entryCount: Int, loadState: LibraryStore.LoadState) -> KuroBrandedState? {
+        if entryCount > 0 { return nil }
+        switch loadState {
+        case .loaded: return .empty
+        case .failed: return .failed(hasContent: false)
+        case .loading, .notLoaded: return .loading
+        }
+    }
+
+    /// The new-account block's copy (EN, DE).
+    static func newAccountHeadline(german: Bool) -> String { german ? "Noch nichts gespeichert." : "Nothing saved yet." }
+    static func newAccountLine(german: Bool) -> String {
+        german ? "Importiere deine Liste oder finde einen ersten Titel." : "Import your list, or find a first title."
+    }
+    static func importTitle(german: Bool) -> String { german ? "Importieren" : "Import" }
+    static func findTitle(german: Bool) -> String { german ? "Finden" : "Find" }
 
     /// The row word for both media together.
     static func title(_ status: ListStatus, german: Bool) -> String {
@@ -113,7 +137,7 @@ private struct ProfileListRow: View {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
                 HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.sm) {
                     Text(title)
-                        .font(.kuroTitle())
+                        .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 30)).tracking(-0.2)
                         .foregroundStyle(Color.kuroInk)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("\(count)")

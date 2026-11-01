@@ -268,6 +268,23 @@ nonisolated enum ClubsListState: Equatable, Sendable {
     nonisolated enum Notice: Equatable, Sendable { case offline, failed }
 }
 
+extension ClubsListState {
+    /// The branded state (prototype-fidelity Task 9) the Clubs page draws for this list state; `nil`
+    /// draws the clubs with no notice. The invitation is `.empty`; a failed or offline read keeps its
+    /// own state and never becomes the invitation. `ClubsView.content` switches on this value.
+    var brandedState: KuroBrandedState? {
+        switch self {
+        case .loading: return .loading
+        case .empty: return .empty
+        case .offline: return .offline(hasContent: false)
+        case .failed: return .failed(hasContent: false)
+        case .list(notice: nil): return nil
+        case .list(notice: .offline): return .offline(hasContent: true)
+        case .list(notice: .failed): return .failed(hasContent: true)
+        }
+    }
+}
+
 nonisolated enum ClubsListRules {
     static func state(phase: MyClubsPhase, hasClubs: Bool, isConnected: Bool) -> ClubsListState {
         let settled = phase.settled
@@ -424,6 +441,17 @@ nonisolated enum ClubDetailIssue: Equatable, Sendable {
             }
         }
         return .failed
+    }
+
+    /// The branded state of a club that could not open with nothing on screen (prototype-fidelity
+    /// Task 9): offline, or a failure (the ridge drawn once, Try again). `nil` for a membership answer,
+    /// which is a notice (`KuroStateView(.denied)`) with no Retry. `ClubDetailInitialState` switches on it.
+    var brandedState: KuroBrandedState? {
+        switch self {
+        case .offline: return .offline(hasContent: false)
+        case .timedOut, .failed: return .failed(hasContent: false)
+        case .removed, .notYetMember, .left, .clubGone: return nil
+        }
     }
 
     /// A membership answer: the state view kind is `.denied`, not a failure with Retry.

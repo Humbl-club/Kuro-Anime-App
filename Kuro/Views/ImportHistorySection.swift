@@ -14,7 +14,7 @@ struct ImportHistorySection: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text(german ? "Laufende und letzte Importe" : "Recent and pending imports")
-                    .font(.kuroTitle())
+                    .kuroRoleText(.title)
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)

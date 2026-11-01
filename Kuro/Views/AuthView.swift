@@ -352,7 +352,7 @@ struct AuthView: View {
                         Spacer()
                     }
 
-                    KuroWordmark(size: 20, tracking: 0, opacity: 1)
+                    KuroPrototypeWordmark()
                         .accessibilityHidden(true)
                 }
                 .padding(.horizontal, 12)
@@ -364,7 +364,7 @@ struct AuthView: View {
                         Text(mode == .signIn
                              ? (german ? "Willkommen zurück" : "Welcome back")
                              : (german ? "Werde Teil von Kuro" : "Join Kuro"))
-                            .font(.kuroFeature(weight: .semibold))
+                            .kuroRoleText(.feature)
                             .foregroundStyle(Color.kuroInk)
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
@@ -701,6 +701,18 @@ struct KuroWordmark: View {
     }
 }
 
+/// The prototype header's wordmark (PROTOTYPE_SPEC §4 Header: "KURO", SF 18 w800, tracking 3, ink)
+/// for the screens past the frozen welcome: the auth form, set-password and onboarding.
+struct KuroPrototypeWordmark: View {
+    var body: some View {
+        Text(verbatim: "KURO")
+            .font(.kuroCustom(18, weight: .heavy, relativeTo: .headline, maxSize: 28))
+            .tracking(3)
+            .foregroundStyle(Color.kuroInk)
+            .accessibilityLabel("Kuro")
+    }
+}
+
 // MARK: - Set new password (after a recovery link; spec D12)
 
 /// Shown by the root instead of the app while `identity.requiresPasswordUpdate` is set: a password
@@ -726,12 +738,12 @@ struct AuthSetPasswordView: View {
             Color.kuroCanvasPage.ignoresSafeArea()
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    KuroWordmark()
+                    KuroPrototypeWordmark()
                         .frame(maxWidth: .infinity)
                         .padding(.top, 12)
 
                     Text(german ? "Wähle ein neues Passwort" : "Choose a new password")
-                        .font(.kuroFeature(weight: .semibold))
+                        .kuroRoleText(.feature)
                         .foregroundStyle(Color.kuroInk)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
@@ -911,7 +923,7 @@ private struct AuthResetPasswordSheet: View {
                 }
 
                 Text(german ? "Passwort zurücksetzen" : "Reset password")
-                    .font(.kuroHeadline(weight: .regular))
+                    .kuroRoleText(.headline)
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
@@ -1236,9 +1248,8 @@ private struct AuthLegalLine: View {
 private struct AuthLinkProgress: View {
     var body: some View {
         HStack(spacing: 8) {
-            ProgressView()
-                .controlSize(.small)
-                .tint(Color.kuroInkQuiet)
+            KuroBusyMark(width: 20, tint: Color.kuroInkQuiet)
+                .accessibilityHidden(true)
             Text(KuroLocale.text("Opening your link…", "Link wird geöffnet …"))
                 .font(.kuroMeta(weight: .medium))
                 .foregroundStyle(Color.kuroInk)

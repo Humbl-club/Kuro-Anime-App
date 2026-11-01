@@ -65,7 +65,7 @@ struct ImportWorkflowSheet: View {
                             titlePages(job)
                         } else {
                             Text(german ? "Importe." : "Imports.")
-                                .font(.kuroHeadline(weight: .light))
+                                .kuroRoleText(.headline)
                                 .foregroundStyle(Color.kuroInk)
                                 .accessibilityAddTraits(.isHeader)
                             if let failure = model.failure { failureCard(failure) }
@@ -121,7 +121,7 @@ struct ImportWorkflowSheet: View {
     private func summary(_ job: ImportOutcome) -> some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             Text(heading(job))
-                .font(.kuroHeadline(weight: .light))
+                .kuroRoleText(.headline)
                 .foregroundStyle(Color.kuroInk)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
@@ -313,7 +313,7 @@ struct ImportWorkflowSheet: View {
         if !model.items.isEmpty {
             let g = german
             Text(job.phase == .reviewing ? (g ? "Titel zum Prüfen" : "Titles to review") : (g ? "Ergebnis je Titel" : "Results by title"))
-                .font(.kuroTitle())
+                .kuroRoleText(.title)
                 .foregroundStyle(Color.kuroInk)
                 .accessibilityAddTraits(.isHeader)
             if job.phase == .reviewing {
@@ -359,7 +359,7 @@ struct ImportWorkflowSheet: View {
     private func reviewRow(_ item: ImportReviewItem, job: ImportOutcome) -> some View {
         let g = german
         return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            Text(item.title).font(.kuroTitle()).foregroundStyle(Color.kuroInk).fixedSize(horizontal: false, vertical: true)
+            Text(item.title).font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2).foregroundStyle(Color.kuroInk).fixedSize(horizontal: false, vertical: true)
             Text("\(ImportCopy.medium(item.medium, german: g)) · \(ImportCopy.disposition(item.disposition, german: g))")
                 .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
             if let detail = item.detail { Text(detail).font(.kuroMeta()).foregroundStyle(Color.kuroInk) }
@@ -420,7 +420,7 @@ struct ImportWorkflowSheet: View {
             }) { manifest in
                 let g = german
                 VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
-                    Text(ImportCopy.source(manifest.selection, german: g)).font(.kuroTitle()).foregroundStyle(Color.kuroInk)
+                    Text(ImportCopy.source(manifest.selection, german: g)).font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2).foregroundStyle(Color.kuroInk)
                     Text((g ? "Auf diesem Gerät gesichert · " : "Saved on this device · ") + ImportCopy.phase(manifest.phase, german: g))
                         .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
                     textAction(manifest.phase == .preparing ? (g ? "Weiterlesen" : "Resume reading") : (g ? "Gesicherten Import öffnen" : "Open saved import")) {
@@ -442,7 +442,7 @@ struct ImportWorkflowSheet: View {
             ForEach(model.jobs) { job in
                 Button { Task { visibleCount = 50; await model.inspect(job) } } label: {
                     VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
-                        Text(ImportCopy.source(job.selection, german: german)).font(.kuroTitle()).foregroundStyle(Color.kuroInk)
+                        Text(ImportCopy.source(job.selection, german: german)).font(.kuroCustom(15, weight: .medium, relativeTo: .headline, maxSize: 30)).tracking(-0.2).foregroundStyle(Color.kuroInk)
                         Text(ImportCopy.phase(job.phase, german: german) + " · "
                              + ImportCopy.savedSummary(applied: job.counts.applied, needsReview: job.counts.needsReview, german: german))
                             .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)

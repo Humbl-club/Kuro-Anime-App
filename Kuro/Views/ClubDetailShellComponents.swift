@@ -130,7 +130,7 @@ struct JournalHeroSection: View {
                     .foregroundStyle(Color.kuroRoomTextSecondary)
 
                 Text(bundle.club.name)
-                    .font(.kuroFeature(weight: .light))
+                    .font(.kuroEditorial(size: 30)).tracking(-0.6)
                     .foregroundStyle(Color.kuroRoomText)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityAddTraits(.isHeader)
@@ -211,7 +211,7 @@ struct ClubNoteCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if isRevealed {
                     Text(note)
-                        .font(.kuroTitle(weight: .regular))
+                        .font(.kuroEditorial(size: 18)).tracking(-0.3)
                         .foregroundStyle(Color.kuroInk)
                         .fixedSize(horizontal: false, vertical: true)
                         .transition(.opacity)

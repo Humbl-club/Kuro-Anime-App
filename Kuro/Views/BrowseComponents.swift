@@ -440,10 +440,20 @@ private struct BrowseGridMetrics {
 struct BrowseGridSkeleton: View {
     let width: CGFloat
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        BrowsePlaceholderGrid(width: width, count: 10)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(KuroLocale.text("Loading", "Wird geladen"))
+        let metrics = BrowseGridMetrics(width: width, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
+        VStack(alignment: .leading, spacing: 0) {
+            // The branded loading cue: the scrub line travelling above the frame shapes.
+            KuroScrubLine()
+                .frame(maxWidth: 96)
+                .padding(.horizontal, metrics.gutter)
+                .padding(.top, KuroDesignSpacing.md)
+            BrowsePlaceholderGrid(width: width, count: 10)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(KuroLocale.text("Loading", "Wird geladen"))
     }
 }
 
