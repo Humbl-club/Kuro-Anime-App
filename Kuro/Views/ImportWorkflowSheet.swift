@@ -192,7 +192,7 @@ struct ImportWorkflowSheet: View {
                        : "This review started on another device. Inspect or stop it here; confirm changes on the device that has the original source.")
             }
             if job.phase == .reviewing, let manifest = model.manifest, manifest.decisions != nil {
-                note(g ? "Deine bestätigte Auswahl ist schon gesichert. Setz fort, ohne erneut zu bestätigen."
+                note(g ? "Deine bestätigte Auswahl ist schon gesichert. Setz sie fort, ohne erneut zu bestätigen."
                        : "The choices you confirmed are already saved. Resume without confirming again.")
             }
             if job.phase == .reviewing, model.manifest?.phase == .reviewing, model.manifest?.decisions == nil {

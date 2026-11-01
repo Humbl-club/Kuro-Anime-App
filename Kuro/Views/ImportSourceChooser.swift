@@ -34,8 +34,8 @@ struct ImportSourceChooser: View {
     /// From confirming the AniList sheet until the coordinator returns (covers the gap before its own
     /// processing flag is set).
     @State private var aniListInFlight = false
-    @State private var conciergeReviewText: String?
-    @State private var showConciergeReview = false
+    /// The review handed to Concierge (an item sheet, so the prompt is never read stale).
+    @State private var conciergeReview: ConciergeReview?
 
     private var isGerman: Bool { KuroLocale.isGerman }
 
@@ -91,8 +91,7 @@ struct ImportSourceChooser: View {
                         onReview: {
                             guard case .needsReview(_, _, _, let importText) = result else { return }
                             owner?.dismissImportResult()
-                            conciergeReviewText = importText
-                            showConciergeReview = true
+                            conciergeReview = ConciergeReview(text: importText)
                         },
                         onSeeLists: { onNavigate(.fullCollection) }
                     )
@@ -250,17 +249,17 @@ struct ImportSourceChooser: View {
                 onNavigate(destination)
             }
         }
-        .sheet(isPresented: $showConciergeReview, onDismiss: { conciergeReviewText = nil }) {
+        .sheet(item: $conciergeReview) { review in
             // The same review Profile hands to Concierge, presented here because neither Onboarding
             // nor Collection has a Concierge page to hand it to.
             NavigationStack {
-                ConciergeView(assistantEnabled: true, initialPrompt: conciergeReviewText) { destination in
-                    showConciergeReview = false
+                ConciergeView(assistantEnabled: true, initialPrompt: review.text) { destination in
+                    conciergeReview = nil
                     onNavigate(destination)
                 }
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(isGerman ? "Fertig" : "Done") { showConciergeReview = false }
+                        Button(isGerman ? "Fertig" : "Done") { conciergeReview = nil }
                             .font(.kuroBody(weight: .light))
                     }
                 }
@@ -311,6 +310,12 @@ struct ImportSourceChooser: View {
         .buttonStyle(HomeContactStyle())
         .accessibilityLabel(label)
     }
+}
+
+/// An import text handed to the Concierge review sheet.
+private struct ConciergeReview: Identifiable {
+    let id = UUID()
+    let text: String
 }
 
 /// The coordinator's import result inside the chooser: what was saved (with Undo while the server
