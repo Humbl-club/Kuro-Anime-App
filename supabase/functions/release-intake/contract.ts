@@ -11,17 +11,20 @@
 //   unit_label         'Ep. 7' / 'Ch. 1197' / 'Vol. 115'
 //   precision 'instant' -> release_at (ISO instant), source_local_date absent (AniList airing)
 //   precision 'day'     -> source_local_date 'YYYY-MM-DD', release_at absent (MangaUpdates
-//                          dates, cadence estimates)
+//                          official-group dates, cadence estimates)
 //   status             'released' for a past unit, 'scheduled' otherwise (estimates always
 //                      'scheduled')
-//   basis              'confirmed' | 'announced' | 'estimated' (estimated <=> source kuro_estimate)
-//   confidence         1 for confirmed; the cadence confidence (>= 0.7) for estimated
+//   basis              'confirmed' | 'announced' | 'estimated' (estimated <=> source kuro_estimate).
+//                      D10: confirmed needs precision 'instant' (the writer rejects a confirmed
+//                      day); a source date without a time (MangaUpdates) is 'announced'.
+//   confidence         1 for confirmed/announced; the cadence confidence (>= 0.7) for estimated
 //   source             'anilist' | 'mangaupdates' | 'kuro_estimate'
-//   source_url         https attribution link (AniList title page / MangaUpdates series page)
+//   source_url         https attribution link on the source's own host (writer + CHECK enforce
+//                      anilist.co / (www.)mangaupdates.com; kuro_estimate uses the MU page)
 //   observed_at        ISO timestamp of this intake run
 //   external_id        source-side evidence id (AniList airing schedule id, MU series id)
 // The writer derives the natural key itself:
-//   <source>:<medium>:<media_id>:<unit_kind>:<unit_number>   confirmed (a delay updates the row)
+//   <source>:<medium>:<media_id>:<unit_kind>:<unit_number>   confirmed / announced (a delay updates the row)
 //   kuro_estimate:<medium>:<media_id>:<unit_kind>:next       estimated (one per title, replaced)
 //
 // Licensing D11: rows always carry source + source_url (credit). Nothing here is scheduled.

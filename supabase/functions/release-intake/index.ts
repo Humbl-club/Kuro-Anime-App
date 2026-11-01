@@ -1,5 +1,7 @@
-// release-intake: confirmed release dates (AniList airing window) and MangaUpdates chapter
-// history + cadence estimates into release_events via upsert_release_events_v1.
+// release-intake: confirmed release dates (AniList airing window) and MangaUpdates series data
+// (volume counts; official-group chapter dates + cadence estimates only when
+// MU_OFFICIAL_GROUP_IDS is set, open D11 decision) into release_events via
+// upsert_release_events_v1.
 // PREPARED, NOT DEPLOYED, NOT SCHEDULED (owner decision D11). Auth is the shared IMPORT_SECRET
 // header, like bulk-import (pg_cron cannot send JWTs). No user input, no user ids.
 // Run orchestration: handler.ts. Airing: airing.ts. Manga: manga.ts. Row contract: contract.ts.
@@ -37,12 +39,18 @@ serve(async (req) => {
     supabase,
     anilist: createAniListClient(),
     mangaUpdates: createPoliteClient({ limiter: mangaUpdatesLimiter }),
+    muOfficialGroupIds: parseGroupIds(Deno.env.get("MU_OFFICIAL_GROUP_IDS")),
     readMangaDexLinks: async (mangaDexId) => {
       const { manga } = await dex.fetchMappedMangaDexTitle(mangaDexId, metrics, startedMs, budgetMs);
       return manga?.attributes?.links ?? null;
     },
   });
 });
+
+/** "123,456" -> [123, 456]; anything else is ignored (unset = no official groups). */
+function parseGroupIds(raw: string | undefined): number[] {
+  return (raw ?? "").split(",").map((v) => Number(v.trim())).filter((n) => Number.isInteger(n) && n > 0);
+}
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });

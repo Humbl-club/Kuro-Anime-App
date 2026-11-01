@@ -9,7 +9,7 @@ import { AniListLimiter, createAniListClient } from "../_shared/anilist_client.t
 import { createPoliteClient, PoliteLimiter } from "../_shared/polite_fetch.ts";
 import { queryFake } from "../_shared/test_query_fake.ts";
 import { run } from "./handler.ts";
-import { decodeMuSlug, dedupeReleases, parseChapterNumber, parseVolumeCount } from "./manga.ts";
+import { decodeMuSlug, dedupeReleases, isMuSeriesPage, muSeriesUrl, parseChapterNumber, parseVolumeCount } from "./manga.ts";
 import type { ReleaseEventRow } from "./contract.ts";
 
 const NOW = Date.parse("2026-11-01T10:00:00Z");
@@ -259,15 +259,19 @@ const ONE_PIECE_SERIES = {
   completed: false,
 };
 
+const OFFICIAL_GROUP = 101;
+const MU_CREDIT = "https://www.mangaupdates.com/series/pb8uwds";
+
 function weeklyReleases(lastDate: string, count: number, lastChapter: number) {
   const results = [];
   let t = Date.parse(`${lastDate}T00:00:00Z`);
   for (let i = 0; i < count; i++) {
     const date = new Date(t).toISOString().slice(0, 10);
     const chapter = String(lastChapter - i);
-    // Two groups release the same chapter; the later duplicate must not win.
-    results.push({ record: { id: i * 2, chapter, volume: null, release_date: date, groups: [{ name: "MANGA Plus" }] }, metadata: { series: { series_id: 55099564912 } } });
-    results.push({ record: { id: i * 2 + 1, chapter, volume: null, release_date: new Date(t + 86_400_000).toISOString().slice(0, 10), groups: [{ name: "Viz" }] }, metadata: { series: { series_id: 55099564912 } } });
+    // An official group (101) and a scanlation group (202) release the same chapter; only the
+    // allowlisted group's date may be used.
+    results.push({ record: { id: i * 2, chapter, volume: null, release_date: date, groups: [{ name: "MANGA Plus", group_id: OFFICIAL_GROUP }] }, metadata: { series: { series_id: 55099564912 } } });
+    results.push({ record: { id: i * 2 + 1, chapter, volume: null, release_date: new Date(t - 86_400_000).toISOString().slice(0, 10), groups: [{ name: "Some Scans", group_id: 202 }] }, metadata: { series: { series_id: 55099564912 } } });
     t -= 7 * 86_400_000;
   }
   return { total_hits: count * 2, page: 1, per_page: 40, results };
@@ -287,7 +291,7 @@ function mangaFake(extra: Record<string, unknown[]> = {}) {
   return { fake, locks };
 }
 
-Deno.test("manga: MangaUpdates history becomes confirmed chapter rows plus one credited estimate", async () => {
+Deno.test("manga: by default (no official-group allowlist) only the volume count is used: no release search, no rows", async () => {
   const { fake, locks } = mangaFake();
   const c = clients([], [{ body: ONE_PIECE_SERIES }, { body: weeklyReleases("2026-10-25", 10, 1196) }]);
   const dexIds: string[] = [];
@@ -303,18 +307,46 @@ Deno.test("manga: MangaUpdates history becomes confirmed chapter rows plus one c
   assert.equal(res.status, 200, JSON.stringify(out));
   assert.deepEqual(dexIds, ["a1c7c817-4e59-43b7-9365-09675a149a6f"]);
   assert.equal(out.results.processed, 1);
+  assert.equal(out.results.events, 0);
+  assert.equal(out.results.estimates, 0);
+  assert.equal(c.muSeen.length, 1, "no release search without an allowlist");
+  assert.equal(c.muSeen[0].url, "https://api.mangaupdates.com/v1/series/55099564912");
+  assert.match(c.muSeen[0].headers.get("user-agent") ?? "", /^Kuro-Intake\//);
+  assert.equal(writtenRows(fake).length, 0);
+  // volumes from the series status (upward only); chapters untouched (MU latest_chapter is scanlation-derived)
+  assert.equal(fake.tables.manga[0].volumes, 115);
+  assert.equal(fake.tables.manga[0].chapters, 1190);
+  assert.equal(locks.held.size, 0);
+});
+
+Deno.test("manga: with an allowlist, official-group history becomes announced released rows plus one credited estimate", async () => {
+  const { fake, locks } = mangaFake();
+  const releases = weeklyReleases("2026-10-25", 10, 1196);
+  // a future-dated official record is not history and must not move the estimate
+  releases.results.unshift({ record: { id: 999, chapter: "1197", volume: null, release_date: "2026-11-05", groups: [{ name: "MANGA Plus", group_id: OFFICIAL_GROUP }] }, metadata: { series: { series_id: 55099564912 } } });
+  const c = clients([], [{ body: ONE_PIECE_SERIES }, { body: releases }]);
+  const res = await run({ mode: "manga" }, {
+    supabase: fake.client,
+    ...c,
+    muOfficialGroupIds: [OFFICIAL_GROUP],
+    readMangaDexLinks: () => Promise.resolve({ al: "30013", mu: "pb8uwds" }),
+  });
+  const out = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(out));
+  assert.equal(out.results.processed, 1);
   assert.equal(out.results.estimates, 1);
+  assert.equal(out.results.nonOfficialReleases, 10, "the scanlation group's records are dropped");
 
   // Request shapes (sources.md, MU OpenAPI): GET series/{id}; POST releases/search by series id.
-  assert.equal(c.muSeen[0].url, "https://api.mangaupdates.com/v1/series/55099564912");
   assert.equal(c.muSeen[1].url, "https://api.mangaupdates.com/v1/releases/search");
   assert.deepEqual(c.muSeen[1].body, { search: "55099564912", search_type: "series", orderby: "date", asc: "desc", perpage: 40 });
-  assert.match(c.muSeen[0].headers.get("user-agent") ?? "", /^Kuro-Intake\//);
 
   const rows = writtenRows(fake);
-  const confirmed = rows.filter((r) => r.basis === "confirmed");
-  assert.equal(confirmed.length, 10);
-  assert.deepEqual(confirmed[0], {
+  assert.equal(rows.filter((r) => r.basis === "confirmed").length, 0, "D10: a date without a time is never confirmed");
+  const announced = rows.filter((r) => r.basis === "announced");
+  assert.equal(announced.length, 10);
+  assert.ok(announced.every((r) => r.status === "released" && r.source_local_date! <= "2026-11-01"));
+  assert.deepEqual(announced[0], {
     medium: "manga",
     media_id: 5,
     unit_kind: "chapter",
@@ -323,10 +355,10 @@ Deno.test("manga: MangaUpdates history becomes confirmed chapter rows plus one c
     precision: "day",
     source_local_date: "2026-10-25",
     status: "released",
-    basis: "confirmed",
+    basis: "announced",
     confidence: 1,
     source: "mangaupdates",
-    source_url: "https://www.mangaupdates.com/series/pb8uwds/one-piece",
+    source_url: MU_CREDIT,
     observed_at: new Date(NOW).toISOString(),
     external_id: "series:55099564912",
   });
@@ -337,41 +369,49 @@ Deno.test("manga: MangaUpdates history becomes confirmed chapter rows plus one c
   assert.equal(estimate.release_at, undefined);
   assert.equal(estimate.status, "scheduled");
   assert.equal(estimate.source, "kuro_estimate");
-  assert.equal(estimate.source_url, ONE_PIECE_SERIES.url);
+  assert.equal(estimate.source_url, MU_CREDIT);
   assert.ok(estimate.confidence >= 0.7);
   assert.equal(rows.filter((r) => r.basis === "estimated").length, 1, "one estimate per title");
 
-  // Counts move upward only: volumes from MU status, chapters 1190 -> 1196.
   assert.equal(fake.tables.manga[0].volumes, 115);
-  assert.equal(fake.tables.manga[0].chapters, 1196);
+  assert.equal(fake.tables.manga[0].chapters, 1190, "chapters are never raised from MangaUpdates");
   assert.equal(locks.held.size, 0);
 });
 
-Deno.test("manga: an irregular history emits confirmed rows but no estimate", async () => {
+Deno.test("manga: an irregular official history emits announced rows but no estimate", async () => {
   const { fake } = mangaFake();
   const irregular = {
     results: ["2026-10-28", "2026-10-21", "2026-10-02", "2026-09-29", "2026-09-05", "2026-08-30", "2026-08-02"].map((date, i) => ({
-      record: { chapter: String(60 - i), release_date: date },
+      record: { chapter: String(60 - i), release_date: date, groups: [{ group_id: OFFICIAL_GROUP }] },
       metadata: { series: { series_id: 55099564912 } },
     })),
   };
   const c = clients([], [{ body: ONE_PIECE_SERIES }, { body: irregular }]);
-  const res = await run({ mode: "manga" }, { supabase: fake.client, ...c, readMangaDexLinks: () => Promise.resolve({ mu: "pb8uwds" }) });
+  const res = await run({ mode: "manga" }, { supabase: fake.client, ...c, muOfficialGroupIds: [OFFICIAL_GROUP], readMangaDexLinks: () => Promise.resolve({ mu: "pb8uwds" }) });
   assert.equal(res.status, 200);
   const rows = writtenRows(fake);
   assert.equal(rows.filter((r) => r.basis === "estimated").length, 0);
   assert.equal(rows.length, 7);
 });
 
-Deno.test("manga: a series page that does not echo the slug is not trusted", async () => {
-  const { fake } = mangaFake();
-  const c = clients([], [{ body: { ...ONE_PIECE_SERIES, url: "https://www.mangaupdates.com/series/zzzzzz/other" } }]);
-  const res = await run({ mode: "manga" }, { supabase: fake.client, ...c, readMangaDexLinks: () => Promise.resolve({ mu: "pb8uwds" }) });
-  const out = await res.json();
-  assert.equal(out.results.muMismatch, 1);
-  assert.equal(writtenRows(fake).length, 0);
-  assert.equal(c.muSeen.length, 1, "no release search for an untrusted mapping");
-});
+for (const [label, badUrl] of [
+  ["does not echo the slug", "https://www.mangaupdates.com/series/zzzzzz/other"],
+  ["is on a foreign host", "https://any-host.example/series/pb8uwds/one-piece"],
+  ["is on a look-alike host", "https://mangaupdates.com.evil.example/series/pb8uwds"],
+  ["is not https", "http://www.mangaupdates.com/series/pb8uwds"],
+  ["only contains the slug path elsewhere", "https://www.mangaupdates.com/x/series/pb8uwds"],
+]) {
+  Deno.test(`manga: a series page url that ${label} is not trusted`, async () => {
+    const { fake } = mangaFake();
+    const c = clients([], [{ body: { ...ONE_PIECE_SERIES, url: badUrl } }]);
+    const res = await run({ mode: "manga" }, { supabase: fake.client, ...c, muOfficialGroupIds: [OFFICIAL_GROUP], readMangaDexLinks: () => Promise.resolve({ mu: "pb8uwds" }) });
+    const out = await res.json();
+    assert.equal(out.results.muMismatch, 1);
+    assert.equal(writtenRows(fake).length, 0);
+    assert.equal(fake.tables.manga[0].volumes, null, "nothing is patched from an untrusted page");
+    assert.equal(c.muSeen.length, 1, "no release search for an untrusted mapping");
+  });
+}
 
 Deno.test("manga: titles without a MangaDex mapping or MU link make no requests", async () => {
   const { fake } = mangaFake({ manga_source_links: [] });
@@ -406,7 +446,7 @@ Deno.test("manga: MangaUpdates requests are spaced at least 1 s apart", async ()
       return fakeFetch(muReplies, [])(input as string, init);
     },
   });
-  await run({ mode: "manga" }, { supabase: fake.client, ...clients([]), mangaUpdates, readMangaDexLinks: () => Promise.resolve({ mu: "pb8uwds" }) });
+  await run({ mode: "manga" }, { supabase: fake.client, ...clients([]), mangaUpdates, muOfficialGroupIds: [OFFICIAL_GROUP], readMangaDexLinks: () => Promise.resolve({ mu: "pb8uwds" }) });
   assert.equal(stamps.length, 2);
   assert.ok(stamps[1] - stamps[0] >= 1_000);
 });
@@ -422,7 +462,7 @@ Deno.test("manga: a writer RPC failure fails the run (systemic), the lock is rel
     rpc: { ...lockRpc(locks), upsert_release_events_v1: { data: null, error: { message: "Could not find the function", code: "PGRST202" } } },
   });
   const c = clients([], [{ body: ONE_PIECE_SERIES }, { body: weeklyReleases("2026-10-25", 6, 1196) }]);
-  const res = await run({ mode: "manga" }, { supabase: fake.client, ...c, readMangaDexLinks: () => Promise.resolve({ mu: "pb8uwds" }) });
+  const res = await run({ mode: "manga" }, { supabase: fake.client, ...c, muOfficialGroupIds: [OFFICIAL_GROUP], readMangaDexLinks: () => Promise.resolve({ mu: "pb8uwds" }) });
   assert.equal(res.status, 500);
   assert.equal(locks.held.size, 0);
 });
@@ -431,7 +471,7 @@ Deno.test("manga: a writer RPC failure fails the run (systemic), the lock is rel
 // pure helpers
 // ---------------------------------------------------------------------------
 
-Deno.test("MangaUpdates helpers: base36 slug, volume count, plain chapter numbers, per-group dedupe", () => {
+Deno.test("MangaUpdates helpers: base36 slug, volume count, plain chapter numbers, official-group dedupe, credit link", () => {
   assert.equal(decodeMuSlug("pb8uwds"), 55099564912);
   assert.equal(decodeMuSlug("PB8UWDS"), 55099564912);
   assert.equal(decodeMuSlug("not a slug"), null);
@@ -444,10 +484,20 @@ Deno.test("MangaUpdates helpers: base36 slug, volume count, plain chapter number
   assert.equal(parseChapterNumber("1195-1196"), null);
   assert.equal(parseChapterNumber("v.2 c.10"), null);
   assert.equal(parseChapterNumber("Oneshot"), null);
+  const official = new Set([101]);
   const deduped = dedupeReleases([
-    { record: { chapter: "7", release_date: "2026-10-12" } },
-    { record: { chapter: "7", release_date: "2026-10-10" } },
-    { record: { chapter: "8", release_date: "2026-10-17" }, metadata: { series: { series_id: 999 } } },
-  ], 1);
-  assert.deepEqual(deduped, [{ number: 7, date: "2026-10-10" }]);
+    { record: { chapter: "7", release_date: "2026-10-12", groups: [{ group_id: 101 }] } },
+    { record: { chapter: "7", release_date: "2026-10-10", groups: [{ group_id: 101 }] } },
+    { record: { chapter: "7", release_date: "2026-10-01", groups: [{ group_id: 202 }] } },
+    { record: { chapter: "6", release_date: "2026-10-03" } },
+    { record: { chapter: "8", release_date: "2026-10-17", groups: [{ group_id: 101 }] }, metadata: { series: { series_id: 999 } } },
+  ], 1, official);
+  assert.deepEqual(deduped, { chapters: [{ number: 7, date: "2026-10-10" }], dropped: 2 });
+  assert.deepEqual(dedupeReleases([{ record: { chapter: "7", release_date: "2026-10-10", groups: [{ group_id: 101 }] } }], 1, new Set()),
+    { chapters: [], dropped: 1 }, "an empty allowlist admits nothing");
+  assert.equal(muSeriesUrl("PB8UWDS"), "https://www.mangaupdates.com/series/pb8uwds");
+  assert.equal(isMuSeriesPage("https://www.mangaupdates.com/series/pb8uwds/one-piece", "pb8uwds"), true);
+  assert.equal(isMuSeriesPage("https://mangaupdates.com/series/pb8uwds", "pb8uwds"), true);
+  assert.equal(isMuSeriesPage("https://www.mangaupdates.com/series/pb8uwdsx", "pb8uwds"), false);
+  assert.equal(isMuSeriesPage("not a url", "pb8uwds"), false);
 });

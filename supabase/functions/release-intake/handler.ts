@@ -9,7 +9,9 @@
 //   airing: perPage (<= 50, default 50), maxPages (default 25), staleSweep (default true),
 //           staleLimit (<= 50, default 50)
 //   manga:  limit (default 15, <= 40), offset (default: rotates hourly), mangaIds (explicit
-//           local ids), confirmedPastLimit (default 10)
+//           local ids), confirmedPastLimit (default 10). The official MangaUpdates group
+//           allowlist is deployment config (deps.muOfficialGroupIds, from MU_OFFICIAL_GROUP_IDS),
+//           never taken from the payload; empty = no release rows/estimates (open D11 decision).
 // Lock: acquire_import_lock('release-intake:<mode>'), released only when acquired (fail closed,
 // same contract as bulk-import). Bookkeeping: import_runs (run_type 'release_intake_<mode>').
 import type { AniListClient } from "../_shared/anilist_client.ts";
@@ -29,6 +31,8 @@ export interface ReleaseIntakeDeps {
   anilist: AniListClient;
   mangaUpdates: PoliteClient;
   readMangaDexLinks: MangaDexLinkReader;
+  /** Official-publisher MangaUpdates group ids whose release dates may be used (default none). */
+  muOfficialGroupIds?: number[];
   now?: () => number;
 }
 
@@ -93,6 +97,7 @@ export async function run(payload: any, deps: ReleaseIntakeDeps): Promise<Respon
         offset: clampInt(payload?.offset, Math.floor(startedMs / 3_600_000) * limit, 0, Number.MAX_SAFE_INTEGER),
         mangaIds: ids && ids.length > 0 ? ids : null,
         confirmedPastLimit: clampInt(payload?.confirmedPastLimit, 10, 0, 40),
+        officialGroupIds: deps.muOfficialGroupIds ?? [],
         dryRun,
         deadlineMs,
         nowMs: startedMs,
