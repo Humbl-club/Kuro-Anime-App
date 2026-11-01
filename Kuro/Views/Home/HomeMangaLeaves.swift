@@ -9,8 +9,8 @@ import SwiftUI
 // Measured: 390 → columns 106, gaps 26 row / 14 column, cover 138; ≤ 360 → 88, 24 / 11, cover 119;
 // 430 → the columns widen and the cover stays 138 (the manga Home is fixed in height).
 // At accessibility text sizes the title still wraps to two lines and then truncates (every leaf
-// reserves both lines, so the rules and "Ch." rows stay level), and the count sits above the key so
-// a long count never truncates.
+// then reserves both lines, so the rules and "Ch." rows stay level), and the count sits above the
+// key so a long count never truncates.
 //
 // Tracking stays in Home: the caller passes each card's readout and its `KuroAdvanceKey` (style
 // `.dark`, built through Home's own advance path with the caught-up guard and Undo). This view never
@@ -164,26 +164,31 @@ struct HomeMangaLeafMetrics: Equatable {
     var readoutWidth: CGFloat { max(0, columnWidth - Self.keyColumn) }
 }
 
-/// The leaf's title in its own box above the rule: two lines, then truncated, at every size. Both
-/// lines are reserved, so a short title takes the same height as a long one and the rules and
-/// "Ch." rows of one grid row stay level, also at accessibility sizes.
+/// The leaf's title in its own box above the rule: two lines, then truncated, at every size. At
+/// accessibility sizes both lines are reserved, so a short title takes the same height as a long
+/// one and the rules and "Ch." rows of one grid row stay level.
 struct HomeMangaLeafTitle: View {
     let title: String
     let metrics: HomeMangaLeafMetrics
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
+        let accessibility = dynamicTypeSize.isAccessibilitySize
         Text(title)
             .font(Self.font(metrics))
             .tracking(-0.2)
             .foregroundStyle(Color(hex: "272C28"))
             .multilineTextAlignment(.center)
-            .lineLimit(HomeMangaLeafMetrics.titleLineLimit, reservesSpace: true)
+            // At regular sizes the 44 pt box keeps the rules level and a one-line title centres in
+            // it (as the prototype's); at accessibility sizes both lines are reserved instead.
+            .lineLimit(HomeMangaLeafMetrics.titleLineLimit, reservesSpace: accessibility)
             .truncationMode(.tail)
             // The lazy grid row must not hold a two-line title to one line.
             .fixedSize(horizontal: false, vertical: true)
-            // 3 pt over the title; 5 under it, so descenders clear the rule at large text sizes.
+            // 3 pt over and under; 5 under at accessibility sizes, so descenders clear the rule.
             .padding(.top, 3)
-            .padding(.bottom, 5)
+            .padding(.bottom, accessibility ? 5 : 3)
             .frame(maxWidth: .infinity, minHeight: HomeMangaLeafMetrics.titleBox)
     }
 

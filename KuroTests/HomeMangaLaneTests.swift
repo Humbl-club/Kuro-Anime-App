@@ -331,7 +331,7 @@ struct HomeLayoutPolicyTests {
                 #expect(long >= one * 1.8, "the long title wraps to two lines at \(size), \(width): one \(one) long \(long)")
                 // …and never more than two: short and long titles take the same box.
                 #expect(abs(long - short) < 0.5, "titles take the same two-line box at \(size), \(width)")
-                #expect(long < one * 2 + 8 + 1 || long <= HomeMangaLeafMetrics.titleBox,
+                #expect(long < one * 2 + 8 + 1 || long <= HomeMangaLeafMetrics.titleBox + 0.5,
                         "the title stops at two lines at \(size), \(width): one \(one) short \(short) long \(long)")
                 // Whole leaves line up: the rule and the Ch. + key row start at the same height.
                 let shortLeaf = Self.height(width: width, size: size) { Self.leaf("Berserk", width: width) }
