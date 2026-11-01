@@ -42,11 +42,12 @@ The summary prints REPLAY, PREPARED, SETUP and TESTS on separate lines. A failed
 is **not** a test failure, and passing tests do **not** make the replay complete:
 
 ```
-REPLAY      : INCOMPLETE -- baseline-first applied 182, failed 62; strict applied 135, failed 109
+REPLAY      : INCOMPLETE -- baseline-first applied 193, failed 62; strict applied 146, failed 109 (the fixture is an audited schema, not a replay)
 PREPARED    : every non-excluded supabase/prepared-migrations/*.sql applied to the fixture build
-SETUP       : 0 test file(s) BLOCKED (not run), 2 scope(s) BLOCKED by missing fixture objects, 4 in-file BLOCKED marker(s)
-TESTS       : 18 test files, 618 assertions passed, 0 finding markers -> PASS (executed tests only)
-RESULT      : BLOCKED -- executed tests passed, 6 item(s) BLOCKED; NOT a complete verification (exit 4)
+SETUP       : 0 test file(s) BLOCKED (not run), 3 scope(s) BLOCKED by missing fixture objects, 0 in-file BLOCKED marker(s)
+TESTS       : 33 test files, 1122 assertions passed, 0 finding markers -> PASS (executed tests only)
+LIVE        : 4 requirement(s), NOT PROVEN; mandatory separate live-services release gate
+RESULT      : BLOCKED -- executed tests passed, 3 item(s) BLOCKED; NOT a complete verification (exit 4)
 ```
 
 ### Setup completeness (requirement manifest)
@@ -62,7 +63,8 @@ kinds: table | view | function <regprocedure> | function-body <regprocedure> <ma
 Declare **prerequisites** only (tables/functions the test relies on but does not test, the
 latest body of an RPC, an extension). An object that a prepared migration introduces is the
 subject under test: its absence must FAIL the test, not block it. Current BLOCKED scopes:
-`taste_tag_stats` (40) and the latest `delete_user_concierge_data` body (50).
+`taste_tag_stats` (40), the latest `delete_user_concierge_data` body (50) and the similar-titles
+gate skip/run decision, which needs `media_similar_seed_state` (99).
 
 ### Pending (prepared, NOT deployed) migrations
 
@@ -72,16 +74,26 @@ have **not** been applied to production (deployment is a separate human approval
 replays **every** `supabase/prepared-migrations/*.sql` by default, so the tests assert the fixed
 behavior; `--exclude-pending` rebuilds the fixture without the listed files and the tests of the
 fix then fail at their first assertion on purpose (the red half of the red/green evidence).
-Prepared by lane L3 (to be registered in `pending_migrations.txt` by the lead; until then use
-`--exclude-migration <file>` for each to get the deployed-chain state):
+Status corrected 2026-11-01: the nine `20261005*` files are in `supabase/migrations/` (deployed
+chain) and the four 2026-10-07/08 series/import files were applied on 2026-10-08
+(`docs/handoffs/2026-10-08-backend-integration/approved-deployment-live-evidence.md`), so they are
+no longer listed. The byte-identical `20261005*` copies still in `supabase/prepared-migrations/`
+are replayed ONCE (`replay_migrations.sh` dedupes by basename and refuses two different files
+under one name). Pending now:
 
 | File | Fixes | Tests |
 | --- | --- | --- |
-| `20261005140000_account_deletion_write_barrier.sql` | F38 deletion/write barrier | `51`, `50`, `concurrency/90` |
-| `20261005150000_club_membership_lifecycle_and_privacy.sql` (needs 140000) | F34, F35, F36, F37, F39 | `20`, `63`, `64`, `65`, `50`, `concurrency/91` |
-| `20261005160000_club_realtime_signals.sql` (needs 150000) | F42 server side | `66` |
-| `20261005170000_user_lists_view_security_invoker.sql` | F40 | `10` |
-| `20261005180000_list_user_id_canonical_case.sql` | F16 SQL side | `10`, `12` |
+| `20261007120000_feature_flag_overrides.sql` | per-account flag overrides (not live: PGRST205) | `95_feature_flag_overrides`, `50` (its FK is in the reviewed CASCADE set) |
+| `20261101000000_release_schedule_and_themes_v2.sql` | spec 3.1-3.3 release/theme RPCs, D10 certainty, service-role writers | `98` |
+| `20261101010000_perf_hotpaths.sql` | similar-titles gate, nightly rolling re-stale, audit retention, CONCURRENTLY matviews, change-aware `updated_at` | `99` |
+| `20261101010100_perf_drop_duplicate_indexes.sql` (needs 010000; **no-transaction file**) | 22 exact duplicate indexes + unused audit-state index, `DROP INDEX CONCURRENTLY` | `99` |
+| `20261101020000_bridge_identity_fix.sql` | legacy bridge natural key + one-time re-key with collision rule | `91`, `94` (accepts both key spellings) |
+| `20261101030000_auth_hardening.sql` | `check_email_exists` no longer callable by anon/authenticated (D13) | `92` |
+
+A file whose first 10 lines contain `-- kuro:replay-no-transaction` holds statements that cannot
+run in a transaction block; `replay_migrations.sh` applies it without `-1` (it must manage its
+own transactional parts). Apply it in production with plain `psql -v ON_ERROR_STOP=1 -f`, never in
+a single transaction.
 
 `supabase/prepared-migrations/opt-in/` is **not** replayed and is not a migration: it holds the
 one-time, human-approved F16 historical-row repair (`20261005180100_list_user_id_lowercase_backfill.sql`),
@@ -139,13 +151,13 @@ back catalogs. `00_harness_and_preconditions.sql` proves the roles are non-super
 non-bypassrls, that `auth.uid()` follows the claims, and that the assertions are not vacuous.
 `tests.uid(n)` contains hex **letters**, so upper/lower-case id checks are meaningful.
 
-## Replay results (PostgreSQL 17.10; 235 migrations + 9 prepared files; reproduce with the runner)
+## Replay results (PostgreSQL 17.10; 245 migrations + 20 prepared files, 9 of them duplicates applied once; 2026-11-01; reproduce with the runner)
 
 | Mode | Files applied | Files failed |
 | --- | ---: | ---: |
-| `strict` (empty DB, filename order) | 135 | 109 |
-| `baseline-post` (baseline, then only later files) | 4 | 8 |
-| `baseline-first` (fixture build) | 182 | 62 |
+| `strict` (empty DB, filename order) | 146 | 109 |
+| `baseline-post` (baseline, then only later files) | 5 | 18 |
+| `baseline-first` (fixture build) | 193 | 62 |
 
 Every prepared file applies in `baseline-first` (the PREPARED verdict). In `baseline-post` the
 club/import/barrier files fail with `relation ... does not exist` because that mode has no club
@@ -196,7 +208,11 @@ objects are `BLOCKED` through the requirement manifest, not faked.
 | `64_club_privacy_aggregates.sql` | **F34 + F36 together** at private / status / progress levels and in 2-member clubs: raw reads own-only; counts across members; opted-out (private) members never counted; progress only at effective progress level; no cross-member count below 3 members; no notes/ratings; departed votes/reactions excluded; DEFINER posture and grants |
 | `65_club_membership_lifecycle.sql` | **F35** removal (RPC) vs leave, block / restore / rejoin, owner row protected, oldest-admin transfer; **F39** empty club never joinable; **F37** account-deletion club step through the same lifecycle; dashboard-style auth deletion settles clubs through the cascade |
 | `66_club_realtime_signals.sql` | **F42** server side: activity revision bumps, membership revocation states (removed / left / club_deleted), per-subscriber RLS, no table-API writes, publication membership, payload without user ids; Realtime delivery BLOCKED |
-| `70_import_apply_undo_transactions.sql` | Apply/Undo transactions (prepared `20261005130000`; owned by lane L2a, see its header) |
+| `70_import_apply_undo_transactions.sql` | Apply/Undo transactions (`20261005130000`; owned by lane L2a, see its header); since 2026-11-01 expectations follow the live guarded Undo of `20261008100000` (tracking identity journalled; lifecycle-less journals skipped as `legacy_lifecycle_unavailable`) |
+| `91_bridge_identity_fix.sql` | legacy unit bridge natural key: delete-all + re-insert cycle (dated and undated), foreign-owned unit untouched, one-time re-key with the collision rule, stale withdrawals, idempotence, service-role-only repair |
+| `92_auth_hardening.sql` | **D13** `check_email_exists`: anon / authenticated / PUBLIC denied, service_role answers |
+| `98_release_schedule_and_themes_v2.sql` | spec 3.1-3.3: grants (user RPC authenticated only, public reads anon+authenticated, writers service_role only, no table-API writes), tracked-status scope and per-user isolation, next unit per title, AniList fallback and delay precedence, estimate threshold 0.7, estimates never in `home_events_page_v1`, window/precision rules, idempotent natural keys, all-or-nothing validation codes, constraint backstop, themes order/flags and convergence with `finish_series_enrichment_v1` |
+| `99_perf_hotpaths.sql` | similar-titles gate posture and revision bumps (real change only; ON CONFLICT no-ops excluded), cron command rewrites, unread matview dropped, CONCURRENTLY refresh, audit retention rule + batching, change-aware `updated_at` (anime/manga only), 22 duplicate indexes dropped with survivors intact, exactness guard; gate decision scope BLOCKED |
 | `concurrency/90_deletion_write_barrier.sql` | **F38** two sessions, both orders: an in-flight writer makes the barrier wait, then its row is cleaned and later writes are refused; a barrier first makes a concurrent write wait and fail |
 | `concurrency/91_club_lifecycle_join_race.sql` | **F39** two sessions, both orders: lifecycle first -> the waiting join gets INVALID_CODE, no stray membership; join first -> the waiting lifecycle keeps the club and transfers ownership to the joiner |
 
