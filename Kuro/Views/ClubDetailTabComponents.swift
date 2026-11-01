@@ -16,6 +16,19 @@ struct JournalTabBar: View {
     @Namespace private var tabNamespace
 
     var body: some View {
+        // Scrolls sideways only when the labels do not fit (largest text sizes, German).
+        ScrollView(.horizontal, showsIndicators: false) {
+            tabs
+                .padding(.horizontal, KuroDesignSpacing.padding)
+        }
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        .background(Color.kuroCanvasPage)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.kuroHairline).frame(height: 1)
+        }
+    }
+
+    private var tabs: some View {
         HStack(spacing: KuroDesignSpacing.lg) {
             ForEach(ClubDetailView.Tab.visibleCases, id: \.self) { tab in
                 let isSelected = selectedTab == tab
@@ -48,12 +61,6 @@ struct JournalTabBar: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
             }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, KuroDesignSpacing.padding)
-        .background(Color.kuroCanvasPage)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Color.kuroHairline).frame(height: 1)
         }
     }
 }

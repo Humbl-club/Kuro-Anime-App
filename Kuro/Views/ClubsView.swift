@@ -508,7 +508,7 @@ struct ClubInitialsRow: View {
                 bubble(Text(initial))
             }
             if overflow > 0 {
-                bubble(Text("+\(overflow)"))
+                bubble(Text(verbatim: "+\(overflow)"))
             }
         }
         .accessibilityHidden(true)
