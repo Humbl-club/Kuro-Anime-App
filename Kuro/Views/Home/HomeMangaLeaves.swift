@@ -8,7 +8,9 @@ import SwiftUI
 // manga key in a fixed 44 pt column, so a long or German title never reaches the key.
 // Measured: 390 → columns 106, gaps 26 row / 14 column, cover 138; ≤ 360 → 88, 24 / 11, cover 119;
 // 430 → the columns widen and the cover stays 138 (the manga Home is fixed in height).
-// At accessibility text sizes the count sits above the key so a long count never truncates.
+// At accessibility text sizes the title still wraps to two lines and then truncates (every leaf
+// reserves both lines, so the rules and "Ch." rows stay level), and the count sits above the key so
+// a long count never truncates.
 //
 // Tracking stays in Home: the caller passes each card's readout and its `KuroAdvanceKey` (style
 // `.dark`, built through Home's own advance path with the caught-up guard and Undo). This view never
@@ -67,16 +69,7 @@ struct HomeMangaLeaves<Key: View>: View {
                         .clipped()
                         .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                         .shadow(color: Color(hex: "242C25", opacity: Double(0x14) / 255), radius: 1.5, y: 2)
-                    Text(card.title)
-                        .font(.kuroCustom(metrics.titleSize, weight: .medium, relativeTo: .caption1,
-                                          maxSize: metrics.titleSize * 2))
-                        .tracking(-0.2)
-                        .foregroundStyle(Color(hex: "272C28"))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(HomeMangaLeafMetrics.titleLineLimit(accessibility: accessibility))
-                        .truncationMode(.tail)
-                        .padding(.vertical, 3)
-                        .frame(maxWidth: .infinity, minHeight: HomeMangaLeafMetrics.titleBox)
+                    HomeMangaLeafTitle(title: card.title, metrics: metrics)
                 }
                 .contentShape(Rectangle())
             }
@@ -94,7 +87,7 @@ struct HomeMangaLeaves<Key: View>: View {
             : AnyLayout(HStackLayout(alignment: .center, spacing: 0))
         return layout {
             VStack(alignment: .leading, spacing: 0) {
-                Text(state.caughtUp ? KuroLocale.text("Caught up", "Aktuell") : KuroLocale.text("Ch.", "Kap."))
+                Text(HomeMangaLeafMetrics.readoutLabel(caughtUp: state.caughtUp, german: KuroLocale.isGerman))
                     .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 18))
                     .foregroundStyle(Color(hex: "59665A"))
                     .lineLimit(1)
@@ -153,11 +146,50 @@ struct HomeMangaLeafMetrics: Equatable {
         columnWidth = max(Self.keyColumn + 30, raw.rounded(.down))
     }
 
-    /// Two lines, then truncated; three at accessibility sizes (the box grows with the text).
-    static func titleLineLimit(accessibility: Bool) -> Int { accessibility ? 3 : 2 }
+    /// Two lines, then truncated, at every text size (plan edge case 1); the box grows with the text.
+    static let titleLineLimit = 2
+
+    /// The small label over the count: "Ch." / "Kap.", or "Caught up" / "Aktuell".
+    static func readoutLabel(caughtUp: Bool, german: Bool) -> String {
+        if caughtUp { return german ? "Aktuell" : "Caught up" }
+        return german ? "Kap." : "Ch."
+    }
+
+    /// One leaf's full height without accessibility sizes: cover, gap, title box, the "Ch." + key row.
+    var leafHeight: CGFloat { coverHeight + storyGap + Self.titleBox + Self.actionRow }
+    /// The "Ch. N" + key row under the rule (5 pt padding over the 44 pt key, as measured: 50).
+    static let actionRow: CGFloat = 50
 
     /// Room left for the "Ch. N" count beside the key (never negative).
     var readoutWidth: CGFloat { max(0, columnWidth - Self.keyColumn) }
+}
+
+/// The leaf's title in its own box above the rule: two lines, then truncated, at every size. Both
+/// lines are reserved, so a short title takes the same height as a long one and the rules and
+/// "Ch." rows of one grid row stay level, also at accessibility sizes.
+struct HomeMangaLeafTitle: View {
+    let title: String
+    let metrics: HomeMangaLeafMetrics
+
+    var body: some View {
+        Text(title)
+            .font(Self.font(metrics))
+            .tracking(-0.2)
+            .foregroundStyle(Color(hex: "272C28"))
+            .multilineTextAlignment(.center)
+            .lineLimit(HomeMangaLeafMetrics.titleLineLimit, reservesSpace: true)
+            .truncationMode(.tail)
+            // The lazy grid row must not hold a two-line title to one line.
+            .fixedSize(horizontal: false, vertical: true)
+            // 3 pt over the title; 5 under it, so descenders clear the rule at large text sizes.
+            .padding(.top, 3)
+            .padding(.bottom, 5)
+            .frame(maxWidth: .infinity, minHeight: HomeMangaLeafMetrics.titleBox)
+    }
+
+    static func font(_ metrics: HomeMangaLeafMetrics) -> Font {
+        .kuroCustom(metrics.titleSize, weight: .medium, relativeTo: .caption1, maxSize: metrics.titleSize * 2)
+    }
 }
 
 /// One equal cover; a missing cover keeps its frame.
@@ -176,18 +208,25 @@ private struct HomeLeafCover: View {
     }
 }
 
-/// The leaves' loading shape (spec §5.4): three branded cover-leaf skeletons on the same grid as the
-/// real leaves, shown while Home's titles in progress arrive. Integration: replaces the manga branch
-/// of `HomeView.sceneLoadingShape`.
+/// The leaves' loading shape (spec §5.4): two rows of branded cover-leaf skeletons on the same grid
+/// and in the same leaf height as the real leaves, so nothing jumps when they arrive. Shown while
+/// Home's titles in progress load. Integration: replaces the manga branch of
+/// `HomeView.sceneLoadingShape`.
 struct HomeMangaLeavesLoading: View {
     let containerWidth: CGFloat
 
     var body: some View {
         let metrics = HomeMangaLeafMetrics(width: containerWidth)
-        HStack(alignment: .top, spacing: metrics.columnGap) {
-            ForEach(0..<3, id: \.self) { _ in
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.fixed(metrics.columnWidth), spacing: metrics.columnGap, alignment: .top),
+                           count: metrics.columns),
+            alignment: .leading,
+            spacing: metrics.rowGap
+        ) {
+            ForEach(0..<(metrics.columns * 2), id: \.self) { _ in
                 KuroSkeleton(kind: .coverLeaf)
-                    .frame(width: metrics.columnWidth)
+                    .frame(width: metrics.columnWidth, height: metrics.leafHeight, alignment: .top)
+                    .clipped()
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

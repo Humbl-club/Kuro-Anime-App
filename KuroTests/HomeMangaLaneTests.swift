@@ -58,16 +58,14 @@ struct HomeMangaLaneTests {
             #expect(HomeMangaLeafMetrics.keyColumn == 44)
             #expect(metrics.readoutWidth >= 40, "the count keeps room beside the key at \(metrics.columnWidth)")
         }
-    }
-
-    @Test("longTitleNeverOverlapsKey: titles wrap to two lines, the key column is fixed")
-    func longTitleNeverOverlapsKey() {
-        #expect(HomeMangaLeafMetrics.titleLineLimit(accessibility: false) == 2)
-        #expect(HomeMangaLeafMetrics.titleLineLimit(accessibility: true) == 3)
-        // The title sits above the rule in its own 44 pt box; the key never shares the title's row.
-        #expect(HomeMangaLeafMetrics.titleBox == 44)
-        let metrics = HomeMangaLeafMetrics(width: 286)
-        #expect(metrics.columnWidth - HomeMangaLeafMetrics.keyColumn == metrics.readoutWidth)
+        // The row's label: "Ch." over the count, or the caught-up word (EN/DE).
+        #expect(HomeMangaLeafMetrics.readoutLabel(caughtUp: false, german: false) == "Ch.")
+        #expect(HomeMangaLeafMetrics.readoutLabel(caughtUp: false, german: true) == "Kap.")
+        #expect(HomeMangaLeafMetrics.readoutLabel(caughtUp: true, german: false) == "Caught up")
+        #expect(HomeMangaLeafMetrics.readoutLabel(caughtUp: true, german: true) == "Aktuell")
+        // The loading leaves take the real leaf's height (cover, gap, title box, row).
+        #expect(regular.leafHeight == 240) // 138 + 8 + 44 + 50
+        #expect(small.leafHeight == 219) // 119 + 6 + 44 + 50
     }
 
     // MARK: Calendar card
@@ -152,6 +150,22 @@ struct HomeMangaLaneTests {
         #expect(HomeCalendarPresentation.rowWhen(estimated, copy: en) == "Expected")
     }
 
+    @Test("Calendar state is kept per medium; the skeleton shows only while the schedule is asked")
+    func calendarStateAndLoading() throws {
+        #expect(HomeCalendarCard.stateKey(manga: true, dayId: "2026-11-01") == "manga|2026-11-01")
+        #expect(HomeCalendarCard.stateKey(manga: false, dayId: "2026-11-01") == "anime|2026-11-01")
+        #expect(HomeCalendarCard.showsLoading(groups: [], coverage: .pending))
+        #expect(!HomeCalendarCard.showsLoading(groups: [], coverage: .complete), "an answered empty schedule is not loading")
+        #expect(!HomeCalendarCard.showsLoading(groups: [], coverage: .noSource))
+        let copy = try Self.copy(german: false)
+        let groups = HomeCalendarPresentation.groups([Self.row(1, Self.now.addingTimeInterval(3_600))], copy: copy)
+        #expect(!HomeCalendarCard.showsLoading(groups: groups, coverage: .pending))
+        // Manga stamps are square but for the top-right corner; anime are round all over.
+        #expect(HomeCalendarPalette.manga.chipCorners.topTrailing == 10 && HomeCalendarPalette.manga.chipCorners.topLeading == 4)
+        #expect(HomeCalendarPalette.manga.artRadius == 1 && HomeCalendarPalette.manga.eventsBottomRadius == 8)
+        #expect(HomeCalendarPalette.anime.chipCorners.bottomLeading == 10 && HomeCalendarPalette.anime.artRadius == 3)
+    }
+
     @Test("Calendar pages after four dated groups; Dates to come stays visible")
     func calendarPaging() throws {
         let copy = try Self.copy(german: false)
@@ -202,12 +216,17 @@ struct HomeMangaLaneTests {
         let real = try #require(ClubSummary(row: Self.club("z", name: "  Sunday Club ", at: -60)))
         #expect(real.name == "Sunday Club")
 
-        // With several clubs, a note appears under this club only when its author is a member.
+        // With several clubs the slice cannot say which club a note came from: no note is shown.
         let club = try #require(ClubSummary(row: Self.club("z", name: "Sunday Club", at: -60, members: ["Mina", "Jules"])))
         let items = [Self.note("1", by: "Noah", text: "Elsewhere."),
                      Self.note("2", by: "mina", text: "Here.", ago: 60),
                      Self.note("3", by: nil, text: "Unknown author.")]
-        #expect(HomeClubRoom.roomNotes(items, club: club, clubCount: 2).map(\.commentId) == ["2"])
+        #expect(HomeClubRoom.roomNotes(items, club: club, clubCount: 2).isEmpty)
+        // Two clubs that both have an "Alex": Alex's note from the other club never lands here.
+        let alexHere = try #require(ClubSummary(row: Self.club("a", name: "Sunday Club", at: -60, members: ["Alex", "Mina"])))
+        let fromOtherClub = [Self.note("9", by: "Alex", text: "Said in the other club.")]
+        #expect(HomeClubRoom.roomNotes(fromOtherClub, club: alexHere, clubCount: 2).isEmpty)
+        #expect(HomeClubRoom.roomNotes(fromOtherClub, club: alexHere, clubCount: 5).isEmpty)
         // With one club every note is from one of its members (they share only this club).
         #expect(HomeClubRoom.roomNotes(items, club: club, clubCount: 1).map(\.commentId) == ["2", "1", "3"])
 
@@ -243,8 +262,85 @@ struct HomeMangaLaneTests {
         #expect(HomeClubRoom.presentation(picked: nil, clubsReadFailed: true, notesFailed: false) == .failed)
         #expect(HomeClubRoom.presentation(picked: real, clubsReadFailed: true, notesFailed: true)
                 == .room(real, notesFailed: true))
+        // A transport failure reads as offline, never as "Couldn't load".
+        #expect(HomeClubRoom.presentation(picked: nil, clubsReadFailed: true, notesFailed: false, offline: true) == .offline)
+        #expect(HomeClubRoom.presentation(picked: nil, clubsReadFailed: false, notesFailed: false, offline: true) == .hidden)
+        #expect(HomeClubRoom.presentation(picked: real, clubsReadFailed: true, notesFailed: false, offline: true)
+                == .room(real, notesFailed: false))
+        let offlineCopy = HomeClubRoomFailureLine.copy(.offline, german: false)
+        #expect(offlineCopy.headline == "You're offline." && offlineCopy.message == "Connect to load this.")
+        #expect(HomeClubRoomFailureLine.copy(.offline, german: true).headline == "Du bist offline.")
+        let failedCopy = HomeClubRoomFailureLine.copy(.failed(headline: "Couldn't load your clubs."), german: false)
+        #expect(failedCopy.headline == "Couldn't load your clubs." && failedCopy.message == "Try again in a moment.")
+        #expect(HomeClubRoom.memberFills.count == 3)
         // The small-phone room (≈ 296 pt at 320) and the regular one (356 pt at 390).
         #expect(HomeClubRoom.isCompact(width: 296) && !HomeClubRoom.isCompact(width: 356))
+    }
+}
+
+// MARK: - Layout policy (plan edge case 1)
+
+@MainActor
+@Suite("Home layout policy", .serialized)
+struct HomeLayoutPolicyTests {
+    private static let longTitle = "Die sehr lange Geschichte eines wandernden Schwertes"
+
+    /// The hosted height of the view at `width`, at the given text size (the app scale and the
+    /// environment), restored before returning; nothing awaits in between. The view is built inside
+    /// the scaled window, so fonts made by `kuroCustom` read the scaled size.
+    private static func height<V: View>(width: CGFloat, size: DynamicTypeSize, _ make: () -> V) -> CGFloat {
+        let saved = KuroTypeScale.current.category
+        KuroTypeScale.current.update(size)
+        defer { KuroTypeScale.current.update(category: saved ?? .large) }
+        let host = UIHostingController(rootView: make().environment(\.dynamicTypeSize, size).frame(width: width))
+        return host.sizeThatFits(in: CGSize(width: width, height: CGFloat.greatestFiniteMagnitude)).height
+    }
+
+    private static func card(_ title: String) -> HomeCard {
+        HomeCard(mediaId: 1, listType: "current", progress: 24, progressLabel: nil, volumesProgress: nil,
+                 serverRevision: 1, lifecycleId: "fixture", unitId: nil, title: title, bannerImage: nil,
+                 coverImage: nil, format: "MANGA", episodes: nil, chapters: nil, volumes: nil,
+                 catalogueStatus: "RELEASING", seriesId: nil, sectionOrdinal: nil, sectionKind: nil,
+                 sectionName: nil, material: nil)
+    }
+
+    private static func leaf(_ title: String, width: CGFloat) -> some View {
+        HomeMangaLeaves(cards: [card(title)], containerWidth: width,
+                        readout: { _ in .init(label: "24", caughtUp: false, spoken: "Chapter 24") },
+                        onOpen: { _ in }) { _ in Color.black.frame(width: 38, height: 38) }
+    }
+
+    @Test("longTitleNeverOverlapsKey: titles wrap to two lines then truncate; the key keeps its 44 pt column")
+    func longTitleNeverOverlapsKey() {
+        #expect(HomeMangaLeafMetrics.titleLineLimit == 2)
+        #expect(HomeMangaLeafMetrics.keyColumn == 44 && HomeMangaLeafMetrics.titleBox == 44)
+        for width: CGFloat in [286, 346] {
+            let metrics = HomeMangaLeafMetrics(width: width)
+            #expect(metrics.readoutWidth >= 40, "the count keeps room beside the key at \(width)")
+            for size: DynamicTypeSize in [.large, .accessibility5] {
+                let one = Self.height(width: metrics.columnWidth, size: size) {
+                    Text("A").font(HomeMangaLeafTitle.font(metrics)).tracking(-0.2).lineLimit(1)
+                }
+                let short = Self.height(width: metrics.columnWidth, size: size) {
+                    HomeMangaLeafTitle(title: "Berserk", metrics: metrics)
+                }
+                let long = Self.height(width: metrics.columnWidth, size: size) {
+                    HomeMangaLeafTitle(title: Self.longTitle, metrics: metrics)
+                }
+                // Two lines are reserved and used (a short title is not cut to one line in the grid)…
+                #expect(long >= one * 1.8, "the long title wraps to two lines at \(size), \(width): one \(one) long \(long)")
+                // …and never more than two: short and long titles take the same box.
+                #expect(abs(long - short) < 0.5, "titles take the same two-line box at \(size), \(width)")
+                #expect(long < one * 2 + 8 + 1 || long <= HomeMangaLeafMetrics.titleBox,
+                        "the title stops at two lines at \(size), \(width): one \(one) short \(short) long \(long)")
+                // Whole leaves line up: the rule and the Ch. + key row start at the same height.
+                let shortLeaf = Self.height(width: width, size: size) { Self.leaf("Berserk", width: width) }
+                let longLeaf = Self.height(width: width, size: size) { Self.leaf(Self.longTitle, width: width) }
+                #expect(abs(shortLeaf - longLeaf) < 0.5, "leaves are level at \(size), \(width)")
+                // The key row sits below the title: the leaf is at least cover + title + key column.
+                #expect(longLeaf >= metrics.coverHeight + long + HomeMangaLeafMetrics.keyColumn)
+            }
+        }
     }
 }
 
@@ -485,7 +581,9 @@ struct HomeMangaLaneSnapshotTests {
         KuroTypeScale.current.update(category: savedCategory ?? .large)
         await render(VStack(spacing: 24) {
             HomeMangaLeavesLoading(containerWidth: 346).padding(.horizontal, 22)
+            HomeCalendarCard(groups: [], coverage: .pending, now: Self.now, medium: .manga).padding(.horizontal, 22)
             HomeClubRoomFailure(medium: .manga, onRetry: {}).padding(.horizontal, 17)
+            HomeClubRoomFailure(medium: .manga, offline: true, onRetry: {}).padding(.horizontal, 17)
             HomeClubRoom(club: Self.sundayClub, notes: [], medium: .anime, now: Self.now,
                          notesFailed: true, onRetry: {}).padding(.horizontal, 17)
         }
@@ -503,11 +601,21 @@ struct HomeMangaLaneSnapshotTests {
             Issue.record("could not create \(Self.outDir.path): \(error)")
             return
         }
-        // Warm pass: lay out once so the images start loading, then measure the settled height.
+        // Warm pass: lay out once so the images start loading, then measure the settled height
+        // (the same view measured again once its state and artwork have settled). No device safe
+        // area, and the content keeps its ideal height, so the fixed frame never flattens rows
+        // that grow at accessibility sizes.
         let probe = UIHostingController(rootView: view)
-        let fitted = probe.sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
-        let height = max(200, ceil(fitted.height))
-        let host = UIHostingController(rootView: view.frame(width: width, height: height, alignment: .top))
+        probe.safeAreaRegions = []
+        let first = probe.sizeThatFits(in: CGSize(width: width, height: CGFloat.greatestFiniteMagnitude))
+        try? await Task.sleep(for: .milliseconds(500))
+        let settledProbe = UIHostingController(rootView: view)
+        settledProbe.safeAreaRegions = []
+        let settled = settledProbe.sizeThatFits(in: CGSize(width: width, height: CGFloat.greatestFiniteMagnitude))
+        let height = max(200, ceil(max(first.height, settled.height)))
+        let host = UIHostingController(rootView: view.fixedSize(horizontal: false, vertical: true)
+            .frame(width: width, height: height, alignment: .top))
+        host.safeAreaRegions = []
         let window = UIWindow(frame: CGRect(x: 0, y: 0, width: width, height: height))
         window.rootViewController = host
         window.isHidden = false
