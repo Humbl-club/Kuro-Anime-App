@@ -56,14 +56,22 @@ struct HomePagePicture: View {
     }
 }
 
-/// Letter-mask crop of the same Home picture (ridge for empty, first title for populated).
+/// The selected medium word's fill (LANE_AMENDMENTS 7, PROTOTYPE_SPEC.md §4 / §8.9): the lead title's
+/// artwork clipped into the letters, under the prototype's scrim `linear-gradient(#15221c15, #15221c38)`.
 ///
-/// Title art gets a contrast floor: no colour channel of the fill is lighter than `kuroInkSecondary`
-/// (about 6.7:1 on paper, darker than the unselected word's `kuroInkQuiet`), so pale art never erases
-/// the selected word's strokes and the selection never reads lighter than the other word. Darker art
-/// passes through untouched (a per-channel darken, not a wash). The mountain keeps its own treatment.
+/// Contrast floor: no colour channel of the fill is lighter than `HomeMediumWordInk.floor`, which is
+/// darker than the unselected word (`#6e786f`), so pale art never erases the selected word's strokes
+/// and the selection never reads lighter than the other word. Darker art passes through untouched (a
+/// per-channel darken toward ink, not a wash). The prototype paints the artwork's cover in the word
+/// (`assets/anime1.jpg` for the anime lead), so both media use the cover.
+///
+/// Without a title in progress the word takes the prototype's own fill `#253a2a` (`.solid`); the empty
+/// shelf keeps its mountain (`.mountain`, the invitation's picture).
 struct HomePagePictureFill: View {
+    enum Fallback { case solid, mountain }
+
     @Environment(HomeStore.self) private var home
+    var fallback: Fallback = .solid
 
     /// The first title in progress; a planned title never stands for the shelf.
     private var coverCard: HomeCard? {
@@ -73,26 +81,21 @@ struct HomePagePictureFill: View {
     var body: some View {
         if let card = coverCard {
             ZStack {
-                Color.kuroInkSecondary
-                titleArt(card).blendMode(.darken)
+                HomeMediumWordInk.floor.color
+                remote(card.coverImage ?? card.bannerImage).blendMode(.darken)
+                LinearGradient(colors: [HomeMediumWordInk.scrimTop, HomeMediumWordInk.scrimBottom],
+                               startPoint: .top, endPoint: .bottom)
             }
             // Blend inside the fill only, never against what sits behind the word.
             .compositingGroup()
-        } else {
+        } else if fallback == .mountain {
             Image("KuroZenMountains")
                 .resizable()
                 .scaledToFill()
                 .scaleEffect(1.8, anchor: .bottom)
                 .saturation(0.55)
-        }
-    }
-
-    @ViewBuilder
-    private func titleArt(_ card: HomeCard) -> some View {
-        if home.medium == "manga" {
-            remote(card.coverImage)
         } else {
-            remote(card.bannerImage ?? card.coverImage)
+            HomeInk.switchUnlit
         }
     }
 
@@ -103,11 +106,23 @@ struct HomePagePictureFill: View {
                 if case .success(let image) = phase {
                     image.resizable().scaledToFill()
                 } else {
-                    Color.kuroMissingArt
+                    HomeInk.switchUnlit
                 }
             }
         } else {
-            Color.kuroMissingArt
+            HomeInk.switchUnlit
         }
     }
+}
+
+/// The medium word's inks (pure values, pinned by `HomeAnimeLaneTests`).
+enum HomeMediumWordInk {
+    /// The unselected word, `#6e786f`.
+    static let unselected = KuroRGB(0x6E / 255, 0x78 / 255, 0x6F / 255)
+    /// The art fill's ceiling: every channel of the selected word is at most this light. Darker than
+    /// `unselected`, so the selected word is always at least as legible on the canvas.
+    static let floor = KuroRGB(0x64 / 255, 0x6D / 255, 0x65 / 255)
+    /// The prototype's scrim over the artwork: `#15221c15` → `#15221c38`.
+    static let scrimTop = Color(hex: "15221C", opacity: Double(0x15) / 255)
+    static let scrimBottom = Color(hex: "15221C", opacity: Double(0x38) / 255)
 }
