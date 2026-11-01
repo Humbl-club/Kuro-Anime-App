@@ -17,6 +17,14 @@ struct FriendsActivitySection: View {
     let mediaId: Int
     let mediaType: String
     var editorial = false
+    /// The divider and "Between us." heading; the prototype detail draws its own card heading.
+    var showsHeading = true
+    /// Reports the club members tracking this title whenever the shown activity changes ([] when it
+    /// is cleared by a title or friend-scope change), so the page's club presence follows the same
+    /// read and the same permission lifecycle.
+    var onRoster: (([SocialActivityStore.FriendTitleActivity]) -> Void)? = nil
+    /// Fixture renders only (KuroTests): shown instead of reading the activity.
+    var preview: SocialActivityStore.FriendActivityResponse? = nil
 
     @Environment(ClubsStore.self) private var clubs
     @Environment(SocialActivityStore.self) private var social
@@ -33,12 +41,29 @@ struct FriendsActivitySection: View {
     @State private var revealed: Set<String> = []
     @State private var loadingMore = false
     @State private var actionScope = AccountActionScope()
+    /// Prototype card only: the "Who's watching" roster and the compose field start folded.
+    @State private var showsRoster = false
+    @State private var composing = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// The prototype detail card's presentation (`DetailBetweenUs`): presentation only, same reads/writes.
+    private var prototypeStyle: Bool { !showsHeading }
 
     /// What the activity read depends on: the title and the friend scope (F03).
     private struct ActivityKey: Equatable {
         let mediaType: String
         let mediaId: Int
         let friendScope: Int
+    }
+
+    /// "Spoiler · Story" / "Spoiler · Ending" (prototype "Spoiler · Season N"). The stored scope is only
+    /// `none`/`story`/`ending` (the `title_comments` check), so no season number is ever shown.
+    static func spoilerLabel(_ scope: String?, german: Bool) -> String {
+        switch scope?.lowercased() {
+        case "story": return german ? "Spoiler · Handlung" : "Spoiler · Story"
+        case "ending": return german ? "Spoiler · Ende" : "Spoiler · Ending"
+        default: return "Spoiler"
+        }
     }
 
     private var hasClubs: Bool {
@@ -50,13 +75,15 @@ struct FriendsActivitySection: View {
         let permission = social.friendScopeGeneration
         if hasClubs {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                EditorialLayout.divider()
+                if showsHeading {
+                    EditorialLayout.divider()
 
-                Text(editorial ? KuroLocale.text("Between us.", "Unter uns.") : KuroLocale.text("FRIENDS", "FREUNDE"))
-                    .font(.kuroCaption(weight: .medium))
-                    .tracking(1.6)
-                    .foregroundColor(.kuroBlack80)
-                    .accessibilityAddTraits(.isHeader)
+                    Text(editorial ? KuroLocale.text("Between us.", "Unter uns.") : KuroLocale.text("FRIENDS", "FREUNDE"))
+                        .font(.kuroCaption(weight: .medium))
+                        .tracking(1.6)
+                        .foregroundColor(.kuroBlack80)
+                        .accessibilityAddTraits(.isHeader)
+                }
 
                 if isLoading && activity == nil {
                     HStack(spacing: 10) {
@@ -68,7 +95,11 @@ struct FriendsActivitySection: View {
                 } else if let activity {
                     // Friend tracking pills
                     if !activity.friends_tracking.isEmpty {
-                        friendTrackingPills(activity.friends_tracking)
+                        if prototypeStyle {
+                            rosterDisclosure(activity.friends_tracking)
+                        } else {
+                            friendTrackingPills(activity.friends_tracking)
+                        }
                     }
 
                     // Comments list
@@ -130,12 +161,53 @@ struct FriendsActivitySection: View {
             }
             .task(id: ActivityKey(mediaType: mediaType, mediaId: mediaId, friendScope: social.friendScopeGeneration)) {
                 resetTitleState()
+                if let preview {
+                    // Fixture renders only: the given activity, no read.
+                    activity = preview
+                    isLoading = false
+                    return
+                }
                 await loadActivity()
+            }
+            .onChange(of: activity?.friends_tracking.map(\.user_id) ?? [], initial: true) { _, _ in
+                onRoster?(activity?.friends_tracking ?? [])
             }
         }
     }
 
     // MARK: - Friend Tracking Pills
+
+    /// "Who's watching ⌄ · N people" (prototype `.circle-members`), opening the pills.
+    @ViewBuilder
+    private func rosterDisclosure(_ friends: [SocialActivityStore.FriendTitleActivity]) -> some View {
+        let manga = mediaType.uppercased() == "MANGA"
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsRoster.toggle() }
+            } label: {
+                HStack {
+                    Text(manga ? KuroLocale.text("Who's reading", "Wer liest mit") : KuroLocale.text("Who's watching", "Wer schaut mit"))
+                        .font(.kuroCustom(10, relativeTo: .footnote, maxSize: 22))
+                        .foregroundStyle(Color.kuroInk)
+                    Spacer()
+                    Text(friends.count == 1 ? KuroLocale.text("1 person", "1 Person")
+                                            : KuroLocale.text("\(friends.count) people", "\(friends.count) Personen"))
+                        .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 20))
+                        .foregroundStyle(Color(hex: "61725D"))
+                    Image(systemName: "chevron.down")
+                        .font(.kuroCustom(8, relativeTo: .caption2, maxSize: 16))
+                        .rotationEffect(.degrees(showsRoster ? 180 : 0))
+                        .foregroundStyle(Color(hex: "61725D"))
+                }
+                .frame(minHeight: 47)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(showsRoster ? .isSelected : [])
+            if showsRoster { friendTrackingPills(friends).padding(.bottom, 8) }
+        }
+        .overlay(alignment: .bottom) { Rectangle().fill(Color(hex: "647C64", opacity: Double(0x26) / 255)).frame(height: 1) }
+    }
 
     @ViewBuilder
     private func friendTrackingPills(_ friends: [SocialActivityStore.FriendTitleActivity]) -> some View {
@@ -207,7 +279,8 @@ struct FriendsActivitySection: View {
     private func commentRow(_ comment: SocialActivityStore.TitleComment) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
-                // Avatar initial
+                // Avatar initial (the prototype card shows the name alone)
+                if !prototypeStyle {
                 Text(String((comment.display_name ?? "?").prefix(1)).uppercased())
                     .font(.kuroMicro(weight: .semibold))
                     .foregroundColor(.kuroInkQuiet)
@@ -216,16 +289,25 @@ struct FriendsActivitySection: View {
                         RoundedRectangle(cornerRadius: KuroRadius.xs)
                             .fill(Color.kuroBlack06)
                     )
+                }
 
                 Text(comment.display_name ?? String(comment.user_id.prefix(6)))
-                    .font(.kuroCaption(weight: .medium))
-                    .foregroundColor(.kuroBlack65)
+                    .font(prototypeStyle ? .kuroCustom(11, weight: .semibold, relativeTo: .footnote, maxSize: 24) : .kuroCaption(weight: .medium))
+                    .foregroundColor(prototypeStyle ? .kuroInk : .kuroBlack65)
 
                 Text(relativeTime(comment.created_at))
-                    .font(.kuroMicro())
-                    .foregroundColor(.kuroInkQuiet)
+                    .font(prototypeStyle ? .kuroCustom(8, relativeTo: .caption2, maxSize: 18) : .kuroMicro())
+                    .foregroundColor(prototypeStyle ? Color(hex: "6B7B6D") : .kuroInkQuiet)
 
                 Spacer(minLength: 0)
+
+                // The prototype card keeps the reactions on the byline row (same buttons, same writes).
+                if prototypeStyle && !comment.is_own {
+                    reactionButton(comment: comment, type: "up", icon: "hand.thumbsup", count: comment.up_count,
+                                   isActive: comment.my_reaction == "up")
+                    reactionButton(comment: comment, type: "down", icon: "hand.thumbsdown", count: comment.down_count,
+                                   isActive: comment.my_reaction == "down")
+                }
 
                 if comment.is_own {
                     Button {
@@ -256,19 +338,40 @@ struct FriendsActivitySection: View {
             }
 
             if comment.spoiler_scope != nil && comment.spoiler_scope != "none" && !comment.is_own && !revealed.contains(comment.id) {
+                if prototypeStyle {
+                    Button { revealed.insert(comment.id) } label: {
+                        HStack {
+                            Text(Self.spoilerLabel(comment.spoiler_scope, german: KuroLocale.isGerman))
+                            Spacer()
+                            Text(KuroLocale.text("Reveal", "Anzeigen"))
+                                .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 20))
+                                .underline(color: Color(hex: "647C63", opacity: Double(0x40) / 255))
+                        }
+                        .font(.kuroCustom(10, relativeTo: .footnote, maxSize: 22))
+                        .foregroundStyle(Color(hex: "526C56"))
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint(KuroLocale.text("Reveals a club member's spoiler", "Zeigt den Spoiler eines Clubmitglieds"))
+                } else {
                 Button(KuroLocale.text("Spoiler · Reveal", "Spoiler · Anzeigen")) { revealed.insert(comment.id) }
                     .font(.kuroCaption()).frame(minHeight: 44)
                     .accessibilityHint(KuroLocale.text("Reveals a club member's spoiler", "Zeigt den Spoiler eines Clubmitglieds"))
+                }
             } else {
-                Text(comment.text).font(.kuroBody(weight: .light))
-                    .foregroundColor(.kuroBlack80).lineSpacing(4)
+                Text(comment.text)
+                    .font(prototypeStyle ? .kuroCustom(13, relativeTo: .callout, maxSize: 28) : .kuroBody(weight: .light))
+                    .foregroundColor(prototypeStyle ? Color(hex: "405646") : .kuroBlack80).lineSpacing(prototypeStyle ? 5 : 4)
                 if revealed.contains(comment.id) {
                     Button(KuroLocale.text("Hide spoiler", "Spoiler ausblenden")) { revealed.remove(comment.id) }.frame(minHeight: 44)
                 }
             }
 
             // Reaction buttons
-            if !comment.is_own {
+            if prototypeStyle && !comment.is_own {
+                EmptyView()
+            } else if !comment.is_own {
                 HStack(spacing: 12) {
                     reactionButton(
                         comment: comment,
@@ -314,7 +417,11 @@ struct FriendsActivitySection: View {
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(.top, prototypeStyle ? 13 : 6)
+        .padding(.bottom, prototypeStyle ? 14 : 6)
+        .overlay(alignment: .bottom) {
+            if prototypeStyle { Rectangle().fill(Color(hex: "6F8671", opacity: Double(0x20) / 255)).frame(height: 1) }
+        }
     }
 
     @ViewBuilder
@@ -358,7 +465,9 @@ struct FriendsActivitySection: View {
         let origin = actionScope.capture(session: social.accountSession)
         let permission = social.friendScopeGeneration
 
-        if !hasExisting {
+        if !hasExisting, prototypeStyle, !composing, !isEditing, commentText.isEmpty {
+            leaveThoughtCard
+        } else if !hasExisting {
             HStack(spacing: KuroDesignSpacing.sm) {
                 TextField(
                     isEditing
@@ -425,6 +534,42 @@ struct FriendsActivitySection: View {
         }
     }
 
+    /// "Leave a thought · Shared with your clubs" (prototype `.circle-compose`), opening the field.
+    private var leaveThoughtCard: some View {
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        return Button {
+            withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { composing = true }
+        } label: {
+            HStack(spacing: 12) {
+                Text("＋")
+                    .font(.kuroCustom(20, weight: .light, relativeTo: .title3, maxSize: 32))
+                    .foregroundStyle(Color(hex: "4E6849"))
+                    .frame(width: 28, height: 28)
+                    .overlay(Circle().strokeBorder(Color(hex: "ADC0A9"), lineWidth: 1))
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(KuroLocale.text("Leave a thought", "Gedanken teilen"))
+                        .font(.kuroCustom(12, weight: .medium, relativeTo: .subheadline, maxSize: 26))
+                        .foregroundStyle(Color.kuroInk)
+                    Text(KuroLocale.text("Shared with your clubs", "Mit deinen Clubs geteilt"))
+                        .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 20))
+                        .foregroundStyle(Color(hex: "697E64"))
+                }
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.kuroCustom(13, weight: .medium, relativeTo: .body, maxSize: 24))
+                    .foregroundStyle(Color.kuroInk)
+            }
+            .padding(.vertical, 10)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 62)
+            .background(Color(hex: "F6F8F1"), in: shape)
+            .overlay(shape.strokeBorder(Color(hex: "CBD7C5"), lineWidth: 1))
+            .contentShape(shape)
+        }
+        .buttonStyle(KuroPressStyle())
+        .padding(.top, 11)
+    }
+
     private var canSubmit: Bool {
         !commentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSubmitting
     }
@@ -446,6 +591,8 @@ struct FriendsActivitySection: View {
     }
 
     private func resetTitleState() {
+        composing = false
+        showsRoster = false
         activity = nil
         errorText = nil
         loadToken += 1
