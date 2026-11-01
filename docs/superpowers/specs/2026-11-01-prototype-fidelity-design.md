@@ -1,6 +1,6 @@
 # Kuro prototype-fidelity pass: design
 
-Status: written design for owner approval (2026-11-01). Nothing in here is built yet.
+Status: APPROVED by the owner on 2026-11-01 ("try and go for it"). Build in progress.
 
 ## 1. Intent
 
@@ -29,13 +29,26 @@ Success: a person who used the prototype opens the app and finds the same Home, 
 
 ## 3. Lead calls (reversible; flagged for the owner)
 
-- **Page canvas stays neutral white `#FFFFFF`.** The prototype's Poster canvas is `#fffef8`, and on 8 October the owner asked to remove the yellow tint. Everything else follows the prototype. It is one token (`kuroCanvasPage`); switching to `#fffef8` is a one-line change.
+- **Prototype palette returns (owner, 2026-11-01, reversing the 8 Oct neutral call):** Home Poster canvas `#fffef8`, detail paper `#f5f5f4`, and the prototype's component tints (rails, keys, manga panels). Kept as tokens.
+- **Every detail page and scene is tinted by its own artwork (owner, 2026-11-01).** Port the prototype's `art-hue-v1` algorithm (`tools/design-directions/build_art_materials.py`) to Swift, running on device:
+  - downsample the artwork (banner 104×32, poster ≤64×96)
+  - build a 24-bin hue histogram over pixels with value .12–.94 and saturation ≥ .12, weighted s·(1−|v−.55|)
+  - `base` = HLS(hue, .24, .20), darkened until white text reaches ≥ 7:1
+  - `deep` = base mixed 50% with #0f1212; `wash` = base mixed 92% with #fafaf5; `edge` = 72%; ink white
+  - Cached per image URL (memory + disk). AniList `cover_image_color` gives an instant first paint, and the computed material replaces it with a short crossfade.
+  - The detail sheet paper uses `wash`. The hero band, song panel, raised keys on art and Home scene feet use `base`/`deep`. Borders use `edge`.
+  - No per-title override table ships. The prototype's three manual overrides were for its sample art only.
 - **Typography follows the prototype:**
   - UI and titles use the system sans (SF Pro) at the prototype's sizes, weights and tight negative tracking (for example scene title 17 pt, −0.35; the medium words heavy, roughly −3.8 tracking at display size).
   - Editorial headings that the prototype sets in serif ("Coming up.", "Sunday Club", "Between us.", "The sound of it.") use the system serif (New York) as the native stand-in for Georgia.
   - The bundled Bodoni Moda ("Kuro Editorial") is **not** introduced: the selected Poster direction does not use it.
 - **Artwork material colour** (scene feet, song panel, keys on art): AniList's `cover_image_color`, already decoded in the app, clamped for white text contrast (≥ 4.5:1). The prototype's hand-tuned overrides (`instrument-art-materials.js`) stay prototype-only; no title-to-colour table is shipped.
 - **Seasons** come from the existing franchise/ladder data (`get_media_ladder`, `media_franchise_components`), not the empty series tables. Season tiles use real artwork where it exists; otherwise a numbered tile in the prototype's style.
+
+### 3b. Owner answers (2026-11-01)
+
+- **Detail actions are kept.** Favourite, Verdict and List settings (status, score, notes, remove) fold into the hero status mark: tapping "Watching" opens List settings, and its menu holds Favourite and Verdict. The watch/read provider sheet is reached from the same area. Nothing live users have today is removed.
+- **Prototype tints and paper come back** (§3).
 
 ### 3a. Lead calls from the builder check
 
