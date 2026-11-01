@@ -1,7 +1,8 @@
 import SwiftUI
 
 // MARK: - Club detail shell
-// The club's identity surface is the dark neutral room (`kuroRoom`, rulebook §3.2/§14.7): real rail
+// The club's identity surface is the prototype's club room (`ClubRoomPalette.room`, #252b28, the same
+// colour as the Clubs invitation; rulebook §3.2/§14.7): real rail
 // artwork, the club name in serif, the honest audience line, member initials and one member note on
 // a light card, hidden until tapped (notes can spoil). Tab content sits on the white page below.
 // No blur, glass, parallax or decorative motion.
@@ -171,7 +172,7 @@ struct JournalHeroSection: View {
         // iPad: the room stays full-bleed; its art and text keep the readable column (spec D3).
         .kuroReadableWidth()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.kuroRoom)
+        .background(ClubRoomPalette.room)
     }
 
     private var summaryText: some View {

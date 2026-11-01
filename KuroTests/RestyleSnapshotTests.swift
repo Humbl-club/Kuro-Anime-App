@@ -92,7 +92,7 @@ struct RestyleSnapshotTests {
 
     // MARK: Profile
 
-    @Test("Profile: new account and seeded library at 390")
+    @Test("Profile: new account, seeded library and failed library at 390")
     func profile() async throws {
         await Self.seedArtwork()
         for (suffix, rows) in [("new", [LibraryEntry]()), ("seeded", Self.libraryEntries())] {
@@ -111,6 +111,25 @@ struct RestyleSnapshotTests {
             await graph.session.endSession()
             defaults.removePersistentDomain(forName: "restyle-profile-\(suffix)")
         }
+
+        // The library's first read fails with nothing on screen: the branded error with Try again.
+        guard let defaults = UserDefaults(suiteName: "restyle-profile-failed") else { return }
+        let source = ControlledResponses<[LibraryEntry]>()
+        let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(),
+                                                libraryBackend: FakeLibraryBackend(fetchSource: source))
+        _ = await graph.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
+        // The session funnel starts the library read (`startLibraryRefresh`); fail every read asked for,
+        // then wait for the store to publish the failure.
+        for _ in 0..<200 where graph.library.loadState != .failed {
+            for label in source.requests { source.complete(label, with: .failure(ControlledFailure())) }
+            await Task.yield()
+        }
+        #expect(graph.library.loadState == .failed)
+        graph.collection.listPreviewLoadedAt = Date()
+        await render(Self.inject(ProfileView(), graph: graph), width: 390, height: 1_500,
+                     name: "profile-failed-390.png", settle: 1_400)
+        await graph.session.endSession()
+        defaults.removePersistentDomain(forName: "restyle-profile-failed")
     }
 
     // MARK: Folio

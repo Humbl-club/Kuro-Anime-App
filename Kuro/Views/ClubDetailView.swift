@@ -1,7 +1,7 @@
 // MARK: - CLUB DETAIL VIEW
 // Three-tab detail view for a club: RAILS, ACTIVE, POLLS (the tab cases and raw values are fixed;
 // labels are localized at display).
-// The club's identity surface is the dark neutral room (`kuroRoom`) with real rail artwork, the
+// The club's identity surface is the prototype's club room (`ClubRoomPalette.room`) with real rail artwork, the
 // audience line, member initials and one spoiler-hidden member note; tab content sits on the white
 // page. Loading, offline, failed and membership states are distinct (`ClubDetailIssue`).
 // Uses @Observable owners via @Environment, KuroDesignSystem tokens throughout.
@@ -657,7 +657,7 @@ private struct ClubDetailInitialState: View {
                 .padding(.bottom, KuroDesignSpacing.lg)
                 .kuroReadableWidth()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.kuroRoom)
+                .background(ClubRoomPalette.room)
 
                 stateView(german: german)
                     .frame(minHeight: 280)

@@ -305,11 +305,9 @@ struct JournalRailSection: View {
             }
 
             if rail.items.isEmpty {
-                Text(KuroLocale.text("Nothing here yet.", "Hier ist noch nichts."))
-                    .font(.kuroMeta())
-                    .foregroundStyle(Color.kuroInkQuiet)
+                KuroStateView(.empty, title: KuroLocale.text("Nothing here yet.", "Hier ist noch nichts."),
+                              layout: .inline)
                     .padding(.horizontal, KuroDesignSpacing.padding)
-                    .padding(.vertical, KuroDesignSpacing.md)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     LazyHStack(alignment: .top, spacing: KuroDesignSpacing.md) {

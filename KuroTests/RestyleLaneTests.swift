@@ -6,7 +6,8 @@
 //  decides its branded state through one pure rule that its view switches on (Clubs list, Club
 //  detail, Discover, Browse, Profile's library), so a failure without content always draws the
 //  branded error (`KuroErrorView`), never the empty invitation. Also pins the Clubs invitation and
-//  Profile new-account copy (EN and DE), the zero-free Profile summary and the Folio key faces.
+//  Profile new-account copy (EN and DE), the zero-free Profile summary, the Folio key faces and the
+//  club room's 320 metrics.
 //  Pure: no network, no simulator state.
 //
 
@@ -138,5 +139,21 @@ struct RestyleLaneTests {
     func folioKeyStyles() {
         #expect(FolioPolicy.keyStyle(for: .anime) == .light)
         #expect(FolioPolicy.keyStyle(for: .manga) == .ink)
+    }
+
+    // MARK: Club room metrics
+
+    @Test("Club room tightens at 320 (PROTOTYPE_SPEC §5) and keeps the 390 metrics on wider rooms")
+    func clubRoomMetricsByWidth() {
+        // The room is the page width minus the 20 pt gutters: 280 at 320, 335 at 375, 350 at 390.
+        #expect(ClubRoomMetrics.forRoomWidth(280) == .compact)
+        #expect(ClubRoomMetrics.forRoomWidth(ClubRoomMetrics.compactRoomWidth) == .compact)
+        #expect(ClubRoomMetrics.forRoomWidth(335) == .regular)
+        #expect(ClubRoomMetrics.forRoomWidth(350) == .regular)
+        #expect(ClubRoomMetrics.forRoomWidth(0) == .regular, "an unmeasured room keeps the 390 metrics")
+        #expect(ClubRoomMetrics.compact == ClubRoomMetrics(horizontalPadding: 12, mastheadGap: 8, seal: 36,
+                                                            headline: 19, notePadding: 13))
+        #expect(ClubRoomMetrics.regular == ClubRoomMetrics(horizontalPadding: 16, mastheadGap: 10, seal: 43,
+                                                            headline: 22, notePadding: 15))
     }
 }

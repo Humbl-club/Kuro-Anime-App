@@ -186,16 +186,22 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showFindSheet) {
             NavigationStack {
+                // EditorialSearchView installs its own `.routePresenter()`; the close control matches
+                // the header's Search sheet (ContentView).
                 EditorialSearchView()
                     .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button(isGermanLocale ? "Fertig" : "Done") { showFindSheet = false }
-                                .font(.kuroBody(weight: .regular))
-                                .foregroundStyle(Color.kuroInk)
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button(action: { showFindSheet = false }) {
+                                Image(systemName: "xmark")
+                                    .font(.kuroBody(weight: .light))
+                                    .foregroundColor(.kuroBlack60)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(KuroLocale.text("Close", "Schließen"))
                         }
                     }
-                    // Search's own presentation context (its cards open details through routes).
-                    .routePresenter()
             }
         }
         .fileImporter(isPresented: $showMALImporter, allowedContentTypes: [.xml]) { result in
@@ -335,9 +341,10 @@ struct ProfileView: View {
                 KuroLoadingView(scope: .inline,
                                 label: german ? "Deine Bibliothek wird geladen." : "Loading your library.")
             case .failed, .offline:
-                KuroStateView(.failed(hasCachedContent: false),
-                              title: german ? "Bibliothek konnte nicht geladen werden." : "Your library couldn't load.",
-                              layout: .inline)
+                // Nothing on screen: the branded error, whose Try again is the same account-scoped
+                // re-read as "Refresh your lists".
+                KuroErrorView(headline: german ? "Bibliothek konnte nicht geladen werden." : "Your library couldn't load.",
+                              retry: { if !isSyncing { syncLists() } })
             case .empty:
                 newAccountLibrary
             case nil:
@@ -364,14 +371,16 @@ struct ProfileView: View {
         }
     }
 
-    /// A new account (amendment 10, spec §5.3): no zero tiles or counts, the line "Nothing saved yet."
-    /// in the prototype's empty-headline voice, then Import (the import chooser) and Find (Search).
+    /// A new account (amendment 10, spec §5.3): no zero tiles or counts. "Your library." stays the
+    /// section's only heading; under it "Nothing saved yet." sits on the row-title ramp (15 w600,
+    /// −0.2), one muted line, then Import (the import chooser) and Find (Search) as the prototype's
+    /// outlined buttons.
     private var newAccountLibrary: some View {
         let german = isGermanLocale
         return VStack(alignment: .leading, spacing: 0) {
             Text(ProfileListsPolicy.newAccountHeadline(german: german))
-                .font(.kuroCustom(20, weight: .bold, relativeTo: .title3, maxSize: 36))
-                .tracking(-0.6)
+                .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 30))
+                .tracking(-0.2)
                 .foregroundStyle(Color.kuroInk)
                 .fixedSize(horizontal: false, vertical: true)
             Text(ProfileListsPolicy.newAccountLine(german: german))

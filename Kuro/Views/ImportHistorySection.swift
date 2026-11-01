@@ -83,10 +83,8 @@ struct ImportHistorySection: View {
                     Rectangle().fill(Color.kuroHairline).frame(height: 0.5)
                 }
                 if !model.busy, model.jobs.isEmpty, model.manifests.isEmpty, model.failure == nil {
-                    Text(german ? "Noch keine gesicherten Importe." : "No saved imports yet.")
-                        .font(.kuroMeta())
-                        .foregroundStyle(Color.kuroInkSecondary)
-                        .frame(minHeight: 44, alignment: .leading)
+                    KuroStateView(.empty, title: german ? "Noch keine gesicherten Importe." : "No saved imports yet.",
+                                  layout: .inline)
                 }
             }
         }

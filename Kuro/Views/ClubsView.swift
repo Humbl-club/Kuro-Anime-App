@@ -253,15 +253,18 @@ struct ClubsView: View {
 private struct ClubsInvitation: View {
     let onCreate: () -> Void
     let onJoin: () -> Void
+    /// The room's own width, measured; picks the 390 or 320 metrics (`ClubRoomMetrics`).
+    @State private var roomWidth: CGFloat = 0
 
     var body: some View {
         let german = KuroLocale.isGerman
+        let metrics = ClubRoomMetrics.forRoomWidth(roomWidth)
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center, spacing: 10) {
+            HStack(alignment: .center, spacing: metrics.mastheadGap) {
                 Text("＋")
-                    .font(.kuroCustom(20, weight: .ultraLight, relativeTo: .title3, maxSize: 30))
+                    .font(.kuroCustom(metrics.seal * 20 / 43, weight: .ultraLight, relativeTo: .title3, maxSize: 30))
                     .foregroundStyle(ClubRoomPalette.text)
-                    .frame(width: 43, height: 43)
+                    .frame(width: metrics.seal, height: metrics.seal)
                     .overlay(Circle().strokeBorder(ClubRoomPalette.seal, lineWidth: 1))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
@@ -271,8 +274,8 @@ private struct ClubsInvitation: View {
                         .foregroundStyle(ClubRoomPalette.kicker)
                         .accessibilityHidden(true)
                     Text(ClubsEmptyCopy.headline(german: german))
-                        .font(.kuroCustom(22, weight: .bold, relativeTo: .title2, maxSize: 38))
-                        .tracking(-0.7)
+                        .font(.kuroCustom(metrics.headline, weight: .bold, relativeTo: .title2, maxSize: 38))
+                        .tracking(-metrics.headline * 0.7 / 22)
                         .foregroundStyle(ClubRoomPalette.text)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
@@ -290,7 +293,7 @@ private struct ClubsInvitation: View {
                 ClubRoomPrimaryButton(title: ClubsEmptyCopy.create(german: german), action: onCreate)
                 ClubRoomQuietButton(title: ClubsEmptyCopy.join(german: german), action: onJoin)
             }
-            .padding(15)
+            .padding(metrics.notePadding)
             // The drop belongs to the card's face only, so the text inside carries no shadow.
             .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(ClubRoomPalette.note)
                 .shadow(color: Color.black.opacity(0x22 / 255.0), radius: 3.5, x: 0, y: 3))
@@ -311,9 +314,10 @@ private struct ClubsInvitation: View {
             .accessibilityElement(children: .combine)
         }
         .padding(.top, 20)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, metrics.horizontalPadding)
         .padding(.bottom, 12)
         .background(ClubRoomBackground(cornerRadius: 24))
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { roomWidth = $0 }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
     }
@@ -333,49 +337,6 @@ nonisolated enum ClubsEmptyCopy {
     static func join(german: Bool) -> String { german ? "Mit Code beitreten" : "Join with a code" }
     static func footer(german: Bool) -> String { german ? "Geteilte Geschichten. Deine Leute." : "Shared stories. Your people." }
     static func size(german: Bool) -> String { german ? "2–20 Personen" : "2–20 people" }
-}
-
-/// The prototype's club-room colours (PROTOTYPE_SPEC §4 "Club room"). No shared token carries them.
-fileprivate enum ClubRoomPalette {
-    static let room = Color(hex: "252B28")
-    static let glow = Color(hex: "444A46")
-    static let border = Color(hex: "535A55", opacity: Double(0x4C) / 255)
-    static let text = Color(hex: "F0F4EF")
-    static let kicker = Color(hex: "C0CBBB")
-    static let seal = Color(hex: "899C8C")
-    static let note = Color(hex: "F5F6EF")
-    static let noteInk = Color(hex: "2E342C")
-    static let quiet = Color(hex: "E9EDE2")
-    static let quietBorder = Color(hex: "CCD4C3")
-    static let quietInk = Color(hex: "59664E")
-    static let footer = Color(hex: "B4C2A9")
-    static let footerRule = Color(hex: "C5D2B8", opacity: Double(0x1C) / 255)
-    /// The manga leaf's solid key (`--mp-key`), used for the room's primary action.
-    static let key = Color(hex: "2B342E")
-    static let keyInk = Color(hex: "F8FAF7")
-}
-
-/// The dark room: `#252b28` under a radial `#444a46` glow from the top-left, a hairline border, the
-/// inset top highlight and the soft drop.
-fileprivate struct ClubRoomBackground: View {
-    var cornerRadius: CGFloat = 24
-
-    var body: some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-        shape
-            .fill(ClubRoomPalette.room)
-            .overlay(
-                RadialGradient(colors: [ClubRoomPalette.glow, ClubRoomPalette.glow.opacity(0)],
-                               center: .topLeading, startRadius: 0, endRadius: 260)
-                    .clipShape(shape)
-            )
-            .overlay(shape.strokeBorder(ClubRoomPalette.border, lineWidth: 1))
-            .overlay(alignment: .top) {
-                shape.stroke(Color.white.opacity(0x21 / 255.0), lineWidth: 1)
-                    .mask(Rectangle().frame(height: 2).frame(maxHeight: .infinity, alignment: .top))
-            }
-            .shadow(color: Color(hex: "101710", opacity: 0.22), radius: 8, x: 0, y: 8)
-    }
 }
 
 /// The room's primary action: the solid dark key face, light ink, a "＋".
@@ -638,7 +599,7 @@ struct ClubArtStrip: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .background(Color.kuroRoom)
+        .background(ClubRoomPalette.room)
         .overlay {
             if urls.isEmpty {
                 Text(monogram.uppercased())
@@ -676,7 +637,7 @@ struct ClubInitialsRow: View {
             .foregroundStyle(onRoom ? Color.kuroRoomText : Color.kuroInk)
             .frame(minWidth: 26, minHeight: 26)
             .padding(.horizontal, 2)
-            .background(Circle().fill(onRoom ? Color.kuroRoom : Color.kuroCanvasQuiet))
+            .background(Circle().fill(onRoom ? ClubRoomPalette.room : Color.kuroCanvasQuiet))
             .overlay(Circle().strokeBorder(onRoom ? Color.kuroRoomTextSecondary : Color.kuroCanvasPage, lineWidth: 1.5))
     }
 }
