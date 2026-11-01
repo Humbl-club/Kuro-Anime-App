@@ -114,6 +114,7 @@ struct KuroMainView: View {
     @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(FeatureFlags.self) private var flags
     @Environment(HomeStore.self) private var home
+    @Environment(ReleasesStore.self) private var releases
     @Environment(IdentityStore.self) private var identity
     @Environment(InteractionTelemetry.self) private var interactionTelemetry
     @Environment(BannerCenter.self) private var banner
@@ -515,6 +516,8 @@ struct KuroMainView: View {
                 Task {
                     await home.drain()
                     if flags.seriesHomeNativeV1Enabled { await home.load() }
+                    // Elapsed releases drop out and the next unit is read (cheap: 5-minute cache).
+                    await releases.refreshScheduleIfStale()
                 }
             }
             .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
