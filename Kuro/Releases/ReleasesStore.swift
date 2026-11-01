@@ -20,6 +20,14 @@ import Supabase
 // The session funnel cancels the load, stops the countdown timer (`cancelAccountWork`) and clears
 // the schedule (`clearPrivateState`) on every transition; the timer is (re)started only for the
 // current account.
+//
+// Release schedule and themes (spec §3.1–3.4, `ReleasesStore+Schedule` section below): the account's
+// next release per tracked title (`schedule`, `loadSchedule`), one title's upcoming units
+// (`mediaSchedule`) and an anime's songs (`themes`). The three RPCs are prepared, not deployed: a
+// "not deployed" answer (PGRST202/PGRST205/404/undecodable payload) is remembered for a while and the
+// owner falls back silently (anime next episode from `user_airing_next` / `anime.next_airing_at`;
+// manga and themes empty, so the UI hides the section). Results are cached per account for 5 min;
+// transient failures (offline, 5xx) are never cached.
 
 @MainActor
 @Observable
@@ -57,7 +65,7 @@ final class ReleasesStore: AccountScopedState {
 
     /// The app's single SDK client (shared by every owner); nil when the configuration is
     /// missing, and then every request fails like a transport error (`requiredClient()`).
-    private let client: SupabaseClient?
+    let client: SupabaseClient?
     /// The shared account coordinator (every completion is checked against it).
     let accountSession: AccountSessionCoordinator
     /// ReminderDelivery: re-armed / cancelled by the Library change sink below.
@@ -87,12 +95,43 @@ final class ReleasesStore: AccountScopedState {
     /// Latest follow-up work started by the Library change sink (reminders, upcoming refresh).
     @ObservationIgnored var libraryChangeTask: Task<Void, Never>? = nil
 
+    // MARK: Release schedule state (spec §3.1–3.4; methods in ReleasesStore+Schedule.swift)
+
+    /// Where `schedule` came from.
+    enum ScheduleSource: Sendable, Equatable {
+        /// Nothing loaded for this account yet.
+        case none
+        /// `user_release_schedule_v1` (anime and manga, all bases).
+        case schedule
+        /// The contract is not available: anime next episodes from `user_airing_next` only.
+        case airingFallback
+    }
+
+    /// The account's next release per tracked title (all media), soonest first, undated last.
+    /// Only displayable rows (estimates need confidence ≥ 0.7).
+    var schedule: [ReleaseScheduleItem] = []
+    /// Where `schedule` came from (`.airingFallback`: manga dates are unknown, not absent).
+    var scheduleSource: ScheduleSource = .none
+    /// Per-account response caches (5 min), keyed by "<user>|<call>|<arguments>". Cleared on every
+    /// account transition.
+    @ObservationIgnored var scheduleCache: [String: TimedCache<[ReleaseScheduleItem]>] = [:]
+    @ObservationIgnored var themesCache: [String: TimedCache<[ThemeSong]>] = [:]
+    /// Contracts that answered "not deployed", with the moment they did. Server state, not account
+    /// state: kept across account transitions, retried after `undeployedRetryInterval`.
+    @ObservationIgnored var undeployedContracts: [ReleaseContract: Date] = [:]
+    /// In-flight schedule reads (joined only by the same account and arguments).
+    let scheduleLoads = AccountScopedLoads<String, [ReleaseScheduleItem]>()
+    /// In-flight theme reads.
+    let themeLoads = AccountScopedLoads<String, [ThemeSong]>()
+
     // MARK: AccountScopedState
 
     func cancelAccountWork() {
         libraryChangeTask?.cancel()
         libraryChangeTask = nil
         upcomingLoads.cancelAll()
+        scheduleLoads.cancelAll()
+        themeLoads.cancelAll()
         stopCountdownUpdates()
     }
 
@@ -102,27 +141,48 @@ final class ReleasesStore: AccountScopedState {
         upcomingBackoff = BackoffState()
         lastUpcomingFetchAt = nil
         lastUpcomingDays = 7
+        schedule = []
+        scheduleSource = .none
+        scheduleCache = [:]
+        themesCache = [:]
     }
 
     // MARK: - Upcoming Airings (user-scoped)
     /// `upcomingLoads` key for the single upcoming-airings fetch.
     static let upcomingLoadKey = "upcoming_airings"
 
+    /// Minimum spacing of two upcoming-airings reads for the same window.
+    nonisolated static let upcomingThrottle: TimeInterval = 20
+
+    /// Refreshes `upcomingAirings` for the current account (throttled, backed off, joined).
     func fetchUpcomingForUser(days: Int = 7) async {
-        guard let context = accountSession.current else { return }
+        _ = await refreshUpcomingForUser(days: days)
+    }
+
+    /// `fetchUpcomingForUser`, reporting whether `upcomingAirings` now holds a successful read for
+    /// this account: true after a fresh success, or when the throttle skipped the call because a
+    /// success landed within the last `upcomingThrottle` seconds; false on failure, backoff or no
+    /// account (the rows are then stale or empty and must not be cached).
+    func refreshUpcomingForUser(days: Int = 7) async -> Bool {
+        guard let context = accountSession.current else { return false }
         // Joining this account's in-flight fetch skips the throttle, as before.
         if !upcomingLoads.isRunning(Self.upcomingLoadKey, for: context) {
             // Don't hammer the API when multiple screens mount or when realtime emits bursts.
             let now = Date()
-            if days == lastUpcomingDays, let last = lastUpcomingFetchAt, now.timeIntervalSince(last) < 20 {
-                return
+            if days == lastUpcomingDays, let last = lastUpcomingFetchAt, now.timeIntervalSince(last) < Self.upcomingThrottle {
+                return true
             }
-            guard upcomingBackoff.canAttempt(now: now) else { return }
+            guard upcomingBackoff.canAttempt(now: now) else { return false }
             lastUpcomingDays = days
         }
-        _ = try? await upcomingLoads.run(key: Self.upcomingLoadKey, context: context) { [weak self] in
-            try await self?._fetchUpcomingForUserImpl(days: days, context: context)
+        do {
+            try await upcomingLoads.run(key: Self.upcomingLoadKey, context: context) { [weak self] in
+                try await self?._fetchUpcomingForUserImpl(days: days, context: context)
+            }
+        } catch {
+            return false
         }
+        return accountSession.isCurrent(context)
     }
 
     private func _fetchUpcomingForUserImpl(days: Int, context: AccountContext) async throws {
@@ -221,12 +281,16 @@ final class ReleasesStore: AccountScopedState {
 
     /// An anime that is tracked after the change (added, or edited e.g. +1 EP) re-arms its
     /// next-episode reminder for the account that made the change, as every anime write did before
-    /// E3 (one `anime` read per write, R-E3-3); an added anime also refreshes upcoming airings
-    /// (throttled as before; the realtime echo refreshes them for edits). A removed anime, also one
-    /// the projection did not hold, loses its reminders, countdown and upcoming rows.
+    /// E3 (one `anime` read per write, R-E3-3). An added anime, or one whose status changed (e.g.
+    /// dropped -> watching, which `animeDidLeave` had emptied), also refreshes upcoming airings here
+    /// (throttled and backed off as before): this device's own realtime echo is suppressed
+    /// (LibraryRealtimeEcho.swift), so it no longer refreshes them. A removed anime, also one the
+    /// projection did not hold, loses its reminders, countdown and upcoming rows.
     func libraryDidChange(_ change: LibraryChange) {
-        guard change.key.kind == .anime, accountSession.isCurrent(change.account) else { return }
-        guard !change.isProgressOnly else { return }
+        guard accountSession.isCurrent(change.account), !change.isProgressOnly else { return }
+        // Membership or status changed: the account's schedule is re-read on its next load.
+        scheduleMembershipDidChange(change)
+        guard change.key.kind == .anime else { return }
         let animeId = change.key.id
         guard change.current != nil else {
             animeDidLeave(animeId)
@@ -237,7 +301,7 @@ final class ReleasesStore: AccountScopedState {
             return
         }
         let context = change.account
-        let refreshUpcoming = change.kind == .added
+        let refreshUpcoming = change.kind == .added || change.previous?.status != change.current?.status
         libraryChangeTask = Task { [weak self] in
             guard let self else { return }
             await self.reminders.scheduleAiringNotifications(animeId: animeId, context: context)

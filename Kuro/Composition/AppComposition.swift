@@ -232,11 +232,13 @@ final class AppComposition {
         let libraryRealtime = LibraryRealtime(
             channels: userListChannels,
             accountSession: accountSession,
+            library: wiring.store,
             libraryActions: libraryActions,
             collection: collection,
             releases: personalData.releases,
             refreshDebounce: libraryRealtimeDebounce
         )
+        wiring.sinks.realtimeEcho.realtime = libraryRealtime
         let session = SessionController(
             client: client,
             identity: identity,

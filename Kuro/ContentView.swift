@@ -65,6 +65,8 @@ struct KuroRootView: View {
                     }
             }
         }
+        // Keeps every Kuro type role in step with the user's text size while the app runs.
+        .kuroDynamicTypeScale()
     }
 }
 
@@ -116,6 +118,7 @@ struct KuroMainView: View {
     @Environment(BannerCenter.self) private var banner
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     enum Section: Int, CaseIterable {
         case taste, concierge, discover, browse, collection, clubs, home
@@ -139,6 +142,19 @@ struct KuroMainView: View {
             }
         }
 
+        /// The section's name for VoiceOver (EN/DE).
+        var spokenName: String {
+            switch self {
+            case .taste: return KuroLocale.text("Taste", "Geschmack")
+            case .home: return KuroLocale.text("Home", "Start")
+            case .concierge: return "Concierge"
+            case .discover: return KuroLocale.text("Discover", "Entdecken")
+            case .browse: return KuroLocale.text("Browse", "Katalog")
+            case .collection: return KuroLocale.text("Collection", "Sammlung")
+            case .clubs: return "Clubs"
+            }
+        }
+
         /// Five pages. The series-home flag replaces Browse with Home and keeps Taste on the left.
         static func pagerOrder(tasteDeck: Bool, seriesHome: Bool) -> [Section] {
             if seriesHome {
@@ -156,7 +172,10 @@ struct KuroMainView: View {
     @State private var searchSession = 0
     @State private var pendingSearchScope: EditorialSearchView.SearchScope = .all
 	@State private var mountedSections: Set<Section> = [.discover]
+	/// Every swipe-exclusion frame reported in `kuro_root` space (filtered to the viewport on use).
 	@State private var swipeExclusions: [CGRect] = []
+    /// The measured size of the root (`kuro_root`) container: the pager's real width on any device.
+    @State private var rootSize: CGSize = .zero
     @State private var suppressCardTaps = false
     @State private var tapSuppressionResetTask: Task<Void, Never>? = nil
     @State private var didTrackSuppressionThisGesture = false
@@ -213,20 +232,14 @@ struct KuroMainView: View {
 
     // MARK: - Swipe conflict helpers (deduplicated from onChanged/onEnded)
 
-    private var rootWidth: CGFloat {
-        #if os(iOS)
-        (UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.screen.bounds.width) ?? 393
-        #else
-        1024
-        #endif
-    }
+    /// The root container's measured width (0 until the first layout; then no drag is excluded).
+    private var rootWidth: CGFloat { rootSize.width }
 
     /// Returns true when the drag starts inside an exclusion zone and is NOT on a screen edge.
     private func isSwipeExcluded(start: CGPoint) -> Bool {
         let edgeAllowed = (start.x <= swipeEdgeMargin) || (start.x >= max(0, rootWidth - swipeEdgeMargin))
-        let expanded = swipeExclusions.map { $0.insetBy(dx: -14, dy: -14) }
+        let viewport = CGRect(origin: .zero, size: rootSize)
+        let expanded = swipeExclusions.filter { $0.intersects(viewport) }.map { $0.insetBy(dx: -14, dy: -14) }
         return expanded.contains(where: { $0.contains(start) }) && !edgeAllowed
     }
 
@@ -302,11 +315,15 @@ struct KuroMainView: View {
 	            }
 	        }
 	        .coordinateSpace(name: "kuro_root")
+            .onGeometryChange(for: CGSize.self) { proxy in
+                proxy.size
+            } action: { size in
+                rootSize = size
+            }
+            .environment(\.kuroPagerWidth, rootSize.width)
 	        .onPreferenceChange(KuroSwipeExclusionPreferenceKey.self) { v in
-	            let viewport = CGRect(x: 0, y: 0, width: rootWidth, height: 2000)
-	            let visible = v.filter { $0.intersects(viewport) }
-	            if visible != swipeExclusions {
-	                swipeExclusions = visible
+	            if v != swipeExclusions {
+	                swipeExclusions = v
 	            }
 	        }
             .onAppear {
@@ -395,11 +412,14 @@ struct KuroMainView: View {
 	                    let nextIndex = currentIndex + (effectiveDx < 0 ? 1 : -1)
 	                    guard swipeOrder.indices.contains(nextIndex) else {
 	                        KuroAccessibility.impactHaptic(.rigid)
+                            // Reduce Motion: the haptic alone marks the edge; no travel.
+                            guard !reduceMotion else { return }
 	                        let bounceDirection: CGFloat = effectiveDx < 0 ? -1 : 1
-	                        withAnimation(.spring(response: 0.15, dampingFraction: 0.5)) {
+	                        // No overshoot (rulebook §8): a short push, then a settle back.
+	                        withAnimation(KuroMotion.contact) {
 	                            edgeBounceOffset = bounceDirection * 12
 	                        }
-	                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7).delay(0.1)) {
+	                        withAnimation(KuroMotion.settle.delay(0.12)) {
 	                            edgeBounceOffset = 0
 	                        }
 	                        return
@@ -454,8 +474,11 @@ struct KuroMainView: View {
                                     Image(systemName: "xmark")
                                         .font(.kuroBody(weight: .light))
                                         .foregroundColor(.kuroBlack60)
+                                        .frame(width: 44, height: 44)
+                                        .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityLabel(KuroLocale.text("Close", "Schließen"))
                             }
                         }
                 }
@@ -530,7 +553,8 @@ struct KuroMainView: View {
             .fullScreenCover(isPresented: $showOnboarding) {
                 OnboardingView { destination in
                     showOnboarding = false
-                    if destination == .tasteDeck && flags.tasteDeckV1Enabled {
+                    // The Taste page is TastePicksView in both pager orders (spec D7).
+                    if destination == .tasteDeck && swipeOrder.contains(.taste) {
                         selection = .taste
                         mountedSections.insert(.taste)
                     }
@@ -655,24 +679,28 @@ private struct KuroSectionPager: View {
         let shouldMount = distance <= 1 || mountedSections.contains(section)
 
         if shouldMount {
-            switch section {
-            case .taste:
-                TastePicksView()
-            case .home:
-                HomeView(onOpenImport: onOpenImport, onFindTitle: onFindTitle,
-                         onOpenCollection: onOpenCollection, onImportNavigation: onImportNavigation)
-            case .concierge:
-                ConciergeView(assistantEnabled: true, initialPrompt: pendingConciergePrompt,
-                              onImportNavigation: onImportNavigation)
-            case .discover:
-                EditorialDiscoverView()
-            case .browse:
-                BrowseView()
-            case .collection:
-                EditorialCollectionView()
-            case .clubs:
-                ClubsView(pendingJoinCode: $pendingJoinCode)
+            Group {
+                switch section {
+                case .taste:
+                    TastePicksView()
+                case .home:
+                    HomeView(onOpenImport: onOpenImport, onFindTitle: onFindTitle,
+                             onOpenCollection: onOpenCollection, onImportNavigation: onImportNavigation)
+                case .concierge:
+                    ConciergeView(assistantEnabled: true, initialPrompt: pendingConciergePrompt,
+                                  onImportNavigation: onImportNavigation)
+                case .discover:
+                    EditorialDiscoverView()
+                case .browse:
+                    BrowseView()
+                case .collection:
+                    EditorialCollectionView()
+                case .clubs:
+                    ClubsView(pendingJoinCode: $pendingJoinCode)
+                }
             }
+            // iPad: a readable centred column inside the full-width page (spec D3). iPhone: unchanged.
+            .kuroReadableWidth()
         } else {
             // Placeholder keeps layout stable without triggering `.task` in heavy pages.
             Color.kuroBackground
@@ -713,6 +741,8 @@ struct KuroHeaderNew: View {
     @Environment(SessionController.self) private var session
     @Environment(ClubsStore.self) private var clubs
     @Environment(FeatureFlags.self) private var flags
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var swipeOrder: [KuroMainView.Section] {
         KuroMainView.Section.pagerOrder(
@@ -732,7 +762,6 @@ struct KuroHeaderNew: View {
     @State private var titleTextWidth: CGFloat = 92
     @State private var previousSectionCleanupTask: Task<Void, Never>? = nil
 
-    private var currentTitle: String { selection.title }
     private var canSwipeLeft: Bool {
         guard let i = swipeOrder.firstIndex(of: selection) else { return false }
         return i > 0
@@ -742,13 +771,34 @@ struct KuroHeaderNew: View {
         return i < (swipeOrder.count - 1)
     }
 
-    private static let titleFont = UIFont.systemFont(ofSize: 11, weight: .regular)
     private static let titleTracking: CGFloat = 1.5
 
+    /// Measured with the same scaled size `kuroNavigation` draws with, so long titles never clip
+    /// at larger text sizes.
     private static func measureTitleWidth(_ title: String) -> CGFloat {
-        let base = (title as NSString).size(withAttributes: [.font: titleFont]).width
+        let font = UIFont.systemFont(ofSize: KuroTypeRole.navigation.pointSize, weight: .regular)
+        let base = (title as NSString).size(withAttributes: [.font: font]).width
         let tracking = titleTracking * CGFloat(max(0, title.count - 1))
         return ceil(base + tracking)
+    }
+
+    /// "Discover, 3 of 5" plus the Clubs activity note (VoiceOver value of the section control).
+    private var sectionAccessibilityValue: String {
+        let index = (swipeOrder.firstIndex(of: selection) ?? 0) + 1
+        var value = KuroLocale.text("\(selection.spokenName), \(index) of \(swipeOrder.count)",
+                                    "\(selection.spokenName), \(index) von \(swipeOrder.count)")
+        if clubs.hasUnseenClubActivity && selection != .clubs && swipeOrder.contains(.clubs) {
+            value += KuroLocale.text(". New club activity", ". Neue Club-Aktivität")
+        }
+        return value
+    }
+
+    /// Moves the pager one section (VoiceOver adjustable action, Switch Control).
+    private func moveSection(by step: Int) {
+        guard let index = swipeOrder.firstIndex(of: selection) else { return }
+        let next = index + step
+        guard swipeOrder.indices.contains(next) else { return }
+        selection = swipeOrder[next]
     }
 
     private var titleWindow: some View {
@@ -756,7 +806,7 @@ struct KuroHeaderNew: View {
         // Rounded "window" with edge shading (no heavy fill) for a physical mask feel.
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
         let innerMask = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        let titleHeight: CGFloat = 16
+        let titleHeight: CGFloat = ceil(KuroTypeRole.navigation.pointSize * 1.45)
         let travel = (titleTextWidth + (Self.windowTextPaddingX * 2) + 28)
 
         return ZStack {
@@ -800,6 +850,7 @@ struct KuroHeaderNew: View {
         .accessibilityHidden(true)
     }
 
+    /// A 32 pt circle with a 44 pt hit area (rulebook §5 touch targets).
     @ViewBuilder
     private func headerIconCircle<Content: View>(@ViewBuilder content: () -> Content) -> some View {
         Circle()
@@ -809,25 +860,30 @@ struct KuroHeaderNew: View {
             .overlay(
                 Circle().stroke(onPicture ? Color.kuroInk.opacity(0.28) : Color.kuroBlack10, lineWidth: 0.7)
             )
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
     }
 
     var body: some View {
         VStack(spacing: 0) {
             // Three-part layout with proper spacing
             HStack(alignment: .center) {
-                // Left: Brand (30% opacity)
+                // Left: Brand (30% opacity). Decorative and redundant: at accessibility text sizes it
+                // gives its room to the section window so nothing truncates or overlaps at 320 pt.
                 HStack(spacing: 10) {
-                    Text("KURO")
-                        .font(.kuroNavigation(weight: onPicture ? .medium : .regular))
-                        .tracking(1.5)
-                        .foregroundColor(onPicture ? Color.kuroInk : Color.kuroTextTertiary)
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        Text("KURO")
+                            .font(.kuroNavigation(weight: onPicture ? .medium : .regular))
+                            .tracking(1.5)
+                            .foregroundColor(onPicture ? Color.kuroInk : Color.kuroTextTertiary)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Center: Section (full opacity)
                 VStack(spacing: 4) {
                     HStack(spacing: 10) {
-                        if selection == .concierge {
+                        if selection == .concierge && !dynamicTypeSize.isAccessibilitySize {
                             Circle()
                                 .fill(.ultraThinMaterial)
                                 .frame(width: 30, height: 30)
@@ -869,14 +925,26 @@ struct KuroHeaderNew: View {
                     .accessibilityHidden(true)
                 }
                 .contentShape(Rectangle())
+                // One adjustable control: VoiceOver swipes up/down (and Switch Control) page the app.
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Section")
-                .accessibilityValue(currentTitle)
-                .accessibilityHint("Swipe left or right to change sections.")
+                .accessibilityLabel(KuroLocale.text("Section", "Bereich"))
+                .accessibilityValue(sectionAccessibilityValue)
+                .accessibilityHint(KuroLocale.text("Swipe up or down to change sections.",
+                                                   "Zum Wechseln nach oben oder unten wischen."))
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: moveSection(by: 1)
+                    case .decrement: moveSection(by: -1)
+                    @unknown default: break
+                    }
+                }
                 .frame(maxWidth: .infinity, alignment: .center)
+                // At accessibility sizes the section window is laid out before the side columns
+                // (default sizes keep three equal columns, so the title stays centred).
+                .layoutPriority(dynamicTypeSize.isAccessibilitySize ? 1 : 0)
 
-                // Right: Actions
-                HStack(spacing: 10) {
+                // Right: Actions (44 pt targets; the trailing inset keeps the circles where they were)
+                HStack(spacing: 0) {
                     Spacer()
 
                     Button(action: {
@@ -890,14 +958,14 @@ struct KuroHeaderNew: View {
                         }
                     }
                     .buttonStyle(KuroHeaderIconButtonStyle())
-                    .accessibilityLabel("Search")
-                    .accessibilityHint("Opens search")
+                    .accessibilityLabel(KuroLocale.text("Search", "Suche"))
+                    .accessibilityHint(KuroLocale.text("Opens search", "Öffnet die Suche"))
 
                     Menu {
-                        Button("Profile") {
+                        Button(KuroLocale.text("Profile", "Profil")) {
                             showProfileSheet = true
                         }
-                        Button("Sign Out", role: .destructive) {
+                        Button(KuroLocale.text("Sign Out", "Abmelden"), role: .destructive) {
                             Task { await session.signOut() }
                         }
                     } label: {
@@ -908,18 +976,20 @@ struct KuroHeaderNew: View {
                         }
                     }
                     .buttonStyle(KuroHeaderIconButtonStyle())
-                    .accessibilityLabel("Profile")
-                    .accessibilityHint("Opens account menu")
+                    .accessibilityLabel(KuroLocale.text("Profile", "Profil"))
+                    .accessibilityHint(KuroLocale.text("Opens account menu", "Öffnet das Kontomenü"))
                 }
+                .padding(.trailing, -6)
                 .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            // 44 pt targets + 5 pt keeps the header at its 54 pt height at the default text size.
+            .padding(.vertical, 5)
             .contentShape(Rectangle())
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Section navigation")
-            .accessibilityValue(currentTitle)
-            .accessibilityHint("Swipe left or right to change sections.")
+            // The wordmark, the section control and the two buttons stay separate VoiceOver elements.
+            .onChange(of: KuroTypeScale.current.category) { _, _ in
+                titleTextWidth = Self.measureTitleWidth(displayedSection.title) + Self.windowTextSlack
+            }
             .onAppear {
                 displayedSection = selection
                 previousSection = nil
@@ -939,7 +1009,7 @@ struct KuroHeaderNew: View {
                 titleTextWidth = max(fromWidth, toWidth)
 
                 titleProgress = 0.0
-                withAnimation(.easeOut(duration: 0.18)) {
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
                     titleProgress = 1.0
                 }
 
@@ -968,7 +1038,8 @@ struct KuroHeaderNew: View {
                     .frame(height: 0.5)
             }
         }
-        .frame(height: 54)
+        // Grows with the text size instead of clipping it.
+        .frame(minHeight: 54)
         .background(onPicture ? Color.clear : Color.kuroBackground)
         .shadow(
             color: onPicture ? Color.clear : Color.kuroBlack08,

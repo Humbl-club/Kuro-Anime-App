@@ -1,5 +1,6 @@
 import Foundation
 import KuroCore
+import KuroLibrary
 import KuroSupabase
 
 #if canImport(Supabase)
@@ -23,6 +24,11 @@ import Supabase
 //   topic (`RealtimeClientV2.channel(_:)`), which would drop the new change registrations and be
 //   removed by the old tail (the E3-parked topic-reuse finding). The removal runs once, started by
 //   whoever needs it first (the funnel's tail or the new subscribe); everyone else joins it.
+// - Self-echo suppression (LibraryRealtimeEcho.swift): an event that is this device's own write
+//   coming back (title has a write in flight or confirmed within 5 s AND the row matches what the
+//   device shows) refreshes nothing. Anything else, including every event whose title is unknown,
+//   refreshes as before. The confirmed-write ledger is fed by the Library store's change sink
+//   (`RealtimeEchoLibrarySink`) and forgotten on every detach.
 
 /// One list-table channel as the owner sees it (seam: production wraps `RealtimeChannelV2`; tests
 /// drive delivery and observe teardown without a websocket).
@@ -49,6 +55,24 @@ protocol UserListChannelFactory {
         listUserId: String,
         onEvent: @escaping @MainActor () -> Void
     ) -> (any UserListRealtimeChannel)?
+    /// The same channel, describing each change (`LibraryRealtimeEvent`) so the owner can recognise
+    /// its own echoes. Default: the plain channel, every change reported as `.unknown` (never
+    /// suppressed).
+    func makeChannel(
+        userId: String,
+        listUserId: String,
+        onChange: @escaping @MainActor (LibraryRealtimeEvent) -> Void
+    ) -> (any UserListRealtimeChannel)?
+}
+
+extension UserListChannelFactory {
+    func makeChannel(
+        userId: String,
+        listUserId: String,
+        onChange: @escaping @MainActor (LibraryRealtimeEvent) -> Void
+    ) -> (any UserListRealtimeChannel)? {
+        makeChannel(userId: userId, listUserId: listUserId, onEvent: { onChange(.unknown) })
+    }
 }
 
 /// Production factory over the app's single SDK client.
@@ -65,8 +89,16 @@ struct SupabaseUserListChannelFactory: UserListChannelFactory {
         listUserId: String,
         onEvent: @escaping @MainActor () -> Void
     ) -> (any UserListRealtimeChannel)? {
+        makeChannel(userId: userId, listUserId: listUserId, onChange: { _ in onEvent() })
+    }
+
+    func makeChannel(
+        userId: String,
+        listUserId: String,
+        onChange: @escaping @MainActor (LibraryRealtimeEvent) -> Void
+    ) -> (any UserListRealtimeChannel)? {
         guard let client else { return nil }
-        return SupabaseUserListChannel(client: client, userId: userId, listUserId: listUserId, onEvent: onEvent)
+        return SupabaseUserListChannel(client: client, userId: userId, listUserId: listUserId, onChange: onChange)
     }
 }
 
@@ -77,7 +109,7 @@ final class SupabaseUserListChannel: UserListRealtimeChannel {
     private let channel: RealtimeChannelV2
     private var listenTasks: [Task<Void, Never>] = []
 
-    init(client: SupabaseClient, userId: String, listUserId: String, onEvent: @escaping @MainActor () -> Void) {
+    init(client: SupabaseClient, userId: String, listUserId: String, onChange: @escaping @MainActor (LibraryRealtimeEvent) -> Void) {
         self.client = client
         let channel = client.channel("kuro.user.\(userId)")
         self.channel = channel
@@ -95,12 +127,54 @@ final class SupabaseUserListChannel: UserListRealtimeChannel {
             filter: .eq("user_id", value: listUserId)
         )
 
-        listenTasks = [animeStream, mangaStream].map { stream in
+        listenTasks = [(MediaKind.anime, animeStream), (MediaKind.manga, mangaStream)].map { kind, stream in
             Task {
-                for await _ in stream {
-                    await MainActor.run { onEvent() }
+                for await action in stream {
+                    let event = Self.event(from: action, kind: kind)
+                    await MainActor.run { onChange(event) }
                 }
             }
+        }
+    }
+
+    /// Describes one change of a list table (`kind` names the table's media column).
+    nonisolated static func event(from action: AnyAction, kind: MediaKind) -> LibraryRealtimeEvent {
+        switch action {
+        case .insert(let insert): return event(action: .insert, record: insert.record, kind: kind)
+        case .update(let update): return event(action: .update, record: update.record, kind: kind)
+        case .delete(let delete): return event(action: .delete, record: delete.oldRecord, kind: kind)
+        }
+    }
+
+    /// Describes one list-table row (`record`: the new row of an insert/update, the old row of a
+    /// delete). Pure seam over the payload, so tests can feed decoded JSON (the SDK's action types
+    /// have no public initializer).
+    nonisolated static func event(action: LibraryRealtimeEvent.Action, record: [String: AnyJSON],
+                                  kind: MediaKind) -> LibraryRealtimeEvent {
+        let mediaColumn = kind == .anime ? "anime_id" : "manga_id"
+        return LibraryRealtimeEvent(
+            action: action,
+            key: integer(record[mediaColumn]).map { MediaKey(kind: kind, id: $0) },
+            rowId: integer(record["id"]),
+            listType: record["list_type"]?.stringValue,
+            progress: integer(record["progress"]),
+            rating: integer(record["rating"]),
+            notes: record["notes"]?.stringValue,
+            verdict: record["verdict"]?.stringValue,
+            serverRevision: integer(record["server_revision"]).map(Int64.init),
+            lifecycleId: record["lifecycle_id"]?.stringValue.flatMap(UUID.init(uuidString:))
+        )
+    }
+
+    /// A whole number from a payload value: JSON integer, integral double or numeric string.
+    nonisolated private static func integer(_ value: AnyJSON?) -> Int? {
+        switch value {
+        case .integer(let int)?: return int
+        case .double(let double)?:
+            guard double.isFinite, double.rounded() == double, abs(double) < 9.0e15 else { return nil }
+            return Int(double)
+        case .string(let text)?: return Int(text.trimmingCharacters(in: .whitespaces))
+        default: return nil
         }
     }
 
@@ -174,6 +248,10 @@ final class LibraryRealtime {
 
     private let channels: any UserListChannelFactory
     private let accountSession: AccountSessionCoordinator
+    /// The tracking projection: in-flight writes and the entry this device shows (echo rule).
+    private let library: LibraryStore
+    /// The clock of the echo window (tests inject one).
+    private let now: () -> Date
     /// The Library's server-side change hook (fresh re-read; drops tracking copies).
     private let libraryActions: LibraryActions
     /// Collection pages and feed, re-read after a list change.
@@ -189,17 +267,25 @@ final class LibraryRealtime {
     private var removals: [String: [UserListChannelRemoval]] = [:]
     /// The pending debounced refresh.
     private(set) var debounceTask: Task<Void, Never>?
+    /// Writes this device confirmed recently (the echo rule's window and row-id lookup).
+    private(set) var localWrites = LibraryLocalWriteLedger()
+    /// How many events were recognised as this device's own echo (diagnostics, tests).
+    private(set) var suppressedEchoCount = 0
 
     init(
         channels: any UserListChannelFactory,
         accountSession: AccountSessionCoordinator,
+        library: LibraryStore,
         libraryActions: LibraryActions,
         collection: CollectionStore,
         releases: ReleasesStore,
-        refreshDebounce: Duration = LibraryRealtime.defaultRefreshDebounce
+        refreshDebounce: Duration = LibraryRealtime.defaultRefreshDebounce,
+        now: @escaping () -> Date = Date.init
     ) {
         self.channels = channels
         self.accountSession = accountSession
+        self.library = library
+        self.now = now
         self.libraryActions = libraryActions
         self.collection = collection
         self.releases = releases
@@ -239,8 +325,8 @@ final class LibraryRealtime {
 
         // Same `user_id` text as every list-table request (single decision point for finding F1).
         let listUserId = UserIdText.value(for: context)
-        guard let channel = channels.makeChannel(userId: userId, listUserId: listUserId, onEvent: { [weak self] in
-            self?.scheduleRefresh(for: context)
+        guard let channel = channels.makeChannel(userId: userId, listUserId: listUserId, onChange: { [weak self] event in
+            self?.handle(event, for: context)
         }) else { return }
         self.channel = (userId, channel)
         await channel.subscribe()
@@ -253,6 +339,7 @@ final class LibraryRealtime {
     func detach() -> (any UserListRealtimeChannel)? {
         debounceTask?.cancel()
         debounceTask = nil
+        localWrites = LibraryLocalWriteLedger()
         let detached = channel
         channel = nil
         subscribedUserId = nil
@@ -274,6 +361,38 @@ final class LibraryRealtime {
     private func removalFinished(_ removal: UserListChannelRemoval) {
         removals[removal.userId]?.removeAll { $0 === removal }
         if removals[removal.userId]?.isEmpty == true { removals[removal.userId] = nil }
+    }
+
+    // MARK: - Self-echo suppression
+
+    /// A Library change this device confirmed (the store's change sink): its title is in the echo
+    /// window for the next `LibraryEchoPolicy.window` seconds.
+    func recordLocalWrite(_ change: LibraryChange) {
+        guard accountSession.isCurrent(change.account) else { return }
+        let at = now()
+        localWrites.prune(now: at)
+        localWrites.record(change.key, rowIds: [change.previous?.rowId, change.current?.rowId].compactMap { $0 }, at: at)
+    }
+
+    /// A described change event of the channel made under `context`: dropped when it is this
+    /// device's own echo, otherwise a (debounced) refresh as before.
+    func handle(_ event: LibraryRealtimeEvent, for context: AccountContext) {
+        guard accountSession.isCurrent(context) else { return }
+        let at = now()
+        localWrites.prune(now: at)
+        let key = LibraryEchoPolicy.resolvedKey(event, ledger: localWrites)
+        if let key, LibraryEchoPolicy.isOwnEcho(
+            event,
+            resolvedKey: key,
+            inFlight: library.isMutating(key),
+            lastLocalWrite: localWrites.lastWrite(for: key),
+            local: library.entry(for: key),
+            now: at
+        ) {
+            suppressedEchoCount += 1
+            return
+        }
+        scheduleRefresh(for: context)
     }
 
     /// A change event of the channel made under `context`.

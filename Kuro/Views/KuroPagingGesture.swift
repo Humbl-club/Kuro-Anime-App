@@ -10,17 +10,8 @@ import UIKit
 
 struct KuroSwipeExclusionZone: ViewModifier {
     @State private var markedHorizontalDrag = false
-
-    /// Screen width for the edge-margin check (same source as ContentView.rootWidth).
-    private var screenWidth: CGFloat {
-        #if os(iOS)
-        (UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first?.screen.bounds.width) ?? 393
-        #else
-        1024
-        #endif
-    }
+    /// The pager root's measured width (same source as ContentView.rootWidth); 0 outside the pager.
+    @Environment(\.kuroPagerWidth) private var pagerWidth
 
     func body(content: Content) -> some View {
         content
@@ -42,9 +33,13 @@ struct KuroSwipeExclusionZone: ViewModifier {
                         // Drags starting in the outer screen-edge margin belong to the
                         // root pager (ContentView's swipeEdgeMargin): never rail-mark
                         // them, or a full-page zone (the deck card) would trap paging.
+                        // Global start location vs the pager width: on iPhone the pager spans the
+                        // screen. Outside the pager (width 0) every drag may mark the rail.
                         let x = value.startLocation.x
-                        guard x > KuroGesturePolicy.edgeMarginPt,
-                              x < screenWidth - KuroGesturePolicy.edgeMarginPt else { return }
+                        if pagerWidth > 0 {
+                            guard x > KuroGesturePolicy.edgeMarginPt,
+                                  x < pagerWidth - KuroGesturePolicy.edgeMarginPt else { return }
+                        }
                         if !markedHorizontalDrag {
                             markedHorizontalDrag = true
                             KuroGestureCoordinator.shared.beginHorizontalRailDrag()
@@ -77,5 +72,23 @@ struct KuroSwipeExclusionPreferenceKey: PreferenceKey {
     static var defaultValue: [CGRect] = []
     static func reduce(value: inout [CGRect], nextValue: () -> [CGRect]) {
         value.append(contentsOf: nextValue())
+    }
+}
+
+// MARK: - Pager width
+
+private struct KuroPagerWidthKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 0
+}
+
+extension EnvironmentValues {
+    /// The root pager's measured width (set by `KuroMainView`; 0 outside it), in the pager's global
+    /// coordinates. For the gesture edge check only (`KuroSwipeExclusionZone`): it is NOT a layout
+    /// width. On iPad each page's content is a readable column (`.kuroReadableWidth()`, max 680 pt)
+    /// narrower than this, so size cards from the container you are in (`onGeometryChange`,
+    /// `containerRelativeFrame`, `GeometryReader`).
+    var kuroPagerWidth: CGFloat {
+        get { self[KuroPagerWidthKey.self] }
+        set { self[KuroPagerWidthKey.self] = newValue }
     }
 }

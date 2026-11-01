@@ -117,9 +117,14 @@ final class FeatureFlags {
                 flags = newFlags
                 lastFetchDate = Date()
                 saveToCache()
-                // Retain only a bounded exact-account offline cohort during a network
-                // outage. A definitive empty/denied lookup revokes it below.
-                if let userId, let accountSession, let account,
+                // The off-main library writer reads the fence: follow the server in every build,
+                // whether or not the overrides lookup below runs (Release skips it).
+                publishRevisionFence()
+                // Tester cohort overrides (spec D14): read only in DEBUG builds, because the
+                // `feature_flag_overrides` table is prepared, not deployed live. A successful lookup
+                // (rows or none) replaces the cohort; ANY failure keeps the cached cohort and never
+                // resets the bootstrap, so a missing table (PGRST205/404) cannot flip Home off.
+                if Self.readsAccountOverrides, let userId, let accountSession, let account,
                    AccountSessionCoordinator.sameUser(userId, account.userId) {
                     do {
                         let records: [AccountFlagOverride] = try await accountSession.withCredentialLease(for: account) {
@@ -135,18 +140,22 @@ final class FeatureFlags {
                         }
                         saveHomeCohort(for: userId)
                         publishRevisionFence()
-                    } catch is CancellationError {
-                        // Refused/revoked lease is not a server denial.
-                        return
-                    } catch is URLError {
-                        guard !Task.isCancelled, isCurrent() else { return }
-                        accountOverrides = cachedHomeCohort(for: userId)
-                        publishRevisionFence()
                     } catch {
-                        guard !Task.isCancelled, isCurrent() else { return }
-                        accountOverrides = [:]
-                        removeHomeCohort(for: userId)
-                        publishRevisionFence()
+                        switch Self.overridesFailure(for: error) {
+                        case .cancelled:
+                            // Refused/revoked lease is not a server answer.
+                            return
+                        case .keepCachedCohort:
+                            guard !Task.isCancelled, isCurrent() else { return }
+                            // Non-destructive: keep this account's overrides as they are
+                            // (`setUserId` already scoped them); only an empty set falls back to
+                            // the bounded cached Home cohort.
+                            if accountOverrides.isEmpty { accountOverrides = cachedHomeCohort(for: userId) }
+                            publishRevisionFence()
+                            #if DEBUG
+                            print("[FeatureFlags] overrides unavailable, keeping cached cohort: \(error.localizedDescription)")
+                            #endif
+                        }
                     }
                 }
                 #if DEBUG
@@ -185,6 +194,30 @@ final class FeatureFlags {
         }
         #endif
         #endif
+    }
+
+    /// Whether this build reads `feature_flag_overrides` (spec D14: DEBUG only; the table is
+    /// prepared, not deployed live).
+    nonisolated static var readsAccountOverrides: Bool {
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    /// What a failed overrides lookup does (spec D14). Only cancellation stops the refresh; every
+    /// server or transport failure keeps the overrides already held (or, when none are, the bounded
+    /// cached cohort) and leaves the bootstrap alone.
+    nonisolated enum OverridesFailure: Equatable, Sendable {
+        case cancelled
+        case keepCachedCohort
+    }
+
+    nonisolated static func overridesFailure(for error: any Error) -> OverridesFailure {
+        if error is CancellationError { return .cancelled }
+        if let urlError = error as? URLError, urlError.code == .cancelled { return .cancelled }
+        return .keepCachedCohort
     }
 
     /// Update the user ID (e.g. after login/logout) without re-fetching.

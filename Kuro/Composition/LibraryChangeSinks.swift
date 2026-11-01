@@ -50,6 +50,17 @@ final class HomeLibrarySink: LibraryChangeSink {
     }
 }
 
+/// Realtime: a confirmed local write opens its title's echo window, so the channel's copy of this
+/// device's own write does not re-read everything (`LibraryRealtime.recordLocalWrite`).
+@MainActor
+final class RealtimeEchoLibrarySink: LibraryChangeSink {
+    weak var realtime: LibraryRealtime?
+
+    func libraryDidChange(_ change: LibraryChange) {
+        realtime?.recordLocalWrite(change)
+    }
+}
+
 @MainActor
 final class LibraryChangeSinks {
     let releases = ReleasesLibrarySink()
@@ -57,8 +68,9 @@ final class LibraryChangeSinks {
     let concierge = ConciergeLibrarySink()
     let clubs = ClubsLibrarySink()
     let home = HomeLibrarySink()
+    let realtimeEcho = RealtimeEchoLibrarySink()
 
-    var all: [any LibraryChangeSink] { [releases, collection, concierge, clubs, home] }
+    var all: [any LibraryChangeSink] { [realtimeEcho, releases, collection, concierge, clubs, home] }
 
     func connect(releases: ReleasesStore, collection: CollectionStore, imports: ImportsService, clubs: ClubsStore) {
         self.releases.store = releases

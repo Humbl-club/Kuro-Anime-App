@@ -1,0 +1,317 @@
+import Foundation
+import KuroCore
+
+// MARK: - Release and theme models (spec §3.1–3.3)
+// Decoded from `user_release_schedule_v1`, `media_release_schedule_v1` and `media_themes_v1`. None of
+// these RPCs is deployed live yet (spec §3.4): `ReleasesStore` falls back silently, so every type here
+// can also be built locally (the `user_airing_next` fallback) and decoding is lenient (one bad row
+// never blanks a list; see `LenientRows`).
+
+/// How certain a displayed release date is (spec D10).
+nonisolated enum ReleaseBasis: String, Codable, Sendable, CaseIterable {
+    /// The source states the date and time.
+    case confirmed
+    /// The source states a date or window without a time.
+    case announced
+    /// Computed from cadence; shown only at confidence ≥ `ReleaseScheduleItem.minimumEstimateConfidence`.
+    case estimated
+}
+
+/// The unit a release row announces.
+nonisolated enum ReleaseUnitKind: String, Codable, Sendable, CaseIterable {
+    case episode, chapter, volume, season
+}
+
+/// One upcoming (or the last confirmed past) unit of one title.
+nonisolated struct ReleaseScheduleItem: Hashable, Sendable, Identifiable {
+    /// Estimated rows below this confidence are never shown (spec §3.1, D10).
+    static let minimumEstimateConfidence: Double = 0.7
+
+    let medium: MediaKind
+    let mediaId: Int
+    let title: String
+    let coverImage: String?
+    let unitKind: ReleaseUnitKind
+    /// nil when the source does not number the unit.
+    let unitNumber: Double?
+    /// The server's English label (e.g. "Ch. 1197"); the UI builds its own EN/DE label from
+    /// `unitKind` + `unitNumber` and uses this only when the number is unknown.
+    let unitLabel: String?
+    /// nil when no date is known ("Dates to come.").
+    let releaseAt: Date?
+    let basis: ReleaseBasis
+    /// 0–1; meaningful for estimated rows.
+    let confidence: Double?
+    /// `anilist` / `mangaupdates` / `mangadex` / `publisher` / `kuro_estimate`.
+    let source: String
+    let sourceURL: URL?
+    /// `media_release_schedule_v1` only: the last confirmed unit already released.
+    let isPast: Bool
+
+    init(
+        medium: MediaKind,
+        mediaId: Int,
+        title: String,
+        coverImage: String? = nil,
+        unitKind: ReleaseUnitKind,
+        unitNumber: Double?,
+        unitLabel: String? = nil,
+        releaseAt: Date?,
+        basis: ReleaseBasis,
+        confidence: Double? = nil,
+        source: String,
+        sourceURL: URL? = nil,
+        isPast: Bool = false
+    ) {
+        self.medium = medium
+        self.mediaId = mediaId
+        self.title = title
+        self.coverImage = coverImage
+        self.unitKind = unitKind
+        self.unitNumber = unitNumber
+        self.unitLabel = unitLabel
+        self.releaseAt = releaseAt
+        self.basis = basis
+        self.confidence = confidence
+        self.source = source
+        self.sourceURL = sourceURL
+        self.isPast = isPast
+    }
+
+    var key: MediaKey { MediaKey(kind: medium, id: mediaId) }
+
+    var id: String {
+        let number = unitNumber.map { String($0) } ?? "-"
+        let at = releaseAt.map { String(Int($0.timeIntervalSince1970)) } ?? "-"
+        return "\(medium.rawValue):\(mediaId):\(unitKind.rawValue):\(number):\(at)"
+    }
+
+    /// Whether the row may be shown at all: estimates need confidence ≥ 0.7 (spec D10).
+    var isDisplayable: Bool {
+        guard basis == .estimated else { return true }
+        return (confidence ?? 0) >= Self.minimumEstimateConfidence
+    }
+
+    /// The unit number as an integer when it is whole (chapters may be 1197.5).
+    var wholeUnitNumber: Int? {
+        guard let unitNumber, unitNumber.rounded() == unitNumber,
+              abs(unitNumber) < Double(Int.max) else { return nil }
+        return Int(unitNumber)
+    }
+}
+
+extension ReleaseScheduleItem: Decodable {
+    private enum CodingKeys: String, CodingKey {
+        case medium
+        case mediaId = "media_id"
+        case title
+        case coverImage = "cover_image"
+        case unitKind = "unit_kind"
+        case unitNumber = "unit_number"
+        case unitLabel = "unit_label"
+        case releaseAt = "release_at"
+        case basis, confidence, source
+        case sourceURL = "source_url"
+        case isPast = "is_past"
+    }
+
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let mediumText = try c.decode(String.self, forKey: .medium).lowercased()
+        guard let medium = MediaKind(rawValue: mediumText) else {
+            throw DecodingError.dataCorruptedError(forKey: .medium, in: c, debugDescription: "unknown medium \(mediumText)")
+        }
+        let basisText = try c.decode(String.self, forKey: .basis).lowercased()
+        guard let basis = ReleaseBasis(rawValue: basisText) else {
+            throw DecodingError.dataCorruptedError(forKey: .basis, in: c, debugDescription: "unknown basis \(basisText)")
+        }
+        let kindText = (try c.decodeIfPresent(String.self, forKey: .unitKind))?.lowercased()
+        self.medium = medium
+        self.mediaId = try c.decode(Int.self, forKey: .mediaId)
+        self.title = (try c.decodeIfPresent(String.self, forKey: .title)) ?? ""
+        self.coverImage = try c.decodeIfPresent(String.self, forKey: .coverImage)
+        self.unitKind = kindText.flatMap(ReleaseUnitKind.init(rawValue:)) ?? (medium == .anime ? .episode : .chapter)
+        self.unitNumber = Self.lenientDouble(c, .unitNumber)
+        self.unitLabel = try c.decodeIfPresent(String.self, forKey: .unitLabel)
+        self.releaseAt = try c.decodeIfPresent(Date.self, forKey: .releaseAt)
+        self.basis = basis
+        self.confidence = Self.lenientDouble(c, .confidence)
+        self.source = (try c.decodeIfPresent(String.self, forKey: .source)) ?? ""
+        self.sourceURL = (try c.decodeIfPresent(String.self, forKey: .sourceURL)).flatMap(Self.httpsURL)
+        self.isPast = (try c.decodeIfPresent(Bool.self, forKey: .isPast)) ?? false
+    }
+
+    /// A PostgREST `numeric`/`real` arrives as a JSON number, occasionally as a string.
+    private static func lenientDouble(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> Double? {
+        if let value = try? c.decodeIfPresent(Double.self, forKey: key) { return value }
+        if let text = try? c.decodeIfPresent(String.self, forKey: key) { return Double(text) }
+        return nil
+    }
+
+    /// Only http(s) links are kept (no `javascript:` or app schemes from data).
+    static func httpsURL(_ text: String) -> URL? {
+        guard let url = URL(string: text), let scheme = url.scheme?.lowercased(),
+              scheme == "https" || scheme == "http", url.host?.isEmpty == false else { return nil }
+        return url
+    }
+}
+
+// MARK: - Theme songs (spec §3.3)
+
+/// Opening, ending or insert song of an anime.
+nonisolated enum ThemeSongKind: String, Sendable, CaseIterable {
+    case opening = "OP"
+    case ending = "ED"
+    case insert = "IN"
+}
+
+nonisolated struct ThemeSong: Hashable, Sendable, Identifiable {
+    let kind: ThemeSongKind
+    /// OP1, OP2… nil when the source does not number it.
+    let sequence: Int?
+    let title: String
+    let artist: String?
+    /// Episode range as the source writes it, e.g. "1–12".
+    let episodes: String?
+    let version: Int?
+    let isSpoiler: Bool
+    let isNSFW: Bool
+    let source: String
+    let sourceURL: URL?
+
+    init(kind: ThemeSongKind, sequence: Int?, title: String, artist: String?, episodes: String? = nil,
+         version: Int? = nil, isSpoiler: Bool = false, isNSFW: Bool = false,
+         source: String = "animethemes", sourceURL: URL? = nil) {
+        self.kind = kind
+        self.sequence = sequence
+        self.title = title
+        self.artist = artist
+        self.episodes = episodes
+        self.version = version
+        self.isSpoiler = isSpoiler
+        self.isNSFW = isNSFW
+        self.source = source
+        self.sourceURL = sourceURL
+    }
+
+    var id: String { "\(kind.rawValue):\(sequence ?? 0):\(version ?? 0):\(title)" }
+
+    /// The short label, e.g. "OP1", "ED", "IN2".
+    var label: String {
+        guard let sequence else { return kind.rawValue }
+        return "\(kind.rawValue)\(sequence)"
+    }
+
+    /// `label` spelled out for VoiceOver: "Opening 1" / "Vorspann 1", "Ending" / "Abspann",
+    /// "Insert song" / "Einlagesong".
+    func spokenLabel(german: Bool) -> String {
+        let word: String
+        switch kind {
+        case .opening: word = german ? "Vorspann" : "Opening"
+        case .ending: word = german ? "Abspann" : "Ending"
+        case .insert: word = german ? "Einlagesong" : "Insert song"
+        }
+        return sequence.map { "\(word) \($0)" } ?? word
+    }
+
+    /// The search text for the listen links ("Title Artist").
+    var searchQuery: String {
+        [title, artist].compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+
+    /// Apple Music search for this song (nothing is stored from the service, spec D11).
+    var appleMusicSearchURL: URL? { ThemeListenLinks.appleMusicSearch(searchQuery) }
+
+    /// Spotify search for this song (nothing is stored from the service, spec D11).
+    var spotifySearchURL: URL? { ThemeListenLinks.spotifySearch(searchQuery) }
+}
+
+extension ThemeSong: Decodable {
+    private enum CodingKeys: String, CodingKey {
+        case kind, sequence, title, artist, episodes, version
+        case isSpoiler = "is_spoiler"
+        case isNSFW = "is_nsfw"
+        case source
+        case sourceURL = "source_url"
+    }
+
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let kindText = try c.decode(String.self, forKey: .kind).uppercased()
+        guard let kind = ThemeSongKind(rawValue: kindText) else {
+            throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unknown theme kind \(kindText)")
+        }
+        let title = (try c.decodeIfPresent(String.self, forKey: .title))?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !title.isEmpty else {
+            throw DecodingError.dataCorruptedError(forKey: .title, in: c, debugDescription: "theme without a title")
+        }
+        self.kind = kind
+        self.sequence = try? c.decodeIfPresent(Int.self, forKey: .sequence)
+        self.title = title
+        self.artist = try c.decodeIfPresent(String.self, forKey: .artist)
+        self.episodes = try c.decodeIfPresent(String.self, forKey: .episodes)
+        self.version = try? c.decodeIfPresent(Int.self, forKey: .version)
+        self.isSpoiler = (try c.decodeIfPresent(Bool.self, forKey: .isSpoiler)) ?? false
+        self.isNSFW = (try c.decodeIfPresent(Bool.self, forKey: .isNSFW)) ?? false
+        self.source = (try c.decodeIfPresent(String.self, forKey: .source)) ?? "animethemes"
+        self.sourceURL = (try c.decodeIfPresent(String.self, forKey: .sourceURL)).flatMap(ReleaseScheduleItem.httpsURL)
+    }
+}
+
+/// On-device search links for a song (spec D11: search URLs only).
+nonisolated enum ThemeListenLinks {
+    static func appleMusicSearch(_ query: String) -> URL? {
+        guard let term = encoded(query) else { return nil }
+        return URL(string: "https://music.apple.com/search?term=\(term)")
+    }
+
+    static func spotifySearch(_ query: String) -> URL? {
+        guard let term = encoded(query) else { return nil }
+        return URL(string: "https://open.spotify.com/search/\(term)")
+    }
+
+    /// Percent-encoded for both a query value and a path segment; nil for an empty query.
+    private static func encoded(_ query: String) -> String? {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        var allowed = CharacterSet.alphanumerics
+        allowed.insert(charactersIn: "-._~")
+        return trimmed.addingPercentEncoding(withAllowedCharacters: allowed)
+    }
+}
+
+// MARK: - Lenient row decoding
+
+/// Decodes a JSON array element by element; rows that fail to decode are skipped, so one bad row
+/// never blanks a section. Fails only when the payload is not an array at all.
+nonisolated struct LenientRows<Row: Decodable>: Decodable {
+    let rows: [Row]
+    /// How many elements could not be decoded.
+    let skipped: Int
+
+    init(from decoder: any Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        var rows: [Row] = []
+        var skipped = 0
+        while !container.isAtEnd {
+            if let row = try? container.decode(Row.self) {
+                rows.append(row)
+            } else {
+                skipped += 1
+                // Advance past the undecodable element.
+                _ = try? container.decode(DiscardedElement.self)
+            }
+        }
+        self.rows = rows
+        self.skipped = skipped
+    }
+
+    private struct DiscardedElement: Decodable {
+        init(from decoder: any Decoder) throws {}
+    }
+}
+
+extension LenientRows: Sendable where Row: Sendable {}

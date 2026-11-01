@@ -46,188 +46,282 @@ extension Color {
     static let kuroError = Color.red.opacity(0.85)      // Inline error text / destructive feedback
 
     // WCAG AA contrast-safe text tokens (black on white)
-    // 0.55 => ~4.8:1 ratio — passes AA for normal text
-    // 0.45 => ~4.5:1 ratio — passes AA for large/bold text
+    // 0.55 => ~4.7:1 ratio — passes AA for normal text
     static let kuroTextSecondary = Color.black.opacity(0.55) // Body-level secondary text
-    static let kuroTextTertiary = Color.black.opacity(0.45)  // Captions, hints, metadata
+    /// Legacy name for captions, hints and metadata. It now resolves to `kuroInkQuiet` (#6B6B6B,
+    /// 5.3:1): the former black at 45% (3.4:1) failed AA for normal text (rulebook §3.1).
+    static let kuroTextTertiary = kuroInkQuiet
 
     // Media Type Accents (Monochrome)
     static let kuroAnime = Color.black.opacity(0.55)    // Anime badge
     static let kuroManga = Color.black.opacity(0.45)    // Manga badge
 
-    // System Colors (auto-adapt to light/dark via UIColor semantic colors)
-    #if os(macOS)
-    static let kuroBackground = Color(NSColor.windowBackgroundColor)
-    static let kuroSecondaryBackground = Color(NSColor.controlBackgroundColor)
-    static let kuroTertiaryBackground = Color(NSColor.tertiarySystemFill)
-    #else
-    static let kuroBackground = Color(.systemBackground)
-    static let kuroSecondaryBackground = Color(.secondarySystemBackground)
-    static let kuroTertiaryBackground = Color(.tertiarySystemBackground)
-    #endif
+    // MARK: - Page and surface roles (light mode only)
+    // The app is light mode only (`KuroApp`). The legacy names resolve to the frozen neutral roles
+    // below, so no page or surface picks up the system greys' blue cast (rulebook §3).
+    /// Legacy page name. Same as `kuroCanvasPage`.
+    static let kuroBackground = kuroCanvasPage
+    /// Legacy secondary surface name. Same as `kuroCanvasQuiet` (was the system's blue-grey #F2F2F7).
+    static let kuroSecondaryBackground = kuroCanvasQuiet
+    /// Legacy tertiary surface name. Same as `kuroCanvasPage`.
+    static let kuroTertiaryBackground = kuroCanvasPage
 
-    // MARK: - Dark Mode Palette (Prepared — not yet active)
-    // When .preferredColorScheme(.light) is removed, these tokens auto-invert.
-    // Light: black text on white background. Dark: white text on near-black background.
-    // Uses UIColor.label / .secondaryLabel / .separator which invert automatically.
-    #if os(iOS)
-    /// Primary foreground — black in light mode, white in dark mode.
-    static let kuroForeground = Color(.label)
-    /// Secondary foreground — adapts contrast for both modes.
-    static let kuroForegroundSecondary = Color(.secondaryLabel)
-    /// Tertiary foreground — adapts for metadata/hints in both modes.
-    static let kuroForegroundTertiary = Color(.tertiaryLabel)
-    /// Subtle separator/divider — adapts to both modes.
-    static let kuroSeparator = Color(.separator)
-    /// Grouped background for cards — adapts to both modes.
-    static let kuroGroupedBackground = Color(.systemGroupedBackground)
-    /// Surface color for cards/overlays — white in light, elevated dark in dark.
-    static let kuroSurface = Color(.secondarySystemGroupedBackground)
-    #else
-    static let kuroForeground = Color.primary
-    static let kuroForegroundSecondary = Color.secondary
-    static let kuroForegroundTertiary = Color.secondary.opacity(0.6)
-    static let kuroSeparator = Color.gray.opacity(0.3)
-    static let kuroGroupedBackground = Color(NSColor.controlBackgroundColor)
-    static let kuroSurface = Color(NSColor.windowBackgroundColor)
-    #endif
+    // MARK: - Foreground roles (legacy names, light mode only)
+    // These were the system label colors, prepared for a dark mode that is not active. They now
+    // resolve to the neutral ink roles; a future dark mode defines its own roles.
+    /// Primary foreground. Same as `kuroInk`.
+    static let kuroForeground = kuroInk
+    /// Secondary foreground. Same as `kuroInkSecondary`.
+    static let kuroForegroundSecondary = kuroInkSecondary
+    /// Tertiary foreground. Same as `kuroInkQuiet` (the system tertiary label failed AA).
+    static let kuroForegroundTertiary = kuroInkQuiet
+    /// Separator. Same as `kuroHairline`.
+    static let kuroSeparator = kuroHairline
+    /// Grouped background. Same as `kuroCanvasQuiet`.
+    static let kuroGroupedBackground = kuroCanvasQuiet
+    /// Card surface. Same as `kuroCanvasPage`.
+    static let kuroSurface = kuroCanvasPage
 
-    // MARK: - Neutral canvas (Home, series detail, Profile)
-    // Scoped roles. Other pages keep `kuroBackground`. Artwork keeps its own color.
-    /// Primary page. Clean white, no yellow or green cast.
+    // MARK: - Neutral palette (frozen roles, rulebook §3.1)
+    // Use only these roles for new work. Artwork keeps its own color; statuses never carry color.
+    /// Primary page for every screen. Clean white, no yellow or green cast.
     static let kuroCanvasPage = Color(hex: "FFFFFF")
-    /// Secondary groups and contained controls.
+    /// Secondary groups and contained controls. Never a whole-page background.
     static let kuroCanvasQuiet = Color(hex: "F6F6F6")
-    /// Headlines, title names, and primary actions.
+    /// Headlines, title names, primary actions and progress numerals (17.8:1 on white).
     static let kuroInk = Color(hex: "181818")
-    /// Explanatory text and ordinary metadata.
+    /// Explanatory text and ordinary metadata (6.7:1 on white).
     static let kuroInkSecondary = Color(hex: "5C5C5C")
-    /// Small captions on white.
+    /// Captions and kickers (5.3:1 on white). The lightest ink allowed for text that carries meaning.
     static let kuroInkQuiet = Color(hex: "6B6B6B")
     /// Separators. Black at 10%, inside the 8–12% hairline range.
     static let kuroHairline = Color.black.opacity(0.10)
-    /// Neutral stand-in when a title has no verified artwork.
+    /// Neutral stand-in when a title has no artwork, or the artwork fails to decode.
     static let kuroMissingArt = Color(hex: "E6E6E6")
+    /// Inset rim of the light advance key and the chapter ticket stroke. Black at 12%.
+    static let kuroKeyRim = Color.black.opacity(0.12)
+    /// The private club room: a neutral near-black (replaces the prototype's green #252B28).
+    static let kuroRoom = Color(hex: "222222")
+    /// Primary text inside the club room.
+    static let kuroRoomText = Color.white.opacity(0.9)
+    /// Secondary text inside the club room.
+    static let kuroRoomTextSecondary = Color.white.opacity(0.6)
+    /// Pressed fill of an ink control (the primary capsule while held).
+    static let kuroInkPressed = Color(hex: "2E2E2E")
+    /// Destructive text, outline and spinner (about 5.7:1 on white, AA for normal text). Red stays
+    /// reserved for destructive actions; `kuroError` remains for icons and inline error marks.
+    static let kuroDestructiveInk = Color(hex: "C4271D")
 }
 
 // MARK: - Dynamic Type Scaling
-// Uses UIFontMetrics to scale custom sizes relative to the user's preferred content size.
-// Each token maps to the closest UIFont.TextStyle for proportional scaling.
-#if os(iOS)
-private func kuroScaled(_ baseSize: CGFloat, relativeTo textStyle: UIFont.TextStyle) -> CGFloat {
-    UIFontMetrics(forTextStyle: textStyle).scaledValue(for: baseSize)
-}
-#else
-private func kuroScaled(_ baseSize: CGFloat, relativeTo textStyle: Any? = nil) -> CGFloat {
-    baseSize
-}
-#endif
+// Every Kuro role scales a base size with `UIFontMetrics` relative to a text style, then caps it.
+// The category comes from `KuroTypeScale.current`, which follows the system's content-size
+// notification on its own (so every root, signed in or out, is covered) and the signed-in root's
+// SwiftUI `\.dynamicTypeSize` (`.kuroDynamicTypeScale()`). Reading it inside a role registers an
+// Observation dependency, so every view body that uses a role is re-evaluated when the user changes
+// the text size while the app runs (no relaunch, no per-call-site change).
 
-// MARK: - Editorial Typography System (Vogue/Miu Miu Inspired)
-// Fashion-forward, dramatic, refined — now with Dynamic Type support
+/// The Dynamic Type category the Kuro type roles scale to.
+@MainActor
+@Observable
+final class KuroTypeScale {
+    /// The one scale the type roles read. UI infrastructure, not business state.
+    static let current = KuroTypeScale()
+
+    /// The category in effect (the app's category at launch, then the latest system change or
+    /// root report).
+    private(set) var category: UIContentSizeCategory?
+    @ObservationIgnored private var traits: UITraitCollection?
+    /// The content-size observer (the shared scale lives for the whole process).
+    @ObservationIgnored private var sizeObserver: (any NSObjectProtocol)?
+
+    private init() {
+        // Start from the app's current category so the first frame is already right and the root's
+        // initial report changes nothing (no extra re-render at launch).
+        let initial = UIApplication.shared.preferredContentSizeCategory
+        category = initial
+        traits = UITraitCollection(preferredContentSizeCategory: initial)
+        // Independent of any root modifier: the signed-out root (Auth) follows text-size changes too.
+        sizeObserver = NotificationCenter.default.addObserver(
+            forName: UIContentSizeCategory.didChangeNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                KuroTypeScale.current.update(category: UIApplication.shared.preferredContentSizeCategory)
+            }
+        }
+    }
+
+    /// Called by `.kuroDynamicTypeScale()` whenever SwiftUI's dynamic type size changes.
+    func update(_ size: DynamicTypeSize) {
+        update(category: Self.category(for: size))
+    }
+
+    /// Applies a category (from the system notification or a root report); unchanged: no-op.
+    func update(category next: UIContentSizeCategory) {
+        guard next != category, next != .unspecified else { return }
+        traits = UITraitCollection(preferredContentSizeCategory: next)
+        category = next
+    }
+
+    /// `baseSize` scaled for the current category relative to `textStyle`.
+    func scaled(_ baseSize: CGFloat, relativeTo textStyle: UIFont.TextStyle) -> CGFloat {
+        let metrics = UIFontMetrics(forTextStyle: textStyle)
+        // Reading `category` registers the dependency even when the traits are not built yet.
+        guard category != nil, let traits else { return metrics.scaledValue(for: baseSize) }
+        return metrics.scaledValue(for: baseSize, compatibleWith: traits)
+    }
+
+    /// SwiftUI's size mapped onto UIKit's category (exhaustive, so a new case fails the build).
+    nonisolated static func category(for size: DynamicTypeSize) -> UIContentSizeCategory {
+        switch size {
+        case .xSmall: return .extraSmall
+        case .small: return .small
+        case .medium: return .medium
+        case .large: return .large
+        case .xLarge: return .extraLarge
+        case .xxLarge: return .extraExtraLarge
+        case .xxxLarge: return .extraExtraExtraLarge
+        case .accessibility1: return .accessibilityMedium
+        case .accessibility2: return .accessibilityLarge
+        case .accessibility3: return .accessibilityExtraLarge
+        case .accessibility4: return .accessibilityExtraExtraLarge
+        case .accessibility5: return .accessibilityExtraExtraExtraLarge
+        @unknown default: return .large
+        }
+    }
+}
+
+private func kuroScaled(_ baseSize: CGFloat, relativeTo textStyle: UIFont.TextStyle) -> CGFloat {
+    KuroTypeScale.current.scaled(baseSize, relativeTo: textStyle)
+}
+
+private struct KuroDynamicTypeScaleModifier: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    func body(content: Content) -> some View {
+        content.onChange(of: dynamicTypeSize, initial: true) { _, size in
+            KuroTypeScale.current.update(size)
+        }
+    }
+}
+
+extension View {
+    /// Keeps the Kuro type roles in step with SwiftUI's text size at this root (`KuroRootView`).
+    /// Optional elsewhere: `KuroTypeScale` also follows the system content-size notification.
+    func kuroDynamicTypeScale() -> some View {
+        modifier(KuroDynamicTypeScaleModifier())
+    }
+}
+
+/// The point size of each role (shared by the `Font` roles and by code that must measure text
+/// with the same size it draws, e.g. the header's section window).
+enum KuroTypeRole {
+    case hero, display, feature, headline, title, body, caption, micro, navigation
+    case titleName, meta, buttonLabel
+
+    /// Base size at the default text size, the text style it scales with, and its cap.
+    var spec: (base: CGFloat, style: UIFont.TextStyle, cap: CGFloat) {
+        switch self {
+        case .hero: return (64, .largeTitle, 96)
+        case .display: return (44, .largeTitle, 72)
+        case .feature: return (34, .title1, 60)
+        case .headline: return (26, .title2, 48)
+        case .title: return (19, .title3, 40)
+        case .body: return (15, .body, 34)
+        case .caption: return (11, .caption1, 24)
+        case .micro: return (9, .caption2, 18)
+        case .navigation: return (11, .caption1, 20)
+        case .titleName: return (17, .headline, 36)
+        case .meta: return (13, .footnote, 28)
+        case .buttonLabel: return (17, .body, 30)
+        }
+    }
+
+    /// The scaled, capped point size for the current text size.
+    var pointSize: CGFloat {
+        let spec = spec
+        return min(kuroScaled(spec.base, relativeTo: spec.style), spec.cap)
+    }
+}
+
+// MARK: - Editorial Typography System
+// Serif carries the editorial voice; sans carries title labels, buttons, settings and numbers.
 extension Font {
+    /// A custom size that scales with Dynamic Type relative to `textStyle`. `maxSize` caps it
+    /// (nil: no cap, the legacy behaviour).
     static func kuroCustom(
         _ baseSize: CGFloat,
         weight: Font.Weight = .regular,
         design: Font.Design = .default,
-        relativeTo textStyle: UIFont.TextStyle = .body
+        relativeTo textStyle: UIFont.TextStyle = .body,
+        maxSize: CGFloat? = nil
     ) -> Font {
-        #if os(iOS)
         let scaled = kuroScaled(baseSize, relativeTo: textStyle)
-        return .system(size: scaled, weight: weight, design: design)
-        #else
-        return .system(size: baseSize, weight: weight, design: design)
-        #endif
+        return .system(size: maxSize.map { min(scaled, $0) } ?? scaled, weight: weight, design: design)
     }
 
-    // HERO - Magazine covers, dramatic statements (56-72pt)
+    private static func kuroRole(_ role: KuroTypeRole, weight: Font.Weight, design: Font.Design) -> Font {
+        .system(size: role.pointSize, weight: weight, design: design)
+    }
+
+    // HERO - Magazine covers, dramatic statements (64pt serif)
     static func kuroHero(weight: Font.Weight = .thin) -> Font {
-        #if os(iOS)
-        let scaled = kuroScaled(64, relativeTo: .largeTitle)
-        return .system(size: min(scaled, 96), weight: weight, design: .serif)
-        #else
-        return .system(size: 64, weight: weight, design: .serif)
-        #endif
+        kuroRole(.hero, weight: weight, design: .serif)
     }
 
-    // DISPLAY - Large section headers (40-48pt)
+    // DISPLAY - Large section headers and the one cover line per screen (44pt serif)
     static func kuroDisplay(weight: Font.Weight = .thin) -> Font {
-        #if os(iOS)
-        let scaled = kuroScaled(44, relativeTo: .largeTitle)
-        return .system(size: min(scaled, 72), weight: weight, design: .serif)
-        #else
-        return .system(size: 44, weight: weight, design: .serif)
-        #endif
+        kuroRole(.display, weight: weight, design: .serif)
     }
 
-    // FEATURE - Feature titles, prominent elements (32-36pt)
+    // FEATURE - Feature titles, prominent elements (34pt serif)
     static func kuroFeature(weight: Font.Weight = .light) -> Font {
-        #if os(iOS)
-        let scaled = kuroScaled(34, relativeTo: .title1)
-        return .system(size: min(scaled, 56), weight: weight, design: .serif)
-        #else
-        return .system(size: 34, weight: weight, design: .serif)
-        #endif
+        kuroRole(.feature, weight: weight, design: .serif)
     }
 
-    // HEADLINE - Card titles, subheaders (24-28pt)
+    // HEADLINE - Section headings, card titles (26pt serif)
     static func kuroHeadline(weight: Font.Weight = .light) -> Font {
-        #if os(iOS)
-        let scaled = kuroScaled(26, relativeTo: .title2)
-        return .system(size: min(scaled, 44), weight: weight, design: .serif)
-        #else
-        return .system(size: 26, weight: weight, design: .serif)
-        #endif
+        kuroRole(.headline, weight: weight, design: .serif)
     }
 
-    // TITLE - Secondary titles (18-20pt)
+    // TITLE - Secondary titles, section heads (19pt serif)
     static func kuroTitle(weight: Font.Weight = .regular) -> Font {
-        #if os(iOS)
-        let scaled = kuroScaled(19, relativeTo: .title3)
-        return .system(size: min(scaled, 32), weight: weight, design: .serif)
-        #else
-        return .system(size: 19, weight: weight, design: .serif)
-        #endif
+        kuroRole(.title, weight: weight, design: .serif)
     }
 
-    // BODY - Descriptions, editorial content (15-16pt)
+    // BODY - Descriptions, editorial content (15pt sans)
     static func kuroBody(weight: Font.Weight = .light) -> Font {
-        #if os(iOS)
-        let scaled = kuroScaled(15, relativeTo: .body)
-        return .system(size: min(scaled, 26), weight: weight, design: .default)
-        #else
-        return .system(size: 15, weight: weight, design: .default)
-        #endif
+        kuroRole(.body, weight: weight, design: .default)
     }
 
-    // CAPTION - Small refined labels (11-12pt)
+    // CAPTION - Nonessential captions (11pt sans)
     static func kuroCaption(weight: Font.Weight = .light) -> Font {
-        #if os(iOS)
-        let scaled = kuroScaled(11, relativeTo: .caption1)
-        return .system(size: min(scaled, 20), weight: weight, design: .default)
-        #else
-        return .system(size: 11, weight: weight, design: .default)
-        #endif
+        kuroRole(.caption, weight: weight, design: .default)
     }
 
-    // MICRO - Tiny metadata, fashion-forward tight spacing (8-9pt)
+    // MICRO - Kickers and redundant labels only (9pt sans)
     static func kuroMicro(weight: Font.Weight = .medium) -> Font {
-        #if os(iOS)
-        let scaled = kuroScaled(9, relativeTo: .caption2)
-        return .system(size: min(scaled, 16), weight: weight, design: .default)
-        #else
-        return .system(size: 9, weight: weight, design: .default)
-        #endif
+        kuroRole(.micro, weight: weight, design: .default)
     }
 
-    // NAVIGATION - Header labels (11pt) - kept for locked nav
+    // NAVIGATION - Header labels (11pt sans)
     static func kuroNavigation(weight: Font.Weight = .regular) -> Font {
-        #if os(iOS)
-        let scaled = kuroScaled(11, relativeTo: .caption1)
-        return .system(size: min(scaled, 18), weight: weight, design: .default)
-        #else
-        return .system(size: 11, weight: weight, design: .default)
-        #endif
+        kuroRole(.navigation, weight: weight, design: .default)
+    }
+
+    // TITLE NAME - A title's name on a lead card or row (17pt sans, rulebook §4)
+    static func kuroTitleName(weight: Font.Weight = .medium) -> Font {
+        kuroRole(.titleName, weight: weight, design: .default)
+    }
+
+    // META - Dates, counts, control text (13pt sans)
+    static func kuroMeta(weight: Font.Weight = .regular) -> Font {
+        kuroRole(.meta, weight: weight, design: .default)
+    }
+
+    // BUTTON LABEL - Primary and secondary button labels (17pt sans semibold)
+    static func kuroButtonLabel(weight: Font.Weight = .semibold) -> Font {
+        kuroRole(.buttonLabel, weight: weight, design: .default)
     }
 
     // Legacy compatibility
@@ -379,6 +473,7 @@ struct KuroAnimation {
 
     // EDITORIAL - Fashion-forward spring
     static let editorial: Animation = .spring(response: 0.6, dampingFraction: 0.82)
+    /// Visible overshoot. Forbidden for new work (rulebook §8); kept for legacy call sites.
     static let editorialBounce: Animation = .spring(response: 0.45, dampingFraction: 0.75)
 
     // PARALLAX - Depth and dimension
@@ -386,6 +481,7 @@ struct KuroAnimation {
 
     // Legacy compatibility
     static let spring: Animation = .spring(response: 0.4, dampingFraction: 0.8)
+    /// Visible overshoot. Forbidden for new work (rulebook §8); kept for legacy call sites.
     static let springBouncy: Animation = .spring(response: 0.5, dampingFraction: 0.6)
 
     // Haptic feedback integration
@@ -407,6 +503,15 @@ struct KuroAnimation {
 struct KuroMotion {
     /// A subtle cross-fade used when Reduce Motion is enabled.
     static let reducedMotionFallback: Animation = .easeInOut(duration: 0.2)
+
+    /// Press contact: immediate, reversible (120 ms, rulebook §7/§8).
+    static let contact: Animation = .easeOut(duration: 0.12)
+    /// Settle after a press or a small state change (220 ms).
+    static let settle: Animation = .easeOut(duration: 0.22)
+    /// A progress count change (the Stamp, 160 ms).
+    static let stamp: Animation = .easeOut(duration: 0.16)
+    /// A clear context change: medium switch, season selection (220 ms crossfade, no overshoot).
+    static let contextChange: Animation = .easeInOut(duration: 0.22)
 
     /// Returns the given animation, or a subtle cross-fade when Reduce Motion is on.
     /// Call from within a View body or anywhere UIAccessibility is available.
@@ -444,6 +549,10 @@ private struct KuroReduceMotionModifier<V: Equatable>: ViewModifier {
 }
 
 // MARK: - Screen Size Detection
+/// Fixed iPhone 14 Pro numbers. **Forbidden for new layout** (rulebook §5/§13): derive widths from
+/// the container (`GeometryReader`, `containerRelativeFrame`, `onGeometryChange`) instead; the
+/// pager width (`\.kuroPagerWidth`) is a gesture value, not a content width. Kept only
+/// so legacy call sites compile until their lanes migrate them.
 struct KuroScreen {
     // Use reasonable defaults for modern iPhones
     // In SwiftUI, prefer GeometryReader for dynamic sizing
@@ -490,6 +599,8 @@ struct KuroScreen {
 }
 
 // MARK: - Responsive Layout Helpers
+/// Width breakpoints over `KuroScreen.width` (a constant 393). **Forbidden for new layout**
+/// (rulebook §13); use Dynamic Type roles and container widths. Kept for legacy call sites.
 struct ResponsiveLayout {
     // Adaptive padding based on screen size
     static func padding(_ base: CGFloat = KuroDesignSpacing.lg) -> CGFloat {
@@ -542,6 +653,11 @@ struct KuroAccessibility {
         let impactFeedback = UIImpactFeedbackGenerator(style: style)
         impactFeedback.impactOccurred()
     }
+
+    /// A selection tick (advance key, word switches).
+    static func selectionHaptic() {
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
     #else
     // macOS - no haptic feedback
     enum FeedbackStyle {
@@ -550,6 +666,7 @@ struct KuroAccessibility {
     static func successHaptic() { }
     static func errorHaptic() { }
     static func impactHaptic(_ style: FeedbackStyle = .medium) { }
+    static func selectionHaptic() { }
     #endif
 }
 
@@ -656,7 +773,7 @@ extension View {
 struct KuroStyle {
     // Card styling
     static func card() -> some View {
-        RoundedRectangle(cornerRadius: KuroRadius.adaptive(KuroRadius.md, for: KuroScreen.width))
+        RoundedRectangle(cornerRadius: KuroRadius.md)
             .fill(Color.kuroWhite)
             .shadow(
                 color: KuroShadow.card.color,
