@@ -749,6 +749,8 @@ How to read the tables:
 
 ## 5. Width changes (320 and 430)
 
+The manga Home is fluid in width and fixed in height. At 430 the three leaves widen, but the cover frames stay 138 pt tall, so the page height is unchanged (390: 1894 pt, 430: 1894 pt). Anime scene artwork height scales with width (89 pt at 320, 108 pt at 390), so anime pages grow.
+
 ### Width changes: 390 → 320 (Home, anime, busy)
 
 Only properties that change are listed. They come from the prototype's `@media(max-width:360px)` rules.
@@ -907,7 +909,7 @@ Only properties that change are listed. Most components are fluid, so heights gr
 
 ## 7. Copy (EN as in the prototype, DE draft)
 
-German drafts follow the existing Kuro tone (du-form, short, no exclamation marks). The lanes may refine wording; the EN strings are the prototype's exact text. `N`, `{title}` and `{date}` are placeholders.
+German drafts follow the existing Kuro tone (du-form, short, no exclamation marks). They were checked against the strings already in `KuroLocale.text(` calls: "Demnächst", "Start", "Geschmack", "Rückgängig", "Erneut versuchen", "Vormerken" and "Auf dem neuesten Stand" are reused as they are. Other existing translations win over these drafts if a lane finds a conflict. The lanes may refine wording; the EN strings are the prototype's exact text. `N`, `{title}` and `{date}` are placeholders.
 
 ### 7.1 Product copy (ships)
 
@@ -939,14 +941,14 @@ German drafts follow the existing Kuro tone (du-form, short, no exclamation mark
 | Footer | Your pace. Your place. · KURO | Dein Tempo. Dein Ort. · KURO |
 | New-account Home | ＋ · Your stories belong here. · Import your list to bring your place with you. · Explore Taste ← | ＋ · Hier gehören deine Geschichten hin. · Importiere deine Liste und nimm deinen Stand mit. · Geschmack entdecken ← |
 | Taste headings | Your next story. · Turn to something new. · A first favourite. | Deine nächste Geschichte. · Zeit für etwas Neues. · Ein erster Favorit. |
-| Taste card | FILM · ROMANCE (kind kicker) · Plan to watch · Plan to read · Planned | FILM · ROMANCE · Zum Schauen vormerken · Zum Lesen vormerken · Vorgemerkt |
-| Toasts | Progress saved. · Caught up. · Added to your list. · Removed from your list. · Undone. · Undo | Fortschritt gespeichert. · Alles aufgeholt. · Zu deiner Liste hinzugefügt. · Von deiner Liste entfernt. · Rückgängig gemacht. · Rückgängig |
+| Taste card | FILM · ROMANCE (kind kicker) · Plan to watch · Plan to read · Planned | FILM · ROMANCE · Vormerken · Vormerken · Vorgemerkt (the app already uses "Vormerken" for "Plan to watch") |
+| Toasts | Progress saved. · Caught up. · Added to your list. · Removed from your list. · Undone. · Undo | Fortschritt gespeichert. · Auf dem neuesten Stand. · Zu deiner Liste hinzugefügt. · Von deiner Liste entfernt. · Rückgängig gemacht. · Rückgängig |
 | Toast failure | Not saved. Your progress is unchanged. · Not saved. Your list is unchanged. | Nicht gespeichert. Dein Fortschritt ist unverändert. · Nicht gespeichert. Deine Liste ist unverändert. |
 | Detail hero | Anime · Manga (kicker) · Watching · Reading · Not in your list | Anime · Manga · Schaust du · Liest du · Nicht in deiner Liste |
 | Detail story | Season N (eyebrow) · Series overview · About this season + · About this story + | Staffel N · Serienüberblick · Über diese Staffel + · Über diese Geschichte + |
 | Detail club presence | N people in your clubs ↓ | N Personen aus deinen Clubs ↓ |
 | Detail seasons | Seasons · N seasons · Current | Staffeln · N Staffeln · Aktuell |
-| Detail progress | Season N progress · Ep. N / M · Your bookmark · Ch. N / M · Caught up · Ongoing · total unknown | Fortschritt Staffel N · Folge N / M · Dein Lesezeichen · Kap. N / M · Alles aufgeholt · Laufend · Gesamtzahl unbekannt |
+| Detail progress | Season N progress · Ep. N / M · Your bookmark · Ch. N / M · Caught up · Ongoing · total unknown | Fortschritt Staffel N · Folge N / M · Dein Lesezeichen · Kap. N / M · Auf dem neuesten Stand · Laufend · Gesamtzahl unbekannt |
 | Detail units | Episodes · Chapters · UP NEXT · Episode N · Chapter N · Completed · Tap for details · More episodes ↓ · More chapters ↓ · Fewer episodes ↑ | Folgen · Kapitel · ALS NÄCHSTES · Folge N · Kapitel N · Gesehen / Gelesen · Für Details tippen · Mehr Folgen ↓ · Mehr Kapitel ↓ · Weniger Folgen ↑ |
 | Detail original story (anime) | The original story · 原作 · Explore the manga → · Season N → manga · Where this season meets the manga + · Starts at · Ends at · Read next | Die Vorlage · 原作 · Zum Manga → · Staffel N → Manga · Wo diese Staffel im Manga steht + · Beginnt bei · Endet bei · Weiterlesen ab |
 | Detail Seen the anime? (manga) | From screen to page · Seen the anime? · 映 · Anime adaptation · Official anime site ↗ · I've watched the anime + · Which season did you finish? · Choose a season · Choose a finished season to find your place on the page. · This guide never marks manga chapters as read. | Vom Bildschirm aufs Papier · Den Anime gesehen? · 映 · Anime-Adaption · Offizielle Anime-Seite ↗ · Ich habe den Anime gesehen + · Welche Staffel hast du beendet? · Staffel wählen · Wähle eine beendete Staffel, um deine Stelle im Manga zu finden. · Diese Hilfe markiert keine Kapitel als gelesen. |
@@ -1000,7 +1002,8 @@ The prototype wins on visuals (spec §2). The items below are where the written 
 9. **Medium-switch fill.** The selected word is SF 36/36 w850, tracking −1.9 (at 390), uppercase. Its fill is the current lead title's artwork (`background-clip: text`) under `linear-gradient(#15221c15, #15221c38)`, with fallback colour `#253a2a`, plus a 28 × 2 underline `#203027`. The unselected word is solid `#6e786f`. The spec's "roughly −3.8 tracking" is the studio heading, not the switch.
 10. **Taste in a new account** keeps the same story cards as the busy account. Only the heading changes to "A first favourite.", and the opening stays "FOR YOUR TASTE / Another world.". The anime Taste uses one landscape card, then a portrait card. Manga Taste uses a two-column portrait grid.
 11. **Detail "Seasons" tiles** in the prototype are numbered tiles ("1", "2" with "Current"), not artwork, for this fixture. The spec allows artwork tiles where artwork exists.
-12. **Prototype-only density content** (the "Where this season meets the manga" coverage table with "Unverified" values, and "Find on Spotify · track links not yet matched") must stay hidden until real data exists (spec §5.2 empty rules).
+12. **Header controls.** The prototype header has only KURO, the page name and "‹ Taste". It has no Search or Profile glyph and no page dots. The native header keeps Search, Profile and smaller dots (spec §3a), so these are expected differences.
+13. **Prototype-only density content** (the "Where this season meets the manga" coverage table with "Unverified" values, and "Find on Spotify · track links not yet matched") must stay hidden until real data exists (spec §5.2 empty rules).
 
 ## 9. Re-running the measurement
 
