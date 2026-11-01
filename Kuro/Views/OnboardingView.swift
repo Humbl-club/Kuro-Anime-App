@@ -235,12 +235,16 @@ struct OnboardingView: View {
     }
 
     /// The Home medium preference, under the same key `HomeStore` reads (`kuro.home.medium.<lowercased
-    /// user id>`). With the series Home live, the store's own selection follows (it is already mounted).
+    /// user id>`, per account; `HomeStore` reads it at bootstrap). With the series Home live, the store's
+    /// own selection follows (it is already mounted). The choice also lands in Collection's own medium key
+    /// (`kuro.folio.medium`, a per-device convenience Collection reads on its first load), so it takes
+    /// effect this session in both worlds instead of after a relaunch.
     private func persistMedium() {
-        let value = medium == .manga ? "manga" : "anime"
+        let value = medium.rawValue
         if let userId = identity.currentUserId?.lowercased(), !userId.isEmpty {
             UserDefaults.standard.set(value, forKey: "kuro.home.medium.\(userId)")
         }
+        UserDefaults.standard.set(value, forKey: "kuro.folio.medium")
         if flags.seriesHomeNativeV1Enabled, home.medium != value {
             home.selectMedium(value)
         }

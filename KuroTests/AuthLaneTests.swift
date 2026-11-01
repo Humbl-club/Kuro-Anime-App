@@ -562,11 +562,11 @@ struct AuthLaneSessionTests {
         await h.tearDown()
     }
 
-    @Test("A server-definitive exchange failure uses the flow up")
+    @Test("An exchange the server answers with an expired flow uses the flow up")
     func definitiveFailureConsumesFlow() async throws {
         let h = try Self.harness(StubAuth.signInResponder { request in
             if StubAuth.isAuth(request, "token"), request.query("grant_type") == "pkce" {
-                return .json(#"{"error_code":"flow_state_not_found","msg":"invalid flow state"}"#, status: 404)
+                return .json(#"{"error_code":"flow_state_expired","msg":"flow state has expired"}"#, status: 400)
             }
             return .emptyArray
         })
@@ -576,6 +576,40 @@ struct AuthLaneSessionTests {
 
         #expect(h.session.pendingFlows.current() == nil)
         await h.tearDown()
+    }
+
+    @Test("A stale or crafted code (bad_code_verifier) keeps the pending reset flow, so the real email link still opens")
+    func foreignCodeKeepsFlow() async throws {
+        let h = try Self.harness(StubAuth.signInResponder { request in
+            if StubAuth.isAuth(request, "token"), request.query("grant_type") == "pkce" {
+                return .json(#"{"error_code":"bad_code_verifier","msg":"code challenge does not match previously saved code verifier"}"#, status: 400)
+            }
+            return .emptyArray
+        })
+        h.session.pendingFlows.begin(.recovery, email: "a@example.com")
+
+        await h.session.handleAuthCallback(AuthCallbackPayload(code: "x"))
+
+        #expect(!h.identity.isAuthenticated)
+        #expect(!h.identity.requiresPasswordUpdate)
+        let kept = try #require(h.session.pendingFlows.current(), "a failed exchange must not void the real link")
+        #expect(kept.kind == .recovery)
+        await h.tearDown()
+    }
+
+    @Test("Only the server's expired answers end a pending flow after a failed link")
+    func failureEndsPendingFlowRule() throws {
+        let response = try #require(HTTPURLResponse(
+            url: URL(fileURLWithPath: "/token"), statusCode: 400, httpVersion: nil, headerFields: nil
+        ))
+        func apiError(_ code: ErrorCode) -> AuthError {
+            .api(message: code.rawValue, errorCode: code, underlyingData: Data(), underlyingResponse: response)
+        }
+        #expect(SessionController.failureEndsPendingFlow(apiError(.flowStateExpired)))
+        #expect(SessionController.failureEndsPendingFlow(apiError(.otpExpired)))
+        #expect(!SessionController.failureEndsPendingFlow(apiError(.badCodeVerifier)))
+        #expect(!SessionController.failureEndsPendingFlow(apiError(.flowStateNotFound)))
+        #expect(!SessionController.failureEndsPendingFlow(URLError(.notConnectedToInternet)))
     }
 
     @Test("Signed in, the account's own reset link is exchanged and opens the set-password screen")

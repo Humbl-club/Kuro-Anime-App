@@ -14,14 +14,17 @@ import SwiftUI
 struct JournalTabBar: View {
     @Binding var selectedTab: ClubDetailView.Tab
     @Namespace private var tabNamespace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        // Scrolls sideways only when the labels do not fit (largest text sizes, German).
+        // Scrolls sideways only when the labels do not fit (largest text sizes, German); a trailing
+        // fade then shows there is more.
         ScrollView(.horizontal, showsIndicators: false) {
             tabs
                 .padding(.horizontal, KuroDesignSpacing.padding)
         }
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        .kuroTrailingOverflowFade()
         .background(Color.kuroCanvasPage)
         .overlay(alignment: .bottom) {
             Rectangle().fill(Color.kuroHairline).frame(height: 1)
@@ -46,10 +49,19 @@ struct JournalTabBar: View {
                         ZStack {
                             Rectangle().fill(Color.clear).frame(height: 2)
                             if isSelected {
-                                Rectangle()
-                                    .fill(Color.kuroInk)
-                                    .frame(height: 2)
-                                    .matchedGeometryEffect(id: "tab_underline", in: tabNamespace)
+                                if reduceMotion {
+                                    // Reduce Motion: no travel between tabs, each word's own rule fades
+                                    // (rulebook §8).
+                                    Rectangle()
+                                        .fill(Color.kuroInk)
+                                        .frame(height: 2)
+                                        .transition(.opacity)
+                                } else {
+                                    Rectangle()
+                                        .fill(Color.kuroInk)
+                                        .frame(height: 2)
+                                        .matchedGeometryEffect(id: "tab_underline", in: tabNamespace)
+                                }
                             }
                         }
                     }
