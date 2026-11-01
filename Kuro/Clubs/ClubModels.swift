@@ -175,6 +175,43 @@ struct ClubListRow: Decodable, Sendable, Identifiable {
     let loading_state: ClubLoadingState?
 }
 
+/// The state of the current account's my-clubs read (`ClubsStore.myClubsPhase`). Account-scoped:
+/// it returns to `.idle` on every account transition and on a disclosure reset.
+nonisolated indirect enum MyClubsPhase: Equatable, Sendable {
+    /// Nothing read yet for this account (or the rows were dropped and a reload is pending).
+    case idle
+    /// A read is in flight; `previous` is the settled phase before it.
+    case loading(previous: MyClubsPhase)
+    /// The last read succeeded at `at`.
+    case loaded(at: Date)
+    /// The last read failed. `transport`: a network failure (offline, timeout, connection lost).
+    case failed(transport: Bool)
+
+    /// The phase without an in-flight read.
+    var settled: MyClubsPhase {
+        if case let .loading(previous) = self { return previous.settled }
+        return self
+    }
+
+    var isLoading: Bool {
+        if case .loading = self { return true }
+        return false
+    }
+
+    /// Whether the Clubs page should ask the server: no successful read yet, the last read failed,
+    /// or it is older than `staleness`. A read already in flight is not repeated.
+    static func needsRefresh(_ phase: MyClubsPhase, now: Date, staleness: TimeInterval) -> Bool {
+        switch phase {
+        case .loading:
+            return false
+        case .idle, .failed:
+            return true
+        case let .loaded(at):
+            return now.timeIntervalSince(at) >= staleness || now < at
+        }
+    }
+}
+
 struct ToggleReactionResponse: Decodable, Sendable {
     let action: String // "added" | "removed"
     let emoji: String

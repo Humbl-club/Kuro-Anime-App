@@ -238,6 +238,7 @@ final class ClubsStore: AccountScopedState {
         revocationEpochs.removeAll()
         accountSignal = nextSignal()
         myClubs = []
+        myClubsPhase = .idle
         hasUnseenClubActivity = false
         // Persisted club prefs are account-scoped; legacy unscoped values are dropped.
         removeLegacyUnscopedClubPrefs()
@@ -260,6 +261,8 @@ final class ClubsStore: AccountScopedState {
         // Enriched list cards contain peer names, artwork and activity too. A
         // failed reload must leave none of that old disclosure on screen.
         myClubs.removeAll()
+        // The rows are gone until the reload answers: never "no clubs", never fresh.
+        myClubsPhase = .idle
         hasUnseenClubActivity = false
         clubBundleLoads.cancelAll()
         clubBundleCache.removeAll()
@@ -389,28 +392,69 @@ final class ClubsStore: AccountScopedState {
 
     // MARK: - My clubs
 
+    /// How long a successful my-clubs read counts as fresh for `refreshMyClubsIfStale()` (revisiting
+    /// the Clubs page inside this window does not ask the server again).
+    nonisolated static let myClubsStaleness: TimeInterval = 60
+
+    /// The state of the current account's my-clubs read (observed by the club list views).
+    private(set) var myClubsPhase: MyClubsPhase = .idle
+
+    /// Reads the current account's clubs (always asks the server: writes and the disclosure reload
+    /// call it right after a change). Uses `fetch_my_clubs_loading`; `fetch_my_clubs_enriched` only
+    /// when the server answers that the first function does not exist (`MyClubsReadFallback`). A
+    /// failure keeps the rows on screen and records `.failed`; an answer of an ended account, or one
+    /// that may predate a revocation, publishes nothing and restores the phase it found.
     func fetchMyClubs() async {
         let context = accountSession.current
         let revocations = revocationCount
+        let previous = myClubsPhase
+        myClubsPhase = .loading(previous: previous.settled)
+        /// This read may still publish (same account, no revocation or disclosure reset since it
+        /// started: both move `revocationCount`).
+        func ownsPhase() -> Bool {
+            accountSession.isCurrent(context) && revocationCount == revocations
+        }
         do {
             let client = try requiredClient()
-            let clubs: [ClubListRow]
-            clubs = try await accountSession.withCredentialLease(for: context) {
+            let clubs: [ClubListRow] = try await accountSession.withCredentialLease(for: context) {
                 do {
                     return try await client.rpc("fetch_my_clubs_loading").execute().value
                 } catch {
+                    // Only a missing function falls back (older server); a transport failure,
+                    // cancellation, decoding error or any other server answer is the read's failure.
+                    guard MyClubsReadFallback.shouldUseEnriched(after: error) else { throw error }
                     return try await client.rpc("fetch_my_clubs_enriched").execute().value
                 }
             }
             // Another account, or a revocation while in flight (this answer may predate it and would
             // bring the club back): publish nothing.
-            guard accountSession.isCurrent(context), revocationCount == revocations else { return }
+            guard ownsPhase() else {
+                if accountSession.isCurrent(context), myClubsPhase.isLoading { myClubsPhase = previous.settled }
+                return
+            }
             myClubs = clubs
+            myClubsPhase = .loaded(at: Date())
         } catch {
             #if DEBUG
             print("❌ fetchMyClubs: \(error)")
             #endif
+            guard ownsPhase() else {
+                if accountSession.isCurrent(context), myClubsPhase.isLoading { myClubsPhase = previous.settled }
+                return
+            }
+            if error is CancellationError || (error as? URLError)?.code == .cancelled {
+                myClubsPhase = previous.settled
+                return
+            }
+            myClubsPhase = .failed(transport: error is URLError)
         }
+    }
+
+    /// The Clubs page's read: asks the server only when the last successful read of this account is
+    /// older than `myClubsStaleness` (or there is none, or the last read failed).
+    func refreshMyClubsIfStale(now: Date = Date()) async {
+        guard MyClubsPhase.needsRefresh(myClubsPhase, now: now, staleness: Self.myClubsStaleness) else { return }
+        await fetchMyClubs()
     }
 
     // MARK: - Club last-seen (account-scoped per-club timestamps)
@@ -801,6 +845,27 @@ final class ClubsStore: AccountScopedState {
         let channels=[realtime.detach(),disclosureChannel].compactMap { $0 }
         disclosureChannel=nil
         return channels.isEmpty ? nil : DetachedClubChannels(channels)
+    }
+}
+
+// MARK: - My-clubs read fallback
+
+/// When the my-clubs read may switch from `fetch_my_clubs_loading` to `fetch_my_clubs_enriched`:
+/// only when the server says the first function does not exist (an older deployment). PostgREST
+/// answers a missing function with PGRST202 (HTTP 404); PostgreSQL's undefined-function SQLSTATE is
+/// 42883. Everything else (offline, timeout, cancellation, an undecodable payload, any other server
+/// answer) is the read's own failure: falling back then doubled the traffic and hid the real error.
+nonisolated enum MyClubsReadFallback {
+    static let functionMissingCodes: Set<String> = ["PGRST202", "42883"]
+
+    static func shouldUseEnriched(after error: any Error) -> Bool {
+        if let postgrest = error as? PostgrestError {
+            return postgrest.code.map(functionMissingCodes.contains) ?? false
+        }
+        if let http = error as? HTTPError {
+            return http.response.statusCode == 404
+        }
+        return false
     }
 }
 
