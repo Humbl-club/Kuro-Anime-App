@@ -21,7 +21,7 @@ Each finding is marked **fixed**, **justified** (the difference stays, with its 
 | Club room width / bleed | **fixed** | `HomeFeedInsets.room` = −3 against the page gutter: 17–373 at 390, 13–307 at 320, 17–413 at 430. 32 pt above the room. |
 | Paper feed side padding and card shadow | **fixed** | The calendar section and footer sit 2 pt inside the gutter (`HomeFeedInsets.feed`): 22 at 390 and 430, 18 at 320. The shadow is `0 2 6 −4`, cast by a shape inset 4 pt (`HomeCalendarPalette.cardShadowInset`), so there is no side spread. |
 | Also watching tile at 320 ("Mob Psycho 100" wraps) | **fixed** | The text column is fixed: the prototype's `44px 114px` grid, 89 at ≤ 360. SF sets "Mob Psycho 100" at 88.5 pt, which the browser still fits in 88. The column stays flexible at accessibility sizes. |
-| Also watching vertical composition | **fixed** | The 44 pt title button sits at the top of its 48 pt row. The 44 pt progress row has the count centred, and the 1 pt track sits 5 pt above the row foot, level with the key face's bottom. |
+| Also watching vertical composition | **fixed** | The 44 pt title button sits at the top of its 48 pt row. The 44 pt progress row has the count centred, and the 1 pt track sits 5 pt above the row foot, level with the key face's bottom. At accessibility sizes the track follows the count instead (2 pt under it), so a large count never sits on it. |
 | Club note link "Finished Death Note ›" and activity "Jules started" | **open** | See note B. |
 | Calendar day label "Fri 9 Oct" | **fixed (render locale)** | See note C. |
 | Scrub / track / hairline half-point blur | **justified** | See note D. |
@@ -29,7 +29,7 @@ Each finding is marked **fixed**, **justified** (the difference stays, with its 
 | Light +1 glyph weight | **fixed** | Key caps are a light-weight symbol, matching the prototype's thin 16 × 16 SVG stroke. |
 | Also watching material key glyph | **fixed** | Same light cap. The ink stays white. |
 | Poster radius / shadow and S2 stamp | **fixed** | Radius 4. The shadow `0 3 7 −4` is cast by a 4 pt inset shape behind the poster, so the stamp no longer carries a shadow. The stamp is flush bottom-right, with only its top-left corner rounded (5). |
-| Vertical rhythm, scenes → Also watching | **fixed** | The heading row has its 21 pt line box (SF 15/21), so the 25 / 12 margins measure as in the CSS. The scene stack spacing is 18; the remaining ≤ 1 pt is the cards' shadow. |
+| Vertical rhythm, scenes → Also watching | **fixed** | The heading row has its 21 pt line box (SF 15/21), so the 25 / 12 margins measure as in the CSS. The scene stack spacing is 18; what remains is within about 1 pt (not measured further). |
 | Calendar disclosure mark | **fixed** | Text glyph ⌄ / ⌃, SF 21 light, `#727d73`, placed off-centre as in the prototype. |
 | Day label / chip weights 550 | **justified** | See note E. Row time is already `#58665b`. |
 | Quiet: progress control width | **fixed** | The progress column has a minimum of 112 pt (104 at ≤ 360). The caught-up word wraps inside a 54 pt readout, so the divider stays put. |

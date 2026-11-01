@@ -101,27 +101,45 @@ struct HomeAlsoWatchingTile<Key: View>: View {
     }
 
     private var readoutView: some View {
-        ZStack(alignment: .leading) {
-            HStack(alignment: .lastTextBaseline, spacing: 3) {
-                Text(readout.unit)
-                    .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 20))
-                    .foregroundStyle(HomeInk.tileUnit)
-                    .lineLimit(1)
-                Text(readout.value)
-                    .font(.kuroCustom(compact ? 13 : 14, weight: .medium, relativeTo: .subheadline, maxSize: 28))
-                    .monospacedDigit()
-                    .foregroundStyle(Color.kuroInk)
-                    .lineLimit(1)
-                    .kuroCountRoll(value: readout.value)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                // Large text: the track follows the count (2 pt under it), so they never meet.
+                VStack(alignment: .leading, spacing: 2) {
+                    count
+                    scrub
+                }
+            } else {
+                ZStack(alignment: .leading) {
+                    count
+                    scrub
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                        // The key face (34 in the 44 pt row) ends 5 pt above the row's foot: the track too.
+                        .padding(.bottom, 5)
+                }
             }
-            HomeScrub(fraction: readout.fraction, track: HomeInk.tileTrack, trace: HomeInk.tileTrace)
-                .frame(maxHeight: .infinity, alignment: .bottom)
-                // The key face (34 in the 44 pt row) ends 5 pt above the row's foot: the track too.
-                .padding(.bottom, 5)
         }
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(readout.spoken)
+    }
+
+    private var count: some View {
+        HStack(alignment: .lastTextBaseline, spacing: 3) {
+            Text(readout.unit)
+                .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 20))
+                .foregroundStyle(HomeInk.tileUnit)
+                .lineLimit(1)
+            Text(readout.value)
+                .font(.kuroCustom(compact ? 13 : 14, weight: .medium, relativeTo: .subheadline, maxSize: 28))
+                .monospacedDigit()
+                .foregroundStyle(Color.kuroInk)
+                .lineLimit(1)
+                .kuroCountRoll(value: readout.value)
+        }
+    }
+
+    private var scrub: some View {
+        HomeScrub(fraction: readout.fraction, track: HomeInk.tileTrack, trace: HomeInk.tileTrace)
     }
 }
 

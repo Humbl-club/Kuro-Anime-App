@@ -100,5 +100,8 @@ Differences that stay, and why, are listed per finding in `../FIDELITY_REVIEW.md
   (FIDELITY_REVIEW note B).
 - **New account.** The selected medium word shows the mountain (empty shelf), the picks come from the
   seeded Discover bundle (`HomeNewAccount`'s own loader), and the page sits on the medium's canvas.
-- **Lane harness renders** (`home-manga/home-manga-*`, `home-anime-calendar-club-*`) and the first-run
-  HomeView renders were re-rendered with this pass; the other `firstrun/` and `detail/` renders were not.
+- **Re-rendered in this pass (en_GB):** every `home-anime/` and `home-manga/` render (German ones under
+  de_DE), the first-run HomeView renders, and `restyle/folio-*` (the key caps and the 40 pt manga
+  leaf face changed). Not re-rendered: the other `firstrun/` and `restyle/` renders and all of
+  `detail/` (they were made under the default US region before this pass; the detail pages draw
+  no `KuroAdvanceKey`, and a GB run changed only date formats there, so they were kept).
