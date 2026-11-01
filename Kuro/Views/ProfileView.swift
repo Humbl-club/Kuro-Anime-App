@@ -279,15 +279,14 @@ struct ProfileView: View {
     }
 
     /// The real account, never a slogan or a generic account label, and never the raw address as the
-    /// headline (rulebook §14.3): how the person signed in.
+    /// headline (rulebook §14.3). Only a fact the app knows locally: an Apple private relay address
+    /// can only come from Sign in with Apple; anything else is plainly "Signed in" (an Apple account
+    /// that shared its real address is not called an e-mail sign-in).
     private var accountHeadline: String {
-        guard let email = identity.currentUserEmail, !email.isEmpty else {
-            return isGermanLocale ? "Angemeldet" : "Signed in"
-        }
-        if Self.isAppleRelay(email) {
+        if let email = identity.currentUserEmail, Self.isAppleRelay(email) {
             return isGermanLocale ? "Mit Apple angemeldet" : "Signed in with Apple"
         }
-        return isGermanLocale ? "Mit E-Mail angemeldet" : "Signed in with e-mail"
+        return isGermanLocale ? "Angemeldet" : "Signed in"
     }
 
     /// The address on the quiet secondary line (middle-truncated); an Apple private relay address

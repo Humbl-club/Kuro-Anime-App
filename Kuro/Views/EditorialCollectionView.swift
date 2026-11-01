@@ -244,6 +244,12 @@ struct EditorialCollectionView: View {
             guard !isImportedView else { return }
             Task { await reload() }
         }
+        .onChange(of: collection.isCollectionLoading) { _, loading in
+            // Any feed refresh (batch end, a Library change) reads the first page again: a sorted or
+            // searched list reads the rest again so it is never silently incomplete.
+            guard !loading, sort != .recent || isQueryActive else { return }
+            Task { await loadAllForLocalOrdering() }
+        }
         .onChange(of: sort) { _, value in
             if value != .recent { Task { await loadAllForLocalOrdering() } }
         }
@@ -635,7 +641,7 @@ struct EditorialCollectionView: View {
         guard let context = activeAccount else { return }
         let keys = selectedItemKeys()
         guard !keys.isEmpty else { return }
-        let outcomes = await collection.applyBatchStatusChange(target.listStatus, to: keys, visibleFilter: status.listStatus) { edit, key, create in
+        let outcomes = await collection.applyBatchStatusChange(target.listStatus, to: keys, visibleFilter: feedStatus) { edit, key, create in
             await libraryActions.apply(edit, to: key, createIfMissing: create)
         }
         guard collection.accountSession.isCurrent(context), mountedAccount != nil else { return }
