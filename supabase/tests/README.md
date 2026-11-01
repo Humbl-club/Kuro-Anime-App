@@ -63,8 +63,10 @@ kinds: table | view | function <regprocedure> | function-body <regprocedure> <ma
 Declare **prerequisites** only (tables/functions the test relies on but does not test, the
 latest body of an RPC, an extension). An object that a prepared migration introduces is the
 subject under test: its absence must FAIL the test, not block it. Current BLOCKED scopes:
-`taste_tag_stats` (40), the latest `delete_user_concierge_data` body (50) and the similar-titles
-gate skip/run decision, which needs `media_similar_seed_state` (99).
+`taste_tag_stats` (40) and the latest `delete_user_concierge_data` body (50). The similar-titles
+gate skip/run decision (99) is no longer BLOCKED: when `media_similar_seed_state` is absent the
+test creates a minimal stand-in and a counting stub core inside its rolled-back transaction, so
+it proves the wrapper's decision logic (not the real core).
 
 ### Pending (prepared, NOT deployed) migrations
 
@@ -84,8 +86,8 @@ under one name). Pending now:
 | File | Fixes | Tests |
 | --- | --- | --- |
 | `20261007120000_feature_flag_overrides.sql` | per-account flag overrides (not live: PGRST205) | `95_feature_flag_overrides`, `50` (its FK is in the reviewed CASCADE set) |
-| `20261101000000_release_schedule_and_themes_v2.sql` | spec 3.1-3.3 release/theme RPCs, D10 certainty, service-role writers | `98` |
-| `20261101010000_perf_hotpaths.sql` | similar-titles gate, nightly rolling re-stale, audit retention, CONCURRENTLY matviews, change-aware `updated_at` | `99` |
+| `20261101000000_release_schedule_and_themes_v2.sql` | spec 3.1-3.3 release/theme RPCs, D10 certainty (confirmed = instant only), per-source credit hosts, service-role writers, `finish_series_enrichment_v1` theme-ownership predicate | `98` |
+| `20261101010000_perf_hotpaths.sql` | similar-titles gate (transactional dirty table), nightly rolling re-stale, audit retention, CONCURRENTLY matviews, change-aware `updated_at` | `99` |
 | `20261101010100_perf_drop_duplicate_indexes.sql` (needs 010000; **no-transaction file**) | 22 exact duplicate indexes + unused audit-state index, `DROP INDEX CONCURRENTLY` | `99` |
 | `20261101020000_bridge_identity_fix.sql` | legacy bridge natural key + one-time re-key with collision rule | `91`, `94` (accepts both key spellings) |
 | `20261101030000_auth_hardening.sql` | `check_email_exists` no longer callable by anon/authenticated (D13) | `92` |
@@ -211,8 +213,8 @@ objects are `BLOCKED` through the requirement manifest, not faked.
 | `70_import_apply_undo_transactions.sql` | Apply/Undo transactions (`20261005130000`; owned by lane L2a, see its header); since 2026-11-01 expectations follow the live guarded Undo of `20261008100000` (tracking identity journalled; lifecycle-less journals skipped as `legacy_lifecycle_unavailable`) |
 | `91_bridge_identity_fix.sql` | legacy unit bridge natural key: delete-all + re-insert cycle (dated and undated), foreign-owned unit untouched, one-time re-key with the collision rule, stale withdrawals, idempotence, service-role-only repair |
 | `92_auth_hardening.sql` | **D13** `check_email_exists`: anon / authenticated / PUBLIC denied, service_role answers |
-| `98_release_schedule_and_themes_v2.sql` | spec 3.1-3.3: grants (user RPC authenticated only, public reads anon+authenticated, writers service_role only, no table-API writes), tracked-status scope and per-user isolation, next unit per title, AniList fallback and delay precedence, estimate threshold 0.7, estimates never in `home_events_page_v1`, window/precision rules, idempotent natural keys, all-or-nothing validation codes, constraint backstop, themes order/flags and convergence with `finish_series_enrichment_v1` |
-| `99_perf_hotpaths.sql` | similar-titles gate posture and revision bumps (real change only; ON CONFLICT no-ops excluded), cron command rewrites, unread matview dropped, CONCURRENTLY refresh, audit retention rule + batching, change-aware `updated_at` (anime/manga only), 22 duplicate indexes dropped with survivors intact, exactness guard; gate decision scope BLOCKED |
+| `98_release_schedule_and_themes_v2.sql` | spec 3.1-3.3: grants (user RPC authenticated only, public reads anon+authenticated, writers service_role only, no table-API writes), tracked-status scope and per-user isolation, next unit per title, AniList fallback and delay precedence, estimate threshold 0.7 (0.70 shown, 0.69 hidden: real comparison), estimates never in `home_events_page_v1`, window/precision rules (confirmed needs an instant), per-source credit-link hosts (writer + CHECK, look-alike hosts rejected), ISO-only instants (`infinity`/`tomorrow`/`epoch` rejected), idempotent natural keys, all-or-nothing validation codes, constraint backstops, themes order/flags and convergence with `finish_series_enrichment_v1`, which can no longer delete `upsert_theme_links_v1`-owned rows |
+| `99_perf_hotpaths.sql` | similar-titles gate posture and transactional dirty rows (real change only; ON CONFLICT no-ops excluded), the wrapper's skip/run decision with a stub core (skip when clean, run on change or stale seed, lock-busy `-1` keeps the dirty row), nightly rolling re-stale, cron command rewrites, unread matview dropped, CONCURRENTLY refresh, audit retention rule + batching, change-aware `updated_at` (anime/manga only), 22 duplicate indexes dropped with survivors intact, exactness guard |
 | `concurrency/90_deletion_write_barrier.sql` | **F38** two sessions, both orders: an in-flight writer makes the barrier wait, then its row is cleaned and later writes are refused; a barrier first makes a concurrent write wait and fail |
 | `concurrency/91_club_lifecycle_join_race.sql` | **F39** two sessions, both orders: lifecycle first -> the waiting join gets INVALID_CODE, no stray membership; join first -> the waiting lifecycle keeps the club and transfers ownership to the joiner |
 

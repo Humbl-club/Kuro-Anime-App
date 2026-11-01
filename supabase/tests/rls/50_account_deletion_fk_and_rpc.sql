@@ -43,9 +43,13 @@ select tests.eq('every FK to auth.users is CASCADE or SET NULL (none NO ACTION/R
 -- 2026-11-01: the six account_user_id/user_id FKs added by the series/import foundation
 -- (20261007040000, live since 2026-10-08) and feature_flag_overrides (20261007120000,
 -- prepared) are CASCADE by design: those rows are per-account state removed with the account.
+-- feature_flag_overrides comes from a still-pending file: it is expected only when present, so
+-- the --exclude-pending (deployed-chain) run does not fail this test for an unrelated reason.
 select tests.eq('CASCADE set is the reviewed one',
   (select string_agg(tbl || '.' || col, ', ' order by tbl, col) from _fk where rule = 'CASCADE'),
-  'club_member_blocks.user_id, club_members.user_id, club_membership_signals.user_id, club_messages.user_id, club_rail_item_reactions.user_id, club_votes.user_id, concierge_mode_cache.user_id, concierge_parse_feedback.user_id, feature_flag_overrides.user_id, home_publications.account_user_id, import_sessions.user_id, library_import_jobs.user_id, list_entry_tombstones.account_user_id, llm_daily_usage.user_id, mutation_receipts.account_user_id, outbound_link_events.user_id, profiles.id, taste_import_context.user_id, taste_profile_recompute_queue.user_id, taste_signal_events.user_id, title_aliases.user_id, title_comment_reactions.user_id, title_comments.user_id, user_series_intent.account_user_id, user_streaming_services.user_id, user_taste_profiles.user_id');
+  'club_member_blocks.user_id, club_members.user_id, club_membership_signals.user_id, club_messages.user_id, club_rail_item_reactions.user_id, club_votes.user_id, concierge_mode_cache.user_id, concierge_parse_feedback.user_id, '
+  || case when to_regclass('public.feature_flag_overrides') is not null then 'feature_flag_overrides.user_id, ' else '' end
+  || 'home_publications.account_user_id, import_sessions.user_id, library_import_jobs.user_id, list_entry_tombstones.account_user_id, llm_daily_usage.user_id, mutation_receipts.account_user_id, outbound_link_events.user_id, profiles.id, taste_import_context.user_id, taste_profile_recompute_queue.user_id, taste_signal_events.user_id, title_aliases.user_id, title_comment_reactions.user_id, title_comments.user_id, user_series_intent.account_user_id, user_streaming_services.user_id, user_taste_profiles.user_id');
 select tests.eq('SET NULL set is the reviewed one',
   (select string_agg(tbl || '.' || col, ', ' order by tbl, col) from _fk where rule = 'SET NULL'),
   'club_member_blocks.blocked_by, club_polls.created_by, club_rail_items.added_by, club_rails.created_by, clubs.created_by, concierge_runs.user_id');

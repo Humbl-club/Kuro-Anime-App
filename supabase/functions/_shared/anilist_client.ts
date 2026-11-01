@@ -1,6 +1,15 @@
 // Shared AniList GraphQL transport for the service-role intake functions
 // (bulk-import-anime, bulk-import-manga, release-intake). One limiter per isolate.
 //
+// SCOPE OF THE BUDGET (deviation from the spec's "shared 25/min limiter"): the limiter is module
+// state, so it is shared only by callers inside ONE isolate. bulk-import-anime, bulk-import-manga
+// and release-intake are separate functions and always run in separate isolates; if their runs
+// overlap, their rates ADD UP (e.g. 3 x 25 = 75/min, above AniList's degraded 30/min). 429 +
+// Retry-After handling limits the damage but does not enforce the budget. Until a database-held
+// token bucket exists, the schedule must keep AniList callers from overlapping (owner action when
+// scheduling release-intake: stagger it against the hourly bulk-import jobs, or lower
+// targetPerMinute so the sum of concurrently running callers stays <= 25/min).
+//
 // Contract:
 //   - Spacing: at most `targetPerMinute` requests per minute (default 25, below AniList's
 //     degraded 30/min), plus 0..jitterMs random jitter per request.
