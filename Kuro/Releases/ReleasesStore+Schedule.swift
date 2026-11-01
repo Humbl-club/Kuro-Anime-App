@@ -77,6 +77,36 @@ nonisolated enum ReleaseSchedulePolicy {
         items.allSatisfy { $0.isPast || copy.isAhead($0) }
     }
 
+    /// A failed refresh keeps prior data (rulebook §9). Per medium, the prior answer stands when it was
+    /// real (`.complete` or `.nextSevenDays`) and this read could not replace it: the read failed for
+    /// that medium (`.failed`), or the schedule contract had answered and this time failed transiently
+    /// (`contractFailed`; the airing fallback knows less than that answer). Kept media keep their prior
+    /// rows still ahead and their prior coverage; a fresh row is added only for a title the prior rows
+    /// no longer hold (an episode that aired brings its next one). Other media take the fresh read.
+    static func keepingPriorAnswer(fresh: [ReleaseScheduleItem], freshCoverage: [MediaKind: ReleaseScheduleCoverage],
+                                   prior: [ReleaseScheduleItem], priorCoverage: [MediaKind: ReleaseScheduleCoverage],
+                                   contractFailed: Bool, copy: ReleaseCopy)
+        -> (items: [ReleaseScheduleItem], coverage: [MediaKind: ReleaseScheduleCoverage]) {
+        var items: [ReleaseScheduleItem] = []
+        var coverage = freshCoverage
+        for medium in [MediaKind.anime, .manga] {
+            let freshRows = fresh.filter { $0.key.kind == medium }
+            let was = priorCoverage[medium] ?? .pending
+            let answer = freshCoverage[medium] ?? .pending
+            let keep = (was == .complete || was == .nextSevenDays)
+                && (answer == .failed || (was == .complete && contractFailed))
+            guard keep else {
+                items += freshRows
+                continue
+            }
+            let kept = aheadOnly(prior.filter { $0.key.kind == medium }, copy: copy)
+            let keptKeys = Set(kept.map(\.key))
+            items += kept + freshRows.filter { !keptKeys.contains($0.key) }
+            coverage[medium] = was
+        }
+        return (prepared(items, keepPast: false), coverage)
+    }
+
     /// Songs in reading order: openings, endings, inserts; then sequence and version. Adult-flagged
     /// rows are never shown.
     static func preparedThemes(_ songs: [ThemeSong]) -> [ThemeSong] {
@@ -216,9 +246,11 @@ extension ReleasesStore {
     // MARK: Loading
 
     /// Loads the account's next release per tracked title into `schedule` (both media). Cached for
-    /// 5 minutes per account; `force` skips the cache. Never throws and never shows an error: a
-    /// missing contract or a failed read falls back to the anime airing rows, and
-    /// `scheduleCoverage(for:)` says what the answer can claim. Only rows still ahead are kept.
+    /// 5 minutes per account; `force` (a user action: Try again, pull to refresh) skips the cache and
+    /// the airing read's failure backoff. Never throws and never shows an error: a missing contract or
+    /// a failed read falls back to the anime airing rows, and `scheduleCoverage(for:)` says what the
+    /// answer can claim; a failed read keeps the prior answer per medium (rulebook §9). Only rows
+    /// still ahead are kept.
     @discardableResult
     func loadSchedule(limit: Int = ReleasesStore.defaultScheduleLimit, force: Bool = false) async -> [ReleaseScheduleItem] {
         guard let context = accountSession.current else { return [] }
@@ -228,7 +260,7 @@ extension ReleasesStore {
         }
         let items = try? await scheduleLoads.run(key: key, context: context) { [weak self] in
             guard let self else { throw CancellationError() }
-            return try await self.readUserSchedule(limit: limit, context: context, cacheKey: key)
+            return try await self.readUserSchedule(limit: limit, context: context, cacheKey: key, userInitiated: force)
         }
         guard let items, accountSession.isCurrent(context) else { return [] }
         return items
@@ -280,7 +312,8 @@ extension ReleasesStore {
 
     // MARK: Reads
 
-    private func readUserSchedule(limit: Int, context: AccountContext, cacheKey key: String) async throws -> [ReleaseScheduleItem] {
+    private func readUserSchedule(limit: Int, context: AccountContext, cacheKey key: String,
+                                  userInitiated: Bool) async throws -> [ReleaseScheduleItem] {
         var cacheable = true
         if let client, contractAvailable(.userSchedule) {
             do {
@@ -310,16 +343,27 @@ extension ReleasesStore {
         // Fallback: confirmed AniList next episodes of the account's anime (`user_airing_next`).
         // Cached only when that read succeeded (now, or within its throttle window): a failed or
         // backed-off read leaves stale or empty rows that must not be served for 5 minutes, and an
-        // older answer under the same key is dropped so it never outlives the failure.
-        let airingsFresh = await refreshUpcomingForUser(days: max(lastUpcomingDays, 7))
+        // older answer under the same key is dropped so it never outlives the failure. A user action
+        // (Try again) is not held back by the airing read's failure backoff.
+        let airingsFresh = await refreshUpcomingForUser(days: max(lastUpcomingDays, 7), ignoringBackoff: userInitiated)
         guard accountSession.isCurrent(context) else { throw CancellationError() }
-        let items = ReleaseSchedulePolicy.aheadOnly(
+        let copy = ReleaseCopy.current()
+        let fallback = ReleaseSchedulePolicy.aheadOnly(
             ReleaseSchedulePolicy.prepared(upcomingAirings.map(ReleaseSchedulePolicy.item(fromAiring:)), keepPast: false),
-            copy: ReleaseCopy.current())
-        scheduleSource = .airingFallback
+            copy: copy)
         // Manga has no fallback source: unknown, and a failure when the contract itself failed.
-        scheduleCoverageByMedium = [.anime: airingsFresh ? .nextSevenDays : .failed,
-                                    .manga: cacheable ? .noSource : .failed]
+        let fallbackCoverage: [MediaKind: ReleaseScheduleCoverage] = [
+            .anime: airingsFresh ? .nextSevenDays : .failed,
+            .manga: cacheable ? .noSource : .failed]
+        // A failed read never throws away an answer already on screen (rulebook §9): the clock and the
+        // foreground re-read in the background, so a transient failure there must not blank a medium.
+        let merged = ReleaseSchedulePolicy.keepingPriorAnswer(
+            fresh: fallback, freshCoverage: fallbackCoverage,
+            prior: schedule, priorCoverage: scheduleCoverageByMedium,
+            contractFailed: !cacheable, copy: copy)
+        let items = merged.items
+        if !merged.coverage.values.contains(.complete) { scheduleSource = .airingFallback }
+        scheduleCoverageByMedium = merged.coverage
         if cacheable && airingsFresh {
             storeSchedule(items, key: key)
         } else {

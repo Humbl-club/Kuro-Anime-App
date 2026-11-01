@@ -177,8 +177,9 @@ final class ReleasesStore: AccountScopedState {
     /// `fetchUpcomingForUser`, reporting whether `upcomingAirings` now holds a successful read for
     /// this account: true after a fresh success, or when the throttle skipped the call because a
     /// success landed within the last `upcomingThrottle` seconds; false on failure, backoff or no
-    /// account (the rows are then stale or empty and must not be cached).
-    func refreshUpcomingForUser(days: Int = 7) async -> Bool {
+    /// account (the rows are then stale or empty and must not be cached). `ignoringBackoff`: a user
+    /// action (Try again) sends the read even inside the failure backoff window.
+    func refreshUpcomingForUser(days: Int = 7, ignoringBackoff: Bool = false) async -> Bool {
         guard let context = accountSession.current else { return false }
         // Joining this account's in-flight fetch skips the throttle, as before.
         if !upcomingLoads.isRunning(Self.upcomingLoadKey, for: context) {
@@ -187,7 +188,7 @@ final class ReleasesStore: AccountScopedState {
             if days == lastUpcomingDays, let last = lastUpcomingFetchAt, now.timeIntervalSince(last) < Self.upcomingThrottle {
                 return true
             }
-            guard upcomingBackoff.canAttempt(now: now) else { return false }
+            guard ignoringBackoff || upcomingBackoff.canAttempt(now: now) else { return false }
             lastUpcomingDays = days
         }
         do {

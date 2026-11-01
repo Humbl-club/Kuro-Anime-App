@@ -561,6 +561,90 @@ struct ReleaseElapsedTests {
         #expect(ReleaseSchedulePolicy.aheadOnly([released, ahead, aired], copy: copy).map(\.mediaId) == [2])
     }
 
+    @Test("A failed refresh keeps the prior answer per medium; a real fallback answer replaces it")
+    func failedRefreshKeepsPriorAnswer() {
+        let now = Date()
+        let copy = ReleaseCopy(now: now, german: false, locale: Locale(identifier: "en_GB"),
+                               timeZone: TimeZone(identifier: "UTC") ?? .current)
+        let manga = Self.row(9, at: now.addingTimeInterval(3 * 86_400), medium: .manga)
+        let anime = Self.row(42, at: now.addingTimeInterval(20 * 86_400))
+        let nextEpisode = Self.row(7, at: now.addingTimeInterval(6 * 86_400))
+        let prior: [MediaKind: ReleaseScheduleCoverage] = [.anime: .complete, .manga: .complete]
+
+        // The contract answered before and now failed transiently: nothing on screen is thrown away;
+        // the airing fallback only adds a title the prior rows no longer hold.
+        let kept = ReleaseSchedulePolicy.keepingPriorAnswer(
+            fresh: [nextEpisode], freshCoverage: [.anime: .nextSevenDays, .manga: .failed],
+            prior: [anime, manga], priorCoverage: prior, contractFailed: true, copy: copy)
+        #expect(kept.items.map(\.mediaId) == [9, 7, 42])
+        #expect(kept.coverage == prior)
+
+        // The contract is gone (not deployed): the fallback is the real answer now.
+        let replaced = ReleaseSchedulePolicy.keepingPriorAnswer(
+            fresh: [nextEpisode], freshCoverage: [.anime: .nextSevenDays, .manga: .noSource],
+            prior: [anime, manga], priorCoverage: prior, contractFailed: false, copy: copy)
+        #expect(replaced.items.map(\.mediaId) == [7])
+        #expect(replaced.coverage == [.anime: .nextSevenDays, .manga: .noSource])
+
+        // A failure with no prior answer stays unknown.
+        let first = ReleaseSchedulePolicy.keepingPriorAnswer(
+            fresh: [], freshCoverage: [.anime: .failed, .manga: .failed],
+            prior: [], priorCoverage: [:], contractFailed: true, copy: copy)
+        #expect(first.items.isEmpty && first.coverage == [.anime: .failed, .manga: .failed])
+    }
+
+    @Test("A background re-read whose schedule read fails keeps the manga dates on screen")
+    func transientRereadKeepsManga() async throws {
+        let harness = try PublicDataHarness { request in
+            switch request.resource {
+            case "rpc/user_release_schedule_v1": return .json(#"{"message":"unavailable"}"#, status: 503)
+            case "user_airing_next": return ReleasesContractTests.upcoming(42, inHours: 5)
+            default: return .emptyArray
+            }
+        }
+        let releases = harness.service.releases
+        await harness.service.session.applySession(userId: Self.userA, email: "a@example.com")
+        let manga = Self.row(9, at: Date().addingTimeInterval(3 * 86_400), medium: .manga)
+        releases.schedule = [manga]
+        releases.scheduleSource = .schedule
+        releases.scheduleCoverageByMedium = [.anime: .complete, .manga: .complete]
+
+        let items = await releases.loadSchedule()
+        #expect(Set(items.map(\.mediaId)) == [9, 42], "manga kept, the aired title's next episode added")
+        #expect(releases.scheduleCoverage(for: .manga) == .complete)
+        #expect(releases.scheduleSource == .schedule)
+        #expect(releases.scheduleCache.isEmpty, "a kept answer from a failed read is not cached")
+        await harness.tearDown()
+    }
+
+    @Test("Try again sends the airing read even inside the failure backoff")
+    func forcedLoadIgnoresBackoff() async throws {
+        let harness = try PublicDataHarness { request in
+            switch request.resource {
+            case "rpc/user_release_schedule_v1": return ReleaseContractFallbackTests.notFound
+            case "user_airing_next": return .json(#"{"message":"unavailable"}"#, status: 503)
+            default: return .emptyArray
+            }
+        }
+        let releases = harness.service.releases
+        await harness.service.session.applySession(userId: Self.userA, email: "a@example.com")
+        releases.lastUpcomingFetchAt = nil
+        releases.upcomingBackoff = ReleasesStore.BackoffState()
+
+        _ = await releases.loadSchedule()
+        #expect(releases.scheduleCoverage(for: .anime) == .failed)
+        let afterFailure = harness.requests(to: "user_airing_next").count
+        var backoff = releases.upcomingBackoff
+        let backedOff = !backoff.canAttempt()
+        #expect(backedOff, "the failure started the backoff")
+
+        _ = await releases.loadSchedule()
+        #expect(harness.requests(to: "user_airing_next").count == afterFailure, "a screen load waits out the backoff")
+        _ = await releases.loadSchedule(force: true)
+        #expect(harness.requests(to: "user_airing_next").count == afterFailure + 1, "a user action is sent")
+        await harness.tearDown()
+    }
+
     @Test("Detail Coming up lists only units still ahead and never promotes an aired one")
     func detailUpcomingFilter() {
         let now = Date()
