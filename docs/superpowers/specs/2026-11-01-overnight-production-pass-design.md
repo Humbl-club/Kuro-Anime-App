@@ -69,6 +69,14 @@ Public catalog read (no auth needed, anon + authenticated EXECUTE), same columns
 ### 3.3 `public.media_themes_v1(p_anime_id int)`
 Public read. Returns: `kind` text (`OP`/`ED`/`IN`), `sequence` int, `title` text, `artist` text, `episodes` text (e.g. `1–12`), `version` int, `is_spoiler` bool, `is_nsfw` bool, `source` text (`animethemes`), `source_url` text. Backed by `theme_links` (+ additive columns `episodes`, `version`, `is_spoiler`, `is_nsfw`, `source`, `source_url`).
 
+### 3.3a Final backend contract amendments (lane 1, 2026-11-01)
+- Both schedule RPCs return an extra last column `release_precision text` (`instant` | `day` | `month` | `quarter` | `year`). For non-instant rows `release_at` is the START of the window at 00:00 (source zone, UTC if unknown). **Clients render by precision and never show a time unless precision = instant** (day → "Thu 15 Oct", month → "November", quarter → "Q1 2027", year → "2027").
+- `confirmed` means precision `instant` only; a source date without a time is `announced`.
+- `media_release_schedule_v1` columns: same as 3.1 up to `source_url`, then `is_past boolean`, then `release_precision`. Past row = last confirmed unit only (manga never has one).
+- Tracked statuses are WATCHING/READING, PLANNING, PAUSED (no CURRENT/REPEATING list types exist).
+- Manga release rows only come from allowlisted official-publisher MangaUpdates groups (`MU_OFFICIAL_GROUP_IDS`, empty by default) → manga schedules are empty until the owner approves sources. UI must look complete without them.
+- `source_url` hosts are fixed per source (anilist.co, mangaupdates.com, mangadex.org, animethemes.moe); clients may show them as "via AniList" etc.
+
 ### 3.4 Client tolerance (live today has none of the above)
 Swift owners call these RPCs and on PostgREST "function not found" (PGRST202 / 404) or any decode failure **silently** fall back: anime next episode from the existing `user_airing_next` / `anime.next_airing_at` path (basis confirmed); manga and themes return empty, and the UI hides the section (no banner, no error copy). Cache results per account (TimedCache, 5 min). Models live in `Kuro/Releases/ReleaseModels.swift` (`ReleaseScheduleItem`, `ReleaseBasis`, `ThemeSong`) owned by the foundation lane.
 
