@@ -711,7 +711,7 @@ grant execute on function public.upsert_release_events_v1(jsonb) to service_role
 --   title      song title, 1..300 chars                             required
 --   artist     <= 500 chars             episodes  e.g. '1-12', <= 64 chars
 --   is_spoiler / is_nsfw  booleans (default false)
---   source     'animethemes' (default)  source_url  https credit link
+--   source     'animethemes' (default)  source_url  https://animethemes.moe/... credit link only
 -- Natural key: source_identity = 'animethemes:<anime_id>:<source_id>', the key
 -- finish_series_enrichment_v1 already writes, so both producers converge on one row.
 -- match_state stays 'search' and external_url NULL: no music-service URL is stored (D11).
