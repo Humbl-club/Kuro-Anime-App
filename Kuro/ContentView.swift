@@ -86,7 +86,7 @@ struct KuroLaunchView: View {
                     .foregroundColor(.kuroBlack)
                     .opacity(logoOpacity)
 
-                Text("CURATED ANIME")
+                Text(KuroLocale.text("CURATED ANIME & MANGA", "KURATIERTE ANIME & MANGA"))
                     .font(.kuroMicro(weight: .light))
                     .tracking(3)
                     .foregroundColor(.kuroTextTertiary)

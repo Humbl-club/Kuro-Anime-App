@@ -1185,23 +1185,29 @@ private struct AuthLegalLine: View {
 
     let context: Context
 
-    static let termsURL = "https://kuro.app/terms"
-    static let privacyURL = "https://kuro.app/privacy"
-
+    /// One source of truth for legal links (`KuroLegalLinks`). Terms stays unlinked until the owner
+    /// confirms a real page, so the sentence never points at an invented URL.
     private var markdown: String {
-        let terms = Self.termsURL, privacy = Self.privacyURL
-        switch context {
-        case .welcome:
-            return KuroLocale.text(
-                "By continuing, you agree to Kuro’s [Terms of Service](\(terms)) and [Privacy Policy](\(privacy)).",
-                "Mit dem Fortfahren stimmst du den [Nutzungsbedingungen](\(terms)) und der [Datenschutzerklärung](\(privacy)) von Kuro zu."
-            )
-        case .signUp:
-            return KuroLocale.text(
-                "By creating an account, you agree to Kuro’s [Terms of Service](\(terms)) and [Privacy Policy](\(privacy)).",
-                "Mit deinem Konto stimmst du den [Nutzungsbedingungen](\(terms)) und der [Datenschutzerklärung](\(privacy)) von Kuro zu."
-            )
+        let privacy = KuroLegalLinks.privacy?.absoluteString
+        if let terms = KuroLegalLinks.terms?.absoluteString, let privacy {
+            switch context {
+            case .welcome:
+                return KuroLocale.text(
+                    "By continuing, you agree to Kuro’s [Terms of Service](\(terms)) and [Privacy Policy](\(privacy)).",
+                    "Mit dem Fortfahren stimmst du den [Nutzungsbedingungen](\(terms)) und der [Datenschutzerklärung](\(privacy)) von Kuro zu."
+                )
+            case .signUp:
+                return KuroLocale.text(
+                    "By creating an account, you agree to Kuro’s [Terms of Service](\(terms)) and [Privacy Policy](\(privacy)).",
+                    "Mit deinem Konto stimmst du den [Nutzungsbedingungen](\(terms)) und der [Datenschutzerklärung](\(privacy)) von Kuro zu."
+                )
+            }
         }
+        guard let privacy else { return "" }
+        return KuroLocale.text(
+            "How Kuro uses your data: [Privacy Policy](\(privacy)).",
+            "Wie Kuro deine Daten verwendet: [Datenschutzerklärung](\(privacy))."
+        )
     }
 
     private var attributed: AttributedString {
