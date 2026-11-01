@@ -73,10 +73,9 @@ nonisolated enum DeepLink: Equatable {
             guard let first = pathComponents.first, !first.isEmpty else { return nil }
             return .club(id: first)
         case "join":
-            // Invite codes are 6-12 alphanumeric characters, stored uppercased.
-            guard let first = pathComponents.first else { return nil }
-            let code = first.uppercased()
-            guard code.range(of: "^[A-Z0-9]{6,12}$", options: .regularExpression) != nil else { return nil }
+            // Invite codes are 6-12 alphanumeric characters and case-sensitive: kept exactly as given.
+            guard let code = pathComponents.first,
+                  code.range(of: "^[A-Za-z0-9]{6,12}$", options: .regularExpression) != nil else { return nil }
             return .joinClub(code: code)
         case "collection":
             return .collection

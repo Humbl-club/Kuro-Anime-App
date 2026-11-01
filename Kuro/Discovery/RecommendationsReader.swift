@@ -94,7 +94,7 @@ final class RecommendationsReader {
             let client = try requiredClient()
             let rows: [Anime] = try await client
                 .from("anime")
-                .select()
+                .select(CatalogColumns.select(CatalogColumns.animeCard))
                 .eq("is_adult", value: false)
                 .contains("genres", value: [primaryGenre])
                 .neq("id", value: seed.id)
@@ -116,7 +116,7 @@ final class RecommendationsReader {
             let client = try requiredClient()
             let rows: [Manga] = try await client
                 .from("manga")
-                .select()
+                .select(CatalogColumns.select(CatalogColumns.mangaCard))
                 .eq("is_adult", value: false)
                 .contains("genres", value: [primaryGenre])
                 .neq("id", value: seed.id)

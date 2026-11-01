@@ -535,6 +535,8 @@ final class ClubsStore: AccountScopedState {
                 .execute()
                 .value
         }
+        // A new membership can add friends: friend counts are asked again, not served from the TTL.
+        social.invalidateFriendCountFreshness()
         await fetchMyClubs()
         return resp
     }
@@ -549,6 +551,7 @@ final class ClubsStore: AccountScopedState {
                 .execute()
                 .value
         }
+        social.invalidateFriendCountFreshness()
         await fetchMyClubs()
         return resp
     }

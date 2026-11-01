@@ -1086,10 +1086,16 @@ struct DeepLinkRouterTests {
         #expect(DeepLink.from(url: url) == .joinClub(code: "AB12CD34"))
     }
 
-    @Test("Lowercased join code is uppercased")
+    @Test("Lowercased join code keeps its case")
     func testJoinLowercasedCode() throws {
         let url = try #require(URL(string: "kuro://join/ab12cd34"))
-        #expect(DeepLink.from(url: url) == .joinClub(code: "AB12CD34"))
+        #expect(DeepLink.from(url: url) == .joinClub(code: "ab12cd34"))
+    }
+
+    @Test("Mixed-case join code keeps its case")
+    func testJoinMixedCaseCode() throws {
+        let url = try #require(URL(string: "kuro://join/AbC12xYz"))
+        #expect(DeepLink.from(url: url) == .joinClub(code: "AbC12xYz"))
     }
 
     @Test("Six-character codes are accepted")

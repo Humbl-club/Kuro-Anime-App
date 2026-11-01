@@ -69,6 +69,7 @@ final class SearchStore {
 
     func resetSearch(query: String, isManga: Bool) {
         beginNewQuery()
+        errorMessage = nil
         currentSearchQuery = query
         searchMode = isManga ? .manga : .anime
         hasMoreSearch = true
@@ -86,6 +87,7 @@ final class SearchStore {
 
     func resetCombinedSearch(query: String) {
         beginNewQuery()
+        errorMessage = nil
         currentSearchQuery = query
         searchMode = .combined
         hasMoreSearchAnime = true

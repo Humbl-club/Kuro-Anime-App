@@ -114,6 +114,7 @@ struct KuroMainView: View {
     @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(FeatureFlags.self) private var flags
     @Environment(HomeStore.self) private var home
+    @Environment(IdentityStore.self) private var identity
     @Environment(InteractionTelemetry.self) private var interactionTelemetry
     @Environment(BannerCenter.self) private var banner
     @Environment(\.kuroRoutes) private var routes
@@ -180,7 +181,8 @@ struct KuroMainView: View {
     @State private var tapSuppressionResetTask: Task<Void, Never>? = nil
     @State private var didTrackSuppressionThisGesture = false
     @State private var didApplyStartArgument = false
-    @State private var showOnboarding = !OnboardingView.hasCompletedOnboarding
+    /// Set on appear from the signed-in account's completion (this tree is keyed by the account).
+    @State private var showOnboarding = false
     @State private var edgeBounceOffset: CGFloat = 0
     @State private var pendingJoinCode: String? = nil
     @State private var pendingConciergePrompt: String? = nil
@@ -277,7 +279,10 @@ struct KuroMainView: View {
                         showProfileSheet: $showProfileSheet,
                         showSearchSheet: $showSearchSheet,
                         onOpenSearch: {
-                            pendingSearchScope = .all
+                            // Series Home: the selected medium is the default scope (rulebook 14.6).
+                            pendingSearchScope = flags.seriesHomeNativeV1Enabled
+                                ? (home.medium == "manga" ? .manga : .anime)
+                                : .all
                             searchSession += 1
                             showSearchSheet = true
                         },
@@ -295,9 +300,11 @@ struct KuroMainView: View {
                             pendingConciergePrompt: pendingConciergePrompt,
                             pendingJoinCode: $pendingJoinCode,
                             onOpenImport: { showProfileSheet = true },
-                            onFindTitle: { _ in
-                                selection = .discover
-                                mountedSections.insert(.discover)
+                            onFindTitle: { kind in
+                                // Find on the empty Home opens Search pre-scoped to that medium.
+                                pendingSearchScope = kind == "manga" ? .manga : .anime
+                                searchSession += 1
+                                showSearchSheet = true
                             },
                             onOpenCollection: {
                                 selection = .collection
@@ -443,7 +450,7 @@ struct KuroMainView: View {
 	            }
 	            .task {
 	                // Warm the Discover bundle so the first Discover render feels instant.
-                _ = await discovery.fetchDiscoverBundle(limit: 30, hours: 24)
+                _ = await discovery.ensureDiscoverBundle(limit: 30, hours: 24)
                 // Check club notifications
                 await clubs.checkClubNotifications()
             }
@@ -499,8 +506,6 @@ struct KuroMainView: View {
                 Task {
                     await home.drain()
                     switch selection {
-                    case .discover:
-                        _ = await discovery.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
                     case .collection:
                         try? await library.refresh()
                         await collection.fetchCollectionFeed(status: nil)
@@ -509,7 +514,8 @@ struct KuroMainView: View {
                     case .home:
                         await home.load()
                         await home.drain()
-                    case .concierge, .browse, .taste:
+                    case .discover, .concierge, .browse, .taste:
+                        // Discover reloads itself after a failed or empty load.
                         break
                     }
                 }
@@ -529,6 +535,7 @@ struct KuroMainView: View {
                 }
             }
             .onAppear {
+                showOnboarding = !OnboardingView.hasCompletedOnboarding(for: identity.currentUserId)
                 // Consume a link stashed while logged out (or before this view existed);
                 // onChange does not fire for a value that was already set.
                 if let link = pendingDeepLink {
