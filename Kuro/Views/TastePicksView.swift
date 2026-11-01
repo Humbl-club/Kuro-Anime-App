@@ -228,7 +228,7 @@ nonisolated enum TastePageCopy {
     /// The Plan key's words for a title in `status` (nil: not on the list).
     static func planLabel(medium: MediaKind, status: ListStatus?, german: Bool) -> String {
         switch status {
-        case .planning?: return german ? "Vorgemerkt" : "Planned"
+        case .planning?: return german ? "Geplant" : "Planned"  // the app's status word (Folio, Profile)
         case nil:
             if german { return "Vormerken" }
             return medium == .manga ? "Plan to read" : "Plan to watch"
@@ -701,6 +701,8 @@ private struct TastePortraitCard: View {
                     .frame(width: metrics.portraitArtWidth, height: 180)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
+            // The copy below is the same open target; VoiceOver hears the title once.
+            .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 0) {
                 TasteOpenButton(card: card) {
                     VStack(alignment: .leading, spacing: 0) {
@@ -860,7 +862,7 @@ struct TastePlanKey: View {
     static func spokenLabel(action: TastePlanAction, title: String, german: Bool) -> String {
         switch action {
         case .plan: return german ? "\(title) vormerken" : "Plan \(title)"
-        case .unplan: return german ? "Vorgemerkt. \(title) wieder entfernen" : "Planned. Remove \(title) from Planned"
+        case .unplan: return german ? "Geplant. \(title) aus Geplant entfernen" : "Planned. Remove \(title) from Planned"
         case .edit: return german ? "\(title) ist auf deiner Liste. Listeneintrag bearbeiten"
                                   : "\(title) is on your list. Edit list entry"
         }

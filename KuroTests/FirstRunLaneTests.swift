@@ -106,7 +106,7 @@ struct FirstRunLaneTests {
         #expect(TastePageCopy.planLabel(medium: .manga, status: nil, german: false) == "Plan to read")
         #expect(TastePageCopy.planLabel(medium: .anime, status: .planning, german: false) == "Planned")
         #expect(TastePageCopy.planLabel(medium: .manga, status: nil, german: true) == "Vormerken")
-        #expect(TastePageCopy.planLabel(medium: .anime, status: .planning, german: true) == "Vorgemerkt")
+        #expect(TastePageCopy.planLabel(medium: .anime, status: .planning, german: true) == "Geplant")
         #expect(TastePageCopy.planLabel(medium: .anime, status: .current, german: false) == "On your list")
     }
 
