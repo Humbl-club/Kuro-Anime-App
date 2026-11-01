@@ -17,6 +17,22 @@ nonisolated enum ReleaseBasis: String, Codable, Sendable, CaseIterable {
     case estimated
 }
 
+/// How exact `releaseAt` is (spec §3.3a). For every precision except `instant`, `releaseAt` is the
+/// START of the window at 00:00 in the source's zone (UTC when unknown), and the UI never shows a
+/// time: day "Thu 15 Oct", month "November", quarter "Q1 2027", year "2027".
+nonisolated enum ReleasePrecision: String, Codable, Sendable, CaseIterable {
+    /// A date and a time (the only precision a `confirmed` row has).
+    case instant
+    /// A calendar day without a time.
+    case day
+    /// A month window.
+    case month
+    /// A calendar quarter window.
+    case quarter
+    /// A year window.
+    case year
+}
+
 /// The unit a release row announces.
 nonisolated enum ReleaseUnitKind: String, Codable, Sendable, CaseIterable {
     case episode, chapter, volume, season
@@ -47,6 +63,9 @@ nonisolated struct ReleaseScheduleItem: Hashable, Sendable, Identifiable {
     let sourceURL: URL?
     /// `media_release_schedule_v1` only: the last confirmed unit already released.
     let isPast: Bool
+    /// The server's `release_precision` (spec §3.3a); nil when the row does not carry it (older
+    /// contract, or a locally built fallback row). Read `effectivePrecision`.
+    let precision: ReleasePrecision?
 
     init(
         medium: MediaKind,
@@ -61,7 +80,8 @@ nonisolated struct ReleaseScheduleItem: Hashable, Sendable, Identifiable {
         confidence: Double? = nil,
         source: String,
         sourceURL: URL? = nil,
-        isPast: Bool = false
+        isPast: Bool = false,
+        precision: ReleasePrecision? = nil
     ) {
         self.medium = medium
         self.mediaId = mediaId
@@ -76,6 +96,32 @@ nonisolated struct ReleaseScheduleItem: Hashable, Sendable, Identifiable {
         self.source = source
         self.sourceURL = sourceURL
         self.isPast = isPast
+        self.precision = precision
+    }
+
+    /// The precision the UI renders by: the server's `release_precision`, else inferred the way rows
+    /// were read before the column existed (spec §3.3a): confirmed → instant; announced → month when
+    /// the date is the 1st of a month at 00:00 UTC, otherwise day; estimated → day.
+    var effectivePrecision: ReleasePrecision {
+        if let precision { return precision }
+        switch basis {
+        case .confirmed: return .instant
+        case .estimated: return .day
+        case .announced:
+            guard let releaseAt else { return .day }
+            return Self.isFirstOfMonthUTC(releaseAt) ? .month : .day
+        }
+    }
+
+    /// Whether a time of day may be shown for this row: only an instant that is not an estimate.
+    var showsTime: Bool { effectivePrecision == .instant && basis != .estimated }
+
+    /// First of a month at 00:00:00 UTC (how month windows were stored before `release_precision`).
+    static func isFirstOfMonthUTC(_ date: Date) -> Bool {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC") ?? utc.timeZone
+        let parts = utc.dateComponents([.day, .hour, .minute, .second], from: date)
+        return parts.day == 1 && parts.hour == 0 && parts.minute == 0 && parts.second == 0
     }
 
     var key: MediaKey { MediaKey(kind: medium, id: mediaId) }
@@ -113,6 +159,7 @@ extension ReleaseScheduleItem: Decodable {
         case basis, confidence, source
         case sourceURL = "source_url"
         case isPast = "is_past"
+        case precision = "release_precision"
     }
 
     init(from decoder: any Decoder) throws {
@@ -139,6 +186,9 @@ extension ReleaseScheduleItem: Decodable {
         self.source = (try c.decodeIfPresent(String.self, forKey: .source)) ?? ""
         self.sourceURL = (try c.decodeIfPresent(String.self, forKey: .sourceURL)).flatMap(Self.httpsURL)
         self.isPast = (try c.decodeIfPresent(Bool.self, forKey: .isPast)) ?? false
+        // Absent, null or an unknown word: nil, so the UI infers it (a new word never drops the row).
+        let precisionText = (try? c.decodeIfPresent(String.self, forKey: .precision)).flatMap { $0 }?.lowercased()
+        self.precision = precisionText.flatMap(ReleasePrecision.init(rawValue:))
     }
 
     /// A PostgREST `numeric`/`real` arrives as a JSON number, occasionally as a string.

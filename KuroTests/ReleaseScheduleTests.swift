@@ -2,7 +2,8 @@
 //  ReleaseScheduleTests.swift
 //  KuroTests
 //
-//  Lane F foundation (overnight 2026-11-01): the release certainty copy (spec D10), the lenient
+//  Lane F foundation (overnight 2026-11-01), release_precision by lane 3 (spec §3.3a): the release
+//  certainty copy (spec D10), the lenient
 //  release/theme decoding (spec §3.1–3.3), the "not deployed" fallback of `ReleasesStore`
 //  (spec §3.4) and the listen links (spec D11). Every formatting test pins now, language, locale
 //  and time zone.
@@ -125,6 +126,96 @@ struct ReleaseCopyTests {
         #expect(Self.english().unitSpokenLabel(Self.item(.episode, 7, at: nil, basis: .confirmed)) == "Episode 7")
     }
 
+    // MARK: release_precision (spec §3.3a)
+
+    static func precise(_ kind: ReleaseUnitKind, _ number: Double?, at date: Date?, basis: ReleaseBasis,
+                        precision: ReleasePrecision, confidence: Double? = nil,
+                        medium: MediaKind = .manga) -> ReleaseScheduleItem {
+        ReleaseScheduleItem(medium: medium, mediaId: 1, title: "Title", unitKind: kind, unitNumber: number,
+                            releaseAt: date, basis: basis, confidence: confidence, source: "mangaupdates",
+                            precision: precision)
+    }
+
+    /// 1 Nov 2026 00:00 UTC (a Sunday).
+    static let firstOfNovember = Date(timeIntervalSince1970: 1_793_491_200)
+    /// Sat 17 Oct 2026 00:00 in Tokyo (Fri 16 Oct 15:00 UTC).
+    static let saturdayTokyoMidnight = Date(timeIntervalSince1970: 1_792_162_800)
+
+    @Test("Absent precision is inferred exactly as before the column existed")
+    func inferredPrecision() {
+        #expect(Self.item(.episode, 1, at: Self.thursday, basis: .confirmed).effectivePrecision == .instant)
+        #expect(Self.item(.volume, 1, at: Self.firstOfNovember, basis: .announced).effectivePrecision == .month)
+        #expect(Self.item(.volume, 1, at: Self.thursday, basis: .announced).effectivePrecision == .day)
+        #expect(Self.item(.chapter, 1, at: Self.thursday, basis: .estimated, confidence: 0.9).effectivePrecision == .day)
+        #expect(Self.item(.volume, 1, at: nil, basis: .announced).effectivePrecision == .day)
+    }
+
+    @Test("Day precision: a date without a time, even on the 1st of a month")
+    func dayPrecision() {
+        let row = Self.precise(.volume, 115, at: Self.firstOfNovember, basis: .announced, precision: .day)
+        #expect(Self.english().line(row) == "Vol. 115 · Sun 1 Nov", "an explicit day is never read as a month window")
+        #expect(Self.german().line(row) == "Bd. 115 · So. 1. Nov.")
+        #expect(!row.showsTime)
+        // A source-zone midnight east of UTC (Tokyo) keeps its source date in every reader zone.
+        let tokyo = Self.precise(.chapter, 12, at: Self.saturdayTokyoMidnight, basis: .announced, precision: .day)
+        let losAngeles = TimeZone(identifier: "America/Los_Angeles") ?? .current
+        #expect(Self.english(losAngeles).line(tokyo) == "Ch. 12 · Sat 17 Oct")
+        #expect(Self.german().line(tokyo) == "Kap. 12 · Sa. 17. Okt.")
+        #expect(Self.english().accessibilityLine(tokyo) == "Chapter 12, Saturday 17 October")
+        // A confirmed row that only carries a day never shows a time.
+        let confirmedDay = Self.precise(.episode, 4, at: Self.firstOfNovember, basis: .confirmed, precision: .day, medium: .anime)
+        #expect(Self.english().line(confirmedDay) == "Ep. 4 · Sun 1 Nov")
+        #expect(Self.english().accessibilityLine(confirmedDay) == "Episode 4, Sunday 1 November")
+    }
+
+    @Test("Month, quarter and year windows")
+    func windows() {
+        // 1 Nov 00:00 in Tokyo is 31 Oct 15:00 UTC: still November.
+        let november = Self.precise(.volume, 115, at: Date(timeIntervalSince1970: 1_793_458_800), basis: .announced, precision: .month)
+        #expect(Self.english().line(november) == "Vol. 115 · November")
+        #expect(Self.german().line(november) == "Bd. 115 · November")
+        let januaryNextYear = Date(timeIntervalSince1970: 1_798_761_600) // 1 Jan 2027 00:00 UTC
+        let quarter = Self.precise(.volume, 116, at: januaryNextYear, basis: .announced, precision: .quarter)
+        #expect(Self.english().line(quarter) == "Vol. 116 · Q1 2027")
+        #expect(Self.german().line(quarter) == "Bd. 116 · Q1 2027")
+        let year = Self.precise(.season, 2, at: januaryNextYear, basis: .announced, precision: .year, medium: .anime)
+        #expect(Self.english().line(year) == "Season 2 · 2027")
+        #expect(Self.english().accessibilityLine(year) == "Season 2, 2027")
+        let estimatedQuarter = Self.precise(.volume, 117, at: januaryNextYear, basis: .estimated, precision: .quarter, confidence: 0.8)
+        #expect(Self.english().line(estimatedQuarter) == "Vol. 117 · expected in Q1 2027")
+        #expect(Self.german().line(estimatedQuarter) == "Bd. 117 · voraussichtlich im Q1 2027")
+        let estimatedYear = Self.precise(.volume, 118, at: januaryNextYear, basis: .estimated, precision: .year, confidence: 0.8)
+        #expect(Self.german().line(estimatedYear) == "Bd. 118 · voraussichtlich 2027")
+        #expect(Self.english().calendarDay(november) == nil, "a window has no calendar day")
+    }
+
+    @Test("Only an instant shows a time; an estimated instant shows its day")
+    func instantOnlyTime() {
+        let friday = Self.thursday.addingTimeInterval(86_400)
+        let confirmed = Self.precise(.episode, 7, at: friday, basis: .confirmed, precision: .instant, medium: .anime)
+        #expect(Self.english(Self.berlin).line(confirmed) == "Ep. 7 · Fri 16 Oct, 18:30")
+        #expect(confirmed.showsTime)
+        let estimated = Self.precise(.chapter, 9, at: friday, basis: .estimated, precision: .instant, confidence: 0.9)
+        #expect(Self.english(Self.berlin).line(estimated) == "Ch. 9 · expected around Fri 16 Oct")
+        #expect(!estimated.showsTime)
+    }
+
+    @Test("Calendar day and heading follow the date phrase's reading")
+    func calendarDays() throws {
+        let instant = Self.item(.episode, 3, at: Self.thursday, basis: .confirmed)
+        let instantDay = try #require(Self.german().calendarDay(instant))
+        #expect(instantDay.year == 2026 && instantDay.month == 10 && instantDay.day == 15)
+        let tokyo = Self.precise(.chapter, 12, at: Self.saturdayTokyoMidnight, basis: .announced, precision: .day)
+        let tokyoDay = try #require(Self.english().calendarDay(tokyo))
+        #expect(tokyoDay.day == 17)
+        #expect(Self.english().calendarDay(Self.item(.episode, 1, at: nil, basis: .confirmed)) == nil)
+        let tomorrow = try #require(Self.english().dayHeading(instantDay))
+        #expect(tomorrow.label == "Tomorrow" && tomorrow.day == "15" && tomorrow.month == "Oct")
+        let saturday = try #require(Self.english().dayHeading(tokyoDay))
+        #expect(saturday.label == "Sat 17 Oct" && saturday.day == "17")
+        #expect(Self.german().dayHeading(instantDay)?.label == "Morgen")
+    }
+
     @Test("Past rows and source attribution")
     func pastAndSource() {
         let row = Self.item(.episode, 6, at: Self.now.addingTimeInterval(-6 * 86_400), basis: .confirmed, isPast: true)
@@ -166,6 +257,21 @@ struct ReleaseModelTests {
         #expect(manga.sourceURL == nil, "only http(s) links are kept")
         #expect(manga.isPast == false)
         #expect(rows.rows.first?.sourceURL?.host == "anilist.co")
+    }
+
+    @Test("release_precision: decoded when known; absent or unknown words keep the row and infer")
+    func precisionDecoding() throws {
+        let json = """
+        [{"medium":"manga","media_id":1,"unit_kind":"volume","unit_number":3,"release_at":"2027-01-01T00:00:00Z","basis":"announced","source":"mangaupdates","release_precision":"quarter"},
+         {"medium":"manga","media_id":2,"unit_kind":"volume","unit_number":4,"release_at":"2026-11-01T00:00:00Z","basis":"announced","source":"mangaupdates","release_precision":"fortnight"},
+         {"medium":"anime","media_id":3,"unit_kind":"episode","unit_number":5,"release_at":"2026-10-15T16:30:00Z","basis":"confirmed","source":"anilist","release_precision":null},
+         {"medium":"anime","media_id":4,"unit_kind":"episode","unit_number":6,"release_at":"2026-10-15T16:30:00Z","basis":"confirmed","source":"anilist","is_past":true,"release_precision":"INSTANT"}]
+        """
+        let rows = try Self.decode(LenientRows<ReleaseScheduleItem>.self, json)
+        #expect(rows.rows.count == 4 && rows.skipped == 0)
+        #expect(rows.rows.map(\.precision) == [.quarter, nil, nil, .instant])
+        #expect(rows.rows.map(\.effectivePrecision) == [.quarter, .month, .instant, .instant])
+        #expect(rows.rows.last?.isPast == true)
     }
 
     @Test("Unknown unit kind falls back per medium")
