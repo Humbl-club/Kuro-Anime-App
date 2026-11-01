@@ -20,7 +20,9 @@ struct TastePicksView: View {
     @State private var animeNote = ""
     @State private var mangaNote = ""
     @State private var isLoading = true
-    @State private var failed = false
+    /// Per medium: the last load could not settle that medium's picks and nothing is on screen.
+    @State private var animeFailed = false
+    @State private var mangaFailed = false
 
     private let cap = 4
 
@@ -79,53 +81,66 @@ struct TastePicksView: View {
         }
         .task { await load() }
         .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
-            guard networkMonitor.isConnected, failed else { return }
+            guard networkMonitor.isConnected, animeFailed || mangaFailed else { return }
             Task { await load() }
         }
     }
 
     private var picks: [Media] { medium == .anime ? animePicks : mangaPicks }
     private var note: String { medium == .anime ? animeNote : mangaNote }
+    private var failed: Bool { medium == .anime ? animeFailed : mangaFailed }
 
     private func load() async {
         isLoading = animePicks.isEmpty && mangaPicks.isEmpty
-        failed = false
+        animeFailed = false
+        mangaFailed = false
         async let because = discovery.fetchBecauseYouRail(limit: 8)
         async let bundle = discovery.ensureDiscoverBundle()
         let becauseRows = await because
         let fetched = await bundle
         defer { isLoading = false }
-        if fetched == nil && becauseRows == nil {
-            // Keep picks already on screen; a failure only replaces an empty page.
-            failed = animePicks.isEmpty && mangaPicks.isEmpty
-            return
-        }
-        apply(because: becauseRows ?? [], bundle: fetched)
+        apply(because: becauseRows, bundle: fetched)
     }
 
-    private func apply(because: [BecauseYouCard], bundle: DiscoverBundle?) {
-        let animePersonal = because
-            .filter { $0.mediaType.uppercased() != "MANGA" }
-            .map { $0.toMedia() }
-        let mangaPersonal = because
-            .filter { $0.mediaType.uppercased() == "MANGA" }
-            .map { $0.toMedia() }
-        let animeUnseen = (bundle?.anime.newToYou ?? []).map { Media(card: $0) }
-        let mangaUnseen = (bundle?.manga.newToYou ?? []).map { Media(card: $0) }
-        let animeStart = (bundle?.anime.essentials ?? []).map { Media(card: $0) }
-        let mangaStart = (bundle?.manga.essentials ?? []).map { Media(card: $0) }
-
+    /// Writes each medium's choice only when the reads it depends on loaded (rulebook §9: a failed
+    /// read never shows as the empty state). An unsettled medium keeps the picks already on screen
+    /// and reports a failure only when it has none.
+    private func apply(because: [BecauseYouCard]?, bundle: DiscoverBundle?) {
         let german = KuroLocale.isGerman
+        let rows = because ?? []
+        let animePersonal = open(rows.filter { $0.mediaType.uppercased() != "MANGA" }.map { $0.toMedia() })
+        let mangaPersonal = open(rows.filter { $0.mediaType.uppercased() == "MANGA" }.map { $0.toMedia() })
         let animeChoice = TastePicksCopy.choose(
-            personal: open(animePersonal), unseen: open(animeUnseen), start: open(animeStart), cap: cap, german: german
+            personal: animePersonal,
+            unseen: open((bundle?.anime.newToYou ?? []).map { Media(card: $0) }),
+            start: open((bundle?.anime.essentials ?? []).map { Media(card: $0) }),
+            cap: cap, german: german
         )
         let mangaChoice = TastePicksCopy.choose(
-            personal: open(mangaPersonal), unseen: open(mangaUnseen), start: open(mangaStart), cap: cap, german: german
+            personal: mangaPersonal,
+            unseen: open((bundle?.manga.newToYou ?? []).map { Media(card: $0) }),
+            start: open((bundle?.manga.essentials ?? []).map { Media(card: $0) }),
+            cap: cap, german: german
         )
-        animePicks = animeChoice.items
-        mangaPicks = mangaChoice.items
-        animeNote = animeChoice.note
-        mangaNote = mangaChoice.note
+        let personalLoaded = because != nil
+        let bundleLoaded = bundle != nil
+
+        if TastePicksCopy.isSettled(
+            personal: personalLoaded ? animePersonal.count : nil, bundleLoaded: bundleLoaded, chosen: animeChoice.items.count
+        ) {
+            animePicks = animeChoice.items
+            animeNote = animeChoice.note
+        } else {
+            animeFailed = animePicks.isEmpty
+        }
+        if TastePicksCopy.isSettled(
+            personal: personalLoaded ? mangaPersonal.count : nil, bundleLoaded: bundleLoaded, chosen: mangaChoice.items.count
+        ) {
+            mangaPicks = mangaChoice.items
+            mangaNote = mangaChoice.note
+        } else {
+            mangaFailed = mangaPicks.isEmpty
+        }
     }
 
     /// Titles not on the list yet.
@@ -166,6 +181,18 @@ nonisolated enum TastePicksCopy {
         german ? "Speichere ein paar Titel, dann wird die Auswahl persönlicher." : "Save a few titles and the picks get more personal."
     }
 
+    /// Whether one medium's choice can be shown as it is. `personal` is the count of open personal
+    /// rows (nil: the because-you read failed); `bundleLoaded` says the Discover bundle read
+    /// succeeded; `chosen` is the size of the resulting choice. A choice is settled when it is the
+    /// personal set (enough rows, whatever the bundle did), when both reads loaded (an empty choice
+    /// is then a true empty state), or when the bundle loaded and gave picks. Anything else may be
+    /// hiding a failure and must not render as empty.
+    static func isSettled(personal: Int?, bundleLoaded: Bool, chosen: Int) -> Bool {
+        if let personal, personal >= 2 { return true }
+        guard bundleLoaded else { return false }
+        return personal != nil || chosen > 0
+    }
+
     static func choose<Item>(personal: [Item], unseen: [Item], start: [Item], cap: Int, german: Bool) -> (items: [Item], note: String) {
         let source = source(personal: personal.count, unseen: unseen.count, start: start.count)
         let items: [Item]
@@ -201,7 +228,6 @@ private struct TastePickFrame: View {
     let media: Media
     let width: CGFloat
 
-    @State private var isPressed = false
     @Environment(LibraryStore.self) private var library
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
@@ -211,33 +237,33 @@ private struct TastePickFrame: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                DiscoverPicture(url: URL(string: media.imageURL ?? ""), maxPixelSize: 420)
-                    .frame(width: width, height: floor(width / KuroCardMetrics.imageAspectRatio))
-                    .clipShape(RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous))
-                Text(KuroCardText.sanitizeTitleForCard(media.title))
-                    .font(.kuroBody(weight: .medium))
-                    .foregroundStyle(Color.kuroInk)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let story = TastePicksCopy.storySentence(media.displayDescription) {
-                    Text(story)
-                        .font(.kuroMeta())
-                        .foregroundStyle(Color.kuroInkSecondary)
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(width: width, alignment: .leading)
-            .contentShape(Rectangle())
-            .kuroDeliberateTap {
+            // A Button so the press state cancels on scroll/drag (rulebook §7).
+            Button {
                 guard !suppressCardTaps else { return }
                 KuroAccessibility.impactHaptic(.light)
                 routes.openMedia(MediaRoute(media.libraryKey))
+            } label: {
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                    DiscoverPicture(url: URL(string: media.imageURL ?? ""), maxPixelSize: 420)
+                        .frame(width: width, height: floor(width / KuroCardMetrics.imageAspectRatio))
+                        .clipShape(RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous))
+                    Text(KuroCardText.sanitizeTitleForCard(media.title))
+                        .font(.kuroBody(weight: .medium))
+                        .foregroundStyle(Color.kuroInk)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let story = TastePicksCopy.storySentence(media.displayDescription) {
+                        Text(story)
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(width: width, alignment: .leading)
+                .contentShape(Rectangle())
             }
-            .scaleEffect(isPressed ? 0.985 : 1)
-            .kuroAnimation(KuroMotion.contact, value: isPressed)
-            .pressable($isPressed)
+            .buttonStyle(KuroPressStyle(pressedScale: 0.985))
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(media.title))
             .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))

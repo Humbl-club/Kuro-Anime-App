@@ -11,6 +11,20 @@ import KuroCore
 import KuroLibrary
 import SwiftUI
 
+// MARK: - Browse entry
+
+/// Where "Browse the catalogue" is offered (spec D2). Browse is a pager page in the live order;
+/// only where the pager has none (series Home) do Discover and Search open it through the Browse
+/// route. One rule for both surfaces, so they cannot drift apart.
+enum DiscoverBrowseEntry {
+    @MainActor
+    static func isOffered(flags: FeatureFlags) -> Bool {
+        !KuroMainView.Section
+            .pagerOrder(tasteDeck: flags.tasteDeckV1Enabled, seriesHome: flags.seriesHomeNativeV1Enabled)
+            .contains(.browse)
+    }
+}
+
 // MARK: - Layout
 
 /// Width rules for the Discover, Browse and Taste pages.
@@ -197,7 +211,6 @@ struct DiscoverFrame: View {
     /// A stated airing slot (Airing today rail only).
     var airing: DiscoverAiringSlot? = nil
 
-    @State private var isPressed = false
     @Environment(LibraryStore.self) private var library
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(FeatureFlags.self) private var flags
@@ -230,36 +243,36 @@ struct DiscoverFrame: View {
 
     var body: some View {
         let line = line
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            DiscoverPicture(url: URL(string: media.imageURL ?? ""), maxPixelSize: 360)
-                .frame(width: width, height: floor(width / KuroCardMetrics.imageAspectRatio))
-                .clipShape(RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous))
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(KuroCardText.sanitizeTitleForCard(media.title))
-                    .font(.kuroBody(weight: .medium))
-                    .foregroundStyle(Color.kuroInk)
-                    .lineLimit(2, reservesSpace: true)
-                    .multilineTextAlignment(.leading)
-                if let line {
-                    Text(line)
-                        .font(.kuroMeta())
-                        .foregroundStyle(Color.kuroInkQuiet)
-                        .lineLimit(1)
-                }
-            }
-            .frame(width: width, alignment: .leading)
-        }
-        .frame(width: width, alignment: .topLeading)
-        .contentShape(Rectangle())
-        .kuroDeliberateTap {
+        // A Button so the press state cancels on scroll/drag (rulebook §7).
+        Button {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             routes.openMedia(MediaRoute(media.libraryKey))
+        } label: {
+            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                DiscoverPicture(url: URL(string: media.imageURL ?? ""), maxPixelSize: 360)
+                    .frame(width: width, height: floor(width / KuroCardMetrics.imageAspectRatio))
+                    .clipShape(RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(KuroCardText.sanitizeTitleForCard(media.title))
+                        .font(.kuroBody(weight: .medium))
+                        .foregroundStyle(Color.kuroInk)
+                        .lineLimit(2, reservesSpace: true)
+                        .multilineTextAlignment(.leading)
+                    if let line {
+                        Text(line)
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkQuiet)
+                            .lineLimit(1)
+                    }
+                }
+                .frame(width: width, alignment: .leading)
+            }
+            .frame(width: width, alignment: .topLeading)
+            .contentShape(Rectangle())
         }
-        .scaleEffect(isPressed ? 0.98 : 1)
-        .kuroAnimation(KuroMotion.contact, value: isPressed)
-        .pressable($isPressed)
+        .buttonStyle(KuroPressStyle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text([media.title, line].compactMap { $0 }.joined(separator: ", ")))
         .accessibilityValue(isSaved ? KuroLocale.text("On your list", "Auf deiner Liste") : "")
@@ -355,7 +368,6 @@ struct DiscoverLeadFrame: View {
     let route: MediaRoute
     let width: CGFloat
 
-    @State private var isPressed = false
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
     @Environment(\.kuroRoutes) private var routes
 
@@ -364,44 +376,44 @@ struct DiscoverLeadFrame: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-            DiscoverPicture(url: imageURL, maxPixelSize: 1100)
-                .frame(width: width, height: Self.pictureHeight(width: width, isWideArt: isWideArt))
-                .clipShape(RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous))
-
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                if let kicker, !kicker.isEmpty {
-                    Text(kicker)
-                        .kuroKicker()
-                        .accessibilityHidden(true)
-                }
-                Text(title)
-                    .font(.kuroHeadline(weight: .light))
-                    .foregroundStyle(Color.kuroInk)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let line, !line.isEmpty {
-                    Text(line)
-                        .font(.kuroBody(weight: .regular))
-                        .foregroundStyle(Color.kuroInkSecondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .frame(width: width, alignment: .leading)
-        }
-        .frame(width: width, alignment: .leading)
-        .contentShape(Rectangle())
-        .kuroDeliberateTap {
+        // A Button so the press state cancels on scroll/drag (rulebook §7).
+        Button {
             guard !suppressCardTaps else { return }
             KuroAccessibility.impactHaptic(.light)
             routes.openMedia(route)
+        } label: {
+            VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+                DiscoverPicture(url: imageURL, maxPixelSize: 1100)
+                    .frame(width: width, height: Self.pictureHeight(width: width, isWideArt: isWideArt))
+                    .clipShape(RoundedRectangle(cornerRadius: KuroRadius.xs, style: .continuous))
+
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                    if let kicker, !kicker.isEmpty {
+                        Text(kicker)
+                            .kuroKicker()
+                            .accessibilityHidden(true)
+                    }
+                    Text(title)
+                        .font(.kuroHeadline(weight: .light))
+                        .foregroundStyle(Color.kuroInk)
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let line, !line.isEmpty {
+                        Text(line)
+                            .font(.kuroBody(weight: .regular))
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(width: width, alignment: .leading)
+            }
+            .frame(width: width, alignment: .leading)
+            .contentShape(Rectangle())
         }
-        .scaleEffect(isPressed ? 0.985 : 1)
-        .kuroAnimation(KuroMotion.contact, value: isPressed)
-        .pressable($isPressed)
+        .buttonStyle(KuroPressStyle(pressedScale: 0.985))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text([kicker, title, line].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ". ")))
         .accessibilityHint(KuroLocale.text("Opens details", "Öffnet die Details"))

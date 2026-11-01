@@ -86,11 +86,7 @@ struct EditorialDiscoverView: View {
 
     /// Browse is a pager page in the live order; where the pager has none (series Home), Discover
     /// offers the catalogue through the Browse route (spec D2).
-    private var offersBrowseEntry: Bool {
-        !KuroMainView.Section
-            .pagerOrder(tasteDeck: flags.tasteDeckV1Enabled, seriesHome: flags.seriesHomeNativeV1Enabled)
-            .contains(.browse)
-    }
+    private var offersBrowseEntry: Bool { DiscoverBrowseEntry.isOffered(flags: flags) }
 
     /// Stated slots for the Airing today rail: the catalogue read, then the reader's own upcoming
     /// airings (the same `next_airing_at`) for titles the read has not covered.
@@ -434,6 +430,29 @@ struct EditorialDiscoverView: View {
                 imageURL: URL(string: (featured.bannerImage?.isEmpty == false ? featured.bannerImage : featured.imageURL) ?? ""),
                 isWideArt: featured.bannerImage?.isEmpty == false,
                 route: MediaRoute(kind: .anime, id: featured.id),
+                width: width
+            )
+        } else if selectedMediaType == .manga, let manga = vm.essentialsManga.first ?? vm.trendingManga.first {
+            // The manga page leads with its first essential (or trending) title: a cover crop.
+            DiscoverLeadFrame(
+                kicker: vm.essentialsManga.isEmpty
+                    ? KuroLocale.text("Trending now", "Gerade beliebt")
+                    : KuroLocale.text("Essential reading", "Lesenswert"),
+                title: manga.title,
+                line: DiscoverFrameCopy.line(
+                    kind: .manga,
+                    year: manga.year,
+                    episodes: nil,
+                    chapters: manga.chapters,
+                    statusRaw: manga.statusRaw,
+                    formatRaw: manga.formatRaw,
+                    german: KuroLocale.isGerman,
+                    locale: KuroLocale.locale,
+                    timeZone: KuroLocale.timeZone
+                ),
+                imageURL: URL(string: manga.imageURL ?? ""),
+                isWideArt: false,
+                route: MediaRoute(kind: .manga, id: manga.id),
                 width: width
             )
         }

@@ -99,9 +99,23 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
         recentSearchesKey = nil
     }
 
-    /// Sheds the bundle cache and the airing slots under memory pressure (both are re-read on demand).
+    /// Confirmed account deletion: removes the deleted account's recent searches from this device
+    /// (they survive sign-out on purpose, so a returning account keeps them).
+    func removeDeletedAccountData(userId: String) async throws {
+        guard let key = RecentSearchList.storageKey(userId: userId) else { return }
+        defaults.removeObject(forKey: key)
+        if recentSearchesKey == key {
+            recentSearches = []
+            recentSearchesKey = nil
+        }
+    }
+
+    /// Sheds the airing slots and other accounts' bundles under memory pressure. The current
+    /// account's launch bundle is kept (it is small, and dropping it would make the next
+    /// `ensureDiscoverBundle` call the impression-writing RPC again).
     func trimCachesForMemoryPressure() {
-        discoverBundleCache.removeAll()
+        let keep = Self.bundleKeyPrefix(user: accountSession.current?.userId)
+        discoverBundleCache = discoverBundleCache.filter { $0.key.hasPrefix(keep) }
         airingSlots.removeAll()
         airingSlotIdsRead.removeAll()
         airingSlotsDay = nil
@@ -116,10 +130,12 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
     /// successful bundle is returned for the rest of the session regardless of its age, an in-flight
     /// load is joined, and only a missing bundle starts a read. A deliberate reload (pull to refresh)
     /// uses `fetchDiscoverBundle(force: true)`. The entry is dropped on account change
-    /// (`clearPrivateState`) and under memory pressure.
-    func ensureDiscoverBundle(limit: Int = 30, hours: Int = 24) async -> DiscoverBundle? {
+    /// (`clearPrivateState`) and kept under memory pressure. A bundle stored on an earlier Berlin
+    /// day counts as missing, so "Airing today" never shows yesterday's set after the app stayed
+    /// alive past midnight (still at most one read per day and account).
+    func ensureDiscoverBundle(limit: Int = 30, hours: Int = 24, now: Date = Date()) async -> DiscoverBundle? {
         let key = Self.bundleKey(user: accountSession.current?.userId, limit: limit, hours: hours)
-        if let loaded = discoverBundleCache[key] {
+        if let loaded = discoverBundleCache[key], Self.isSameRailDay(loaded.storedAt, now) {
             return loaded.value
         }
         return await fetchDiscoverBundle(limit: limit, hours: hours)
@@ -127,7 +143,19 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
 
     /// The cache and in-flight key of one account's bundle request ("anon" when signed out).
     nonisolated static func bundleKey(user: String?, limit: Int, hours: Int) -> String {
-        "discover_bundle|\(user ?? "anon")|\(max(1, min(60, limit)))|\(max(1, min(168, hours)))"
+        "\(bundleKeyPrefix(user: user))\(max(1, min(60, limit)))|\(max(1, min(168, hours)))"
+    }
+
+    /// The part of `bundleKey` that names the account.
+    nonisolated static func bundleKeyPrefix(user: String?) -> String {
+        "discover_bundle|\(user ?? "anon")|"
+    }
+
+    /// Whether two instants fall on the same rail day (Europe/Berlin).
+    nonisolated static func isSameRailDay(_ a: Date, _ b: Date) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = DiscoverAiringOrder.railTimeZone
+        return calendar.isDate(a, inSameDayAs: b)
     }
 
     func fetchDiscoverBundle(limit: Int = 30, hours: Int = 24, force: Bool = false) async -> DiscoverBundle? {
@@ -435,7 +463,8 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
         }
     }
 
-    /// Reads the stated next air time of up to 20 rail titles not read yet this session. The bundle
+    /// Reads the stated next air time of the rail titles not read yet today (up to 60, the bundle's
+    /// largest rail, in one request). The bundle
     /// rows carry no time, so the rail can only be ordered by air time from this read. A failure
     /// leaves the ids unread (a later load asks again) and the rail in server order.
     func loadAiringSlots(for animeIds: [Int], now: Date = Date()) async {
@@ -447,7 +476,7 @@ final class DiscoveryStore: AccountScopedState, MemoryPressureTrimmable {
             airingSlots.removeAll()
             airingSlotIdsRead.removeAll()
         }
-        let wanted = Array(animeIds.filter { !airingSlotIdsRead.contains($0) }.prefix(20))
+        let wanted = Array(animeIds.filter { !airingSlotIdsRead.contains($0) }.prefix(60))
         guard !wanted.isEmpty else { return }
         do {
             let client = try requiredClient()

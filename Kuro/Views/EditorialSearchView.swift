@@ -452,7 +452,8 @@ struct EditorialSearchBar: View {
 
 // MARK: - Idle state
 
-/// The empty query: this account's recent searches (this device) and the catalogue entry. A child
+/// The empty query: this account's recent searches (this device) and, where the pager has no
+/// Browse page, the catalogue entry. A child
 /// view so `routes` is the search sheet's own presenter (Browse opens on top of the sheet).
 private struct SearchIdleState: View {
     let recentSearches: [String]
@@ -462,6 +463,7 @@ private struct SearchIdleState: View {
     let onClear: () -> Void
 
     @Environment(\.kuroRoutes) private var routes
+    @Environment(FeatureFlags.self) private var flags
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
@@ -520,10 +522,13 @@ private struct SearchIdleState: View {
                 }
             }
 
-            KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
-                routes.openBrowse()
+            // Only where the pager has no Browse page (spec D2).
+            if DiscoverBrowseEntry.isOffered(flags: flags) {
+                KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
+                    routes.openBrowse()
+                }
+                .padding(.horizontal, gutter)
             }
-            .padding(.horizontal, gutter)
         }
         .padding(.top, KuroDesignSpacing.lg)
     }
@@ -537,6 +542,7 @@ private struct SearchNoResultsState: View {
     let onClearRefinements: () -> Void
 
     @Environment(\.kuroRoutes) private var routes
+    @Environment(FeatureFlags.self) private var flags
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
@@ -552,8 +558,11 @@ private struct SearchNoResultsState: View {
                 }
             }
 
-            KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
-                routes.openBrowse()
+            // Only where the pager has no Browse page (spec D2).
+            if DiscoverBrowseEntry.isOffered(flags: flags) {
+                KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
+                    routes.openBrowse()
+                }
             }
         }
         .padding(.horizontal, gutter)

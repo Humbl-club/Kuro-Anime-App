@@ -27,14 +27,54 @@ struct DiscoverBundleOncePerLaunchTests {
             request.resource == "rpc/discover_bundle" ? .json(emptyBundleJSON) : .emptyArray
         }
         let discovery = harness.service.discovery
-        // The launch warm-up's entry, now five minutes old.
+        // The launch warm-up's entry, five minutes old on the same Berlin day (fixed instants, so the
+        // test never straddles midnight).
+        let storedAt = try #require(ISO8601DateFormatter().date(from: "2026-11-01T11:00:00Z"))
         discovery.discoverBundleCache[DiscoveryStore.bundleKey(user: nil, limit: 30, hours: 24)] = TimedCache(
             value: try LifecycleFixtures.decode(DiscoverBundle.self, emptyBundleJSON),
-            storedAt: Date().addingTimeInterval(-300)
+            storedAt: storedAt
         )
 
-        #expect(await discovery.ensureDiscoverBundle() != nil)
+        #expect(await discovery.ensureDiscoverBundle(now: storedAt.addingTimeInterval(300)) != nil)
         #expect(harness.requests(to: "rpc/discover_bundle").isEmpty, "Discover's first load must not ask again")
+        await harness.tearDown()
+    }
+
+    @Test("A bundle from an earlier Berlin day counts as missing (Airing today is never yesterday's)")
+    func ensureExpiresAtRailMidnight() async throws {
+        let harness = try PublicDataHarness { request in
+            request.resource == "rpc/discover_bundle" ? .json(emptyBundleJSON) : .emptyArray
+        }
+        let discovery = harness.service.discovery
+        // 22:00 Berlin on 31 October, read again at 01:30 Berlin on 1 November.
+        let storedAt = try #require(ISO8601DateFormatter().date(from: "2026-10-31T21:00:00Z"))
+        let now = try #require(ISO8601DateFormatter().date(from: "2026-11-01T00:30:00Z"))
+        #expect(!DiscoveryStore.isSameRailDay(storedAt, now))
+        #expect(DiscoveryStore.isSameRailDay(now, now.addingTimeInterval(3600)))
+        discovery.discoverBundleCache[DiscoveryStore.bundleKey(user: nil, limit: 30, hours: 24)] = TimedCache(
+            value: try LifecycleFixtures.decode(DiscoverBundle.self, emptyBundleJSON),
+            storedAt: storedAt
+        )
+
+        #expect(await discovery.ensureDiscoverBundle(now: now) != nil)
+        #expect(harness.requests(to: "rpc/discover_bundle").count == 1)
+        await harness.tearDown()
+    }
+
+    @Test("Memory pressure keeps the current account's launch bundle and drops the others")
+    func trimKeepsLaunchBundle() async throws {
+        let harness = try PublicDataHarness()
+        let discovery = harness.service.discovery
+        let bundle = try LifecycleFixtures.decode(DiscoverBundle.self, emptyBundleJSON)
+        let mine = DiscoveryStore.bundleKey(user: nil, limit: 30, hours: 24)
+        let other = DiscoveryStore.bundleKey(user: "someone-else", limit: 30, hours: 24)
+        discovery.discoverBundleCache[mine] = TimedCache(value: bundle, storedAt: Date())
+        discovery.discoverBundleCache[other] = TimedCache(value: bundle, storedAt: Date())
+
+        discovery.trimCachesForMemoryPressure()
+
+        #expect(discovery.discoverBundleCache[mine] != nil)
+        #expect(discovery.discoverBundleCache[other] == nil)
         await harness.tearDown()
     }
 
@@ -245,6 +285,31 @@ struct RecentSearchTests {
         #expect(defaults.stringArray(forKey: "kuro.search.recent.user-b") == ["Monster"])
         await harness.tearDown()
     }
+
+    @Test("Account deletion removes that account's searches from the device; sign-out keeps them")
+    func deletionRemovesDeviceHistory() async throws {
+        let suite = "kuro.tests.recent.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let harness = try PublicDataHarness()
+        let accounts = AccountSessionCoordinator()
+        let discovery = DiscoveryStore(client: nil, accountSession: accounts, library: harness.service.library, defaults: defaults)
+
+        _ = accounts.begin(userId: "user-a")
+        discovery.loadRecentSearches()
+        discovery.recordRecentSearch("Frieren")
+        _ = accounts.begin(userId: "user-b")
+        discovery.loadRecentSearches()
+        discovery.recordRecentSearch("Monster")
+
+        discovery.clearPrivateState()
+        #expect(defaults.stringArray(forKey: "kuro.search.recent.user-a") == ["Frieren"], "account change keeps device history")
+
+        try await discovery.removeDeletedAccountData(userId: "USER-A")
+        #expect(defaults.stringArray(forKey: "kuro.search.recent.user-a") == nil)
+        #expect(defaults.stringArray(forKey: "kuro.search.recent.user-b") == ["Monster"])
+        await harness.tearDown()
+    }
 }
 
 @MainActor
@@ -315,5 +380,19 @@ struct DiscoverCopyAndLayoutTests {
         #expect(none.items.isEmpty)
         #expect(TastePicksCopy.storySentence("An elf mage <i>outlives</i> her party. Then she travels.") == "An elf mage outlives her party.")
         #expect(TastePicksCopy.storySentence("   ") == nil)
+    }
+
+    @Test("Taste picks: a failed read never settles as the empty state")
+    func tastePicksSettle() {
+        // Both reads loaded: an empty choice is a true empty state.
+        #expect(TastePicksCopy.isSettled(personal: 0, bundleLoaded: true, chosen: 0))
+        // Bundle failed: only an own personal set (two or more) may be shown.
+        #expect(TastePicksCopy.isSettled(personal: 3, bundleLoaded: false, chosen: 3))
+        #expect(!TastePicksCopy.isSettled(personal: 1, bundleLoaded: false, chosen: 0))
+        #expect(!TastePicksCopy.isSettled(personal: 0, bundleLoaded: false, chosen: 0))
+        #expect(!TastePicksCopy.isSettled(personal: nil, bundleLoaded: false, chosen: 0))
+        // Because-you failed: bundle picks may stand in, but an empty choice is not "empty".
+        #expect(TastePicksCopy.isSettled(personal: nil, bundleLoaded: true, chosen: 2))
+        #expect(!TastePicksCopy.isSettled(personal: nil, bundleLoaded: true, chosen: 0))
     }
 }
