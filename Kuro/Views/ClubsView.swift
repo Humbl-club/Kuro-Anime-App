@@ -291,10 +291,11 @@ private struct ClubsInvitation: View {
                 ClubRoomQuietButton(title: ClubsEmptyCopy.join(german: german), action: onJoin)
             }
             .padding(15)
-            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(ClubRoomPalette.note))
+            // The drop belongs to the card's face only, so the text inside carries no shadow.
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(ClubRoomPalette.note)
+                .shadow(color: Color.black.opacity(0x22 / 255.0), radius: 3.5, x: 0, y: 3))
             .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Color.white.opacity(0x88 / 255.0), lineWidth: 1))
-            .shadow(color: Color.black.opacity(0x22 / 255.0), radius: 3.5, x: 0, y: 3)
 
             HStack(spacing: 10) {
                 Text(ClubsEmptyCopy.footer(german: german))
