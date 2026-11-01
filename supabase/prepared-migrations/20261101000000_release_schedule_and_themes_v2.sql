@@ -214,9 +214,10 @@ grant execute on function public.home_events_page_v1(text,integer,integer,text) 
 
 -- ---------------------------------------------------------------------------
 -- 4. Internal: candidate units for a set of titles (owner-only helper)
---    One row per (medium, media_id, unit_kind, unit_number): an upcoming candidate beats a past
---    one, then the best basis: v2 confirmed (rank 0) > anime.next_airing_at fallback (1) >
---    announced (2) > estimated (3).
+--    One row per (medium, media_id, unit_kind, unit_number): an upcoming confirmed candidate
+--    (v2 instant or the anime.next_airing_at fallback) > a released row > any other upcoming
+--    candidate > a past row never marked released; within a tier the best basis: v2 confirmed
+--    (rank 0) > fallback (1) > announced (2) > estimated (3).
 --    release_at: precision instant -> the instant; day/month/quarter/year -> the START of the
 --    stated window at 00:00 in source_zone (UTC when unknown); unknown -> NULL.
 --    release_end: the END of that window (instant: the instant). A unit is past when its
@@ -299,13 +300,23 @@ as $$
     union all
     select * from fallback
   )
-  -- is_past before basis_rank: an upcoming candidate for a unit (e.g. the fallback at the new
-  -- time) must win over a past row for the same unit, or the unit vanishes from the schedule.
+  -- Unit pick, by tier then basis_rank then freshest observation:
+  --   0 an upcoming CONFIRMED candidate (a v2 instant or the live pointer fallback): it must win
+  --     over a past row for the same unit (incl. a released one), or the unit vanishes;
+  --   1 a released row: a fact, so a leftover estimate (manga.ts keeps the last >= 0.7 estimate
+  --     when a later run produces none) or a still-open announced window never re-lists it;
+  --   2 any other upcoming candidate (announced / estimated);
+  --   3 a past row that was never marked released.
   select distinct on (x.medium, x.media_id, x.unit_kind, x.unit_number)
          x.medium, x.media_id, x.unit_kind, x.unit_number, x.unit_label, x.release_at, x.release_end,
          x.basis, x.confidence, x.source, x.source_url, x.precision, x.is_past, x.basis_rank, x.status
   from allrows x
-  order by x.medium, x.media_id, x.unit_kind, x.unit_number, x.is_past, x.basis_rank, x.observed_at desc nulls last
+  order by x.medium, x.media_id, x.unit_kind, x.unit_number,
+           case when not x.is_past and x.basis_rank <= 1 then 0
+                when x.status = 'released' then 1
+                when not x.is_past then 2
+                else 3 end,
+           x.basis_rank, x.observed_at desc nulls last
 $$;
 revoke all on function public._release_schedule_units_v1(integer[], integer[]) from public, anon, authenticated;
 
@@ -426,7 +437,7 @@ $$;
 revoke all on function public.media_release_schedule_v1(text, integer, integer) from public;
 grant execute on function public.media_release_schedule_v1(text, integer, integer) to anon, authenticated;
 comment on function public.media_release_schedule_v1(text, integer, integer) is
-  'Spec 3.2 (2026-11-01). Public read for one title: up to p_limit (1-24, default 6) upcoming units (one per unit, an upcoming candidate before a past one, then best basis) plus the last confirmed unit with status released (is_past = true, listed first; a passed instant never marked released is not shown as aired). Same columns as user_release_schedule_v1 plus is_past, then release_precision. Raises INVALID_MEDIUM: / INVALID_MEDIA_ID:.';
+  'Spec 3.2 (2026-11-01). Public read for one title: up to p_limit (1-24, default 6) upcoming units (one per unit: an upcoming confirmed candidate, then a released row, then any other upcoming candidate, then best basis; a released unit is never re-listed by a leftover estimate or announced window) plus the last confirmed unit with status released (is_past = true, listed first; a passed instant never marked released is not shown as aired). Same columns as user_release_schedule_v1 plus is_past, then release_precision. Raises INVALID_MEDIUM: / INVALID_MEDIA_ID:.';
 
 -- ---------------------------------------------------------------------------
 -- 7. media_themes_v1 (spec 3.3): public catalog read

@@ -263,7 +263,7 @@ select tests.reset();
 --   990007: no pointer at all, so nothing is dropped; a passed but never-released ep 4 must not
 --           be the "last aired" unit (status rule in media_release_schedule_v1)
 --   990008: a RELEASED v2 ep 7 is kept (not stale), the pointer says ep 7 is next at +21 days;
---           the upcoming fallback must win the unit over the past row (is_past-first DISTINCT ON)
+--           the upcoming fallback must win the unit over the past row (tier 0 of the DISTINCT ON pick)
 insert into public.anime (id, title_romaji, anilist_id, next_episode_number, next_airing_at) values
   (990007, 'No Pointer Show', 12349, null, null),
   (990008, 'Released Then Moved Show', 12350, 7, now() + interval '21 days');
@@ -291,6 +291,45 @@ select tests.eq('user schedule 990008: the upcoming fallback ep 7 wins the unit 
   (select unit_label || '@' || to_char(release_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US')
      from public.user_release_schedule_v1() where media_id = 990008),
   'Ep. 7@' || :'t2_008_utc');
+select tests.reset();
+-- the upcoming-first pick is limited to confirmed candidates (a v2 instant or the live pointer):
+-- a RELEASED unit is never re-listed as upcoming because a leftover estimate or an announced
+-- window for it is still open (manga.ts keeps the last >= 0.7 estimate when a later run, e.g.
+-- after an early release, produces none).
+--   990106: ch 101 released (mangaupdates, 2 days ago) + the kuro_estimate for ch 101 at +5 days
+--   990107: ch 101 released (mangaupdates, 2 days ago) + a publisher month window for ch 101 this month
+insert into public.manga (id, title_english) values
+  (990106, 'Early Release Manga'), (990107, 'Announced Window Manga');
+insert into public.manga_user_lists (user_id, manga_id, list_type, progress) values
+  (tests.uid(983)::text, 990106, 'READING', 100),
+  (tests.uid(983)::text, 990107, 'READING', 100);
+:as_service
+select public.upsert_release_events_v1(jsonb_build_array(
+  jsonb_build_object('medium', 'manga', 'media_id', 990106, 'unit_kind', 'chapter', 'unit_number', 101,
+    'basis', 'announced', 'source', 'mangaupdates', 'precision', 'day', 'status', 'released',
+    'source_local_date', to_char(now() - interval '2 days', 'YYYY-MM-DD'), 'source_zone', 'Asia/Tokyo'),
+  jsonb_build_object('medium', 'manga', 'media_id', 990106, 'unit_kind', 'chapter', 'unit_number', 101,
+    'basis', 'estimated', 'source', 'kuro_estimate', 'confidence', 0.8, 'release_at', now() + interval '5 days'),
+  jsonb_build_object('medium', 'manga', 'media_id', 990107, 'unit_kind', 'chapter', 'unit_number', 101,
+    'basis', 'announced', 'source', 'mangaupdates', 'precision', 'day', 'status', 'released',
+    'source_local_date', to_char(now() - interval '2 days', 'YYYY-MM-DD'), 'source_zone', 'Asia/Tokyo'),
+  jsonb_build_object('medium', 'manga', 'media_id', 990107, 'unit_kind', 'chapter', 'unit_number', 101,
+    'basis', 'announced', 'source', 'publisher', 'precision', 'month',
+    'source_local_date', to_char(date_trunc('month', now()), 'YYYY-MM-DD'))
+)) as w_released_wins \gset
+select tests.reset();
+select tests.eq('released-vs-leftover seed: four rows written', :'w_released_wins'::jsonb, '{"inserted":4,"updated":0,"unchanged":0}'::jsonb);
+select tests.as_user(tests.uid(983));
+select tests.eq('user schedule 990106: a released ch 101 is not re-listed as an upcoming estimate',
+  (select count(*) from public.user_release_schedule_v1() where media_id = 990106), 0::bigint);
+select tests.eq('user schedule 990107: a released ch 101 is not re-listed by an open announced window',
+  (select count(*) from public.user_release_schedule_v1() where media_id = 990107), 0::bigint);
+select tests.reset();
+select tests.as_anon();
+select tests.eq('media schedule 990106: no upcoming ch 101 next to the released one',
+  (select count(*) from public.media_release_schedule_v1('manga', 990106) where not is_past), 0::bigint);
+select tests.eq('media schedule 990107: no upcoming ch 101 next to the released one',
+  (select count(*) from public.media_release_schedule_v1('manga', 990107) where not is_past), 0::bigint);
 select tests.reset();
 
 -- ---- 6. idempotency and natural keys --------------------------------------------
