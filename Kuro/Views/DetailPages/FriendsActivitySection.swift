@@ -231,7 +231,7 @@ struct FriendsActivitySection: View {
                         containsSpoilers = comment.spoiler_scope != nil && comment.spoiler_scope != "none"
                     } label: {
                         Image(systemName: "pencil")
-                            .font(.system(size: 10, weight: .regular))
+                            .font(.kuroCustom(10, weight: .regular, maxSize: 16))
                             .foregroundColor(.black.opacity(0.35))
                     }
                     .buttonStyle(.plain)
@@ -243,7 +243,7 @@ struct FriendsActivitySection: View {
                         showDeleteConfirm = true
                     } label: {
                         Image(systemName: "trash")
-                            .font(.system(size: 10, weight: .regular))
+                            .font(.kuroCustom(10, weight: .regular, maxSize: 16))
                             .foregroundColor(.red.opacity(0.65))
                     }
                     .buttonStyle(.plain)
@@ -291,7 +291,7 @@ struct FriendsActivitySection: View {
                         if comment.up_count > 0 {
                             HStack(spacing: 3) {
                                 Image(systemName: "hand.thumbsup.fill")
-                                    .font(.system(size: 10))
+                                    .font(.kuroCustom(10, maxSize: 16))
                                 Text("\(comment.up_count)")
                                     .font(.kuroMicro())
                             }
@@ -300,7 +300,7 @@ struct FriendsActivitySection: View {
                         if comment.down_count > 0 {
                             HStack(spacing: 3) {
                                 Image(systemName: "hand.thumbsdown.fill")
-                                    .font(.system(size: 10))
+                                    .font(.kuroCustom(10, maxSize: 16))
                                 Text("\(comment.down_count)")
                                     .font(.kuroMicro())
                             }
@@ -332,7 +332,7 @@ struct FriendsActivitySection: View {
         } label: {
             HStack(spacing: 3) {
                 Image(systemName: isActive ? "\(icon).fill" : icon)
-                    .font(.system(size: 10, weight: .regular))
+                    .font(.kuroCustom(10, weight: .regular, maxSize: 16))
                 if count > 0 {
                     Text("\(count)")
                         .font(.kuroMicro())
@@ -379,7 +379,7 @@ struct FriendsActivitySection: View {
                         }
                     } label: {
                         Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 24, weight: .regular))
+                            .font(.kuroCustom(24, weight: .regular, maxSize: 38))
                             .foregroundColor(
                                 canSubmit ? .black.opacity(0.70) : .black.opacity(0.20)
                             )

@@ -46,10 +46,13 @@ struct AnimeDetailView: View {
     @State private var didLoadLadder = false
     @State private var screenLoadGeneration = UUID()
     @State private var creditsLoadGeneration = UUID()
+    @State private var releaseItems: [ReleaseScheduleItem]?
+    @State private var releaseSongs: [ThemeSong]?
 
     var body: some View {
         if flags.seriesHomeNativeV1Enabled {
-            SeriesAnimeDetailView(anime: anime)
+            // Spec D15: the series page shows these legacy sections when its bundle has no series data.
+            SeriesAnimeDetailView(anime: anime, legacy: { AnyView(legacyAnimeDetail) })
         } else {
             legacyAnimeDetail
         }
@@ -87,7 +90,7 @@ struct AnimeDetailView: View {
                         
                         MetaLineSection(anime: anime)
 
-                        NextUpSection(anime: anime)
+                        DetailNextReleaseSection(items: releaseItems ?? DetailNextReleaseSection.seed(for: anime))
                         
                         // Description
                         if anime.hasMeaningfulSynopsis {
@@ -137,6 +140,8 @@ struct AnimeDetailView: View {
                             )
                         }
 
+                        DetailSongsSection(songs: releaseSongs ?? [])
+
                         // "NEXT" pick when user has completed this series
                         if !similar.isEmpty {
                             NextPickSection(
@@ -164,7 +169,7 @@ struct AnimeDetailView: View {
                             ) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "square.and.arrow.up")
-                                        .font(.system(size: 11, weight: .medium))
+                                        .font(.kuroCustom(11, weight: .medium, maxSize: 18))
                                     Text("SHARE")
                                         .font(.kuroMicro(weight: .medium))
                                         .tracking(1.2)
@@ -306,6 +311,7 @@ struct AnimeDetailView: View {
             creditsLoadGeneration = UUID()
             toastDismissTask?.cancel()
         }
+        .detailReleases(kind: .anime, id: anime.id, schedule: $releaseItems, songs: $releaseSongs)
         // This detail sheet's own presentation context: the cards and the action bar inside open their
         // routes here (stacked on this detail, as before).
         .routePresenter()
@@ -328,81 +334,41 @@ struct AnimeDetailView: View {
     }
 }
 
+/// The anime's own next airing (catalogue row), used by the episode preview before any episode rows
+/// load. Only a future airing time counts: an episode number is never guessed from a past time.
 private struct AnimeUpcomingEpisodeDisplay {
-    enum Timing {
-        case scheduled(Date)
-        case awaitingSchedule
-    }
-
     let number: Int
-    let timing: Timing
+    let airingAt: Date
 
-    var detailLine: String {
-        switch timing {
-        case .scheduled(let date):
-            let formatter = RelativeDateTimeFormatter()
-            formatter.unitsStyle = .short
-            return formatter.localizedString(for: date, relativeTo: Date()).uppercased()
-        case .awaitingSchedule:
-            return "AIR DATE TBA"
-        }
+    private func relative(_ style: RelativeDateTimeFormatter.UnitsStyle) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = style
+        formatter.locale = KuroLocale.locale
+        return formatter.localizedString(for: airingAt, relativeTo: Date())
     }
 
     var sectionLine: String {
-        switch timing {
-        case .scheduled:
-            return "Next airing episode \(number)."
-        case .awaitingSchedule:
-            return "Next episode \(number) is pending a schedule update."
-        }
+        KuroLocale.text("Next airing: episode \(number).", "Als Nächstes: Folge \(number).")
     }
 
     var fallbackTitle: String {
-        switch timing {
-        case .scheduled:
-            return "Next airing episode"
-        case .awaitingSchedule:
-            return "Next episode"
-        }
+        KuroLocale.text("Next airing episode", "Nächste Folge")
     }
 
     var fallbackBadge: String {
-        switch timing {
-        case .scheduled:
-            return "SCHEDULED"
-        case .awaitingSchedule:
-            return "UPDATING"
-        }
+        KuroLocale.text("SCHEDULED", "GEPLANT")
     }
 
     var fallbackSubtitle: String {
-        switch timing {
-        case .scheduled(let date):
-            let formatter = RelativeDateTimeFormatter()
-            formatter.unitsStyle = .full
-            return formatter.localizedString(for: date, relativeTo: Date())
-        case .awaitingSchedule:
-            return "Awaiting the next release time from the feed."
-        }
+        relative(.full)
     }
 }
 
 private extension Anime {
     var effectiveUpcomingEpisodeDisplay: AnimeUpcomingEpisodeDisplay? {
-        guard let rawNextEpisode = nextEpisodeNumber, rawNextEpisode > 0 else { return nil }
-
-        let now = Date()
-        if let nextAiringAt, nextAiringAt > now {
-            return AnimeUpcomingEpisodeDisplay(number: rawNextEpisode, timing: .scheduled(nextAiringAt))
-        }
-
-        guard status?.uppercased() == "RELEASING" else { return nil }
-
-        if let totalEpisodes = episodeCount, rawNextEpisode < totalEpisodes {
-            return AnimeUpcomingEpisodeDisplay(number: rawNextEpisode + 1, timing: .awaitingSchedule)
-        }
-
-        return nil
+        guard let rawNextEpisode = nextEpisodeNumber, rawNextEpisode > 0,
+              let nextAiringAt, nextAiringAt > Date() else { return nil }
+        return AnimeUpcomingEpisodeDisplay(number: rawNextEpisode, airingAt: nextAiringAt)
     }
 }
 
@@ -440,43 +406,6 @@ struct MetaLineSection: View {
                 .tracking(1.2)
                 .foregroundColor(.kuroBlack60)
                 .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-// MARK: - Next up (minimal)
-struct NextUpSection: View {
-    let anime: Anime
-
-    var body: some View {
-        if let nextRelease = anime.effectiveUpcomingEpisodeDisplay {
-            HStack(spacing: 12) {
-                Text("NEXT UP")
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(1.8)
-                    .foregroundColor(.kuroBlack80)
-
-                Spacer(minLength: 0)
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("EP \(nextRelease.number)".uppercased())
-                        .font(.kuroMicro(weight: .regular))
-                        .tracking(1.2)
-                        .foregroundColor(.kuroBlack80)
-
-                    Text(nextRelease.detailLine)
-                        .font(.kuroMicro(weight: .light))
-                        .tracking(1.0)
-                        .foregroundColor(.kuroBlack30)
-                }
-            }
-            .padding(.vertical, 12)
-            .padding(.horizontal, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
-            )
-            .accessibilityElement(children: .combine)
         }
     }
 }
@@ -587,7 +516,7 @@ struct NextPickSection: View {
                         Spacer(minLength: 0)
 
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.kuroCustom(12, weight: .medium, maxSize: 19))
                             .foregroundColor(.kuroBlack30)
                     }
                     .padding(12)
@@ -693,7 +622,7 @@ struct TitleSection: View {
             
             // Main Title
             Text(anime.displayTitle.uppercased())
-                .font(.system(size: ResponsiveLayout.fontSize(24), weight: .ultraLight, design: .serif))
+                .font(.kuroCustom(24, weight: .ultraLight, design: .serif, relativeTo: .title2, maxSize: 40))
                 .tracking(0.5)
                 .foregroundColor(.kuroBlack)
                 .lineSpacing(4)
@@ -967,7 +896,7 @@ struct EpisodeItemRow: View {
                     .scaleEffect(0.75)
             } else if isWatched {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
                     .foregroundColor(.kuroBlack)
             } else {
                 Button(action: {
@@ -975,7 +904,7 @@ struct EpisodeItemRow: View {
                     onMarkWatched()
                 }) {
                     Image(systemName: "plus.circle")
-                        .font(.system(size: 16, weight: .regular))
+                        .font(.kuroCustom(16, weight: .regular, maxSize: 26))
                         .foregroundColor(.kuroBlack80)
                 }
                 .buttonStyle(.plain)
@@ -1331,7 +1260,7 @@ struct ActionButtons: View {
             HStack(spacing: 10) {
                 Button { toggleSaved(origin: origin) } label: {
                     Image(systemName: isSaved ? "heart.fill" : "heart")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
                         .foregroundColor(.kuroBlack)
                         .frame(width: 38, height: 38)
                         .background(Color.kuroBlack08)
@@ -1346,7 +1275,7 @@ struct ActionButtons: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
                         Text(isSaved ? "EDIT LIST" : "ADD TO LIST")
                             .font(.kuroMicro(weight: .medium))
                             .tracking(1.1)
@@ -1365,7 +1294,7 @@ struct ActionButtons: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "tag")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.kuroCustom(11, weight: .semibold, maxSize: 18))
                         Text(verdictButtonTitle.uppercased())
                             .font(.kuroMicro(weight: .medium))
                             .tracking(0.9)
@@ -1388,7 +1317,7 @@ struct ActionButtons: View {
 
                 Button(action: handleWatchAction) {
                     Image(systemName: hasWatchLink ? "play.fill" : "play.slash")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.kuroCustom(13, weight: .semibold, maxSize: 21))
                         .foregroundColor(hasWatchLink ? .kuroBlack : .kuroBlack30)
                         .frame(width: 38, height: 38)
                         .background(Color.kuroBlack08)

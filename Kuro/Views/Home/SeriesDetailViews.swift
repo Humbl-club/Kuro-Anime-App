@@ -2,14 +2,19 @@ import KuroCore
 import KuroLibrary
 import SwiftUI
 
-/// Shallow landscape anime detail. The selected season changes the copy underneath.
-/// Tracking stays on the list entry and is not inferred from browsing a season.
+/// Shallow landscape anime detail (rulebook §14.2). The selected season changes the copy underneath.
+/// Tracking stays on the list entry and is not inferred from browsing a season. When the series
+/// bundle has no series data, or cannot be read, the legacy sections are shown instead (spec D15).
 struct SeriesAnimeDetailView: View {
     let anime: Anime
     @Environment(HomeStore.self) private var home
     @Environment(LibraryStore.self) private var library
     @Environment(\.kuroRoutes) private var routes
     @State private var bundle: SeriesDetailBundle?
+    @State private var mode: SeriesDetailMode
+    @State private var releaseItems: [ReleaseScheduleItem]?
+    @State private var releaseSongs: [ThemeSong]?
+    private let legacy: (() -> AnyView)?
     @State private var selectedSection: String?
     @State private var loadError: String?
     @State private var generation = UUID()
@@ -19,8 +24,10 @@ struct SeriesAnimeDetailView: View {
     @State private var showDiscussion = false
     private let skipNetworkLoad: Bool
 
-    init(anime: Anime, previewBundle: SeriesDetailBundle? = nil) {
+    init(anime: Anime, previewBundle: SeriesDetailBundle? = nil, legacy: (() -> AnyView)? = nil) {
         self.anime = anime
+        self.legacy = legacy
+        self._mode = State(initialValue: SeriesDetailMode.initial(preview: previewBundle, hasLegacy: legacy != nil))
         self._bundle = State(initialValue: previewBundle)
         self._sectionChoices = State(initialValue: previewBundle?.sections ?? [])
         self._selectedSection = State(initialValue: previewBundle?.sections.first(where: { $0.entries?.contains(where: { $0.mediaId == previewBundle?.mediaId }) == true })?.id)
@@ -28,32 +35,15 @@ struct SeriesAnimeDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                art
-                seasons
-                story
-                if isLoading { ProgressView("Loading this season") }
-                if let loadError {
-                    Text(loadError).font(.kuroCaption()).foregroundStyle(Color.kuroInkSecondary)
-                    Button("Retry season") { generation = UUID() }.frame(minHeight: 44)
-                }
-                units
-                coverage
-                music
-                cast
-                SeriesPrincipals(items: bundle?.principals ?? [])
-                betweenUs
+        Group {
+            switch mode {
+            case .legacy:
+                if let legacy { legacy() } else { seriesBody }
+            case .resolving:
+                SeriesResolvingView(title: anime.displayTitle)
+            case .series:
+                seriesBody
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 32)
-            .foregroundStyle(Color.kuroInk)
-        }
-        .background(Color.kuroCanvasPage)
-        .tint(Color.kuroInk)
-        .routePresenter()
-        .overlay(alignment: .topTrailing) {
-            SeriesCloseButton()
         }
         .onChange(of: home.privacyEpoch) { _, _ in
             bundle = nil
@@ -61,8 +51,69 @@ struct SeriesAnimeDetailView: View {
             generation = UUID()
         }
         .task(id: generation) {
-            guard !skipNetworkLoad else { return }
+            guard !skipNetworkLoad, mode != .legacy else { return }
             await load(section: selectedSection)
+        }
+    }
+
+    private var seriesBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                art
+                heading
+                trackingAction
+                story
+                DetailNextReleaseSection(items: releaseItems ?? [])
+                seasons
+                if isLoading { KuroStateView(.loading, layout: .inline) }
+                if let loadError {
+                    KuroStateView(.failed(hasCachedContent: false), title: loadError, layout: .inline) { generation = UUID() }
+                }
+                units
+                coverage
+                DetailSongsSection(songs: songs)
+                cast
+                SeriesPrincipals(items: bundle?.principals ?? [])
+                betweenUs
+            }
+            .padding(.horizontal, KuroDesignSpacing.padding)
+            .padding(.bottom, 32)
+            .foregroundStyle(Color.kuroInk)
+            .kuroReadableWidth()
+        }
+        .background(Color.kuroCanvasPage)
+        .tint(Color.kuroInk)
+        .routePresenter()
+        .overlay(alignment: .topTrailing) {
+            SeriesCloseButton()
+        }
+        .detailReleases(kind: .anime, id: anime.id, schedule: $releaseItems, songs: $releaseSongs)
+    }
+
+    /// `media_themes_v1` first; the series bundle's own songs only when that has none.
+    private var songs: [ThemeSong] {
+        if let releaseSongs, !releaseSongs.isEmpty { return releaseSongs }
+        return SeriesDetailFallback.songs(from: bundle?.themes ?? [])
+    }
+
+    private var heading: some View {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+            Text(bundle?.header.title ?? anime.displayTitle)
+                .font(.kuroFeature())
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            if let status = SeriesDetailFallback.statusText(bundle?.header.catalogueStatus ?? anime.status, medium: .anime) {
+                Text(status)
+                    .font(.kuroMeta())
+                    .foregroundStyle(Color.kuroInkSecondary)
+            }
+        }
+    }
+
+    @ViewBuilder private var trackingAction: some View {
+        if let bundle {
+            SeriesTrackingAction(bundle: bundle)
         }
     }
 
@@ -83,36 +134,16 @@ struct SeriesAnimeDetailView: View {
                 } else {
                     Color.kuroMissingArt
                 }
-                LinearGradient(
-                    stops: [
-                        .init(color: .clear, location: 0.45),
-                        .init(color: Color.black.opacity(0.62), location: 1)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .allowsHitTesting(false)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(bundle?.header.title ?? anime.displayTitle)
-                        .font(.kuroDisplay())
-                        .foregroundStyle(Color.white)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(bundle?.header.catalogueStatus ?? anime.status ?? "Status unknown")
-                        .font(.kuroCaption())
-                        .foregroundStyle(Color.white.opacity(0.82))
-                }
-                .padding(16)
-                .padding(.trailing, 72)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.black.opacity(0.72))
                 if bundle?.header.artworkScope == "cover_fallback" {
-                    Text("Series art")
-                        .font(.kuroMicro())
+                    // Honest label: this is the series' cover, not art of the selected season.
+                    Text(KuroLocale.text("Series art", "Serienbild"))
+                        .font(.kuroMeta(weight: .medium))
                         .foregroundStyle(Color.kuroInk)
-                        .padding(6)
-                        .background(Color.white.opacity(0.92))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color.kuroWhite92)
                         .padding(12)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -121,8 +152,10 @@ struct SeriesAnimeDetailView: View {
         .aspectRatio(1.9, contentMode: .fit)
         .clipped()
         .clipShape(RoundedRectangle(cornerRadius: 5))
-        .padding(.horizontal, -20)
-        .accessibilityLabel("Artwork for \(bundle?.header.title ?? anime.displayTitle)")
+        .padding(.horizontal, -KuroDesignSpacing.padding)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(KuroLocale.text("Artwork for \(bundle?.header.title ?? anime.displayTitle)",
+                                            "Bild zu \(bundle?.header.title ?? anime.displayTitle)"))
     }
 
     @ViewBuilder
@@ -135,29 +168,22 @@ struct SeriesAnimeDetailView: View {
                 Text(premise).font(.kuroBody()).fixedSize(horizontal: false, vertical: true)
             }
             if let synopsis = copy.synopsis {
-                DisclosureGroup("About this season") { Text(synopsis).font(.kuroBody()) }
+                DisclosureGroup(KuroLocale.text("About this season", "Über diese Staffel")) {
+                    Text(synopsis).font(.kuroBody()).fixedSize(horizontal: false, vertical: true)
+                }
+                .font(.kuroBody(weight: .medium))
             }
-        } else if loadError != nil {
-            Text(loadError ?? "").foregroundStyle(Color.kuroInkSecondary)
-        } else {
-            Text("Story overview isn’t available yet.")
-                .font(.kuroBody())
-                .foregroundStyle(Color.kuroInkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
+        // No story on file: the section is omitted (rulebook §9, missing optional metadata).
     }
 
     private var seasons: some View {
         let sections = sectionChoices
         return VStack(alignment: .leading, spacing: 8) {
-            Text("Seasons")
-                .font(.kuroCaption())
-                .accessibilityAddTraits(.isHeader)
-            if sections.isEmpty {
-                Text("This entry is not in an approved season group.")
-                    .font(.kuroBody())
-                    .foregroundStyle(Color.kuroInkSecondary)
-            } else {
+            if !sections.isEmpty {
+                KuroSectionHeader(KuroLocale.text("Seasons", "Staffeln"), size: .title)
+            }
+            if !sections.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
                         ForEach(sections) { section in
@@ -169,7 +195,8 @@ struct SeriesAnimeDetailView: View {
                             }
                             .buttonStyle(HomeContactStyle())
                             .accessibilityLabel(section.name)
-                            .accessibilityHint("Inspects this season without changing your progress")
+                            .accessibilityHint(KuroLocale.text("Shows this season without changing your progress",
+                                                               "Zeigt diese Staffel, ohne deinen Fortschritt zu ändern"))
                             .accessibilityAddTraits(selectedSection == section.id ? .isSelected : [])
                         }
                     }
@@ -190,7 +217,8 @@ struct SeriesAnimeDetailView: View {
                                             else { Color.kuroMissingArt }
                                         }.frame(width:28,height:42).clipped().clipShape(RoundedRectangle(cornerRadius:3))
                                     }
-                                    Text(entry.title ?? "Episodes").font(.kuroCaption())
+                                    Text(entry.title ?? KuroLocale.text("Episodes", "Folgen")).font(.kuroMeta())
+                                        .foregroundStyle(Color.kuroInk)
                                         .fixedSize(horizontal: false, vertical: true)
                                 }.frame(minHeight:44).padding(.horizontal,8)
                                     .background(Color.kuroCanvasQuiet)
@@ -199,19 +227,21 @@ struct SeriesAnimeDetailView: View {
                                             .fill((selectedEntry ?? anime.id) == entry.mediaId ? Color.kuroInk : Color.clear)
                                             .frame(height: 2)
                                     }
-                            }.buttonStyle(HomeContactStyle()).accessibilityLabel("Open \(entry.title ?? "season entry")")
+                            }.buttonStyle(HomeContactStyle())
+                                .accessibilityLabel(entry.title ?? KuroLocale.text("Episodes", "Folgen"))
+                                .accessibilityAddTraits((selectedEntry ?? anime.id) == entry.mediaId ? .isSelected : [])
                         }
                     }
                 }
             }
             if (selectedEntry ?? anime.id) != anime.id {
-                Button("Return to opened entry") {
+                Button(KuroLocale.text("Back to this title", "Zurück zu diesem Titel")) {
                     selectedEntry = anime.id
                     selectedSection = sections.first(where: { $0.entries?.contains(where: { $0.mediaId == anime.id }) == true })?.id
                     bundle = nil
                     loadError = nil
                     generation = UUID()
-                }.font(.kuroCaption()).frame(minHeight: 44).buttonStyle(HomeContactStyle())
+                }.font(.kuroMeta(weight: .medium)).frame(minHeight: 44).buttonStyle(HomeContactStyle())
             }
         }
     }
@@ -231,66 +261,38 @@ struct SeriesAnimeDetailView: View {
         if let bundle {
             SeriesUnitsView(bundle: bundle,sectionId:selectedSection)
                 .id("anime:\(bundle.mediaId):\(selectedSection ?? ""):\(home.privacyEpoch)")
-            if currentTrackingUser(bundle, library: library) == nil {
-                Button("Add to list") { routes.presentTrackingEditor(TrackingEditorRequest(media: detailMedia(bundle))) }
-                    .frame(minHeight:44).buttonStyle(HomeContactStyle())
-            } else {
-                Button("List settings") { routes.presentTrackingEditor(TrackingEditorRequest(media: detailMedia(bundle))) }
-                    .font(.kuroCaption()).frame(minHeight:44).buttonStyle(HomeContactStyle())
-            }
         }
     }
 
     private var coverage: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("The original story")
-                .font(.kuroCaption())
-                .accessibilityAddTraits(.isHeader)
+            KuroSectionHeader(KuroLocale.text("The original story", "Die Vorlage"), size: .title)
             if let coverage = bundle?.coverage, coverage.mappingState == "exact" || coverage.mappingState == "partial" {
-                Text(coverage.sourceKind == "novel" ? "Novel" : "Manga")
-                if let starts = coverage.startsAt { Text("Starts at \(starts)") }
-                if let ends = coverage.endsAt { Text("Ends at \(ends)") }
-                if let next = coverage.readNext { Text("Read next \(next)") }
-                if let sourceId = coverage.sourceMangaId {
-                    Button(coverage.sourceKind == "novel" ? "Explore the novel" : "Explore the manga") {
-                        routes.openMedia(MediaRoute(kind: .manga, id: sourceId))
-                    }.frame(minHeight: 44).buttonStyle(HomeContactStyle())
-                }
-            } else {
-                Text("Chapter boundaries unverified.")
-                    .font(.kuroBody())
-                    .foregroundStyle(Color.kuroInkSecondary)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var music: some View {
-        if let themes = bundle?.themes, !themes.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("The sound of it.")
-                    .font(.kuroCaption())
-                    .foregroundStyle(Color.kuroInkSecondary)
-                    .accessibilityAddTraits(.isHeader)
-                ForEach(Array(themes.enumerated()), id: \.offset) { _, theme in
-                    if theme.matchState == "verified", let raw = theme.externalURL, let url = URL(string: raw), url.scheme == "https", url.host?.lowercased() == "open.spotify.com" {
-                        Link(destination: url) {
-                            Text("\(theme.role.uppercased()) · \(theme.songTitle ?? "Untitled")")
-                                .frame(minHeight: 44)
-                        }
-                    } else if let title = theme.songTitle {
-                        let query = "\(title) \(theme.artist ?? "")".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-                        if let url = URL(string: "https://open.spotify.com/search/\(query)") {
-                            Link(destination: url) {
-                                Text("Find \(title) on Spotify")
-                                    .frame(minHeight: 44)
-                            }
-                        }
+                Group {
+                    Text(coverage.sourceKind == "novel" ? KuroLocale.text("Novel", "Roman") : "Manga")
+                        .font(.kuroBody(weight: .medium))
+                    if let starts = coverage.startsAt { Text(KuroLocale.text("Starts at \(starts)", "Beginnt bei \(starts)")) }
+                    if let ends = coverage.endsAt { Text(KuroLocale.text("Ends at \(ends)", "Endet bei \(ends)")) }
+                    if let next = coverage.readNext { Text(KuroLocale.text("Read on from \(next)", "Weiterlesen ab \(next)")) }
+                    if coverage.mappingState == "partial" {
+                        Text(KuroLocale.text("Some chapters differ from the anime.", "Einige Kapitel weichen vom Anime ab."))
+                            .foregroundStyle(Color.kuroInkSecondary)
                     }
                 }
-                Text("Find on Spotify · unmatched tracks are searches, not identified recordings.")
-                    .font(.kuroCaption())
+                .font(.kuroBody())
+                .fixedSize(horizontal: false, vertical: true)
+                if let sourceId = coverage.sourceMangaId {
+                    KuroInkButton(coverage.sourceKind == "novel" ? KuroLocale.text("Open the novel", "Roman öffnen")
+                                                                 : KuroLocale.text("Open the manga", "Manga öffnen"),
+                                  role: .secondary) {
+                        routes.openMedia(MediaRoute(kind: .manga, id: sourceId))
+                    }
+                }
+            } else {
+                Text(SeriesCopy.boundaryUnknown)
+                    .font(.kuroBody())
                     .foregroundStyle(Color.kuroInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -325,21 +327,29 @@ struct SeriesAnimeDetailView: View {
             sectionChoices = loaded.sections
             if selectedSection == nil { selectedSection = loaded.sections.first(where: { $0.entries?.contains(where: { $0.mediaId == loaded.mediaId }) == true })?.id }
             loadError = nil
+            mode = mode.resolved(bundle: loaded, loadFailed: false, hasLegacy: legacy != nil)
         } catch is CancellationError {
             return
         } catch {
             guard token == generation, !Task.isCancelled else { return }
-            loadError = "This season could not be loaded."
+            loadError = KuroLocale.text("Couldn't load this season.", "Diese Staffel konnte nicht geladen werden.")
+            mode = mode.resolved(bundle: nil, loadFailed: true, hasLegacy: legacy != nil)
         }
         #else
-        loadError = "Detail is not configured."
+        loadError = KuroLocale.text("Couldn't load this season.", "Diese Staffel konnte nicht geladen werden.")
+        mode = mode.resolved(bundle: nil, loadFailed: true, hasLegacy: legacy != nil)
         #endif
     }
 }
 
-/// Manga detail: cover, real premise when the catalogue has one, bookmark, editions, reciprocal guide.
+/// Manga detail (rulebook §14.2): cover, real premise when the catalogue has one, bookmark, editions,
+/// reciprocal guide. Legacy sections replace it when the bundle has no series data (spec D15).
 struct SeriesMangaDetailView: View {
     let manga: Manga
+    @State private var mode: SeriesDetailMode
+    @State private var releaseItems: [ReleaseScheduleItem]?
+    @State private var releaseSongs: [ThemeSong]?
+    private let legacy: (() -> AnyView)?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(HomeStore.self) private var home
     @Environment(LibraryStore.self) private var library
@@ -352,36 +362,27 @@ struct SeriesMangaDetailView: View {
     @State private var showDiscussion = false
     private let skipNetworkLoad: Bool
 
-    init(manga: Manga, previewBundle: SeriesDetailBundle? = nil) {
+    init(manga: Manga, previewBundle: SeriesDetailBundle? = nil, legacy: (() -> AnyView)? = nil) {
         self.manga = manga
+        self.legacy = legacy
+        self._mode = State(initialValue: SeriesDetailMode.initial(preview: previewBundle, hasLegacy: legacy != nil))
         self._bundle = State(initialValue: previewBundle)
         self.skipNetworkLoad = previewBundle != nil
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                intro
-                story
-                bookmark
-                chapters
-                guide
-                cast
-                SeriesPrincipals(items:bundle?.principals ?? [])
-                betweenUs
+        Group {
+            switch mode {
+            case .legacy:
+                if let legacy { legacy() } else { seriesBody }
+            case .resolving:
+                SeriesResolvingView(title: manga.displayTitle)
+            case .series:
+                seriesBody
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 28)
-            .foregroundStyle(Color.kuroInk)
-        }
-        .background(Color.kuroCanvasPage)
-        .tint(Color.kuroInk)
-        .routePresenter()
-        .overlay(alignment: .topTrailing) {
-            SeriesCloseButton()
         }
         .task(id: loadGeneration) {
-            guard !skipNetworkLoad else { return }
+            guard !skipNetworkLoad, mode != .legacy else { return }
             await load()
         }
         .onChange(of: home.privacyEpoch) { _, _ in
@@ -390,6 +391,34 @@ struct SeriesMangaDetailView: View {
             watchedChoice = nil
             loadGeneration = UUID()
         }
+    }
+
+    private var seriesBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                intro
+                if let bundle { SeriesTrackingAction(bundle: bundle) }
+                story
+                bookmark
+                DetailNextReleaseSection(items: releaseItems ?? [])
+                chapters
+                guide
+                cast
+                SeriesPrincipals(items:bundle?.principals ?? [])
+                betweenUs
+            }
+            .padding(.horizontal, KuroDesignSpacing.padding)
+            .padding(.bottom, 28)
+            .foregroundStyle(Color.kuroInk)
+            .kuroReadableWidth()
+        }
+        .background(Color.kuroCanvasPage)
+        .tint(Color.kuroInk)
+        .routePresenter()
+        .overlay(alignment: .topTrailing) {
+            SeriesCloseButton()
+        }
+        .detailReleases(kind: .manga, id: manga.id, schedule: $releaseItems, songs: $releaseSongs)
     }
 
     private var intro: some View {
@@ -411,13 +440,16 @@ struct SeriesMangaDetailView: View {
     private var heading: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             Text(bundle?.header.title ?? manga.displayTitle)
-                .font(.kuroDisplay())
+                .font(.kuroFeature())
                 .foregroundStyle(Color.kuroInk)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(bundle?.header.catalogueStatus ?? manga.status ?? "Status unknown")
-                .font(.kuroCaption())
-                .foregroundStyle(Color.kuroInkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+            if let status = SeriesDetailFallback.statusText(bundle?.header.catalogueStatus ?? manga.status, medium: .manga) {
+                Text(status)
+                    .font(.kuroMeta())
+                    .foregroundStyle(Color.kuroInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.top, 44)
         .padding(.trailing, 8)
@@ -442,35 +474,31 @@ struct SeriesMangaDetailView: View {
         .aspectRatio(2.0 / 3.0, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.kuroHairline))
-        .accessibilityLabel("Cover of \(manga.displayTitle)")
+        .accessibilityLabel(KuroLocale.text("Cover of \(manga.displayTitle)", "Cover von \(manga.displayTitle)"))
     }
 
     @ViewBuilder
     private var story: some View {
         if let copy = bundle?.copy, copy.premise != nil || copy.synopsis != nil {
-            if let hook=copy.hook { Text(hook).font(.kuroTitle()) }
-            if let premise=copy.premise { Text(premise).font(.kuroBody()) }
+            if let hook=copy.hook { Text(hook).font(.kuroTitle()).fixedSize(horizontal: false, vertical: true) }
+            if let premise=copy.premise { Text(premise).font(.kuroBody()).fixedSize(horizontal: false, vertical: true) }
             if let synopsis = bundle?.copy.synopsis {
-                DisclosureGroup("The story") { Text(synopsis).font(.kuroBody()) }
+                DisclosureGroup(KuroLocale.text("The story", "Die Geschichte")) {
+                    Text(synopsis).font(.kuroBody()).fixedSize(horizontal: false, vertical: true)
+                }
+                .font(.kuroBody(weight: .medium))
             }
-        } else {
-            Text("No spoiler-light premise is on file for this book.")
-                .font(.kuroBody())
-                .foregroundStyle(Color.kuroInkSecondary)
         }
+        // No premise on file: the section is omitted (rulebook §9, missing optional metadata).
     }
 
     @ViewBuilder private var bookmark: some View {
         if let bundle {
             SeriesBookmark(bundle:bundle)
-            Button(currentTrackingUser(bundle, library: library) == nil ? "Add to list" : "List settings") {
-                routes.presentTrackingEditor(TrackingEditorRequest(media: detailMedia(bundle)))
-            }.frame(minHeight:44).buttonStyle(HomeContactStyle())
         }
-        if isLoading { ProgressView("Loading this book") }
+        if isLoading { KuroStateView(.loading, layout: .inline) }
         if let loadError {
-            Text(loadError).font(.kuroCaption())
-            Button("Retry book") { loadGeneration = UUID() }.frame(minHeight: 44)
+            KuroStateView(.failed(hasCachedContent: false), title: loadError, layout: .inline) { loadGeneration = UUID() }
         }
     }
 
@@ -484,37 +512,53 @@ struct SeriesMangaDetailView: View {
     private var guide: some View {
         let guides=bundle?.adaptations ?? []
         let selected=guides.first { ($0.sectionId ?? "anime:\($0.animeId ?? 0)") == watchedChoice }
-        return DisclosureGroup("I've watched the anime") {
+        return DisclosureGroup(KuroLocale.text("I've watched the anime", "Ich habe den Anime gesehen")) {
             if guides.isEmpty {
-                Text("Chapter boundaries are unverified.").font(.kuroCaption()).foregroundStyle(Color.kuroInkSecondary)
+                Text(SeriesCopy.boundaryUnknown)
+                    .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
-                Picker("Finished season",selection:$watchedChoice) {
-                    Text("Choose a season").tag(String?.none)
+                Picker(KuroLocale.text("Season you finished", "Gesehene Staffel"),selection:$watchedChoice) {
+                    Text(KuroLocale.text("Choose a season", "Staffel wählen")).tag(String?.none)
                     ForEach(guides.indices,id:\.self) { index in
                         let guide=guides[index]
-                        Text(guide.season ?? "Anime adaptation").tag(Optional(guide.sectionId ?? "anime:\(guide.animeId ?? 0)"))
+                        Text(guide.season ?? KuroLocale.text("Anime adaptation", "Anime-Adaption")).tag(Optional(guide.sectionId ?? "anime:\(guide.animeId ?? 0)"))
                     }
                 }.pickerStyle(.menu).frame(minHeight:44)
                 if let selected {
                     if selected.mappingState == "exact" || selected.mappingState == "partial" {
-                    HStack {
-                        if let start=selected.startsAt { guidePoint("Starts",start) }
-                        if let end=selected.endsAt { guidePoint("Ends",end) }
-                        if let next=selected.readNext { guidePoint("Read next",next) }
-                    }
+                        ViewThatFits(in: .horizontal) {
+                            HStack(alignment: .top) { guidePoints(selected) }
+                            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) { guidePoints(selected) }
+                        }
                     }
                     if let id=selected.animeId {
-                        Button("Open anime") { routes.openMedia(MediaRoute(kind:.anime,id:id)) }.frame(minHeight:44)
+                        KuroInkButton(KuroLocale.text("Open anime", "Anime öffnen"), role: .secondary) {
+                            routes.openMedia(MediaRoute(kind:.anime,id:id))
+                        }
                     }
-                    Text(selected.mappingState == "exact" ? "Verified season boundary." : (selected.mappingState == "partial" ? "Partial adaptation; some chapters differ." : "Chapter boundary unverified."))
-                        .font(.kuroCaption()).foregroundStyle(Color.kuroInkSecondary)
+                    Text(selected.mappingState == "exact"
+                         ? KuroLocale.text("The season ends exactly here.", "Die Staffel endet genau hier.")
+                         : (selected.mappingState == "partial"
+                            ? KuroLocale.text("Some chapters differ from the anime.", "Einige Kapitel weichen vom Anime ab.")
+                            : SeriesCopy.boundaryUnknown))
+                        .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-        }.font(.kuroBody()).padding(.vertical,8)
+        }.font(.kuroBody(weight: .medium)).padding(.vertical,8)
+    }
+    @ViewBuilder private func guidePoints(_ selected: SeriesDetailBundle.Coverage) -> some View {
+        if let start=selected.startsAt { guidePoint(KuroLocale.text("Starts", "Beginnt"),start) }
+        if let end=selected.endsAt { guidePoint(KuroLocale.text("Ends", "Endet"),end) }
+        if let next=selected.readNext { guidePoint(KuroLocale.text("Read on from", "Weiterlesen ab"),next) }
     }
     private func guidePoint(_ title:String,_ value:String)->some View {
-        VStack(alignment:.leading,spacing:5) { Text(title).font(.kuroCaption()); Text(value).font(.kuroBody()) }
-            .frame(maxWidth:.infinity,alignment:.leading)
+        VStack(alignment:.leading,spacing:5) {
+            Text(title).font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+            Text(value).font(.kuroBody()).foregroundStyle(Color.kuroInk)
+        }
+        .frame(maxWidth:.infinity,alignment:.leading)
     }
 
     private var cast: some View { SeriesCast(items:bundle?.cast ?? []) }
@@ -544,14 +588,17 @@ struct SeriesMangaDetailView: View {
             guard token == loadGeneration, !Task.isCancelled else { return }
             bundle = loaded
             loadError = nil
+            mode = mode.resolved(bundle: loaded, loadFailed: false, hasLegacy: legacy != nil)
         } catch is CancellationError {
             return
         } catch {
             guard token == loadGeneration, !Task.isCancelled else { return }
-            loadError = "This book could not be loaded."
+            loadError = KuroLocale.text("Couldn't load this book.", "Dieses Buch konnte nicht geladen werden.")
+            mode = mode.resolved(bundle: nil, loadFailed: true, hasLegacy: legacy != nil)
         }
         #else
-        loadError = "Detail is not configured."
+        loadError = KuroLocale.text("Couldn't load this book.", "Dieses Buch konnte nicht geladen werden.")
+        mode = mode.resolved(bundle: nil, loadFailed: true, hasLegacy: legacy != nil)
         #endif
     }
 }
@@ -573,16 +620,16 @@ private struct SeriesCloseButton: View {
 
     var body: some View {
         Button(action: dismiss.callAsFunction) {
-            Text("Close")
-                .font(.kuroBody(weight: .medium))
+            Image(systemName: "xmark")
+                .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 20))
                 .foregroundStyle(Color.kuroInk)
-                .padding(.horizontal, 14)
-                .frame(minWidth: 44, minHeight: 44)
-                .background(Color.white.opacity(0.92), in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.kuroHairline))
+                .frame(width: 44, height: 44)
+                .background(Color.kuroWhite92, in: Circle())
+                .overlay(Circle().strokeBorder(Color.kuroHairline))
+                .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Close")
+        .buttonStyle(KuroPressStyle())
+        .accessibilityLabel(KuroLocale.text("Close", "Schließen"))
         .padding(.top, 8)
         .padding(.trailing, 12)
     }
@@ -624,8 +671,8 @@ private struct SeriesSeasonPanel: View {
                     if scrim {
                         LinearGradient(
                             stops: [
-                                .init(color: Color.black.opacity(0.28), location: 0),
-                                .init(color: Color.black.opacity(0.72), location: 1)
+                                .init(color: Color.kuroBlack25, location: 0),
+                                .init(color: Color.kuroBlack70, location: 1)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
@@ -663,13 +710,14 @@ private struct SeriesDiscussionHeading: View {
             }.frame(width: dynamicTypeSize.isAccessibilitySize ? 44 : 105, height: dynamicTypeSize.isAccessibilitySize ? 66 : 145)
                 .clipped().clipShape(RoundedRectangle(cornerRadius: 3)).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
-                Text("Your clubs · private").font(.kuroCaption()).foregroundStyle(Color.kuroInkSecondary)
-                Text("Between us.").font(.kuroHeadline()).fixedSize(horizontal: false, vertical: true)
-                Text(title).font(.kuroCaption()).foregroundStyle(Color.kuroInkSecondary)
+                Text(KuroLocale.text("Your clubs · private", "Deine Clubs · privat")).font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                Text(KuroLocale.text("Between us.", "Unter uns.")).font(.kuroHeadline()).fixedSize(horizontal: false, vertical: true)
+                Text(title).font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }.padding(.vertical, KuroDesignSpacing.sm)
         }.frame(maxWidth: .infinity, minHeight: 60, alignment: .leading).foregroundStyle(Color.kuroInk)
-            .accessibilityLabel("Between us. Private club discussion for \(title)")
+            .accessibilityLabel(KuroLocale.text("Between us. Private club discussion for \(title)",
+                                                "Unter uns. Private Club-Diskussion zu \(title)"))
     }
 }
 
@@ -689,21 +737,6 @@ private struct SeriesDiscussionMaterial: ViewModifier {
             bottomLeadingRadius: medium == "manga" ? 5 : 8,
             bottomTrailingRadius: medium == "manga" ? 5 : 8,
             topTrailingRadius: medium == "manga" ? 19 : 22)
-    }
-}
-
-private struct SeriesBookmarkMaterial: ViewModifier {
-    let medium: String
-    @ViewBuilder func body(content: Content) -> some View {
-        if medium == "manga" {
-            content
-                .background(Color.kuroCanvasQuiet)
-                .overlay(Rectangle().strokeBorder(Color.kuroHairline))
-        } else {
-            content
-                .background(Color.kuroCanvasQuiet)
-                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.kuroHairline))
-        }
     }
 }
 
@@ -739,6 +772,7 @@ private struct SeriesBookmark: View {
     @State private var draft=""
     @State private var error:String?
     @State private var showUnitChooser = false
+    @State private var showEditor = false
     var body:some View {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         if let user=currentTrackingUser(bundle, library: library) {
@@ -747,40 +781,97 @@ private struct SeriesBookmark: View {
             let unitId = home.displayedUnitId(medium: bundle.medium, mediaId: bundle.mediaId,
                 serverUnitId: user.unitId, lifecycleId: UUID(uuidString: user.lifecycleId), serverRevision: user.serverRevision)
             let needsUnitChoice = unitId != nil || Int(label) != progress
-            VStack(alignment:.leading,spacing:8) {
-                Text(bundle.medium == "manga" ? "Your bookmark" : "Your progress").font(.kuroCaption())
-                HStack(spacing:12) {
-                    Text(label).font(.kuroFeature()).monospacedDigit()
-                    Spacer()
+            let isManga = bundle.medium == "manga"
+            let cap = isManga ? bundle.header.chapters : bundle.header.episodes
+            let caughtUp = cap.map { progress >= $0 } ?? false
+            // A concise inline control (rulebook §14.2): the number beside its unit, a 44 pt step back,
+            // the shared +1 key that advances at once, and "Go to…" as an explicit editor with Save.
+            VStack(alignment:.leading,spacing:KuroDesignSpacing.sm) {
+                Text(isManga ? KuroLocale.text("Your bookmark", "Dein Lesezeichen") : KuroLocale.text("Your progress", "Dein Fortschritt"))
+                    .kuroKicker()
+                    .accessibilityAddTraits(.isHeader)
+                HStack(alignment: .center, spacing:12) {
+                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                        Text(isManga ? KuroLocale.text("Ch.", "Kap.") : KuroLocale.text("Ep.", "F."))
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkQuiet)
+                        Text(label).font(.kuroFeature()).monospacedDigit()
+                        if let cap, !isManga { Text("/ \(cap)").font(.kuroMeta()).foregroundStyle(Color.kuroInkQuiet) }
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(SeriesCopy.position(isManga: isManga, label: label, total: cap))
+                    Spacer(minLength: KuroDesignSpacing.sm)
                     if !needsUnitChoice {
                         Button { actionScope.launch(origin: origin, session: libraryActions.accountSession) { _ in await home.setPosition(medium:bundle.medium,mediaId:bundle.mediaId,user:user,position:max(0,progress-1)) } }
-                            label: { Image(systemName:"minus").frame(width:44,height:44) }
-                            .accessibilityLabel("Previous \(bundle.medium == "manga" ? "chapter" : "episode")")
+                            label: {
+                                Image(systemName:"minus")
+                                    .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 22))
+                                    .foregroundStyle(Color.kuroInk)
+                                    .frame(width:44,height:44)
+                                    .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous).strokeBorder(Color.kuroKeyRim))
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(HomeContactStyle())
+                            .disabled(progress <= 0)
+                            .accessibilityLabel(isManga ? KuroLocale.text("Back one chapter", "Ein Kapitel zurück")
+                                                        : KuroLocale.text("Back one episode", "Eine Folge zurück"))
                     }
-                    Button {
+                    KuroAdvanceKey(style: isManga ? .dark : .light,
+                                   phase: needsUnitChoice ? .needsChoice : (caughtUp ? .caughtUp : .advance),
+                                   accessibilityText: needsUnitChoice
+                                       ? KuroLocale.text("Choose the next available unit", "Nächste verfügbare Einheit auswählen")
+                                       : (caughtUp ? KuroAdvanceCopy.caughtUpLabel(title: bundle.header.title, german: KuroLocale.isGerman)
+                                          : KuroAdvanceCopy.label(medium: isManga ? .manga : .anime, nextUnit: progress + 1,
+                                                                  title: bundle.header.title, current: progress, total: cap,
+                                                                  german: KuroLocale.isGerman))) {
                         if needsUnitChoice { showUnitChooser = true }
                         else { actionScope.launch(origin: origin, session: libraryActions.accountSession) { _ in await home.advance(medium:bundle.medium,mediaId:bundle.mediaId,lifecycleId:user.lifecycleId,
-                            baseRevision:user.serverRevision,serverProgress:user.progress,episodeCap:bundle.medium == "manga" ? bundle.header.chapters : bundle.header.episodes,
+                            baseRevision:user.serverRevision,serverProgress:user.progress,episodeCap:cap,
                             serverLabel:user.progressLabel,serverUnitId:user.unitId) } }
-                    } label: { Image(systemName: needsUnitChoice ? "list.number" : "plus").frame(width:44,height:44) }
-                        .accessibilityLabel(needsUnitChoice ? "Choose the next available unit" : "Next \(bundle.medium == "manga" ? "chapter" : "episode")")
-                }.buttonStyle(HomeContactStyle())
-                HStack {
-                    TextField("Go to \(bundle.medium == "manga" ? "chapter" : "episode")",text:$draft)
-                        .keyboardType(.numberPad).font(.kuroBody()).frame(minHeight:44)
-                    Button("Save") {
-                        guard let position=Int(draft),position>=0,
-                              position <= ((bundle.medium == "manga" ? bundle.header.chapters : bundle.header.episodes) ?? Int.max) else {
-                            error="Enter a valid position."; return
-                        }
-                        error=nil
-                        actionScope.launch(origin: origin, session: libraryActions.accountSession) { _ in await home.setPosition(medium:bundle.medium,mediaId:bundle.mediaId,user:user,position:position) }
-                    }.frame(minWidth:44,minHeight:44).buttonStyle(HomeContactStyle())
+                    }
                 }
-                if let error { Text(error).font(.kuroCaption()) }
-                if let status=home.statusMessage { Text(status).font(.kuroCaption()).foregroundStyle(Color.kuroInkSecondary) }
-            }.padding(16)
-            .modifier(SeriesBookmarkMaterial(medium: bundle.medium))
+                Button {
+                    showEditor.toggle()
+                } label: {
+                    Text(isManga ? KuroLocale.text("Go to chapter…", "Zu Kapitel springen…") : KuroLocale.text("Go to episode…", "Zu Folge springen…"))
+                        .font(.kuroMeta(weight: .medium))
+                        .foregroundStyle(Color.kuroInk)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(HomeContactStyle())
+                .accessibilityAddTraits(showEditor ? .isSelected : [])
+                if showEditor {
+                    HStack {
+                        TextField(isManga ? KuroLocale.text("Chapter", "Kapitel") : KuroLocale.text("Episode", "Folge"), text:$draft)
+                            .keyboardType(.numberPad).font(.kuroBody()).frame(minHeight:44)
+                            .padding(.horizontal, KuroDesignSpacing.sm)
+                            .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroInk).frame(height: 1) }
+                        Button {
+                            guard let position=Int(draft),position>=0, position <= (cap ?? Int.max) else {
+                                error = cap.map { KuroLocale.text("Enter a number from 0 to \($0).", "Gib eine Zahl von 0 bis \($0) ein.") }
+                                    ?? KuroLocale.text("Enter a number from 0.", "Gib eine Zahl ab 0 ein.")
+                                return
+                            }
+                            error=nil
+                            showEditor = false
+                            actionScope.launch(origin: origin, session: libraryActions.accountSession) { _ in await home.setPosition(medium:bundle.medium,mediaId:bundle.mediaId,user:user,position:position) }
+                        } label: {
+                            Text(KuroLocale.text("Save", "Speichern"))
+                                .font(.kuroMeta(weight: .semibold))
+                                .foregroundStyle(Color.kuroInk)
+                                .frame(minWidth:44,minHeight:44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(HomeContactStyle())
+                    }
+                }
+                if let error { Text(error).font(.kuroMeta()).foregroundStyle(Color.kuroInk) }
+                if let status=home.statusMessage { Text(HomeCopy.display(status)).font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary) }
+            }
+            .padding(.vertical, KuroDesignSpacing.md)
+            .overlay(alignment: .top) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
+            .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
             .onAppear { actionScope.activate(session: libraryActions.accountSession) }
             .onDisappear { actionScope.deactivate() }
             .sheet(isPresented: $showUnitChooser) {
@@ -789,7 +880,7 @@ private struct SeriesBookmark: View {
                         SeriesUnitsView(bundle: bundle, sectionId: sectionId, showsBookmark: false)
                             .padding(KuroDesignSpacing.md)
                     }.toolbar {
-                        ToolbarItem(placement: .confirmationAction) { Button("Done") { showUnitChooser = false } }
+                        ToolbarItem(placement: .confirmationAction) { Button(KuroLocale.text("Done", "Fertig")) { showUnitChooser = false } }
                     }
                 }
             }
@@ -818,34 +909,51 @@ private struct SeriesUnitsView: View {
     @State private var error:String?
     @State private var expanded = false
     @State private var needsInitialPage = false
+    private var isManga: Bool { bundle.medium == "manga" }
     var body:some View {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         VStack(alignment:.leading,spacing:12) {
             if bundle.medium == "anime" && showsBookmark { SeriesBookmark(bundle:bundle, sectionId:sectionId) }
-            Text(bundle.medium == "manga" ? "Chapters" : "Episodes").font(.kuroTitle()).accessibilityAddTraits(.isHeader)
+            KuroSectionHeader(isManga ? KuroLocale.text("Chapters", "Kapitel") : KuroLocale.text("Episodes", "Folgen"), size: .title)
             if editionKeys.count>1 {
-                Picker("Edition", selection: Binding(get: { edition ?? "" }, set: selectEdition)) {
-                    ForEach(editionKeys,id:\.self) { Text($0.isEmpty ? "Original" : $0).tag($0) }
+                Picker(KuroLocale.text("Edition", "Ausgabe"), selection: Binding(get: { edition ?? "" }, set: selectEdition)) {
+                    ForEach(editionKeys,id:\.self) { Text($0.isEmpty ? KuroLocale.text("Original", "Original") : $0).tag($0) }
                 }.frame(minHeight:44)
             } else if let edition {
-                Text(edition.isEmpty ? "Original edition" : edition).font(.kuroCaption())
+                Text(edition.isEmpty ? KuroLocale.text("Original edition", "Originalausgabe") : edition)
+                    .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
             }
-            if loadingEditions { ProgressView("Loading editions") }
+            if loadingEditions { KuroStateView(.loading, layout: .inline) }
             if let editionsError {
-                Text(editionsError).font(.kuroCaption())
-                Button("Retry editions") { Task { await moreEditions() } }.frame(minHeight: 44)
+                KuroStateView(.failed(hasCachedContent: !editionKeys.isEmpty), title: editionsError, layout: .inline) { Task { await moreEditions() } }
             } else if editionsCursor != nil {
-                Button("More editions") { Task { await moreEditions() } }
-                    .frame(minHeight: 44).buttonStyle(HomeContactStyle())
+                Button(KuroLocale.text("More editions", "Weitere Ausgaben")) { Task { await moreEditions() } }
+                    .font(.kuroMeta(weight: .medium)).frame(minHeight: 44).buttonStyle(HomeContactStyle())
             }
-            if units.isEmpty && !loading { Text("No verified \(bundle.medium == "manga" ? "chapter" : "episode") rows yet.").font(.kuroCaption()).foregroundStyle(Color.kuroInkSecondary) }
+            if units.isEmpty && !loading {
+                Text(isManga ? KuroLocale.text("Chapters aren't listed yet.", "Kapitel sind noch nicht aufgeführt.")
+                             : KuroLocale.text("Episodes aren't listed yet.", "Folgen sind noch nicht aufgeführt."))
+                    .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+            }
             ForEach(expanded ? units : Array(units.prefix(3))) { unit in
+                let display = SeriesUnitPresentation.display(unit, isManga: isManga, german: KuroLocale.isGerman)
                 HStack(alignment:.top,spacing:10) {
-                    Text(unit.label).font(.system(size:22,weight:.light)).foregroundStyle(Color.kuroInkSecondary).frame(minWidth:32,minHeight:44)
-                    DisclosureGroup(unit.title ?? (bundle.medium == "manga" ? "Chapter \(unit.label)" : "Episode \(unit.label)")) {
-                        if let synopsis=unit.synopsis { Text(synopsis).font(.kuroBody()) }
-                        else { Text("No summary on file.").font(.kuroCaption()).foregroundStyle(Color.kuroInkSecondary) }
-                    }.font(.kuroBody()).frame(minHeight:44)
+                    Text(display.numeral)
+                        .font(.kuroCustom(22, weight: .light, relativeTo: .title2, maxSize: 34))
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .frame(minWidth:32,minHeight:44)
+                        .accessibilityHidden(true)
+                    Group {
+                        if let synopsis = unit.synopsis {
+                            DisclosureGroup(display.title) {
+                                Text(synopsis).font(.kuroBody()).fixedSize(horizontal: false, vertical: true)
+                            }
+                        } else {
+                            Text(display.title).frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        }
+                    }
+                    .font(.kuroBody())
+                    .frame(minHeight:44)
                     if let user=currentTrackingUser(bundle, library: library) {
                         Button { actionScope.launch(origin: origin, session: libraryActions.accountSession) { _ in
                             guard let unitId = UUID(uuidString: unit.id), unit.orderKey.isFinite,
@@ -858,19 +966,23 @@ private struct SeriesUnitsView: View {
                         } } label: { Image(systemName:"checkmark").frame(width:44,height:44) }
                             .disabled(!unit.available || UUID(uuidString: unit.id) == nil || !unit.orderKey.isFinite || unit.orderKey < 0 || unit.orderKey >= Double(Int.max))
                             .buttonStyle(HomeContactStyle())
-                            .accessibilityLabel("Mark \(bundle.medium == "manga" ? "chapter" : "episode") \(unit.label)")
+                            .accessibilityLabel(isManga ? KuroLocale.text("Mark \(display.title) read", "\(display.title) als gelesen markieren")
+                                                        : KuroLocale.text("Mark \(display.title) watched", "\(display.title) als gesehen markieren"))
                     }
-                }.padding(.vertical,6).overlay(alignment:.bottom) { Divider() }
+                }.padding(.vertical,6).overlay(alignment:.bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
             }
-            if loading { ProgressView() }
-            if let error { Text(error).font(.kuroCaption()); Button("Retry") { Task { await more(reset: needsInitialPage) } }.frame(minHeight:44) }
+            if loading { KuroStateView(.loading, layout: .inline) }
+            if let error {
+                KuroStateView(.failed(hasCachedContent: !units.isEmpty), title: error, layout: .inline) { Task { await more(reset: needsInitialPage) } }
+            }
             else if !expanded && (units.count > 3 || cursor != nil || needsInitialPage) {
-                Button("More \(bundle.medium == "manga" ? "chapters" : "episodes")") {
+                Button(isManga ? KuroLocale.text("More chapters", "Weitere Kapitel") : KuroLocale.text("More episodes", "Weitere Folgen")) {
                     expanded = true
                     if needsInitialPage { Task { await more(reset: true) } }
-                }.frame(minHeight: 44).buttonStyle(HomeContactStyle())
+                }.font(.kuroMeta(weight: .medium)).frame(minHeight: 44).buttonStyle(HomeContactStyle())
             } else if cursor != nil {
-                Button("More \(bundle.medium == "manga" ? "chapters" : "episodes")") { Task { await more() } }.frame(minHeight:44)
+                Button(isManga ? KuroLocale.text("More chapters", "Weitere Kapitel") : KuroLocale.text("More episodes", "Weitere Folgen")) { Task { await more() } }
+                    .font(.kuroMeta(weight: .medium)).frame(minHeight:44).buttonStyle(HomeContactStyle())
             }
         }
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
@@ -909,7 +1021,7 @@ private struct SeriesUnitsView: View {
             guard request == pageGeneration,requestedEdition == edition,permissions == home.privacyEpoch,!Task.isCancelled else { return }
             if reset { units=page.items } else { units += page.items.filter { row in !units.contains(where:{$0.id==row.id}) } }
             cursor=page.next; error=nil; needsInitialPage=false
-        } catch is CancellationError {} catch { if request == pageGeneration,requestedEdition == edition,permissions == home.privacyEpoch { self.error="More could not be loaded." } }
+        } catch is CancellationError {} catch { if request == pageGeneration,requestedEdition == edition,permissions == home.privacyEpoch { self.error=KuroLocale.text("Couldn't load more.", "Weitere konnten nicht geladen werden.") } }
         #endif
     }
 
@@ -925,7 +1037,7 @@ private struct SeriesUnitsView: View {
             editionKeys += page.items.filter { !editionKeys.contains($0) }
             editionsCursor=page.next; editionsError=nil
         } catch is CancellationError {} catch {
-            if request == editionsGeneration,permissions == home.privacyEpoch { editionsError="Editions could not be loaded." }
+            if request == editionsGeneration,permissions == home.privacyEpoch { editionsError=KuroLocale.text("Couldn't load the editions.", "Die Ausgaben konnten nicht geladen werden.") }
         }
         #endif
     }
@@ -942,6 +1054,20 @@ enum SeriesUnitPresentation {
         var keys=Array(Set(bundle.editions ?? bundle.units.map(\.editionKey))).sorted()
         if let selected=selectedEdition(bundle), !keys.contains(selected) { keys.append(selected) }
         return keys
+    }
+
+    /// The unit row's numeral and title without repeating the unit word ("Episode 1 · Episode
+    /// Episode 1" is never shown): the numeral is the whole order number when there is one, the title
+    /// is the unit's own title, else its label when that already names the unit, else "Episode 1".
+    static func display(_ unit: SeriesDetailBundle.Unit, isManga: Bool, german: Bool) -> (numeral: String, title: String) {
+        let label = unit.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        let numeral = integerPosition(unit.exactOrderKey).map(String.init) ?? label
+        if let title = unit.title?.trimmingCharacters(in: .whitespacesAndNewlines), !title.isEmpty {
+            return (numeral, title)
+        }
+        if label.contains(where: { $0.isLetter }) { return (numeral, label) }
+        let word = isManga ? (german ? "Kapitel" : "Chapter") : (german ? "Folge" : "Episode")
+        return (numeral, "\(word) \(label)")
     }
 
     static func integerPosition(_ exact: String) -> Int? {
@@ -976,5 +1102,80 @@ private struct SeriesPrincipals: View {
         MangaProductionSection(authorItems:items.filter{$0.kind=="author"}.map {
             (author:Author(id:$0.id,anilistId:nil,nameFull:$0.name,nameNative:nil,imageLarge:$0.imageURL,description:$0.description),role:$0.role ?? "")
         })
+    }
+}
+
+// MARK: - Series detail chrome and copy (overnight 2026-11-01)
+
+/// Which body a series detail shows: deciding (first load), the series sections, or the legacy
+/// sections (spec D15). Decided once, on the first answer; a later season switch never flips it.
+enum SeriesDetailMode: Equatable {
+    case resolving
+    case series
+    case legacy
+
+    static func initial(preview: SeriesDetailBundle?, hasLegacy: Bool) -> SeriesDetailMode {
+        (preview != nil || !hasLegacy) ? .series : .resolving
+    }
+
+    func resolved(bundle: SeriesDetailBundle?, loadFailed: Bool, hasLegacy: Bool) -> SeriesDetailMode {
+        guard self == .resolving else { return self }
+        guard hasLegacy else { return .series }
+        return SeriesDetailFallback.usesLegacy(bundle: bundle, loadFailed: loadFailed) ? .legacy : .series
+    }
+}
+
+/// The first moment of a series detail, before it is known which body to show.
+private struct SeriesResolvingView: View {
+    let title: String
+    var body: some View {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+            Text(title)
+                .font(.kuroFeature())
+                .foregroundStyle(Color.kuroInk)
+                .fixedSize(horizontal: false, vertical: true)
+            KuroStateView(.loading, layout: .inline)
+        }
+        .padding(.horizontal, KuroDesignSpacing.padding)
+        .padding(.top, 72)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .kuroReadableWidth()
+        .background(Color.kuroCanvasPage)
+        .overlay(alignment: .topTrailing) { SeriesCloseButton() }
+    }
+}
+
+/// The lead tracking action, near the title (not buried under the units): "Add to list" when the
+/// title is not tracked, "List settings" when it is. Both open the shared tracking editor route.
+private struct SeriesTrackingAction: View {
+    let bundle: SeriesDetailBundle
+    @Environment(LibraryStore.self) private var library
+    @Environment(\.kuroRoutes) private var routes
+
+    var body: some View {
+        if currentTrackingUser(bundle, library: library) == nil {
+            KuroInkButton(KuroLocale.text("Add to list", "Zur Liste hinzufügen")) {
+                routes.presentTrackingEditor(TrackingEditorRequest(media: detailMedia(bundle)))
+            }
+        } else {
+            KuroInkButton(KuroLocale.text("List settings", "Listeneinstellungen"), role: .secondary) {
+                routes.presentTrackingEditor(TrackingEditorRequest(media: detailMedia(bundle)))
+            }
+        }
+    }
+}
+
+/// Series detail copy shared by both pages (rulebook §9: no internal words).
+enum SeriesCopy {
+    static var boundaryUnknown: String {
+        KuroLocale.text("Where the anime ends in the manga isn't known yet.",
+                        "Wo der Anime im Manga endet, ist noch nicht bekannt.")
+    }
+
+    /// "Episode 7 of 25" / "Kapitel 24".
+    static func position(isManga: Bool, label: String, total: Int?) -> String {
+        let word = isManga ? KuroLocale.text("Chapter", "Kapitel") : KuroLocale.text("Episode", "Folge")
+        guard let total, total > 0, !isManga else { return "\(word) \(label)" }
+        return KuroLocale.text("\(word) \(label) of \(total)", "\(word) \(label) von \(total)")
     }
 }

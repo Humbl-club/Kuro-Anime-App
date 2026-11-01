@@ -52,7 +52,7 @@ private struct ExternalLinkButton: View {
         Link(destination: url) {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.kuroCustom(10, weight: .medium, maxSize: 16))
                 Text(title.uppercased())
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.2)

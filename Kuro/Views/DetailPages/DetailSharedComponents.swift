@@ -193,7 +193,7 @@ struct BackButton: View {
                 .frame(width: 40, height: 40)
                 .overlay(
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.kuroCustom(14, weight: .medium, maxSize: 22))
                         .foregroundColor(.kuroBlack)
                 )
                 .shadow(color: .kuroBlack08, radius: 8, x: 0, y: 4)

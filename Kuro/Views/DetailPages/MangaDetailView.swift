@@ -48,9 +48,13 @@ struct MangaDetailView: View {
     @State private var screenLoadGeneration = UUID()
     @State private var creditsLoadGeneration = UUID()
 
+    @State private var releaseItems: [ReleaseScheduleItem]?
+    @State private var releaseSongs: [ThemeSong]?
+
     var body: some View {
         if flags.seriesHomeNativeV1Enabled {
-            SeriesMangaDetailView(manga: manga)
+            // Spec D15: the series page shows these legacy sections when its bundle has no series data.
+            SeriesMangaDetailView(manga: manga, legacy: { AnyView(legacyMangaDetail) })
         } else {
             legacyMangaDetail
         }
@@ -87,6 +91,9 @@ struct MangaDetailView: View {
                         MangaTitleSection(manga: manga)
                         
                         MangaMetaLineSection(manga: manga)
+
+                        // Next chapter / volume with its certainty; hidden until a source dates one.
+                        DetailNextReleaseSection(items: releaseItems ?? [])
 
                         // Description
                         if manga.hasMeaningfulSynopsis {
@@ -160,7 +167,7 @@ struct MangaDetailView: View {
                             ) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "square.and.arrow.up")
-                                        .font(.system(size: 11, weight: .medium))
+                                        .font(.kuroCustom(11, weight: .medium, maxSize: 18))
                                     Text("SHARE")
                                         .font(.kuroMicro(weight: .medium))
                                         .tracking(1.2)
@@ -302,6 +309,7 @@ struct MangaDetailView: View {
             creditsLoadGeneration = UUID()
             toastDismissTask?.cancel()
         }
+        .detailReleases(kind: .manga, id: manga.id, schedule: $releaseItems, songs: $releaseSongs)
         // This detail sheet's own presentation context: the cards and the action bar inside open their
         // routes here (stacked on this detail, as before).
         .routePresenter()
@@ -466,7 +474,7 @@ struct MangaNextPickSection: View {
                         Spacer(minLength: 0)
 
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.kuroCustom(12, weight: .medium, maxSize: 19))
                             .foregroundColor(.kuroBlack30)
                     }
                     .padding(12)
@@ -570,7 +578,7 @@ struct MangaTitleSection: View {
             
             // Main Title
             Text(manga.displayTitle.uppercased())
-                .font(.system(size: ResponsiveLayout.fontSize(24), weight: .ultraLight, design: .serif))
+                .font(.kuroCustom(24, weight: .ultraLight, design: .serif, relativeTo: .title2, maxSize: 40))
                 .tracking(0.5)
                 .foregroundColor(.kuroBlack)
                 .lineSpacing(4)
@@ -854,7 +862,7 @@ struct ChapterItemRow: View {
                     .scaleEffect(0.75)
             } else if isRead {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
                     .foregroundColor(.kuroBlack)
             } else {
                 Button(action: {
@@ -862,7 +870,7 @@ struct ChapterItemRow: View {
                     onMarkRead()
                 }) {
                     Image(systemName: "plus.circle")
-                        .font(.system(size: 16, weight: .regular))
+                        .font(.kuroCustom(16, weight: .regular, maxSize: 26))
                         .foregroundColor(.kuroBlack80)
                 }
                 .buttonStyle(.plain)
@@ -871,7 +879,7 @@ struct ChapterItemRow: View {
 
             if hasExternalLink {
                 Image(systemName: "link.circle")
-                    .font(.system(size: 14, weight: .regular))
+                    .font(.kuroCustom(14, weight: .regular, maxSize: 22))
                     .foregroundColor(.kuroBlack30)
             }
         }
@@ -1275,7 +1283,7 @@ struct MangaActionButtons: View {
             HStack(spacing: 10) {
                 Button { toggleSaved(origin: origin) } label: {
                     Image(systemName: isSaved ? "heart.fill" : "heart")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
                         .foregroundColor(.kuroBlack)
                         .frame(width: 38, height: 38)
                         .background(Color.kuroBlack08)
@@ -1290,7 +1298,7 @@ struct MangaActionButtons: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
                         Text(isSaved ? "EDIT LIST" : "ADD TO LIST")
                             .font(.kuroMicro(weight: .medium))
                             .tracking(1.1)
@@ -1309,7 +1317,7 @@ struct MangaActionButtons: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "tag")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.kuroCustom(11, weight: .semibold, maxSize: 18))
                         Text(verdictButtonTitle.uppercased())
                             .font(.kuroMicro(weight: .medium))
                             .tracking(0.9)
@@ -1332,7 +1340,7 @@ struct MangaActionButtons: View {
 
                 Button(action: handleReadAction) {
                     Image(systemName: hasReadLink ? "book.fill" : "book.closed")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.kuroCustom(13, weight: .semibold, maxSize: 21))
                         .foregroundColor(hasReadLink ? .kuroBlack : .kuroBlack30)
                         .frame(width: 38, height: 38)
                         .background(Color.kuroBlack08)

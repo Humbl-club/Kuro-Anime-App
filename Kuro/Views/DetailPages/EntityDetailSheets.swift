@@ -562,7 +562,7 @@ struct EntityHeroSection: View {
             .fill(Color.black.opacity(0.06))
             .overlay(
                 Image(systemName: "person.fill")
-                    .font(.system(size: 36, weight: .light))
+                    .font(.kuroCustom(36, weight: .light, maxSize: 58))
                     .foregroundColor(.black.opacity(0.2))
             )
     }
@@ -712,7 +712,7 @@ struct EntityWorkCard: View {
 
             if let role, !role.isEmpty {
                 Text(role.uppercased())
-                    .font(.system(size: 8, weight: .regular))
+                    .font(.kuroCustom(8, weight: .regular, maxSize: 13))
                     .tracking(0.8)
                     .foregroundColor(.kuroTextTertiary)
                     .lineLimit(1)

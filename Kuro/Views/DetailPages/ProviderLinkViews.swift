@@ -83,7 +83,7 @@ private struct ProviderSelectionExplainerCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Image(systemName: isVerifiedOnly ? "checkmark.seal.fill" : "rectangle.stack.fill")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.kuroCustom(12, weight: .semibold, maxSize: 19))
                     .foregroundColor(isVerifiedOnly ? .kuroBlack : .kuroBlack60)
                 Text(title.uppercased())
                     .font(.kuroMicro(weight: .medium))
@@ -106,7 +106,7 @@ private struct ProviderSelectionExplainerCard: View {
             if let statusCaption, !statusCaption.isEmpty {
                 HStack(spacing: 6) {
                     Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.kuroCustom(10, weight: .semibold, maxSize: 16))
                         .foregroundColor(.kuroBlack30)
                     Text(statusCaption)
                         .font(.kuroMicro(weight: .medium))
@@ -168,7 +168,7 @@ private struct ProviderSelectionLinkCard: View {
 
             VStack(spacing: 6) {
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.kuroCustom(12, weight: .semibold, maxSize: 19))
                     .foregroundColor(.kuroBlack30)
                 Text("OPEN")
                     .font(.kuroMicro(weight: .medium))
@@ -217,7 +217,7 @@ private struct ProviderBrandMark: View {
 
             if let palette {
                 Text(palette.label)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .font(.kuroCustom(10, weight: .semibold, design: .rounded, maxSize: 16))
                     .tracking(0.2)
                     .foregroundColor(palette.foreground)
                     .lineLimit(1)
@@ -225,7 +225,7 @@ private struct ProviderBrandMark: View {
                     .padding(.horizontal, 8)
             } else {
                 Image(systemName: fallbackSystemImage)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
                     .foregroundColor(isAvailable ? .kuroBlack : .kuroBlack30)
             }
         }

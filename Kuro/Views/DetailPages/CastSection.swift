@@ -190,7 +190,7 @@ private struct CastCircleItem: View {
 
     private func roleBadge(_ label: String) -> some View {
         Text(label)
-            .font(.system(size: 8, weight: .semibold))
+            .font(.kuroCustom(8, weight: .semibold, maxSize: 13))
             .tracking(1.0)
             .foregroundColor(.black.opacity(0.55))
             .padding(.horizontal, 6)
@@ -286,7 +286,7 @@ private struct CharacterDirectoryStatPill: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.kuroCustom(9, weight: .semibold, maxSize: 14))
                 .tracking(1.0)
                 .foregroundColor(.kuroTextTertiary)
 
