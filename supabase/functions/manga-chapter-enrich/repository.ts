@@ -1,6 +1,7 @@
 // Table and RPC access for manga-chapter-enrich. Every read and write takes
 // the injected Supabase client. Review retry delays are unchanged.
 import type { CandidateRow, MangaDexManga, MappingMethod, MatcherMode } from "./matching.ts";
+import type { AggregateVolume } from "./mangadex.ts";
 
 export interface MappingRow {
   provider_media_id: string;
@@ -392,6 +393,82 @@ export async function upsertChapterRows(
     }
     if (error) throw error;
   }
+}
+
+/** Display range stored in volumes.description ("Chapters 1–8"); see upsertVolumeRows. */
+export function volumeRangeText(firstChapter: number, lastChapter: number): string {
+  return firstChapter === lastChapter ? `Chapter ${firstChapter}` : `Chapters ${firstChapter}–${lastChapter}`;
+}
+
+const VOLUME_RANGE_PATTERN = /^Chapters? \d+(–\d+)?$/;
+
+/**
+ * Real volume rows from the MangaDex /aggregate grouping (same read-then-write pattern as
+ * upsertChapterRows; the (manga_id, number) unique index is partial, so PostgREST onConflict
+ * cannot target it). `volumes` has no chapter-range columns, so the range goes into
+ * `description` ("Chapters 1–8"). Missing volumes are inserted; an existing row is updated only
+ * when its description is empty (an AniList placeholder) or one this writer owns (range text)
+ * that changed. Rows with other descriptions are never touched; nothing is deleted.
+ */
+export async function upsertVolumeRows(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  mangaId: number,
+  volumes: AggregateVolume[],
+): Promise<{ inserted: number; updated: number }> {
+  let inserted = 0;
+  let updated = 0;
+  const chunkSize = 200;
+  for (let i = 0; i < volumes.length; i += chunkSize) {
+    const chunk = volumes.slice(i, i + chunkSize);
+    const { data: existingRows, error: existingError } = await supabase
+      .from("volumes")
+      .select("id, number, title, description")
+      .eq("manga_id", mangaId)
+      .in("number", chunk.map((v) => v.volume));
+    if (existingError) throw existingError;
+    const existing = new Map<number, { id: number; title: string | null; description: string | null }>();
+    for (const row of (existingRows ?? []) as { id: number; number: number; title: string | null; description: string | null }[]) {
+      existing.set(Number(row.number), row);
+    }
+
+    const missing = chunk.filter((v) => !existing.has(v.volume));
+    if (missing.length > 0) {
+      const payload = missing.map((v) => ({
+        manga_id: mangaId,
+        number: v.volume,
+        title: `Volume ${v.volume}`,
+        description: volumeRangeText(v.firstChapter, v.lastChapter),
+      }));
+      const { error } = await supabase.from("volumes").insert(payload);
+      if (error?.code === "23505") {
+        // Another writer inserted between read and insert: fall back to one row at a time.
+        for (const row of payload) {
+          const { error: singleError } = await supabase.from("volumes").insert(row);
+          if (singleError && singleError.code !== "23505") throw singleError;
+          if (!singleError) inserted++;
+        }
+      } else if (error) {
+        throw error;
+      } else {
+        inserted += payload.length;
+      }
+    }
+
+    for (const v of chunk) {
+      const row = existing.get(v.volume);
+      if (!row) continue;
+      const range = volumeRangeText(v.firstChapter, v.lastChapter);
+      const owned = row.description == null || row.description.trim() === "" || VOLUME_RANGE_PATTERN.test(row.description);
+      if (!owned || row.description === range) continue;
+      const patch: Record<string, unknown> = { description: range };
+      if (!row.title) patch.title = `Volume ${v.volume}`;
+      const { error } = await supabase.from("volumes").update(patch).eq("id", row.id);
+      if (error) throw error;
+      updated++;
+    }
+  }
+  return { inserted, updated };
 }
 
 export async function fetchChapterCount(

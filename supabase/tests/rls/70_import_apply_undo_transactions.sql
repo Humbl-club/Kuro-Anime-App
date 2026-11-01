@@ -107,15 +107,25 @@ select tests.eq('A: new row written with the insert values (progress default 0, 
 select tests.eq('A: existing row: only the written fields changed, authored notes kept',
   (select list_type || '/' || progress || '/' || rating || '/' || notes
      from public.anime_user_lists where user_id = tests.uid(71)::text and anime_id = 970002), 'WATCHING/5/9/mine');
+-- 2026-11-01: since the series foundation (20261007040000/20261008100000, live) the inserted
+-- row image also carries unit_id, progress_label and the random lifecycle_id. The random
+-- value is asserted for presence, then removed before the exact comparison.
+select tests.ok('A: add journal: after image carries the inserted row lifecycle_id',
+  (select (after_values ->> 'lifecycle_id') ~ '^[0-9a-f-]{36}$' from public.import_session_items
+    where session_id = :'a_sid' and chosen ->> 'mediaId' = '970001'));
 select tests.eq('A: add journal: after image is the whole inserted row, no before image',
-  (select after_values || jsonb_build_object('prev', previous_values) from public.import_session_items
+  (select (after_values - 'lifecycle_id') || jsonb_build_object('prev', previous_values) from public.import_session_items
     where session_id = :'a_sid' and chosen ->> 'mediaId' = '970001'),
-  '{"list_type":"PLANNING","progress":0,"rating":null,"notes":null,"verdict":null,"prev":null}'::jsonb);
-select tests.eq('A: update journal: after image = the written fields only',
-  (select after_values from public.import_session_items where session_id = :'a_sid' and chosen ->> 'mediaId' = '970002'),
+  '{"list_type":"PLANNING","progress":0,"rating":null,"notes":null,"verdict":null,"unit_id":null,"progress_label":null,"prev":null}'::jsonb);
+-- 2026-11-01: 20261008100000 (live) also journals the tracking identity (lifecycle_id,
+-- unit_id, progress_label) so legacy Undo restores exact tracking; compared without them.
+select tests.eq('A: update journal: after image = the written fields (+ tracking identity)',
+  (select after_values - array['lifecycle_id','unit_id','progress_label'] from public.import_session_items where session_id = :'a_sid' and chosen ->> 'mediaId' = '970002'),
   '{"list_type":"WATCHING","progress":5,"rating":9}'::jsonb);
+select tests.ok('A: update journal: after image carries the row lifecycle_id',
+  (select (after_values ->> 'lifecycle_id') ~ '^[0-9a-f-]{36}$' from public.import_session_items where session_id = :'a_sid' and chosen ->> 'mediaId' = '970002'));
 select tests.eq('A: update journal: before image = the whole row before the import',
-  (select previous_values from public.import_session_items where session_id = :'a_sid' and chosen ->> 'mediaId' = '970002'),
+  (select previous_values - array['lifecycle_id','unit_id','progress_label'] from public.import_session_items where session_id = :'a_sid' and chosen ->> 'mediaId' = '970002'),
   '{"list_type":"WATCHING","progress":3,"rating":8,"notes":"mine","verdict":null}'::jsonb);
 select tests.eq('A: three journal rows (applied, applied, skipped)',
   (select string_agg(state, ',' order by (action ->> 'ordinal')::int) from public.import_session_items where session_id = :'a_sid'),
@@ -233,10 +243,11 @@ select tests.eq('B: an untouched add is deleted',
   (select count(*) from public.anime_user_lists where user_id = tests.uid(72)::text and anime_id = 970013), 0::bigint);
 select tests.eq('B F08: an add edited later is kept as edited',
   (select list_type || '/' || progress || '/' || rating from public.anime_user_lists where user_id = tests.uid(72)::text and anime_id = 970014), 'WATCHING/3/6');
+-- 2026-11-01: since 20261008100000 (live) Undo also restores the journalled tracking identity.
 select tests.eq('B: reverted entries',
   (:'b_undo'::jsonb) -> 'reverted',
-  '[{"mediaType":"ANIME","mediaId":970010,"undoType":"restored","fields":["list_type","progress"]},
-    {"mediaType":"ANIME","mediaId":970012,"undoType":"restored","fields":["list_type","progress"]},
+  '[{"mediaType":"ANIME","mediaId":970010,"undoType":"restored","fields":["list_type","progress","unit_id","progress_label"]},
+    {"mediaType":"ANIME","mediaId":970012,"undoType":"restored","fields":["list_type","progress","unit_id","progress_label"]},
     {"mediaType":"ANIME","mediaId":970013,"undoType":"deleted"}]'::jsonb);
 select tests.eq('B: skipped entries explain every kept change',
   (:'b_undo'::jsonb) -> 'skipped',
@@ -388,11 +399,18 @@ insert into public.anime_user_lists (user_id, anime_id, list_type, progress, rat
 :as_service
 select public.undo_import_session(tests.uid(78), '00000000-0000-4000-8000-0000000a0078') as j_undo \gset
 select tests.reset();
-select tests.eq('J: legacy update journal (after image in action.after) is restored',
+-- 2026-11-01: since 20261008100000 (live, "guarded Undo") a journal without a recorded
+-- lifecycle cannot prove the current row is the one the import wrote, so it is SKIPPED with
+-- reason legacy_lifecycle_unavailable and the row is kept (fail-safe; previously restored).
+select tests.eq('J: legacy update journal (no lifecycle) is skipped, never blindly restored',
   (select list_type || '/' || progress || '/' || rating || '/' || notes from public.anime_user_lists
-    where user_id = tests.uid(78)::text and anime_id = 970050), 'WATCHING/2/7/n');
-select tests.eq('J: legacy add journal is deleted',
-  (select count(*) from public.anime_user_lists where user_id = tests.uid(78)::text and anime_id = 970051), 0::bigint);
+    where user_id = tests.uid(78)::text and anime_id = 970050), 'COMPLETED/12/7/n');
+select tests.ok('J: the skip names legacy_lifecycle_unavailable for the legacy update',
+  (:'j_undo'::jsonb) -> 'skipped' @> '[{"mediaId":970050,"reason":"legacy_lifecycle_unavailable"}]'::jsonb);
+select tests.eq('J: legacy add journal (no lifecycle) is skipped, the row is kept',
+  (select count(*) from public.anime_user_lists where user_id = tests.uid(78)::text and anime_id = 970051), 1::bigint);
+select tests.ok('J: the skip names legacy_lifecycle_unavailable for the legacy add',
+  (:'j_undo'::jsonb) -> 'skipped' @> '[{"mediaId":970051,"reason":"legacy_lifecycle_unavailable"}]'::jsonb);
 
 -- ---- L. malformed journal values are handled deterministically (never a blind cast) ----
 select tests.make_user(79), tests.make_user(80);
@@ -416,22 +434,29 @@ select tests.eq('L: each malformed descriptor is replaced by its default (raw, p
 -- a journal row with a non-numeric ordinal and before values of the wrong type
 insert into public.import_sessions (id, user_id, status, source)
 values ('00000000-0000-4000-8000-0000000a0079', tests.uid(79), 'applied', 'chat');
+-- 2026-11-01: the list row is written first so the journal's after image can carry its
+-- lifecycle_id; since 20261008100000 (live) a journal without one is skipped as
+-- legacy_lifecycle_unavailable (section J) and could not exercise the value checks here.
+insert into public.anime_user_lists (user_id, anime_id, list_type, progress, rating, notes)
+values (tests.uid(79)::text, 970052, 'COMPLETED', 12, 9, 'n2');
 insert into public.import_session_items (session_id, raw, chosen, action, state, import_action, previous_values, after_values) values
   ('00000000-0000-4000-8000-0000000a0079', 'malformed', '{"mediaType":"ANIME","mediaId":970052}', '{"ordinal":"x","outcome":"applied"}',
    'applied', 'update', '{"list_type":"WATCHING","progress":"two","rating":"x","notes":5}',
-   '{"list_type":"COMPLETED","progress":12,"rating":9,"notes":"n2"}'),
+   '{"list_type":"COMPLETED","progress":12,"rating":9,"notes":"n2"}'::jsonb
+     || jsonb_build_object('lifecycle_id', (select lifecycle_id from public.anime_user_lists
+                                             where user_id = tests.uid(79)::text and anime_id = 970052))),
   ('00000000-0000-4000-8000-0000000a0079', 'malformed identity', '{"mediaType":"ANIME","mediaId":"x"}', '{"ordinal":2}',
    'applied', 'add', null, '{"list_type":"PLANNING","progress":0}');
-insert into public.anime_user_lists (user_id, anime_id, list_type, progress, rating, notes)
-values (tests.uid(79)::text, 970052, 'COMPLETED', 12, 9, 'n2');
 :as_service
 select public.undo_import_session(tests.uid(79), '00000000-0000-4000-8000-0000000a0079') as l_undo \gset
 select tests.reset();
+-- 2026-11-01: the before image has no unit_id/progress_label, so they are reported as
+-- unrestorable too (20261008100000 journals the tracking identity).
 select tests.eq('L: undo reverts the restorable field, keeps the unrestorable ones and says why',
   jsonb_build_object('result', (:'l_undo'::jsonb) -> 'result', 'reverted', (:'l_undo'::jsonb) -> 'reverted',
                      'warning', (:'l_undo'::jsonb) -> 'warnings' -> 0),
   '{"result":"undone","reverted":[{"mediaType":"ANIME","mediaId":970052,"undoType":"restored","fields":["list_type"]}],
-    "warning":{"mediaType":"ANIME","mediaId":970052,"reason":"unrestorable_before_value","fields":["notes","progress","rating"]}}'::jsonb);
+    "warning":{"mediaType":"ANIME","mediaId":970052,"reason":"unrestorable_before_value","fields":["notes","rating","progress","unit_id","progress_label"]}}'::jsonb);
 select tests.eq('L: a journal row with a malformed identity is skipped with a warning, not a failed Undo',
   (:'l_undo'::jsonb) #>> '{warnings,1,reason}', 'invalid_journal_identity');
 
@@ -466,7 +491,7 @@ select tests.eq('N A1: [add 3, update 5] on one title: Undo (last write first) r
 select tests.eq('N A1: ...reported in request order, nothing mislabelled as a later edit',
   jsonb_build_object('reverted', (:'n_undo'::jsonb) -> 'reverted', 'skipped', (:'n_undo'::jsonb) -> 'skipped'),
   '{"reverted":[{"mediaType":"ANIME","mediaId":970090,"undoType":"deleted"},
-                {"mediaType":"ANIME","mediaId":970090,"undoType":"restored","fields":["list_type","progress"]}],
+                {"mediaType":"ANIME","mediaId":970090,"undoType":"restored","fields":["list_type","progress","unit_id","progress_label"]}],
     "skipped":[]}'::jsonb);
 select tests.eq('L: ...and the row is exactly that',
   (select list_type || '/' || progress || '/' || rating || '/' || notes from public.anime_user_lists

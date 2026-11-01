@@ -127,9 +127,11 @@ select tests.reset();
 -- Real legacy ingestion writes feed the new bounded units/releases without fictional chapter dates.
 insert into public.chapters(id,manga_id,number,title,release_date) values(794090,794005,5,'Source chapter',current_date+2);
 select tests.eq('legacy chapter creates exactly one canonical unit',(select count(*) from public.catalogue_units where manga_id=794005 and edition_key='legacy_catalogue' and order_key=5),1::bigint);
-select tests.eq('legacy date-only source stays date-only',(select precision from public.release_events where source_identity='legacy:manga:794090:794005:5'),'day');
+-- 2026-11-01: the key is 'legacy:manga:794005:5' once the prepared 20261101020000 natural-key
+-- fix is in the fixture, and the old surrogate-id form without it; either spelling is accepted here.
+select tests.eq('legacy date-only source stays date-only',(select precision from public.release_events where source_identity in ('legacy:manga:794090:794005:5','legacy:manga:794005:5')),'day');
 update public.chapters set manga_id=794006,number=6 where id=794090;
-select tests.eq('source remap withdraws the old release',(select status from public.release_events where source_identity='legacy:manga:794090:794005:5'),'withdrawn');
+select tests.eq('source remap withdraws the old release',(select status from public.release_events where source_identity in ('legacy:manga:794090:794005:5','legacy:manga:794005:5')),'withdrawn');
 select tests.eq('source remap preserves old unit identity safely',(select available from public.catalogue_units where manga_id=794005 and edition_key='legacy_catalogue' and order_key=5),false);
 select tests.eq('source remap creates the new target once',(select count(*) from public.catalogue_units where manga_id=794006 and order_key=6),1::bigint);
 -- Named data obeys BOTH members' disclosure ranks; removal revokes the same public RPC.

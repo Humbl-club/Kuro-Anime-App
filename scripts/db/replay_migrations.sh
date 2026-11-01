@@ -55,7 +55,13 @@ apply_one() {   # apply_one <file> <tag>
     printf 'SKIP\t%s\tEXCLUDED\t\n' "$f" >> "$report"; return 0
   fi
   local path="$mig/$f"; [ -f "$path" ] || path="$prepared/$f"
-  out="$(psql -X -q -1 -v ON_ERROR_STOP=1 -f "$path" 2>&1 >/dev/null)"; rc=$?
+  # A file whose first 10 lines carry the marker `-- kuro:replay-no-transaction`
+  # holds statements that cannot run inside a transaction block (DROP INDEX
+  # CONCURRENTLY). It is applied WITHOUT -1; it must manage its own BEGIN/COMMIT
+  # for any transactional part and fail fast through ON_ERROR_STOP.
+  local single="-1"
+  if head -n 10 "$path" | grep -q '^-- kuro:replay-no-transaction'; then single=""; fi
+  out="$(psql -X -q $single -v ON_ERROR_STOP=1 -f "$path" 2>&1 >/dev/null)"; rc=$?
   if [ "$rc" -eq 0 ]; then
     printf 'PASS\t%s\t%s\t\n' "$f" "$tag" >> "$report"; n_pass=$((n_pass+1))
   else
@@ -65,7 +71,21 @@ apply_one() {   # apply_one <file> <tag>
   fi
 }
 
-all_files() { ( { ( cd "$mig" && ls -1 ./*.sql ); [ -d "$prepared" ] && ( cd "$prepared" && ls -1 ./*.sql 2>/dev/null ); } | sed 's|^\./||' | LC_ALL=C sort ); }
+# A basename present in BOTH supabase/migrations and supabase/prepared-migrations (a
+# prepared file that was later copied into the deployed chain) is applied ONCE, from
+# supabase/migrations (apply_one prefers it). Two different files under one basename
+# are a setup error: replaying either would misstate what the fixture contains.
+all_files() { ( { ( cd "$mig" && ls -1 ./*.sql ); [ -d "$prepared" ] && ( cd "$prepared" && ls -1 ./*.sql 2>/dev/null ); } | sed 's|^\./||' | LC_ALL=C sort -u ); }
+if [ -d "$prepared" ]; then
+  for p in "$prepared"/*.sql; do
+    [ -f "$p" ] || continue
+    b="$(basename "$p")"
+    if [ -f "$mig/$b" ] && ! cmp -s "$mig/$b" "$p"; then
+      echo "replay: $b exists in supabase/migrations AND supabase/prepared-migrations with DIFFERENT content; refusing to guess which one the fixture should hold" >&2
+      exit 3
+    fi
+  done
+fi
 
 case "$mode" in
   strict)

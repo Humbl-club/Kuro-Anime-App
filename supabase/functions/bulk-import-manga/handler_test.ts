@@ -27,7 +27,7 @@ class Db {
 
   from(table: string) {
     const db = this;
-    let action: "select" | "insert" | "update" | "upsert" = "select";
+    let action: "select" | "insert" | "update" | "upsert" | "delete" = "select";
     let payload: Row | Row[] | null = null;
     let conflict: string[] = [];
     const filters: [string, unknown][] = [];
@@ -46,6 +46,10 @@ class Db {
       }
       if (action === "update") {
         for (const row of rows) if (matches(row)) Object.assign(row, payload);
+        return { data: null, error: null };
+      }
+      if (action === "delete") {
+        db.tables[table] = rows.filter((row) => !matches(row));
         return { data: null, error: null };
       }
       const incoming = Array.isArray(payload) ? payload : [payload as Row];
@@ -82,6 +86,10 @@ class Db {
       update(p: Row) {
         action = "update";
         payload = p;
+        return builder;
+      },
+      delete() {
+        action = "delete";
         return builder;
       },
       upsert(p: Row | Row[], opts?: { onConflict?: string }) {
@@ -386,4 +394,134 @@ Deno.test("a failed primary upsert does not complete the page, and replaying it 
   assert.deepEqual(db.rows("manga").map((r) => r.anilist_id).sort(), [501, 502, 503]);
   assert.equal(db.rows("manga").length, 3);
   assert.equal(db.rows("import_runs").at(-1)?.status, "success");
+});
+
+// ---------------------------------------------------------------------------
+// 2026-11-01 intake robustness: provider errors, per-track queries, clobber guards.
+// ---------------------------------------------------------------------------
+import { AniListError, AniListLimiter, createAniListClient } from "../_shared/anilist_client.ts";
+import { fetchAniListMangaData } from "./anilist.ts";
+
+function realTransport(bodies: unknown[]) {
+  const queries: { query: string; variables: Record<string, unknown> }[] = [];
+  const client = createAniListClient({
+    limiter: new AniListLimiter(0),
+    sleep: () => Promise.resolve(),
+    random: () => 0,
+    fetch: (_input, init) => {
+      queries.push(JSON.parse(String(init?.body)));
+      return Promise.resolve(new Response(JSON.stringify(bodies.shift()), { status: 200, headers: { "Content-Type": "application/json" } }));
+    },
+  });
+  return {
+    queries,
+    fetchPage: (page: number, perPage: number, rel: boolean, retries: number, query: any) =>
+      fetchAniListMangaData(page, perPage, rel, retries, query, client),
+  };
+}
+
+for (const [label, body] of [
+  ["200 with GraphQL errors", { data: null, errors: [{ message: "Internal Server Error" }] }],
+  ["200 without data.Page", { data: {} }],
+] as const) {
+  Deno.test(`${label} is a failed run: no cursor wrap, no advance, lock released`, async () => {
+    const db = new Db();
+    db.seed("import_state", [{ media_type: "MANGA", last_page: 4 }]);
+    const transport = realTransport([body]);
+    const res = await run(cursorRunPayload(), { supabase: db, heavyImportsEnabled: true, fetchPage: transport.fetchPage });
+    assert.equal(res.status, 500);
+    assert.equal(cursor(db), 4);
+    assert.equal(db.rows("import_runs")[0].status, "error");
+    assert.equal(db.lockHeld.size, 0);
+  });
+}
+
+Deno.test("a rate-limit stop before any request commits persisted pages and does not wrap", async () => {
+  const db = new Db();
+  db.seed("import_state", [{ media_type: "MANGA", last_page: 4 }]);
+  const res = await run({ ...cursorRunPayload(), pagesPerBatch: 3 }, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage(page) {
+      if (page === 6) return Promise.reject(new AniListError("rate_limited", "paused"));
+      return Promise.resolve([media(page * 10)]);
+    },
+  });
+  const out = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(out.stoppedEarly, "rate_limited");
+  assert.equal(cursor(db), 5);
+});
+
+Deno.test("a null AniList chapter count never overwrites a known count and next_chapter_* is not written", async () => {
+  const db = new Db();
+  db.seed("manga", [{
+    id: 1,
+    anilist_id: 77,
+    updated_at_anilist: new Date(1 * 1000).toISOString(),
+    chapters: 1196,
+    volumes: 113,
+    next_chapter_number: 1197,
+    description: "Pirates.",
+    cover_image_large: "https://x.supabase.co/storage/v1/object/public/media/manga/77.webp",
+    synopsis_enhanced_state: "done",
+  }]);
+  const item = { ...media(77), updatedAt: 2, status: "RELEASING", chapters: null, volumes: null, description: "Pirates.", coverImage: { large: "https://s4.anilist.co/77.jpg" } };
+  const res = await run({ ...cursorRunPayload(), useCursor: false }, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  assert.equal(res.status, 200);
+  const row = db.rows("manga")[0];
+  assert.equal(row.chapters, 1196);
+  assert.equal(row.volumes, 113);
+  assert.equal(row.next_chapter_number, 1197, "bulk import must not null next_chapter_*");
+  assert.equal(row.status, "RELEASING");
+  assert.equal(row.cover_image_large, "https://x.supabase.co/storage/v1/object/public/media/manga/77.webp");
+  assert.equal(row.synopsis_enhanced_state, "done");
+  assert.equal(db.rows("manga").length, 1);
+});
+
+Deno.test("an unchanged manga gets no write (last_synced_at untouched)", async () => {
+  const db = new Db();
+  db.seed("manga", [{ id: 1, anilist_id: 78, updated_at_anilist: new Date(1_700_000_000 * 1000).toISOString(), last_synced_at: "2026-01-01T00:00:00.000Z" }]);
+  await run({ ...cursorRunPayload(), useCursor: false }, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([media(78)]) });
+  assert.equal(db.rows("manga")[0].last_synced_at, "2026-01-01T00:00:00.000Z");
+});
+
+Deno.test("manga join-table re-imports update in place", async () => {
+  const db = new Db();
+  const item = (rank: number, updatedAt: number) => ({
+    ...media(79),
+    updatedAt,
+    tags: [{ id: 9, name: "Seinen", rank }],
+    staff: { nodes: [{ id: 6, name: { full: "B" } }], edges: [{ role: "Story" }] },
+    characters: { nodes: [{ id: 5, name: { full: "A" } }], edges: [{ role: "MAIN" }] },
+    externalLinks: [{ site: "Viz", url: "https://viz.example/x", isDisabled: true }],
+  });
+  const payload = { ...cursorRunPayload(), useCursor: false, includeRelations: true, lightweight: false };
+  await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item(60, 1)]) });
+  const second = await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item(90, 2)]) });
+  assert.equal((await second.json()).results.errors, 0);
+  assert.equal(db.rows("manga_tags").length, 1);
+  assert.equal(db.rows("manga_tags")[0].rank, 90);
+  assert.equal(db.rows("manga_authors").length, 1);
+  assert.equal(db.rows("manga_staff").length, 1);
+  assert.equal(db.rows("manga_characters").length, 1);
+  assert.equal(db.rows("external_links")[0].is_disabled, true);
+});
+
+Deno.test("manga releasing track uses status_in + UPDATED_AT_DESC and its own cursor", async () => {
+  const db = new Db();
+  db.seed("import_state", [{ media_type: "MANGA", last_page: 9 }]);
+  const transport = realTransport([{ data: { Page: { media: [{ ...media(80), updatedAt: 50 }] } } }]);
+  const res = await run({ trackPreset: "airing_or_releasing", pagesPerBatch: 1, delayMs: 0, includeRelations: false, initialSweepPages: 1 }, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage: transport.fetchPage,
+  });
+  assert.equal(res.status, 200);
+  assert.deepEqual(transport.queries[0].variables.sort, ["UPDATED_AT_DESC"]);
+  assert.deepEqual(transport.queries[0].variables.statusIn, ["RELEASING", "NOT_YET_RELEASED"]);
+  assert.match(transport.queries[0].query, /status_in: \$statusIn/);
+  const row = db.rows("import_track_state").find((r) => r.track_key === "manga:airing_or_releasing") as any;
+  assert.equal(row.last_results.cursor.watermark, 50);
+  assert.equal(cursor(db), 9);
 });
