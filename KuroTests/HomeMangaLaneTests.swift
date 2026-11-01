@@ -238,6 +238,11 @@ struct HomeMangaLaneTests {
         #expect(HomeClubRoom.timeAgo(Self.now.addingTimeInterval(-7_200), now: Self.now, german: true) == "vor 2 Std.")
         #expect(HomeClubRoom.timeAgo(nil, now: Self.now, german: false) == nil)
         #expect(HomeClubRoom.initials(["mina", "Jules", "Ari", "Noah"]) == ["M", "J", "A"])
+        // A failed clubs read with no known club is a failure, never "no clubs"; a known club keeps its room.
+        #expect(HomeClubRoom.presentation(picked: nil, clubsReadFailed: false, notesFailed: false) == .hidden)
+        #expect(HomeClubRoom.presentation(picked: nil, clubsReadFailed: true, notesFailed: false) == .failed)
+        #expect(HomeClubRoom.presentation(picked: real, clubsReadFailed: true, notesFailed: true)
+                == .room(real, notesFailed: true))
         // The small-phone room (≈ 296 pt at 320) and the regular one (356 pt at 390).
         #expect(HomeClubRoom.isCompact(width: 296) && !HomeClubRoom.isCompact(width: 356))
     }
@@ -469,10 +474,24 @@ struct HomeMangaLaneSnapshotTests {
             await render(MangaHomeFixture(width: width), width: width, name: "home-manga-busy-\(Int(width)).png")
         }
         await render(AnimeLowerFixture(width: 390), width: 390, name: "home-anime-calendar-club-390.png")
-        await render(AnimeLowerFixture(width: 390).environment(\.dynamicTypeSize, .accessibility3), width: 390,
-                     name: "home-anime-calendar-club-ax3-390.png")
-        await render(MangaHomeFixture(width: 390).environment(\.dynamicTypeSize, .accessibility3), width: 390,
-                     name: "home-manga-busy-ax3-390.png")
+        // AX5: the app's type scale (`KuroTypeScale`, read by every `kuroCustom` size) and the
+        // environment both at accessibility 5, then restored.
+        let savedCategory = KuroTypeScale.current.category
+        KuroTypeScale.current.update(.accessibility5)
+        await render(AnimeLowerFixture(width: 390).environment(\.dynamicTypeSize, .accessibility5), width: 390,
+                     name: "home-anime-calendar-club-ax5-390.png")
+        await render(MangaHomeFixture(width: 390).environment(\.dynamicTypeSize, .accessibility5), width: 390,
+                     name: "home-manga-busy-ax5-390.png")
+        KuroTypeScale.current.update(category: savedCategory ?? .large)
+        await render(VStack(spacing: 24) {
+            HomeMangaLeavesLoading(containerWidth: 346).padding(.horizontal, 22)
+            HomeClubRoomFailure(medium: .manga, onRetry: {}).padding(.horizontal, 17)
+            HomeClubRoom(club: Self.sundayClub, notes: [], medium: .anime, now: Self.now,
+                         notesFailed: true, onRetry: {}).padding(.horizontal, 17)
+        }
+        .padding(.vertical, 24)
+        .frame(width: 390)
+        .background(Color.kuroCanvasHomeManga), width: 390, name: "home-manga-states-390.png")
     }
 
     // MARK: Render

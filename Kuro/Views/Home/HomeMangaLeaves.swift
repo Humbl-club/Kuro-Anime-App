@@ -175,3 +175,23 @@ private struct HomeLeafCover: View {
         }
     }
 }
+
+/// The leaves' loading shape (spec §5.4): three branded cover-leaf skeletons on the same grid as the
+/// real leaves, shown while Home's titles in progress arrive. Integration: replaces the manga branch
+/// of `HomeView.sceneLoadingShape`.
+struct HomeMangaLeavesLoading: View {
+    let containerWidth: CGFloat
+
+    var body: some View {
+        let metrics = HomeMangaLeafMetrics(width: containerWidth)
+        HStack(alignment: .top, spacing: metrics.columnGap) {
+            ForEach(0..<3, id: \.self) { _ in
+                KuroSkeleton(kind: .coverLeaf)
+                    .frame(width: metrics.columnWidth)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(KuroLocale.text("Loading your titles in progress", "Deine laufenden Titel werden geladen"))
+    }
+}

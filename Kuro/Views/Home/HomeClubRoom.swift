@@ -92,6 +92,16 @@ struct HomeClubRoom: View {
         var isSpoiler: Bool { spoilerScope != nil }
     }
 
+    /// What Home shows where the room goes.
+    enum Presentation: Equatable {
+        /// No club with real activity: nothing (never a stand-in club).
+        case hidden
+        /// The room for this club; `notesFailed` when the club notes could not be read.
+        case room(ClubSummary, notesFailed: Bool)
+        /// The clubs could not be read and none is known: a branded failure, never "no clubs".
+        case failed
+    }
+
     /// The club activity line, parsed from the server's preview.
     struct Activity: Equatable {
         enum Kind: Equatable { case added, poll, vote }
@@ -105,6 +115,8 @@ struct HomeClubRoom: View {
     let medium: MediaKind
     let now: Date
     let onOpenClubs: (() -> Void)?
+    let notesFailed: Bool
+    let onRetry: (() -> Void)?
 
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -112,16 +124,27 @@ struct HomeClubRoom: View {
     @State private var roomWidth: CGFloat = 0
 
     init(club: ClubSummary, notes: [Note], otherClubCount: Int = 0, medium: MediaKind,
-         now: Date = Date(), onOpenClubs: (() -> Void)? = nil) {
+         now: Date = Date(), notesFailed: Bool = false, onRetry: (() -> Void)? = nil,
+         onOpenClubs: (() -> Void)? = nil) {
         self.club = club
         self.notes = notes
         self.otherClubCount = otherClubCount
         self.medium = medium
         self.now = now
+        self.notesFailed = notesFailed
+        self.onRetry = onRetry
         self.onOpenClubs = onOpenClubs
     }
 
     // MARK: Pure rules
+
+    /// The room, nothing, or a failure: a failed clubs read with no club known never reads as "no
+    /// clubs" (rulebook §9). `clubsReadFailed` is `ClubsStore.myClubsPhase.settled == .failed`;
+    /// `notesFailed` is Home's club slice in state "error".
+    static func presentation(picked: ClubSummary?, clubsReadFailed: Bool, notesFailed: Bool) -> Presentation {
+        if let picked { return .room(picked, notesFailed: notesFailed) }
+        return clubsReadFailed ? .failed : .hidden
+    }
 
     /// The club with the latest real activity; nil (the room hides) without clubs or without any
     /// dated activity. Ties keep the server's order.
@@ -252,6 +275,11 @@ struct HomeClubRoom: View {
             }
             ForEach(parts.rows) { note in
                 noteRow(note)
+            }
+            if notesFailed && notes.isEmpty {
+                HomeClubRoomFailureLine(headline: KuroLocale.text("Couldn't load club notes.",
+                                                                  "Club-Notizen konnten nicht geladen werden."),
+                                        onRetry: onRetry)
             }
             if let activity {
                 activityRow(activity)
@@ -534,5 +562,74 @@ private struct ClubSeal: View {
                 .rotationEffect(.degrees(-12))
                 .offset(x: 2, y: 2)
         }
+    }
+}
+
+/// The room's failure: the dark room shell with a plain headline and Try again (spec §5.4), used
+/// when the clubs could not be read (`HomeClubRoom.Presentation.failed`).
+struct HomeClubRoomFailure: View {
+    let medium: MediaKind
+    let onRetry: (() -> Void)?
+
+    init(medium: MediaKind, onRetry: (() -> Void)? = nil) {
+        self.medium = medium
+        self.onRetry = onRetry
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: medium == .manga ? 13 : 24, style: .continuous)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(KuroLocale.text("Your private club", "Dein privater Club"))
+                .font(.kuroCustom(7, relativeTo: .caption2, maxSize: 14))
+                .tracking(1.4)
+                .textCase(.uppercase)
+                .foregroundStyle(Color(hex: "C0CBBB"))
+            HomeClubRoomFailureLine(headline: KuroLocale.text("Couldn't load your clubs.",
+                                                              "Deine Clubs konnten nicht geladen werden."),
+                                    onRetry: onRetry)
+        }
+        .padding(.top, 20)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            shape.fill(Color(hex: "252B28"))
+                .overlay(shape.fill(RadialGradient(colors: [Color(hex: "444A46"), .clear], center: .topLeading,
+                                                   startRadius: 0, endRadius: 300)))
+                .shadow(color: Color(hex: "101710", opacity: 0.4), radius: 10, y: 10)
+        }
+        .overlay(shape.strokeBorder(Color(hex: "535A55", opacity: Double(0x4C) / 255), lineWidth: 1))
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// One failure line in the room's light ink: a headline and an ink-rule "Try again →".
+private struct HomeClubRoomFailureLine: View {
+    let headline: String
+    let onRetry: (() -> Void)?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(headline)
+                .font(.kuroEditorial(size: 19, weight: .medium))
+                .foregroundStyle(Color(hex: "F0F4EF"))
+                .fixedSize(horizontal: false, vertical: true)
+            if let onRetry {
+                Button(action: onRetry) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(KuroBrandedCopy.retryTitle(german: KuroLocale.isGerman) + " →")
+                            .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 22))
+                            .foregroundStyle(Color(hex: "F1F5ED"))
+                        Rectangle().fill(Color(hex: "F1F5ED").opacity(0.6)).frame(height: 1)
+                    }
+                    .fixedSize()
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(HomeContactStyle())
+            }
+        }
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

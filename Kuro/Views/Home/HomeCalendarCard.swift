@@ -330,7 +330,7 @@ struct HomeCalendarCard: View {
         } label: {
             HStack {
                 Text(KuroLocale.text(dates == 1 ? "Next date" : "Next \(dates) dates",
-                                     dates == 1 ? "Nächster Termin" : "Nächste \(dates) Tage"))
+                                     dates == 1 ? "Ein weiterer Tag" : "\(dates) weitere Tage"))
                     .font(.kuroCustom(11, relativeTo: .caption1, maxSize: 22))
                     .foregroundStyle(Color(hex: "4F5A4F"))
                 Spacer(minLength: 8)
