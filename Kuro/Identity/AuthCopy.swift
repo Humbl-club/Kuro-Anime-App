@@ -131,8 +131,8 @@ nonisolated enum AuthCopy {
                 : "This link doesn't match the account you're signed in to. To use it, sign out and request a new link."
         case .signedInAlready:
             return german
-                ? "Du bist schon angemeldet. Um dein Passwort zurückzusetzen, melde dich ab und fordere einen neuen Link an."
-                : "You're already signed in. To reset your password, sign out and request a new link."
+                ? "Du bist schon angemeldet. Um diesen Link zu nutzen, melde dich ab und fordere einen neuen an."
+                : "You're already signed in. To use this link, sign out and request a new link."
         case .failed:
             return german
                 ? "Der Link konnte nicht geöffnet werden. Fordere einen neuen an."
