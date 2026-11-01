@@ -27,7 +27,7 @@ nonisolated struct AuthCallbackPayload: Equatable, Sendable {
     var hasTokens: Bool { accessToken != nil && refreshToken != nil }
 }
 
-enum DeepLink: Equatable {
+nonisolated enum DeepLink: Equatable {
     case anime(id: Int)
     case manga(id: Int)
     case club(id: String)
