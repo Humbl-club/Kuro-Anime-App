@@ -85,10 +85,8 @@ struct AnimeDetailView: View {
                     
                     // Content Section
                     VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width)) {
-                        // Title & Quick Info
+                        // Title with its one metadata line (score, year, format, episodes, status).
                         TitleSection(anime: anime)
-                        
-                        MetaLineSection(anime: anime)
 
                         // The store's answer; the catalogue row's own future airing while it loads or when it has none.
                         DetailNextReleaseSection(items: (releaseItems?.isEmpty == false ? releaseItems : nil)
@@ -211,22 +209,11 @@ struct AnimeDetailView: View {
                     .padding(.top, safeTop + KuroSpacing.md)
                     .padding(.leading, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
             }
-            .safeAreaInset(edge: .bottom) {
-                ActionButtons(anime: anime, onToast: showToast)
-                    .padding(.horizontal, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
-                    .padding(.top, 10)
-                    .padding(.bottom, 10)
-                    .background(
-                        Rectangle()
-                            .fill(Color.kuroBackground.opacity(0.92))
-                            .overlay(
-                                Rectangle()
-                                    .fill(Color.kuroBlack08)
-                                    .frame(height: 0.5),
-                                alignment: .top
-                            )
-                            .ignoresSafeArea()
-                    )
+            // The opaque dock reserves its own height at the end of the scroll content (no ghosting).
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                DetailDockBar(horizontalPadding: geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding) {
+                    ActionButtons(anime: anime, onToast: showToast)
+                }
             }
             .overlay(alignment: .bottom) {
                 if let toast {
@@ -355,28 +342,27 @@ struct MetaLineSection: View {
     }
 
     private var episodeText: String? {
-        if let e = anime.episodeCount, e > 0 { return "\(e) EPS" }
-        if let next = anime.nextEpisodeNumber, next > 1 { return "\(max(0, next - 1)) EPS" }
+        let german = KuroLocale.isGerman
+        if let e = anime.episodeCount, e > 0 { return DetailCopy.episodes(e, german: german) }
+        if let next = anime.nextEpisodeNumber, next > 1 { return DetailCopy.episodes(max(0, next - 1), german: german) }
         return nil
     }
 
-    private var statusText: String? {
-        anime.status?.replacingOccurrences(of: "_", with: " ").uppercased()
-    }
-
     var body: some View {
+        let german = KuroLocale.isGerman
         let parts: [String] = [
-            scoreText.map { KuroLocale.text("SCORE \($0)", "WERTUNG \($0)") },
+            scoreText.map { KuroLocale.text("Score \($0)", "Wertung \($0)") },
             anime.displayYear.isEmpty ? nil : anime.displayYear,
-            anime.format?.uppercased(),
+            DetailCopy.format(anime.format, german: german),
             episodeText,
-            statusText
+            DetailCopy.releaseStatus(anime.status, german: german)
         ].compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
 
         if !parts.isEmpty {
             Text(parts.joined(separator: " · "))
                 .font(.kuroMicro(weight: .light))
                 .tracking(1.2)
+                .textCase(.uppercase)
                 .foregroundColor(.kuroBlack60)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -600,23 +586,9 @@ struct TitleSection: View {
                 .tracking(0.5)
                 .foregroundColor(.kuroBlack)
                 .lineSpacing(4)
-            
-            // Year & Format
-            HStack(spacing: KuroSpacing.sm) {
-                Text(anime.displayYear)
-                    .font(.kuroMicro(weight: .regular))
-                    .tracking(1.0)
-                    .foregroundColor(.kuroBlack60)
-                
-                if let format = anime.format {
-                    Text("•")
-                        .foregroundColor(.kuroInkQuiet)
-                    Text(format)
-                        .font(.kuroMicro(weight: .light))
-                        .tracking(1.0)
-                        .foregroundColor(.kuroBlack60)
-                }
-            }
+
+            // Year and format appear once, in the metadata line (no second "2015 • TV" line).
+            MetaLineSection(anime: anime)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -787,7 +759,7 @@ struct EpisodesSection: View {
                 KuroToastState(
                     kind: .info,
                     title: KuroLocale.text("No legal stream link yet", "Noch kein legaler Stream-Link"),
-                    subtitle: KuroLocale.text("This episode does not have a verified legal provider.", "Für diese Folge gibt es noch keinen geprüften legalen Anbieter."),
+                    subtitle: KuroLocale.text("No legal link for this episode yet.", "Für diese Folge gibt es noch keinen legalen Link."),
                     actionTitle: nil,
                     onAction: nil
                 )
@@ -904,7 +876,7 @@ struct EpisodeItemRow: View {
 
     private func accessibilityLabelText() -> Text {
         var parts: [String] = []
-        parts.append("Episode \(episode.number)")
+        parts.append(KuroLocale.text("Episode \(episode.number)", "Folge \(episode.number)"))
         if let title = episode.title ?? episode.titleRomaji, !title.isEmpty {
             parts.append(title)
         } else if let site = episode.streamSite, !site.isEmpty {
@@ -1008,12 +980,11 @@ struct EpisodeListSheet: View {
                 .padding(.bottom, KuroSpacing.xl)
             }
             .background(Color.kuroBackground)
-            .navigationTitle("Episodes")
+            .navigationTitle(KuroLocale.text("Episodes", "Folgen"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") { dismiss() }
-                        .font(.kuroMicro(weight: .medium))
+                    DetailSheetCloseButton { dismiss() }
                 }
             }
             .task(id: anime.id) {
@@ -1101,7 +1072,7 @@ struct EpisodeListSheet: View {
                 KuroToastState(
                     kind: .info,
                     title: KuroLocale.text("No legal stream link yet", "Noch kein legaler Stream-Link"),
-                    subtitle: KuroLocale.text("This episode does not have a verified legal provider.", "Für diese Folge gibt es noch keinen geprüften legalen Anbieter."),
+                    subtitle: KuroLocale.text("No legal link for this episode yet.", "Für diese Folge gibt es noch keinen legalen Link."),
                     actionTitle: nil,
                     onAction: nil
                 )
@@ -1162,6 +1133,10 @@ struct ActionButtons: View {
         watchLink.flatMap { ProviderAvailabilityStore.validatedOutboundURL($0.url) } != nil
     }
 
+    private var listButtonTitle: String {
+        isSaved ? KuroLocale.text("Edit list", "Liste bearbeiten") : KuroLocale.text("Add to list", "Zur Liste")
+    }
+
     private var verdictButtonTitle: String {
         guard let verdict = userEntry?.verdict else { return isGermanLocale ? "Urteil" : "Verdict" }
         return isGermanLocale ? verdict.displayNameDE : verdict.displayName
@@ -1182,95 +1157,72 @@ struct ActionButtons: View {
     var body: some View {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Button { toggleSaved(origin: origin) } label: {
-                    Image(systemName: isSaved ? "heart.fill" : "heart")
-                        .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
-                        .foregroundColor(.kuroBlack)
-                        .frame(width: 44, height: 44)
-                        .background(Color.kuroBlack08)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    DetailDockCapsule(role: .secondary, iconOnly: true) {
+                        Image(systemName: isSaved ? "heart.fill" : "heart")
+                    }
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(KuroPressStyle())
                 .accessibilityLabel(isSaved ? KuroLocale.text("Saved", "Gemerkt") : KuroLocale.text("Save", "Merken"))
 
                 Button {
                     KuroAccessibility.impactHaptic(.medium)
                     routes.presentTrackingEditor(TrackingEditorRequest(media: anime))
                 } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
-                        Text(isSaved ? KuroLocale.text("EDIT LIST", "LISTE BEARBEITEN") : KuroLocale.text("ADD TO LIST", "ZUR LISTE"))
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.1)
+                    DetailDockCapsule(role: .primary) {
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus")
+                                Text(listButtonTitle)
+                            }
+                            Image(systemName: "plus")
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .foregroundColor(.kuroWhite)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .padding(.vertical, 12)
-                    .background(Color.kuroBlack)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(KuroPressStyle())
+                .accessibilityLabel(listButtonTitle)
 
                 Button {
                     KuroAccessibility.impactHaptic(.light)
                     showQuickVerdict = true
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "tag")
-                            .font(.kuroCustom(11, weight: .semibold, maxSize: 18))
-                        Text(verdictButtonTitle.uppercased())
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(0.9)
-                            .lineLimit(1)
+                    DetailDockCapsule(role: .secondary) {
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "tag")
+                                Text(verdictButtonTitle)
+                            }
+                            Image(systemName: "tag")
+                        }
                     }
-                    .foregroundColor(.kuroBlack70)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 10)
-                    .frame(minHeight: 44)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.kuroBlack06)
-                    )
-                    .overlay(
-                        Capsule(style: .continuous)
-                            .stroke(Color.kuroBlack12, lineWidth: 0.6)
-                    )
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(userEntry?.verdict == nil ? KuroLocale.text("Set verdict", "Urteil festlegen") : KuroLocale.text("Edit verdict", "Urteil bearbeiten"))
+                .buttonStyle(KuroPressStyle())
+                .accessibilityLabel(userEntry?.verdict == nil ? KuroLocale.text("Set verdict", "Urteil festlegen") : KuroLocale.text("Edit verdict, \(verdictButtonTitle)", "Urteil bearbeiten, \(verdictButtonTitle)"))
 
-                Button(action: handleWatchAction) {
-                    Image(systemName: hasWatchLink ? "play.fill" : "play.slash")
-                        .font(.kuroCustom(13, weight: .semibold, maxSize: 21))
-                        .foregroundColor(hasWatchLink ? .kuroBlack : .kuroBlack30)
-                        .frame(width: 44, height: 44)
-                        .background(Color.kuroBlack08)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                // Shown only with a legal link to open; without one the line below says so (no greyed button).
+                if hasWatchLink {
+                    Button(action: handleWatchAction) {
+                        DetailDockCapsule(role: .secondary, iconOnly: true) {
+                            Image(systemName: "play.fill")
+                        }
+                    }
+                    .buttonStyle(KuroPressStyle())
+                    .accessibilityLabel(
+                        allLinks.count > 1
+                            ? KuroLocale.text("Choose watch provider", "Anbieter zum Ansehen wählen")
+                            : KuroLocale.text("Open watch provider", "Anbieter zum Ansehen öffnen")
+                    )
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(
-                    hasWatchLink
-                        ? (allLinks.count > 1 ? KuroLocale.text("Choose watch provider", "Anbieter zum Ansehen wählen") : KuroLocale.text("Open watch provider", "Anbieter zum Ansehen öffnen"))
-                        : KuroLocale.text("No legal watch link available", "Kein legaler Link zum Ansehen verfügbar")
-                )
             }
 
             Text(watchStatusLine)
-                .font(.kuroMicro(weight: .light))
-                .foregroundColor(.kuroTextTertiary)
+                .font(.kuroCaption(weight: .regular))
+                .foregroundColor(.kuroInkQuiet)
                 .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.kuroBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.kuroBlack08, lineWidth: 0.8)
-                )
-        )
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
         .onDisappear { actionScope.deactivate() }
         .task(id: userEntry?.progress ?? -1) {
@@ -1281,7 +1233,7 @@ struct ActionButtons: View {
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(
-                title: KuroLocale.text("Watch On", "Ansehen bei"),
+                title: KuroLocale.text("Watch on", "Ansehen bei"),
                 links: allLinks,
                 statusCaption: watchAvailabilityStatusCaption
             ) { link in
@@ -1325,7 +1277,7 @@ struct ActionButtons: View {
                         .init(
                             kind: .error,
                             title: KuroLocale.text("Couldn't save", "Nicht gespeichert"),
-                            subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: false) },
+                            subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: KuroLocale.isGerman) },
                             actionTitle: nil,
                             onAction: nil
                         )

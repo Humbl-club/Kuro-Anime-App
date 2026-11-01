@@ -17,6 +17,37 @@ import KuroCore
 import Synchronization
 @testable import Kuro
 
+/// The user-facing link copy the owner publishes, as the same EN/DE pairs (the host may read German).
+@MainActor
+private enum DetailLinkCopy {
+    static var animeCatalogSubtitle: String {
+        KuroLocale.text("From the provider's catalogue. Availability may vary by region.", "Aus dem Katalog des Anbieters. Die Verfügbarkeit kann je nach Region abweichen.")
+    }
+    static var mangaCatalogSubtitle: String {
+        KuroLocale.text("From the provider's catalogue. Reading rights may vary by region and publisher.", "Aus dem Katalog des Anbieters. Leserechte können je nach Region und Verlag abweichen.")
+    }
+    static var watchRegionNote: String {
+        KuroLocale.text("Availability, audio and subtitles may vary by region.", "Verfügbarkeit, Ton und Untertitel können je nach Region abweichen.")
+    }
+    static var readRegionNote: String {
+        KuroLocale.text("Reading availability may vary by region and publisher.", "Die Verfügbarkeit zum Lesen kann je nach Region und Verlag abweichen.")
+    }
+    static var catalogWhileChecking: String {
+        KuroLocale.text("Provider catalogue links for now. Still checking this title.", "Vorerst Links aus Anbieterkatalogen. Dieser Titel wird noch geprüft.")
+    }
+    static var checkingNow: String {
+        KuroLocale.text("Checking where to find it now.", "Wir sehen gerade nach, wo es verfügbar ist.")
+    }
+    static var lastCheckedPrefix: String { KuroLocale.text("Last checked ", "Zuletzt geprüft ") }
+    static var checkedPrefix: String { KuroLocale.text("Checked ", "Geprüft ") }
+
+    /// Every string of a snapshot a reader sees or hears: note, caption, subtitles, badges, labels.
+    static func visibleStrings(of snapshot: ProviderLinkSnapshot) -> [String] {
+        [snapshot.note, snapshot.statusCaption].compactMap { $0 }
+            + snapshot.all.flatMap { [$0.subtitle ?? "", $0.badgeText, $0.accessibilityLabel] }
+    }
+}
+
 /// A graph whose SDK client talks to a stub server, with `streaming_availability_v1` forced on or off.
 @MainActor
 private struct DetailLinksHarness {
@@ -133,9 +164,9 @@ struct DetailProviderLinksTests {
         if verifiedIsStale {
             #expect(snapshot.all.map(\.title) == ["Crunchyroll", "Netflix"])
             #expect(snapshot.all.allSatisfy { !$0.isVerified })
-            #expect(snapshot.all.map(\.subtitle) == Array(repeating: "Catalog link only. Availability may vary by region.", count: 2))
-            #expect(snapshot.note == "Catalog links only. Verified availability is still being refreshed.")
-            #expect(snapshot.statusCaption?.hasPrefix("Last checked ") == true, "\(String(describing: snapshot.statusCaption))")
+            #expect(snapshot.all.map(\.subtitle) == Array(repeating: DetailLinkCopy.animeCatalogSubtitle, count: 2))
+            #expect(snapshot.note == DetailLinkCopy.catalogWhileChecking)
+            #expect(snapshot.statusCaption?.hasPrefix(DetailLinkCopy.lastCheckedPrefix) == true, "\(String(describing: snapshot.statusCaption))")
         } else {
             #expect(snapshot.all.map(\.title) == ["Crunchyroll"])
             #expect(snapshot.all.allSatisfy { $0.isVerified })
@@ -145,9 +176,12 @@ struct DetailProviderLinksTests {
                 preferredSubtitleLang: "en", originalLanguage: "ja")?.displayText
             #expect(typedNote != nil)
             #expect(snapshot.note == typedNote)
-            #expect(snapshot.statusCaption?.hasPrefix("Verified ") == true, "\(String(describing: snapshot.statusCaption))")
+            #expect(snapshot.statusCaption?.hasPrefix(DetailLinkCopy.checkedPrefix) == true, "\(String(describing: snapshot.statusCaption))")
         }
         #expect(snapshot.primary == snapshot.all.first)
+        // Rulebook §9: no internal word ("verified") reaches the reader, in either branch.
+        #expect(DetailLinkCopy.visibleStrings(of: snapshot).allSatisfy { !$0.lowercased().contains("verif") },
+                "\(DetailLinkCopy.visibleStrings(of: snapshot))")
         // Fresh status: no refresh was enqueued.
         #expect(harness.requests(to: "rpc/enqueue_media_availability_refresh").isEmpty)
         await harness.tearDown()
@@ -173,14 +207,14 @@ struct DetailProviderLinksTests {
         #expect(harness.availabilityRPCs.isEmpty, "\(harness.availabilityRPCs)")
         #expect(watch.all.map(\.title) == ["Crunchyroll", "Netflix"])
         #expect(watch.all.allSatisfy { !$0.isVerified })
-        #expect(watch.note == "Availability, audio, and subtitle options may vary by region.")
+        #expect(watch.note == DetailLinkCopy.watchRegionNote)
         #expect(watch.statusCaption == nil)
         // Manga ranking: MANGA Plus before VIZ; the primary is the first item.
         #expect(read.all.map(\.title) == ["MANGA Plus", "VIZ"])
         #expect(read.all.allSatisfy { !$0.isVerified })
-        #expect(read.all.first?.subtitle == "Catalog link only. Reading rights may vary by region and publisher.")
+        #expect(read.all.first?.subtitle == DetailLinkCopy.mangaCatalogSubtitle)
         #expect(read.primary == read.all.first)
-        #expect(read.note == "Reading availability may vary by region and publisher.")
+        #expect(read.note == DetailLinkCopy.readRegionNote)
         #expect(read.statusCaption == nil)
         await harness.tearDown()
     }
@@ -210,15 +244,17 @@ struct DetailProviderLinksTests {
         // caption without re-reading the status (it used to be read three times per resolution).
         #expect(harness.requests(to: "rpc/get_media_availability_status").count == 1)
         #expect(harness.requests(to: "rpc/batch_provider_availability_for_media_v2").count == 1)
-        #expect(first.statusCaption == "Refreshing verified availability now.")
-        #expect(first.note == "Catalog links only. Verified availability is still being refreshed.")
+        #expect(first.statusCaption == DetailLinkCopy.checkingNow)
+        #expect(first.note == DetailLinkCopy.catalogWhileChecking)
         #expect(first.all.map(\.title) == ["VIZ"])
+        #expect(DetailLinkCopy.visibleStrings(of: first).allSatisfy { !$0.lowercased().contains("verif") },
+                "\(DetailLinkCopy.visibleStrings(of: first))")
 
         // Inside the 10-minute cooldown: no second write, and the caption still says refreshing (the
         // cached status predates the enqueue and still looks stale, so the refresh is still pending).
         let second = try #require(await harness.availability.resolveReadLinks(mangaId: Self.mangaId, locale: "en_US"))
         #expect(harness.requests(to: "rpc/enqueue_media_availability_refresh").count == 1)
-        #expect(second.statusCaption == "Refreshing verified availability now.")
+        #expect(second.statusCaption == DetailLinkCopy.checkingNow)
         // Same page life: the status, provider v2 answer and external links are reused.
         #expect(harness.requests(to: "rpc/get_media_availability_status").count == 1)
         #expect(harness.requests(to: "rpc/batch_provider_availability_for_media_v2").count == 1)
@@ -241,8 +277,8 @@ struct DetailProviderLinksTests {
         let second = try #require(await harness.availability.resolveReadLinks(mangaId: Self.mangaId, locale: "en_US"))
 
         #expect(harness.requests(to: "rpc/enqueue_media_availability_refresh").count == 1)
-        #expect(first.statusCaption == "Refreshing verified availability now.")
-        #expect(second.statusCaption == "Refreshing verified availability now.")
+        #expect(first.statusCaption == DetailLinkCopy.checkingNow)
+        #expect(second.statusCaption == DetailLinkCopy.checkingNow)
         await harness.tearDown()
     }
 
@@ -258,8 +294,8 @@ struct DetailProviderLinksTests {
         }
         let snapshot = try #require(await harness.availability.resolveReadLinks(mangaId: Self.mangaId, locale: "en_US"))
         #expect(harness.requests(to: "rpc/enqueue_media_availability_refresh").isEmpty)
-        #expect(snapshot.statusCaption != "Refreshing verified availability now.")
-        #expect(snapshot.statusCaption?.hasPrefix("Last checked") == true)
+        #expect(snapshot.statusCaption != DetailLinkCopy.checkingNow)
+        #expect(snapshot.statusCaption?.hasPrefix(DetailLinkCopy.lastCheckedPrefix) == true)
         await harness.tearDown()
     }
 
@@ -446,7 +482,7 @@ struct DetailProviderLinksTests {
             animeId: Self.animeId, originalLanguage: nil, progress: nil, locale: "en_US"))
         #expect(snapshot.all.map(\.url) == [Self.crunchyrollURL])
         #expect(snapshot.all.allSatisfy { !$0.isVerified })
-        #expect(snapshot.note == "Catalog links only. Verified availability is still being refreshed.")
+        #expect(snapshot.note == DetailLinkCopy.catalogWhileChecking)
         await harness.tearDown()
     }
 }

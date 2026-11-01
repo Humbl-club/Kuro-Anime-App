@@ -10,7 +10,7 @@ struct CastSection: View {
 
     private let previewLimit = 8
     private let displayLimit = 10
-    private let sectionTitle = "CHARACTERS"
+    private var sectionTitle: String { KuroLocale.text("Characters", "Figuren") }
 
     private var filtered: [(character: Character, role: String)] {
         characters
@@ -37,17 +37,23 @@ struct CastSection: View {
                     Text(sectionTitle)
                         .font(.kuroCaption(weight: .semibold))
                         .tracking(1.6)
+                        .textCase(.uppercase)
                         .foregroundColor(.kuroBlack80)
+                        .accessibilityAddTraits(.isHeader)
 
                     Spacer()
 
                     if displayedCharacters.count > previewLimit {
-                        Button("See All") {
+                        Button {
                             showAllCharacters = true
+                        } label: {
+                            Text(KuroLocale.text("See all", "Alle ansehen"))
+                                .font(.kuroMeta(weight: .medium))
+                                .foregroundColor(.kuroBlack80)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
                         }
-                        .font(.kuroMicro(weight: .medium))
-                        .foregroundColor(.kuroBlack80)
-                        .buttonStyle(.plain)
+                        .buttonStyle(KuroPressStyle())
                     }
                 }
 
@@ -87,12 +93,9 @@ private struct CastCircleItem: View {
 
     private var isMain: Bool { role.uppercased() == "MAIN" }
     private var isSupporting: Bool { role.uppercased() == "SUPPORTING" }
-    private var displayName: String { (character.nameFull ?? "Unknown").uppercased() }
+    private var displayName: String { (character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman)).uppercased() }
     private var roleLabel: String? {
-        if isMain { return "MAIN" }
-        if isSupporting { return "SUPPORTING" }
-        let trimmed = role.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed.uppercased()
+        DetailCopy.characterRole(role, german: KuroLocale.isGerman)?.uppercased()
     }
 
     private var resolvedImageURL: URL? {
@@ -118,7 +121,7 @@ private struct CastCircleItem: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(character.nameFull ?? "Unknown"), \((roleLabel ?? "character").lowercased())")
+        .accessibilityLabel("\(character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman)), \(DetailCopy.characterRole(role, german: KuroLocale.isGerman) ?? KuroLocale.text("Character", "Figur"))")
     }
 
     private func imageItem(url: URL) -> some View {
@@ -226,24 +229,24 @@ private struct CharacterDirectorySheet: View {
                 VStack(alignment: .leading, spacing: KuroSpacing.lg) {
                     EntitySectionLead(
                         text: characters.count >= 10
-                            ? "Showing the top 10 character slice Kuro keeps for this title, ordered by series importance."
-                            : "Showing the importance-ordered character slice Kuro keeps for this title."
+                            ? KuroLocale.text("The ten most important characters, main roles first.", "Die zehn wichtigsten Figuren, Hauptrollen zuerst.")
+                            : KuroLocale.text("The characters by importance, main roles first.", "Die Figuren nach Bedeutung, Hauptrollen zuerst.")
                     )
 
                     HStack(spacing: 8) {
                         CharacterDirectoryStatPill(
-                            title: "TOTAL",
+                            title: KuroLocale.text("TOTAL", "GESAMT"),
                             value: "\(characters.count)"
                         )
                         if mainCount > 0 {
                             CharacterDirectoryStatPill(
-                                title: "MAIN",
+                                title: KuroLocale.text("MAIN", "HAUPTROLLEN"),
                                 value: "\(mainCount)"
                             )
                         }
                         if supportingCount > 0 {
                             CharacterDirectoryStatPill(
-                                title: "SUPPORTING",
+                                title: KuroLocale.text("SUPPORTING", "NEBENROLLEN"),
                                 value: "\(supportingCount)"
                             )
                         }
@@ -265,11 +268,8 @@ private struct CharacterDirectorySheet: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .foregroundColor(.kuroBlack80)
+                ToolbarItem(placement: .topBarTrailing) {
+                    DetailSheetCloseButton { dismiss() }
                 }
             }
         }

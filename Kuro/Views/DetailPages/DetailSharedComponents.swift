@@ -1,3 +1,4 @@
+import KuroCore
 import SwiftUI
 
 // MARK: - Detail page shared chrome
@@ -6,6 +7,168 @@ import SwiftUI
 // sub-genre chips, the section utility button, the back button and the credits/ladder skeletons.
 // The page-specific sections (hero, title, units, actions, similar) stay in AnimeDetailView.swift
 // and MangaDetailView.swift, so the two designs remain distinct.
+
+// MARK: - Detail copy (EN/DE)
+// The detail pages' shared vocabulary: catalogue formats and release states, list-status words,
+// unit counts and the "unknown" fallback. Pure (an explicit `german` flag, testable); views pass
+// `KuroLocale.isGerman`. Source text is sentence case; kicker lines upper-case it with `.textCase`.
+enum DetailCopy {
+    /// A catalogue format ("TV", "MOVIE", "LIGHT_NOVEL") as a reader-facing word; nil when empty.
+    static func format(_ raw: String?, german: Bool) -> String? {
+        guard let raw, !raw.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+        switch raw.uppercased() {
+        case "TV": return "TV"
+        case "TV_SHORT": return german ? "TV-Kurzserie" : "TV short"
+        case "MOVIE": return "Film"
+        case "OVA": return "OVA"
+        case "ONA": return "ONA"
+        case "SPECIAL": return "Special"
+        case "MUSIC": return german ? "Musikvideo" : "Music video"
+        case "MANGA": return "Manga"
+        case "ONE_SHOT": return german ? "One-Shot" : "One-shot"
+        case "NOVEL": return german ? "Roman" : "Novel"
+        case "LIGHT_NOVEL": return german ? "Light Novel" : "Light novel"
+        default: return raw.replacingOccurrences(of: "_", with: " ").lowercased().capitalizedFirstLetter
+        }
+    }
+
+    /// A catalogue release state ("FINISHED", "RELEASING") as a reader-facing word; nil when empty.
+    static func releaseStatus(_ raw: String?, german: Bool) -> String? {
+        guard let raw, !raw.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+        switch raw.uppercased() {
+        case "FINISHED": return german ? "Abgeschlossen" : "Finished"
+        case "RELEASING": return german ? "Laufend" : "Ongoing"
+        case "NOT_YET_RELEASED": return german ? "Noch nicht erschienen" : "Not yet released"
+        case "CANCELLED": return german ? "Eingestellt" : "Cancelled"
+        case "HIATUS": return german ? "Pausiert" : "On hiatus"
+        default: return raw.replacingOccurrences(of: "_", with: " ").lowercased().capitalizedFirstLetter
+        }
+    }
+
+    /// A raw list status from a club or friend row ("CURRENT", "READING", "ON_HOLD") as the Collection's
+    /// status word for the medium (`FolioStatus`); nil for an unknown value.
+    static func listStatus(_ raw: String, medium: MediaKind, german: Bool) -> String? {
+        let folio: FolioStatus
+        switch raw.uppercased() {
+        case "CURRENT", "WATCHING", "READING", "REPEATING": folio = .watching
+        case "PLANNING", "PLANNED": folio = .planned
+        case "COMPLETED": folio = .completed
+        case "PAUSED", "ON_HOLD": folio = .paused
+        case "DROPPED": folio = .dropped
+        default: return nil
+        }
+        return folio.title(medium: medium, german: german)
+    }
+
+    static func episodes(_ count: Int, german: Bool) -> String {
+        german ? "\(count) \(count == 1 ? "Folge" : "Folgen")" : "\(count) \(count == 1 ? "ep" : "eps")"
+    }
+
+    static func chapters(_ count: Int, german: Bool) -> String {
+        german ? "\(count) Kap." : "\(count) ch"
+    }
+
+    static func volumes(_ count: Int, german: Bool) -> String {
+        german ? "\(count) \(count == 1 ? "Band" : "Bände")" : "\(count) vol"
+    }
+
+    /// A character role ("MAIN", "SUPPORTING") as a reader-facing word; other roles keep their text.
+    static func characterRole(_ raw: String, german: Bool) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch trimmed.uppercased() {
+        case "": return nil
+        case "MAIN": return german ? "Hauptrolle" : "Main"
+        case "SUPPORTING": return german ? "Nebenrolle" : "Supporting"
+        case "BACKGROUND": return german ? "Statist" : "Background"
+        default: return trimmed
+        }
+    }
+
+    static func unknown(german: Bool) -> String {
+        german ? "Unbekannt" : "Unknown"
+    }
+}
+
+private extension String {
+    /// "light novel" -> "Light novel" (sentence case for an unmapped catalogue value).
+    var capitalizedFirstLetter: String {
+        guard let first else { return self }
+        return first.uppercased() + dropFirst()
+    }
+}
+
+// MARK: - Sheet close control
+/// The one close control of the detail pages' sheets (rulebook §7): "Close" / "Schließen", meta size,
+/// ink, with a 44 pt target.
+struct DetailSheetCloseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(KuroLocale.text("Close", "Schließen"))
+                .font(.kuroMeta(weight: .medium))
+                .foregroundStyle(Color.kuroInk)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(KuroPressStyle())
+    }
+}
+
+// MARK: - Action dock
+/// The detail action dock's one button shape (rulebook §7): a 48 pt capsule, or a 48 pt circle for an
+/// icon. `.primary` is the ink fill (one per dock), `.secondary` the hairline stroke on the page colour.
+/// Buttons use `KuroPressStyle`; an action that is not available is hidden, never greyed.
+struct DetailDockCapsule<Content: View>: View {
+    enum Role {
+        case primary
+        case secondary
+    }
+
+    let role: Role
+    var iconOnly: Bool = false
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        content()
+            .font(.kuroMeta(weight: .semibold))
+            .foregroundStyle(role == .primary ? Color.kuroWhite : Color.kuroInk)
+            .lineLimit(1)
+            .padding(.horizontal, iconOnly ? 0 : KuroDesignSpacing.md)
+            .frame(minWidth: 48, minHeight: 48)
+            .background(Capsule(style: .continuous).fill(role == .primary ? Color.kuroInk : Color.kuroBackground))
+            .overlay(
+                Capsule(style: .continuous)
+                    .strokeBorder(role == .primary ? Color.clear : Color.kuroBlack12, lineWidth: 1)
+            )
+            .contentShape(Capsule(style: .continuous))
+    }
+}
+
+/// The dock's bar: opaque page colour with a top hairline, reaching under the home indicator, so
+/// scrolled content never shows through. Used inside `.safeAreaInset(edge: .bottom)`, which reserves
+/// the dock's height (plus the safe area) at the end of the scroll content.
+struct DetailDockBar<Content: View>: View {
+    let horizontalPadding: CGFloat
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        content()
+            .padding(.horizontal, horizontalPadding)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .frame(maxWidth: .infinity)
+            .background(
+                Color.kuroBackground
+                    .overlay(alignment: .top) {
+                        Rectangle()
+                            .fill(Color.kuroBlack08)
+                            .frame(height: 0.5)
+                    }
+                    .ignoresSafeArea(edges: .bottom)
+            )
+    }
+}
 
 // MARK: - Scroll offset (hero parallax)
 struct KuroDetailScrollOffsetPreferenceKey: PreferenceKey {

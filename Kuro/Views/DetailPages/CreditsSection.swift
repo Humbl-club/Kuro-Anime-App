@@ -28,9 +28,10 @@ struct ProductionSection: View {
         let hasContent = !studios.isEmpty || !curated.isEmpty
         if hasContent {
             VStack(alignment: .leading, spacing: KuroSpacing.md) {
-                Text("PRODUCTION")
+                Text(KuroLocale.text("Production", "Produktion"))
                     .font(.kuroCaption(weight: .semibold))
                     .tracking(1.6)
+                    .textCase(.uppercase)
                     .foregroundColor(.kuroBlack80)
                     .accessibilityAddTraits(.isHeader)
 
@@ -45,19 +46,19 @@ struct ProductionSection: View {
                         selectedStaff = item.staff
                     } label: {
                         HStack(spacing: 0) {
-                            Text("\(item.role.editorialPrefix) ")
+                            Text("\(creditPrefix(item.role)) ")
                                 .font(.kuroCaption(weight: .regular))
                                 .tracking(0.4)
                                 .foregroundColor(.kuroTextSecondary)
 
-                            Text((item.staff.nameFull ?? "Unknown").uppercased())
+                            Text((item.staff.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman)).uppercased())
                                 .font(.kuroBody(weight: .medium))
                                 .tracking(0.3)
                                 .foregroundColor(.kuroBlack80)
                         }
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("\(item.role.editorialPrefix) \(item.staff.nameFull ?? "Unknown")")
+                    .accessibilityLabel("\(creditPrefix(item.role)) \(item.staff.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman))")
                 }
 
                 // ALL CREDITS capsule
@@ -65,17 +66,18 @@ struct ProductionSection: View {
                     Button {
                         showAllCredits = true
                     } label: {
-                        Text("ALL CREDITS")
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.2)
+                        Text(KuroLocale.text("All credits", "Alle Mitwirkenden"))
+                            .font(.kuroMeta(weight: .medium))
                             .foregroundColor(.kuroBlack80)
                             .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
+                            .frame(minHeight: 44)
                             .background(
                                 Capsule().stroke(Color.kuroBlack12, lineWidth: 0.7)
+                                    .padding(.vertical, 4)
                             )
+                            .contentShape(Capsule())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(KuroPressStyle())
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -110,7 +112,7 @@ private struct ProductionStudiosLine: View {
                     Button {
                         selectedStudio = studio
                     } label: {
-                        Text((studio.name ?? "Unknown").uppercased())
+                        Text((studio.name ?? DetailCopy.unknown(german: KuroLocale.isGerman)).uppercased())
                             .font(.kuroBody(weight: .light))
                             .foregroundColor(.kuroBlack80)
                     }
@@ -131,9 +133,10 @@ struct MangaProductionSection: View {
     var body: some View {
         if !authorItems.isEmpty {
             VStack(alignment: .leading, spacing: KuroSpacing.md) {
-                Text("PRODUCTION")
+                Text(KuroLocale.text("Production", "Produktion"))
                     .font(.kuroCaption(weight: .semibold))
                     .tracking(1.6)
+                    .textCase(.uppercase)
                     .foregroundColor(.kuroBlack80)
                     .accessibilityAddTraits(.isHeader)
 
@@ -143,20 +146,22 @@ struct MangaProductionSection: View {
                     } label: {
                         HStack(spacing: 0) {
                             if !item.role.isEmpty {
-                                Text("\(item.role.capitalized) by ")
+                                Text(KuroLocale.text("\(item.role.capitalized) by ", "\(item.role.capitalized): "))
                                     .font(.kuroCaption(weight: .regular))
                                     .tracking(0.4)
                                     .foregroundColor(.kuroTextSecondary)
                             }
 
-                            Text((item.author.nameFull ?? "Unknown").uppercased())
+                            Text((item.author.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman)).uppercased())
                                 .font(.kuroBody(weight: .medium))
                                 .tracking(0.3)
                                 .foregroundColor(.kuroBlack80)
                         }
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Author: \(item.author.nameFull ?? "Unknown"), \(item.role)")
+                    .accessibilityLabel(KuroLocale.text(
+                        "Author: \(item.author.nameFull ?? DetailCopy.unknown(german: false)), \(item.role)",
+                        "Autor: \(item.author.nameFull ?? DetailCopy.unknown(german: true)), \(item.role)"))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -178,7 +183,7 @@ struct AllCreditsSheet: View {
         var dict: [String: [Staff]] = [:]
         var order: [String] = []
         for item in staffItems {
-            let role = item.role.isEmpty ? "Other" : item.role
+            let role = item.role.isEmpty ? KuroLocale.text("Other", "Sonstige") : item.role
             if dict[role] == nil { order.append(role) }
             dict[role, default: []].append(item.staff)
         }
@@ -200,7 +205,7 @@ struct AllCreditsSheet: View {
                                 Button {
                                     selectedStaff = person
                                 } label: {
-                                    Text(person.nameFull ?? "Unknown")
+                                    Text(person.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman))
                                         .font(.kuroBody())
                                         .foregroundColor(.kuroBlack80)
                                 }
@@ -213,12 +218,11 @@ struct AllCreditsSheet: View {
                 .padding(.vertical, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)
-            .navigationTitle("ALL CREDITS")
+            .navigationTitle(KuroLocale.text("All credits", "Alle Mitwirkenden"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(.kuroBlack80)
+                ToolbarItem(placement: .topBarTrailing) {
+                    DetailSheetCloseButton { dismiss() }
                 }
             }
         }
@@ -243,4 +247,23 @@ extension Staff: Hashable {
 extension Author: Hashable {
     static func == (lhs: Author, rhs: Author) -> Bool { lhs.id == rhs.id }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+
+// MARK: - Credit bylines (EN/DE)
+
+/// The byline before a credited name: the model's English prefix, or the German one.
+private func creditPrefix(_ role: CreditRole) -> String {
+    guard KuroLocale.isGerman else { return role.editorialPrefix }
+    switch role {
+    case .director: return "Regie:"
+    case .originalCreator: return "Vorlage:"
+    case .seriesComposition: return "Serienkonzept:"
+    case .music: return "Musik:"
+    case .characterDesign: return "Figurendesign:"
+    case .script: return "Drehbuch:"
+    case .storyboard: return "Storyboard:"
+    case .animationDirector: return "Animationsregie:"
+    case .artDirector: return "Art Direction:"
+    case .soundDirector: return "Tonregie:"
+    }
 }
