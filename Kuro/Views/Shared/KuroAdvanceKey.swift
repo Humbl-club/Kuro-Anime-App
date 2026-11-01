@@ -72,11 +72,16 @@ struct KuroAdvanceKey: View {
             action()
         } label: {
             ZStack {
-                Image(systemName: glyph)
-                    .font(glyphFont)
-                    .opacity(phase == .pending ? 0.4 : 1)
-                    .kuroRestore(trigger: phase == .caughtUp ? 0 : confirmTrigger)
-                if phase != .caughtUp {
+                // A caught-up key plays neither confirm nor restore (the prototype disables it): its
+                // glyph is a separate view, so returning to advance mounts fresh and does not animate.
+                if phase == .caughtUp {
+                    Image(systemName: glyph)
+                        .font(glyphFont)
+                } else {
+                    Image(systemName: glyph)
+                        .font(glyphFont)
+                        .opacity(phase == .pending ? 0.4 : 1)
+                        .kuroRestore(trigger: confirmTrigger)
                     Image(systemName: "checkmark")
                         .font(glyphFont)
                         .kuroConfirmStamp(trigger: confirmTrigger)
@@ -86,7 +91,7 @@ struct KuroAdvanceKey: View {
             .frame(width: 44, height: 44)
             .contentShape(Rectangle())
         }
-        .buttonStyle(KuroAdvanceKeyStyle(face: face, settleTrigger: phase == .caughtUp ? 0 : confirmTrigger))
+        .buttonStyle(KuroAdvanceKeyStyle(face: face, settleTrigger: confirmTrigger, settles: phase != .caughtUp))
         .disabled(!isInteractive)
         .accessibilityLabel(accessibilityText)
         .accessibilityValue(phase == .caughtUp ? KuroLocale.text("Caught up", "Auf dem neuesten Stand")
@@ -141,6 +146,8 @@ struct KuroKeyFace {
 private struct KuroAdvanceKeyStyle: ButtonStyle {
     let face: KuroKeyFace
     let settleTrigger: Int
+    /// False on a caught-up key: no settle, and returning to advance mounts a fresh animator.
+    let settles: Bool
 
     func makeBody(configuration: Configuration) -> some View {
         let pressed = configuration.isPressed
@@ -149,16 +156,20 @@ private struct KuroAdvanceKeyStyle: ButtonStyle {
         let fill: AnyShapeStyle = pressed
             ? AnyShapeStyle(gradient.shadow(.inner(color: KuroKeyFace.pressedInset, radius: 1.5, x: 0, y: 2)))
             : AnyShapeStyle(gradient.shadow(.inner(color: face.highlight, radius: 0, x: 0, y: 1)))
+        let faceView = shape
+            .fill(fill)
+            .overlay(shape.fill(Color.black.opacity(pressed ? 0.14 : 0)))
+            .overlay(shape.strokeBorder(face.border, lineWidth: 1))
+            .shadow(color: pressed ? .clear : face.drop, radius: 1, x: 0, y: 1)
+            .frame(width: face.size, height: face.size)
+            .scaleEffect(pressed ? 0.95 : 1)
         return configuration.label
             .background {
-                shape
-                    .fill(fill)
-                    .overlay(shape.fill(Color.black.opacity(pressed ? 0.14 : 0)))
-                    .overlay(shape.strokeBorder(face.border, lineWidth: 1))
-                    .shadow(color: pressed ? .clear : face.drop, radius: 1, x: 0, y: 1)
-                    .frame(width: face.size, height: face.size)
-                    .scaleEffect(pressed ? 0.95 : 1)
-                    .kuroPressSettle(trigger: settleTrigger)
+                if settles {
+                    faceView.kuroPressSettle(trigger: settleTrigger)
+                } else {
+                    faceView
+                }
             }
             .kuroAnimation(KuroMotion.contact, value: pressed)
     }

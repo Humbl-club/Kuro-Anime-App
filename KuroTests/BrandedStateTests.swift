@@ -134,4 +134,22 @@ struct BrandedStateTests {
         #expect(KuroHeaderNeighbour.title(to: .taste, german: true) == "‹ Geschmack")
         #expect(KuroHeaderNeighbour.title(to: .home, german: true) == "Start ›")
     }
+
+    @Test("the header keeps KURO at the default text size from 320 pt, in English and German")
+    @MainActor
+    func headerKeepsWordmark() {
+        let english = ["Taste", "Home", "Discover", "Collection", "Clubs"]
+        let german = ["Geschmack", "Start", "Entdecken", "Sammlung", "Clubs"]
+        for width: CGFloat in [320, 375, 390, 430] {
+            let row = width - 44
+            let en = KuroHeaderRowLayout.resolve(rowWidth: row, pageNames: english, neighbourTitle: "‹ Taste")
+            #expect(en.showsWordmark && en.showsNeighbour, "EN \(width): \(en)")
+            let de = KuroHeaderRowLayout.resolve(rowWidth: row, pageNames: german, neighbourTitle: "‹ Geschmack")
+            #expect(de.showsWordmark, "DE \(width): \(de)")
+            // The link steps aside before the wordmark does (only the narrowest German row needs it).
+            #expect(de.showsNeighbour || width < 375, "DE \(width): \(de)")
+            let plain = KuroHeaderRowLayout.resolve(rowWidth: row, pageNames: german, neighbourTitle: nil)
+            #expect(plain.showsWordmark && !plain.showsNeighbour, "DE \(width) without link: \(plain)")
+        }
+    }
 }

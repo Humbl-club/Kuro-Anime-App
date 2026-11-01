@@ -826,6 +826,62 @@ enum KuroHeaderNeighbour {
     }
 }
 
+/// How the header row shares its width (pure given the fonts; tested). The page name stays centred
+/// unless it would run under the right controls; then it moves left. Priority when the row is short:
+/// the wordmark stays, then the neighbour link steps aside (swipe and the dots still reach Taste), and
+/// only when even that is not enough (largest text sizes) does the wordmark step aside too.
+struct KuroHeaderRowLayout: Equatable {
+    var showsWordmark: Bool
+    var showsNeighbour: Bool
+    /// How far the centre moves left of the true centre.
+    var centreShift: CGFloat
+
+    /// Search and Profile: two 44 pt targets, the trailing inset keeps the glyphs on the gutter.
+    static let actionsWidth: CGFloat = 44 * 2 - 6
+    /// Breathing room between the wordmark and the centre.
+    static let wordmarkGap: CGFloat = 8
+    /// The prototype wordmark's tracking (SF 18 w800, tracking 3).
+    static let wordmarkTracking: CGFloat = 3
+
+    /// A font size scaled with Dynamic Type for `style`, capped.
+    static func scaled(_ size: CGFloat, _ style: UIFont.TextStyle, max cap: CGFloat) -> CGFloat {
+        min(UIFontMetrics(forTextStyle: style).scaledValue(for: size), cap)
+    }
+
+    /// The width of `text` in the system font.
+    static func measure(_ text: String, size: CGFloat, weight: UIFont.Weight, tracking: CGFloat = 0) -> CGFloat {
+        let font = UIFont.systemFont(ofSize: size, weight: weight)
+        let base = (text as NSString).size(withAttributes: [.font: font]).width
+        return ceil(base + tracking * CGFloat(max(0, text.count - 1)))
+    }
+
+    /// `rowWidth`: the row inside its side padding. `pageNames`: every page name in the pager (the
+    /// centre is sized for the longest, so paging never moves it). `neighbourTitle`: the link's text, nil
+    /// when the page has none.
+    static func resolve(rowWidth: CGFloat, pageNames: [String], neighbourTitle: String?) -> KuroHeaderRowLayout {
+        let nameSize = KuroTypeRole.navigation.pointSize
+        let longest = pageNames.map { measure($0, size: nameSize, weight: .regular) }.max() ?? 0
+        let centreWidth = max(44, longest + 8)
+        let sideRoom = (rowWidth - centreWidth) / 2
+        let wordmarkWidth = measure("KURO", size: scaled(18, .headline, max: 26), weight: .heavy,
+                                    tracking: wordmarkTracking)
+        let neighbourWidth = neighbourTitle.map { max(44, measure($0, size: scaled(12, .footnote, max: 20), weight: .regular) + 12) }
+        func fit(rightWidth: CGFloat) -> (fits: Bool, shift: CGFloat) {
+            let shift = max(0, rightWidth - sideRoom)
+            return (sideRoom - shift - wordmarkGap >= wordmarkWidth, shift)
+        }
+        guard let neighbourWidth else {
+            let plain = fit(rightWidth: actionsWidth)
+            return KuroHeaderRowLayout(showsWordmark: plain.fits, showsNeighbour: false, centreShift: plain.shift)
+        }
+        let withLink = fit(rightWidth: actionsWidth + neighbourWidth)
+        if withLink.fits { return KuroHeaderRowLayout(showsWordmark: true, showsNeighbour: true, centreShift: withLink.shift) }
+        let withoutLink = fit(rightWidth: actionsWidth)
+        if withoutLink.fits { return KuroHeaderRowLayout(showsWordmark: true, showsNeighbour: false, centreShift: withoutLink.shift) }
+        return KuroHeaderRowLayout(showsWordmark: false, showsNeighbour: true, centreShift: withLink.shift)
+    }
+}
+
 extension KuroMainView.Section {
     /// The page canvas behind the pager and the header: the prototype's warm Home canvas on Home,
     /// the white page elsewhere.
@@ -863,21 +919,10 @@ struct KuroHeaderNew: View {
     /// The header row's width inside its side padding (0 until the first layout).
     @State private var rowWidth: CGFloat = 0
 
-    /// Prototype wordmark: SF 18 w800, tracking 3.
-    private static let wordmarkTracking: CGFloat = 3
+    /// Prototype wordmark: SF 18 w800 (tracking `KuroHeaderRowLayout.wordmarkTracking`).
     private static let wordmarkFont = Font.kuroCustom(18, weight: .heavy, relativeTo: .headline, maxSize: 26)
     /// Prototype neighbour link: SF 12 w400.
     private static let neighbourFont = Font.kuroCustom(12, relativeTo: .footnote, maxSize: 20)
-
-    private static func scaled(_ size: CGFloat, _ style: UIFont.TextStyle, max cap: CGFloat) -> CGFloat {
-        min(UIFontMetrics(forTextStyle: style).scaledValue(for: size), cap)
-    }
-
-    private static func measure(_ text: String, size: CGFloat, weight: UIFont.Weight, tracking: CGFloat = 0) -> CGFloat {
-        let font = UIFont.systemFont(ofSize: size, weight: weight)
-        let base = (text as NSString).size(withAttributes: [.font: font]).width
-        return ceil(base + tracking * CGFloat(max(0, text.count - 1)))
-    }
 
     private var neighbour: KuroMainView.Section? {
         KuroHeaderNeighbour.link(for: selection, order: swipeOrder)
@@ -902,32 +947,16 @@ struct KuroHeaderNew: View {
         selection = swipeOrder[next]
     }
 
-    /// The two glyph buttons (44 pt targets, the trailing inset keeps the glyphs on the gutter).
-    private static let actionsWidth: CGFloat = 44 * 2 - 6
-    /// Breathing room between the wordmark and the centre.
-    private static let wordmarkGap: CGFloat = 8
-
-    private var neighbourWidth: CGFloat {
-        guard let neighbour else { return 0 }
-        let size = Self.scaled(12, .footnote, max: 20)
-        let title = KuroHeaderNeighbour.title(to: neighbour, german: KuroLocale.isGerman)
-        return max(44, Self.measure(title, size: size, weight: .regular) + 12)
-    }
-
-    /// Where the centre sits and whether the wordmark fits beside it. Sized for the longest page name in
-    /// the order, so paging never moves it.
-    private var rowLayout: (showsWordmark: Bool, centreShift: CGFloat) {
-        guard rowWidth > 0 else { return (!dynamicTypeSize.isAccessibilitySize, 0) }
-        let nameSize = KuroTypeRole.navigation.pointSize
-        let longest = swipeOrder.map { Self.measure($0.spokenName, size: nameSize, weight: .regular) }.max() ?? 0
-        let centreWidth = max(44, longest + 8)
-        let sideRoom = (rowWidth - centreWidth) / 2
-        let rightWidth = Self.actionsWidth + neighbourWidth
-        let shift = max(0, rightWidth - sideRoom)
-        let leftRoom = sideRoom - shift
-        let wordmarkWidth = Self.measure("KURO", size: Self.scaled(18, .headline, max: 26), weight: .heavy,
-                                         tracking: Self.wordmarkTracking)
-        return (leftRoom - Self.wordmarkGap >= wordmarkWidth, shift)
+    private var rowLayout: KuroHeaderRowLayout {
+        guard rowWidth > 0 else {
+            let roomy = !dynamicTypeSize.isAccessibilitySize
+            return KuroHeaderRowLayout(showsWordmark: roomy, showsNeighbour: roomy && neighbour != nil, centreShift: 0)
+        }
+        return KuroHeaderRowLayout.resolve(
+            rowWidth: rowWidth,
+            pageNames: swipeOrder.map(\.spokenName),
+            neighbourTitle: neighbour.map { KuroHeaderNeighbour.title(to: $0, german: KuroLocale.isGerman) }
+        )
     }
 
     private var inkColor: Color { Color.kuroInk }
@@ -1057,7 +1086,7 @@ struct KuroHeaderNew: View {
                     if layout.showsWordmark {
                         Text("KURO")
                             .font(Self.wordmarkFont)
-                            .tracking(Self.wordmarkTracking)
+                            .tracking(KuroHeaderRowLayout.wordmarkTracking)
                             .foregroundStyle(inkColor)
                             .lineLimit(1)
                             .fixedSize()
@@ -1065,7 +1094,9 @@ struct KuroHeaderNew: View {
                     }
                     Spacer(minLength: 0)
                     HStack(spacing: 0) {
-                        neighbourLink
+                        if layout.showsNeighbour {
+                            neighbourLink
+                        }
                         actionButtons
                     }
                     .accessibilityElement(children: .contain)
