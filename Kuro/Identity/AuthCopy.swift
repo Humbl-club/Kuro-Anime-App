@@ -109,6 +109,8 @@ nonisolated enum AuthCopy {
         case notRequestedHere
         /// The link names another account than the signed-in one.
         case otherAccount
+        /// A code link arrived while signed in, with no flow this device started for that account.
+        case signedInAlready
         /// The link was readable but could not be applied.
         case failed
     }
@@ -125,8 +127,12 @@ nonisolated enum AuthCopy {
                 : "This link wasn't requested on this device. Request a new one here and use the most recent email."
         case .otherAccount:
             return german
-                ? "Dieser Link gehört nicht zum angemeldeten Konto. Melde dich zuerst ab und öffne den Link dann erneut."
-                : "This link doesn't match the account you're signed in to. Sign out first, then open the link again."
+                ? "Dieser Link gehört nicht zum angemeldeten Konto. Um ihn zu nutzen, melde dich ab und fordere einen neuen an."
+                : "This link doesn't match the account you're signed in to. To use it, sign out and request a new link."
+        case .signedInAlready:
+            return german
+                ? "Du bist schon angemeldet. Um dein Passwort zurückzusetzen, melde dich ab und fordere einen neuen Link an."
+                : "You're already signed in. To reset your password, sign out and request a new link."
         case .failed:
             return german
                 ? "Der Link konnte nicht geöffnet werden. Fordere einen neuen an."
@@ -147,6 +153,14 @@ nonisolated enum AuthCopy {
         german
             ? "Schau in dein Postfach und bestätige deine E-Mail-Adresse. Melde dich danach an."
             : "Check your inbox to confirm your email, then sign in."
+    }
+
+    /// An unsolicited sign-up or email-change confirmation link: the server already confirmed the
+    /// address; the app adopts no session from it.
+    static func emailConfirmed(german: Bool) -> String {
+        german
+            ? "Deine E-Mail-Adresse ist bestätigt. Melde dich an, um weiterzumachen."
+            : "Your email is confirmed. Sign in to continue."
     }
 
     static func passwordUpdated(german: Bool) -> String {

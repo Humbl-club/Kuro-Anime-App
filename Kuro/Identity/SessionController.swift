@@ -522,18 +522,26 @@ final class SessionController {
     }
 
     /// Applies a `kuro://auth/callback` link when `AuthCallbackGuard` allows it (fail closed):
-    /// - signed in: only an implicit token pair naming the signed-in user (R-E1-2, unchanged);
-    /// - signed out: only a link for the live flow this device started; it is consumed on acceptance
-    ///   (single use). A PKCE code is exchanged, a token pair applied, both inside the credential gate
-    ///   (F33) as the newest attempt (F01); the account it yields must be the flow's address.
+    /// - signed in: an implicit token pair naming the signed-in user (R-E1-2, unchanged), or a code for
+    ///   the live flow this device started for the signed-in account's address;
+    /// - signed out: only a link for the live flow this device started. A PKCE code is exchanged, a
+    ///   token pair applied, both inside the credential gate (F33) as the newest attempt (F01); the
+    ///   account it yields must be the flow's address. The flow is consumed once the SDK leg answered
+    ///   (single use); a transport failure keeps it, so the same link can be retried once online.
     /// A recovery link opens the set-new-password screen before the app ever renders.
     func handleAuthCallback(_ payload: AuthCallbackPayload) async {
         // While the launch restore is still running, the SDK's stored session is the signed-in account.
-        let signedInUserId = accountSession.current?.userId
-            ?? (identity.isAuthBootstrapping ? client?.auth.currentSession?.user.id.uuidString : nil)
+        let bootstrapSession = identity.isAuthBootstrapping ? client?.auth.currentSession : nil
+        let signedInUserId = accountSession.current?.userId ?? bootstrapSession?.user.id.uuidString
+        let signedInEmail = accountSession.current != nil ? identity.currentUserEmail : bootstrapSession?.user.email
         let pending = pendingFlows.current()
         let flowKind: PendingAuthFlowKind?
-        switch AuthCallbackGuard.decision(payload: payload, currentUserId: signedInUserId, pending: pending) {
+        switch AuthCallbackGuard.decision(
+            payload: payload,
+            currentUserId: signedInUserId,
+            currentUserEmail: signedInEmail,
+            pending: pending
+        ) {
         case .linkError:
             let message = AuthCopy.message(forCode: payload.errorCode, german: isGermanLocale)
                 ?? AuthCopy.linkMessage(.expired, german: isGermanLocale)
@@ -542,14 +550,20 @@ final class SessionController {
         case .rejectDifferentUser:
             reportRejectedAuthCallback()
             return
+        case .rejectCodeWhileSignedIn:
+            reportAuthLinkFailure(AuthCopy.linkMessage(.signedInAlready, german: isGermanLocale), signedIn: true)
+            return
         case .rejectNoPendingFlow:
             reportAuthLinkFailure(AuthCopy.linkMessage(.notRequestedHere, german: isGermanLocale), signedIn: false)
+            return
+        case .emailConfirmed:
+            identity.authErrorMessage = nil
+            identity.authNoticeMessage = AuthCopy.emailConfirmed(german: isGermanLocale)
             return
         case .proceed:
             flowKind = nil
         case .applyPendingTokens(let kind), .exchangeCode(let kind):
             flowKind = kind
-            pendingFlows.consume()
         }
         guard let client else {
             identity.authErrorMessage = identity.configError
@@ -585,6 +599,9 @@ final class SessionController {
             }
         } catch {
             settleRecoveryLink()
+            // Single use, but only once the server answered: a transport failure (offline, timeout)
+            // keeps the flow, so the same link works once the device is back online.
+            if flowKind != nil, !AuthService.permitsOfflineRestore(error) { pendingFlows.consume() }
             // A superseded attempt reports nothing (F01).
             guard isCurrentAttempt(attempt) else { return }
             reportAuthLinkFailure(Self.linkFailureMessage(for: error, german: isGermanLocale),
@@ -594,6 +611,8 @@ final class SessionController {
             #endif
             return
         }
+        // The SDK leg succeeded: the flow is used up (also when the account turns out foreign below).
+        if flowKind != nil { pendingFlows.consume() }
         guard isCurrentAttempt(attempt) else {
             accountSession.endCredentialChange(installed.change)
             settleRecoveryLink()
@@ -605,6 +624,9 @@ final class SessionController {
         let foreignWhileSignedIn = signedInUserId.map { !AccountSessionCoordinator.sameUser(session.userId, $0) } ?? false
         let foreignToFlow = flowKind != nil && pending?.matches(email: session.email) != true
         if foreignWhileSignedIn || foreignToFlow {
+            // The SDK's own `.signedIn` event may already have published (and persisted the
+            // set-password requirement for) the foreign account during the exchange.
+            if flowKind == .recovery { passwordUpdates.clear(for: session.userId) }
             settleRecoveryLink()
             let ended = endSessionState()
             accountSession.endCredentialChange(installed.change)
@@ -618,7 +640,8 @@ final class SessionController {
             return
         }
         if flowKind == .recovery {
-            // Persisted before the session is published, so a relaunch also lands on the set-password screen.
+            // Persisted before the session is published, so a relaunch also lands on the set-password
+            // screen (`applySession` also persists it when the SDK's `.signedIn` event publishes first).
             passwordUpdates.require(for: session.userId)
         }
         let transition = await applySession(userId: session.userId, email: session.email)
@@ -712,6 +735,7 @@ final class SessionController {
         // Invalidate and cancel the deleted account before serialized device cleanup.
         passwordUpdates.clear(for: context.userId)
         pendingFlows.clear()
+        OnboardingCompletion.remove(userId: context.userId)
         clubs.removeAccountScopedPrefs(userId: context.userId)
         flags.removeHomeCohort(for: context.userId)
         if accountSession.isCurrent(context) {
@@ -783,6 +807,7 @@ final class SessionController {
         let context: AccountContext
         switch transition {
         case .unchanged:
+            if recoveryLinkInFlight { passwordUpdates.require(for: userId) }
             identity.requiresPasswordUpdate = identity.requiresPasswordUpdate
                 || recoveryLinkInFlight || passwordUpdates.isRequired(for: userId)
             identity.isAuthenticated = true
@@ -798,7 +823,11 @@ final class SessionController {
         cancelAccountWork()
         clearPrivateState()
         let channels = detachAccountChannels()
-        // Read before the identity is published, so the root never renders the app first (D12).
+        // Read before the identity is published, so the root never renders the app first (D12). A
+        // recovery link in flight persists the requirement here too: the SDK's `.signedIn` event can
+        // publish (and Keychain-store) the recovery session before the exchange returns, and a kill in
+        // that window must still relaunch onto the set-password screen.
+        if recoveryLinkInFlight { passwordUpdates.require(for: userId) }
         identity.requiresPasswordUpdate = recoveryLinkInFlight || passwordUpdates.isRequired(for: userId)
         identity.isAuthenticated = true
         identity.currentUserEmail = email

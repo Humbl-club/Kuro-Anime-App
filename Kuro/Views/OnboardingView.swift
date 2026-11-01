@@ -6,18 +6,18 @@ import SwiftUI
 // drift belongs to the welcome and the empty-Home invitation only), a serif cover line with a short
 // ink rule, one sentence, and an ink-rule action with an arrow. No icon circles.
 //   1. Anime or manga: persists the Home medium preference exactly as `HomeStore` stores it.
-//   2. Bring your list: opens the existing import chooser (`ImportSourceChooser`), or skip.
+//   2. Bring your list: opens the existing import chooser (`ImportSourceChooser`), or skip. The
+//      sentence names only the sources that import in the current world (MyAnimeList files need the
+//      series foundation) and promises no review step (the legacy AniList path may auto-apply).
 //   3. Clubs are private.
 // The copy works in both worlds (flags off: no Home page; flags on: Home). Completion is stored per
-// account (`OnboardingCompletion`), so a second account on the device sees it once too.
+// account (`OnboardingCompletion`, Kuro/Identity), so a second account on the device sees it once too.
 
 enum OnboardingDestination {
     /// Land where the pager starts.
     case home
     /// The Taste page (TastePicksView in both pager orders).
     case tasteDeck
-    /// An import finished during onboarding: Collection (filtered to the imported titles).
-    case collection
 }
 
 struct OnboardingView: View {
@@ -26,7 +26,6 @@ struct OnboardingView: View {
     @Environment(IdentityStore.self) private var identity
     @Environment(HomeStore.self) private var home
     @Environment(FeatureFlags.self) private var flags
-    @Environment(CollectionStore.self) private var collection
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum Frame: Int, CaseIterable {
@@ -36,7 +35,6 @@ struct OnboardingView: View {
     @State private var frame: Frame = .medium
     @State private var medium: MediaKind = .anime
     @State private var showImport = false
-    @State private var didImport = false
     @AccessibilityFocusState private var headlineFocused: Bool
 
     private var german: Bool { KuroLocale.isGerman }
@@ -105,13 +103,10 @@ struct OnboardingView: View {
             medium = home.medium == "manga" ? .manga : .anime
         }
         .sheet(isPresented: $showImport) {
-            ImportSourceChooser { destination in
+            // Onboarding ends where the pager starts, so no Collection filter is set here (it would be
+            // invisible); the imported titles are in Collection like any other.
+            ImportSourceChooser { _ in
                 showImport = false
-                switch destination {
-                case .importedTitles(let keys): collection.showImportedTitles(keys)
-                case .fullCollection: collection.clearImportedTitles()
-                }
-                didImport = true
                 advance(to: .clubs)
             }
         }
@@ -141,9 +136,7 @@ struct OnboardingView: View {
         case .list:
             frameText(
                 line: german ? "Bring deine Liste mit." : "Bring your list.",
-                sentence: german
-                    ? "Importiere von AniList oder aus einer MyAnimeList-Datei. Du prüfst jede Änderung, bevor sie gespeichert wird."
-                    : "Import from AniList or a MyAnimeList file. You check every change before it’s saved."
+                sentence: listSentence
             ) {
                 KuroInkButton(german ? "Liste importieren" : "Import a list", role: .secondary) {
                     showImport = true
@@ -170,12 +163,25 @@ struct OnboardingView: View {
                     ? "Bis zu 20 Personen, per Einladungscode. Nur Mitglieder sehen, was dort geteilt wird."
                     : "Up to 20 people, by invite code. Only members see what’s shared there."
             ) {
-                KuroInkButton(german ? "Los geht’s" : "Start") {
-                    complete(didImport ? .collection : .home)
+                KuroInkButton(german ? "Los geht’s" : "Start", role: .secondary) {
+                    complete(.home)
                 }
                 .padding(.top, KuroDesignSpacing.xl)
             }
         }
+    }
+
+    /// True in both worlds: MyAnimeList files import only with the series foundation on (flags off,
+    /// the chooser's MAL file path is refused), and no review step is promised.
+    private var listSentence: String {
+        if flags.seriesFoundationV1Enabled {
+            return german
+                ? "Importiere von AniList oder aus einer MyAnimeList-Datei. Oder füge Titel nach und nach hinzu."
+                : "Import from AniList or a MyAnimeList file. Or add titles as you go."
+        }
+        return german
+            ? "Importiere deine Liste von AniList. Oder füge Titel nach und nach hinzu."
+            : "Import your list from AniList. Or add titles as you go."
     }
 
     private func frameText<Actions: View>(
@@ -244,40 +250,6 @@ struct OnboardingView: View {
         KuroAccessibility.impactHaptic(.light)
         OnboardingCompletion.markCompleted(userId: identity.currentUserId)
         onComplete(destination)
-    }
-}
-
-// MARK: - Completion (per account)
-
-/// Whether onboarding ran for an account. Keyed by the lower-cased user id; the pre-2026-11-01
-/// device-wide flag counts once for the first account that signs in afterwards (so existing users
-/// are not shown onboarding again after the update) and is then retired. Without a user id (the
-/// DEBUG `--kuro-skip-auth` preview) the device-wide flag is used.
-nonisolated enum OnboardingCompletion {
-    static let legacyDeviceKey = "kuro_onboarding_completed"
-    static let keyPrefix = "kuro_onboarding_completed."
-
-    static func key(for userId: String) -> String {
-        keyPrefix + userId.lowercased()
-    }
-
-    static func isCompleted(userId: String?, defaults: UserDefaults = .standard) -> Bool {
-        guard let userId, !userId.isEmpty else { return defaults.bool(forKey: legacyDeviceKey) }
-        if defaults.bool(forKey: key(for: userId)) { return true }
-        if defaults.bool(forKey: legacyDeviceKey) {
-            defaults.set(true, forKey: key(for: userId))
-            defaults.removeObject(forKey: legacyDeviceKey)
-            return true
-        }
-        return false
-    }
-
-    static func markCompleted(userId: String?, defaults: UserDefaults = .standard) {
-        guard let userId, !userId.isEmpty else {
-            defaults.set(true, forKey: legacyDeviceKey)
-            return
-        }
-        defaults.set(true, forKey: key(for: userId))
     }
 }
 

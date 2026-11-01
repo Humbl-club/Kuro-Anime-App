@@ -4,12 +4,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
  * Auth Callback — fallback redirect page for Supabase email links.
  *
  * The app's own redirect is `kuro://auth/callback` (AuthService.authCallbackURL), so this page is only
- * used when a link is configured to land on the web first. It forwards the link into the app
- * unchanged and holds nothing itself:
- *   - PKCE (`?code=…`, the SDK default) and error parameters (`error`, `error_code`,
- *     `error_description`) are forwarded as query parameters, allow-listed;
- *   - an implicit-flow fragment (`#access_token=…`) is forwarded as a fragment, never moved into a
- *     query string (query strings end up in history and in any app that claims the scheme).
+ * used when a link is configured to land on the web first. It forwards only an allow-list into the
+ * app and holds nothing itself:
+ *   - PKCE (`?code=…`, the SDK default), `type` and the error parameters (`error`, `error_code`,
+ *     `error_description`) are forwarded as query parameters;
+ *   - from an implicit-flow fragment only the error parameters are forwarded (as a fragment). Session
+ *     tokens (`access_token`, `refresh_token`) are NEVER relayed into the unclaimed `kuro://` scheme
+ *     (any app can register it; fix plan §5.2.11 / §6.5): a tokens-only link shows "request a new
+ *     link in Kuro" instead.
  * The app accepts a link only for a flow it started on that device (spec D12).
  *
  * 2026-11-01 re-skin (prepared, NOT deployed): white page and #181818 ink to match the app's welcome,
@@ -22,6 +24,13 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const FORWARDED_QUERY_KEYS = [
   "code",
   "type",
+  "error",
+  "error_code",
+  "error_description",
+];
+
+/** Fragment keys that may be relayed: errors only, never session tokens. */
+const FORWARDED_FRAGMENT_KEYS = [
   "error",
   "error_code",
   "error_description",
@@ -89,12 +98,24 @@ function page(nonce: string): string {
     var value = query.get(key);
     if (value) { forwarded.set(key, value); }
   });
+  var forwardedFragment = new URLSearchParams();
+  ${JSON.stringify(FORWARDED_FRAGMENT_KEYS)}.forEach(function (key) {
+    var value = hashParams.get(key);
+    if (value) { forwardedFragment.set(key, value); }
+  });
   var search = forwarded.toString();
-  var target = 'kuro://auth/callback' + (search ? '?' + search : '') + (hash.length > 1 ? hash : '');
+  var fragment = forwardedFragment.toString();
+  var target = 'kuro://auth/callback' + (search ? '?' + search : '') + (fragment ? '#' + fragment : '');
 
-  var failed = forwarded.has('error') || forwarded.has('error_code') || hashParams.has('error') || hashParams.has('error_code');
-  var hasLink = forwarded.has('code') || hashParams.has('access_token');
+  var failed = forwarded.has('error') || forwarded.has('error_code') || forwardedFragment.has('error') || forwardedFragment.has('error_code');
+  // Only a PKCE code is a link the app can finish; an implicit token pair is not relayed.
+  var hasLink = forwarded.has('code');
+  var tokensOnly = !hasLink && !failed && hashParams.has('access_token');
   var type = forwarded.get('type') || hashParams.get('type') || '';
+  // Session tokens never stay in the address bar (history, screenshots, shared links).
+  if (hashParams.has('access_token') || hashParams.has('refresh_token')) {
+    try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
+  }
 
   var title = document.getElementById('title');
   var message = document.getElementById('message');
@@ -108,6 +129,10 @@ function page(nonce: string): string {
     title.textContent = t('This link has expired', 'Dieser Link ist abgelaufen');
     message.textContent = t('Request a new one in Kuro and use the most recent email.',
                             'Fordere in Kuro einen neuen an und nutze die neueste E-Mail.');
+  } else if (tokensOnly) {
+    title.textContent = t('Request a new link in Kuro', 'Fordere in Kuro einen neuen Link an');
+    message.textContent = t('This link can’t be opened here. Request a new one in Kuro and use the most recent email.',
+                            'Dieser Link lässt sich hier nicht öffnen. Fordere in Kuro einen neuen an und nutze die neueste E-Mail.');
   } else if (type === 'recovery') {
     title.textContent = t('Choose a new password', 'Wähle ein neues Passwort');
     message.textContent = t('Kuro opens on the screen for your new password.',

@@ -14,14 +14,22 @@ nonisolated enum AuthCallbackDecision: Equatable, Sendable {
     /// Signed out: an implicit token pair that matches the live flow this device started (same
     /// address, same flow, issued after it started, unexpired). Applied with `setSession`.
     case applyPendingTokens(PendingAuthFlowKind)
-    /// Signed out: a PKCE code for the live flow this device started. Exchanged with this device's
-    /// code verifier (the server rejects any other device's code).
+    /// A PKCE code for the live flow this device started: signed out, or signed in when the flow was
+    /// requested for the signed-in account's address. Exchanged with this device's code verifier (the
+    /// server rejects any other device's code); the funnel re-checks the account it yields.
     case exchangeCode(PendingAuthFlowKind)
-    /// While someone is signed in, the link cannot be shown to belong to that user
-    /// (fail closed: another, missing or unreadable subject, no usable expiry, or a code link).
+    /// While someone is signed in, a token pair cannot be shown to belong to that user
+    /// (fail closed: another, missing or unreadable subject, or no usable expiry).
     case rejectDifferentUser
+    /// While someone is signed in, a code link with no live flow this device started for the
+    /// signed-in account's address (it cannot be shown to be this user's).
+    case rejectCodeWhileSignedIn
     /// Signed out and no live flow this device started matches the link (login CSRF, spec D12).
     case rejectNoPendingFlow
+    /// Signed out, an error-free sign-up or email-change confirmation that no flow on this device
+    /// started: the server confirmed the address before redirecting, so the user is told so, and
+    /// nothing is adopted (still no session from an unsolicited link).
+    case emailConfirmed
     /// The link reports a failure (expired, already used) and carries nothing to apply.
     case linkError
 }
@@ -41,36 +49,69 @@ nonisolated enum AuthCallbackGuard {
     /// - Signed in: a token pair proceeds only when its `sub` equals the current user AND its `exp`
     ///   lies at least `minimumRemainingValidity` ahead (supabase-swift 2.54.1 `setSession` verifies an
     ///   unexpired access token with `/user` but replaces the session from the refresh token alone when
-    ///   `exp` is missing or past). A code link is rejected (it cannot be shown to be this user's).
+    ///   `exp` is missing or past). A code link is exchanged only for a live flow this device started
+    ///   for the signed-in account's address (`currentUserEmail`); any other code link is rejected.
     /// - Signed out: nothing is adopted unless a live flow this device started matches: a code is
     ///   exchanged for it; a token pair must also carry that flow's address (`email`), be issued
-    ///   after it started (`iat`, when present) and be unexpired. A link `type` must match the flow.
+    ///   after it started (`iat`, when present), be unexpired and, when the token names its sign-in
+    ///   method (`amr`), come from an email link. A link `type` must match the flow. An unsolicited
+    ///   sign-up or email-change confirmation only reports that the address is confirmed.
     static func decision(
         payload: AuthCallbackPayload,
         currentUserId: String?,
+        currentUserEmail: String? = nil,
         pending: PendingAuthFlow?,
         now: Date = Date()
     ) -> AuthCallbackDecision {
         if payload.isErrorOnly { return .linkError }
+        let livePending = pending.flatMap { flow in
+            flow.isLive(at: now) && flow.kind.matches(linkType: payload.type) ? flow : nil
+        }
         if let currentUserId {
-            guard payload.code == nil, let accessToken = payload.accessToken else { return .rejectDifferentUser }
+            if payload.code != nil {
+                guard let livePending, livePending.matches(email: currentUserEmail) else { return .rejectCodeWhileSignedIn }
+                return .exchangeCode(livePending.kind)
+            }
+            guard let accessToken = payload.accessToken else { return .rejectDifferentUser }
             return signedInDecision(accessToken: accessToken, currentUserId: currentUserId, now: now)
         }
-        guard let pending, pending.isLive(at: now), pending.kind.matches(linkType: payload.type) else {
-            return .rejectNoPendingFlow
+        guard let livePending else {
+            return isConfirmation(type: payload.type) ? .emailConfirmed : .rejectNoPendingFlow
         }
-        if payload.code != nil { return .exchangeCode(pending.kind) }
+        if payload.code != nil { return .exchangeCode(livePending.kind) }
         guard let accessToken = payload.accessToken,
               let claims = jwtPayload(accessToken),
-              pending.matches(email: claims["email"] as? String),
+              livePending.matches(email: claims["email"] as? String),
               let exp = claims["exp"] as? TimeInterval,
-              Date(timeIntervalSince1970: exp) > now.addingTimeInterval(minimumRemainingValidity)
+              Date(timeIntervalSince1970: exp) > now.addingTimeInterval(minimumRemainingValidity),
+              emailLinkMethod(claims["amr"])
         else { return .rejectNoPendingFlow }
         if let iat = claims["iat"] as? TimeInterval,
-           Date(timeIntervalSince1970: iat).addingTimeInterval(allowedClockSkew) < pending.createdAt {
+           Date(timeIntervalSince1970: iat).addingTimeInterval(allowedClockSkew) < livePending.createdAt {
             return .rejectNoPendingFlow
         }
-        return .applyPendingTokens(pending.kind)
+        return .applyPendingTokens(livePending.kind)
+    }
+
+    /// Link types GoTrue sends after confirming an address (sign-up, email change).
+    private static func isConfirmation(type: String?) -> Bool {
+        guard let type = type?.lowercased() else { return false }
+        return type == "signup" || type == "email_change"
+    }
+
+    /// Methods an email-link session can carry in `amr` (GoTrue writes `[{"method": …, "timestamp": …}]`;
+    /// a plain string list is read too). Absent or unreadable `amr` is allowed: the address binding
+    /// above is the actual check (fix plan option B; the claim's live shape is unverified).
+    private static let emailLinkMethods: Set<String> = ["recovery", "otp", "magiclink"]
+
+    private static func emailLinkMethod(_ amr: Any?) -> Bool {
+        guard let entries = amr as? [Any], !entries.isEmpty else { return true }
+        let methods = entries.compactMap { entry -> String? in
+            if let method = entry as? String { return method.lowercased() }
+            return ((entry as? [String: Any])?["method"] as? String)?.lowercased()
+        }
+        guard !methods.isEmpty else { return true }
+        return methods.contains { emailLinkMethods.contains($0) }
     }
 
     /// The token-pair rule without a pending flow (the pre-D12 entry point; tests and the signed-in

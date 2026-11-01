@@ -545,7 +545,7 @@ struct SessionSDKTests {
         let h = try SessionSDKHarness(responder: SessionSDKHarness.responder(signInStatus: 400))
         await #expect(throws: (any Error).self) { try await h.session.signInWithEmail(email: "a@example.com", password: "bad") }
 
-        #expect(h.identity.authErrorMessage == "Incorrect email or password. Please try again.")
+        #expect(h.identity.authErrorMessage == AuthCopy.message(forCode: "invalid_credentials", german: KuroLocale.isGerman))
         #expect(!h.identity.isAuthenticated)
         #expect(h.graph.accountSession.current == nil)
         #expect(h.requests { $0.resource == "profiles" }.isEmpty)

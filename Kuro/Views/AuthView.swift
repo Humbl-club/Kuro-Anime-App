@@ -121,16 +121,21 @@ struct AuthView: View {
                 revealEmailForm(animated: !reduceMotion)
             }
             takeAuthMessage(identity.authErrorMessage)
+            takeAuthNotice(identity.authNoticeMessage)
         }
         .onDisappear { revealTask?.cancel() }
         .onChange(of: identity.authErrorMessage) { _, newValue in
             takeAuthMessage(newValue)
         }
+        .onChange(of: identity.authNoticeMessage) { _, newValue in
+            takeAuthNotice(newValue)
+        }
         .onChange(of: errorText) { _, newValue in
             if let newValue { AccessibilityNotification.Announcement(newValue).post() }
         }
         .onChange(of: noticeText) { _, newValue in
-            if let newValue { AccessibilityNotification.Announcement(newValue).post() }
+            // The reset sheet announces its own confirmation; the copy it hands back is not read twice.
+            if let newValue, !showResetSheet { AccessibilityNotification.Announcement(newValue).post() }
         }
         .sheet(isPresented: $showResetSheet) {
             AuthResetPasswordSheet(initialEmail: email, cooldownUntil: $resetCooldownUntil) { sentTo in
@@ -152,6 +157,17 @@ struct AuthView: View {
             mode = .signIn
             goToEmail(clearingMessages: false)
         }
+    }
+
+    /// A neutral notice published by the funnel (e.g. an email confirmation link): shown in the notice
+    /// line of the sign-in form (opened from the welcome, like a message).
+    private func takeAuthNotice(_ message: String?) {
+        guard let message else { return }
+        identity.authNoticeMessage = nil
+        errorText = nil
+        noticeText = message
+        mode = .signIn
+        if step != .email { goToEmail(clearingMessages: false) }
     }
 
     private func goToEmail(clearingMessages: Bool = true) {
@@ -378,22 +394,33 @@ struct AuthView: View {
                         .modifier(AuthStaggerEnter(revealed: show, delay: 0.15))
 
                         VStack(alignment: .leading, spacing: 14) {
-                            AuthField(
-                                title: german ? "E-Mail" : "Email",
-                                text: $email,
-                                isSecure: false,
-                                focus: $focusedField,
-                                value: .email,
-                                isDisabled: isWorking
-                            ) {
-                                emailStatus
+                            VStack(alignment: .leading, spacing: 8) {
+                                AuthField(
+                                    title: german ? "E-Mail" : "Email",
+                                    text: $email,
+                                    isSecure: false,
+                                    focus: $focusedField,
+                                    value: .email,
+                                    isDisabled: isWorking
+                                ) {
+                                    emailStatus
+                                }
+                                .textInputAutocapitalization(.never)
+                                .keyboardType(.emailAddress)
+                                .autocorrectionDisabled(true)
+                                .textContentType(.emailAddress)
+                                .submitLabel(.next)
+                                .onSubmit { focusedField = .password }
+
+                                // Under the field, not beside it: at the largest text sizes a trailing
+                                // hint would squeeze the address to a few characters.
+                                if showsEmailHint {
+                                    Text(german ? "Adresse prüfen" : "Check the address")
+                                        .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 20))
+                                        .foregroundStyle(Color.kuroInkSecondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.emailAddress)
-                            .autocorrectionDisabled(true)
-                            .textContentType(.emailAddress)
-                            .submitLabel(.next)
-                            .onSubmit { focusedField = .password }
                             .modifier(AuthStaggerEnter(revealed: show, delay: 0.20))
 
                             VStack(alignment: .leading, spacing: 8) {
@@ -511,12 +538,12 @@ struct AuthView: View {
                 .font(.kuroCustom(12, weight: .semibold, relativeTo: .footnote, maxSize: 20))
                 .foregroundStyle(Color.kuroInkSecondary)
                 .accessibilityLabel(german ? "Gültige E-Mail-Adresse" : "Valid email address")
-        } else if !email.isEmpty, focusedField != .email || submitAttempted {
-            Text(german ? "Adresse prüfen" : "Check the address")
-                .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 20))
-                .foregroundStyle(Color.kuroInkSecondary)
-                .fixedSize()
         }
+    }
+
+    /// "Check the address" once the field was left (or submitted) holding an invalid address.
+    private var showsEmailHint: Bool {
+        !AuthFormRules.emailLooksValid(email) && !email.isEmpty && (focusedField != .email || submitAttempted)
     }
 
     private var appleButton: some View {
@@ -681,6 +708,7 @@ struct KuroWordmark: View {
 /// the escape (the requirement then ends with the session).
 struct AuthSetPasswordView: View {
     @Environment(SessionController.self) private var session
+    @Environment(IdentityStore.self) private var identity
 
     @State private var password = ""
     @State private var confirmation = ""
@@ -716,6 +744,24 @@ struct AuthSetPasswordView: View {
                         .foregroundStyle(Color.kuroInkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 8)
+
+                    if let accountEmail = identity.currentUserEmail, !accountEmail.isEmpty {
+                        // Names the account being changed, and gives Password AutoFill the username to
+                        // save the new password under (a read-only username field, not a visible input).
+                        Text(german ? "Konto: \(accountEmail)" : "Account: \(accountEmail)")
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 14)
+                            .background(alignment: .topLeading) {
+                                TextField("", text: .constant(accountEmail))
+                                    .textContentType(.username)
+                                    .disabled(true)
+                                    .frame(width: 1, height: 1)
+                                    .opacity(0.01)
+                                    .accessibilityHidden(true)
+                            }
+                    }
 
                     VStack(alignment: .leading, spacing: 14) {
                         AuthField(
@@ -852,10 +898,16 @@ private struct AuthResetPasswordSheet: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Spacer()
-                    Button(german ? "Schließen" : "Close") { dismiss() }
-                        .font(.kuroMeta(weight: .medium))
-                        .foregroundStyle(Color.kuroInk)
-                        .frame(minWidth: 44, minHeight: 44)
+                    Button {
+                        dismiss()
+                    } label: {
+                        Text(german ? "Schließen" : "Close")
+                            .font(.kuroMeta(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 Text(german ? "Passwort zurücksetzen" : "Reset password")
@@ -939,7 +991,11 @@ private struct AuthResetPasswordSheet: View {
     }
 
     private var sendTitle: String {
-        if coolingDown { return german ? "Gesendet" : "Sent" }
+        if coolingDown {
+            // "Sent" only right after this sheet sent a link; after a rate-limit answer (or when the
+            // sheet is reopened during the wait) the button says why it waits instead.
+            return noticeText != nil ? (german ? "Gesendet" : "Sent") : (german ? "Eine Minute warten" : "Wait a minute")
+        }
         if noticeText != nil { return german ? "Erneut senden" : "Send again" }
         return german ? "Link senden" : "Send link"
     }
@@ -969,6 +1025,11 @@ private struct AuthResetPasswordSheet: View {
         } catch {
             noticeText = nil
             errorText = AuthService.userFacingAuthErrorMessage(from: error)
+            // Rate limited: the same 60 s wait as after a sent link, so the button stops inviting retries.
+            if let code = AuthService.authErrorCode(of: error),
+               code == "over_email_send_rate_limit" || code == "http_429" {
+                cooldownUntil = Date().addingTimeInterval(Self.cooldown)
+            }
         }
     }
 }
@@ -984,6 +1045,11 @@ private struct AuthField<FocusValue: Hashable, Trailing: View>: View {
     let value: FocusValue
     let isDisabled: Bool
     @ViewBuilder let trailing: () -> Trailing
+
+    /// Show/hide swaps `SecureField` and `TextField`, which removes the focused field; these keep the
+    /// keyboard on this field across that swap (and only then).
+    @State private var keepsFocusAcrossSwap = false
+    @State private var lastSwap: Date?
 
     var body: some View {
         let isFocused = focus.wrappedValue == value
@@ -1023,6 +1089,27 @@ private struct AuthField<FocusValue: Hashable, Trailing: View>: View {
             .contentShape(Rectangle())
             .onTapGesture { if !isDisabled { focus.wrappedValue = value } }
             .kuroAnimation(KuroMotion.contact, value: isFocused)
+        }
+        .onChange(of: isSecure) { _, _ in
+            guard keepsFocusAcrossSwap, !isDisabled else { return }
+            lastSwap = Date()
+            Task { @MainActor in focus.wrappedValue = value }
+        }
+        .onChange(of: focus.wrappedValue) { _, newValue in
+            if newValue == value {
+                keepsFocusAcrossSwap = true
+            } else if newValue != nil {
+                keepsFocusAcrossSwap = false
+            } else if let lastSwap, Date().timeIntervalSince(lastSwap) < 0.3 {
+                // The swap itself dropped focus after it was re-asserted: re-assert once more.
+                Task { @MainActor in focus.wrappedValue = value }
+            } else {
+                // A deliberate dismissal (unless a swap follows at once, which still re-asserts).
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(150))
+                    if focus.wrappedValue == nil { keepsFocusAcrossSwap = false }
+                }
+            }
         }
     }
 }

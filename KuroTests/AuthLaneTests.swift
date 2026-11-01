@@ -27,11 +27,13 @@ private enum AuthLaneFixtures {
         return (try #require(UserDefaults(suiteName: name)), name)
     }
 
-    static func token(sub: String, email: String?, exp: TimeInterval?, iat: TimeInterval? = nil) -> String {
+    static func token(sub: String, email: String?, exp: TimeInterval?, iat: TimeInterval? = nil,
+                      amr: String? = nil) -> String {
         var fields = [#""sub":"\#(sub)""#, #""role":"authenticated""#]
         if let email { fields.append(#""email":"\#(email)""#) }
         if let exp { fields.append(#""exp":\#(Int(exp))"#) }
         if let iat { fields.append(#""iat":\#(Int(iat))"#) }
+        if let amr { fields.append(#""amr":[{"method":"\#(amr)","timestamp":1}]"#) }
         return AuthCallbackGuardTests.jwt("{" + fields.joined(separator: ",") + "}")
     }
 
@@ -167,9 +169,20 @@ struct PendingCallbackGuardTests {
         let name: String
         let payload: AuthCallbackPayload
         let currentUserId: String?
+        var currentUserEmail: String? = nil
         let pending: PendingAuthFlow?
         let expected: AuthCallbackDecision
         var testDescription: String { name }
+
+        init(name: String, payload: AuthCallbackPayload, currentUserId: String?, currentUserEmail: String? = nil,
+             pending: PendingAuthFlow?, expected: AuthCallbackDecision) {
+            self.name = name
+            self.payload = payload
+            self.currentUserId = currentUserId
+            self.currentUserEmail = currentUserEmail
+            self.pending = pending
+            self.expected = expected
+        }
     }
 
     static let now = AuthLaneFixtures.now
@@ -212,8 +225,32 @@ struct PendingCallbackGuardTests {
              payload: AuthCallbackPayload(errorCode: "otp_expired"), currentUserId: nil, pending: live, expected: .linkError),
         Case(name: "error-only link -> link error (signed in)",
              payload: AuthCallbackPayload(errorCode: "otp_expired"), currentUserId: LifecycleFixtures.userA, pending: nil, expected: .linkError),
-        Case(name: "signed in: code link -> reject (cannot be shown to be this user's)",
-             payload: AuthCallbackPayload(code: "c"), currentUserId: LifecycleFixtures.userA, pending: live, expected: .rejectDifferentUser),
+        Case(name: "signed in: code + live flow requested for the signed-in address -> exchange (re-checked after)",
+             payload: AuthCallbackPayload(code: "c"), currentUserId: LifecycleFixtures.userA,
+             currentUserEmail: "A@example.com", pending: live, expected: .exchangeCode(.recovery)),
+        Case(name: "signed in: code without a pending flow -> reject (signed in already, not 'other account')",
+             payload: AuthCallbackPayload(code: "c"), currentUserId: LifecycleFixtures.userA,
+             currentUserEmail: "a@example.com", pending: nil, expected: .rejectCodeWhileSignedIn),
+        Case(name: "signed in: code + live flow for another address -> reject",
+             payload: AuthCallbackPayload(code: "c"), currentUserId: LifecycleFixtures.userA,
+             currentUserEmail: "b@example.com", pending: live, expected: .rejectCodeWhileSignedIn),
+        Case(name: "signed in: code + flow but unknown signed-in address -> reject",
+             payload: AuthCallbackPayload(code: "c"), currentUserId: LifecycleFixtures.userA,
+             currentUserEmail: nil, pending: live, expected: .rejectCodeWhileSignedIn),
+        Case(name: "signed in: code + expired flow -> reject",
+             payload: AuthCallbackPayload(code: "c"), currentUserId: LifecycleFixtures.userA,
+             currentUserEmail: "a@example.com", pending: expired, expected: .rejectCodeWhileSignedIn),
+        Case(name: "signed out: sign-up confirmation nobody here started -> email confirmed, nothing adopted",
+             payload: AuthCallbackPayload(code: "c", type: "signup"), currentUserId: nil, pending: nil, expected: .emailConfirmed),
+        Case(name: "signed out: email-change confirmation with a recovery flow pending -> email confirmed",
+             payload: tokens(AuthLaneFixtures.token(sub: AuthLaneFixtures.a, email: "a@example.com", exp: future), type: "email_change"),
+             currentUserId: nil, pending: live, expected: .emailConfirmed),
+        Case(name: "signed out: tokens from a password sign-in (amr) for the flow's address -> reject",
+             payload: tokens(AuthLaneFixtures.token(sub: AuthLaneFixtures.a, email: "a@example.com", exp: future, amr: "password")),
+             currentUserId: nil, pending: live, expected: .rejectNoPendingFlow),
+        Case(name: "signed out: tokens from the recovery link (amr) for the flow's address -> apply",
+             payload: tokens(AuthLaneFixtures.token(sub: AuthLaneFixtures.a, email: "a@example.com", exp: future, amr: "recovery")),
+             currentUserId: nil, pending: live, expected: .applyPendingTokens(.recovery)),
         Case(name: "signed in: same-user tokens, future exp -> proceed (unchanged rule)",
              payload: tokens(AuthLaneFixtures.token(sub: AuthLaneFixtures.a, email: nil, exp: future), type: nil),
              currentUserId: LifecycleFixtures.userA, pending: nil, expected: .proceed),
@@ -227,6 +264,7 @@ struct PendingCallbackGuardTests {
         #expect(AuthCallbackGuard.decision(
             payload: testCase.payload,
             currentUserId: testCase.currentUserId,
+            currentUserEmail: testCase.currentUserEmail,
             pending: testCase.pending,
             now: Self.now
         ) == testCase.expected)
@@ -301,9 +339,14 @@ struct AuthCopyAndRulesTests {
             let de = AuthCopy.message(forCode: code, german: true)
             #expect(en != nil && de != nil && en != de, "\(code)")
         }
-        for failure in [AuthCopy.LinkFailure.expired, .notRequestedHere, .otherAccount, .failed] {
+        for failure in [AuthCopy.LinkFailure.expired, .notRequestedHere, .otherAccount, .signedInAlready, .failed] {
             #expect(AuthCopy.linkMessage(failure, german: false) != AuthCopy.linkMessage(failure, german: true))
         }
+        #expect(AuthCopy.emailConfirmed(german: false) != AuthCopy.emailConfirmed(german: true))
+        // Neither rejection tells the user to reopen the same link after signing out: sign-out ends the
+        // pending flow, so only a new link can work.
+        #expect(!AuthCopy.linkMessage(.otherAccount, german: false).contains("open the link again"))
+        #expect(AuthCopy.linkMessage(.signedInAlready, german: false).contains("request a new link"))
         #expect(AuthCopy.resetSent(email: "a@example.com", german: true).contains("a@example.com"))
         #expect(AuthCopy.message(forCode: "something_new", german: false) == nil)
     }
@@ -333,6 +376,17 @@ struct OnboardingCompletionTests {
         #expect(defaults.object(forKey: OnboardingCompletion.legacyDeviceKey) == nil)
         #expect(OnboardingCompletion.isCompleted(userId: LifecycleFixtures.userA, defaults: defaults))
         #expect(!OnboardingCompletion.isCompleted(userId: LifecycleFixtures.userB, defaults: defaults))
+    }
+
+    @Test("Account deletion removes only that account's completion (GDPR)")
+    func removeOnDeletion() throws {
+        let (defaults, name) = try AuthLaneFixtures.defaults()
+        defer { defaults.removePersistentDomain(forName: name) }
+        OnboardingCompletion.markCompleted(userId: LifecycleFixtures.userA, defaults: defaults)
+        OnboardingCompletion.markCompleted(userId: LifecycleFixtures.userB, defaults: defaults)
+        OnboardingCompletion.remove(userId: LifecycleFixtures.userA.uppercased(), defaults: defaults)
+        #expect(defaults.object(forKey: OnboardingCompletion.key(for: LifecycleFixtures.userA)) == nil)
+        #expect(OnboardingCompletion.isCompleted(userId: LifecycleFixtures.userB, defaults: defaults))
     }
 
     @Test("Without a user id (DEBUG preview) the device flag is used and kept")
@@ -489,6 +543,85 @@ struct AuthLaneSessionTests {
         await h.tearDown()
     }
 
+    @Test("A transport failure during the exchange keeps the pending flow, so the same link works once online")
+    func transportFailureKeepsFlow() async throws {
+        let h = try Self.harness(StubAuth.signInResponder { request in
+            if StubAuth.isAuth(request, "token"), request.query("grant_type") == "pkce" {
+                return .failure(.notConnectedToInternet)
+            }
+            return .emptyArray
+        })
+        h.session.pendingFlows.begin(.recovery, email: "a@example.com")
+
+        await h.session.handleAuthCallback(AuthCallbackPayload(code: "real-code"))
+
+        #expect(!h.identity.isAuthenticated)
+        #expect(!h.identity.requiresPasswordUpdate)
+        #expect(h.session.pendingFlows.current() != nil, "kept for a retry of the same link")
+        #expect(h.identity.authErrorMessage == AuthCopy.transport(.offline, german: KuroLocale.isGerman))
+        await h.tearDown()
+    }
+
+    @Test("A server-definitive exchange failure uses the flow up")
+    func definitiveFailureConsumesFlow() async throws {
+        let h = try Self.harness(StubAuth.signInResponder { request in
+            if StubAuth.isAuth(request, "token"), request.query("grant_type") == "pkce" {
+                return .json(#"{"error_code":"flow_state_not_found","msg":"invalid flow state"}"#, status: 404)
+            }
+            return .emptyArray
+        })
+        h.session.pendingFlows.begin(.recovery, email: "a@example.com")
+
+        await h.session.handleAuthCallback(AuthCallbackPayload(code: "stale"))
+
+        #expect(h.session.pendingFlows.current() == nil)
+        await h.tearDown()
+    }
+
+    @Test("Signed in, the account's own reset link is exchanged and opens the set-password screen")
+    func signedInOwnRecoveryLink() async throws {
+        let h = try Self.harness()
+        try await h.signIn()
+        h.session.pendingFlows.begin(.recovery, email: "a@example.com")
+
+        await h.session.handleAuthCallback(AuthCallbackPayload(code: "real-code"))
+
+        #expect(h.requests { StubAuth.isAuth($0, "token") && $0.query("grant_type") == "pkce" }.count == 1)
+        #expect(h.identity.isAuthenticated)
+        #expect(h.identity.currentUserId == StubAuth.userA)
+        #expect(h.identity.requiresPasswordUpdate)
+        #expect(h.session.passwordUpdates.isRequired(for: StubAuth.userA))
+        #expect(h.session.pendingFlows.current() == nil)
+        await h.tearDown()
+    }
+
+    @Test("Signed in, a code link with no flow for this account is refused with 'signed in already', without an exchange")
+    func signedInCodeWithoutFlow() async throws {
+        let h = try Self.harness()
+        try await h.signIn()
+
+        await h.session.handleAuthCallback(AuthCallbackPayload(code: "some-code"))
+
+        #expect(h.requests { StubAuth.isAuth($0, "token") && $0.query("grant_type") == "pkce" }.isEmpty)
+        #expect(h.identity.isAuthenticated)
+        #expect(h.graph.banner.message == AuthCopy.linkMessage(.signedInAlready, german: KuroLocale.isGerman))
+        await h.tearDown()
+    }
+
+    @Test("Signed out, an unsolicited sign-up confirmation reports the confirmed address and adopts nothing")
+    func unsolicitedConfirmation() async throws {
+        let h = try Self.harness()
+        let before = authRequests(h)
+
+        await h.session.handleAuthCallback(AuthCallbackPayload(code: "confirm-code", type: "signup"))
+
+        #expect(authRequests(h) == before)
+        #expect(!h.identity.isAuthenticated)
+        #expect(h.identity.authErrorMessage == nil)
+        #expect(h.identity.authNoticeMessage == AuthCopy.emailConfirmed(german: KuroLocale.isGerman))
+        await h.tearDown()
+    }
+
     @Test("An expired-link redirect shows its message and sends nothing")
     func errorLink() async throws {
         let h = try Self.harness()
@@ -578,6 +711,12 @@ struct BootstrapLibraryReadTests {
     @Test("With the foundation on and the first read already fenced, bootstrap reads the Library once")
     func singleRead() async throws {
         let backend = FakeLibraryBackend()
+        // A fenced row (revision + lifecycle id): an empty Library would pass whether or not the first
+        // read carried the fence columns.
+        var row = FakeLibraryBackend.entry(.anime, 7)
+        row.revision = 1
+        row.lifecycleId = UUID()
+        backend.setRows([row], for: StubAuth.userA)
         let h = try SessionSDKHarness(responder: Self.foundationResponder(), libraryBackend: backend)
 
         try await h.signIn()
