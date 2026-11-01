@@ -23,6 +23,13 @@ import Supabase
 //   so no private request (credential lease) is in flight or admitted while the SDK token changes.
 // - F05: reminder cleanups are issued synchronously with the transition they belong to.
 // - F71: an SDK `.tokenRefreshed` for another account while one is current fails closed.
+// Overnight 2026-11-01 (spec D12, api-surface P1):
+// - Email links: a signed-out `kuro://auth/callback` is applied only for the live flow this device
+//   started (`PendingAuthFlowStore`, single use, 1 h); PKCE `?code=` links are exchanged
+//   (`exchangeCodeForSession`) inside the same credential gate; a recovery link leads to the
+//   set-new-password screen (`identity.requiresPasswordUpdate`, persisted per account).
+// - Bootstrap reads the Library once: the foundation-fence re-read runs only when the session's
+//   first read came back without the fence columns.
 // Identity is published to `IdentityStore` (its only holder); SDK auth calls that are pure transport go
 // through `AuthService`; the user-list channel belongs to `LibraryRealtime`. The SDK client is the
 // app's single one (shared with `AuthService`; never a second one).
@@ -73,6 +80,15 @@ final class SessionController {
     /// cancels it and waits for it to finish before installing its own session, so a superseded
     /// attempt can never install a session after the newer one.
     @ObservationIgnored private var authAttemptLeg: Task<Void, Never>?
+    /// The pending email-link flow slot (D12). Settable so tests can use their own defaults suite.
+    @ObservationIgnored var pendingFlows = PendingAuthFlowStore()
+    /// The per-account "choose a new password" requirement after a recovery link (D12).
+    @ObservationIgnored var passwordUpdates = PasswordUpdateRequirementStore()
+    /// True while an accepted recovery link is being applied: any session published meanwhile
+    /// (including the SDK's own `.signedIn` event from the exchange) opens on the set-password screen.
+    @ObservationIgnored private var recoveryLinkInFlight = false
+    /// The attempt of the link whose progress `identity.isOpeningAuthLink` shows.
+    @ObservationIgnored private var openingLinkAttempt: Int?
 
     init(
         client: SupabaseClient?,
@@ -109,7 +125,7 @@ final class SessionController {
     }
 
     private var isGermanLocale: Bool {
-        Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
+        KuroLocale.isGerman
     }
 
     /// Production launch (`AppComposition`): the root shows its loading screen while the stored
@@ -187,13 +203,15 @@ final class SessionController {
     ///   user-facing message is published, then the error is rethrown;
     /// - current success: the session funnel publishes it (`applySession`), the credential change ends,
     ///   then `afterPublish` (Apple's full name), the profile row and the bootstrap, each only while the
-    ///   attempt and its account are still current. A sign-up that yields no session ends the session.
+    ///   attempt and its account are still current. A sign-up that yields no session ends the session
+    ///   and reports `.noSession` (email confirmation is on: the caller tells the user to check mail).
+    @discardableResult
     private func authenticate(
         attempt: Int,
         endsSessionOnFailure: Bool,
         sdkLeg: @escaping @MainActor () async throws -> AuthSessionIdentity?,
         afterPublish: @MainActor () async -> Void = {}
-    ) async throws {
+    ) async throws -> AuthOutcome {
         let installed: (value: AuthSessionIdentity?, change: AccountSessionCoordinator.CredentialChange)
         do {
             installed = try await installCredentials(attempt: attempt, sdkLeg)
@@ -211,17 +229,27 @@ final class SessionController {
         guard let session = installed.value else {
             accountSession.endCredentialChange(installed.change)
             await endSession()
-            return
+            guard isCurrentAttempt(attempt) else { throw CancellationError() }
+            return .noSession
         }
         let transition = await applySession(userId: session.userId, email: session.email)
         accountSession.endCredentialChange(installed.change)
         let context = Self.context(of: transition)
-        guard isCurrentAttempt(attempt), accountSession.isCurrent(context) else { return }
+        guard isCurrentAttempt(attempt), accountSession.isCurrent(context) else { return .signedIn }
         await afterPublish()
-        guard isCurrentAttempt(attempt), accountSession.isCurrent(context) else { return }
+        guard isCurrentAttempt(attempt), accountSession.isCurrent(context) else { return .signedIn }
         await ensureProfileRow(for: context)
-        guard isCurrentAttempt(attempt), accountSession.isCurrent(context) else { return }
+        guard isCurrentAttempt(attempt), accountSession.isCurrent(context) else { return .signedIn }
         await bootstrapAfterAuth()
+        return .signedIn
+    }
+
+    /// What a completed sign-in attempt produced.
+    enum AuthOutcome: Sendable, Equatable {
+        /// A session was published.
+        case signedIn
+        /// The SDK holds no session afterwards (sign-up with email confirmation on).
+        case noSession
     }
 
     private static func context(of transition: AccountSessionCoordinator.Transition) -> AccountContext {
@@ -441,7 +469,10 @@ final class SessionController {
         }
     }
 
-    func signUpWithEmail(email: String, password: String) async throws {
+    /// Sign-up. `.noSession` means the account was created (or the address is taken, which GoTrue
+    /// does not reveal while confirmation is on) and a confirmation email is on its way.
+    @discardableResult
+    func signUpWithEmail(email: String, password: String) async throws -> AuthOutcome {
         let attempt = beginAuthAttempt()
         identity.authErrorMessage = nil
         guard client != nil else {
@@ -451,7 +482,7 @@ final class SessionController {
         // With email confirmation disabled, the session is immediately available; without one the
         // session ends (as before). A failed sign-up publishes only its message (as before).
         let auth = self.auth
-        try await authenticate(attempt: attempt, endsSessionOnFailure: false) {
+        return try await authenticate(attempt: attempt, endsSessionOnFailure: false) {
             try await auth.signUp(email: email, password: password)
         }
     }
@@ -474,34 +505,90 @@ final class SessionController {
         }
     }
 
-    /// Handle auth callback deep link — set session from tokens received via email verification redirect.
+    // MARK: - Email links (D12)
+
+    /// "Forgot password": sends the reset email, then records the pending recovery flow on this
+    /// device (only after the request succeeded; a newer request replaces the older record, like the
+    /// SDK's single code-verifier slot).
+    func requestPasswordReset(email: String) async throws {
+        let address = AuthFormRules.trimmedEmail(email)
+        try await auth.resetPassword(email: address)
+        pendingFlows.begin(.recovery, email: address)
+    }
+
+    /// The pre-D12 entry point (implicit token pair); routes through the payload funnel.
     func handleAuthCallback(accessToken: String, refreshToken: String) async {
-        // R-E1-2 (fail closed): while someone is signed in, a link is applied only when its token
-        // names that same user. While the launch restore is still running, the SDK's stored
-        // session is that account.
+        await handleAuthCallback(AuthCallbackPayload(accessToken: accessToken, refreshToken: refreshToken))
+    }
+
+    /// Applies a `kuro://auth/callback` link when `AuthCallbackGuard` allows it (fail closed):
+    /// - signed in: only an implicit token pair naming the signed-in user (R-E1-2, unchanged);
+    /// - signed out: only a link for the live flow this device started; it is consumed on acceptance
+    ///   (single use). A PKCE code is exchanged, a token pair applied, both inside the credential gate
+    ///   (F33) as the newest attempt (F01); the account it yields must be the flow's address.
+    /// A recovery link opens the set-new-password screen before the app ever renders.
+    func handleAuthCallback(_ payload: AuthCallbackPayload) async {
+        // While the launch restore is still running, the SDK's stored session is the signed-in account.
         let signedInUserId = accountSession.current?.userId
             ?? (identity.isAuthBootstrapping ? client?.auth.currentSession?.user.id.uuidString : nil)
-        let decision = AuthCallbackGuard.decision(accessToken: accessToken, currentUserId: signedInUserId)
-        guard decision == .proceed else {
+        let pending = pendingFlows.current()
+        let flowKind: PendingAuthFlowKind?
+        switch AuthCallbackGuard.decision(payload: payload, currentUserId: signedInUserId, pending: pending) {
+        case .linkError:
+            let message = AuthCopy.message(forCode: payload.errorCode, german: isGermanLocale)
+                ?? AuthCopy.linkMessage(.expired, german: isGermanLocale)
+            reportAuthLinkFailure(message, signedIn: signedInUserId != nil)
+            return
+        case .rejectDifferentUser:
             reportRejectedAuthCallback()
             return
+        case .rejectNoPendingFlow:
+            reportAuthLinkFailure(AuthCopy.linkMessage(.notRequestedHere, german: isGermanLocale), signedIn: false)
+            return
+        case .proceed:
+            flowKind = nil
+        case .applyPendingTokens(let kind), .exchangeCode(let kind):
+            flowKind = kind
+            pendingFlows.consume()
         }
         guard let client else {
             identity.authErrorMessage = identity.configError
             return
         }
         let attempt = beginAuthAttempt()
+        identity.isOpeningAuthLink = true
+        openingLinkAttempt = attempt
+        defer {
+            // A newer link owns the progress state; any other newer attempt does not.
+            if openingLinkAttempt == attempt {
+                identity.isOpeningAuthLink = false
+                openingLinkAttempt = nil
+            }
+        }
+        if flowKind == .recovery {
+            recoveryLinkInFlight = true
+            identity.requiresPasswordUpdate = true
+        }
         let installed: (value: AuthSessionIdentity, change: AccountSessionCoordinator.CredentialChange)
         do {
             installed = try await installCredentials(attempt: attempt) {
+                if let code = payload.code {
+                    let session = try await client.auth.exchangeCodeForSession(authCode: code)
+                    return AuthSessionIdentity(userId: session.user.id.uuidString, email: session.user.email)
+                }
+                guard let accessToken = payload.accessToken, let refreshToken = payload.refreshToken else {
+                    throw URLError(.badURL)
+                }
                 try await client.auth.setSession(accessToken: accessToken, refreshToken: refreshToken)
                 let session = try await client.auth.session
                 return AuthSessionIdentity(userId: session.user.id.uuidString, email: session.user.email)
             }
         } catch {
+            settleRecoveryLink()
             // A superseded attempt reports nothing (F01).
             guard isCurrentAttempt(attempt) else { return }
-            identity.authErrorMessage = "Verification failed. Please request a new link."
+            reportAuthLinkFailure(Self.linkFailureMessage(for: error, german: isGermanLocale),
+                                  signedIn: signedInUserId != nil)
             #if DEBUG
             print("handleAuthCallback failed: \(error.localizedDescription)")
             #endif
@@ -509,36 +596,92 @@ final class SessionController {
         }
         guard isCurrentAttempt(attempt) else {
             accountSession.endCredentialChange(installed.change)
+            settleRecoveryLink()
             return
         }
         let session = installed.value
-        // Defense in depth (the guard should make this unreachable): while signed in, never
-        // adopt another user's session. Drop it from the SDK store and sign out locally.
-        if let signedInUserId, !AccountSessionCoordinator.sameUser(session.userId, signedInUserId) {
+        // Defense in depth (the guard should make these unreachable): while signed in, never adopt
+        // another user's session; signed out, never adopt an account other than the flow's address.
+        let foreignWhileSignedIn = signedInUserId.map { !AccountSessionCoordinator.sameUser(session.userId, $0) } ?? false
+        let foreignToFlow = flowKind != nil && pending?.matches(email: session.email) != true
+        if foreignWhileSignedIn || foreignToFlow {
+            settleRecoveryLink()
             let ended = endSessionState()
             accountSession.endCredentialChange(installed.change)
             try? await client.auth.signOut(scope: .local)
             await finishSessionEnd(ended)
-            reportRejectedAuthCallback()
+            if foreignWhileSignedIn {
+                reportRejectedAuthCallback()
+            } else {
+                reportAuthLinkFailure(AuthCopy.linkMessage(.notRequestedHere, german: isGermanLocale), signedIn: false)
+            }
             return
         }
+        if flowKind == .recovery {
+            // Persisted before the session is published, so a relaunch also lands on the set-password screen.
+            passwordUpdates.require(for: session.userId)
+        }
         let transition = await applySession(userId: session.userId, email: session.email)
+        recoveryLinkInFlight = false
         accountSession.endCredentialChange(installed.change)
         let context = Self.context(of: transition)
         guard isCurrentAttempt(attempt), accountSession.isCurrent(context) else { return }
+        identity.authErrorMessage = nil
         await ensureProfileRow(for: context)
         guard isCurrentAttempt(attempt), accountSession.isCurrent(context) else { return }
         await bootstrapAfterAuth()
     }
 
+    /// Ends an accepted recovery link that did not publish a session: the in-memory requirement falls
+    /// back to the current account's persisted one (normally none).
+    private func settleRecoveryLink() {
+        guard recoveryLinkInFlight else { return }
+        recoveryLinkInFlight = false
+        identity.requiresPasswordUpdate = accountSession.current.map { passwordUpdates.isRequired(for: $0.userId) } ?? false
+    }
+
+    /// The message for a link whose exchange or verification failed.
+    nonisolated static func linkFailureMessage(for error: Error, german: Bool) -> String {
+        if let code = AuthService.authErrorCode(of: error), let message = AuthCopy.message(forCode: code, german: german) {
+            return message
+        }
+        if AuthService.permitsOfflineRestore(error) {
+            return AuthService.userFacingAuthErrorMessage(from: error, german: german)
+        }
+        return AuthCopy.linkMessage(.failed, german: german)
+    }
+
+    /// A link that was not applied: the auth screen shows `authErrorMessage`; signed-in screens don't
+    /// render it, so the transient banner ContentView shows carries it too (signed in only).
+    private func reportAuthLinkFailure(_ message: String, signedIn: Bool) {
+        identity.authErrorMessage = message
+        if signedIn { banner.show(message, duration: 4) }
+    }
+
     /// Rejected `kuro://auth/callback`: signed-in screens don't render `authErrorMessage`,
     /// so the same EN/DE message also goes to the transient banner ContentView shows.
     private func reportRejectedAuthCallback() {
-        let message = isGermanLocale
-            ? "Dieser Link gehört nicht zum angemeldeten Konto. Melde dich zuerst ab und öffne den Link dann erneut."
-            : "This link doesn't match the account you're signed in to. Sign out first, then open the link again."
-        identity.authErrorMessage = message
-        banner.show(message, duration: 4)
+        reportAuthLinkFailure(AuthCopy.linkMessage(.otherAccount, german: isGermanLocale), signedIn: true)
+    }
+
+    // MARK: - Set new password (after a recovery link)
+
+    /// Saves the new password for the signed-in account and lifts the set-password requirement.
+    /// Throws the SDK error (mapped by `AuthService.userFacingAuthErrorMessage`).
+    func updatePassword(_ password: String) async throws {
+        guard client != nil else {
+            identity.authErrorMessage = identity.configError
+            throw auth.missingConfiguration()
+        }
+        guard let context = accountSession.current else { throw CancellationError() }
+        let auth = self.auth
+        try await accountSession.withCredentialLease(for: context) {
+            try await auth.updatePassword(password)
+        }
+        guard accountSession.isCurrent(context) else { return }
+        passwordUpdates.clear(for: context.userId)
+        identity.requiresPasswordUpdate = false
+        banner.show(AuthCopy.passwordUpdated(german: isGermanLocale), duration: 3)
     }
 
     /// GDPR-compliant account deletion: the `delete-account` Edge Function (`AuthService`), then the
@@ -567,6 +710,8 @@ final class SessionController {
             guard deletionConfirmed else { throw error }
         }
         // Invalidate and cancel the deleted account before serialized device cleanup.
+        passwordUpdates.clear(for: context.userId)
+        pendingFlows.clear()
         clubs.removeAccountScopedPrefs(userId: context.userId)
         flags.removeHomeCohort(for: context.userId)
         if accountSession.isCurrent(context) {
@@ -602,6 +747,9 @@ final class SessionController {
         // R-E1-3: the account context is invalidated and private state cleared before the first
         // suspension point; the SDK sign-out follows at once, before the (slow) channel teardown. A
         // sign-in attempt still in flight is superseded (F01): its late success never signs in again.
+        // A started email-link flow and the account's set-password requirement end with the session.
+        if let userId = accountSession.current?.userId { passwordUpdates.clear(for: userId) }
+        pendingFlows.clear()
         let attempt = beginAuthAttempt()
         let ended = endSessionState()
         do {
@@ -635,6 +783,8 @@ final class SessionController {
         let context: AccountContext
         switch transition {
         case .unchanged:
+            identity.requiresPasswordUpdate = identity.requiresPasswordUpdate
+                || recoveryLinkInFlight || passwordUpdates.isRequired(for: userId)
             identity.isAuthenticated = true
             identity.currentUserEmail = email
             return transition
@@ -648,6 +798,8 @@ final class SessionController {
         cancelAccountWork()
         clearPrivateState()
         let channels = detachAccountChannels()
+        // Read before the identity is published, so the root never renders the app first (D12).
+        identity.requiresPasswordUpdate = recoveryLinkInFlight || passwordUpdates.isRequired(for: userId)
         identity.isAuthenticated = true
         identity.currentUserEmail = email
         identity.currentUserId = userId
@@ -700,6 +852,8 @@ final class SessionController {
         clearPrivateState()
         let channels = detachAccountChannels()
         identity.isAuthenticated = false
+        identity.requiresPasswordUpdate = false
+        recoveryLinkInFlight = false
         identity.currentUserEmail = nil
         identity.currentUserId = nil
         identity.authErrorMessage = nil
@@ -786,6 +940,12 @@ final class SessionController {
         }
     }
 
+    /// The Library projection is loaded and every row carries the foundation fence (revision + lifecycle).
+    private var libraryHoldsFencedRows: Bool {
+        library.loadState == .loaded
+            && library.allEntries.allSatisfy { $0.revision != nil && $0.lifecycleId != nil }
+    }
+
     private func bootstrapAfterAuth() async {
         let context = accountSession.current
         if let context, let home = libraryActions.home {
@@ -813,9 +973,18 @@ final class SessionController {
             await flags.refresh(client: client, userId: context.userId, accountSession: accountSession)
             guard accountSession.isCurrent(context) else { return }
             if flags.seriesFoundationV1Enabled {
-                await libraryActions.startLibraryRefresh(for: context, fresh: true).value
-                guard accountSession.isCurrent(context), library.loadState == .loaded,
-                      library.allEntries.allSatisfy({ $0.revision != nil && $0.lifecycleId != nil }) else { return }
+                // One Library read per bootstrap (api-surface P1): the session's first read (started by
+                // `applySession`) is joined while in flight and reused when it already carries the fence
+                // columns; only a read that ran before the fence was on (or failed) is repeated fresh.
+                if library.loadState == .loading {
+                    await libraryActions.startLibraryRefresh(for: context).value
+                    guard accountSession.isCurrent(context) else { return }
+                }
+                if !libraryHoldsFencedRows {
+                    await libraryActions.startLibraryRefresh(for: context, fresh: true).value
+                    guard accountSession.isCurrent(context) else { return }
+                }
+                guard libraryHoldsFencedRows else { return }
                 flags.completeFoundationBootstrap(userId: context.userId)
             }
         }

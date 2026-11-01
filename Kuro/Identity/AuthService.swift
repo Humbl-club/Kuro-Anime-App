@@ -152,9 +152,19 @@ final class AuthService {
         }
     }
 
+    /// Sets the signed-in user's new password (the set-new-password screen after a recovery link).
+    /// Throws the SDK error (`same_password`, `weak_password`, `reauthentication_needed`, ...).
+    func updatePassword(_ password: String) async throws {
+        guard let client else { throw missingConfiguration() }
+        _ = try await client.auth.update(user: UserAttributes(password: password))
+    }
+
     // MARK: Calls views make directly
 
-    /// Lightweight email existence check for inline sign-up validation.
+    /// Email existence check (`check_email_exists`). **Not called by the app since 2026-11-01**
+    /// (spec D13: a live "taken" indicator lets anyone test addresses; a duplicate address is now
+    /// reported by sign-up itself). Kept only for the fixture-host test that proves the composed
+    /// client is denied locally; a prepared migration revokes the RPC from anon.
     func checkEmailExists(email: String) async -> Bool {
         guard let client else {
             identity.authErrorMessage = identity.configError
@@ -174,6 +184,8 @@ final class AuthService {
         }
     }
 
+    /// Sends the reset email (PKCE: the SDK stores this device's code verifier first). The session
+    /// funnel records the pending flow after this returns (`SessionController.requestPasswordReset`).
     func resetPassword(email: String) async throws {
         guard let client else {
             identity.authErrorMessage = identity.configError
@@ -184,7 +196,10 @@ final class AuthService {
 
     // MARK: User-facing auth errors
 
-    nonisolated static func userFacingAuthErrorMessage(from error: Error) -> String {
+    /// The user-facing text for an auth failure, in the reader's language (EN/DE). Order: transport
+    /// failures, then the SDK's typed GoTrue code (`AuthError.errorCode`), then known server wording
+    /// (errors that arrive without a code), then a generic line.
+    nonisolated static func userFacingAuthErrorMessage(from error: Error, german: Bool = KuroLocale.isGerman) -> String {
         #if DEBUG
         let chain = authErrorChain(from: error)
             .map { "\($0.domain)(\($0.code)): \($0.localizedDescription)" }
@@ -192,21 +207,56 @@ final class AuthService {
         print("[Auth] error chain: \(chain)")
         #endif
 
-        if let transportMessage = transportAuthErrorMessage(from: error) {
-            return transportMessage
+        if let transport = transportFailure(from: error) {
+            return AuthCopy.transport(transport, german: german)
+        }
+        if let code = authErrorCode(of: error),
+           let message = AuthCopy.message(forCode: code, weakPasswordReasons: weakPasswordReasons(of: error), german: german) {
+            return message
         }
 
         let lower = error.localizedDescription.lowercased()
         if lower.contains("invalid login credentials") {
-            return "Incorrect email or password. Please try again."
+            return AuthCopy.message(forCode: "invalid_credentials", german: german) ?? AuthCopy.generic(german: german)
         } else if lower.contains("user already registered") {
-            return "An account with this email already exists. Try signing in instead."
+            return AuthCopy.message(forCode: "user_already_exists", german: german) ?? AuthCopy.generic(german: german)
         } else if lower.contains("email not confirmed") {
-            return "Please check your email to verify your account."
+            return AuthCopy.message(forCode: "email_not_confirmed", german: german) ?? AuthCopy.generic(german: german)
         } else if lower.contains("password should be at least") {
-            return "Password must be at least 6 characters."
+            return AuthCopy.message(forCode: "weak_password", german: german) ?? AuthCopy.generic(german: german)
         }
-        return "Something went wrong. Please try again."
+        return AuthCopy.generic(german: german)
+    }
+
+    /// The GoTrue error code the SDK reports (`AuthError.errorCode`), `pkce_grant_code_exchange` for a
+    /// code exchange the SDK itself refused, `http_429` for a rate-limited answer without a code;
+    /// nil for any other error.
+    nonisolated static func authErrorCode(of error: Error) -> String? {
+        guard let authError = error as? AuthError else { return nil }
+        switch authError {
+        case .pkceGrantCodeExchange:
+            return "pkce_grant_code_exchange"
+        case .api(_, let code, _, let response):
+            if code == .unknown, response.statusCode == 429 { return "http_429" }
+            return code == .unknown ? nil : code.rawValue
+        default:
+            let code = authError.errorCode
+            return code == .unknown ? nil : code.rawValue
+        }
+    }
+
+    /// Whether sign-up failed because the address already has an account (the form then offers
+    /// sign-in; spec D13 reports a duplicate address on submit only).
+    nonisolated static func isAccountExistsError(_ error: Error) -> Bool {
+        if let code = authErrorCode(of: error) {
+            return code == ErrorCode.userAlreadyExists.rawValue || code == ErrorCode.emailExists.rawValue
+        }
+        return error.localizedDescription.lowercased().contains("user already registered")
+    }
+
+    nonisolated private static func weakPasswordReasons(of error: Error) -> [String] {
+        if case .weakPassword(_, let reasons) = error as? AuthError { return reasons }
+        return []
     }
 
     /// Saved SDK identity may render personal offline data after a transport outage.
@@ -224,21 +274,21 @@ final class AuthService {
         }
     }
 
-    nonisolated private static func transportAuthErrorMessage(from error: Error) -> String? {
+    nonisolated private static func transportFailure(from error: Error) -> AuthCopy.Transport? {
         for candidate in authErrorChain(from: error) {
             guard candidate.domain == NSURLErrorDomain else { continue }
             let code = URLError.Code(rawValue: candidate.code)
             switch code {
             case .notConnectedToInternet, .dataNotAllowed, .internationalRoamingOff:
-                return "No internet connection. Check your connection and try again."
+                return .offline
             case .networkConnectionLost:
-                return "The network connection was lost. Please try again."
+                return .connectionLost
             case .timedOut:
-                return "The request timed out. Please try again."
+                return .timedOut
             case .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed,
                  .secureConnectionFailed, .cannotLoadFromNetwork,
                  .appTransportSecurityRequiresSecureConnection, .badServerResponse:
-                return "Can't reach the server right now. Please try again."
+                return .unreachable
             default:
                 continue
             }
@@ -247,15 +297,15 @@ final class AuthService {
         let lower = error.localizedDescription.lowercased()
         if lower.contains("internet connection appears to be offline") ||
             lower.contains("not connected to the internet") {
-            return "No internet connection. Check your connection and try again."
+            return .offline
         } else if lower.contains("network connection was lost") {
-            return "The network connection was lost. Please try again."
+            return .connectionLost
         } else if lower.contains("timed out") {
-            return "The request timed out. Please try again."
+            return .timedOut
         } else if lower.contains("cannot connect to the server") ||
                     lower.contains("could not connect to the server") ||
                     lower.contains("cannot connect to host") {
-            return "Can't reach the server right now. Please try again."
+            return .unreachable
         }
         return nil
     }

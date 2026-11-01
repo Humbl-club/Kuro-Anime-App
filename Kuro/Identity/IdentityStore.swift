@@ -21,6 +21,12 @@ final class IdentityStore {
     var isAuthenticated: Bool = false
     /// The last auth failure shown on the auth screen (and the rejected-callback message).
     var authErrorMessage: String? = nil
+    /// True while a `kuro://auth/callback` link is being applied (the auth screen shows progress).
+    var isOpeningAuthLink: Bool = false
+    /// The signed-in account opened a password-reset link and has not chosen a new password yet: the
+    /// root shows the set-new-password screen instead of the app (persisted per account by the
+    /// session funnel, re-read on every session start).
+    var requiresPasswordUpdate: Bool = false
     /// Lightweight identity for UI (header menus, etc.).
     var currentUserEmail: String? = nil
     /// Used for local-only UI labeling (e.g. Clubs member list "You").

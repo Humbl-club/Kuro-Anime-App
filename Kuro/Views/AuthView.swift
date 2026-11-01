@@ -2,19 +2,25 @@ import AuthenticationServices
 import CryptoKit
 import SwiftUI
 
-// Genie-faithful welcome loop + Genie email form, Kuro assets.
-// Welcome choreography (~15s): assemble → glowing orbs → metaball morph → typing prompts.
-// CTAs fixed: Apple outline + Email solid black.
+// MARK: - Auth (welcome, email form, password reset, set new password)
+// Welcome: the approved b943e457 composition (rulebook §14.8, FROZEN: scenery band at 52% of the
+// height, "Kuro" serif 18, 33 pt serif headline, two 54 pt capsules, 11 pt legal line). Only tokens,
+// German copy and tappable Terms/Privacy links were added; the English headline is unchanged.
+// Email form (layout acceptance open): white page, ink focus (no blue ring, no red accent), Dynamic
+// Type roles, @FocusState with Return chaining, VoiceOver labels, EN/DE copy (`AuthCopy`). Duplicate
+// addresses are reported on submit only (spec D13: no live "taken" check). Sign-in accepts any
+// non-empty password; sign-up keeps the 8-character rule.
+// Data access stays in the owners: `SessionController` (sign-in/up, Apple, reset, new password) and
+// `IdentityStore` (messages, link progress). The DEBUG-only Genie welcome (`-AuthGenieHero`) is kept
+// as it was, below.
 
 struct AuthView: View {
     @Environment(IdentityStore.self) private var identity
-    @Environment(AuthService.self) private var auth
     @Environment(SessionController.self) private var session
     @Environment(DiscoveryStore.self) private var discovery
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum Step { case welcome, welcomeGenie, email }
-    private enum Mode { case signIn, signUp }
 
     @State private var step: Step = {
         #if DEBUG
@@ -27,31 +33,30 @@ struct AuthView: View {
         #endif
         return .welcome
     }()
-    @State private var mode: Mode = .signIn
+    /// "Get started" opens Create account; returning users switch to Sign in with the tab.
+    @State private var mode: AuthFormRules.Mode = .signUp
 
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var isWorking = false
     @State private var errorText: String? = nil
+    @State private var noticeText: String? = nil
     @State private var currentNonce: String? = nil
     @State private var showPassword = false
-    @State private var focusedField: Field? = nil
+    @State private var submitAttempted = false
+    @FocusState private var focusedField: Field?
 
-    private enum Field { case email, password }
-    private enum EmailStatus { case empty, invalidFormat, checking, taken, available }
-    private enum PasswordStatus { case empty, tooShort, valid }
-
-    @State private var emailStatus: EmailStatus = .empty
-    @State private var passwordStatus: PasswordStatus = .empty
-    @State private var emailCheckTask: Task<Void, Never>?
+    private enum Field: Hashable { case email, password }
 
     @State private var coverURLs: [URL] = []
     /// Soft staggered email-form entrance after the curtain lands.
     @State private var emailRevealed = false
+    @State private var revealTask: Task<Void, Never>?
+    @State private var showResetSheet = false
+    /// The reset request's resend cooldown survives closing and reopening the sheet.
+    @State private var resetCooldownUntil: Date? = nil
 
-    private static let emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-    private static let ink = Color(red: 22 / 255, green: 20 / 255, blue: 18 / 255)
-    private static let accent = Color(red: 160 / 255, green: 40 / 255, blue: 35 / 255)
+    private var german: Bool { KuroLocale.isGerman }
 
     /// Freeze hero at a second for Simulator screenshots: `-AuthHeroAt=2.8`
     private static var debugHeroAt: Double? {
@@ -66,7 +71,7 @@ struct AuthView: View {
         #endif
     }
 
-    /// Curtain-rise curve: scene exits up, form rises from below.
+    /// Curtain-rise curve: scene exits up, form rises from below (kept; rulebook §14.8).
     private var curtainAnimation: Animation {
         if reduceMotion {
             return KuroMotion.resolve(KuroAnimation.editorial)
@@ -76,7 +81,7 @@ struct AuthView: View {
 
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            Color.kuroCanvasPage.ignoresSafeArea()
 
             switch step {
             case .welcome:
@@ -96,34 +101,79 @@ struct AuthView: View {
                     ))
             }
         }
+        .overlay(alignment: .top) {
+            if identity.isOpeningAuthLink {
+                AuthLinkProgress()
+                    .padding(.top, KuroDesignSpacing.sm)
+                    .transition(.opacity)
+            }
+        }
+        .kuroAnimation(KuroMotion.settle, value: identity.isOpeningAuthLink)
         .animation(curtainAnimation, value: step)
-        .task { await loadCovers() }
+        .task {
+            #if DEBUG
+            // Only the DEBUG Genie welcome shows covers; the shipping welcome makes no catalog request.
+            if step == .welcomeGenie { await loadCovers() }
+            #endif
+        }
         .onAppear {
             if step == .email {
                 revealEmailForm(animated: !reduceMotion)
             }
+            takeAuthMessage(identity.authErrorMessage)
         }
-        .onChange(of: email) { _, _ in revalidateEmail() }
-        .onChange(of: password) { _, _ in revalidatePassword() }
+        .onDisappear { revealTask?.cancel() }
         .onChange(of: identity.authErrorMessage) { _, newValue in
-            if let msg = newValue {
-                errorText = msg
-                identity.authErrorMessage = nil
+            takeAuthMessage(newValue)
+        }
+        .onChange(of: errorText) { _, newValue in
+            if let newValue { AccessibilityNotification.Announcement(newValue).post() }
+        }
+        .onChange(of: noticeText) { _, newValue in
+            if let newValue { AccessibilityNotification.Announcement(newValue).post() }
+        }
+        .sheet(isPresented: $showResetSheet) {
+            AuthResetPasswordSheet(initialEmail: email, cooldownUntil: $resetCooldownUntil) { sentTo in
+                email = sentTo
+                noticeText = AuthCopy.resetSent(email: sentTo, german: german)
+                errorText = nil
             }
         }
     }
 
-    private func goToEmail() {
-        errorText = nil
+    /// An auth failure published by the funnel (sign-in, rejected or expired link). The welcome never
+    /// renders messages (frozen composition), so a message arriving there opens the sign-in form.
+    private func takeAuthMessage(_ message: String?) {
+        guard let message else { return }
+        identity.authErrorMessage = nil
+        noticeText = nil
+        errorText = message
+        if step != .email {
+            mode = .signIn
+            goToEmail(clearingMessages: false)
+        }
+    }
+
+    private func goToEmail(clearingMessages: Bool = true) {
+        if clearingMessages {
+            errorText = nil
+            noticeText = nil
+        }
         emailRevealed = false
         withAnimation(curtainAnimation) { step = .email }
-        // Stagger form in just after the curtain starts rising.
-        DispatchQueue.main.asyncAfter(deadline: .now() + (reduceMotion ? 0 : 0.18)) {
-            revealEmailForm(animated: !reduceMotion)
+        // Stagger the form in just after the curtain starts rising (cancellable; no main-queue timer).
+        revealTask?.cancel()
+        let animated = !reduceMotion
+        revealTask = Task { @MainActor in
+            if animated { try? await Task.sleep(for: .milliseconds(180)) }
+            guard !Task.isCancelled else { return }
+            revealEmailForm(animated: animated)
         }
     }
 
     private func goToWelcome() {
+        revealTask?.cancel()
+        focusedField = nil
         emailRevealed = false
         withAnimation(curtainAnimation) { step = .welcome }
     }
@@ -138,12 +188,12 @@ struct AuthView: View {
         }
     }
 
-    // MARK: - Welcome (Anything composition + living scenery)
+    // MARK: - Welcome (approved composition + living scenery; frozen)
 
     private var welcomeStep: some View {
         GeometryReader { geo in
             ZStack {
-                Color.white.ignoresSafeArea()
+                Color.kuroCanvasPage.ignoresSafeArea()
                 welcomeScenery(in: geo)
                 welcomeChrome(in: geo)
             }
@@ -176,16 +226,17 @@ struct AuthView: View {
             Spacer()
 
             VStack(spacing: 14) {
-                Text("Kuro")
-                    .font(.system(size: 18, weight: .semibold, design: .serif))
-                    .tracking(4)
-                    .foregroundColor(Self.ink.opacity(0.72))
+                KuroWordmark()
 
-                Text("Your next favorite anime,\nalready waiting for you")
-                    .font(.system(size: 33, weight: .medium, design: .serif))
-                    .foregroundColor(Self.ink)
+                Text(german
+                     ? "Dein nächster Lieblingsanime\nwartet schon auf dich"
+                     : "Your next favorite anime,\nalready waiting for you")
+                    .font(.kuroCustom(33, weight: .medium, design: .serif, relativeTo: .largeTitle, maxSize: 40))
+                    .foregroundStyle(Color.kuroInk)
                     .multilineTextAlignment(.center)
                     .lineSpacing(6)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
             }
             .padding(.horizontal, 28)
 
@@ -194,16 +245,18 @@ struct AuthView: View {
             VStack(spacing: 14) {
                 Button {
                     KuroAccessibility.impactHaptic(.light)
+                    mode = .signUp
                     goToEmail()
                 } label: {
-                    Text("Get started")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.white)
+                    Text(german ? "Los geht’s" : "Get started")
+                        .font(.kuroButtonLabel())
+                        .foregroundStyle(Color.kuroWhite)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                        .background(Capsule().fill(Self.ink))
+                        .frame(minHeight: 54)
+                        .background(Capsule().fill(Color.kuroInk))
+                        .contentShape(Capsule())
                 }
-                .buttonStyle(AuthPressStyle())
+                .buttonStyle(KuroPressStyle())
                 .disabled(isWorking)
 
                 appleButton
@@ -211,13 +264,10 @@ struct AuthView: View {
                     .clipShape(Capsule())
                     .overlay(
                         Capsule()
-                            .stroke(Color.black.opacity(0.12), lineWidth: 1)
+                            .stroke(Color.kuroKeyRim, lineWidth: 1)
                     )
 
-                Text("By continuing, you agree to Kuro’s Terms of Service and Privacy Policy.")
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundColor(Color(white: 0.55))
-                    .multilineTextAlignment(.center)
+                AuthLegalLine(context: .welcome)
                     .padding(.top, 6)
                     .padding(.horizontal, 12)
             }
@@ -226,7 +276,7 @@ struct AuthView: View {
         }
     }
 
-    // MARK: - Welcome (Genie composition — kept behind -AuthGenieHero)
+    // MARK: - Welcome (Genie composition — DEBUG `-AuthGenieHero` only)
 
     private var genieWelcomeStep: some View {
         GeometryReader { geo in
@@ -244,31 +294,15 @@ struct AuthView: View {
                         .clipShape(Capsule())
                         .overlay(
                             Capsule()
-                                .stroke(Color.black.opacity(0.12), lineWidth: 1)
+                                .stroke(Color.kuroKeyRim, lineWidth: 1)
                         )
 
-                    Button {
-                        KuroAccessibility.impactHaptic(.light)
-                        errorText = nil
-                        withAnimation(KuroMotion.resolve(KuroAnimation.editorial)) {
-                            step = .email
-                        }
-                        revealEmailForm(animated: !reduceMotion)
-                    } label: {
-                        Text("Continue with Email")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(Capsule().fill(Color.black))
+                    KuroInkButton(german ? "Weiter mit E-Mail" : "Continue with Email") {
+                        goToEmail()
                     }
-                    .buttonStyle(AuthPressStyle())
                     .disabled(isWorking)
 
-                    Text("By tapping the button above, you agree to Kuro’s Terms of Service and Privacy Policy.")
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundColor(Color(white: 0.55))
-                        .multilineTextAlignment(.center)
+                    AuthLegalLine(context: .welcome)
                         .padding(.top, 4)
                         .padding(.horizontal, 4)
                 }
@@ -278,7 +312,7 @@ struct AuthView: View {
         }
     }
 
-    // MARK: - Email (Genie form)
+    // MARK: - Email form
 
     private var emailStep: some View {
         let show = emailRevealed || reduceMotion
@@ -291,19 +325,19 @@ struct AuthView: View {
                             goToWelcome()
                         } label: {
                             Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(Self.ink)
+                                .font(.kuroCustom(16, weight: .semibold, relativeTo: .body, maxSize: 24))
+                                .foregroundStyle(Color.kuroInk)
                                 .frame(width: 44, height: 44)
                                 .contentShape(Rectangle())
                         }
-                        .buttonStyle(AuthPressStyle())
+                        .buttonStyle(KuroPressStyle())
                         .disabled(isWorking)
+                        .accessibilityLabel(german ? "Zurück" : "Back")
                         Spacer()
                     }
 
-                    Text("Kuro")
-                        .font(.system(size: 20, weight: .semibold, design: .serif))
-                        .foregroundColor(Self.ink)
+                    KuroWordmark(size: 20, tracking: 0, opacity: 1)
+                        .accessibilityHidden(true)
                 }
                 .padding(.horizontal, 12)
                 .padding(.top, 4)
@@ -311,357 +345,307 @@ struct AuthView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(mode == .signIn ? "Welcome back" : "Join Kuro")
-                            .font(.system(size: 34, weight: .semibold, design: .serif))
-                            .foregroundColor(Self.ink)
+                        Text(mode == .signIn
+                             ? (german ? "Willkommen zurück" : "Welcome back")
+                             : (german ? "Werde Teil von Kuro" : "Join Kuro"))
+                            .font(.kuroFeature(weight: .semibold))
+                            .foregroundStyle(Color.kuroInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
                             .padding(.top, 28)
                             .modifier(AuthStaggerEnter(revealed: show, delay: 0.05))
 
                         Text(mode == .signIn
-                              ? "Let’s get started"
-                              : "Create your shelf")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(Self.ink.opacity(0.42))
+                             ? (german ? "Mach da weiter, wo du aufgehört hast." : "Pick up where you left off.")
+                             : (german ? "Leg dein Regal an." : "Create your shelf."))
+                            .font(.kuroBody(weight: .regular))
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
                             .padding(.top, 6)
                             .modifier(AuthStaggerEnter(revealed: show, delay: 0.10))
 
                         HStack(spacing: 26) {
-                            modeTab("Sign in", selected: mode == .signIn) {
-                                mode = .signIn
-                                errorText = nil
-                                revalidateEmail()
+                            modeTab(german ? "Anmelden" : "Sign in", selected: mode == .signIn) {
+                                switchMode(.signIn)
                             }
-                            modeTab("Create account", selected: mode == .signUp) {
-                                mode = .signUp
-                                errorText = nil
-                                revalidateEmail()
+                            modeTab(german ? "Konto erstellen" : "Create account", selected: mode == .signUp) {
+                                switchMode(.signUp)
                             }
                             Spacer(minLength: 0)
                         }
-                        .padding(.top, 28)
-                        .padding(.bottom, 24)
+                        .padding(.top, 24)
+                        .padding(.bottom, 20)
                         .modifier(AuthStaggerEnter(revealed: show, delay: 0.15))
 
-                        VStack(spacing: 14) {
-                            authField(
-                                title: "Email",
+                        VStack(alignment: .leading, spacing: 14) {
+                            AuthField(
+                                title: german ? "E-Mail" : "Email",
                                 text: $email,
                                 isSecure: false,
-                                field: .email,
-                                status: emailStatusView
-                            )
+                                focus: $focusedField,
+                                value: .email,
+                                isDisabled: isWorking
+                            ) {
+                                emailStatus
+                            }
                             .textInputAutocapitalization(.never)
                             .keyboardType(.emailAddress)
                             .autocorrectionDisabled(true)
                             .textContentType(.emailAddress)
+                            .submitLabel(.next)
+                            .onSubmit { focusedField = .password }
                             .modifier(AuthStaggerEnter(revealed: show, delay: 0.20))
 
-                            authField(
-                                title: "Password",
-                                text: $password,
-                                isSecure: !showPassword,
-                                field: .password,
-                                status: passwordStatusView,
-                                trailing: {
-                                    Button { showPassword.toggle() } label: {
-                                        Image(systemName: showPassword ? "eye.slash" : "eye")
-                                            .font(.system(size: 15, weight: .semibold))
-                                            .foregroundColor(Self.ink.opacity(0.38))
-                                    }
-                                    .buttonStyle(.plain)
+                            VStack(alignment: .leading, spacing: 8) {
+                                AuthField(
+                                    title: german ? "Passwort" : "Password",
+                                    text: $password,
+                                    isSecure: !showPassword,
+                                    focus: $focusedField,
+                                    value: .password,
+                                    isDisabled: isWorking
+                                ) {
+                                    AuthPasswordVisibilityToggle(isVisible: $showPassword)
                                 }
-                            )
-                            .textContentType(mode == .signIn ? .password : .newPassword)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled(true)
+                                .textContentType(mode == .signIn ? .password : .newPassword)
+                                .submitLabel(.go)
+                                .onSubmit { attemptSubmit() }
+
+                                if mode == .signUp {
+                                    AuthRuleLine(
+                                        text: german ? "Mindestens 8 Zeichen" : "At least 8 characters",
+                                        isMet: AuthFormRules.passwordMeetsSignUpRule(password)
+                                    )
+                                }
+                            }
                             .modifier(AuthStaggerEnter(revealed: show, delay: 0.25))
                         }
 
                         if let errorText, !errorText.isEmpty {
-                            Text(errorText)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(Self.accent)
-                                .padding(.top, 12)
+                            AuthMessageLine(text: errorText, tone: .error)
+                                .padding(.top, 14)
+                        } else if let noticeText, !noticeText.isEmpty {
+                            AuthMessageLine(text: noticeText, tone: .notice)
+                                .padding(.top, 14)
                         }
 
-                        Button {
-                            KuroAccessibility.impactHaptic(.medium)
-                            if !canSubmit {
-                                if email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                    errorText = "Enter your email to continue."
-                                } else if passwordStatus != .valid {
-                                    errorText = "Password needs at least 8 characters."
-                                } else if mode == .signUp && emailStatus == .taken {
-                                    errorText = "That email is already in use."
-                                } else {
-                                    errorText = "Check your email and password."
-                                }
-                                return
-                            }
-                            Task { await submit() }
-                        } label: {
-                            HStack(spacing: 10) {
-                                if isWorking { ProgressView().tint(.white) }
-                                Text(mode == .signIn ? "Continue" : "Create account")
-                                    .font(.system(size: 17, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(Capsule().fill(Self.ink))
+                        KuroInkButton(
+                            mode == .signIn ? (german ? "Weiter" : "Continue") : (german ? "Konto erstellen" : "Create account"),
+                            isLoading: isWorking
+                        ) {
+                            attemptSubmit()
                         }
-                        .buttonStyle(AuthPressStyle())
                         .disabled(isWorking)
-                        .padding(.top, 26)
+                        .padding(.top, 24)
                         .modifier(AuthStaggerEnter(revealed: show, delay: 0.30))
 
                         if mode == .signIn {
-                            Button { Task { await forgotPassword() } } label: {
-                                Text("Forgot password?")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(Self.accent)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.top, 16)
+                            Button {
+                                errorText = nil
+                                noticeText = nil
+                                focusedField = nil
+                                showResetSheet = true
+                            } label: {
+                                Text(german ? "Passwort vergessen?" : "Forgot password?")
+                                    .font(.kuroMeta(weight: .medium))
+                                    .underline()
+                                    .foregroundStyle(Color.kuroInkSecondary)
+                                    .frame(maxWidth: .infinity, minHeight: 44)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .disabled(isWorking)
+                            .padding(.top, 8)
                             .modifier(AuthStaggerEnter(revealed: show, delay: 0.35))
+                        } else {
+                            AuthLegalLine(context: .signUp)
+                                .padding(.top, 16)
+                                .modifier(AuthStaggerEnter(revealed: show, delay: 0.35))
                         }
 
                         Spacer(minLength: 40)
                     }
                     .padding(.horizontal, 28)
                     .padding(.bottom, max(24, geo.safeAreaInsets.bottom + 8))
+                    .kuroReadableWidth()
+                    .background(
+                        // Tapping outside the fields dismisses the keyboard.
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture { focusedField = nil }
+                    )
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
         }
     }
 
     private func modeTab(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button {
+            guard !selected else { return }
             KuroAccessibility.impactHaptic(.light)
-            withAnimation(KuroMotion.resolve(KuroAnimation.scaleUp)) { action() }
+            withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) { action() }
         } label: {
-            VStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(selected ? Self.ink : Self.ink.opacity(0.35))
-                Capsule()
-                    .fill(selected ? Self.accent : Color.clear)
-                    .frame(height: 2.5)
-                    .frame(maxWidth: 48)
+                    .font(.kuroCustom(15, weight: .semibold, relativeTo: .subheadline, maxSize: 28))
+                    .foregroundStyle(selected ? Color.kuroInk : Color.kuroInkQuiet)
+                Rectangle()
+                    .fill(selected ? Color.kuroInk : Color.clear)
+                    .frame(width: 28, height: 2)
+                    .accessibilityHidden(true)
             }
+            .frame(minHeight: 44, alignment: .bottomLeading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(isWorking)
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
+    }
+
+    @ViewBuilder private var emailStatus: some View {
+        if AuthFormRules.emailLooksValid(email) {
+            Image(systemName: "checkmark")
+                .font(.kuroCustom(12, weight: .semibold, relativeTo: .footnote, maxSize: 20))
+                .foregroundStyle(Color.kuroInkSecondary)
+                .accessibilityLabel(german ? "Gültige E-Mail-Adresse" : "Valid email address")
+        } else if !email.isEmpty, focusedField != .email || submitAttempted {
+            Text(german ? "Adresse prüfen" : "Check the address")
+                .font(.kuroCustom(12, weight: .medium, relativeTo: .footnote, maxSize: 20))
+                .foregroundStyle(Color.kuroInkSecondary)
+                .fixedSize()
+        }
     }
 
     private var appleButton: some View {
         SignInWithAppleButton(.continue) { request in
             guard let nonce = Self.randomNonceString() else {
-                errorText = "Security error. Please try again."
+                errorText = german ? "Sicherheitsfehler. Versuche es erneut." : "Security error. Try again."
                 return
             }
             currentNonce = nonce
             request.requestedScopes = [.email, .fullName]
             request.nonce = Self.sha256(nonce)
         } onCompletion: { result in
-            KuroAccessibility.impactHaptic(.medium)
             Task { await handleAppleSignIn(result) }
         }
         .signInWithAppleButtonStyle(.white)
         .disabled(isWorking)
     }
 
-    // MARK: - Field
+    // MARK: - Actions
 
-    private func authField<Trailing: View>(
-        title: String,
-        text: Binding<String>,
-        isSecure: Bool,
-        field: Field,
-        status: some View,
-        @ViewBuilder trailing: () -> Trailing = { EmptyView() }
-    ) -> some View {
-        let isFocused = focusedField == field
-        return VStack(alignment: .leading, spacing: 9) {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(isFocused ? Color(red: 0.25, green: 0.45, blue: 0.95) : Self.ink.opacity(0.42))
+    private func switchMode(_ next: AuthFormRules.Mode) {
+        mode = next
+        errorText = nil
+        noticeText = nil
+        submitAttempted = false
+    }
 
-            HStack(spacing: 10) {
-                Group {
-                    if isSecure {
-                        SecureField("", text: text, prompt: Text(title).foregroundColor(Self.ink.opacity(0.28)))
-                    } else {
-                        TextField("", text: text, prompt: Text(title).foregroundColor(Self.ink.opacity(0.28)))
-                    }
-                }
-                .font(.system(size: 17, weight: .medium))
-                .foregroundColor(Self.ink)
-                .onTapGesture { focusedField = field }
-
-                status
-                trailing()
+    /// Validates locally first (nothing is sent for a form that can't succeed), then submits.
+    private func attemptSubmit() {
+        guard !isWorking else { return }
+        submitAttempted = true
+        if let problem = AuthFormRules.problem(mode: mode, email: email, password: password) {
+            noticeText = nil
+            errorText = AuthFormRules.message(for: problem, german: german)
+            switch problem {
+            case .emailMissing, .emailInvalid: focusedField = .email
+            case .passwordMissing, .passwordTooShort: focusedField = .password
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(isFocused
-                          ? Color(red: 0.93, green: 0.95, blue: 1.0)
-                          : Color(white: 0.97))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(
-                        isFocused
-                            ? Color(red: 0.35, green: 0.55, blue: 0.98)
-                            : Self.ink.opacity(0.12),
-                        lineWidth: isFocused ? 1.75 : 1
-                    )
-            )
-        }
-    }
-
-    // MARK: - Validation / actions
-
-    private var canSubmit: Bool {
-        let emailOk: Bool
-        switch mode {
-        case .signUp: emailOk = emailStatus == .available
-        case .signIn: emailOk = emailStatus == .available || emailStatus == .checking
-        }
-        return emailOk && passwordStatus == .valid
-    }
-
-    private func revalidateEmail() {
-        emailCheckTask?.cancel()
-        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { emailStatus = .empty; return }
-        guard trimmed.wholeMatch(of: Self.emailRegex) != nil else {
-            emailStatus = .invalidFormat
             return
         }
-        if mode == .signIn {
-            emailStatus = .available
-            return
-        }
-        emailStatus = .checking
-        emailCheckTask = Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled else { return }
-            let exists = await auth.checkEmailExists(email: trimmed)
-            guard !Task.isCancelled else { return }
-            emailStatus = exists ? .taken : .available
-        }
-    }
-
-    private func revalidatePassword() {
-        guard !password.isEmpty else { passwordStatus = .empty; return }
-        passwordStatus = password.count >= 8 ? .valid : .tooShort
-    }
-
-    @ViewBuilder private var emailStatusView: some View {
-        switch emailStatus {
-        case .empty: EmptyView()
-        case .invalidFormat: statusHint("Invalid")
-        case .checking: ProgressView().controlSize(.mini)
-        case .taken: statusHint("Taken")
-        case .available:
-            Image(systemName: "checkmark")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(Self.accent)
-        }
-    }
-
-    @ViewBuilder private var passwordStatusView: some View {
-        switch passwordStatus {
-        case .empty: EmptyView()
-        case .tooShort: statusHint("Min 8")
-        case .valid:
-            Image(systemName: "checkmark")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(Self.accent)
-        }
-    }
-
-    private func statusHint(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundColor(Self.ink.opacity(0.4))
-    }
-
-    private func loadCovers() async {
-        let anime = await discovery.fetchTrendingAnime(limit: 12)
-        let urls = anime.compactMap { URL(string: $0.displayImage) }.filter { !$0.absoluteString.isEmpty }
-        if !urls.isEmpty { coverURLs = Array(urls.prefix(6)) }
+        Task { await submit() }
     }
 
     private func submit() async {
-        let e = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard canSubmit else { return }
+        let address = AuthFormRules.trimmedEmail(email)
         errorText = nil
+        noticeText = nil
+        focusedField = nil
         isWorking = true
         defer { isWorking = false }
         do {
-            if mode == .signIn {
-                try await session.signInWithEmail(email: e, password: password)
-            } else {
-                try await session.signUpWithEmail(email: e, password: password)
+            switch mode {
+            case .signIn:
+                try await session.signInWithEmail(email: address, password: password)
+            case .signUp:
+                let outcome = try await session.signUpWithEmail(email: address, password: password)
+                if outcome == .noSession {
+                    // Email confirmation is on: the account waits for the link (no silent failure).
+                    password = ""
+                    mode = .signIn
+                    noticeText = AuthCopy.signUpNeedsConfirmation(german: german)
+                }
             }
+        } catch is CancellationError {
+            // A newer attempt (or a sign-out) superseded this one; it reports for itself.
         } catch {
-            errorText = identity.authErrorMessage ?? AuthService.userFacingAuthErrorMessage(from: error)
+            identity.authErrorMessage = nil
+            errorText = AuthService.userFacingAuthErrorMessage(from: error)
+            if mode == .signUp, AuthService.isAccountExistsError(error) {
+                mode = .signIn
+                focusedField = .password
+            }
         }
     }
 
     private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
+        // Cancelling the Apple sheet is not an error: stay where the user was, say nothing.
+        if case .failure(let error) = result,
+           let authorizationError = error as? ASAuthorizationError,
+           authorizationError.code == .canceled {
+            currentNonce = nil
+            return
+        }
+        KuroAccessibility.impactHaptic(.medium)
         errorText = nil
+        noticeText = nil
         isWorking = true
         defer { isWorking = false; currentNonce = nil }
         do {
-            guard let credential = try result.get().credential as? ASAuthorizationAppleIDCredential else {
-                errorText = "Unexpected credential type."
-                return
-            }
-            guard let identityToken = credential.identityToken,
-                  let idToken = String(data: identityToken, encoding: .utf8) else {
-                errorText = "Missing identity token."
-                return
-            }
-            guard let rawNonce = currentNonce else {
-                errorText = "Missing nonce. Please try again."
+            guard let credential = try result.get().credential as? ASAuthorizationAppleIDCredential,
+                  let identityToken = credential.identityToken,
+                  let idToken = String(data: identityToken, encoding: .utf8),
+                  let rawNonce = currentNonce else {
+                showAppleFailure(AuthCopy.appleDidNotComplete(german: german))
                 return
             }
             let fullName = credential.fullName.flatMap {
                 [$0.givenName, $0.familyName].compactMap { $0 }.joined(separator: " ")
             }
             try await session.signInWithApple(idToken: idToken, rawNonce: rawNonce, fullName: fullName)
+        } catch is CancellationError {
+            // Superseded by a newer attempt.
         } catch {
-            errorText = AuthService.userFacingAuthErrorMessage(from: error)
-            if step != .email {
-                withAnimation(KuroMotion.resolve(KuroAnimation.editorial)) { step = .email }
-            }
+            identity.authErrorMessage = nil
+            showAppleFailure(error is ASAuthorizationError
+                             ? AuthCopy.appleDidNotComplete(german: german)
+                             : AuthService.userFacingAuthErrorMessage(from: error))
         }
     }
 
-    private func forgotPassword() async {
-        let e = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard e.contains("@") else {
-            errorText = "Enter your email above, then tap Forgot password."
-            return
-        }
-        errorText = nil
-        isWorking = true
-        defer { isWorking = false }
-        do {
-            try await auth.resetPassword(email: e)
-            errorText = "Password reset email sent. Check your inbox."
-        } catch {
-            errorText = AuthService.userFacingAuthErrorMessage(from: error)
+    /// The welcome renders no messages, so an Apple failure there opens the form to show it.
+    private func showAppleFailure(_ message: String) {
+        errorText = message
+        if step != .email {
+            mode = .signIn
+            goToEmail(clearingMessages: false)
         }
     }
+
+    #if DEBUG
+    private func loadCovers() async {
+        let anime = await discovery.fetchTrendingAnime(limit: 12)
+        let urls = anime.compactMap { URL(string: $0.displayImage) }.filter { !$0.absoluteString.isEmpty }
+        if !urls.isEmpty { coverURLs = Array(urls.prefix(6)) }
+    }
+    #endif
 
     private static func randomNonceString(length: Int = 32) -> String? {
-        precondition(length > 0)
+        guard length > 0 else { return nil }
         var bytes = [UInt8](repeating: 0, count: length)
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else { return nil }
         let charset: [Swift.Character] = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
@@ -673,18 +657,508 @@ struct AuthView: View {
     }
 }
 
-// MARK: - Press
+// MARK: - Brand mark
 
-private struct AuthPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .opacity(configuration.isPressed ? 0.92 : 1)
-            .animation(.spring(response: 0.26, dampingFraction: 0.7), value: configuration.isPressed)
+/// The welcome's "Kuro" serif mark (also the launch/bootstrap and set-password screens).
+struct KuroWordmark: View {
+    var size: CGFloat = 18
+    var tracking: CGFloat = 4
+    var opacity: Double = 0.72
+
+    var body: some View {
+        Text("Kuro")
+            .font(.kuroCustom(size, weight: .semibold, design: .serif, relativeTo: .headline, maxSize: size + 8))
+            .tracking(tracking)
+            .foregroundStyle(Color.kuroInk.opacity(opacity))
+            .accessibilityLabel("Kuro")
     }
 }
 
-/// Soft staggered rise used by the email form landing.
+// MARK: - Set new password (after a recovery link; spec D12)
+
+/// Shown by the root instead of the app while `identity.requiresPasswordUpdate` is set: a password
+/// reset link signed this account in, and it needs a new password before anything else. Sign out is
+/// the escape (the requirement then ends with the session).
+struct AuthSetPasswordView: View {
+    @Environment(SessionController.self) private var session
+
+    @State private var password = ""
+    @State private var confirmation = ""
+    @State private var showPassword = false
+    @State private var isWorking = false
+    @State private var errorText: String?
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable { case password, confirmation }
+
+    private var german: Bool { KuroLocale.isGerman }
+
+    var body: some View {
+        ZStack {
+            Color.kuroCanvasPage.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    KuroWordmark()
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 12)
+
+                    Text(german ? "Wähle ein neues Passwort" : "Choose a new password")
+                        .font(.kuroFeature(weight: .semibold))
+                        .foregroundStyle(Color.kuroInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                        .padding(.top, 40)
+
+                    Text(german
+                         ? "Du hast einen Link zum Zurücksetzen geöffnet. Lege ein neues Passwort fest, um weiterzumachen."
+                         : "You opened a reset link. Set a new password to continue.")
+                        .font(.kuroBody(weight: .regular))
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 8)
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        AuthField(
+                            title: german ? "Neues Passwort" : "New password",
+                            text: $password,
+                            isSecure: !showPassword,
+                            focus: $focusedField,
+                            value: .password,
+                            isDisabled: isWorking
+                        ) {
+                            AuthPasswordVisibilityToggle(isVisible: $showPassword)
+                        }
+                        .textContentType(.newPassword)
+                        .submitLabel(.next)
+                        .onSubmit { focusedField = .confirmation }
+
+                        AuthField(
+                            title: german ? "Passwort wiederholen" : "Repeat password",
+                            text: $confirmation,
+                            isSecure: !showPassword,
+                            focus: $focusedField,
+                            value: .confirmation,
+                            isDisabled: isWorking
+                        ) {
+                            EmptyView()
+                        }
+                        .textContentType(.newPassword)
+                        .submitLabel(.go)
+                        .onSubmit { attemptSave() }
+
+                        AuthRuleLine(
+                            text: german ? "Mindestens 8 Zeichen" : "At least 8 characters",
+                            isMet: AuthFormRules.passwordMeetsSignUpRule(password)
+                        )
+                    }
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled(true)
+                    .padding(.top, 28)
+
+                    if let errorText {
+                        AuthMessageLine(text: errorText, tone: .error)
+                            .padding(.top, 14)
+                    }
+
+                    KuroInkButton(german ? "Passwort speichern" : "Save password", isLoading: isWorking) {
+                        attemptSave()
+                    }
+                    .disabled(isWorking)
+                    .padding(.top, 24)
+
+                    Button {
+                        Task { await session.signOut() }
+                    } label: {
+                        Text(german ? "Abmelden" : "Sign out")
+                            .font(.kuroMeta(weight: .medium))
+                            .underline()
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isWorking)
+                    .padding(.top, 8)
+                }
+                .padding(.horizontal, 28)
+                .padding(.bottom, 32)
+                .kuroReadableWidth()
+                .background(
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .onTapGesture { focusedField = nil }
+                )
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .onChange(of: errorText) { _, newValue in
+            if let newValue { AccessibilityNotification.Announcement(newValue).post() }
+        }
+    }
+
+    private func attemptSave() {
+        guard !isWorking else { return }
+        if let problem = AuthFormRules.newPasswordProblem(password, confirmation: confirmation) {
+            errorText = AuthFormRules.message(for: problem, german: german)
+            focusedField = problem == .tooShort ? .password : .confirmation
+            return
+        }
+        Task { await save() }
+    }
+
+    private func save() async {
+        errorText = nil
+        focusedField = nil
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            try await session.updatePassword(password)
+            KuroAccessibility.successHaptic()
+        } catch is CancellationError {
+            // The account changed meanwhile; the root re-renders for the new state.
+        } catch {
+            errorText = AuthService.userFacingAuthErrorMessage(from: error)
+        }
+    }
+}
+
+// MARK: - Reset password sheet
+
+/// "Forgot password?": sends a reset link for this device (spec D12: the link only works on the
+/// device that asked). The confirmation is neutral and enumeration-safe; a resend waits 60 s.
+private struct AuthResetPasswordSheet: View {
+    let initialEmail: String
+    @Binding var cooldownUntil: Date?
+    let onSent: (String) -> Void
+
+    @Environment(SessionController.self) private var session
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var email = ""
+    @State private var isWorking = false
+    @State private var errorText: String?
+    @State private var noticeText: String?
+    @State private var now = Date()
+    @FocusState private var focusedField: Field?
+
+    private enum Field: Hashable { case email }
+    private static let cooldown: TimeInterval = 60
+
+    private var german: Bool { KuroLocale.isGerman }
+    private var coolingDown: Bool { (cooldownUntil ?? .distantPast) > now }
+
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Spacer()
+                    Button(german ? "Schließen" : "Close") { dismiss() }
+                        .font(.kuroMeta(weight: .medium))
+                        .foregroundStyle(Color.kuroInk)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+
+                Text(german ? "Passwort zurücksetzen" : "Reset password")
+                    .font(.kuroHeadline(weight: .regular))
+                    .foregroundStyle(Color.kuroInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .padding(.top, 8)
+
+                Rectangle()
+                    .fill(Color.kuroInk)
+                    .frame(width: 46, height: 2)
+                    .padding(.top, 12)
+                    .accessibilityHidden(true)
+
+                Text(german
+                     ? "Wir schicken dir einen Link, mit dem du ein neues Passwort wählst. Öffne ihn auf diesem Gerät."
+                     : "We’ll email you a link to choose a new password. Open it on this device.")
+                    .font(.kuroBody(weight: .regular))
+                    .foregroundStyle(Color.kuroInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 14)
+
+                AuthField(
+                    title: german ? "E-Mail" : "Email",
+                    text: $email,
+                    isSecure: false,
+                    focus: $focusedField,
+                    value: .email,
+                    isDisabled: isWorking
+                ) {
+                    EmptyView()
+                }
+                .textInputAutocapitalization(.never)
+                .keyboardType(.emailAddress)
+                .autocorrectionDisabled(true)
+                .textContentType(.emailAddress)
+                .submitLabel(.send)
+                .onSubmit { attemptSend() }
+                .padding(.top, 22)
+
+                if let errorText {
+                    AuthMessageLine(text: errorText, tone: .error)
+                        .padding(.top, 14)
+                } else if let noticeText {
+                    AuthMessageLine(text: noticeText, tone: .notice)
+                        .padding(.top, 14)
+                }
+
+                KuroInkButton(sendTitle, isLoading: isWorking) {
+                    attemptSend()
+                }
+                .disabled(isWorking || coolingDown)
+                .padding(.top, 22)
+            }
+            .padding(.horizontal, 28)
+            .padding(.bottom, 32)
+            .kuroReadableWidth()
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .background(Color.kuroCanvasPage.ignoresSafeArea())
+        .presentationDetents([.medium, .large])
+        .onAppear {
+            email = initialEmail
+            if AuthFormRules.trimmedEmail(initialEmail).isEmpty { focusedField = .email }
+        }
+        .task(id: cooldownUntil) {
+            // Re-enables the button when the resend cooldown ends (one wake-up, no ticking timer).
+            now = Date()
+            guard let until = cooldownUntil, until > now else { return }
+            try? await Task.sleep(for: .seconds(until.timeIntervalSince(now)))
+            guard !Task.isCancelled else { return }
+            now = Date()
+        }
+        .onChange(of: errorText) { _, newValue in
+            if let newValue { AccessibilityNotification.Announcement(newValue).post() }
+        }
+        .onChange(of: noticeText) { _, newValue in
+            if let newValue { AccessibilityNotification.Announcement(newValue).post() }
+        }
+    }
+
+    private var sendTitle: String {
+        if coolingDown { return german ? "Gesendet" : "Sent" }
+        if noticeText != nil { return german ? "Erneut senden" : "Send again" }
+        return german ? "Link senden" : "Send link"
+    }
+
+    private func attemptSend() {
+        guard !isWorking, !coolingDown else { return }
+        let address = AuthFormRules.trimmedEmail(email)
+        guard AuthFormRules.emailLooksValid(address) else {
+            noticeText = nil
+            errorText = AuthFormRules.message(for: address.isEmpty ? .emailMissing : .emailInvalid, german: german)
+            focusedField = .email
+            return
+        }
+        Task { await send(to: address) }
+    }
+
+    private func send(to address: String) async {
+        errorText = nil
+        focusedField = nil
+        isWorking = true
+        defer { isWorking = false }
+        do {
+            try await session.requestPasswordReset(email: address)
+            cooldownUntil = Date().addingTimeInterval(Self.cooldown)
+            noticeText = AuthCopy.resetSent(email: address, german: german)
+            onSent(address)
+        } catch {
+            noticeText = nil
+            errorText = AuthService.userFacingAuthErrorMessage(from: error)
+        }
+    }
+}
+
+// MARK: - Form parts
+
+/// A labelled text field: quiet fill, hairline stroke, ink stroke while focused (no blue, no red).
+private struct AuthField<FocusValue: Hashable, Trailing: View>: View {
+    let title: String
+    @Binding var text: String
+    let isSecure: Bool
+    let focus: FocusState<FocusValue?>.Binding
+    let value: FocusValue
+    let isDisabled: Bool
+    @ViewBuilder let trailing: () -> Trailing
+
+    var body: some View {
+        let isFocused = focus.wrappedValue == value
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.kuroMeta(weight: .semibold))
+                .foregroundStyle(isFocused ? Color.kuroInk : Color.kuroInkSecondary)
+                .accessibilityHidden(true)
+
+            HStack(spacing: 10) {
+                Group {
+                    if isSecure {
+                        SecureField(title, text: $text, prompt: Text(title).foregroundStyle(Color.kuroInkQuiet))
+                    } else {
+                        TextField(title, text: $text, prompt: Text(title).foregroundStyle(Color.kuroInkQuiet))
+                    }
+                }
+                .font(.kuroCustom(17, weight: .regular, relativeTo: .body, maxSize: 30))
+                .foregroundStyle(Color.kuroInk)
+                .tint(Color.kuroInk)
+                .focused(focus, equals: value)
+                .disabled(isDisabled)
+
+                trailing()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .frame(minHeight: 52)
+            .background(
+                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                    .fill(Color.kuroCanvasQuiet)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                    .strokeBorder(isFocused ? Color.kuroInk : Color.kuroHairline, lineWidth: isFocused ? 1.5 : 1)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { if !isDisabled { focus.wrappedValue = value } }
+            .kuroAnimation(KuroMotion.contact, value: isFocused)
+        }
+    }
+}
+
+/// Show/hide for password fields (44 pt target, labelled).
+private struct AuthPasswordVisibilityToggle: View {
+    @Binding var isVisible: Bool
+
+    var body: some View {
+        Button {
+            isVisible.toggle()
+        } label: {
+            Image(systemName: isVisible ? "eye.slash" : "eye")
+                .font(.kuroCustom(15, weight: .regular, relativeTo: .body, maxSize: 24))
+                .foregroundStyle(Color.kuroInkSecondary)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, -12)
+        .accessibilityLabel(isVisible
+                            ? KuroLocale.text("Hide password", "Passwort ausblenden")
+                            : KuroLocale.text("Show password", "Passwort anzeigen"))
+    }
+}
+
+/// A requirement shown up front (not only after a failure), with a monochrome mark when met.
+private struct AuthRuleLine: View {
+    let text: String
+    let isMet: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: isMet ? "checkmark" : "circle")
+                .font(.kuroCustom(10, weight: .semibold, relativeTo: .caption1, maxSize: 18))
+                .foregroundStyle(Color.kuroInkSecondary)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.kuroMeta())
+                .foregroundStyle(Color.kuroInkSecondary)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(isMet ? KuroLocale.text("Met", "Erfüllt") : KuroLocale.text("Not met yet", "Noch nicht erfüllt"))
+    }
+}
+
+/// An inline message under a form: ink with a glyph for errors, secondary ink for neutral notices.
+private struct AuthMessageLine: View {
+    enum Tone { case error, notice }
+
+    let text: String
+    let tone: Tone
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: tone == .error ? "exclamationmark.circle" : "envelope")
+                .font(.kuroMeta(weight: .medium))
+                .foregroundStyle(tone == .error ? Color.kuroInk : Color.kuroInkSecondary)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.kuroMeta(weight: .medium))
+                .foregroundStyle(tone == .error ? Color.kuroInk : Color.kuroInkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Terms of Service and Privacy Policy as real links (they open in the browser).
+private struct AuthLegalLine: View {
+    enum Context { case welcome, signUp }
+
+    let context: Context
+
+    static let termsURL = "https://kuro.app/terms"
+    static let privacyURL = "https://kuro.app/privacy"
+
+    private var markdown: String {
+        let terms = Self.termsURL, privacy = Self.privacyURL
+        switch context {
+        case .welcome:
+            return KuroLocale.text(
+                "By continuing, you agree to Kuro’s [Terms of Service](\(terms)) and [Privacy Policy](\(privacy)).",
+                "Mit dem Fortfahren stimmst du den [Nutzungsbedingungen](\(terms)) und der [Datenschutzerklärung](\(privacy)) von Kuro zu."
+            )
+        case .signUp:
+            return KuroLocale.text(
+                "By creating an account, you agree to Kuro’s [Terms of Service](\(terms)) and [Privacy Policy](\(privacy)).",
+                "Mit deinem Konto stimmst du den [Nutzungsbedingungen](\(terms)) und der [Datenschutzerklärung](\(privacy)) von Kuro zu."
+            )
+        }
+    }
+
+    private var attributed: AttributedString {
+        guard var text = try? AttributedString(markdown: markdown) else {
+            return AttributedString(markdown.replacingOccurrences(of: "[", with: "").replacingOccurrences(of: "]", with: ""))
+        }
+        for run in text.runs where run.link != nil {
+            text[run.range].underlineStyle = .single
+            text[run.range].foregroundColor = Color.kuroInk
+        }
+        return text
+    }
+
+    var body: some View {
+        Text(attributed)
+            .font(.kuroCustom(11, weight: .regular, relativeTo: .caption1, maxSize: 18))
+            .foregroundStyle(Color.kuroInkQuiet)
+            .tint(Color.kuroInk)
+            .multilineTextAlignment(context == .welcome ? .center : .leading)
+            .frame(maxWidth: .infinity, alignment: context == .welcome ? .center : .leading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// Quiet progress while an email link is being applied.
+private struct AuthLinkProgress: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+                .controlSize(.small)
+                .tint(Color.kuroInkQuiet)
+            Text(KuroLocale.text("Opening your link…", "Link wird geöffnet …"))
+                .font(.kuroMeta(weight: .medium))
+                .foregroundStyle(Color.kuroInk)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Capsule().fill(Color.kuroCanvasPage))
+        .overlay(Capsule().strokeBorder(Color.kuroHairline, lineWidth: 1))
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Soft staggered rise used by the email form landing (ease-out, no overshoot).
 private struct AuthStaggerEnter: ViewModifier {
     let revealed: Bool
     let delay: Double
@@ -693,10 +1167,7 @@ private struct AuthStaggerEnter: ViewModifier {
         content
             .opacity(revealed ? 1 : 0)
             .offset(y: revealed ? 0 : 12)
-            .animation(
-                .spring(response: 0.50, dampingFraction: 0.84).delay(delay),
-                value: revealed
-            )
+            .animation(.easeOut(duration: 0.32).delay(delay), value: revealed)
     }
 }
 
