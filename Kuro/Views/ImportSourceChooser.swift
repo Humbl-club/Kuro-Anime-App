@@ -46,13 +46,16 @@ struct ImportSourceChooser: View {
     @State private var conciergeReview: ConciergeReview?
     /// From the Undo tap until the coordinator's undo finishes: closing would cancel it mid-write.
     @State private var undoInFlight = false
+    /// From the Retry tap until the resend finishes (covers the gap before the coordinator's own
+    /// processing flag is set).
+    @State private var retryInFlight = false
 
     private var isGerman: Bool { KuroLocale.isGerman }
 
     var body: some View {
         let owner = coordinator
         let undoing = undoInFlight
-        let busy = aniListInFlight || undoing || owner?.isProcessingAniListImport == true
+        let busy = aniListInFlight || retryInFlight || undoing || owner?.isProcessingAniListImport == true
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 HStack {
@@ -127,7 +130,12 @@ struct ImportSourceChooser: View {
                         title: isGerman ? "Import wiederholen" : "Retry import",
                         label: isGerman ? "Dieselbe Übernahme erneut senden" : "Send the same import again"
                     ) {
-                        owner?.retry()
+                        guard let task = owner?.retry() else { return }
+                        retryInFlight = true
+                        Task { @MainActor in
+                            await task.value
+                            retryInFlight = false
+                        }
                     }
                 }
 
