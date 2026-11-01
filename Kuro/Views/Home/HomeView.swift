@@ -80,6 +80,15 @@ struct HomeView: View {
         .onDisappear {
             actionScope.deactivate()
         }
+        // The account's release schedule: on first appearance, after an account change and after a
+        // Library change reached Home (a new revision). `ReleasesStore` caches per account for five
+        // minutes and drops that cache on membership changes, so a repeat costs nothing.
+        .task(id: "\(home.privacyEpoch)|\(home.bundle?.homeRevision ?? -1)") {
+            guard !skipNetworkLoad else { return }
+            await releases.loadSchedule()
+            guard !Task.isCancelled else { return }
+            scheduleChecked = true
+        }
         .sheet(item: $seasonCard) { card in HomeSeasonOverview(card: card).routePresenter() }
         .sheet(isPresented: $showImportChooser) {
             ImportSourceChooser { destination in
@@ -121,8 +130,6 @@ struct HomeView: View {
             }
             #endif
             await home.load()
-            await releases.loadSchedule()
-            scheduleChecked = true
             await home.drain()
             _ = try? await imports.discoverPendingImports()
         }

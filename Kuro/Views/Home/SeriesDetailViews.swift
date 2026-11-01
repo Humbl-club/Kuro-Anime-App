@@ -87,7 +87,8 @@ struct SeriesAnimeDetailView: View {
         .overlay(alignment: .topTrailing) {
             SeriesCloseButton()
         }
-        .detailReleases(kind: .anime, id: anime.id, schedule: $releaseItems, songs: $releaseSongs)
+        // The entry on screen (a season switch shows that entry's dates and songs).
+        .detailReleases(kind: .anime, id: selectedEntry ?? anime.id, schedule: $releaseItems, songs: $releaseSongs)
     }
 
     /// `media_themes_v1` first; the series bundle's own songs only when that has none.

@@ -26,6 +26,9 @@ private struct DetailReleaseLoader: ViewModifier {
 
     func body(content: Content) -> some View {
         content.task(id: "\(kind.rawValue):\(id)") {
+            // Another title or season entry: never show the previous one's dates or songs meanwhile.
+            schedule = nil
+            songs = nil
             let loaded = await releases.mediaSchedule(kind: kind, id: id)
             guard !Task.isCancelled else { return }
             schedule = loaded
