@@ -290,7 +290,13 @@ struct ProfileView: View {
         let entries = library.allEntries
         return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             sectionHeader(isGermanLocale ? "Deine Bibliothek." : "Your library.")
-            if entries.isEmpty {
+            if entries.isEmpty && library.loadState != .loaded {
+                KuroStateView(library.loadState == .failed ? .failed(hasCachedContent: false) : .loading,
+                              title: library.loadState == .failed
+                                ? (isGermanLocale ? "Bibliothek konnte nicht geladen werden." : "Your library couldn't load.")
+                                : (isGermanLocale ? "Deine Bibliothek wird geladen." : "Loading your library."),
+                              layout: .inline)
+            } else if entries.isEmpty {
                 Text(isGermanLocale
                      ? "Noch leer. Speichere einen Titel oder importiere deine Liste unten."
                      : "Empty for now. Save a title, or import your list below.")

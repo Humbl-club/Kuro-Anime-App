@@ -20,6 +20,8 @@ struct EditorialCollectionView: View {
     @Environment(\.kuroRoutes) private var routes
 
     @State private var medium: MediaKind = .anime
+    /// The last medium chosen here (a per-device convenience; "" until the first choice).
+    @AppStorage("kuro.folio.medium") private var storedMedium: String = ""
     @State private var status: FolioStatus = .watching
     @State private var sort: FolioSort = .recent
     @State private var verdictFilter: FolioVerdictFilter = .all
@@ -46,6 +48,10 @@ struct EditorialCollectionView: View {
     }
 
     private var german: Bool { KuroLocale.isGerman }
+    /// The current account while this page is mounted (writes never start from an unmounted page).
+    private var activeAccount: AccountContext? {
+        mountedAccount == nil ? nil : collection.accountSession.current
+    }
     private var isImportedView: Bool { collection.importedTitleKeys != nil }
 
     private var density: Binding<FolioDensity> {
@@ -174,6 +180,8 @@ struct EditorialCollectionView: View {
             didInitialLoad = true
             if let request = collection.consumeListRequest() {
                 apply(request)
+            } else if let stored = MediaKind(rawValue: storedMedium) {
+                medium = stored
             } else {
                 medium = home.medium == "manga" ? .manga : .anime
             }
@@ -185,7 +193,8 @@ struct EditorialCollectionView: View {
             apply(request)
             Task { await reload() }
         }
-        .onChange(of: medium) { _, _ in
+        .onChange(of: medium) { _, value in
+            storedMedium = value.rawValue
             resetTransientState()
             Task { await reload() }
         }
@@ -209,11 +218,6 @@ struct EditorialCollectionView: View {
         }
         .onChange(of: sort) { _, value in
             if value != .recent { Task { await loadAllForLocalOrdering() } }
-        }
-        .onChange(of: collection.accountSession.current) { _, current in
-            mountedAccount = current
-            resetTransientState()
-            pendingAdvance = []
         }
     }
 
@@ -326,7 +330,13 @@ struct EditorialCollectionView: View {
     @ViewBuilder
     private func emptyState(hasError: Bool, offline: Bool, gutter: CGFloat) -> some View {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        if hasError || (offline && collection.displayedFeedItems.isEmpty && !library.allEntries.isEmpty) {
+        let libraryKnown = library.loadState == .loaded || !library.allEntries.isEmpty
+        if !libraryKnown && library.loadState != .failed {
+            // The Library has not answered yet: keep stable geometry instead of an "empty" claim.
+            KuroStateView(.loading, title: german ? "Deine Listen werden geladen." : "Loading your lists.", layout: .inline)
+                .padding(.horizontal, gutter)
+        } else if hasError || library.loadState == .failed && library.allEntries.isEmpty
+                    || (offline && collection.displayedFeedItems.isEmpty && !library.allEntries.isEmpty) {
             KuroStateView(offline ? .offline(hasCachedContent: false) : .failed(hasCachedContent: false),
                           retry: { Task { await reload(refreshLibrary: true) } })
                 .frame(minHeight: 280)
@@ -471,7 +481,7 @@ struct EditorialCollectionView: View {
     /// +1 with the cap: the durable Home path (caught-up guard, outbox, conflicts) when it is
     /// available, otherwise the Library writer. A title at its total never advances.
     private func advance(_ item: FolioItem) {
-        guard let context = mountedAccount, collection.accountSession.isCurrent(context) else { return }
+        guard let context = activeAccount else { return }
         let key = item.key
         switch keyPhase(item) {
         case .needsChoice:
@@ -521,7 +531,7 @@ struct EditorialCollectionView: View {
     /// Guarded Undo: only while the title still shows the advanced position in the same lifecycle;
     /// writes the prior position through `LibraryActions` (same per-title order as the +1).
     private func undoLastAdvance() {
-        guard let context = mountedAccount, let receipt = collection.takeListAdvance(),
+        guard let context = activeAccount, let receipt = collection.takeListAdvance(),
               receipt.account == context else { return }
         guard let entry = library.entry(for: receipt.key), entry.lifecycleId == receipt.lifecycleId,
               displayedProgress(receipt.key) == receipt.advancedTo else {
@@ -540,7 +550,7 @@ struct EditorialCollectionView: View {
     // MARK: Removal and batch
 
     private func removeOne(_ item: FolioItem) {
-        guard let context = mountedAccount else { return }
+        guard let context = activeAccount else { return }
         Task {
             let removed = await LibraryViewActions.remove(item.key, actions: libraryActions)
             guard collection.accountSession.isCurrent(context) else { return }
@@ -554,13 +564,13 @@ struct EditorialCollectionView: View {
     }
 
     private func batchChangeStatus(_ target: FolioStatus) async {
-        guard let context = mountedAccount, collection.accountSession.isCurrent(context) else { return }
+        guard let context = activeAccount else { return }
         let keys = selectedItemKeys()
         guard !keys.isEmpty else { return }
         let outcomes = await collection.applyBatchStatusChange(target.listStatus, to: keys, visibleFilter: status.listStatus) { edit, key, create in
             await libraryActions.apply(edit, to: key, createIfMissing: create)
         }
-        guard collection.accountSession.isCurrent(context), mountedAccount == context else { return }
+        guard collection.accountSession.isCurrent(context), mountedAccount != nil else { return }
         let updated = outcomes.filter { $0.change != nil }.count
         if updated == keys.count { KuroAccessibility.successHaptic() } else if updated == 0 { KuroAccessibility.errorHaptic() }
         show(FolioNotice(tone: updated == keys.count ? .confirmation : .problem,
@@ -572,13 +582,13 @@ struct EditorialCollectionView: View {
     }
 
     private func confirmBatchRemove() async {
-        guard let context = mountedAccount, collection.accountSession.isCurrent(context) else { return }
+        guard let context = activeAccount else { return }
         let keys = selectedItemKeys()
         guard !keys.isEmpty else { return }
         let removed = await collection.applyBatchRemoval(to: keys) { key in
             await LibraryViewActions.remove(key, actions: libraryActions)
         }
-        guard collection.accountSession.isCurrent(context), mountedAccount == context else { return }
+        guard collection.accountSession.isCurrent(context), mountedAccount != nil else { return }
         if removed == keys.count { KuroAccessibility.successHaptic() } else if removed == 0 { KuroAccessibility.errorHaptic() }
         show(FolioNotice(tone: removed == keys.count ? .confirmation : .problem,
                          message: FolioCopy.removed(removed, of: keys.count, german: german), actionTitle: nil))
