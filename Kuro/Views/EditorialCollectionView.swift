@@ -18,6 +18,7 @@ struct EditorialCollectionView: View {
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(HomeStore.self) private var home
     @Environment(\.kuroRoutes) private var routes
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var medium: MediaKind = .anime
     /// The last medium chosen here (a per-device convenience; "" until the first choice).
@@ -137,7 +138,7 @@ struct EditorialCollectionView: View {
                         FolioBatchBar(count: selectedKeys.count, medium: medium,
                                       onChangeStatus: { target in Task { await batchChangeStatus(target) } },
                                       onRemove: { showRemoveConfirm = true })
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
                     }
                 }
                 .padding(.bottom, isSelecting && !selectedKeys.isEmpty ? 0 : KuroDesignSpacing.sm)
@@ -210,7 +211,8 @@ struct EditorialCollectionView: View {
         .onChange(of: collection.currentCollectionStatusFilter) { _, filter in
             // Another surface re-read the feed for a different filter (sync, realtime, import):
             // read the list this page is showing again.
-            guard !isImportedView, filter != status.listStatus, !collection.isCollectionLoading else { return }
+            // Latest wins in the store, so this read replaces the other one; ours already match.
+            guard !isImportedView, filter != status.listStatus else { return }
             Task { await reload() }
         }
         .onChange(of: searchText) { _, value in

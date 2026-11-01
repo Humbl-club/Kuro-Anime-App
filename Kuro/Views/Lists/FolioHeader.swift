@@ -11,6 +11,7 @@ struct FolioStatusStrip: View {
     let counts: [FolioStatus: Int]
     let medium: MediaKind
     var gutter: CGFloat = KuroDesignSpacing.padding
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let german = KuroLocale.isGerman
@@ -26,7 +27,8 @@ struct FolioStatusStrip: View {
             }
             .kuroSwipeExclusionZone()
             .onChange(of: selection) { _, value in
-                withAnimation(KuroMotion.contextChange) { proxy.scrollTo(value, anchor: .center) }
+                if reduceMotion { proxy.scrollTo(value, anchor: .center) }
+                else { withAnimation(KuroMotion.contextChange) { proxy.scrollTo(value, anchor: .center) } }
             }
         }
     }

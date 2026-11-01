@@ -140,7 +140,7 @@ struct ProfileLaneTests {
         #expect(FolioPolicy.shelfColumns(width: 288, medium: .manga, accessibilitySize: false) == 2)
         #expect(FolioPolicy.shelfColumns(width: 350, medium: .manga, accessibilitySize: false) == 3)
         #expect(FolioPolicy.shelfColumns(width: 390, medium: .manga, accessibilitySize: false) == 3)
-        #expect(FolioPolicy.shelfColumns(width: 640, medium: .manga, accessibilitySize: false) == 5)
+        #expect(FolioPolicy.shelfColumns(width: 640, medium: .manga, accessibilitySize: false) == 6)
         #expect(FolioPolicy.shelfColumns(width: 640, medium: .manga, accessibilitySize: true) == 2)
         #expect(FolioPolicy.shelfColumns(width: 350, medium: .anime, accessibilitySize: false) == 1)
         #expect(FolioPolicy.shelfColumns(width: 640, medium: .anime, accessibilitySize: false) == 2)

@@ -51,9 +51,13 @@ extension CollectionStore {
         let title_native: String?
         let cover_image_large: String?
         let banner_image: String?
+        /// The unit total (anime `episodes`, manga `chapters`): the lists' +1 cap.
+        let episodes: Int?
+        let chapters: Int?
         func media(kind: MediaKind) -> Media {
             Media(id: id, kind: kind, title: title_english ?? title_romaji ?? title_native ?? "Untitled \(kind.rawValue.lowercased()) #\(id)",
-                imageURL: cover_image_large, year: "", displayDescription: "", episodes: nil, chapters: nil,
+                imageURL: cover_image_large, year: "", displayDescription: "",
+                episodes: kind == .anime ? episodes : nil, chapters: kind == .manga ? chapters : nil,
                 rating: nil, genres: nil, statusRaw: nil, formatRaw: nil, popularityValue: nil,
                 trendingValue: nil, createdAtValue: nil)
         }
@@ -85,11 +89,16 @@ extension CollectionStore {
                 if ids.isEmpty { continue }
                 let rows: [ImportedCatalogRow] = try await accountSession.withCredentialLease(for: context) {
                     try await client.from(kind == .anime ? "anime" : "manga")
-                        .select("id,title_english,title_romaji,title_native,cover_image_large,banner_image")
+                        .select(kind == .anime
+                            ? "id,title_english,title_romaji,title_native,cover_image_large,banner_image,episodes"
+                            : "id,title_english,title_romaji,title_native,cover_image_large,chapters")
                         .in("id", values: ids).limit(30).execute().value
                 }
                 guard generation == importedGeneration, accountSession.isCurrent(context), !Task.isCancelled else { return }
                 result += rows.map { $0.media(kind: kind) }
+                for row in rows where kind == .anime {
+                    if let banner = row.banner_image, !banner.isEmpty { feedBanners[MediaKey(kind: kind, id: row.id)] = banner }
+                }
             }
             guard generation == importedGeneration, accountSession.isCurrent(context) else { return }
             if reset { importedMedia = [] }

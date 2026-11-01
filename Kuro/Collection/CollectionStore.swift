@@ -143,6 +143,7 @@ final class CollectionStore: AccountScopedState {
         seriesNextCursor = nil
         seriesScope = nil
         feedBanners = [:]
+        feedMedium = nil
         requestedListFilter = nil
         listPreview = [:]; listPreviewFailed = false; listPreviewLoadedAt = nil
         lastListAdvance = nil
@@ -396,6 +397,8 @@ final class CollectionStore: AccountScopedState {
     func libraryDidChange(_ change: LibraryChange) {
         guard accountSession.isCurrent(change.account) else { return }
         guard !change.isProgressOnly else { return }
+        // Profile's "Your lists" covers are re-read on its next open.
+        listPreviewLoadedAt = nil
         if change.kind == .removed {
             dropFromCollectionPages(change.key)
         }
