@@ -8,7 +8,13 @@ import Supabase
 
 // MARK: - Discovery + Browse
 // Owner of the Discover page reads (single-call bundle, the Auth trending rail, the daily
-// feature and the Stage 4 realm surfaces) and of the Browse keyset pages.
+// feature and the Stage 4 realm surfaces), of the Browse keyset pages, of the stated air times of
+// the Airing today rail, and of the per-account recent searches on this device.
+//
+// One bundle per launch: `discover_bundle` writes (rail impressions, NEW TO YOU rotation), so the
+// pages read it through `ensureDiscoverBundle()` (the launch bundle, whatever its age), only pull
+// to refresh forces a new read, and the call is never wrapped in `withRetry` (only a failure that
+// proves the request never left the device is repeated, once).
 //
 // Account scope: the rails over public tables are public data. Personalised results are
 // account-scoped: the Discover bundle (NEW TO YOU), the because-you rail, tonight's shelf and the
