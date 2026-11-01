@@ -5,6 +5,8 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Gate definitions: name, script, is_blocking (1=hard-fail, 0=warning-only)
+# A warning-only gate still runs and prints its findings; a non-zero exit is recorded as WARN in the
+# summary (its own count) and never fails the run on its own.
 declare -a GATES=(
   "secrets:check_secrets.sh:1"
   "migrations:check_migrations.sh:1"
@@ -17,6 +19,7 @@ declare -a GATES=(
   "docs-current-state:check_docs_current_state.sh:1"
   "swift-packages:test_packages.sh:1"                # Packages/KuroModules swift test (host, no network)
   "architecture:check_architecture.sh:1"             # retired facade, flags injection, SDK imports, tracking-table/writer boundaries (rg)
+  "branded-states:check_branded_states.sh:0"         # no stray ProgressView( in Kuro/Views (prototype-fidelity Task 3); REPORTED (WARN) until Phase 3 flips it to :1
   "ios-build:build_ios.sh:1"
   "ios-test:test_ios_unit.sh:1"
 )
@@ -33,6 +36,7 @@ PASSED=0
 FAILED=0
 SKIPPED=0
 BLOCKED=0
+WARNED=0
 
 echo "========================================"
 echo "  Kuro Quality Gates"
@@ -111,6 +115,11 @@ for gate_def in "${GATES[@]}"; do
     RESULTS+=("$name:BLOCKED")
     BLOCKED=$((BLOCKED + 1))
     TOTAL=$((TOTAL - 1))
+  elif [[ "$blocking" == "0" ]]; then
+    # Warning-only gate: its findings are reported above, recorded as WARN, never a hard failure.
+    echo "  $name: reported findings (warning-only gate, exit $GATE_EXIT)"
+    RESULTS+=("$name:WARN")
+    WARNED=$((WARNED + 1))
   else
     RESULTS+=("$name:FAIL")
     FAILED=$((FAILED + 1))
@@ -135,6 +144,7 @@ echo "  Passed:  $PASSED"
 echo "  Failed:  $FAILED"
 echo "  Skipped: $SKIPPED"
 echo "  Blocked: $BLOCKED"
+echo "  Warned:  $WARNED (warning-only gates with findings; not failures)"
 echo "========================================"
 
 if [[ $FAILED -gt 0 ]]; then
@@ -152,5 +162,9 @@ if [[ $SKIPPED -gt 0 || $BLOCKED -gt 0 ]]; then
   fi
   exit 4
 fi
-echo "All quality gates PASSED."
+if [[ $WARNED -gt 0 ]]; then
+  echo "All quality gates PASSED; $WARNED warning-only gate(s) reported findings (WARN in the summary)."
+else
+  echo "All quality gates PASSED."
+fi
 exit 0

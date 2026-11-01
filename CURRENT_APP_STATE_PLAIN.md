@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 193 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 195 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -1997,3 +1997,12 @@ This is the groundwork for making the app look like the approved prototype. It w
 - **Headings:** big headings now use the prototype's clean, tight sans-serif instead of the thin serif. A serif style remains for the prototype's few editorial headings, such as "Between us.".
 - **Artwork tints:** the app can now work out a title's colour from its own cover art, the same way the prototype does. That colour will tint the detail pages and the Home cards. It always stays dark enough for white text to read clearly. It shows AniList's colour first and swaps to the computed one when it is ready. Each title is only computed once, then remembered.
 - The screens themselves change in the next steps.
+
+### Change Log — 1 November 2026: Prototype keys, motion, loading and error screens, header (step 3 of the prototype pass)
+
+Local branch only; nothing on the live server changed.
+- **The +1 keys** now look like the prototype's raised keys: light on artwork, dark on manga covers, or tinted with the title's own artwork colour. After a save they show a small check mark and settle back.
+- **Small motions** from the prototype (the check mark stamp, the number rolling to its new value) are ready for the screens to use. They stay still when Reduce Motion or Low Power Mode is on.
+- **Loading, error, offline and empty screens** now have one branded look: the KURO letters settling with a thin ink line moving under them while loading; a single ink stroke drawing the mountain ridge when something fails, with "Try again"; "You're offline. Showing what you saw last." when old content is still on screen; and the prototype's "＋" invitation when there is nothing yet.
+- **The header** now matches the prototype: KURO on the left, the page name small in the middle, and on Home a "‹ Taste" link, with search and profile as simple ink icons. Home gets the prototype's warm background.
+- A new check lists every old-style spinner still left in the screens; the next steps replace them.

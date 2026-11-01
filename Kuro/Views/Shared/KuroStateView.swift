@@ -1,6 +1,9 @@
 import SwiftUI
 
 // MARK: - State view (spec §3.5, rulebook §9)
+// Since the prototype-fidelity pass (Task 3) a thin wrapper over the branded family in
+// `KuroBrandedStates.swift` (loading → `KuroLoadingView`, empty → `KuroEmptyView`, offline / failed /
+// denied → the ridge layout); its API and its pinned copy (`KuroStateCopy`) are unchanged.
 // One honest voice for the states a surface can be in. A failure, offline state or denial never
 // renders as a successful empty state. Copy is short, plain and true, names the action that fixes the
 // state, and ships in EN and DE. Pass `title`/`message` to say what is empty ("No clubs yet.").
@@ -43,34 +46,56 @@ struct KuroStateView: View {
         let copy = KuroStateCopy.copy(for: kind, german: KuroLocale.isGerman)
         let shownTitle = title ?? copy.title
         let shownMessage = message ?? copy.message
-        VStack(alignment: layout == .page ? .center : .leading, spacing: KuroDesignSpacing.sm) {
-            if kind == .loading {
-                ProgressView()
-                    .tint(Color.kuroInkQuiet)
-                    .accessibilityHidden(true)
+        switch (kind, layout) {
+        case (.loading, .page):
+            KuroLoadingView(scope: .page, label: title)
+        case (.loading, .inline):
+            KuroLoadingView(scope: .inline, label: title)
+        case (.empty, .page):
+            KuroEmptyView(headline: shownTitle, message: shownMessage)
+        case (_, .page):
+            // Offline and denied hold the ridge still; a failure draws it once.
+            KuroStateLayout(stroke: KuroRidgeStroke(draws: isFailure), headline: shownTitle, message: shownMessage) {
+                retryButton.frame(maxWidth: 280)
+            }
+        case (_, .inline):
+            inlineBlock(title: shownTitle, message: shownMessage)
+        }
+    }
+
+    private var isFailure: Bool {
+        if case .failed = kind { return true }
+        return false
+    }
+
+    @ViewBuilder
+    private var retryButton: some View {
+        if let retry, kind != .loading {
+            KuroInkButton(KuroStateCopy.retryTitle(german: KuroLocale.isGerman), role: .secondary, haptic: false, action: retry)
+        }
+    }
+
+    /// The section-scoped form: a still ridge mark for offline / failed, the copy, Try again.
+    private func inlineBlock(title shownTitle: String, message shownMessage: String?) -> some View {
+        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            if kind != .empty && kind != .denied {
+                KuroRidgeStroke(draws: false, lineWidth: 1)
+                    .frame(width: 36, height: 10)
             }
             Text(shownTitle)
-                .font(layout == .page ? .kuroTitle(weight: .regular) : .kuroBody(weight: .regular))
+                .font(.kuroBody(weight: .regular))
                 .foregroundStyle(Color.kuroInk)
-                .multilineTextAlignment(layout == .page ? .center : .leading)
                 .fixedSize(horizontal: false, vertical: true)
             if let shownMessage {
                 Text(shownMessage)
                     .font(.kuroMeta())
-                    .foregroundStyle(Color.kuroInkSecondary)
-                    .multilineTextAlignment(layout == .page ? .center : .leading)
+                    .foregroundStyle(Color.kuroMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            if let retry, kind != .loading {
-                KuroInkButton(KuroStateCopy.retryTitle(german: KuroLocale.isGerman), role: .secondary, haptic: false, action: retry)
-                    .frame(maxWidth: layout == .page ? 280 : .infinity)
-                    .padding(.top, KuroDesignSpacing.sm)
-            }
+            retryButton.padding(.top, KuroDesignSpacing.sm)
         }
-        .frame(maxWidth: .infinity, maxHeight: layout == .page ? .infinity : nil,
-               alignment: layout == .page ? .center : .leading)
-        .padding(.horizontal, layout == .page ? KuroDesignSpacing.padding : 0)
-        .padding(.vertical, layout == .page ? KuroDesignSpacing.xl : KuroDesignSpacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, KuroDesignSpacing.md)
         .accessibilityElement(children: .contain)
     }
 }

@@ -1,18 +1,27 @@
 import KuroCore
 import SwiftUI
 
-// MARK: - Advance key (spec §3.5, rulebook §7)
-// The +1 key: 44×44 pt, a sibling of the title's detail target (never nested inside it).
-//   light  white face, black-12% inset rim, ink glyph (Anime scene foot)
-//   dark   ink face, white-18% inset rim, white glyph (Manga cover)
-// Corner radius 5 pt outside, 4 pt for the inset rim. Glyph: `plus`; `checkmark` when caught up
-// (disabled); `list.number` when the next unit needs a choice. A selection tick on tap; the caller
-// fires the success haptic only after the durable accept.
+// MARK: - Advance key (spec §3.5, rulebook §7; prototype raised keys, PROTOTYPE_SPEC.md §2, §3.3)
+// The +1 key: a 44×44 pt target, a sibling of the title's detail target (never nested inside it).
+// The prototype draws a raised face inset inside the target:
+//   light     34 pt face, radius 7, `kuroKeyLightTop → kuroKeyLightBottom`, ink #29352c
+//             (Anime scene foot on art)
+//   dark      38 pt face, radius 6, solid #2b342e with a #2b342e border, ink #f8faf7 (Manga leaf)
+//   material  34 pt face, radius 7, the title's artwork `base → deep`, white ink (Also watching,
+//             the detail "Up next" key)
+// Light and material faces: 1 pt #20282326 border, inset 0 1 white highlight, 0 1 2 drop shadow.
+// Pressed (120 ms contact): face scale 0.95, darkened to 86 %, inset 0 2 3 shadow.
+// Glyph: `plus`; `checkmark` when caught up (disabled); `list.number` when the next unit needs a
+// choice. A selection tick on tap; the caller fires the success haptic only after the durable accept
+// and then changes `confirmTrigger`: the face settles (160 ms), the ✓ cap stamps in (`confirm`) and
+// the + cap returns (`restore`). A caught-up key shows neither (the prototype disables it).
 
 struct KuroAdvanceKey: View {
-    enum Style {
+    enum Style: Equatable {
         case light
         case dark
+        /// A face cut from the title's artwork material.
+        case material(ArtworkMaterial)
     }
 
     enum Phase: Equatable {
@@ -30,12 +39,16 @@ struct KuroAdvanceKey: View {
     var phase: Phase = .advance
     /// Full VoiceOver label, e.g. `KuroAdvanceCopy.label(...)`: "Mark episode 8 of Cowboy Bebop watched".
     let accessibilityText: String
+    /// Change after a durable save to play the prototype's confirm / restore stamp. 0 = never saved.
+    var confirmTrigger: Int = 0
     let action: () -> Void
 
-    init(style: Style, phase: Phase = .advance, accessibilityText: String, action: @escaping () -> Void) {
+    init(style: Style, phase: Phase = .advance, accessibilityText: String, confirmTrigger: Int = 0,
+         action: @escaping () -> Void) {
         self.style = style
         self.phase = phase
         self.accessibilityText = accessibilityText
+        self.confirmTrigger = confirmTrigger
         self.action = action
     }
 
@@ -49,20 +62,31 @@ struct KuroAdvanceKey: View {
 
     private var isInteractive: Bool { phase == .advance || phase == .needsChoice }
 
+    private var glyphFont: Font { .kuroCustom(15, weight: .regular, relativeTo: .body, maxSize: 22) }
+
     var body: some View {
+        let face = KuroKeyFace(style: style)
         Button {
             guard isInteractive else { return }
             KuroAccessibility.selectionHaptic()
             action()
         } label: {
-            Image(systemName: glyph)
-                .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 22))
-                .foregroundStyle(style == .light ? Color.kuroInk : Color.kuroWhite)
-                .opacity(phase == .pending ? 0.4 : 1)
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
+            ZStack {
+                Image(systemName: glyph)
+                    .font(glyphFont)
+                    .opacity(phase == .pending ? 0.4 : 1)
+                    .kuroRestore(trigger: phase == .caughtUp ? 0 : confirmTrigger)
+                if phase != .caughtUp {
+                    Image(systemName: "checkmark")
+                        .font(glyphFont)
+                        .kuroConfirmStamp(trigger: confirmTrigger)
+                }
+            }
+            .foregroundStyle(face.ink)
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(KuroAdvanceKeyStyle(style: style))
+        .buttonStyle(KuroAdvanceKeyStyle(face: face, settleTrigger: phase == .caughtUp ? 0 : confirmTrigger))
         .disabled(!isInteractive)
         .accessibilityLabel(accessibilityText)
         .accessibilityValue(phase == .caughtUp ? KuroLocale.text("Caught up", "Auf dem neuesten Stand")
@@ -70,25 +94,72 @@ struct KuroAdvanceKey: View {
     }
 }
 
+/// The raised face of one key style (measured values from PROTOTYPE_SPEC.md §2 / §3.3 / §4).
+struct KuroKeyFace {
+    let size: CGFloat
+    let radius: CGFloat
+    let top: Color
+    let bottom: Color
+    let border: Color
+    let highlight: Color
+    let drop: Color
+    let ink: Color
+
+    /// `#20282326`: the light and material key border.
+    private static let raisedBorder = Color(hex: "202823", opacity: Double(0x26) / 255)
+    /// `inset 0 1px #ffffff35` (light / material) and `#ffffff1f` (manga leaf).
+    private static let raisedHighlight = Color.white.opacity(Double(0x35) / 255)
+    /// `0 1px 2px #14231912` (light / material) and `#28372a14` (manga leaf).
+    private static let raisedDrop = Color(hex: "142319", opacity: Double(0x12) / 255)
+    /// The manga leaf key (`--mp-key`).
+    private static let leaf = Color(hex: "2B342E")
+    /// Pressed: `inset 0 2px 3px #151d2430`.
+    static let pressedInset = Color(hex: "151D24", opacity: Double(0x30) / 255)
+
+    init(style: KuroAdvanceKey.Style) {
+        switch style {
+        case .light:
+            size = 34; radius = 7
+            top = .kuroKeyLightTop; bottom = .kuroKeyLightBottom
+            border = Self.raisedBorder; highlight = Self.raisedHighlight; drop = Self.raisedDrop
+            ink = Color(hex: "29352C")
+        case .dark:
+            size = 38; radius = 6
+            top = Self.leaf; bottom = Self.leaf
+            border = Self.leaf; highlight = Color.white.opacity(Double(0x1F) / 255)
+            drop = Color(hex: "28372A", opacity: Double(0x14) / 255)
+            ink = Color(hex: "F8FAF7")
+        case .material(let material):
+            size = 34; radius = 7
+            top = material.base.color; bottom = material.deep.color
+            border = Self.raisedBorder; highlight = Self.raisedHighlight; drop = Self.raisedDrop
+            ink = material.ink.color
+        }
+    }
+}
+
 private struct KuroAdvanceKeyStyle: ButtonStyle {
-    let style: KuroAdvanceKey.Style
+    let face: KuroKeyFace
+    let settleTrigger: Int
 
     func makeBody(configuration: Configuration) -> some View {
         let pressed = configuration.isPressed
-        let outer = RoundedRectangle(cornerRadius: 5, style: .continuous)
-        let inner = RoundedRectangle(cornerRadius: 4, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: face.radius, style: .continuous)
+        let gradient = LinearGradient(colors: [face.top, face.bottom], startPoint: .top, endPoint: .bottom)
+        let fill: AnyShapeStyle = pressed
+            ? AnyShapeStyle(gradient.shadow(.inner(color: KuroKeyFace.pressedInset, radius: 1.5, x: 0, y: 2)))
+            : AnyShapeStyle(gradient.shadow(.inner(color: face.highlight, radius: 0, x: 0, y: 1)))
         return configuration.label
-            .background(
-                outer.fill(style == .light
-                           ? (pressed ? Color.kuroCanvasQuiet : Color.kuroWhite)
-                           : (pressed ? Color.kuroInkPressed : Color.kuroInk))
-            )
-            .overlay(
-                inner
-                    .strokeBorder(style == .light ? Color.kuroKeyRim : Color.white.opacity(0.18), lineWidth: 1)
-                    .padding(1)
-            )
-            .scaleEffect(pressed ? 0.98 : 1)
+            .background {
+                shape
+                    .fill(fill)
+                    .overlay(shape.fill(Color.black.opacity(pressed ? 0.14 : 0)))
+                    .overlay(shape.strokeBorder(face.border, lineWidth: 1))
+                    .shadow(color: pressed ? .clear : face.drop, radius: 1, x: 0, y: 1)
+                    .frame(width: face.size, height: face.size)
+                    .scaleEffect(pressed ? 0.95 : 1)
+                    .kuroPressSettle(trigger: settleTrigger)
+            }
             .kuroAnimation(KuroMotion.contact, value: pressed)
     }
 }

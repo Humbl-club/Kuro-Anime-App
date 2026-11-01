@@ -1,0 +1,137 @@
+//
+//  BrandedStateTests.swift
+//  KuroTests
+//
+//  Prototype-fidelity Task 3: the branded state family (spec §5.4). `KuroBrandedState.resolve` is
+//  the one rule that decides whether a surface shows its content, a loading state, an offline or
+//  error state, or the empty invitation. Review Focus 5: offline with a cached library keeps the
+//  content (plus the offline band); a cold offline launch shows the offline state with Try again.
+//  Also pins the EN/DE copy and the motion gate (Reduce Motion and Low Power show the final frame).
+//
+
+import CoreGraphics
+import Testing
+@testable import Kuro
+
+@Suite("Branded states (loading, error, offline, empty)")
+struct BrandedStateTests {
+    // MARK: resolve
+
+    @Test("offline with content keeps the content and adds the offline band")
+    func offlineWithContentKeepsContent() {
+        #expect(KuroBrandedState.resolve(isLoading: false, hasContent: true, isOffline: true, failed: false)
+                == .offline(hasContent: true))
+    }
+
+    @Test("a cold offline launch is offline without content")
+    func coldOfflineIsOfflineWithoutContent() {
+        #expect(KuroBrandedState.resolve(isLoading: false, hasContent: false, isOffline: true, failed: false)
+                == .offline(hasContent: false))
+        // Still loading when the connection drops: offline (with Try again), never an endless loader.
+        #expect(KuroBrandedState.resolve(isLoading: true, hasContent: false, isOffline: true, failed: false)
+                == .offline(hasContent: false))
+    }
+
+    @Test("content wins over loading: no overlay")
+    func contentWinsOverLoading() {
+        #expect(KuroBrandedState.resolve(isLoading: true, hasContent: true, isOffline: false, failed: false) == nil)
+        #expect(KuroBrandedState.resolve(isLoading: false, hasContent: true, isOffline: false, failed: false) == nil)
+    }
+
+    @Test("a failed read without content is failed without content")
+    func failedWithoutContent() {
+        #expect(KuroBrandedState.resolve(isLoading: false, hasContent: false, isOffline: false, failed: true)
+                == .failed(hasContent: false))
+        #expect(KuroBrandedState.resolve(isLoading: false, hasContent: true, isOffline: false, failed: true)
+                == .failed(hasContent: true))
+    }
+
+    @Test("offline is named before a failure (the failure is usually the lost connection)")
+    func offlineBeatsFailed() {
+        #expect(KuroBrandedState.resolve(isLoading: false, hasContent: false, isOffline: true, failed: true)
+                == .offline(hasContent: false))
+        #expect(KuroBrandedState.resolve(isLoading: false, hasContent: true, isOffline: true, failed: true)
+                == .offline(hasContent: true))
+    }
+
+    @Test("loading without content is loading; nothing at all is empty")
+    func loadingAndEmpty() {
+        #expect(KuroBrandedState.resolve(isLoading: true, hasContent: false, isOffline: false, failed: false) == .loading)
+        #expect(KuroBrandedState.resolve(isLoading: false, hasContent: false, isOffline: false, failed: false) == .empty)
+    }
+
+    // MARK: copy pins
+
+    @Test("KuroErrorView's default retry label is EN \"Try again\" / DE \"Erneut versuchen\"")
+    func retryCopy() {
+        #expect(KuroBrandedCopy.retryTitle(german: false) == "Try again")
+        #expect(KuroBrandedCopy.retryTitle(german: true) == "Erneut versuchen")
+    }
+
+    @Test("offline lines: with content and without")
+    func offlineCopy() {
+        #expect(KuroBrandedCopy.offlineLine(hasContent: true, german: false) == "You're offline. Showing what you saw last.")
+        #expect(KuroBrandedCopy.offlineLine(hasContent: false, german: false) == "Connect to load this.")
+        #expect(KuroBrandedCopy.offlineLine(hasContent: true, german: true) == "Du bist offline. Du siehst den letzten Stand.")
+        #expect(KuroBrandedCopy.offlineLine(hasContent: false, german: true) == "Verbinde dich, um das zu laden.")
+    }
+
+    @Test("every state's copy ships in EN and DE and avoids internal words")
+    func copyIsBilingualAndPlain() {
+        let forbidden = ["verified", "approved", "fallback", "server"]
+        let lines = [
+            KuroBrandedCopy.loadingLabel(german: false), KuroBrandedCopy.loadingLabel(german: true),
+            KuroBrandedCopy.errorHeadline(german: false), KuroBrandedCopy.errorHeadline(german: true),
+            KuroBrandedCopy.errorMessage(german: false), KuroBrandedCopy.errorMessage(german: true),
+            KuroBrandedCopy.offlineHeadline(german: false), KuroBrandedCopy.offlineHeadline(german: true),
+            KuroBrandedCopy.emptyHeadline(german: false), KuroBrandedCopy.emptyHeadline(german: true),
+        ]
+        for line in lines {
+            #expect(!line.isEmpty)
+            for word in forbidden { #expect(!line.lowercased().contains(word), "\(line)") }
+        }
+        #expect(KuroBrandedCopy.loadingLabel(german: false) != KuroBrandedCopy.loadingLabel(german: true))
+        #expect(KuroBrandedCopy.errorHeadline(german: false) != KuroBrandedCopy.errorHeadline(german: true))
+    }
+
+    // MARK: motion gate
+
+    @Test("Reduce Motion or Low Power shows the composed final frame")
+    func motionGate() {
+        #expect(KuroMotion.playsMotion(reduceMotion: false, lowPower: false))
+        #expect(!KuroMotion.playsMotion(reduceMotion: true, lowPower: false))
+        #expect(!KuroMotion.playsMotion(reduceMotion: false, lowPower: true))
+        #expect(!KuroMotion.playsMotion(reduceMotion: true, lowPower: true))
+    }
+
+    // MARK: ridge stroke
+
+    @Test("the traced mountain ridge is normalized and runs left to right")
+    func ridgeIsNormalized() {
+        let points = KuroRidge.points
+        #expect(points.count >= 24)
+        #expect(points.first?.x == 0)
+        #expect(points.last?.x == 1)
+        for point in points {
+            #expect((0...1).contains(point.x) && (0...1).contains(point.y))
+        }
+        #expect(zip(points, points.dropFirst()).allSatisfy { $0.x < $1.x })
+    }
+
+    // MARK: header neighbour link
+
+    @Test("Home shows \"‹ Taste\" and Taste shows \"Home ›\" only when both pages are in the pager")
+    @MainActor
+    func headerNeighbourLink() {
+        let order: [KuroMainView.Section] = [.taste, .home, .discover, .collection, .clubs]
+        #expect(KuroHeaderNeighbour.link(for: .home, order: order) == .taste)
+        #expect(KuroHeaderNeighbour.link(for: .taste, order: order) == .home)
+        #expect(KuroHeaderNeighbour.link(for: .discover, order: order) == nil)
+        let liveOrder: [KuroMainView.Section] = [.taste, .discover, .browse, .collection, .clubs]
+        #expect(KuroHeaderNeighbour.link(for: .taste, order: liveOrder) == nil)
+        #expect(KuroHeaderNeighbour.title(to: .taste, german: false) == "‹ Taste")
+        #expect(KuroHeaderNeighbour.title(to: .home, german: false) == "Home ›")
+        #expect(KuroHeaderNeighbour.title(to: .taste, german: true) == "‹ Geschmack")
+        #expect(KuroHeaderNeighbour.title(to: .home, german: true) == "Start ›")
+    }
+}

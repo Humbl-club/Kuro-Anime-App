@@ -275,7 +275,7 @@ struct KuroMainView: View {
 	                    .ignoresSafeArea()
 	                HomeInvitationWash()
 	            } else {
-	                Color.kuroBackground.ignoresSafeArea()
+	                selection.canvas.ignoresSafeArea()
 	            }
 
 	            VStack(spacing: 0) {
@@ -786,13 +786,60 @@ private struct HomeInvitationWash: View {
     }
 }
 
-// MARK: - New Responsive Header Component (Fixed)
+// MARK: - Header (prototype-fidelity Task 3; PROTOTYPE_SPEC.md §4 "Header", §8.12)
+// One header on every pager page in the prototype's style: the KURO wordmark left (SF 18 w800,
+// tracking 3, ink), the page name centred in the prototype's small sans (SF 11, muted) with smaller
+// position dots under it, and on the right the neighbour link ("‹ Taste" on Home, "Home ›" on Taste,
+// SF 12 ink, 44 pt target) followed by Search and Profile as quiet ink glyphs (native additions the
+// prototype does not draw). The page name slides on a page change (settle timing; still under
+// Reduce Motion). The wordmark steps aside only when the row is too narrow (largest text sizes on the
+// narrowest phones); the centre moves off centre only when it would run under the right controls.
+
+/// The header's neighbour link between Home and Taste (pure; tested).
+enum KuroHeaderNeighbour {
+    /// Home links to Taste and Taste to Home, only when the pager holds both pages.
+    static func link(for section: KuroMainView.Section, order: [KuroMainView.Section]) -> KuroMainView.Section? {
+        guard order.contains(.home), order.contains(.taste) else { return nil }
+        switch section {
+        case .home: return .taste
+        case .taste: return .home
+        default: return nil
+        }
+    }
+
+    /// "‹ Taste" / "Home ›" (DE "‹ Geschmack" / "Start ›"): the arrow points where the page sits.
+    static func title(to target: KuroMainView.Section, german: Bool) -> String {
+        switch target {
+        case .taste: return german ? "‹ Geschmack" : "‹ Taste"
+        case .home: return german ? "Start ›" : "Home ›"
+        default: return ""
+        }
+    }
+
+    /// VoiceOver label: "Go to Taste" / "Go to Home".
+    static func spokenTitle(to target: KuroMainView.Section, german: Bool) -> String {
+        switch target {
+        case .taste: return german ? "Zu Geschmack" : "Go to Taste"
+        case .home: return german ? "Zum Start" : "Go to Home"
+        default: return ""
+        }
+    }
+}
+
+extension KuroMainView.Section {
+    /// The page canvas behind the pager and the header: the prototype's warm Home canvas on Home,
+    /// the white page elsewhere.
+    var canvas: Color {
+        self == .home ? Color.kuroCanvasHome : Color.kuroBackground
+    }
+}
+
 struct KuroHeaderNew: View {
     @Binding var selection: KuroMainView.Section
     @Binding var showProfileSheet: Bool
     @Binding var showSearchSheet: Bool
     var onOpenSearch: () -> Void = {}
-    /// Empty Home paints the picture through this header. A saved shelf keeps the white header.
+    /// Empty Home paints the picture through this header. A saved shelf keeps the solid header.
     var onPicture: Bool = false
     @Environment(IdentityStore.self) private var identity
     @Environment(SessionController.self) private var session
@@ -808,37 +855,32 @@ struct KuroHeaderNew: View {
         )
     }
 
-    private static let windowTextPaddingX: CGFloat = 14
-    private static let windowTextPaddingY: CGFloat = 7
-    private static let windowTextSlack: CGFloat = 10
-
     @State private var displayedSection: KuroMainView.Section = .discover
     @State private var previousSection: KuroMainView.Section? = nil
     @State private var isForwardTransition = true
     @State private var titleProgress: CGFloat = 1.0
-    @State private var titleTextWidth: CGFloat = 92
     @State private var previousSectionCleanupTask: Task<Void, Never>? = nil
     /// The header row's width inside its side padding (0 until the first layout).
     @State private var rowWidth: CGFloat = 0
 
-    private var canSwipeLeft: Bool {
-        guard let i = swipeOrder.firstIndex(of: selection) else { return false }
-        return i > 0
-    }
-    private var canSwipeRight: Bool {
-        guard let i = swipeOrder.firstIndex(of: selection) else { return false }
-        return i < (swipeOrder.count - 1)
+    /// Prototype wordmark: SF 18 w800, tracking 3.
+    private static let wordmarkTracking: CGFloat = 3
+    private static let wordmarkFont = Font.kuroCustom(18, weight: .heavy, relativeTo: .headline, maxSize: 26)
+    /// Prototype neighbour link: SF 12 w400.
+    private static let neighbourFont = Font.kuroCustom(12, relativeTo: .footnote, maxSize: 20)
+
+    private static func scaled(_ size: CGFloat, _ style: UIFont.TextStyle, max cap: CGFloat) -> CGFloat {
+        min(UIFontMetrics(forTextStyle: style).scaledValue(for: size), cap)
     }
 
-    private static let titleTracking: CGFloat = 1.5
+    private static func measure(_ text: String, size: CGFloat, weight: UIFont.Weight, tracking: CGFloat = 0) -> CGFloat {
+        let font = UIFont.systemFont(ofSize: size, weight: weight)
+        let base = (text as NSString).size(withAttributes: [.font: font]).width
+        return ceil(base + tracking * CGFloat(max(0, text.count - 1)))
+    }
 
-    /// Measured with the same scaled size `kuroNavigation` draws with, so long titles never clip
-    /// at larger text sizes.
-    private static func measureTitleWidth(_ title: String) -> CGFloat {
-        let font = UIFont.systemFont(ofSize: KuroTypeRole.navigation.pointSize, weight: .regular)
-        let base = (title as NSString).size(withAttributes: [.font: font]).width
-        let tracking = titleTracking * CGFloat(max(0, title.count - 1))
-        return ceil(base + tracking)
+    private var neighbour: KuroMainView.Section? {
+        KuroHeaderNeighbour.link(for: selection, order: swipeOrder)
     }
 
     /// "Discover, 3 of 5" plus the Clubs activity note (VoiceOver value of the section control).
@@ -860,133 +902,71 @@ struct KuroHeaderNew: View {
         selection = swipeOrder[next]
     }
 
-    private var titleWindow: some View {
-        let hint = (canSwipeLeft || canSwipeRight)
-        // Rounded "window" with edge shading (no heavy fill) for a physical mask feel.
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        let innerMask = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        let titleHeight: CGFloat = ceil(KuroTypeRole.navigation.pointSize * 1.45)
-        let travel = (titleTextWidth + (Self.windowTextPaddingX * 2) + 28)
-
-        return ZStack {
-            shape
-                .fill(Color.clear)
-                // Tiny fill keeps the shape "present" so the shadow reads, without tinting the interior.
-                .background(shape.fill(onPicture ? Color.white.opacity(0.55) : Color.kuroWhite.opacity(0.001)))
-                .overlay(
-                    shape
-                        .stroke(
-                            hint
-                                ? (onPicture ? Color.kuroInk.opacity(0.45) : Color.kuroBlack12)
-                                : (onPicture ? Color.kuroInk.opacity(0.22) : Color.kuroBlack06),
-                            lineWidth: onPicture ? 0.8 : 0.6
-                        )
-                )
-                // Subtle highlight to sell the "window" edge without changing the interior color.
-                .overlay(
-                    shape
-                        .stroke(Color.kuroWhite80, lineWidth: 0.6)
-                        .blendMode(.overlay)
-                )
-                .shadow(color: Color.kuroBlack06, radius: 10, x: 0, y: 6)
-
-            TitleWindowAnimator(
-                current: displayedSection.title,
-                previous: previousSection?.title,
-                progress: titleProgress,
-                forward: isForwardTransition,
-                travel: travel
-            )
-            // Keep the window tight to the current word, but during the transition ensure
-            // we have enough width for BOTH titles so nothing gets clipped mid-slide.
-            .frame(width: max(54, titleTextWidth), height: titleHeight, alignment: .center)
-            .padding(.horizontal, Self.windowTextPaddingX)
-            .padding(.vertical, Self.windowTextPaddingY)
-            // Clip only the moving text layer (cheaper than masking the whole window).
-            .clipShape(innerMask)
-        }
-        .fixedSize(horizontal: true, vertical: true)
-        .accessibilityHidden(true)
-    }
-
-    /// A 32 pt circle with a 44 pt hit area (rulebook §5 touch targets).
-    @ViewBuilder
-    private func headerIconCircle<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        Circle()
-            .fill(onPicture ? Color.white.opacity(0.82) : Color.kuroBlack06)
-            .frame(width: 32, height: 32)
-            .overlay { content() }
-            .overlay(
-                Circle().stroke(onPicture ? Color.kuroInk.opacity(0.28) : Color.kuroBlack10, lineWidth: 0.7)
-            )
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
-    }
-
-    /// The two header buttons: 44 pt targets, the trailing inset keeps the circles where they were.
+    /// The two glyph buttons (44 pt targets, the trailing inset keeps the glyphs on the gutter).
     private static let actionsWidth: CGFloat = 44 * 2 - 6
-    /// Breathing room between the wordmark and the section window.
+    /// Breathing room between the wordmark and the centre.
     private static let wordmarkGap: CGFloat = 8
 
-    /// Where the section window sits and whether the wordmark fits beside it. Sized for the longest
-    /// title in the order (plus the Concierge mark where it can show), so paging never moves it.
+    private var neighbourWidth: CGFloat {
+        guard let neighbour else { return 0 }
+        let size = Self.scaled(12, .footnote, max: 20)
+        let title = KuroHeaderNeighbour.title(to: neighbour, german: KuroLocale.isGerman)
+        return max(44, Self.measure(title, size: size, weight: .regular) + 12)
+    }
+
+    /// Where the centre sits and whether the wordmark fits beside it. Sized for the longest page name in
+    /// the order, so paging never moves it.
     private var rowLayout: (showsWordmark: Bool, centreShift: CGFloat) {
         guard rowWidth > 0 else { return (!dynamicTypeSize.isAccessibilitySize, 0) }
-        let longestTitle = swipeOrder.map { Self.measureTitleWidth($0.title) + Self.windowTextSlack }.max() ?? 0
-        var centreWidth = max(54, longestTitle) + Self.windowTextPaddingX * 2
-        if swipeOrder.contains(.concierge) && !dynamicTypeSize.isAccessibilitySize { centreWidth += 40 }
+        let nameSize = KuroTypeRole.navigation.pointSize
+        let longest = swipeOrder.map { Self.measure($0.spokenName, size: nameSize, weight: .regular) }.max() ?? 0
+        let centreWidth = max(44, longest + 8)
         let sideRoom = (rowWidth - centreWidth) / 2
-        let shift = max(0, Self.actionsWidth - sideRoom)
+        let rightWidth = Self.actionsWidth + neighbourWidth
+        let shift = max(0, rightWidth - sideRoom)
         let leftRoom = sideRoom - shift
-        let wordmarkWidth = Self.measureTitleWidth("KURO")
+        let wordmarkWidth = Self.measure("KURO", size: Self.scaled(18, .headline, max: 26), weight: .heavy,
+                                         tracking: Self.wordmarkTracking)
         return (leftRoom - Self.wordmarkGap >= wordmarkWidth, shift)
     }
 
-    /// The centred section window with its position dots: one adjustable VoiceOver control.
+    private var inkColor: Color { Color.kuroInk }
+
+    /// The centred page name with its position dots: one adjustable VoiceOver control.
     private var sectionControl: some View {
-        VStack(spacing: 4) {
-            HStack(spacing: 10) {
-                if selection == .concierge && !dynamicTypeSize.isAccessibilitySize {
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 30, height: 30)
-                        .overlay(
-                            Circle().stroke(Color.kuroBlack10, lineWidth: 0.7)
-                        )
-                        .overlay(
-                            Image(systemName: "bubble.left.and.bubble.right.fill")
-                                .font(.kuroCustom(13, weight: .semibold, relativeTo: .caption1))
-                                .foregroundColor(.kuroBlack70)
-                        )
-                        .accessibilityHidden(true)
-                }
+        VStack(spacing: 5) {
+            HeaderPageName(
+                current: displayedSection.spokenName,
+                previous: previousSection?.spokenName,
+                progress: titleProgress,
+                forward: isForwardTransition,
+                onPicture: onPicture
+            )
 
-                titleWindow
-            }
-
-            // Dot indicators for positional context
-            HStack(spacing: 5) {
+            // Smaller position dots (3 pt).
+            HStack(spacing: 4) {
                 ForEach(swipeOrder, id: \.self) { section in
                     ZStack {
-                            Circle()
+                        Circle()
                             .fill(section == selection
-                                  ? (onPicture ? Color.kuroInk : Color.kuroTextSecondary)
-                                  : (onPicture ? Color.kuroInk.opacity(0.28) : Color.kuroBlack15))
-                            .frame(width: 4, height: 4)
+                                  ? inkColor
+                                  : inkColor.opacity(onPicture ? 0.28 : 0.18))
+                            .frame(width: 3, height: 3)
 
-                        // Badge dot for Clubs when unseen activity exists
+                        // Badge dot for Clubs when unseen activity exists (monochrome).
                         if section == .clubs && clubs.hasUnseenClubActivity && selection != .clubs {
                             Circle()
                                 .fill(Color.kuroBlack70)
-                                .frame(width: 6, height: 6)
-                                .offset(x: 5, y: -3)
+                                .frame(width: 5, height: 5)
+                                .offset(x: 4, y: -3)
                         }
                     }
                 }
             }
-            .animation(.easeOut(duration: 0.18), value: selection)
+            .animation(reduceMotion ? nil : KuroMotion.settle, value: selection)
             .accessibilityHidden(true)
         }
+        .frame(minHeight: 44)
         .contentShape(Rectangle())
         // One adjustable control: VoiceOver swipes up/down (and Switch Control) page the app.
         .accessibilityElement(children: .ignore)
@@ -1003,18 +983,39 @@ struct KuroHeaderNew: View {
         }
     }
 
+    @ViewBuilder
+    private var neighbourLink: some View {
+        if let neighbour {
+            Button {
+                KuroAccessibility.selectionHaptic()
+                selection = neighbour
+            } label: {
+                Text(KuroHeaderNeighbour.title(to: neighbour, german: KuroLocale.isGerman))
+                    .font(Self.neighbourFont)
+                    .foregroundStyle(inkColor)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, 6)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(KuroHeaderIconButtonStyle())
+            .accessibilityLabel(KuroHeaderNeighbour.spokenTitle(to: neighbour, german: KuroLocale.isGerman))
+        }
+    }
+
     private var actionButtons: some View {
         HStack(spacing: 0) {
             Button(action: {
                 KuroAccessibility.impactHaptic(.light)
                 onOpenSearch()
             }) {
-                headerIconCircle {
-                    // Fixed inside its 32 pt circle: the glyph stops growing where the circle does.
-                    Image(systemName: "magnifyingglass")
-                        .font(.kuroCustom(13, weight: .regular, relativeTo: .caption1, maxSize: 15))
-                        .foregroundColor(onPicture ? Color.kuroInk : Color.kuroBlack60)
-                }
+                // A quiet ink glyph; fixed so it stops growing with the row.
+                Image(systemName: "magnifyingglass")
+                    .font(.kuroCustom(15, weight: .regular, relativeTo: .body, maxSize: 19))
+                    .foregroundStyle(inkColor)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(KuroHeaderIconButtonStyle())
             .accessibilityLabel(KuroLocale.text("Search", "Suche"))
@@ -1028,12 +1029,18 @@ struct KuroHeaderNew: View {
                     Task { await session.signOut() }
                 }
             } label: {
-                headerIconCircle {
-                    Text(identity.currentUserInitial)
-                        .font(.kuroCustom(12, weight: .medium, relativeTo: .caption1, maxSize: 14))
-                        .lineLimit(1)
-                        .foregroundColor(onPicture ? Color.kuroInk : Color.kuroBlack80)
-                }
+                // The account initial in a hairline ink ring: a quiet glyph, not a filled chip.
+                Circle()
+                    .strokeBorder(inkColor.opacity(0.55), lineWidth: 1)
+                    .frame(width: 24, height: 24)
+                    .overlay {
+                        Text(identity.currentUserInitial)
+                            .font(.kuroCustom(11, weight: .medium, relativeTo: .caption1, maxSize: 13))
+                            .lineLimit(1)
+                            .foregroundStyle(inkColor)
+                    }
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(KuroHeaderIconButtonStyle())
             .accessibilityLabel(KuroLocale.text("Profile", "Profil"))
@@ -1044,26 +1051,25 @@ struct KuroHeaderNew: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // The section window stays centred on the row at every text size; the wordmark and the two
-            // buttons sit on its sides. The wordmark steps aside only when the row is too narrow for it
-            // (largest text sizes on the narrowest phones), and the window moves off centre only when
-            // it would otherwise run under the buttons.
             let layout = rowLayout
             ZStack {
                 HStack(spacing: 0) {
                     if layout.showsWordmark {
                         Text("KURO")
-                            .font(.kuroNavigation(weight: onPicture ? .medium : .regular))
-                            .tracking(Self.titleTracking)
-                            .foregroundColor(onPicture ? Color.kuroInk : Color.kuroTextTertiary)
+                            .font(Self.wordmarkFont)
+                            .tracking(Self.wordmarkTracking)
+                            .foregroundStyle(inkColor)
                             .lineLimit(1)
                             .fixedSize()
                             .accessibilitySortPriority(3)
                     }
                     Spacer(minLength: 0)
-                    actionButtons
-                        .accessibilityElement(children: .contain)
-                        .accessibilitySortPriority(1)
+                    HStack(spacing: 0) {
+                        neighbourLink
+                        actionButtons
+                    }
+                    .accessibilityElement(children: .contain)
+                    .accessibilitySortPriority(1)
                 }
 
                 sectionControl
@@ -1072,50 +1078,37 @@ struct KuroHeaderNew: View {
                     .accessibilitySortPriority(2)
             }
             // The ZStack declares the section control last; explicit priorities keep the reading
-            // order wordmark, section, search, profile (as in the former single HStack).
+            // order wordmark, section, neighbour link, search, profile.
             .accessibilityElement(children: .contain)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
-            .padding(.horizontal, 20)
-            // 44 pt targets + 5 pt keeps the header at its 54 pt height at the default text size.
-            .padding(.vertical, 5)
+            .padding(.horizontal, 22)
+            .padding(.top, 4)
+            .padding(.bottom, 4)
             .contentShape(Rectangle())
-            // The wordmark, the section control and the two buttons stay separate VoiceOver elements.
-            .onChange(of: KuroTypeScale.current.category) { _, _ in
-                titleTextWidth = Self.measureTitleWidth(displayedSection.title) + Self.windowTextSlack
-            }
             .onAppear {
                 displayedSection = selection
                 previousSection = nil
                 titleProgress = 1.0
-                titleTextWidth = Self.measureTitleWidth(selection.title) + Self.windowTextSlack
             }
             .onChange(of: selection) { _, newValue in
                 let oldIndex = swipeOrder.firstIndex(of: displayedSection) ?? 0
                 let newIndex = swipeOrder.firstIndex(of: newValue) ?? 0
                 isForwardTransition = newIndex > oldIndex
-                let from = displayedSection
-                let fromWidth = Self.measureTitleWidth(from.title) + Self.windowTextSlack
-                let toWidth = Self.measureTitleWidth(newValue.title) + Self.windowTextSlack
-
-                previousSection = from
+                previousSection = displayedSection
                 displayedSection = newValue
-                titleTextWidth = max(fromWidth, toWidth)
 
                 titleProgress = 0.0
-                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.18)) {
+                withAnimation(reduceMotion ? nil : KuroMotion.settle) {
                     titleProgress = 1.0
                 }
 
-                // Clear previous after animation; avoids unnecessary layout work.
+                // Clear the previous name after the slide; avoids layout work.
                 previousSectionCleanupTask?.cancel()
                 previousSectionCleanupTask = Task { @MainActor in
-                    try? await Task.sleep(nanoseconds: 200_000_000)
+                    try? await Task.sleep(nanoseconds: 240_000_000)
                     guard !Task.isCancelled else { return }
                     if displayedSection == newValue {
                         previousSection = nil
-                        withAnimation(.easeOut(duration: 0.12)) {
-                            titleTextWidth = toWidth
-                        }
                     }
                 }
             }
@@ -1124,61 +1117,62 @@ struct KuroHeaderNew: View {
                 previousSectionCleanupTask = nil
             }
 
-            // Subtle divider — omitted only while the empty-Home picture runs through the header.
+            // Hairline (`--line`), omitted while the empty-Home picture runs through the header.
             if !onPicture {
                 Rectangle()
-                    .fill(Color.kuroBlack08)
+                    .fill(Color.kuroLine)
                     .frame(height: 0.5)
             }
         }
         // Grows with the text size instead of clipping it.
         .frame(minHeight: 54)
-        .background(onPicture ? Color.clear : Color.kuroBackground)
-        .shadow(
-            color: onPicture ? Color.clear : Color.kuroBlack08,
-            radius: 10,
-            x: 0,
-            y: 6
-        )
+        .background(onPicture ? Color.clear : selection.canvas)
+        .kuroAnimation(KuroMotion.medium, value: selection == .home)
     }
 }
 
-private struct TitleWindowAnimator: View {
+/// The page name in the prototype's small sans (SF 11, muted), sliding between pages.
+private struct HeaderPageName: View {
     let current: String
     let previous: String?
     let progress: CGFloat
     let forward: Bool
-    let travel: CGFloat
+    let onPicture: Bool
+
+    private var color: Color { onPicture ? Color.kuroInk : Color.kuroMuted }
 
     var body: some View {
-        let dir: CGFloat = forward ? 1 : -1
-
-        return ZStack {
+        let direction: CGFloat = forward ? 1 : -1
+        let travel: CGFloat = 24
+        ZStack {
             if let previous {
                 Text(previous)
                     .font(.kuroNavigation(weight: .regular))
-                    .tracking(1.5)
-                    .foregroundColor(.kuroBlack)
+                    .foregroundStyle(color)
                     .lineLimit(1)
-                    .offset(x: (-progress) * dir * travel)
+                    .fixedSize()
+                    .offset(x: -progress * direction * travel)
+                    .opacity(1 - progress)
             }
-
             Text(current)
                 .font(.kuroNavigation(weight: .regular))
-                .tracking(1.5)
-                .foregroundColor(.kuroBlack)
+                .foregroundStyle(color)
                 .lineLimit(1)
-                .offset(x: (1 - progress) * dir * travel)
+                .fixedSize()
+                .offset(x: (1 - progress) * direction * travel)
+                .opacity(previous == nil ? 1 : progress)
         }
+        .accessibilityHidden(true)
     }
 }
 
+/// The prototype's contact on header controls: dimmed to 0.6 and a shallow scale, 120 ms.
 private struct KuroHeaderIconButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.93 : 1.0)
-            .rotationEffect(.degrees(configuration.isPressed ? -4 : 0))
-            .animation(.interactiveSpring(response: 0.22, dampingFraction: 0.82), value: configuration.isPressed)
+            .opacity(configuration.isPressed ? 0.6 : 1)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .kuroAnimation(KuroMotion.contact, value: configuration.isPressed)
     }
 }
 
