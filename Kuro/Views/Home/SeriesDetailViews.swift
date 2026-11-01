@@ -330,6 +330,10 @@ struct SeriesAnimeDetailView: View {
             loadError = nil
             mode = mode.resolved(bundle: loaded, loadFailed: false, hasLegacy: legacy != nil)
         } catch is CancellationError {
+            // `detailBundle` also throws this with no account or client: still settle the first answer.
+            if token == generation, !Task.isCancelled {
+                mode = mode.resolved(bundle: nil, loadFailed: true, hasLegacy: legacy != nil)
+            }
             return
         } catch {
             guard token == generation, !Task.isCancelled else { return }
@@ -591,6 +595,10 @@ struct SeriesMangaDetailView: View {
             loadError = nil
             mode = mode.resolved(bundle: loaded, loadFailed: false, hasLegacy: legacy != nil)
         } catch is CancellationError {
+            // `detailBundle` also throws this with no account or client: still settle the first answer.
+            if token == loadGeneration, !Task.isCancelled {
+                mode = mode.resolved(bundle: nil, loadFailed: true, hasLegacy: legacy != nil)
+            }
             return
         } catch {
             guard token == loadGeneration, !Task.isCancelled else { return }

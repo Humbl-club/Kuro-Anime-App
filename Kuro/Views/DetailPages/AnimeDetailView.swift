@@ -90,7 +90,9 @@ struct AnimeDetailView: View {
                         
                         MetaLineSection(anime: anime)
 
-                        DetailNextReleaseSection(items: releaseItems ?? DetailNextReleaseSection.seed(for: anime))
+                        // The store's answer; the catalogue row's own future airing while it loads or when it has none.
+                        DetailNextReleaseSection(items: (releaseItems?.isEmpty == false ? releaseItems : nil)
+                                                 ?? DetailNextReleaseSection.seed(for: anime))
                         
                         // Description
                         if anime.hasMeaningfulSynopsis {

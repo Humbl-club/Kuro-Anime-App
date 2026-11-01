@@ -693,11 +693,14 @@ enum HomeCopy {
             : KuroLocale.text("Choose the next episode on its page.", "Wähle die nächste Folge auf ihrer Seite.")
     }
 
+    /// The raw Library progress message the Undo control keys on (`KuroLibrary/LibraryProgress.swift`).
+    static let librarySavedOnDevice = "Saved on this device"
+
     /// Library's own progress messages arrive in English (`KuroLibrary` has no locale); this is
     /// their display text. Compare against the raw value, never against this result.
     static func display(_ raw: String) -> String {
         switch raw {
-        case LibraryProgressMessage.savedOnDevice:
+        case HomeCopy.librarySavedOnDevice:
             return KuroLocale.text("Saved on this device.", "Auf diesem Gerät gespeichert.")
         case "That progress needs another look.":
             return KuroLocale.text("That progress needs another look.", "Dieser Fortschritt braucht einen zweiten Blick.")
@@ -719,7 +722,3 @@ enum HomeCopy {
     }
 }
 
-/// The raw Library progress message the Undo control keys on (`KuroLibrary/LibraryProgress.swift`).
-enum LibraryProgressMessage {
-    static let savedOnDevice = "Saved on this device"
-}

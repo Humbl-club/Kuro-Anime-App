@@ -41,8 +41,8 @@ struct HomeLaneTests {
 
     @Test("Library's raw progress messages get display text; Undo keys on the raw value")
     func homeCopy() {
-        #expect(LibraryProgressMessage.savedOnDevice == "Saved on this device")
-        let shown = HomeCopy.display(LibraryProgressMessage.savedOnDevice)
+        #expect(HomeCopy.librarySavedOnDevice == "Saved on this device")
+        let shown = HomeCopy.display(HomeCopy.librarySavedOnDevice)
         #expect(shown == "Saved on this device." || shown == "Auf diesem Gerät gespeichert.")
         #expect(HomeCopy.display("Something else") == "Something else")
         #expect(HomeCopy.isOffline(URLError(.notConnectedToInternet)))

@@ -460,7 +460,7 @@ struct HomeView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 // Undo keys on Library's raw message, never on the displayed (translated) text.
-                if status == LibraryProgressMessage.savedOnDevice,
+                if status == HomeCopy.librarySavedOnDevice,
                    home.lastAdvancedKey?.kind.rawValue.lowercased() == home.medium,
                    let card = home.bundle?.active.first(where: {
                        $0.mediaId == home.lastAdvancedKey?.id
