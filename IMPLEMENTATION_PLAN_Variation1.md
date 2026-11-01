@@ -1,5 +1,7 @@
 # Concierge "Modes Router" Plan (Variation 1)
 
+> **Overnight production pass, 1 November — LOCAL BRANCH `kuro/overnight-2026-11-01`, NOT DEPLOYED.** Release schedule (episode/chapter/volume with certainty) + songs end to end (prepared RPCs/intake, app with silent fallback), DB hot-path fixes prepared, Folio lists, Profile/Discover/Clubs/Auth/Onboarding redesign, auth callback hardening + set-new-password. Owner decisions (licensing, deploy, legal URLs, icon, visual acceptance) open: `docs/overnight-2026-11-01/REPORT.md`.
+
 > **Repository checkpoint, 31 October — OCTOBER WORK COMMITTED LOCALLY; GATES PASS.** Five grouped local commits on `codex/integrated-testflight` (not pushed) plus backup ref `refs/backup/kuro-snapshot-20261031`. Architecture, docs-count and migration gates pass; runtime force unwraps guarded. Native design visual acceptance still open; no deployment or flag change.
 
 > **Native design polish, 9 October — FULL POSTER HOME; VISUAL ACCEPTANCE OPEN.** Empty invitation unchanged. Saved Anime is shallow scenes with a white foot. Saved Manga is the equal-cover library with the chapter ticket on the cover. Acceptance is still open.

@@ -641,7 +641,10 @@ struct ReleaseElapsedTests {
         _ = await releases.loadSchedule()
         #expect(harness.requests(to: "user_airing_next").count == afterFailure, "a screen load waits out the backoff")
         _ = await releases.loadSchedule(force: true)
-        #expect(harness.requests(to: "user_airing_next").count == afterFailure + 1, "a user action is sent")
+        // One logical read per load: each goes through withRetry, so a forced load repeats
+        // exactly the attempts the first failed load made (no more, no fewer).
+        #expect(afterFailure > 0)
+        #expect(harness.requests(to: "user_airing_next").count == afterFailure * 2, "a user action is sent")
         await harness.tearDown()
     }
 

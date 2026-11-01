@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 164 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 191 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -1985,3 +1985,7 @@ The clock and KURO / HOME bar no longer sit on a white strip above the mountain.
 ### Change Log — 31 October 2026: Work saved and checks fixed
 
 All the October work that only existed on the Mac is now saved: a full backup copy (inside git and as a separate archive file in `~/Kuro-backups/`) plus five tidy local commits. Nothing was uploaded to GitHub. The three failing automatic checks now pass, a set of places where the app could in theory crash on missing data now handle it safely, and the project rules file (`CLAUDE.md`) describes the app as it really is today. Two older security weaknesses were found and written down for a separate decision: an email-style sign-in link could sign a signed-out phone into someone else's account, and one assistant service's rate limit can be dodged. No live server, app install or setting was changed.
+
+### Change Log — 1 November 2026: Overnight production pass
+
+Overnight, the whole app was checked (every server call, every way data comes in, every database table) and then reworked on a separate local branch. Nothing on the live server was changed and nothing was uploaded. The app can now show when the next episode, chapter or volume comes out (with an honest "confirmed / announced / expected" label and never a made-up date) and an anime's songs, once the prepared server changes are switched on; until then it quietly shows what it has today. Lists got a new, easy view ("Folio": tap a status, switch between covers and rows, add +1 with Undo), Profile was reorganised (your lists, imports, privacy, data sources), Discover, Clubs, sign-in and onboarding were redesigned in the white-and-ink style, and the database work that used most of the server's time was made far cheaper. Sign-in links are now only accepted when this phone asked for them, and "forgot password" finally lets you set a new one. Open owner decisions (data licensing, deploying, legal links, app icon, visual sign-off) are listed in `docs/overnight-2026-11-01/REPORT.md`.
