@@ -31,8 +31,10 @@ struct DetailMangaSnapshotTests {
         let backend = FakeLibraryBackend()
         backend.setRows([FakeLibraryBackend.entry(.manga, 30, rowId: 30, status: .current, progress: 24)],
                         for: LifecycleFixtures.userA)
+        // social_activity_v1 on (live: 100 %): "Between us." and the club row need it.
+        let flags = FeatureFlags(userDefaults: defaults, launchArguments: ["--ff-on=social_activity_v1"])
         let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(),
-                                                libraryBackend: backend)
+                                                libraryBackend: backend, flags: flags)
         _ = await graph.session.applySession(userId: LifecycleFixtures.userA, email: "reader@example.com")
         try? await graph.library.refresh()
         graph.clubs.myClubs = try Self.clubs()

@@ -86,6 +86,28 @@ struct MangaDetailLaneTests {
         #expect(MangaDetailSections.nextChapter(progress: 25, chapterCount: 25) == nil)
         #expect(MangaDetailSections.nextChapter(progress: 24, chapterCount: nil) == 25)
         #expect(MangaDetailSections.nextChapter(progress: 0, chapterCount: nil) == 1)
+        // A manga not yet released offers no chapter, even with a known count.
+        #expect(MangaDetailSections.nextChapter(progress: 0, chapterCount: 25, status: "NOT_YET_RELEASED") == nil)
+        #expect(MangaDetailSections.nextChapter(progress: 0, chapterCount: nil, status: "not_yet_released") == nil)
+        // Releasing: the schedule's next chapter is not offered (1197 is upcoming, 1196 is out).
+        #expect(MangaDetailSections.nextChapter(progress: 1195, chapterCount: nil, status: "RELEASING", scheduledNext: 1197) == 1196)
+        #expect(MangaDetailSections.nextChapter(progress: 1196, chapterCount: nil, status: "RELEASING", scheduledNext: 1197) == nil)
+        // Releasing with no schedule: as Home's leaf key.
+        #expect(MangaDetailSections.nextChapter(progress: 1196, chapterCount: nil, status: "RELEASING") == 1197)
+    }
+
+    @Test("Official anime site: only AniList's Official Site with a safe URL")
+    func officialAnimeSite() {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        func link(_ site: String?, _ url: String, disabled: Bool = false) -> ExternalLink {
+            ExternalLink(id: Int.random(in: 1...9999), mediaType: "ANIME", mediaId: 1, site: site, url: url, language: nil,
+                         color: nil, priority: nil, isDisabled: disabled, createdAt: date, updatedAt: date)
+        }
+        #expect(MangaDetailSections.officialSite(in: []) == nil)
+        #expect(MangaDetailSections.officialSite(in: [link("Crunchyroll", "https://crunchyroll.com/x")]) == nil)
+        #expect(MangaDetailSections.officialSite(in: [link("Official Site", "javascript:alert(1)")]) == nil)
+        #expect(MangaDetailSections.officialSite(in: [link("Official Site", "https://jujutsukaisen.jp", disabled: true)]) == nil)
+        #expect(MangaDetailSections.officialSite(in: [link("Official Site", "https://jujutsukaisen.jp")])?.host == "jujutsukaisen.jp")
     }
 
     @Test("Seen the anime? appears only with an anime adaptation in the ladder")
@@ -108,7 +130,7 @@ struct MangaDetailLaneTests {
         #expect(DetailSectionPolicy.sections(for: with).contains(.source))
     }
 
-    @Test("Read with the publisher appears only with a publisher link")
+    @Test("Read legally appears only with a legal read link (never labelled as the publisher)")
     func publisherRowNeedsALink() {
         #expect(MangaDetailSections.publisherLink(from: []) == nil)
         #expect(MangaDetailSections.publisherLink(from: [Self.link("javascript:alert(1)")]) == nil)

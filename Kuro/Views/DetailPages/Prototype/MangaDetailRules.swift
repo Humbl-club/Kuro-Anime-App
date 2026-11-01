@@ -35,8 +35,9 @@ enum MangaDetailSections {
         return ladder.adaptations.first { $0.mediaType.uppercased() == "ANIME" }
     }
 
-    /// The reading service the "Read with the publisher" row opens: the first legal read link whose
-    /// URL passes the outbound check. nil hides the row.
+    /// The reading service the "Read legally" row (and the chapter rows) open: the first legal read link
+    /// whose URL passes the outbound check. nil hides the row. The links carry no publisher marker, so
+    /// the row's copy never claims the service is the publisher.
     static func publisherLink(from links: [ProviderSheetItem]) -> ProviderSheetItem? {
         links.first { ProviderAvailabilityStore.validatedOutboundURL($0.url) != nil }
     }
@@ -63,15 +64,35 @@ enum MangaDetailSections {
         return german ? "Kapitel \(progress)" : "Chapter \(progress)"
     }
 
-    /// The next chapter to advance to. A known total caps it; with no total (most releasing manga)
-    /// the next chapter is offered, as the Home leaf key does — the catalogue has no release ceiling.
-    static func nextChapter(progress: Int, chapterCount: Int?) -> Int? {
-        DetailSectionPolicy.nextUnit(progress: progress, total: bookmarkTotal(chapterCount: chapterCount))
+    /// The next chapter to advance to. A known total caps it. A manga not yet released offers none; a
+    /// releasing one stops before the next chapter its release schedule lists (`scheduledNext`). With
+    /// neither (most releasing manga) the next chapter is offered, as the Home leaf key does — the
+    /// catalogue has no other release ceiling.
+    static func nextChapter(progress: Int, chapterCount: Int?, status: String? = nil, scheduledNext: Int? = nil) -> Int? {
+        var ceiling: Int?
+        switch status?.uppercased() {
+        case "NOT_YET_RELEASED": ceiling = 0
+        case "RELEASING": ceiling = scheduledNext.flatMap { $0 > 0 ? $0 - 1 : nil }
+        default: ceiling = nil
+        }
+        return DetailSectionPolicy.nextUnit(progress: progress, total: bookmarkTotal(chapterCount: chapterCount),
+                                            airedThrough: ceiling)
+    }
+
+    /// The adaptation's official website among its external links (AniList's "Official Site"), when
+    /// its URL passes the outbound check. nil hides "Official anime site ↗".
+    static func officialSite(in links: [ExternalLink]) -> URL? {
+        links.lazy
+            .filter { !$0.isDisabled }
+            .filter { ($0.site ?? "").trimmingCharacters(in: .whitespaces).lowercased().hasPrefix("official site") }
+            .compactMap { ProviderAvailabilityStore.validatedOutboundURL($0.url) }
+            .first
     }
 
     static func input(hasSynopsis: Bool, hasHook: Bool, clubPeople: Int, isTracked: Bool, chapters: [MangaChapter],
                       nextChapter: Int?, hasAdaptation: Bool, characterCount: Int, creditRows: Int,
-                      hasPublisherLink: Bool, hasClubs: Bool) -> DetailInput {
+                      hasPublisherLink: Bool, hasClubs: Bool, socialEnabled: Bool = false,
+                      clubRailCount: Int = 0) -> DetailInput {
         DetailInput(kind: .manga,
                     hasSynopsis: hasSynopsis,
                     hasHook: hasHook,
@@ -87,7 +108,9 @@ enum MangaDetailSections {
                     // "Read with the publisher" lives in "Behind the pages.": it keeps the section alive
                     // when no author credit exists (credits_cast_v1 off).
                     creditCount: creditRows + (hasPublisherLink ? 1 : 0),
-                    hasClubs: hasClubs)
+                    hasClubs: hasClubs,
+                    socialEnabled: socialEnabled,
+                    clubRailCount: clubRailCount)
     }
 
     /// The publisher row's caption: the real service name, and how many more there are.

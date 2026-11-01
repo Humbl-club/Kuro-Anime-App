@@ -9,10 +9,15 @@ import SwiftUI
 // | `fetchMediaLadder`                           | CatalogStore                | "Seen the anime?" (the ladder's adaptation)  |
 // | authors / characters (credits_cast_v1)       | CatalogStore                | "Behind the pages.", "The characters."       |
 // | `fetchChaptersNext` / `fetchChaptersPage`    | CatalogStore                | chapter rows (only when real), More chapters |
-// | `resolveReadLinks`                           | ProviderAvailabilityStore   | Where to read, "Read with the publisher"     |
+// | `resolveReadLinks`                           | ProviderAvailabilityStore   | Where to read, "Read legally", chapter rows  |
+// | `fetchExternalLinks` (the adaptation's)      | CatalogStore                | "Official anime site ↗"                      |
+// | `clubActivityForMedia` (cached bundles)      | ClubsStore                  | club rails holding this title ("Between us.") |
 // | `mediaSchedule`                              | ReleasesStore (`.detailReleases`) | the next release line under Chapters   |
 // | `detailBundle` (series flags on only)        | HomeStore                   | `detail_copy` hook/premise, watched guide    |
-// | friend activity (`FriendsActivitySection`)   | SocialActivityStore         | club presence, "Between us."                 |
+// | friend activity (`FriendsActivitySection`)   | SocialActivityStore         | club presence, "Between us." (social_activity_v1) |
+// Loading: the hero and story draw at once; the other sections wait behind `KuroSkeleton(.detailSection)`
+// until the ladder, the first chapters, credits and read links settle, and an offline band with Try
+// again sits under the hero. The owners answer a failed read with an empty result (a hidden section).
 // Tracking writes go through `LibraryViewActions.markProgress` and the shared tracking editor route;
 // the page acts only on the entry that is open.
 //
@@ -31,6 +36,8 @@ struct MangaDetailContent {
     var readLinks: [ProviderSheetItem] = []
     /// Availability freshness for the provider sheet ("Checked 2 days ago."), when there is one.
     var readStatusCaption: String? = nil
+    /// The anime adaptation's official site (its external links), when it has a valid one.
+    var adaptationSite: URL? = nil
     var bundle: SeriesDetailBundle? = nil
     var friendsPreview: SocialActivityStore.FriendActivityResponse? = nil
 }
@@ -61,6 +68,7 @@ struct MangaDetailPage: View {
         self.manga = manga
         self.preview = preview
         self._content = State(initialValue: preview ?? MangaDetailContent())
+        self._pending = State(initialValue: preview == nil ? DetailLoadPart.manga : [])
     }
 
     @Environment(CatalogStore.self) private var catalog
@@ -74,6 +82,9 @@ struct MangaDetailPage: View {
     @Environment(OutboundLinkTelemetry.self) private var outboundLinks
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.openURL) private var openURL
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Optional: fixture hosts may not inject one (then the page counts as online).
+    @Environment(NetworkMonitor.self) private var network: NetworkMonitor?
 
     @State private var content: MangaDetailContent
     @State private var releaseItems: [ReleaseScheduleItem]?
@@ -87,12 +98,23 @@ struct MangaDetailPage: View {
     @State private var confirmTrigger = 0
     @State private var savingNext = false
     @State private var loadGeneration = UUID()
+    @State private var creditsGeneration = UUID()
+    /// First loads still pending (the skeleton holds the page's lower sections until they settle).
+    @State private var pending: Set<DetailLoadPart>
+    /// Try again (offline band) and a reconnect reload the page's reads.
+    @State private var reloadToken = 0
 
     private var german: Bool { KuroLocale.isGerman }
     private var entry: LibraryEntry? { library.entry(for: manga.libraryKey) }
     private var progress: Int { entry?.progress ?? 0 }
     private var total: Int? { MangaDetailSections.bookmarkTotal(chapterCount: manga.chapterCount) }
-    private var nextChapter: Int? { MangaDetailSections.nextChapter(progress: progress, chapterCount: manga.chapterCount) }
+    private var upcoming: [ReleaseScheduleItem] { DetailNextReleaseSection.upcoming(releaseItems ?? []) }
+    private var nextChapter: Int? {
+        MangaDetailSections.nextChapter(progress: progress, chapterCount: manga.chapterCount, status: manga.status,
+                                        scheduledNext: DetailSectionPolicy.scheduledNext(upcoming, kind: .chapter))
+    }
+    /// The best legal read link (chapter rows open it, as the legacy rows did).
+    private var readLink: ProviderSheetItem? { MangaDetailSections.publisherLink(from: content.readLinks) }
 
     private var coverURL: URL? {
         [manga.coverImageLarge, manga.coverImageMedium].compactMap { $0.flatMap(AnimeDetailPage.webURL) }.first
@@ -110,15 +132,22 @@ struct MangaDetailPage: View {
     private var hook: String? { copy?.hook?.detailNonEmpty }
 
     private var credits: [DetailCreditRow] { DetailCreditRow.manga(authors: content.authors, german: german) }
-    private var publisher: ProviderSheetItem? { MangaDetailSections.publisherLink(from: content.readLinks) }
-    private var clubPeople: Int { clubs.myClubs.isEmpty ? 0 : roster.count }
+    private var publisher: ProviderSheetItem? { readLink }
+    /// `social_activity_v1`: the server kill switch for notes, reactions and the club roster.
+    private var socialEnabled: Bool { flags.isSocialActivityV1Enabled }
+    private var clubPeople: Int { socialEnabled && !clubs.myClubs.isEmpty ? roster.count : 0 }
+    private var clubRails: [ClubMediaActivity] { clubs.clubActivityForMedia(mediaId: manga.id, mediaType: "MANGA") }
+    private var isOffline: Bool { network?.isConnected == false }
+    private var reloadKey: String { "\(reloadToken)-\(network?.reconnectionGeneration ?? 0)" }
 
     private var input: DetailInput {
         MangaDetailSections.input(hasSynopsis: manga.hasMeaningfulSynopsis, hasHook: hook != nil,
                                   clubPeople: clubPeople, isTracked: entry != nil, chapters: content.chapters,
                                   nextChapter: nextChapter, hasAdaptation: content.adaptation != nil,
-                                  characterCount: content.characters.count, creditRows: credits.count,
-                                  hasPublisherLink: publisher != nil, hasClubs: !clubs.myClubs.isEmpty)
+                                  characterCount: DetailCharactersRail.shown(content.characters).count,
+                                  creditRows: credits.count,
+                                  hasPublisherLink: publisher != nil, hasClubs: !clubs.myClubs.isEmpty,
+                                  socialEnabled: socialEnabled, clubRailCount: clubRails.count)
     }
 
     var body: some View {
@@ -128,11 +157,26 @@ struct MangaDetailPage: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     hero
+                    if isOffline {
+                        KuroOfflineView(hasContent: true) { reloadToken += 1 }
+                            .padding(.horizontal, 24)
+                            .padding(.top, 14)
+                            .kuroReadableWidth()
+                    }
                     VStack(alignment: .leading, spacing: 0) {
-                        ForEach(sections.filter { $0 != .hero }, id: \.self) { section in
+                        ForEach(DetailLoadPart.visibleSections(sections, settled: pending.isEmpty), id: \.self) { section in
                             sectionView(section, sections: sections, origin: origin, proxy: proxy)
                         }
+                        if !pending.isEmpty {
+                            VStack(alignment: .leading, spacing: 28) {
+                                KuroSkeleton(kind: .detailSection)
+                                KuroSkeleton(kind: .detailSection)
+                            }
+                            .padding(.top, 12)
+                            .transition(.opacity)
+                        }
                     }
+                    .animation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion), value: pending.isEmpty)
                     .padding(.horizontal, 24)
                     .padding(.top, 23)
                     .padding(.bottom, 24)
@@ -159,11 +203,18 @@ struct MangaDetailPage: View {
             actionScope.deactivate()
             toastTask?.cancel()
             loadGeneration = UUID()
+            creditsGeneration = UUID()
+            savingNext = false
         }
-        .task(id: manga.id) { await loadPage() }
-        .task(id: "\(manga.id)-\(flags.isCreditsCastV1Enabled)") { await loadCredits() }
-        .task(id: "\(manga.id)-chapters-\(progress)") { await loadChapters() }
-        .task(id: "\(manga.id)-links") { await loadReadLinks() }
+        .task(id: "\(manga.id)-\(reloadKey)") { await loadPage() }
+        .task(id: "\(manga.id)-\(flags.isCreditsCastV1Enabled)-\(reloadKey)") { await loadCredits() }
+        .task(id: "\(manga.id)-chapters-\(progress)-\(reloadKey)") { await loadChapters() }
+        .task(id: "\(manga.id)-links-\(reloadKey)") { await loadReadLinks() }
+        // A cold open (deep link) before the Clubs page ran: warm the clubs so "Between us." can show.
+        .task(id: manga.id) {
+            guard preview == nil, clubs.myClubs.isEmpty else { return }
+            await clubs.refreshMyClubsIfStale()
+        }
         .detailReleases(kind: .manga, id: manga.id, schedule: $releaseItems, songs: $releaseSongs)
         .sheet(isPresented: $showVerdict) {
             QuickVerdictPickerSheet(media: manga, onToast: showToast)
@@ -199,7 +250,10 @@ struct MangaDetailPage: View {
                                premise: hook == nil ? nil : copy?.premise?.detailNonEmpty)
         case .clubPresence:
             DetailClubPresence(names: DetailBetweenUs.rosterNames(roster), count: clubPeople) {
-                withAnimation(KuroMotion.medium) { proxy.scrollTo(DetailSection.betweenUs, anchor: .top) }
+                // Reduce Motion: the jump is instant (prototype §6).
+                withAnimation(KuroMotion.detail(KuroMotion.medium, reduceMotion: reduceMotion)) {
+                    proxy.scrollTo(DetailSection.betweenUs, anchor: .top)
+                }
             }
             .padding(.bottom, 15)
         case .progress:
@@ -220,13 +274,17 @@ struct MangaDetailPage: View {
                                  isTracked: entry != nil, nextChapter: nextChapter,
                                  nextRelease: DetailNextReleaseSection.upcoming(releaseItems ?? []).first,
                                  material: material, coverURL: coverURL, savingNext: savingNext,
-                                 confirmTrigger: confirmTrigger) { next in
+                                 confirmTrigger: confirmTrigger,
+                                 readLinkTitle: readLink?.title,
+                                 onReadChapter: readLink == nil ? nil : { openChapter($0) }) { next in
                 advance(to: next, origin: origin)
             }
             .padding(.top, sections.contains(.progress) ? 6 : 0)
         case .source:
             if let adaptation = content.adaptation {
-                MangaAdaptationCard(item: adaptation, guides: content.bundle?.adaptations ?? [], material: material) { id in
+                MangaAdaptationCard(item: adaptation, guides: content.bundle?.adaptations ?? [], material: material,
+                                    officialSite: content.adaptationSite,
+                                    onOpenSite: { openOfficialSite(adaptation) }) { id in
                     routes.openMedia(MediaRoute(kind: .anime, id: id))
                 }
             }
@@ -238,10 +296,11 @@ struct MangaDetailPage: View {
                                   AnyView(MangaPublisherRow(caption: MangaDetailSections.publisherCaption(link, count: content.readLinks.count,
                                                                                                         german: german),
                                                             action: openProviders)
-                                      .padding(.top, credits.isEmpty ? 0 : 40))
+                                      .padding(.top, credits.isEmpty ? 0 : 28))
                               })
         case .betweenUs:
             DetailBetweenUs(mediaType: "MANGA", mediaId: manga.id, coverURL: coverURL,
+                            socialEnabled: socialEnabled, clubRails: clubRails,
                             onRoster: { roster = $0 }, preview: content.friendsPreview, bookish: true)
                 .padding(.top, 28)
                 .padding(.bottom, 18)
@@ -270,7 +329,7 @@ struct MangaDetailPage: View {
         let key = manga.libraryKey
         let capped = total.map { min(next, $0) } ?? next
         savingNext = true
-        actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
+        let launched = actionScope.launch(origin: origin, session: libraryActions.accountSession) { ticket in
             let outcome = await LibraryViewActions.markProgress(key, to: capped, actions: libraryActions)
             savingNext = false
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
@@ -290,6 +349,12 @@ struct MangaDetailPage: View {
                                      subtitle: nil,
                                      actionTitle: KuroLocale.text("Undo", "Rückgängig"),
                                      onAction: { undo(to: previous, from: capped) }))
+        }
+        // The key never stays on "Saving": not launched, or cancelled before the write ran.
+        guard let launched else { savingNext = false; return }
+        Task { @MainActor in
+            await launched.value
+            savingNext = false
         }
     }
 
@@ -348,6 +413,21 @@ struct MangaDetailPage: View {
         }
     }
 
+    /// A chapter row opens the best legal read link (the legacy rows' behaviour: the catalogue has no
+    /// per-chapter reader URL).
+    private func openChapter(_ chapter: MangaChapter) {
+        guard let link = readLink, let url = ProviderAvailabilityStore.validatedOutboundURL(link.url) else { return }
+        KuroAccessibility.impactHaptic(.light)
+        outboundLinks.recordOutboundLink(mediaType: "MANGA", mediaId: manga.id, linkKind: "chapter", provider: link.title)
+        openURL(url)
+    }
+
+    private func openOfficialSite(_ adaptation: MediaLadderItem) {
+        guard let url = content.adaptationSite.flatMap({ ProviderAvailabilityStore.validatedOutboundURL($0.absoluteString) }) else { return }
+        outboundLinks.recordOutboundLink(mediaType: "ANIME", mediaId: adaptation.mediaId, linkKind: "official_site", provider: url.host ?? "official")
+        openURL(url)
+    }
+
     private func share() {
         guard let url = URL(string: "kuro://manga/\(manga.id)") else { return }
         DetailShare.present(url: url, subject: manga.displayTitle)
@@ -356,11 +436,12 @@ struct MangaDetailPage: View {
     @MainActor
     private func showToast(_ next: KuroToastState) {
         toastTask?.cancel()
-        withAnimation(KuroMotion.settle) { toast = next }
+        let motion = KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)
+        withAnimation(motion) { toast = next }
         toastTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 3_200_000_000)
             guard !Task.isCancelled else { return }
-            withAnimation(KuroMotion.settle) { toast = nil }
+            withAnimation(motion) { toast = nil }
         }
     }
 
@@ -368,33 +449,61 @@ struct MangaDetailPage: View {
 
     private func loadPage() async {
         guard preview == nil else { return }
+        defer { pending.remove(.ladder) }
         let generation = UUID()
         loadGeneration = generation
+        #if canImport(Supabase)
+        // Series flags on: the bundle adds `detail_copy` hooks and the watched-anime guide when it has
+        // them. Read alongside the ladder, not after it.
+        async let bundleRead = readBundle()
+        #endif
         let ladder = await catalog.fetchMediaLadder(mediaType: "MANGA", mediaId: manga.id)
         guard !Task.isCancelled, loadGeneration == generation else { return }
-        content.adaptation = MangaDetailSections.animeAdaptation(in: ladder)
-        await catalog.enqueueMediaRelationRefreshIfNeeded(mediaType: "MANGA", mediaId: manga.id, ladder: ladder, reason: "detail_open")
+        let adaptation = MangaDetailSections.animeAdaptation(in: ladder)
+        content.adaptation = adaptation
+        if let adaptation {
+            let links = await catalog.fetchExternalLinks(mediaType: "ANIME", mediaId: adaptation.mediaId)
+            guard !Task.isCancelled, loadGeneration == generation else { return }
+            content.adaptationSite = MangaDetailSections.officialSite(in: links)
+        }
         #if canImport(Supabase)
-        // Series flags on: the bundle adds `detail_copy` hooks and the watched-anime guide when it has them.
-        if flags.seriesHomeNativeV1Enabled, let bundle = try? await home.detailBundle(medium: "manga", mediaId: manga.id, sectionId: nil) {
+        if let bundle = await bundleRead {
             guard !Task.isCancelled, loadGeneration == generation else { return }
             content.bundle = bundle
         }
         #endif
+        await catalog.enqueueMediaRelationRefreshIfNeeded(mediaType: "MANGA", mediaId: manga.id, ladder: ladder, reason: "detail_open")
     }
 
+    #if canImport(Supabase)
+    private func readBundle() async -> SeriesDetailBundle? {
+        guard flags.seriesHomeNativeV1Enabled else { return nil }
+        return try? await home.detailBundle(medium: "manga", mediaId: manga.id, sectionId: nil)
+    }
+    #endif
+
     private func loadCredits() async {
-        guard preview == nil, flags.isCreditsCastV1Enabled else { return }
+        guard preview == nil else { return }
+        defer { pending.remove(.credits) }
+        let generation = UUID()
+        creditsGeneration = generation
+        guard flags.isCreditsCastV1Enabled else {
+            // The flag turned off: the sections go with it.
+            content.authors = []
+            content.characters = []
+            return
+        }
         async let authors = catalog.fetchAuthorsForManga(mangaId: manga.id)
         async let cast = catalog.fetchCharactersForManga(mangaId: manga.id)
         let (loadedAuthors, loadedCast) = await (authors, cast)
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, creditsGeneration == generation, flags.isCreditsCastV1Enabled else { return }
         content.authors = loadedAuthors
         content.characters = loadedCast
     }
 
     private func loadChapters() async {
         guard preview == nil else { return }
+        defer { pending.remove(.units) }
         let loaded = await catalog.fetchChaptersNext(mangaId: manga.id, fromNumber: max(1, progress), limit: 10)
         guard !Task.isCancelled else { return }
         content.chapters = loaded
@@ -402,6 +511,7 @@ struct MangaDetailPage: View {
 
     private func loadReadLinks() async {
         guard preview == nil else { return }
+        defer { pending.remove(.links) }
         let snapshot = await availability.resolveReadLinks(mangaId: manga.id)
         guard !Task.isCancelled, let snapshot else { return }
         content.readLinks = snapshot.all
@@ -490,21 +600,14 @@ struct MangaDetailHero<Mark: View>: View {
     }
 
     /// The cover as a closed book: the page block's offset edges on the right and below, a 3 pt spine
-    /// shade, and the skewed page stack under it (prototype `.detail-object img` + `:after`).
+    /// shade, and the skewed page stack under it (prototype `.detail-object img` box-shadow
+    /// `#f8f7ef 4 2, #bbb9ae 5 2, #f4f2e9 8 4, #c6c2b6 9 4` + drop shadow). Only the cover is clipped;
+    /// the page edges and the shadow sit behind it, outside the clip.
     private var book: some View {
         let shape = UnevenRoundedRectangle(topLeadingRadius: 2, bottomLeadingRadius: 2, bottomTrailingRadius: 5,
                                            topTrailingRadius: 5, style: .continuous)
         return Color.clear
             .aspectRatio(2.0 / 3.0, contentMode: .fit)
-            .background {
-                ZStack {
-                    shape.fill(Color(hex: "C6C2B6")).offset(x: 9, y: 4)
-                    shape.fill(Color(hex: "F4F2E9")).offset(x: 8, y: 4)
-                    shape.fill(Color(hex: "BBB9AE")).offset(x: 5, y: 2)
-                    shape.fill(Color(hex: "F8F7EF")).offset(x: 4, y: 2)
-                }
-                .shadow(color: Color(hex: "25281D", opacity: Double(0x18) / 255), radius: 12, x: 0, y: 16)
-            }
             .overlay {
                 if let coverURL {
                     KuroCachedAsyncImage(url: coverURL, maxPixelSize: 600) { phase in
@@ -520,6 +623,15 @@ struct MangaDetailHero<Mark: View>: View {
             }
             .clipShape(shape)
             .overlay(shape.strokeBorder(Color.white.opacity(0x45 / 255.0), lineWidth: 1))
+            .background {
+                ZStack {
+                    shape.fill(Color(hex: "C6C2B6")).offset(x: 9, y: 4)
+                    shape.fill(Color(hex: "F4F2E9")).offset(x: 8, y: 4)
+                    shape.fill(Color(hex: "BBB9AE")).offset(x: 5, y: 2)
+                    shape.fill(Color(hex: "F8F7EF")).offset(x: 4, y: 2)
+                }
+                .shadow(color: Color(hex: "25281D", opacity: Double(0x18) / 255), radius: 12, x: 0, y: 16)
+            }
             .accessibilityHidden(true)
     }
 }
@@ -635,9 +747,13 @@ struct MangaChaptersSection: View {
     let coverURL: URL?
     let savingNext: Bool
     let confirmTrigger: Int
+    /// The reading service a chapter row opens; nil leaves the rows inert.
+    var readLinkTitle: String? = nil
+    var onReadChapter: ((MangaChapter) -> Void)? = nil
     let onAdvance: (Int) -> Void
 
     @Environment(CatalogStore.self) private var catalog
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsAll = false
     @State private var allChapters: [MangaChapter] = []
     @State private var hasMore = true
@@ -683,7 +799,7 @@ struct MangaChaptersSection: View {
             if hasMoreToShow || showsAll {
                 Button {
                     if showsAll {
-                        withAnimation(KuroMotion.settle) { showsAll = false }
+                        withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsAll = false }
                     } else {
                         showsAll = true
                         Task { await loadAll() }
@@ -767,7 +883,7 @@ struct MangaChaptersSection: View {
         let ink = finished ? DetailInk.finished : Color.kuroInk
         let title = MangaDetailSections.realTitle(chapter) ?? MangaDetailCopy.chapter(chapter.number, german: german)
         let date = (chapter.releaseAt ?? chapter.releaseDate).map { $0.formatted(.dateTime.day().month(.abbreviated).year()) }
-        return HStack(spacing: 12) {
+        let content = HStack(spacing: 12) {
             Text("\(chapter.number)")
                 .font(.kuroEditorial(size: 18, weight: .light).italic())
                 .tracking(-1)
@@ -794,11 +910,29 @@ struct MangaChaptersSection: View {
                 Image(systemName: "checkmark")
                     .font(.detailSF(11, relativeTo: .footnote))
                     .foregroundStyle(DetailInk.finished)
+            } else if onReadChapter != nil {
+                Image(systemName: "arrow.up.right")
+                    .font(.detailSF(10, relativeTo: .caption2))
+                    .foregroundStyle(DetailInk.finished)
+                    .accessibilityHidden(true)
             }
         }
+        // 57 pt as measured; at large type the padding keeps text off the row rules.
+        .padding(.vertical, 10)
         .frame(minHeight: 57)
+        .contentShape(Rectangle())
+        return Group {
+            if let onReadChapter {
+                Button { onReadChapter(chapter) } label: { content }
+                    .buttonStyle(.plain)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityHint(KuroLocale.text("Opens \(readLinkTitle ?? "the reading service").",
+                                                       "Öffnet \(readLinkTitle ?? "den Lesedienst")."))
+            } else {
+                content.accessibilityElement(children: .combine)
+            }
+        }
         .overlay(alignment: .bottom) { Rectangle().fill(DetailInk.rowRule).frame(height: 1) }
-        .accessibilityElement(children: .combine)
     }
 
     private func loadAll() async {
@@ -821,7 +955,11 @@ struct MangaAdaptationCard: View {
     let item: MediaLadderItem
     let guides: [SeriesDetailBundle.Coverage]
     let material: ArtworkMaterial
+    /// The adaptation's official site ("Official anime site ↗"), when its external links have one.
+    var officialSite: URL? = nil
+    var onOpenSite: () -> Void = {}
     let onOpen: (Int) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsGuide = false
     @State private var choice: Int?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -872,6 +1010,17 @@ struct MangaAdaptationCard: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    if officialSite != nil {
+                        Button(action: onOpenSite) {
+                            Text(KuroLocale.text("Official anime site ↗", "Offizielle Anime-Seite ↗"))
+                                .font(.detailSF(11, relativeTo: .footnote))
+                                .foregroundStyle(Color.kuroInk)
+                                .frame(minHeight: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityHint(KuroLocale.text("Opens the anime's official website.", "Öffnet die offizielle Website des Anime."))
+                    }
                 }
                 if !stacked { Spacer(minLength: 0) }
             }
@@ -898,7 +1047,7 @@ struct MangaAdaptationCard: View {
     private func guide(german: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(KuroMotion.settle) { showsGuide.toggle() }
+                withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsGuide.toggle() }
             } label: {
                 HStack {
                     Text(KuroLocale.text("I've watched the anime", "Ich habe den Anime gesehen"))
@@ -991,29 +1140,33 @@ struct MangaAdaptationCard: View {
 
 // MARK: - D10 Read with the publisher
 
-/// "Read with the publisher ↗" with the real service's name under it (one link opens directly; more
-/// open the provider sheet).
+/// "Read legally ↗" with the real service's name under it (one link opens directly; more open the
+/// provider sheet). The prototype says "Read with the publisher", but the legal read links carry no
+/// publisher marker (a store or catalogue entry may come first), so the row never claims one.
 struct MangaPublisherRow: View {
     let caption: String
     let action: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         Button(action: action) {
             HStack(alignment: .center, spacing: 15) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(KuroLocale.text("Read with the publisher", "Beim Verlag lesen"))
+                    Text(KuroLocale.text("Read legally", "Legal lesen"))
                         .font(.detailSF(12, relativeTo: .subheadline))
                         .foregroundStyle(Color.kuroInk)
                     Text(caption)
                         .font(.detailSF(10, relativeTo: .footnote))
                         .foregroundStyle(MangaInk.publisherCaption)
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 8)
                 Image(systemName: "arrow.up.right")
                     .font(.detailSF(12, relativeTo: .footnote))
                     .foregroundStyle(Color.kuroInk)
             }
+            .padding(.vertical, 10)
             .frame(minHeight: 66)
             .contentShape(Rectangle())
         }
