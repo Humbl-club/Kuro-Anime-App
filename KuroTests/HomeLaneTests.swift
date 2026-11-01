@@ -110,6 +110,35 @@ struct HomeLaneTests {
         #expect(copy.isAhead(row(6, nil)), "an undated row is still to come")
     }
 
+    @Test("Coming up claims 'Nothing scheduled' only after an answer; unknown and failed say so (EN/DE)")
+    func glanceCoverageCopy() throws {
+        let now = Date(timeIntervalSince1970: 1_791_979_200) // Wed 14 Oct 2026, 12:00 UTC
+        let berlin = try #require(TimeZone(identifier: "Europe/Berlin"))
+        let en = ReleaseCopy(now: now, german: false, locale: Locale(identifier: "en_GB"), timeZone: berlin)
+        let de = ReleaseCopy(now: now, german: true, locale: Locale(identifier: "de_DE"), timeZone: berlin)
+        func caption(_ copy: ReleaseCopy, _ coverage: ReleaseScheduleCoverage, offline: Bool = false) -> String {
+            HomeCalendarPresentation.glanceCaption(items: [], copy: copy, offline: offline, coverage: coverage)
+        }
+        #expect(caption(en, .complete) == "Nothing scheduled")
+        #expect(caption(de, .complete) == "Nichts angekündigt")
+        #expect(caption(en, .nextSevenDays) == "Nothing scheduled this week")
+        #expect(caption(de, .nextSevenDays) == "Diese Woche ist nichts angekündigt")
+        #expect(caption(en, .noSource) == "Dates to come")
+        #expect(caption(de, .noSource) == "Termine folgen")
+        #expect(caption(en, .failed) == "Couldn't load dates")
+        #expect(caption(de, .failed) == "Termine konnten nicht geladen werden")
+        #expect(caption(en, .pending) == "Checking dates")
+        #expect(caption(de, .pending) == "Termine werden geprüft")
+        #expect(caption(en, .complete, offline: true).hasPrefix("Offline"))
+        #expect(HomeCalendarPresentation.offersRetry(items: [], copy: en, offline: false, coverage: .failed))
+        #expect(!HomeCalendarPresentation.offersRetry(items: [], copy: en, offline: true, coverage: .failed))
+        #expect(!HomeCalendarPresentation.offersRetry(items: [], copy: en, offline: false, coverage: .noSource))
+        // An upcoming row outranks the coverage: something is known.
+        let undated = ReleaseScheduleItem(medium: .manga, mediaId: 1, title: "M", unitKind: .chapter, unitNumber: 3,
+                                          releaseAt: nil, basis: .announced, source: "mangaupdates")
+        #expect(HomeCalendarPresentation.glanceCaption(items: [undated], copy: en, coverage: .failed) == "Dates still to come")
+    }
+
     @Test("The original story names a source only when the bundle knows one")
     func boundaryCopy() {
         #expect(SeriesCopy.boundaryUnknown(sourceKind: "manga").contains("anga"))

@@ -7,6 +7,21 @@ import KuroCore
 // can also be built locally (the `user_airing_next` fallback) and decoding is lenient (one bad row
 // never blanks a list; see `LenientRows`).
 
+/// What the account's loaded release schedule can claim about one medium (rulebook §9: a failed read
+/// or a missing source never reads as "Nothing scheduled"). Published by `ReleasesStore`.
+nonisolated enum ReleaseScheduleCoverage: Equatable, Sendable {
+    /// Not asked yet for this account.
+    case pending
+    /// The schedule answered for this medium: an empty list means nothing is announced.
+    case complete
+    /// Only confirmed episodes of the next seven days are known (the `user_airing_next` fallback).
+    case nextSevenDays
+    /// No source answers for this medium (manga under the airing fallback): dates are unknown.
+    case noSource
+    /// The last read failed: dates are unknown until a retry succeeds.
+    case failed
+}
+
 /// How certain a displayed release date is (spec D10).
 nonisolated enum ReleaseBasis: String, Codable, Sendable, CaseIterable {
     /// The source states the date and time.

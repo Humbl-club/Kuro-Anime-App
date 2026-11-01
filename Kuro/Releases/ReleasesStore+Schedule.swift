@@ -65,6 +65,18 @@ nonisolated enum ReleaseSchedulePolicy {
             }
     }
 
+    /// Rows still ahead of the reader (`ReleaseCopy.isAhead`): an aired instant or a day before today
+    /// is dropped even when the server still called it upcoming at read time.
+    static func aheadOnly(_ items: [ReleaseScheduleItem], copy: ReleaseCopy) -> [ReleaseScheduleItem] {
+        items.filter(copy.isAhead)
+    }
+
+    /// Whether a cached answer may still be served: no upcoming row in it has passed (a released
+    /// row the server flagged `isPast` is kept on purpose by the detail schedule).
+    static func cacheIsCurrent(_ items: [ReleaseScheduleItem], copy: ReleaseCopy) -> Bool {
+        items.allSatisfy { $0.isPast || copy.isAhead($0) }
+    }
+
     /// Songs in reading order: openings, endings, inserts; then sequence and version. Adult-flagged
     /// rows are never shown.
     static func preparedThemes(_ songs: [ThemeSong]) -> [ThemeSong] {
@@ -127,26 +139,86 @@ extension ReleasesStore {
 
     // MARK: Reading
 
-    /// The loaded schedule rows of one medium (nil: both), soonest first.
-    func scheduleItems(for medium: MediaKind?) -> [ReleaseScheduleItem] {
-        guard let medium else { return schedule }
-        return schedule.filter { $0.medium == medium }
+    /// The loaded schedule rows of one medium (nil: both), soonest first. Only rows still ahead of
+    /// now: a release whose moment passed since the read is never listed as upcoming (spec D10).
+    func scheduleItems(for medium: MediaKind?, now: Date = Date()) -> [ReleaseScheduleItem] {
+        _ = releaseClockDay // re-read when the reader's day changes
+        let ahead = ReleaseSchedulePolicy.aheadOnly(schedule, copy: ReleaseCopy.current(now: now))
+        guard let medium else { return ahead }
+        return ahead.filter { $0.medium == medium }
     }
 
     /// The next known release of one tracked title: the loaded schedule first, then (anime) the
-    /// `user_airing_next` rows. nil when nothing is known (the UI shows nothing, spec D10).
-    func nextRelease(for key: MediaKey) -> ReleaseScheduleItem? {
-        if let item = schedule.first(where: { $0.key == key && !$0.isPast }) { return item }
+    /// `user_airing_next` rows, each only while it still lies ahead of `now`. nil when nothing upcoming
+    /// is known (the UI shows nothing, spec D10).
+    func nextRelease(for key: MediaKey, now: Date = Date()) -> ReleaseScheduleItem? {
+        _ = releaseClockDay // re-read when the reader's day changes
+        let copy = ReleaseCopy.current(now: now)
+        if let item = schedule.first(where: { $0.key == key && copy.isAhead($0) }) { return item }
         guard key.kind == .anime,
-              let airing = upcomingAirings.first(where: { $0.anime_id == key.id }) else { return nil }
+              let airing = upcomingAirings.first(where: { $0.anime_id == key.id && $0.next_airing_at >= now })
+        else { return nil }
         return ReleaseSchedulePolicy.item(fromAiring: airing)
+    }
+
+    /// What the loaded schedule can claim about `medium` (rulebook §9): `.complete` only after the
+    /// schedule contract answered; the airing fallback knows anime for seven days and manga not at
+    /// all; a failed read is unknown.
+    func scheduleCoverage(for medium: MediaKind) -> ReleaseScheduleCoverage {
+        scheduleCoverageByMedium[medium] ?? .pending
+    }
+
+    // MARK: Clock
+
+    /// The 60 s countdown tick (`startCountdownUpdates`): drops releases whose moment has passed and,
+    /// when one did, re-reads the account's schedule so its next unit appears.
+    func releaseClockDidTick(now: Date = Date()) {
+        guard expireElapsedReleases(now: now), accountSession.current != nil else { return }
+        scheduleRefreshTask?.cancel()
+        scheduleRefreshTask = Task { [weak self] in
+            _ = await self?.loadSchedule()
+        }
+    }
+
+    /// Removes rows that are no longer ahead of `now` from `schedule` and drops the account's cached
+    /// schedule answers (they hold the elapsed row). Records the reader's local day so relative
+    /// phrases re-render after midnight. Returns whether a row expired.
+    @discardableResult
+    func expireElapsedReleases(now: Date = Date()) -> Bool {
+        let copy = ReleaseCopy.current(now: now)
+        let day = Self.clockDay(now)
+        if releaseClockDay != day { releaseClockDay = day }
+        let kept = ReleaseSchedulePolicy.aheadOnly(schedule, copy: copy)
+        guard kept.count != schedule.count else { return false }
+        schedule = kept
+        if let context = accountSession.current {
+            let prefix = context.userId.lowercased() + "|user|"
+            for key in scheduleCache.keys where key.hasPrefix(prefix) { scheduleCache[key] = nil }
+        }
+        return true
+    }
+
+    /// Foreground hook (`ContentView` calls it when the scene becomes active): drops elapsed rows and
+    /// re-reads the schedule when its 5-minute answer is stale or held a row that has passed. Does
+    /// nothing before the account's first schedule answer (the screens load it themselves).
+    func refreshScheduleIfStale(now: Date = Date()) async {
+        guard accountSession.current != nil, !scheduleCoverageByMedium.isEmpty else { return }
+        expireElapsedReleases(now: now)
+        _ = await loadSchedule()
+    }
+
+    private static func clockDay(_ now: Date) -> String {
+        let calendar = KuroLocale.calendar(locale: KuroLocale.locale, timeZone: KuroLocale.timeZone)
+        let parts = calendar.dateComponents([.year, .month, .day], from: now)
+        return "\(parts.year ?? 0)-\(parts.month ?? 0)-\(parts.day ?? 0)"
     }
 
     // MARK: Loading
 
     /// Loads the account's next release per tracked title into `schedule` (both media). Cached for
     /// 5 minutes per account; `force` skips the cache. Never throws and never shows an error: a
-    /// missing contract or a failed read falls back to the anime airing rows.
+    /// missing contract or a failed read falls back to the anime airing rows, and
+    /// `scheduleCoverage(for:)` says what the answer can claim. Only rows still ahead are kept.
     @discardableResult
     func loadSchedule(limit: Int = ReleasesStore.defaultScheduleLimit, force: Bool = false) async -> [ReleaseScheduleItem] {
         guard let context = accountSession.current else { return [] }
@@ -220,8 +292,10 @@ extension ReleasesStore {
                         .value
                 }
                 guard accountSession.isCurrent(context) else { throw CancellationError() }
-                let items = ReleaseSchedulePolicy.prepared(rows.rows, keepPast: false)
+                let items = ReleaseSchedulePolicy.aheadOnly(
+                    ReleaseSchedulePolicy.prepared(rows.rows, keepPast: false), copy: ReleaseCopy.current())
                 scheduleSource = .schedule
+                scheduleCoverageByMedium = [.anime: .complete, .manga: .complete]
                 storeSchedule(items, key: key)
                 return publishSchedule(items, context: context)
             } catch {
@@ -235,13 +309,22 @@ extension ReleasesStore {
         }
         // Fallback: confirmed AniList next episodes of the account's anime (`user_airing_next`).
         // Cached only when that read succeeded (now, or within its throttle window): a failed or
-        // backed-off read leaves stale or empty rows that must not be served for 5 minutes.
+        // backed-off read leaves stale or empty rows that must not be served for 5 minutes, and an
+        // older answer under the same key is dropped so it never outlives the failure.
         let airingsFresh = await refreshUpcomingForUser(days: max(lastUpcomingDays, 7))
         guard accountSession.isCurrent(context) else { throw CancellationError() }
-        let items = ReleaseSchedulePolicy.prepared(
-            upcomingAirings.map(ReleaseSchedulePolicy.item(fromAiring:)), keepPast: false)
+        let items = ReleaseSchedulePolicy.aheadOnly(
+            ReleaseSchedulePolicy.prepared(upcomingAirings.map(ReleaseSchedulePolicy.item(fromAiring:)), keepPast: false),
+            copy: ReleaseCopy.current())
         scheduleSource = .airingFallback
-        if cacheable && airingsFresh { storeSchedule(items, key: key) }
+        // Manga has no fallback source: unknown, and a failure when the contract itself failed.
+        scheduleCoverageByMedium = [.anime: airingsFresh ? .nextSevenDays : .failed,
+                                    .manga: cacheable ? .noSource : .failed]
+        if cacheable && airingsFresh {
+            storeSchedule(items, key: key)
+        } else {
+            scheduleCache[key] = nil
+        }
         return publishSchedule(items, context: context)
     }
 
@@ -336,8 +419,10 @@ extension ReleasesStore {
         ([context.userId.lowercased()] + parts).joined(separator: "|")
     }
 
+    /// A cached answer younger than the TTL in which no upcoming row has passed since it was stored.
     private func freshSchedule(_ key: String) -> [ReleaseScheduleItem]? {
-        guard let cached = scheduleCache[key], Date().timeIntervalSince(cached.storedAt) < Self.scheduleTTL else { return nil }
+        guard let cached = scheduleCache[key], Date().timeIntervalSince(cached.storedAt) < Self.scheduleTTL,
+              ReleaseSchedulePolicy.cacheIsCurrent(cached.value, copy: ReleaseCopy.current()) else { return nil }
         return cached.value
     }
 

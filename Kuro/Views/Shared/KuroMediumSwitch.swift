@@ -24,6 +24,7 @@ struct KuroMediumSwitch: View {
     }
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var underline
 
     private var font: Font {
@@ -36,8 +37,17 @@ struct KuroMediumSwitch: View {
         }
     }
 
+    /// Side by side; at accessibility sizes the words stack so each keeps the full width and neither
+    /// is cut to "Ma…" (rulebook §4).
+    private var layout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline,
+                                     spacing: size == .large ? KuroDesignSpacing.lg : KuroDesignSpacing.md))
+    }
+
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: size == .large ? KuroDesignSpacing.lg : KuroDesignSpacing.md) {
+        layout {
             word(.anime, title: "Anime")
             word(.manga, title: "Manga")
         }
@@ -63,10 +73,15 @@ struct KuroMediumSwitch: View {
                 ZStack(alignment: .leading) {
                     Color.clear.frame(height: 2)
                     if selected {
-                        Rectangle()
+                        let rule = Rectangle()
                             .fill(Color.kuroInk)
                             .frame(width: size == .large ? 28 : 20, height: 2)
-                            .matchedGeometryEffect(id: "underline", in: underline)
+                        if reduceMotion {
+                            // Reduce Motion (rulebook §8): no travel; each word's own rule crossfades.
+                            rule.transition(.opacity)
+                        } else {
+                            rule.matchedGeometryEffect(id: "underline", in: underline)
+                        }
                     }
                 }
             }

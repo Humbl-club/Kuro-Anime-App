@@ -6,7 +6,9 @@ import SwiftUI
 // certainty; colour never does. The row's `release_precision` decides the date shape and a time is
 // shown only for an instant (day "Thu 15 Oct", month "November", quarter "Q1 2027", year "2027";
 // spec §3.3a, see `ReleaseCopy`). German readers get de_DE and Europe/Berlin.
-// A row that may not be shown (an estimate below 0.7) renders nothing.
+// A row that may not be shown (an estimate below 0.7) renders nothing, and so does an upcoming row
+// whose moment has passed since it was read: it never reads as upcoming in confirmed wording
+// (only a server-flagged `isPast` row renders, as "released …").
 
 struct KuroReleaseLine: View {
     let item: ReleaseScheduleItem
@@ -31,8 +33,8 @@ struct KuroReleaseLine: View {
     }
 
     var body: some View {
-        if item.isDisplayable {
-            let copy = ReleaseCopy.current(now: now)
+        let copy = ReleaseCopy.current(now: now)
+        if item.isDisplayable, item.isPast || copy.isAhead(item) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(copy.line(item, undatedFallback: undatedFallback))
                     .font(font)

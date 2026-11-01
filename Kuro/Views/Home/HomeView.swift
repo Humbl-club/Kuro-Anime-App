@@ -23,6 +23,7 @@ struct HomeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
     @State private var seasonCard: HomeCard?
     @State private var showImportRecovery = false
     @State private var showImportChooser = false
@@ -88,8 +89,10 @@ struct HomeView: View {
         // The account's release schedule: on first appearance, after an account change and after a
         // Library change reached Home (a new revision). `ReleasesStore` caches per account for five
         // minutes and drops that cache on membership changes, so a repeat costs nothing.
-        .task(id: "\(home.privacyEpoch)|\(home.bundle?.homeRevision ?? -1)") {
-            guard !skipNetworkLoad else { return }
+        // Also on every return to the foreground: the store's five-minute answer is re-read when it is
+        // stale or holds a release whose moment has passed, so the next unit appears.
+        .task(id: "\(home.privacyEpoch)|\(home.bundle?.homeRevision ?? -1)|\(scenePhase == .active)") {
+            guard !skipNetworkLoad, scenePhase == .active else { return }
             await releases.loadSchedule()
             guard !Task.isCancelled else { return }
             scheduleChecked = true
@@ -253,7 +256,12 @@ struct HomeView: View {
     // MARK: Medium switch (approved Poster switch: the selected word masks the Home picture)
 
     private var mediumSwitch: some View {
-        HStack(alignment: .bottom, spacing: 18) {
+        // At accessibility sizes the words stack, so each keeps the full width and neither is cut to
+        // "Ma…" (rulebook §4).
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
+            : AnyLayout(HStackLayout(alignment: .bottom, spacing: 18))
+        return layout {
             mediumButton("anime", title: "Anime")
             mediumButton("manga", title: "Manga")
         }
@@ -289,9 +297,11 @@ struct HomeView: View {
                     }
                 }
                 .frame(height: size + 4, alignment: .leading)
+                // A fixed rule that fades in place: it never travels between the words.
                 Rectangle()
-                    .fill(selected ? Color.kuroInk : Color.clear)
-                    .frame(width: selected ? 46 : 0, height: 2)
+                    .fill(Color.kuroInk)
+                    .frame(width: 46, height: 2)
+                    .opacity(selected ? 1 : 0)
             }
             .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
             .contentShape(Rectangle())
@@ -1041,72 +1051,100 @@ struct HomeView: View {
         }.accessibilityHidden(true)
     }
 
+    /// What the schedule can claim for the selected medium (previews and snapshots: an answer).
+    private var scheduleCoverage: ReleaseScheduleCoverage {
+        skipNetworkLoad ? .complete : releases.scheduleCoverage(for: mediumKind)
+    }
+
     private func comingUpLine(proxy: ScrollViewProxy) -> some View {
         let items = scheduleItems
         let offline = !network.isConnected
+        let copy = ReleaseCopy.current()
+        let coverage = scheduleCoverage
         let caption = scheduleChecked || (offline && items.isEmpty)
-            ? HomeCalendarPresentation.glanceCaption(items: items, copy: ReleaseCopy.current(), offline: offline)
+            ? HomeCalendarPresentation.glanceCaption(items: items, copy: copy, offline: offline, coverage: coverage)
             : KuroLocale.text("Checking dates", "Termine werden geprüft")
-        return Button {
-            if reduceMotion { proxy.scrollTo("upcoming-calendar", anchor: .top) }
-            else { withAnimation(KuroMotion.settle) { proxy.scrollTo("upcoming-calendar", anchor: .top) } }
-            calendarFocused = true
-        } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(KuroLocale.text("Coming up", "Demnächst"))
-                    .kuroKicker()
-                HStack(alignment: .center, spacing: 12) {
-                    Text(caption)
-                        .font(.kuroTitle())
+        // The calendar shows only when it has rows; without it this line is a status, not a link.
+        let hasCalendar = items.contains(where: copy.isAhead)
+        let retry = scheduleChecked
+            && HomeCalendarPresentation.offersRetry(items: items, copy: copy, offline: offline, coverage: coverage)
+        let origin = actionScope.capture(session: libraryActions.accountSession)
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+            if hasCalendar {
+                Button {
+                    if reduceMotion { proxy.scrollTo("upcoming-calendar", anchor: .top) }
+                    else { withAnimation(KuroMotion.settle) { proxy.scrollTo("upcoming-calendar", anchor: .top) } }
+                    calendarFocused = true
+                } label: {
+                    comingUpLabel(caption: caption, items: items, showsArrow: true)
+                }
+                .buttonStyle(HomeContactStyle())
+                .accessibilityLabel(KuroLocale.text("Coming up: \(caption)", "Demnächst: \(caption)"))
+                .accessibilityHint(KuroLocale.text("Shows the calendar", "Zeigt den Kalender"))
+            } else {
+                comingUpLabel(caption: caption, items: items, showsArrow: false)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(KuroLocale.text("Coming up: \(caption)", "Demnächst: \(caption)"))
+            }
+            if retry {
+                // Failed refresh (rulebook §9): scoped to this section, with the action that fixes it.
+                Button {
+                    perform(origin: origin) { await releases.loadSchedule(force: true) }
+                } label: {
+                    Text(KuroLocale.text("Try again", "Erneut versuchen"))
+                        .font(.kuroMeta(weight: .medium))
                         .foregroundStyle(Color.kuroInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    if !dynamicTypeSize.isAccessibilitySize { calendarArt(items) }
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(HomeContactStyle())
+            }
+        }
+    }
+
+    private func comingUpLabel(caption: String, items: [ReleaseScheduleItem], showsArrow: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(KuroLocale.text("Coming up", "Demnächst"))
+                .kuroKicker()
+            HStack(alignment: .center, spacing: 12) {
+                Text(caption)
+                    .font(.kuroTitle())
+                    .foregroundStyle(Color.kuroInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if !dynamicTypeSize.isAccessibilitySize { calendarArt(items) }
+                if showsArrow {
                     Image(systemName: "arrow.down")
                         .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 22))
                         .foregroundStyle(Color.kuroInk)
                         .accessibilityHidden(true)
                 }
-                Rectangle().fill(Color.kuroInk).frame(height: 1)
             }
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .contentShape(Rectangle())
+            Rectangle().fill(Color.kuroInk).frame(height: 1)
         }
-        .buttonStyle(HomeContactStyle())
-        .accessibilityLabel(KuroLocale.text("Coming up: \(caption)", "Demnächst: \(caption)"))
-        .accessibilityHint(KuroLocale.text("Shows the calendar", "Zeigt den Kalender"))
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
+    /// The full calendar, only when it has rows: an empty schedule is said once, by Coming up, never
+    /// again under a second heading.
+    @ViewBuilder
     private var calendarSection: some View {
         let copy = ReleaseCopy.current()
         let groups = HomeCalendarPresentation.groups(scheduleItems, copy: copy)
-        return VStack(alignment: .leading, spacing: 10) {
-            KuroSectionHeader(KuroLocale.text("Calendar.", "Kalender."), size: .title)
-                .accessibilityFocused($calendarFocused)
-            if groups.isEmpty {
-                if !network.isConnected {
-                    // Offline with no rows: the schedule is unknown, not empty (rulebook §9).
-                    Text(KuroLocale.text("Offline. Dates load when you connect.",
-                                         "Offline. Termine laden, wenn du verbunden bist."))
-                        .font(.kuroMeta())
-                        .foregroundStyle(Color.kuroInkSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else if scheduleChecked {
-                    Text(KuroLocale.text("Nothing scheduled.", "Nichts angekündigt."))
-                        .font(.kuroMeta())
-                        .foregroundStyle(Color.kuroInkSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            } else {
+        if !groups.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                KuroSectionHeader(KuroLocale.text("Calendar.", "Kalender."), size: .title)
+                    .accessibilityFocused($calendarFocused)
                 VStack(spacing: 0) {
                     ForEach(Array(groups.enumerated()), id: \.element.id) { index, day in
                         calendarDay(day, initiallyOpen: index == 0)
                     }
                 }
             }
+            .id("upcoming-calendar")
+            .accessibilityElement(children: .contain)
         }
-        .id("upcoming-calendar")
-        .accessibilityElement(children: .contain)
     }
 
     private func calendarBinding(_ id: String, initiallyOpen: Bool) -> Binding<Bool> {

@@ -351,6 +351,8 @@ struct ReleaseContractFallbackTests {
         #expect(items.first?.basis == .confirmed)
         #expect(items.first?.unitNumber == 3)
         #expect(releases.scheduleSource == .airingFallback)
+        #expect(releases.scheduleCoverage(for: .anime) == .nextSevenDays, "anime known for the airing window only")
+        #expect(releases.scheduleCoverage(for: .manga) == .noSource, "manga dates are unknown, not absent")
         #expect(releases.nextRelease(for: MediaKey(kind: .anime, id: 42))?.mediaId == 42)
         #expect(harness.requests(to: "rpc/user_release_schedule_v1").count == 1)
 
@@ -384,6 +386,7 @@ struct ReleaseContractFallbackTests {
         let items = await releases.loadSchedule()
         #expect(items.map(\.mediaId) == [42, 9])
         #expect(releases.scheduleSource == .schedule)
+        #expect(releases.scheduleCoverage(for: .anime) == .complete && releases.scheduleCoverage(for: .manga) == .complete)
         #expect(releases.scheduleItems(for: .manga).map(\.mediaId) == [9])
         let request = try #require(harness.requests(to: "rpc/user_release_schedule_v1").first)
         #expect(request.method == "POST")
@@ -408,6 +411,8 @@ struct ReleaseContractFallbackTests {
         #expect(items.isEmpty)
         #expect(releases.scheduleSource == .airingFallback)
         #expect(releases.scheduleCache.isEmpty, "an empty fallback from a failed read must not be served for 5 minutes")
+        #expect(releases.scheduleCoverage(for: .anime) == .failed, "a failed read is unknown, never 'Nothing scheduled'")
+        #expect(releases.scheduleCoverage(for: .manga) == .noSource)
         await harness.tearDown()
     }
 
@@ -483,5 +488,86 @@ struct ReleaseContractFallbackTests {
         #expect(harness.requests(to: "rpc/media_release_schedule_v1").count == 2, "a transient failure is retried")
         #expect(await releases.mediaSchedule(kind: .manga, id: 5).isEmpty)
         await harness.tearDown()
+    }
+}
+
+@MainActor
+@Suite("Elapsed releases never read as upcoming (spec D10)", .timeLimit(.minutes(1)))
+struct ReleaseElapsedTests {
+    static let userA = LifecycleFixtures.userA
+
+    static func row(_ id: Int, at date: Date?, medium: MediaKind = .anime, isPast: Bool = false) -> ReleaseScheduleItem {
+        ReleaseScheduleItem(medium: medium, mediaId: id, title: "T\(id)", unitKind: .episode, unitNumber: 8,
+                            releaseAt: date, basis: .confirmed, source: "anilist", isPast: isPast, precision: .instant)
+    }
+
+    static func airing(_ id: Int, at date: Date) -> ReleasesStore.UpcomingAiring {
+        ReleasesStore.UpcomingAiring(anime_id: id, title_english: "A", title_romaji: nil,
+                                     next_episode_number: 8, next_airing_at: date)
+    }
+
+    @Test("nextRelease skips a schedule row or airing whose time has passed")
+    func nextReleaseSkipsElapsed() async throws {
+        let harness = try PublicDataHarness { _ in .emptyArray }
+        let releases = harness.service.releases
+        let now = Date()
+        let key = MediaKey(kind: .anime, id: 42)
+
+        releases.schedule = [Self.row(42, at: now.addingTimeInterval(-3_600))]
+        releases.upcomingAirings = [Self.airing(42, at: now.addingTimeInterval(-3_600))]
+        #expect(releases.nextRelease(for: key, now: now) == nil, "an aired episode is not the next release")
+        #expect(releases.scheduleItems(for: .anime, now: now).isEmpty)
+
+        releases.upcomingAirings = [Self.airing(42, at: now.addingTimeInterval(7 * 86_400))]
+        #expect(releases.nextRelease(for: key, now: now)?.releaseAt == now.addingTimeInterval(7 * 86_400))
+
+        releases.schedule = [Self.row(42, at: now.addingTimeInterval(3_600))]
+        #expect(releases.nextRelease(for: key, now: now)?.releaseAt == now.addingTimeInterval(3_600))
+        #expect(releases.nextRelease(for: key, now: now.addingTimeInterval(7_200))?.releaseAt
+                == now.addingTimeInterval(7 * 86_400), "once tonight's episode aired, the later airing is next")
+        await harness.tearDown()
+    }
+
+    @Test("The clock drops elapsed rows and the account's cached answer, once")
+    func expiryDropsRowsAndCache() async throws {
+        let harness = try PublicDataHarness { _ in .emptyArray }
+        let releases = harness.service.releases
+        await harness.service.session.applySession(userId: Self.userA, email: "a@example.com")
+        let account = try #require(releases.accountSession.current)
+        let now = Date()
+        let elapsed = Self.row(1, at: now.addingTimeInterval(-60))
+        let ahead = Self.row(2, at: now.addingTimeInterval(3_600))
+        let cacheKey = account.userId.lowercased() + "|user|100"
+        releases.schedule = [elapsed, ahead]
+        releases.scheduleCache[cacheKey] = TimedCache(value: [elapsed, ahead], storedAt: now)
+
+        #expect(releases.expireElapsedReleases(now: now))
+        #expect(releases.schedule.map(\.mediaId) == [2])
+        #expect(releases.scheduleCache[cacheKey] == nil, "the cached answer held the aired row")
+        #expect(!releases.expireElapsedReleases(now: now), "nothing left to expire")
+        await harness.tearDown()
+    }
+
+    @Test("A cached answer with an aired upcoming row is stale; server-flagged released rows are not")
+    func cacheFreshness() {
+        let now = Date()
+        let copy = ReleaseCopy(now: now, german: false, locale: Locale(identifier: "en_GB"),
+                               timeZone: TimeZone(identifier: "UTC") ?? .current)
+        let released = Self.row(1, at: now.addingTimeInterval(-86_400), isPast: true)
+        let ahead = Self.row(2, at: now.addingTimeInterval(60))
+        let aired = Self.row(3, at: now.addingTimeInterval(-60))
+        #expect(ReleaseSchedulePolicy.cacheIsCurrent([released, ahead], copy: copy))
+        #expect(!ReleaseSchedulePolicy.cacheIsCurrent([ahead, aired], copy: copy))
+        #expect(ReleaseSchedulePolicy.aheadOnly([released, ahead, aired], copy: copy).map(\.mediaId) == [2])
+    }
+
+    @Test("Detail Coming up lists only units still ahead and never promotes an aired one")
+    func detailUpcomingFilter() {
+        let now = Date()
+        let released = Self.row(1, at: now.addingTimeInterval(-7 * 86_400), isPast: true)
+        let aired = Self.row(2, at: now.addingTimeInterval(-600))
+        let next = Self.row(3, at: now.addingTimeInterval(6 * 86_400))
+        #expect(DetailNextReleaseSection.upcoming([released, aired, next], now: now).map(\.mediaId) == [3])
+        #expect(DetailNextReleaseSection.upcoming([released, aired], now: now).isEmpty)
     }
 }
