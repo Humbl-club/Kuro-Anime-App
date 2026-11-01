@@ -189,8 +189,9 @@ struct DetailHero<Mark: View>: View {
                 .font(.detailSF(27, .semibold, relativeTo: .title1))
                 .tracking(-1.1)
                 .foregroundStyle(Color.white)
-                .lineLimit(3)
-                .minimumScaleFactor(0.8)
+                // Review focus 1: two lines, then truncate (never under the status mark).
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
         }
@@ -221,7 +222,8 @@ struct DetailStatusMark: View {
             Menu {
                 ForEach(DetailStatusCopy.actions(isTracked: isTracked), id: \.self) { action in
                     if handler(action) != nil {
-                        Button {
+                        // Removing a saved title drops its progress, notes and score: marked destructive.
+                        Button(role: action == .favourite && isTracked ? .destructive : nil) {
                             handler(action)?()
                         } label: {
                             Label(DetailStatusCopy.actionTitle(action, isTracked: isTracked, kind: kind, german: german),

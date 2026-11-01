@@ -104,7 +104,12 @@ struct AnimeDetailPage: View {
     private var entry: LibraryEntry? { library.entry(for: anime.libraryKey) }
     private var progress: Int { entry?.progress ?? 0 }
     private var total: Int? { anime.episodeCount.flatMap { $0 > 0 ? $0 : nil } }
-    private var nextUnit: Int? { DetailSectionPolicy.nextUnit(progress: progress, total: total) }
+    private var nextUnit: Int? {
+        DetailSectionPolicy.nextUnit(progress: progress, total: total,
+                                     airedThrough: DetailSectionPolicy.airedThrough(status: anime.status,
+                                                                                    nextEpisode: anime.nextEpisodeNumber,
+                                                                                    nextAiringAt: anime.nextAiringAt))
+    }
 
     private var heroURL: URL? {
         [anime.bannerImage, anime.coverImageLarge, anime.coverImageMedium]

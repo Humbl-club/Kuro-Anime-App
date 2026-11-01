@@ -64,11 +64,21 @@ enum DetailSectionPolicy {
         input.isTracked && input.hasNextUnit
     }
 
-    /// The next unit to advance to, or nil when caught up (a known total is reached).
-    static func nextUnit(progress: Int, total: Int?) -> Int? {
+    /// The next unit to advance to, or nil when caught up: a known total is reached, or (airing) the
+    /// next unit has not aired yet (`airedThrough` is the last aired unit). Never offers a future unit.
+    static func nextUnit(progress: Int, total: Int?, airedThrough: Int? = nil) -> Int? {
         let next = max(1, progress + 1)
         if let total, total > 0, next > total { return nil }
+        if let airedThrough, next > airedThrough { return nil }
         return next
+    }
+
+    /// The last aired episode of an airing title: the episode before its next scheduled airing.
+    /// nil when nothing is scheduled ahead (no ceiling is invented).
+    static func airedThrough(status: String?, nextEpisode: Int?, nextAiringAt: Date?, now: Date = Date()) -> Int? {
+        guard status?.uppercased() == "RELEASING", let nextEpisode, nextEpisode > 0,
+              let nextAiringAt, nextAiringAt > now else { return nil }
+        return nextEpisode - 1
     }
 }
 

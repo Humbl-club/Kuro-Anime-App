@@ -6,6 +6,7 @@
 //  untracked titles without progress, ladder season numbering and the status mark's actions.
 //
 
+import Foundation
 import Testing
 import KuroCore
 import KuroLibrary
@@ -113,6 +114,21 @@ struct DetailSectionPolicyTests {
         #expect(DetailSectionPolicy.nextUnit(progress: 9, total: 9) == nil)
         #expect(DetailSectionPolicy.nextUnit(progress: 0, total: nil) == 1)
         #expect(DetailSectionPolicy.nextUnit(progress: 40, total: nil) == 41)
+    }
+
+    @Test("An airing title never offers an episode that has not aired")
+    func airingCeiling() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let aired = DetailSectionPolicy.airedThrough(status: "RELEASING", nextEpisode: 6,
+                                                     nextAiringAt: now.addingTimeInterval(3_600), now: now)
+        #expect(aired == 5)
+        #expect(DetailSectionPolicy.nextUnit(progress: 5, total: nil, airedThrough: aired) == nil)
+        #expect(DetailSectionPolicy.nextUnit(progress: 4, total: nil, airedThrough: aired) == 5)
+        // A past airing time or a finished show sets no ceiling.
+        #expect(DetailSectionPolicy.airedThrough(status: "RELEASING", nextEpisode: 6,
+                                                 nextAiringAt: now.addingTimeInterval(-60), now: now) == nil)
+        #expect(DetailSectionPolicy.airedThrough(status: "FINISHED", nextEpisode: 6,
+                                                 nextAiringAt: now.addingTimeInterval(3_600), now: now) == nil)
     }
 
     @Test("Chain walk steps to the nearest season-format neighbour")

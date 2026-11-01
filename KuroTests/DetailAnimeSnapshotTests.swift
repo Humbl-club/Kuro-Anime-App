@@ -43,6 +43,15 @@ struct DetailAnimeSnapshotTests {
         await render(page, width: 390, height: 844, name: "detail-anime-390.png", fullPage: true)
         await render(page, width: 390, height: 844, name: "detail-anime-top-390.png")
         await render(page, width: 320, height: 844, name: "detail-anime-top-320.png")
+        // Review focus 1: the hero and Up next at the largest accessibility size.
+        await render(page.environment(\.dynamicTypeSize, .accessibility5), width: 320, height: 844,
+                     name: "detail-anime-top-ax5-320.png")
+
+        // Series flags on with bundle data: the `detail_copy` hook and the manga coverage disclosure.
+        var withBundle = Self.trackedContent()
+        withBundle.bundle = try Self.bundle()
+        await render(Self.host(AnimeDetailPage(anime: tracked, preview: withBundle), graph: graph),
+                     width: 390, height: 844, name: "detail-anime-bundle-390.png", fullPage: true)
 
         // An untracked title opened from Discover with only a synopsis and one credit: hero with
         // "Not in your list" + Add, the story and "Behind the frames." — nothing else.
@@ -192,6 +201,19 @@ struct DetailAnimeSnapshotTests {
         if let color { object["cover_image_color"] = color }
         let data = try JSONSerialization.data(withJSONObject: object)
         return try JSONDecoder().decode(Anime.self, from: data)
+    }
+
+    private static func bundle() throws -> SeriesDetailBundle {
+        let json = """
+        {"medium":"anime","media_id":2,"series_id":"22222222-2222-4222-8222-222222222222","section_id":null,
+         "header":{"media_id":2,"title":"Jujutsu Kaisen","format":"TV","catalogue_status":"FINISHED","episodes":23},
+         "sections":[],"units":[],"units_state":"ok",
+         "copy":{"hook":"Old friendships. A city on the edge.","synopsis":"\(synopsis)","story_state":"present"},
+         "themes":[],"cast":[],
+         "coverage":{"source_kind":"manga","mapping_state":"exact","starts_at":"Ch. 65","ends_at":"Ch. 136",
+                     "read_next":"Ch. 137","source_manga_id":30}}
+        """
+        return try JSONDecoder().decode(SeriesDetailBundle.self, from: Data(json.utf8))
     }
 
     private static func clubs() throws -> [ClubListRow] {
