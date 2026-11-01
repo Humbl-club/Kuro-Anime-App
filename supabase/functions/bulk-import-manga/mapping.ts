@@ -2,6 +2,8 @@
 // and volume placeholders, authors, tags, characters, staff and source-owned
 // relations. Anime mapping stays in bulk-import-anime; the row shapes differ.
 
+import { preserveExistingColumns } from "../bulk-import-anime/mapping.ts";
+
 const SUPPORTED_MEDIA_RELATIONS = new Set(['SOURCE', 'ADAPTATION', 'PREQUEL', 'SEQUEL', 'SIDE_STORY', 'SPIN_OFF']);
 
 // Primary catalog writes throw. Optional enrichments (external links, chapter and
@@ -30,7 +32,7 @@ export async function processMangaItem(
   const updatedAtAnilist = manga.updatedAt ? new Date(manga.updatedAt * 1000).toISOString() : null;
   const { data: existing, error: existingError } = await supabase
     .from('manga')
-    .select('id, updated_at_anilist')
+    .select('id, updated_at_anilist, description, mal_id, cover_image_large, cover_image_medium, banner_image')
     .eq('anilist_id', manga.id)
     .maybeSingle();
   if (existingError) {
@@ -39,11 +41,8 @@ export async function processMangaItem(
   }
   const isStale = forceRefresh || !existing || !existing.updated_at_anilist || (updatedAtAnilist && existing.updated_at_anilist !== updatedAtAnilist);
   if (existing && !isStale) {
-    const { error: updateError } = await supabase.from('manga').update({ last_synced_at: new Date().toISOString() }).eq('id', existing.id);
-    if (updateError) {
-      console.error('manga update failed:', updateError);
-      throw updateError;
-    }
+    // Unchanged AniList payload: no write. Touching last_synced_at here churned the row and
+    // deferred manga-chapter-enrich, whose RELEASING priority keys off the same clock.
     return;
   }
 
@@ -63,8 +62,6 @@ export async function processMangaItem(
     description: manga.description,
     chapters: manga.chapters,
     volumes: manga.volumes,
-    next_chapter_number: null as number | null,
-    next_chapter_at: null as string | null,
     start_date_year: manga.startDate?.year,
     start_date_month: manga.startDate?.month,
     start_date_day: manga.startDate?.day,
@@ -85,8 +82,26 @@ export async function processMangaItem(
     updated_at_anilist: updatedAtAnilist,
     last_synced_at: new Date().toISOString()
   };
-  const { data: insertedManga, error: mangaError } = await supabase.from('manga').upsert(mangaData, { onConflict: 'anilist_id' }).select('id').single();
-  if (mangaError) throw mangaError; results.manga++;
+  // AniList leaves chapters/volumes null for most RELEASING series. Never write that null over a
+  // known count (manga-chapter-enrich and release-intake maintain it). next_chapter_* is not
+  // written at all: release dates belong to release_events (release-intake).
+  const writable: Record<string, unknown> = { ...mangaData };
+  if (manga.chapters == null) delete writable.chapters;
+  if (manga.volumes == null) delete writable.volumes;
+  let insertedManga: { id: number };
+  if (existing) {
+    // Existing row: an UPDATE by id with only the columns that may change (anilist_id stays out
+    // of the SET list; mirrored images and unchanged description/synopsis state are kept).
+    const { anilist_id: _anilistId, ...rest } = writable;
+    const { error: mangaError } = await supabase.from('manga').update(preserveExistingColumns(rest, existing)).eq('id', existing.id);
+    if (mangaError) throw mangaError;
+    insertedManga = { id: existing.id };
+  } else {
+    const { data, error: mangaError } = await supabase.from('manga').upsert(writable, { onConflict: 'anilist_id' }).select('id').single();
+    if (mangaError) throw mangaError;
+    insertedManga = data;
+  }
+  results.manga++;
 
   // External links (read on...) from AniList externalLinks
   if (Array.isArray(manga.externalLinks) && manga.externalLinks.length > 0) {
@@ -100,7 +115,7 @@ export async function processMangaItem(
         url,
         language: link?.language ?? null,
         color: link?.color ?? null,
-        is_disabled: false,
+        is_disabled: link?.isDisabled === true,
       };
       const { error } = await supabase.from('external_links').upsert(payload, { onConflict: 'media_type,media_id,url' });
       noteOptionalFailure(results, error, 'external_links upsert error:');
@@ -154,7 +169,7 @@ export async function processMangaItem(
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'authors upsert error:') || !au) continue;
-      const { error: linkError } = await supabase.from('manga_authors').upsert({ manga_id: insertedManga.id, author_id: au.id, role: edge?.role });
+      const { error: linkError } = await supabase.from('manga_authors').upsert({ manga_id: insertedManga.id, author_id: au.id, role: edge?.role }, { onConflict: 'manga_id,author_id' });
       if (noteOptionalFailure(results, linkError, 'manga_authors upsert error:')) continue;
       results.relationships++; results.authors++;
     }
@@ -169,7 +184,7 @@ export async function processMangaItem(
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'tags upsert error:') || !tg) continue;
-      const { error: linkError } = await supabase.from('manga_tags').upsert({ manga_id: insertedManga.id, tag_id: tg.id, rank: tag.rank ?? 0 });
+      const { error: linkError } = await supabase.from('manga_tags').upsert({ manga_id: insertedManga.id, tag_id: tg.id, rank: tag.rank ?? 0 }, { onConflict: 'manga_id,tag_id' });
       if (noteOptionalFailure(results, linkError, 'manga_tags upsert error:')) continue;
       results.relationships++; results.tags++;
     }
@@ -186,7 +201,7 @@ export async function processMangaItem(
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'characters upsert error:') || !ch) continue;
-      const { error: linkError } = await supabase.from('manga_characters').upsert({ manga_id: insertedManga.id, character_id: ch.id, role: edge?.role });
+      const { error: linkError } = await supabase.from('manga_characters').upsert({ manga_id: insertedManga.id, character_id: ch.id, role: edge?.role }, { onConflict: 'manga_id,character_id' });
       if (noteOptionalFailure(results, linkError, 'manga_characters upsert error:')) continue;
       results.relationships++; results.characters++;
     }
@@ -203,7 +218,7 @@ export async function processMangaItem(
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'staff upsert error:') || !stf) continue;
-      const { error: linkError } = await supabase.from('manga_staff').upsert({ manga_id: insertedManga.id, staff_id: stf.id, role: edge?.role });
+      const { error: linkError } = await supabase.from('manga_staff').upsert({ manga_id: insertedManga.id, staff_id: stf.id, role: edge?.role }, { onConflict: 'manga_id,staff_id' });
       if (noteOptionalFailure(results, linkError, 'manga_staff upsert error:')) continue;
       results.relationships++; results.staff++;
     }

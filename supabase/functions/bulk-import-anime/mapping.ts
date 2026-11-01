@@ -13,6 +13,46 @@ function noteOptionalFailure(results: { errors: number }, error: unknown, label:
   return true;
 }
 
+// Storage-mirrored image URLs (written by mirror-images) are never replaced by the AniList URL.
+export function isMirroredImageUrl(value: unknown): boolean {
+  return typeof value === 'string' && value.includes('/storage/v1/');
+}
+
+export function sameInstant(a: unknown, b: unknown): boolean {
+  if (a == null || b == null) return a == null && b == null;
+  const ta = Date.parse(String(a));
+  const tb = Date.parse(String(b));
+  return Number.isFinite(ta) && Number.isFinite(tb) ? ta === tb : String(a) === String(b);
+}
+
+/**
+ * Columns of an existing catalog row that a stale AniList refresh must not rewrite:
+ *  - an image column that already holds a Storage-mirrored URL, or the same AniList URL;
+ *  - description (and the synopsis pipeline state) when the description text is unchanged.
+ *    synopsis_enhanced_state is reset to 'pending' only when the description changes.
+ *  - mal_id when unchanged.
+ * Omitting unchanged columns also keeps them out of the UPDATE SET list, so column triggers
+ * such as series_enrichment_source do not re-enqueue unchanged titles.
+ * Shared with bulk-import-manga (same columns).
+ */
+// deno-lint-ignore no-explicit-any
+export function preserveExistingColumns(row: Record<string, unknown>, existing: any): Record<string, unknown> {
+  const out = { ...row };
+  for (const col of ['cover_image_large', 'cover_image_medium', 'banner_image']) {
+    const current = existing?.[col];
+    if (isMirroredImageUrl(current) || (current != null && current === out[col])) delete out[col];
+  }
+  if (existing && (existing.description ?? null) === (out.description ?? null)) {
+    delete out.description;
+    delete out.synopsis_enhanced_state;
+  }
+  if (existing && existing.mal_id != null && existing.mal_id === out.mal_id) delete out.mal_id;
+  return out;
+}
+
+const EXISTING_ANIME_COLUMNS =
+  'id, updated_at_anilist, episodes, duration, next_episode_number, next_airing_at, description, mal_id, cover_image_large, cover_image_medium, banner_image';
+
 // deno-lint-ignore no-explicit-any
 export async function processAnimeItem(supabase: any, anime: any, results: any, includeRelations: boolean, includeEpisodes: boolean, forceRefresh: boolean) {
   const updatedAtAnilist = anime.updatedAt ? new Date(anime.updatedAt * 1000).toISOString() : null;
@@ -24,7 +64,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
 
   const { data: existing, error: existingError } = await supabase
     .from('anime')
-    .select('id, updated_at_anilist, episodes, duration')
+    .select(EXISTING_ANIME_COLUMNS)
     .eq('anilist_id', anime.id)
     .maybeSingle();
   if (existingError) {
@@ -34,17 +74,20 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
   const isStale = forceRefresh || !existing || !existing.updated_at_anilist || (updatedAtAnilist && existing.updated_at_anilist !== updatedAtAnilist);
   if (existing && !isStale) {
     // Even when the AniList payload hasn't changed, airing metadata can drift (next episode),
-    // and long-running shows may be missing a total episode count. Keep these fields fresh.
-    const patch: any = {
-      last_synced_at: new Date().toISOString(),
-      next_episode_number: anime.nextAiringEpisode?.episode ?? null,
-      next_airing_at: anime.nextAiringEpisode?.airingAt ? new Date(anime.nextAiringEpisode.airingAt * 1000).toISOString() : null,
-    };
+    // and long-running shows may be missing a total episode count. Write only what differs:
+    // an unchanged row gets no write at all (no last_synced_at touch, no updated_at churn).
+    const nextEpisode = anime.nextAiringEpisode?.episode ?? null;
+    const nextAiringAt = anime.nextAiringEpisode?.airingAt ? new Date(anime.nextAiringEpisode.airingAt * 1000).toISOString() : null;
+    const patch: any = {};
+    if ((existing.next_episode_number ?? null) !== nextEpisode) patch.next_episode_number = nextEpisode;
+    if (!sameInstant(existing.next_airing_at, nextAiringAt)) patch.next_airing_at = nextAiringAt;
     if (derivedEpisodes && (!existing.episodes || Number(existing.episodes) < derivedEpisodes)) {
       patch.episodes = derivedEpisodes;
       const dur = anime.duration ?? existing.duration;
       patch.total_duration = dur ? derivedEpisodes * dur : null;
     }
+    if (Object.keys(patch).length === 0) return;
+    patch.last_synced_at = new Date().toISOString();
     const { error: updateError } = await supabase.from('anime').update(patch).eq('id', existing.id);
     if (updateError) {
       console.error('anime update failed:', updateError);
@@ -97,8 +140,20 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
     updated_at_anilist: updatedAtAnilist,
     last_synced_at: new Date().toISOString()
   };
-  const { data: insertedAnime, error: animeError } = await supabase.from('anime').upsert(animeData, { onConflict: 'anilist_id' }).select('id').single();
-  if (animeError) throw animeError; results.anime++;
+  let insertedAnime: { id: number };
+  if (existing) {
+    // Existing row: an UPDATE by id with only the columns that may change (anilist_id stays out
+    // of the SET list).
+    const { anilist_id: _anilistId, ...rest } = animeData;
+    const { error: animeError } = await supabase.from('anime').update(preserveExistingColumns(rest, existing)).eq('id', existing.id);
+    if (animeError) throw animeError;
+    insertedAnime = { id: existing.id };
+  } else {
+    const { data, error: animeError } = await supabase.from('anime').upsert(animeData, { onConflict: 'anilist_id' }).select('id').single();
+    if (animeError) throw animeError;
+    insertedAnime = data;
+  }
+  results.anime++;
 
   // External links (watch on...) from AniList externalLinks
   if (Array.isArray(anime.externalLinks) && anime.externalLinks.length > 0) {
@@ -112,7 +167,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
         url,
         language: link?.language ?? null,
         color: link?.color ?? null,
-        is_disabled: false,
+        is_disabled: link?.isDisabled === true,
       };
       const { error } = await supabase.from('external_links').upsert(payload, { onConflict: 'media_type,media_id,url' });
       // External links are optional and do not fail the page.
@@ -153,7 +208,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'studios upsert error:') || !st) continue;
-      const { error: linkError } = await supabase.from('anime_studios').upsert({ anime_id: insertedAnime.id, studio_id: st.id });
+      const { error: linkError } = await supabase.from('anime_studios').upsert({ anime_id: insertedAnime.id, studio_id: st.id }, { onConflict: 'anime_id,studio_id' });
       if (noteOptionalFailure(results, linkError, 'anime_studios upsert error:')) continue;
       results.relationships++; results.studios++;
     }
@@ -167,7 +222,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'tags upsert error:') || !tg) continue;
-      const { error: linkError } = await supabase.from('anime_tags').upsert({ anime_id: insertedAnime.id, tag_id: tg.id, rank: tag.rank ?? 0 });
+      const { error: linkError } = await supabase.from('anime_tags').upsert({ anime_id: insertedAnime.id, tag_id: tg.id, rank: tag.rank ?? 0 }, { onConflict: 'anime_id,tag_id' });
       if (noteOptionalFailure(results, linkError, 'anime_tags upsert error:')) continue;
       results.relationships++; results.tags++;
     }
@@ -183,7 +238,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'characters upsert error:') || !ch) continue;
-      const { error: linkError } = await supabase.from('anime_characters').upsert({ anime_id: insertedAnime.id, character_id: ch.id, role: edge?.role });
+      const { error: linkError } = await supabase.from('anime_characters').upsert({ anime_id: insertedAnime.id, character_id: ch.id, role: edge?.role }, { onConflict: 'anime_id,character_id' });
       if (noteOptionalFailure(results, linkError, 'anime_characters upsert error:')) continue;
       results.relationships++; results.characters++;
     }
@@ -199,7 +254,7 @@ export async function processAnimeItem(supabase: any, anime: any, results: any, 
         .select('id')
         .single();
       if (noteOptionalFailure(results, e, 'staff upsert error:') || !stf) continue;
-      const { error: linkError } = await supabase.from('anime_staff').upsert({ anime_id: insertedAnime.id, staff_id: stf.id, role: edge?.role });
+      const { error: linkError } = await supabase.from('anime_staff').upsert({ anime_id: insertedAnime.id, staff_id: stf.id, role: edge?.role }, { onConflict: 'anime_id,staff_id' });
       if (noteOptionalFailure(results, linkError, 'anime_staff upsert error:')) continue;
       results.relationships++; results.staff++;
     }

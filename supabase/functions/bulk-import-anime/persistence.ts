@@ -8,7 +8,8 @@
 // releases the lock. Busy keeps the existing locked skip. Unavailable does not
 // grant the run.
 
-export type TrackPresetName = 'popularity_core' | 'airing_or_releasing' | 'recent_updates' | 'catalog_backfill';
+import { type CursorMeta, persistedPresetColumn, type TrackPresetName } from "./tracks.ts";
+export type { TrackPresetName } from "./tracks.ts";
 
 // deno-lint-ignore no-explicit-any
 export type SupabaseLike = any;
@@ -69,6 +70,7 @@ export async function finishUnacquiredLock(
     results: unknown;
     startedAtMs: number;
     lock: ImportLockResult;
+    cursor?: CursorMeta | null;
   }
 ): Promise<Response> {
   const unavailable = args.lock.status === "unavailable";
@@ -84,6 +86,7 @@ export async function finishUnacquiredLock(
       visibility: "paused",
       results: args.results,
       message,
+      cursor: args.cursor ?? null,
     });
   }
   await finishImportRun(supabase, args.runId, runStatus, args.results, message, args.startedAtMs);
@@ -144,15 +147,24 @@ export async function finishImportRun(
   }
 }
 
-export async function readTrackedCursorPage(supabase: SupabaseLike, trackKey: string): Promise<number | null> {
+/**
+ * Tracked cursor: last_page plus the query cursor stored in last_results.cursor. Null when the
+ * row is missing or unreadable (the run then starts a fresh sweep / page 1).
+ */
+export async function readTrackedCursorState(
+  supabase: SupabaseLike,
+  trackKey: string,
+): Promise<{ lastPage: number; cursor: CursorMeta | null } | null> {
   try {
     const { data, error } = await supabase
       .from('import_track_state')
-      .select('last_page')
+      .select('last_page, last_results')
       .eq('track_key', trackKey)
       .maybeSingle();
     if (!error && data && typeof data.last_page === 'number') {
-      return data.last_page;
+      const raw = data.last_results?.cursor;
+      const cursor = raw && typeof raw === 'object' && typeof raw.query_version === 'string' ? raw as CursorMeta : null;
+      return { lastPage: data.last_page, cursor };
     }
   } catch (e) {
     console.error('import_track_state read error:', e);
@@ -171,6 +183,8 @@ export async function writeTrackedCursorState(
     visibility: string;
     results: unknown;
     message: string | null;
+    /** Query cursor kept next to last_page (tracked runs only). */
+    cursor?: CursorMeta | null;
   }
 ): Promise<void> {
   const updatedAt = new Date().toISOString();
@@ -182,13 +196,13 @@ export async function writeTrackedCursorState(
   const trackPayload = args.trackKey ? {
     track_key: args.trackKey,
     media_type: args.mediaType,
-    track_preset: args.trackPreset,
+    track_preset: persistedPresetColumn(args.trackPreset),
     last_page: args.lastPage,
     state: args.status,
     visibility: args.visibility,
     last_run_at: updatedAt,
     last_message: args.message,
-    last_results: args.results ?? {},
+    last_results: { ...((args.results ?? {}) as Record<string, unknown>), cursor: args.cursor ?? null },
     updated_at: updatedAt,
   } : null;
 
@@ -203,6 +217,9 @@ export async function writeTrackedCursorState(
     }
   }
 
+  // The legacy per-medium cursor belongs to untracked runs only. A tracked run (with its own
+  // query and sort) must not overwrite it, or an untracked run would resume a foreign cursor.
+  if (trackPayload) return;
   try {
     const { error } = await supabase
       .from('import_state')

@@ -27,7 +27,7 @@ class Db {
 
   from(table: string) {
     const db = this;
-    let action: "select" | "insert" | "update" | "upsert" = "select";
+    let action: "select" | "insert" | "update" | "upsert" | "delete" = "select";
     let payload: Row | Row[] | null = null;
     let conflict: string[] = [];
     const filters: [string, unknown][] = [];
@@ -46,6 +46,10 @@ class Db {
       }
       if (action === "update") {
         for (const row of rows) if (matches(row)) Object.assign(row, payload);
+        return { data: null, error: null };
+      }
+      if (action === "delete") {
+        db.tables[table] = rows.filter((row) => !matches(row));
         return { data: null, error: null };
       }
       const incoming = Array.isArray(payload) ? payload : [payload as Row];
@@ -82,6 +86,10 @@ class Db {
       update(p: Row) {
         action = "update";
         payload = p;
+        return builder;
+      },
+      delete() {
+        action = "delete";
         return builder;
       },
       upsert(p: Row | Row[], opts?: { onConflict?: string }) {
@@ -382,4 +390,288 @@ Deno.test("a failed primary upsert does not complete the page, and replaying it 
   assert.deepEqual(db.rows("anime").map((r) => r.anilist_id).sort(), [501, 502, 503]);
   assert.equal(db.rows("anime").length, 3);
   assert.equal(db.rows("import_runs").at(-1)?.status, "success");
+});
+
+// ---------------------------------------------------------------------------
+// 2026-11-01 intake robustness: provider errors, per-track queries, clobber guards.
+// ---------------------------------------------------------------------------
+import { AniListError, AniListLimiter, createAniListClient } from "../_shared/anilist_client.ts";
+import { fetchAniListAnimeData } from "./anilist.ts";
+
+function fakeAniList(bodies: unknown[]) {
+  const queries: { query: string; variables: Record<string, unknown> }[] = [];
+  const client = createAniListClient({
+    limiter: new AniListLimiter(0),
+    sleep: () => Promise.resolve(),
+    random: () => 0,
+    fetch: (_input, init) => {
+      const parsed = JSON.parse(String(init?.body));
+      queries.push(parsed);
+      const body = bodies.shift();
+      return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } }));
+    },
+  });
+  return { client, queries };
+}
+
+function realTransport(bodies: unknown[]) {
+  const fake = fakeAniList(bodies);
+  return {
+    queries: fake.queries,
+    fetchPage: (page: number, perPage: number, rel: boolean, eps: boolean, retries: number, query: any) =>
+      fetchAniListAnimeData(page, perPage, rel, eps, retries, query, fake.client),
+  };
+}
+
+for (const [label, body] of [
+  ["200 with GraphQL errors", { data: null, errors: [{ message: "Internal Server Error" }] }],
+  ["200 without data.Page", { data: { Page: null } }],
+  ["200 with data null", { data: null }],
+] as const) {
+  Deno.test(`${label} is a failed run: no cursor wrap, no advance, lock released`, async () => {
+    const db = new Db();
+    db.seed("import_state", [{ media_type: "ANIME", last_page: 4 }]);
+    const transport = realTransport([body]);
+    const res = await run(cursorRunPayload(), { supabase: db, heavyImportsEnabled: true, fetchPage: transport.fetchPage });
+    const out = await res.json();
+    assert.equal(res.status, 500);
+    assert.equal(out.success, false);
+    assert.equal(cursor(db), 4, "the cursor must not wrap to 0 or advance");
+    assert.equal(db.rows("import_runs")[0].status, "error");
+    assert.equal(db.lockHeld.size, 0);
+  });
+}
+
+Deno.test("a real empty page still wraps the legacy popularity cursor", async () => {
+  const db = new Db();
+  db.seed("import_state", [{ media_type: "ANIME", last_page: 4 }]);
+  const transport = realTransport([{ data: { Page: { media: [] } } }]);
+  const res = await run(cursorRunPayload(), { supabase: db, heavyImportsEnabled: true, fetchPage: transport.fetchPage });
+  assert.equal(res.status, 200);
+  assert.equal(cursor(db), 0);
+  assert.equal(transport.queries[0].variables.sort?.toString(), "POPULARITY_DESC");
+  assert.equal("statusIn" in transport.queries[0].variables, false);
+});
+
+Deno.test("a budget stop before any request commits the pages already persisted", async () => {
+  const db = new Db();
+  db.seed("import_state", [{ media_type: "ANIME", last_page: 4 }]);
+  const res = await run({ ...cursorRunPayload(), pagesPerBatch: 3 }, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage(page) {
+      if (page === 6) return Promise.reject(new AniListError("budget", "would exceed budget"));
+      return Promise.resolve([media(page * 100)]);
+    },
+  });
+  const out = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(out.stoppedEarly, "budget");
+  assert.equal(cursor(db), 5);
+  assert.equal(db.rows("import_runs")[0].message, "stopped_early:budget");
+});
+
+Deno.test("join-table re-imports update in place (onConflict on the natural key)", async () => {
+  const db = new Db();
+  const withTag = (rank: number, updatedAt: number) => ({
+    ...media(700),
+    updatedAt,
+    tags: [{ id: 9, name: "Isekai", rank }],
+    studios: { nodes: [{ id: 4, name: "Studio" }] },
+    characters: { nodes: [{ id: 5, name: { full: "A" } }], edges: [{ role: "MAIN" }] },
+    staff: { nodes: [{ id: 6, name: { full: "B" } }], edges: [{ role: "Director" }] },
+  });
+  const payload = { ...cursorRunPayload(), useCursor: false, includeRelations: true, lightweight: false };
+  const first = await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([withTag(60, 1)]) });
+  const second = await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([withTag(90, 2)]) });
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  assert.equal((await second.json()).results.errors, 0);
+  assert.equal(db.rows("anime_tags").length, 1);
+  assert.equal(db.rows("anime_tags")[0].rank, 90);
+  assert.equal(db.rows("anime_studios").length, 1);
+  assert.equal(db.rows("anime_characters").length, 1);
+  assert.equal(db.rows("anime_staff").length, 1);
+});
+
+Deno.test("a stale refresh keeps Storage-mirrored images and the synopsis state when the description is unchanged", async () => {
+  const db = new Db();
+  db.seed("anime", [{
+    id: 1,
+    anilist_id: 800,
+    updated_at_anilist: new Date(1 * 1000).toISOString(),
+    description: "Same story.",
+    cover_image_large: "https://x.supabase.co/storage/v1/object/public/media/anime/800/large.webp",
+    cover_image_medium: "https://s4.anilist.co/old-medium.jpg",
+    synopsis_enhanced_state: "done",
+  }]);
+  const item = {
+    ...media(800),
+    updatedAt: 2,
+    description: "Same story.",
+    coverImage: { large: "https://s4.anilist.co/large.jpg", medium: "https://s4.anilist.co/new-medium.jpg" },
+  };
+  const payload = { ...cursorRunPayload(), useCursor: false };
+  await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  const row = db.rows("anime")[0];
+  assert.equal(row.cover_image_large, "https://x.supabase.co/storage/v1/object/public/media/anime/800/large.webp");
+  assert.equal(row.cover_image_medium, "https://s4.anilist.co/new-medium.jpg");
+  assert.equal(row.synopsis_enhanced_state, "done");
+  assert.equal(db.rows("anime").length, 1);
+
+  await run(payload, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage: () => Promise.resolve([{ ...item, updatedAt: 3, description: "A rewritten story." }]),
+  });
+  assert.equal(db.rows("anime")[0].synopsis_enhanced_state, "pending");
+  assert.equal(db.rows("anime")[0].description, "A rewritten story.");
+});
+
+Deno.test("an unchanged title gets no write; only a changed next airing is patched", async () => {
+  const db = new Db();
+  const airing = 1_800_000_000;
+  db.seed("anime", [{
+    id: 1,
+    anilist_id: 900,
+    updated_at_anilist: new Date(1_700_000_000 * 1000).toISOString(),
+    episodes: 12,
+    next_episode_number: 5,
+    next_airing_at: new Date(airing * 1000).toISOString(),
+    last_synced_at: "2026-01-01T00:00:00.000Z",
+  }]);
+  const item = { ...media(900), nextAiringEpisode: { episode: 5, airingAt: airing } };
+  const payload = { ...cursorRunPayload(), useCursor: false };
+  await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  assert.equal(db.rows("anime")[0].last_synced_at, "2026-01-01T00:00:00.000Z");
+  await run(payload, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage: () => Promise.resolve([{ ...item, nextAiringEpisode: { episode: 6, airingAt: airing + 604800 } }]),
+  });
+  assert.equal(db.rows("anime")[0].next_episode_number, 6);
+  assert.notEqual(db.rows("anime")[0].last_synced_at, "2026-01-01T00:00:00.000Z");
+});
+
+Deno.test("external link isDisabled is stored", async () => {
+  const db = new Db();
+  const item = { ...media(950), externalLinks: [{ site: "Crunchyroll", url: "https://cr.example/x", isDisabled: true }] };
+  await run({ ...cursorRunPayload(), useCursor: false }, { supabase: db, heavyImportsEnabled: true, fetchPage: () => Promise.resolve([item]) });
+  assert.equal(db.rows("external_links")[0].is_disabled, true);
+});
+
+function trackRow(db: Db, key: string) {
+  return db.rows("import_track_state").find((r) => r.track_key === key);
+}
+
+Deno.test("airing track queries status_in + UPDATED_AT_DESC, sweeps to the watermark and leaves import_state alone", async () => {
+  const db = new Db();
+  db.seed("import_state", [{ media_type: "ANIME", last_page: 41 }]);
+  db.seed("import_track_state", [{
+    track_key: "anime:airing_or_releasing",
+    last_page: 0,
+    last_results: { cursor: { query_version: "updated_at_desc+status_releasing:v2", preset: "airing_or_releasing", mode: "updated_watermark", watermark: 10_000, sweep_top: null } },
+  }]);
+  const calls: { page: number; query: any }[] = [];
+  const pages: Record<number, any[]> = {
+    1: [{ ...media(1), updatedAt: 20_000 }, { ...media(2), updatedAt: 19_000 }],
+    2: [{ ...media(3), updatedAt: 9_000 }],
+  };
+  const res = await run({ trackPreset: "airing_or_releasing", pagesPerBatch: 5, delayMs: 0, includeRelations: false, includeEpisodes: false }, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage(page, _pp, _r, _e, _retries, query) {
+      calls.push({ page, query });
+      return Promise.resolve(pages[page] ?? []);
+    },
+  });
+  const out = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(out.sweepCompleted, true);
+  assert.deepEqual(calls.map((c) => c.page), [1, 2]);
+  assert.equal(calls[0].query.sort, "UPDATED_AT_DESC");
+  assert.deepEqual(calls[0].query.statusIn, ["RELEASING", "NOT_YET_RELEASED"]);
+  const row = trackRow(db, "anime:airing_or_releasing") as any;
+  assert.equal(row.last_page, 0);
+  assert.equal(row.last_results.cursor.watermark, 20_000);
+  assert.equal(row.last_results.cursor.sweep_top, null);
+  assert.equal(row.track_preset, "airing_or_releasing");
+  assert.equal(cursor(db), 41, "a tracked run must not overwrite the legacy cursor");
+});
+
+Deno.test("an unfinished sweep resumes at the next page with the same watermark", async () => {
+  const db = new Db();
+  db.seed("import_track_state", [{
+    track_key: "anime:recent_updates",
+    last_page: 0,
+    last_results: { cursor: { query_version: "updated_at_desc:v2", preset: "recent_updates", mode: "updated_watermark", watermark: 1_000, sweep_top: null } },
+  }]);
+  const seen: number[] = [];
+  const fetchPage = (page: number) => {
+    seen.push(page);
+    return Promise.resolve([{ ...media(page), updatedAt: 50_000 - page * 10 }]);
+  };
+  const payload = { trackPreset: "recent_updates", pagesPerBatch: 2, delayMs: 0, includeRelations: false, includeEpisodes: false };
+  await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage });
+  let row = trackRow(db, "anime:recent_updates") as any;
+  assert.equal(row.last_page, 2);
+  assert.equal(row.last_results.cursor.watermark, 1_000);
+  assert.equal(row.last_results.cursor.sweep_top, 49_990);
+  await run(payload, { supabase: db, heavyImportsEnabled: true, fetchPage });
+  row = trackRow(db, "anime:recent_updates") as any;
+  assert.deepEqual(seen, [1, 2, 3, 4]);
+  assert.equal(row.last_page, 4);
+});
+
+Deno.test("a cursor from a different query version restarts at page 1", async () => {
+  const db = new Db();
+  // Legacy row from the old popularity-sorted airing preset: no cursor version, page 37.
+  db.seed("import_track_state", [{ track_key: "anime:airing_or_releasing", last_page: 37, last_results: {} }]);
+  const seen: number[] = [];
+  await run({ trackPreset: "airing_or_releasing", pagesPerBatch: 1, delayMs: 0, includeRelations: false, includeEpisodes: false }, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage(page) {
+      seen.push(page);
+      return Promise.resolve([{ ...media(1), updatedAt: 5 }]);
+    },
+  });
+  assert.deepEqual(seen, [1]);
+});
+
+Deno.test("a popularity track keeps its legacy page cursor and stores its query version", async () => {
+  const db = new Db();
+  db.seed("import_track_state", [{ track_key: "anime:popularity_core", last_page: 12, last_results: {} }]);
+  const seen: { page: number; sort: string }[] = [];
+  await run({ trackPreset: "popularity_core", pagesPerBatch: 1, delayMs: 0 }, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage(page, _pp, _r, _e, _retries, query) {
+      seen.push({ page, sort: query.sort });
+      return Promise.resolve([media(1)]);
+    },
+  });
+  assert.deepEqual(seen, [{ page: 13, sort: "POPULARITY_DESC" }]);
+  const row = trackRow(db, "anime:popularity_core") as any;
+  assert.equal(row.last_page, 13);
+  assert.equal(row.last_results.cursor.query_version, "popularity_desc:v1");
+});
+
+Deno.test("new_titles sorts by ID_DESC and is persisted under an allowed track_preset value", async () => {
+  const db = new Db();
+  const seen: string[] = [];
+  await run({ trackPreset: "new_titles", pagesPerBatch: 1, delayMs: 0, includeRelations: false, initialSweepPages: 1 }, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage(_page, _pp, _r, _e, _retries, query) {
+      seen.push(query.sort);
+      return Promise.resolve([media(300), media(299)]);
+    },
+  });
+  assert.deepEqual(seen, ["ID_DESC"]);
+  const row = trackRow(db, "anime:new_titles") as any;
+  assert.equal(row.track_preset, "recent_updates");
+  assert.equal(row.last_results.cursor.preset, "new_titles");
+  assert.equal(row.last_results.cursor.watermark, 300);
+  assert.equal(row.last_page, 0);
 });

@@ -11,18 +11,36 @@
 // and no release.
 // The page loop stays a single for-loop bounded by pagesPerBatch, which is how this
 // job already differs from bulk-import-anime.
+// A GraphQL error or a response without data.Page throws in the transport: it is an
+// error (no cursor advance, no wrap), never an empty page. When the limiter cannot fit
+// another request in the run budget no request is sent; the run stops cleanly and
+// commits the pages it fully persisted. Tracked presets each have their own upstream
+// query and cursor (../bulk-import-anime/tracks.ts).
 import { processMangaItem } from "./mapping.ts";
 import {
   acquireImportLock,
   finishImportRun,
   finishUnacquiredLock,
-  readTrackedCursorPage,
+  readTrackedCursorState,
   releaseImportLock,
   sleep,
   startImportRun,
   writeTrackedCursorState,
-  type TrackPresetName,
 } from "../bulk-import-anime/persistence.ts";
+import {
+  advanceSweep,
+  compatibleCursor,
+  completeSweep,
+  type CursorMeta,
+  cursorMetaFor,
+  DEFAULT_INITIAL_SWEEP_PAGES,
+  normalizeTrackPreset,
+  type PageQueryOptions,
+  querySpecFor,
+  type SweepState,
+  type TrackPresetName,
+} from "../bulk-import-anime/tracks.ts";
+import { isCleanStop } from "../_shared/anilist_client.ts";
 
 const DEFAULT_DELAY_MS = 670; // ms
 const DEFAULT_PER_PAGE = 25;
@@ -47,14 +65,6 @@ type TrackPresetDefaults = {
   delayMs: number;
   scheduleSafe: boolean;
 };
-
-function normalizeTrackPreset(raw: unknown): TrackPresetName {
-  const value = String(raw ?? '').trim().toLowerCase();
-  if (value === 'popularity_core' || value === 'airing_or_releasing' || value === 'recent_updates' || value === 'catalog_backfill') {
-    return value;
-  }
-  return 'catalog_backfill';
-}
 
 function trackKeyFor(mediaType: string, preset: TrackPresetName): string {
   return `${mediaType.toLowerCase()}:${preset}`;
@@ -91,6 +101,7 @@ function trackPresetDefaults(preset: TrackPresetName): TrackPresetDefaults {
         scheduleSafe: true,
       };
     case 'recent_updates':
+    case 'new_titles':
       return {
         useCursor: true,
         runToEnd: false,
@@ -130,6 +141,7 @@ export interface MangaImportDeps {
     perPage: number,
     includeRelations: boolean,
     retries: number,
+    query: PageQueryOptions,
     // deno-lint-ignore no-explicit-any
   ) => Promise<any[]>;
   heavyImportsEnabled: boolean;
@@ -143,6 +155,7 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
   const trackPreset = normalizeTrackPreset(payload?.trackPreset);
   const resolvedTrackKey = hasTrackRouting ? (requestedTrackKey || trackKeyFor('MANGA', trackPreset)) : '';
   const trackDefaults = hasTrackRouting ? trackPresetDefaults(trackPreset) : null;
+  const spec = querySpecFor(hasTrackRouting ? trackPreset : null);
   let startPage: number | null = payload?.startPage ?? null;
   let pagesPerBatch: number = payload?.pagesPerBatch ?? (trackDefaults?.pagesPerBatch ?? 5);
   const useCursor: boolean = payload?.useCursor ?? (trackDefaults?.useCursor ?? true);
@@ -161,6 +174,7 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
   const maxPlaceholderChapters: number = payload?.maxPlaceholderChapters ?? DEFAULT_MAX_PLACEHOLDER_CHAPTERS;
   const maxPlaceholderVolumes: number = payload?.maxPlaceholderVolumes ?? DEFAULT_MAX_PLACEHOLDER_VOLUMES;
   const scheduleSafe: boolean = payload?.scheduleSafe ?? (trackDefaults?.scheduleSafe ?? false);
+  const initialSweepPages: number = payload?.initialSweepPages ?? DEFAULT_INITIAL_SWEEP_PAGES;
 
   if (scheduleSafe && !lightweight) {
     perPage = Math.max(1, Math.min(perPage, 10));
@@ -169,18 +183,25 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
     if (runToEnd) runToEnd = false;
     delayMs = Math.max(0, Math.min(delayMs, 250));
   }
+  // Cursor. Tracked runs read only their own row; untracked runs keep the legacy per-medium cursor.
+  const watermarkMode = spec.mode !== 'page';
+  let sweep: SweepState | null = null;
+  let priorCursor: CursorMeta | null = null;
   if (useCursor && (!startPage || startPage < 1) && resolvedTrackKey) {
-    const trackedLastPage = await readTrackedCursorPage(supabase, resolvedTrackKey);
-    if (trackedLastPage !== null) {
-      startPage = trackedLastPage + 1;
+    const stored = compatibleCursor(spec, await readTrackedCursorState(supabase, resolvedTrackKey));
+    priorCursor = stored.cursor;
+    startPage = stored.lastPage + 1;
+    if (watermarkMode) {
+      sweep = { watermark: stored.cursor?.watermark ?? null, sweepTop: stored.cursor?.sweep_top ?? null, sweepPages: stored.lastPage };
     }
-  }
-  if (useCursor && (!startPage || startPage < 1)) {
+  } else if (useCursor && (!startPage || startPage < 1)) {
     const { data } = await supabase.from('import_state').select('last_page').eq('media_type', 'MANGA').maybeSingle();
     const last = data?.last_page ?? 0;
     startPage = last + 1;
   }
   if (!startPage || startPage < 1) startPage = 1;
+  if (watermarkMode && !sweep) sweep = { watermark: null, sweepTop: null, sweepPages: startPage - 1 };
+  const priorMeta: CursorMeta | null = hasTrackRouting ? (priorCursor ?? cursorMetaFor(spec, trackPreset, watermarkMode ? sweep : null)) : null;
 
   const results = { manga: 0, chapters: 0, volumes: 0, characters: 0, authors: 0, staff: 0, tags: 0, relationships: 0, errors: 0 };
   const runType = lightweight ? 'core' : 'heavy';
@@ -200,6 +221,7 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
         visibility: 'paused',
         results,
         message: 'heavy_disabled',
+        cursor: priorMeta,
       });
     }
     await finishImportRun(supabase, runId, 'skipped', results, 'heavy_disabled', tRunStart);
@@ -222,6 +244,7 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
         results,
         startedAtMs: tRunStart,
         lock,
+        cursor: priorMeta,
       });
     }
     lockAcquired = true;
@@ -229,11 +252,30 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
     let processedPages = 0;
     const timeBudgetMs = payload?.timeBudgetMs ?? 55_000;
     const t0 = Date.now();
+    const deadlineMs = t0 + timeBudgetMs;
+    let stoppedEarly: string | null = null;
+    let sweepCompleted = false;
     for (let page = startPage; page < startPage + pagesPerBatch; page++) {
-      const manga = await deps.fetchPage(page, perPage, includeRelations, retries);
+      let manga: any[];
+      try {
+        manga = await deps.fetchPage(page, perPage, includeRelations, retries, {
+          sort: spec.sort,
+          statusIn: spec.statusIn,
+          deadlineMs,
+        });
+      } catch (e) {
+        // No request was sent for this page: commit what this run fully persisted and stop.
+        if (isCleanStop(e)) {
+          stoppedEarly = (e as { kind: string }).kind;
+          break;
+        }
+        throw e;
+      }
       if (!manga.length) {
+        // A real empty page (the transport throws on errors): the list is exhausted.
+        if (watermarkMode) sweepCompleted = true;
         // Cursor wrap-around: if we hit the end, reset so the next run starts from page 1.
-        if (useCursor && page === startPage) lastProcessed = 0;
+        else if (useCursor && page === startPage) lastProcessed = 0;
         break;
       }
       let primaryFailure: unknown = null;
@@ -264,9 +306,25 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
       if (primaryFailure) throw primaryFailure;
       lastProcessed = page;
       processedPages++;
+      if (watermarkMode && sweep) {
+        const advanced = advanceSweep(spec.mode, sweep, manga, initialSweepPages);
+        sweep = advanced.state;
+        if (advanced.complete) {
+          sweepCompleted = true;
+          break;
+        }
+      }
       await sleep(delayMs);
       if (!runToEnd && processedPages >= pagesPerBatch) break;
       if (runToEnd && (processedPages >= maxPagesPerRun || (Date.now() - t0) > timeBudgetMs)) break;
+    }
+    let cursorMeta: CursorMeta | null = null;
+    if (watermarkMode && sweep) {
+      if (sweepCompleted) sweep = completeSweep(sweep);
+      lastProcessed = sweep.sweepPages;
+      cursorMeta = cursorMetaFor(spec, trackPreset, sweep);
+    } else if (hasTrackRouting) {
+      cursorMeta = cursorMetaFor(spec, trackPreset, null);
     }
     if (useCursor) {
       await writeTrackedCursorState(supabase, {
@@ -277,11 +335,12 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
         status: 'success',
         visibility: 'active',
         results,
-        message: null,
+        message: stoppedEarly ? `stopped_early:${stoppedEarly}` : null,
+        cursor: cursorMeta,
       });
     }
-    await finishImportRun(supabase, runId, 'success', results, null, tRunStart);
-    return new Response(JSON.stringify({ success: true, results, nextStartPage: (lastProcessed + 1), trackKey: hasTrackRouting ? resolvedTrackKey : null, trackPreset: hasTrackRouting ? trackPreset : null }), { headers: { 'Content-Type': 'application/json' } });
+    await finishImportRun(supabase, runId, 'success', results, stoppedEarly ? `stopped_early:${stoppedEarly}` : null, tRunStart);
+    return new Response(JSON.stringify({ success: true, results, nextStartPage: (lastProcessed + 1), trackKey: hasTrackRouting ? resolvedTrackKey : null, trackPreset: hasTrackRouting ? trackPreset : null, stoppedEarly, sweepCompleted: watermarkMode ? sweepCompleted : null }), { headers: { 'Content-Type': 'application/json' } });
   } catch (e) {
     if (useCursor) {
       await writeTrackedCursorState(supabase, {
@@ -293,6 +352,7 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
         visibility: 'paused',
         results,
         message: (e as Error).message,
+        cursor: priorMeta,
       });
     }
     await finishImportRun(supabase, runId, 'error', results, (e as Error).message, tRunStart);
