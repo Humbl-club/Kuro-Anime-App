@@ -437,11 +437,13 @@ final class ImportsService: AccountScopedState, MemoryPressureTrimmable {
             // The unit-test host gets one throwaway journal per service, so a deletion marker or
             // checkpoint written by one test graph can never leak into another (or into the app's
             // real Application Support on the same simulator).
+            #if DEBUG
             if FixtureHost.isTestHost() {
                 let scratch = FileManager.default.temporaryDirectory
                     .appendingPathComponent("kuro-test-import-pages-\(UUID().uuidString)", isDirectory: true)
                 return try LibraryImportPageJournal(directory: scratch)
             }
+            #endif
             let base=try FileManager.default.url(for:.applicationSupportDirectory,in:.userDomainMask,appropriateFor:nil,create:true)
             return try LibraryImportPageJournal(directory:base.appendingPathComponent("Kuro/import-pages",isDirectory:true))
         } catch { return nil }
