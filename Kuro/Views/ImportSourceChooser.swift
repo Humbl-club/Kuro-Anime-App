@@ -102,7 +102,7 @@ struct ImportSourceChooser: View {
                         owner?.connectAndImportMAL(presentationAnchor: malAnchor)
                     }
                     .disabled(malAnchor == nil)
-                    Text(MALAccountList.notesLimitation)
+                    Text(ImportCopy.malNotesLimitation(german: isGerman))
                         .font(.kuroMeta())
                         .foregroundStyle(Color.kuroInkSecondary)
                         .fixedSize(horizontal: false, vertical: true)

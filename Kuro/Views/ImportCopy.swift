@@ -6,6 +6,14 @@ import KuroLibrary
 // internal ("finalizing", "myanimelist") and never reach the UI (rulebook §9).
 
 enum ImportCopy {
+    /// The MAL account read carries no list comments (the package's `MALAccountList.notesLimitation`,
+    /// in EN/DE for the UI).
+    static func malNotesLimitation(german: Bool) -> String {
+        german
+            ? "Die MAL-Liste liefert keine Kommentare. Deine Kuro-Notizen bleiben erhalten; XML-Importe können Notizen enthalten."
+            : "The MAL list doesn't include comments. Your Kuro notes are kept; XML imports can include notes."
+    }
+
     static func provider(_ provider: LibraryProviderReference.Provider) -> String {
         switch provider {
         case .anilist: return "AniList"

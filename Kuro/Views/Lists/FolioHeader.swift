@@ -28,7 +28,7 @@ struct FolioStatusStrip: View {
             .kuroSwipeExclusionZone()
             .onChange(of: selection) { _, value in
                 if reduceMotion { proxy.scrollTo(value, anchor: .center) }
-                else { withAnimation(KuroMotion.contextChange) { proxy.scrollTo(value, anchor: .center) } }
+                else { withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) { proxy.scrollTo(value, anchor: .center) } }
             }
         }
     }
@@ -109,7 +109,7 @@ struct FolioControlsRow: View {
                 Button {
                     guard !selected else { return }
                     KuroAccessibility.impactHaptic(.light)
-                    withAnimation(KuroMotion.contextChange) { density = option }
+                    withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) { density = option }
                 } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(option.title(german: german))

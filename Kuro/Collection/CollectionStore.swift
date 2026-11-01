@@ -171,6 +171,7 @@ final class CollectionStore: AccountScopedState {
 
     private struct CollectionPagingSnapshot: Sendable {
         let feed: [Media]
+        let banners: [MediaKey: String]
         let feedHasMore: Bool
         let feedCursorUpdatedAt: Date?
         let feedCursorSourceRank: Int?
@@ -185,6 +186,7 @@ final class CollectionStore: AccountScopedState {
 
         let snapshot = CollectionPagingSnapshot(
             feed: collectionFeedItems,
+            banners: feedBanners,
             feedHasMore: hasMoreCollectionFeed,
             feedCursorUpdatedAt: collectionFeedCursorUpdatedAt,
             feedCursorSourceRank: collectionFeedCursorSourceRank,
@@ -215,6 +217,7 @@ final class CollectionStore: AccountScopedState {
 
     private func restoreCollectionSnapshot(_ snapshot: CollectionPagingSnapshot) {
         collectionFeedItems = snapshot.feed
+        feedBanners = snapshot.banners
         hasMoreCollectionFeed = snapshot.feedHasMore
         collectionFeedCursorUpdatedAt = snapshot.feedCursorUpdatedAt
         collectionFeedCursorSourceRank = snapshot.feedCursorSourceRank

@@ -6,7 +6,7 @@ import SwiftUI
 // Picture first, title, at most one line (issue frame). Cover and title are ONE detail target; the
 // advance key is a separate 44 pt sibling, never nested (rulebook §7, §12). Status is never colour.
 
-/// What a row can do. The host owns every write (Library through `LibraryActions` / `HomeStore`).
+/// What a row can do. The host owns every write (`CollectionStore` for +1/Undo, `LibraryActions` otherwise).
 struct FolioRowActions {
     var open: (FolioItem) -> Void
     var advance: (FolioItem) -> Void
@@ -172,7 +172,8 @@ struct FolioShelf: View {
     }
 }
 
-/// Manga: an equal cover (≈ 2:3), title, then "Ch. 141" beside the dark advance key.
+/// Manga: an equal cover (≈ 2:3), a title in a reserved two-line slot (key rows align across a grid
+/// row), then "Ch. 141" beside the dark advance key, or above it when the text needs the width.
 private struct FolioCoverCell: View {
     let item: FolioItem
     let width: CGFloat
@@ -194,22 +195,37 @@ private struct FolioCoverCell: View {
                     .overlay(alignment: .topTrailing) {
                         if isSelecting { FolioSelectionMark(selected: isSelected).padding(6) }
                     }
-                Text(item.media.title)
-                    .font(.kuroCustom(14, weight: .medium, relativeTo: .subheadline, maxSize: 26))
-                    .foregroundStyle(Color.kuroInk)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                HStack(spacing: 0) {
-                    Text(FolioPolicy.positionLine(medium: .manga, progress: item.progress, total: item.total, german: german) ?? " ")
-                        .font(.kuroMeta())
-                        .foregroundStyle(Color.kuroInkSecondary)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                    Spacer(minLength: phase == nil ? 0 : 48)
+                ZStack(alignment: .topLeading) {
+                    // Two lines' height, always: a one-line title never lifts its key row.
+                    Text("A\nA")
+                        .font(Self.titleFont)
+                        .lineLimit(2)
+                        .hidden()
+                        .accessibilityHidden(true)
+                    Text(item.media.title)
+                        .font(Self.titleFont)
+                        .foregroundStyle(Color.kuroInk)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(minHeight: phase == nil ? 0 : 44)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                let position = FolioPolicy.shelfPositionLine(medium: .manga, progress: item.progress, german: german)
+                if phase == nil {
+                    positionText(position)
+                } else {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 0) {
+                            positionText(position).fixedSize()
+                            Spacer(minLength: 48)
+                        }
+                        .frame(minHeight: 44)
+                        VStack(alignment: .leading, spacing: 0) {
+                            positionText(position)
+                            Color.clear.frame(height: 44)
+                        }
+                    }
+                }
             }
             .frame(width: width, alignment: .leading)
             .contentShape(Rectangle())
@@ -227,6 +243,16 @@ private struct FolioCoverCell: View {
                 }
             }
         }
+    }
+
+    private static var titleFont: Font { .kuroCustom(14, weight: .medium, relativeTo: .subheadline, maxSize: 26) }
+
+    private func positionText(_ position: String?) -> some View {
+        Text(position ?? " ")
+            .font(.kuroMeta())
+            .foregroundStyle(Color.kuroInkSecondary)
+            .monospacedDigit()
+            .lineLimit(1)
     }
 }
 
@@ -343,23 +369,21 @@ private struct FolioIndexRow: View {
                             .accessibilityHidden(true)
                     }
                     FolioArtwork(url: item.media.imageURL, width: 40, height: 56, cornerRadius: 2, maxPixelSize: 140, topBiased: true)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(item.media.title)
-                            .font(.kuroBody(weight: .medium))
-                            .foregroundStyle(Color.kuroInk)
-                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? 3 : 2)
-                            .multilineTextAlignment(.leading)
-                        secondaryLine(german: german)
-                    }
-                    Spacer(minLength: KuroDesignSpacing.sm)
-                    if let numeral = FolioPolicy.progressNumeral(progress: item.progress, total: item.total),
-                       item.entry.status != .planning {
-                        Text(numeral)
-                            .font(.kuroCustom(17, weight: .regular, relativeTo: .body, maxSize: 30))
-                            .tracking(-0.4)
-                            .monospacedDigit()
-                            .foregroundStyle(item.entry.status == .dropped ? Color.kuroInkQuiet : Color.kuroInk)
-                            .lineLimit(1)
+                    if dynamicTypeSize.isAccessibilitySize {
+                        // Accessibility sizes: the numeral moves under the title instead of squeezing it.
+                        VStack(alignment: .leading, spacing: 3) {
+                            titleText(lineLimit: 4)
+                            numeralText
+                            secondaryLine(german: german)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        VStack(alignment: .leading, spacing: 3) {
+                            titleText(lineLimit: 2)
+                            secondaryLine(german: german)
+                        }
+                        Spacer(minLength: KuroDesignSpacing.sm)
+                        numeralText
                             .fixedSize()
                     }
                 }
@@ -382,9 +406,31 @@ private struct FolioIndexRow: View {
         .padding(.vertical, 4)
     }
 
+    private func titleText(lineLimit: Int) -> some View {
+        Text(item.media.title)
+            .font(.kuroBody(weight: .medium))
+            .foregroundStyle(Color.kuroInk)
+            .lineLimit(lineLimit)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    @ViewBuilder
+    private var numeralText: some View {
+        if let numeral = FolioPolicy.progressNumeral(progress: item.progress, total: item.total),
+           item.entry.status != .planning {
+            Text(numeral)
+                .font(.kuroCustom(17, weight: .regular, relativeTo: .body, maxSize: 30))
+                .tracking(-0.4)
+                .monospacedDigit()
+                .foregroundStyle(item.entry.status == .dropped ? Color.kuroInkQuiet : Color.kuroInk)
+                .lineLimit(1)
+        }
+    }
+
     @ViewBuilder
     private func secondaryLine(german: Bool) -> some View {
-        if let next = item.next {
+        if let next = item.next, next.isDisplayable {
             KuroReleaseLine(next)
         } else if item.entry.status == .completed, let verdict = item.entry.verdict {
             Text(verdict.name(german: german))

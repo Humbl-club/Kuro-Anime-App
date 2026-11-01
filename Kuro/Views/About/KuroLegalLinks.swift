@@ -1,13 +1,15 @@
 import Foundation
 
 // MARK: - Legal and credit links (one place)
-// `privacy` is the link the app has always shown. `terms` follows the same host and path pattern;
-// neither page could be verified from here (docs/app-store-metadata.md): confirm both are live and
-// accurate before release. Source hosts are fixed per source (spec §3.3a).
+// `privacy` is the link the app has always shown (confirm it is live before release,
+// docs/app-store-metadata.md). `terms` stays nil until the owner confirms a real Terms page: an
+// invented URL is never shipped, and Profile hides the row while it is nil. Source hosts are fixed
+// per source (spec §3.3a).
 
 enum KuroLegalLinks {
     static let privacy = URL(string: "https://kuro.app/privacy")
-    static let terms = URL(string: "https://kuro.app/terms")
+    /// Owner request: set the confirmed Terms of service URL here; nil hides the row.
+    static let terms: URL? = nil
 }
 
 /// A catalogue or release source Kuro credits (spec D11, sources.md).

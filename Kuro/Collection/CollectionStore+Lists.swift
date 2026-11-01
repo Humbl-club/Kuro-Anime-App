@@ -8,6 +8,16 @@ struct CollectionListRequest: Equatable, Sendable {
     let status: ListStatus
 }
 
+/// How a list +1 was written, so its Undo takes the matching path.
+enum CollectionAdvancePath: Equatable, Sendable {
+    /// The durable progress outbox (`LibraryStore.advanceProgress` with the unit cap). Undo is the
+    /// guarded `LibraryStore.undoProgress`: cancel an unsent intent, compensate an acknowledged one,
+    /// refuse while a request is in flight.
+    case durable
+    /// A plain progress edit (the outbox is unavailable). Undo writes the prior position back.
+    case direct
+}
+
 /// One +1 the Collection lists admitted: what Undo puts back, and for which account and lifecycle.
 struct CollectionAdvanceReceipt: Equatable, Sendable {
     let key: MediaKey
@@ -16,6 +26,26 @@ struct CollectionAdvanceReceipt: Equatable, Sendable {
     let prior: Int
     let advancedTo: Int
     let account: AccountContext
+    let path: CollectionAdvancePath
+}
+
+/// What a list +1 did.
+enum CollectionAdvanceResult: Equatable, Sendable {
+    /// Admitted along `path` (the displayed position now moved).
+    case admitted(CollectionAdvancePath)
+    /// Nothing sent: the title is at its known total, untracked, or its next unit needs a choice.
+    case refused
+    /// The write failed (the store already rolled its projection back).
+    case failed
+}
+
+/// What a list Undo did.
+enum CollectionUndoResult: Equatable, Sendable {
+    case undone
+    /// The +1 is already being sent and has no receipt yet: it cannot be replaced (try again later).
+    case alreadySending
+    /// No current receipt, the title moved on since, or the write failed.
+    case failed
 }
 
 #if canImport(Supabase)
@@ -23,9 +53,11 @@ import Supabase
 
 // MARK: - Collection lists (Folio) support
 // Owner-side state for the Collection lists and Profile's "Your lists" preview. Tracking values never
-// live here: status, progress and rating are read from the Library store; writes go through
-// `LibraryActions` / `HomeStore.advance` from the views. Everything here is account-scoped and cleared
-// by `cancelAccountWork` / `clearPrivateState`.
+// live here: status, progress and rating are read from the Library store. The lists' +1 and its Undo
+// are written here (`advanceFromList` / `undoListAdvance`) straight through the Library store's
+// progress API, never through `HomeStore`, so an advance made in Collection never arms Home's own
+// Undo and one advance has exactly one Undo path. Other writes go through `LibraryActions` from the
+// views. Everything here is account-scoped and cleared by `cancelAccountWork` / `clearPrivateState`.
 
 extension CollectionStore {
     /// Statuses Profile previews, in reading order.
@@ -48,6 +80,51 @@ extension CollectionStore {
     func consumeListRequest() -> CollectionListRequest? {
         defer { requestedListFilter = nil }
         return requestedListFilter
+    }
+
+    // MARK: +1 and Undo
+
+    /// +1 for a tracked title, capped at `cap` (the unit total, when known). The durable outbox when
+    /// it accepts writes (its own caught-up guard applies the cap again at admission); otherwise one
+    /// absolute progress edit from the displayed position, never past `cap`. No banner is shown here:
+    /// the caller shows one notice for the result.
+    func advanceFromList(_ key: MediaKey, cap: Int?) async -> CollectionAdvanceResult {
+        guard let library, accountSession.current != nil, let entry = library.entry(for: key) else { return .refused }
+        let current = library.displayedProgress(for: key, server: entry.progress, lifecycleId: entry.lifecycleId)
+        if let cap, current >= cap { return .refused }
+        if library.progressAvailable, entry.lifecycleId != nil, entry.revision != nil {
+            let outcome = await library.advanceProgress(for: key, cap: cap)
+            if case .failed(.invalidValue) = outcome { return .refused }
+            return outcome.error == nil ? .admitted(.durable) : .failed
+        }
+        let outcome = await library.apply(LibraryEdit(progress: .set(current + 1)), to: key, createIfMissing: nil)
+        return outcome.error == nil ? .admitted(.direct) : .failed
+    }
+
+    /// Guarded Undo of the latest list +1: only for the current account, the same lifecycle, and while
+    /// the title still shows the advanced position. Takes the receipt's own path (see
+    /// `CollectionAdvancePath`).
+    func undoListAdvance() async -> CollectionUndoResult {
+        guard let receipt = takeListAdvance(), let library, let entry = library.entry(for: receipt.key),
+              entry.lifecycleId == receipt.lifecycleId,
+              library.displayedProgress(for: receipt.key, server: entry.progress, lifecycleId: entry.lifecycleId)
+                == receipt.advancedTo else { return .failed }
+        switch receipt.path {
+        case .durable:
+            guard let lifecycle = receipt.lifecycleId else { return .failed }
+            do {
+                try await library.undoProgress(for: receipt.key, lifecycleId: lifecycle)
+                return .undone
+            } catch LibraryError.retryable {
+                return .alreadySending
+            } catch {
+                return .failed
+            }
+        case .direct:
+            let outcome = await library.apply(LibraryEdit(progress: .set(receipt.prior)), to: receipt.key,
+                                              createIfMissing: nil)
+            return outcome.error == nil ? .undone : .failed
+        }
     }
 
     // MARK: Undo receipt

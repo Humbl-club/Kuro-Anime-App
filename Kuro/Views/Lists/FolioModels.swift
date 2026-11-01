@@ -234,7 +234,9 @@ enum FolioPolicy {
             }.map(\.element)
         case .nextRelease:
             return indexed.sorted { a, b in
-                switch (a.element.next?.releaseAt, b.element.next?.releaseAt) {
+                // Only a displayable date ranks: a hidden low-confidence estimate sorts as undated.
+                switch (a.element.next.flatMap { $0.isDisplayable ? $0.releaseAt : nil },
+                        b.element.next.flatMap { $0.isDisplayable ? $0.releaseAt : nil }) {
                 case let (l?, r?) where l != r: return l < r
                 case (.some, nil): return true
                 case (nil, .some): return false
@@ -281,6 +283,13 @@ enum FolioPolicy {
         return "\(unitShort(medium, german: german)) \(numeral)"
     }
 
+    /// "Ch. 141" / "Kap. 141": the short position under a Shelf cover (no total: the narrow cell keeps
+    /// room for the 44 pt key; the total stays in the VoiceOver label). Nil before the first unit.
+    static func shelfPositionLine(medium: MediaKind, progress: Int, german: Bool) -> String? {
+        guard progress > 0 else { return nil }
+        return "\(unitShort(medium, german: german)) \(progress)"
+    }
+
     /// Shelf columns from the content width. Manga: equal covers of at least 96 pt, at least two
     /// columns (rulebook §6). Anime: shallow scenes of at least 300 pt, one column on a phone. At
     /// accessibility text sizes manga uses two columns and anime one.
@@ -295,6 +304,9 @@ enum FolioPolicy {
             return max(1, Int((usable + spacing) / (300 + spacing)))
         }
     }
+
+    /// Extra feed pages (of 120) a search or a non-recent sort reads before it stops and says so.
+    static let localOrderingPageLimit = 12
 
     /// The outer gutter: 20 pt, 16 pt at a content width of 320 pt or less (rulebook §5).
     static func gutter(forWidth width: CGFloat) -> CGFloat {
@@ -359,6 +371,18 @@ enum FolioCopy {
 
     static func undoFailed(german: Bool) -> String {
         german ? "Konnte nicht rückgängig gemacht werden." : "Couldn't undo that."
+    }
+
+    /// The +1 is already being sent and has no receipt yet, so it cannot be replaced.
+    static func undoInFlight(german: Bool) -> String {
+        german ? "Diese Speicherung ist schon unterwegs. Versuch es gleich noch einmal."
+               : "That save is already on its way. Try again in a moment."
+    }
+
+    /// The bounded read for search or sort stopped with titles still unread.
+    static func showingFirst(_ count: Int, german: Bool) -> String {
+        german ? "Berücksichtigt nur deine ersten \(count) Titel."
+               : "Covers your first \(count) titles only."
     }
 
     static func needsChoice(german: Bool) -> String {

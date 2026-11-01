@@ -449,21 +449,25 @@ private struct SpreadScoreSection: View {
                 .font(.kuroMeta(weight: .medium))
                 .foregroundStyle(Color.kuroInkSecondary)
 
-            // Ten dots: each a 26 x 44 pt target (ten 44 pt targets do not fit at 320 pt);
+            // Ten dots in two rows of five, each a full 44 x 44 pt target (220 pt wide, fits 320 pt);
             // VoiceOver adjusts the score as one control instead.
-            HStack(spacing: 0) {
-                ForEach(1...10, id: \.self) { dot in
-                    Button {
-                        score = score == dot ? 0 : dot
-                        KuroAccessibility.impactHaptic(.light)
-                    } label: {
-                        Circle()
-                            .fill(dot <= score ? Color.kuroInk : Color.kuroHairline)
-                            .frame(width: 10, height: 10)
-                            .frame(width: 26, height: 44)
-                            .contentShape(Rectangle())
+            VStack(spacing: 0) {
+                ForEach([1, 6], id: \.self) { first in
+                    HStack(spacing: 0) {
+                        ForEach(first..<(first + 5), id: \.self) { dot in
+                            Button {
+                                score = score == dot ? 0 : dot
+                                KuroAccessibility.impactHaptic(.light)
+                            } label: {
+                                Circle()
+                                    .fill(dot <= score ? Color.kuroInk : Color.kuroHairline)
+                                    .frame(width: 10, height: 10)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -602,9 +606,8 @@ struct QuickVerdictBadge: View {
     }
 
     var body: some View {
-        Text(title.uppercased())
-            .font(.kuroMicro(weight: .medium))
-            .tracking(1.0)
+        Text(title)
+            .font(.kuroMeta(weight: .medium))
             .foregroundStyle(verdict == nil ? Color.kuroInkSecondary : Color.kuroInk)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)

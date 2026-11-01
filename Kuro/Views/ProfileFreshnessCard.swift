@@ -55,7 +55,8 @@ struct ProfileFreshnessCard: View {
         case "detail_open": return german ? "geöffnete Titel" : "opened titles"
         case "user_tap": return german ? "manuelle Prüfungen" : "manual checks"
         case "scheduled": return german ? "geplant" : "scheduled"
-        default: return key.replacingOccurrences(of: "_", with: " ")
+        // An unknown server key is internal vocabulary: never echoed (rulebook §9).
+        default: return german ? "sonstige" : "other"
         }
     }
 

@@ -2,9 +2,11 @@
 // One data path whatever the series flags say: the Collection feed (title, cover, totals; scoped to
 // the selected medium and status) joined with the Library store (status, progress, rating: the one
 // tracking authority) and the release schedule. Flags off it replaces the legacy grid; flags on it
-// replaces the bare series text list. Writes: +1 through `HomeStore.advance` with the unit cap (the
-// durable path with its caught-up guard) or `LibraryActions` when that path is unavailable; Undo,
-// status and removal through `LibraryActions` (via `CollectionStore`'s batch scopes for batches).
+// replaces the bare series text list. Writes: +1 and its guarded Undo through the owner
+// (`CollectionStore.advanceFromList` / `undoListAdvance`: the durable progress outbox with the unit cap,
+// or one capped progress edit when the outbox is unavailable; never `HomeStore`, so Home's Undo is not
+// armed by a Collection +1); status and removal through `LibraryActions` (via `CollectionStore`'s
+// batch scopes for batches). Search covers every status of the medium (rulebook §14.4).
 
 import KuroCore
 import KuroLibrary
@@ -42,6 +44,8 @@ struct EditorialCollectionView: View {
     @State private var mountedAccount: AccountContext?
     @State private var didInitialLoad = false
     @State private var isLoadingAll = false
+    /// The bounded read for search/sort stopped with titles still unread (shown as an honest line).
+    @State private var localOrderingTruncated = false
 
     private struct ClassifyTarget: Identifiable {
         let media: Media
@@ -59,6 +63,16 @@ struct EditorialCollectionView: View {
         medium == .manga ? $mangaDensity : $animeDensity
     }
 
+    /// An active search reads every status of the medium (search covers the whole list, rulebook §14.4).
+    private var isQueryActive: Bool {
+        !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// The server-side status filter of the feed this page reads.
+    private var feedStatus: ListStatus? {
+        isImportedView || isQueryActive ? nil : status.listStatus
+    }
+
     // MARK: Rows
 
     /// Every loaded row of the selected medium joined with its Library entry and next release.
@@ -66,16 +80,19 @@ struct EditorialCollectionView: View {
         collection.displayedFeedItems.compactMap { media -> FolioItem? in
             guard media.kind == medium, let entry = library.entry(for: media.libraryKey) else { return nil }
             let progress = library.displayedProgress(for: entry.key, server: entry.progress, lifecycleId: entry.lifecycleId)
-            let next = entry.status == .completed || entry.status == .dropped ? nil : releases.nextRelease(for: entry.key)
+            // Only a displayable date (an estimate needs confidence): sort, row and VoiceOver agree.
+            let next = entry.status == .completed || entry.status == .dropped
+                ? nil : releases.nextRelease(for: entry.key).flatMap { $0.isDisplayable ? $0 : nil }
             return FolioItem(media: media, entry: entry, progress: progress, next: next,
                              banner: collection.feedBanners[entry.key])
         }
     }
 
-    /// The rows the list shows: status (Library authority), verdict, search, then sort.
+    /// The rows the list shows: status (Library authority), verdict, search, then sort. A search spans
+    /// every status of the medium. Computed once per render (`body`).
     private var visibleItems: [FolioItem] {
         var rows = loadedItems
-        if !isImportedView {
+        if !isImportedView && !isQueryActive {
             rows = rows.filter { status.listStatuses.contains($0.entry.status) }
             if status == .completed {
                 rows = rows.filter { verdictFilter.includes($0.entry.verdict) }
@@ -117,10 +134,11 @@ struct EditorialCollectionView: View {
         GeometryReader { geometry in
             let width = geometry.size.width
             let gutter = FolioPolicy.gutter(forWidth: width)
+            let rows = visibleItems
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    header(gutter: gutter)
-                    content(width: width, gutter: gutter)
+                    header(gutter: gutter, canSelect: !rows.isEmpty)
+                    content(rows: rows, width: width, gutter: gutter)
                         .padding(.top, KuroDesignSpacing.md)
                     Color.clear.frame(height: KuroDesignSpacing.xl)
                 }
@@ -202,6 +220,12 @@ struct EditorialCollectionView: View {
         .onChange(of: status) { _, _ in
             selectedKeys.removeAll()
             verdictFilter = .all
+            // Choosing a status ends a search (which spans every status); the query change reloads.
+            if isQueryActive {
+                searchText = ""
+                isSearching = false
+                return
+            }
             Task { await reload() }
         }
         .onChange(of: collection.importedTitleKeys) { _, _ in
@@ -212,11 +236,13 @@ struct EditorialCollectionView: View {
             // Another surface re-read the feed for a different filter (sync, realtime, import):
             // read the list this page is showing again.
             // Latest wins in the store, so this read replaces the other one; ours already match.
-            guard !isImportedView, filter != status.listStatus else { return }
+            guard !isImportedView, filter != feedStatus else { return }
             Task { await reload() }
         }
-        .onChange(of: searchText) { _, value in
-            if !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { Task { await loadAllForLocalOrdering() } }
+        .onChange(of: isQueryActive) { _, _ in
+            // Starting a search reads the whole medium; clearing it reads the selected status again.
+            guard !isImportedView else { return }
+            Task { await reload() }
         }
         .onChange(of: sort) { _, value in
             if value != .recent { Task { await loadAllForLocalOrdering() } }
@@ -226,7 +252,7 @@ struct EditorialCollectionView: View {
     // MARK: Header
 
     @ViewBuilder
-    private func header(gutter: CGFloat) -> some View {
+    private func header(gutter: CGFloat, canSelect: Bool) -> some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             if isImportedView {
                 HStack(alignment: .firstTextBaseline, spacing: KuroDesignSpacing.md) {
@@ -263,7 +289,7 @@ struct EditorialCollectionView: View {
                 sort: $sort,
                 isSearching: isSearching,
                 isSelecting: isSelecting,
-                canSelect: !visibleItems.isEmpty,
+                canSelect: canSelect,
                 onToggleSearch: toggleSearch,
                 onToggleSelect: toggleSelect,
                 gutter: gutter
@@ -289,8 +315,7 @@ struct EditorialCollectionView: View {
     // MARK: Content and states
 
     @ViewBuilder
-    private func content(width: CGFloat, gutter: CGFloat) -> some View {
-        let rows = visibleItems
+    private func content(rows: [FolioItem], width: CGFloat, gutter: CGFloat) -> some View {
         let hasError = collection.collectionErrorMessage?.isEmpty == false
         let offline = !networkMonitor.isConnected
         if collection.isCollectionLoading && rows.isEmpty {
@@ -304,14 +329,19 @@ struct EditorialCollectionView: View {
                                   layout: .inline, retry: offline ? nil : { Task { await reload(refreshLibrary: true) } })
                         .padding(.horizontal, gutter)
                 }
-                if density.wrappedValue == .shelf {
-                    FolioShelf(items: rows, medium: medium, width: width, isSelecting: isSelecting,
-                               selectedKeys: selectedKeys, actions: actions)
-                } else {
-                    FolioIndex(items: rows, width: width, isSelecting: isSelecting,
-                               selectedKeys: selectedKeys, actions: actions)
+                Group {
+                    if density.wrappedValue == .shelf {
+                        FolioShelf(items: rows, medium: medium, width: width, isSelecting: isSelecting,
+                                   selectedKeys: selectedKeys, actions: actions)
+                    } else {
+                        FolioIndex(items: rows, width: width, isSelecting: isSelecting,
+                                   selectedKeys: selectedKeys, actions: actions)
+                    }
                 }
-                if sort == .recent && searchText.isEmpty {
+                // The density switch is a crossfade, never rows travelling between layouts (§8).
+                .id(density.wrappedValue)
+                .transition(.opacity)
+                if sort == .recent && !isQueryActive {
                     KuroLoadMoreSentinel(
                         itemCount: collection.displayedFeedItems.count,
                         hasMore: collection.hasMoreDisplayedFeed,
@@ -324,18 +354,37 @@ struct EditorialCollectionView: View {
                         .tint(Color.kuroInkQuiet)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .accessibilityLabel(german ? "Weitere Titel werden geladen" : "Loading more titles")
+                } else if localOrderingTruncated {
+                    truncationLine(gutter: gutter)
                 }
             }
         }
+    }
+
+    /// The bounded read stopped early: say so instead of implying the order or the matches are complete.
+    private func truncationLine(gutter: CGFloat) -> some View {
+        Text(FolioCopy.showingFirst(collection.displayedFeedItems.count, german: german))
+            .font(.kuroMeta())
+            .foregroundStyle(Color.kuroInkSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, gutter)
     }
 
     @ViewBuilder
     private func emptyState(hasError: Bool, offline: Bool, gutter: CGFloat) -> some View {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let libraryKnown = library.loadState == .loaded || !library.allEntries.isEmpty
+        // The Library (the tracking authority) knows this status is empty: that is an honest empty
+        // line, never a failure, even offline (rulebook §9).
+        let knownEmptyStatus = !isImportedView && query.isEmpty && libraryKnown && (counts[status] ?? 0) == 0
+            && counts.values.reduce(0, +) > 0
         if !libraryKnown && library.loadState != .failed {
             // The Library has not answered yet: keep stable geometry instead of an "empty" claim.
             KuroStateView(.loading, title: german ? "Deine Listen werden geladen." : "Loading your lists.", layout: .inline)
+                .padding(.horizontal, gutter)
+        } else if knownEmptyStatus {
+            KuroStateView(.empty, title: status.emptyLine(medium: medium, german: german), layout: .inline)
                 .padding(.horizontal, gutter)
         } else if hasError || library.loadState == .failed && library.allEntries.isEmpty
                     || (offline && collection.displayedFeedItems.isEmpty && !library.allEntries.isEmpty) {
@@ -343,8 +392,21 @@ struct EditorialCollectionView: View {
                           retry: { Task { await reload(refreshLibrary: true) } })
                 .frame(minHeight: 280)
         } else if !query.isEmpty {
-            KuroStateView(.empty, title: FolioCopy.noMatches(query, german: german), layout: .inline)
-                .padding(.horizontal, gutter)
+            VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                KuroStateView(.empty, title: FolioCopy.noMatches(query, german: german), layout: .inline)
+                if isLoadingAll {
+                    ProgressView()
+                        .tint(Color.kuroInkQuiet)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .accessibilityLabel(german ? "Weitere Titel werden geladen" : "Loading more titles")
+                } else if localOrderingTruncated {
+                    Text(FolioCopy.showingFirst(collection.displayedFeedItems.count, german: german))
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(.horizontal, gutter)
         } else if library.allEntries.isEmpty && !isImportedView {
             libraryInvitation(gutter: gutter)
         } else if !isImportedView && counts.values.reduce(0, +) == 0 {
@@ -428,29 +490,34 @@ struct EditorialCollectionView: View {
             guard collection.accountSession.isCurrent(context) else { return }
         }
         collection.feedMedium = isImportedView ? nil : medium
-        await collection.fetchCollectionFeed(status: isImportedView ? nil : status.listStatus)
+        localOrderingTruncated = false
+        await collection.fetchCollectionFeed(status: feedStatus)
         guard collection.accountSession.isCurrent(context) else { return }
-        if sort != .recent || !searchText.isEmpty { await loadAllForLocalOrdering() }
+        if sort != .recent || isQueryActive { await loadAllForLocalOrdering() }
         if refreshLibrary { await releases.loadSchedule(force: true) }
     }
 
-    /// Title/score/date sorts and search need the whole list: read the remaining pages (bounded).
+    /// Title/score/date sorts and search need the whole list: read the remaining pages (bounded at
+    /// `FolioPolicy.localOrderingPageLimit`; past it the page says "Showing the first N titles").
     private func loadAllForLocalOrdering() async {
         guard !isLoadingAll, let context = collection.accountSession.current else { return }
         isLoadingAll = true
-        defer { if collection.accountSession.isCurrent(context) { isLoadingAll = false } }
+        // Reset whatever the account did meanwhile: a flag left set would block the next account.
+        defer { isLoadingAll = false }
         var pages = 0
-        while collection.hasMoreDisplayedFeed, pages < 12, !Task.isCancelled {
+        while collection.hasMoreDisplayedFeed, pages < FolioPolicy.localOrderingPageLimit, !Task.isCancelled {
             let loaded = await collection.fetchNextCollectionFeedPage(limit: 120)
-            guard loaded, collection.accountSession.isCurrent(context) else { break }
+            guard loaded, collection.accountSession.isCurrent(context) else { return }
             pages += 1
         }
+        guard collection.accountSession.isCurrent(context) else { return }
+        localOrderingTruncated = collection.hasMoreDisplayedFeed && pages >= FolioPolicy.localOrderingPageLimit
     }
 
     // MARK: Controls
 
     private func toggleSearch() {
-        withAnimation(KuroMotion.contextChange) {
+        withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
             isSearching.toggle()
             if !isSearching { searchText = "" }
         }
@@ -458,7 +525,7 @@ struct EditorialCollectionView: View {
     }
 
     private func toggleSelect() {
-        withAnimation(KuroMotion.contextChange) {
+        withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
             isSelecting.toggle()
             if !isSelecting { selectedKeys.removeAll() }
         }
@@ -480,8 +547,8 @@ struct EditorialCollectionView: View {
         return library.displayedProgress(for: key, server: entry.progress, lifecycleId: entry.lifecycleId)
     }
 
-    /// +1 with the cap: the durable Home path (caught-up guard, outbox, conflicts) when it is
-    /// available, otherwise the Library writer. A title at its total never advances.
+    /// +1 with the cap through the owner (`CollectionStore.advanceFromList`: the durable outbox with its
+    /// caught-up guard, or one capped edit). A title at its total never advances. One notice per tap.
     private func advance(_ item: FolioItem) {
         guard let context = activeAccount else { return }
         let key = item.key
@@ -500,25 +567,25 @@ struct EditorialCollectionView: View {
         let before = item.progress
         pendingAdvance.insert(key)
         Task {
-            if library.progressAvailable, let lifecycle = entry.lifecycleId, let revision = entry.revision {
-                await home.advance(medium: key.kind == .manga ? "manga" : "anime", mediaId: key.id,
-                                   lifecycleId: lifecycle.uuidString, baseRevision: revision,
-                                   serverProgress: entry.progress, episodeCap: item.total,
-                                   serverLabel: entry.progressLabel, serverUnitId: entry.unitId?.uuidString)
-            } else {
-                await LibraryViewActions.incrementProgress(key, actions: libraryActions)
-            }
+            // Released whatever happens meanwhile: a key left pending would show "pending" forever.
+            defer { pendingAdvance.remove(key) }
+            let result = await collection.advanceFromList(key, cap: item.total)
             guard collection.accountSession.isCurrent(context) else { return }
-            pendingAdvance.remove(key)
-            let after = displayedProgress(key) ?? before
-            if after > before {
-                if !(library.progressAvailable && entry.lifecycleId != nil) { KuroAccessibility.successHaptic() }
+            switch result {
+            case .admitted(let path):
+                let after = displayedProgress(key) ?? before
+                // Admitted without moving: the outbox found the title already at its total.
+                guard after > before else { return }
+                KuroAccessibility.successHaptic()
                 collection.recordListAdvance(CollectionAdvanceReceipt(
                     key: key, title: item.media.title, lifecycleId: entry.lifecycleId,
-                    prior: before, advancedTo: after, account: context))
+                    prior: before, advancedTo: after, account: context, path: path))
                 show(FolioNotice(tone: .confirmation, message: FolioCopy.advanced(medium: key.kind, to: after, german: german),
                                  actionTitle: FolioCopy.undoTitle(german: german)), seconds: UIAccessibility.isVoiceOverRunning ? 12 : 5)
-            } else {
+            case .refused:
+                return
+            case .failed:
+                KuroAccessibility.errorHaptic()
                 show(FolioNotice(tone: .problem, message: FolioCopy.advanceFailed(german: german), actionTitle: nil))
             }
         }
@@ -530,20 +597,19 @@ struct EditorialCollectionView: View {
         undoLastAdvance()
     }
 
-    /// Guarded Undo: only while the title still shows the advanced position in the same lifecycle;
-    /// writes the prior position through `LibraryActions` (same per-title order as the +1).
+    /// Guarded Undo through the owner: the receipt's own path (the durable outbox's cancel/compensate,
+    /// or the prior position for a plain edit), only while the title still shows the advanced position.
     private func undoLastAdvance() {
-        guard let context = activeAccount, let receipt = collection.takeListAdvance(),
-              receipt.account == context else { return }
-        guard let entry = library.entry(for: receipt.key), entry.lifecycleId == receipt.lifecycleId,
-              displayedProgress(receipt.key) == receipt.advancedTo else {
-            show(FolioNotice(tone: .problem, message: FolioCopy.undoFailed(german: german), actionTitle: nil))
-            return
-        }
+        guard let context = activeAccount else { return }
         Task {
-            let outcome = await libraryActions.apply(LibraryEdit(progress: .set(receipt.prior)), to: receipt.key, createIfMissing: nil)
+            let result = await collection.undoListAdvance()
             guard collection.accountSession.isCurrent(context) else { return }
-            if outcome.error != nil {
+            switch result {
+            case .undone:
+                return
+            case .alreadySending:
+                show(FolioNotice(tone: .problem, message: FolioCopy.undoInFlight(german: german), actionTitle: nil))
+            case .failed:
                 show(FolioNotice(tone: .problem, message: FolioCopy.undoFailed(german: german), actionTitle: nil))
             }
         }
@@ -577,7 +643,7 @@ struct EditorialCollectionView: View {
         if updated == keys.count { KuroAccessibility.successHaptic() } else if updated == 0 { KuroAccessibility.errorHaptic() }
         show(FolioNotice(tone: updated == keys.count ? .confirmation : .problem,
                          message: FolioCopy.updated(updated, of: keys.count, german: german), actionTitle: nil))
-        withAnimation(KuroMotion.contextChange) {
+        withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
             selectedKeys.removeAll()
             isSelecting = false
         }
@@ -594,7 +660,7 @@ struct EditorialCollectionView: View {
         if removed == keys.count { KuroAccessibility.successHaptic() } else if removed == 0 { KuroAccessibility.errorHaptic() }
         show(FolioNotice(tone: removed == keys.count ? .confirmation : .problem,
                          message: FolioCopy.removed(removed, of: keys.count, german: german), actionTitle: nil))
-        withAnimation(KuroMotion.contextChange) {
+        withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
             selectedKeys.removeAll()
             isSelecting = false
         }

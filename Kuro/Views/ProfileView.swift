@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 
 // Profile: the account hub (rulebook §14.3). Order: identity, Your library (counts + "Your lists"),
 // Imports and connections (incl. pending and resumable imports), Clubs, Preferences, Account and
-// privacy, then a quiet Advanced disclosure (cache tools; the streaming freshness card when that
+// privacy, About (Data sources and credits, Terms once confirmed, version), then a quiet Advanced disclosure (cache tools; the streaming freshness card when that
 // feature is on). Rows: serif title, sans subtitle in secondary ink, hairlines, no chevrons.
 struct ProfileView: View {
     var onOpenConciergeImportReview: ((String) -> Void)? = nil
@@ -73,6 +73,9 @@ struct ProfileView: View {
                         .padding(.horizontal, KuroDesignSpacing.padding)
 
                     accountSection(ticket: ticket, confirmationTicket: confirmationTicket)
+                        .padding(.horizontal, KuroDesignSpacing.padding)
+
+                    aboutSection
                         .padding(.horizontal, KuroDesignSpacing.padding)
 
                     advancedSection
@@ -254,15 +257,17 @@ struct ProfileView: View {
                     .overlay(Circle().strokeBorder(Color.kuroKeyRim, lineWidth: 1))
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(accountIdentity)
+                    Text(accountHeadline)
                         .font(.kuroTitleName())
                         .foregroundStyle(Color.kuroInk)
-                        .lineLimit(2)
-                        .truncationMode(.middle)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(isGermanLocale ? "Angemeldet" : "Signed in")
-                        .font(.kuroMeta())
-                        .foregroundStyle(Color.kuroInkSecondary)
+                    if let address = accountAddress {
+                        Text(address)
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkSecondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                 }
                 Spacer(minLength: 0)
             }
@@ -273,15 +278,27 @@ struct ProfileView: View {
         }
     }
 
-    /// The real account: the e-mail address, or the Apple sign-in it came from (never a slogan).
-    private var accountIdentity: String {
-        if let email = identity.currentUserEmail, !email.isEmpty {
-            if email.contains("privaterelay.appleid.com") {
-                return isGermanLocale ? "Mit Apple angemeldet" : "Signed in with Apple"
-            }
-            return email
+    /// The real account, never a slogan or a generic account label, and never the raw address as the
+    /// headline (rulebook §14.3): how the person signed in.
+    private var accountHeadline: String {
+        guard let email = identity.currentUserEmail, !email.isEmpty else {
+            return isGermanLocale ? "Angemeldet" : "Signed in"
         }
-        return isGermanLocale ? "Dein Kuro-Konto" : "Your Kuro account"
+        if Self.isAppleRelay(email) {
+            return isGermanLocale ? "Mit Apple angemeldet" : "Signed in with Apple"
+        }
+        return isGermanLocale ? "Mit E-Mail angemeldet" : "Signed in with e-mail"
+    }
+
+    /// The address on the quiet secondary line (middle-truncated); an Apple private relay address
+    /// says nothing to the person and is not shown.
+    private var accountAddress: String? {
+        guard let email = identity.currentUserEmail, !email.isEmpty, !Self.isAppleRelay(email) else { return nil }
+        return email
+    }
+
+    private static func isAppleRelay(_ email: String) -> Bool {
+        email.lowercased().hasSuffix("privaterelay.appleid.com")
     }
 
     // MARK: Library
@@ -370,19 +387,19 @@ struct ProfileView: View {
                         ) {
                             coordinator?.disconnectMALAccount()
                         }
-                        rowHairline
+                    } else {
+                        ProfileQuietRow(
+                            title: german ? "MAL-Konto verbinden" : "Connect a MAL account",
+                            subtitle: german
+                                ? "Anime und Manga. Bestehende Notizen bleiben erhalten."
+                                : "Anime and Manga. Existing notes are kept.",
+                            isEnabled: anchor != nil && coordinator?.isProcessingAniListImport != true
+                        ) {
+                            guard let anchor else { return }
+                            coordinator?.connectAndImportMAL(presentationAnchor: anchor)
+                        }
                     }
-                    ProfileQuietRow(
-                        title: german ? "MAL-Konto verbinden" : "Connect a MAL account",
-                        subtitle: german
-                            ? "Anime und Manga. Bestehende Notizen bleiben erhalten."
-                            : "Anime and Manga. Existing notes are kept.",
-                        isEnabled: anchor != nil && coordinator?.isProcessingAniListImport != true
-                    ) {
-                        guard let anchor else { return }
-                        coordinator?.connectAndImportMAL(presentationAnchor: anchor)
-                    }
-                    groupCaption(MALAccountList.notesLimitation)
+                    groupCaption(ImportCopy.malNotesLimitation(german: german))
                 }
 
                 rowHairline
@@ -572,22 +589,9 @@ struct ProfileView: View {
                     showDeleteConfirmation = true
                 }
 
-                rowHairline
-
                 if let privacy = KuroLegalLinks.privacy {
+                    rowHairline
                     ProfileLinkRow(title: german ? "Datenschutz" : "Privacy policy", url: privacy)
-                    rowHairline
-                }
-                if let terms = KuroLegalLinks.terms {
-                    ProfileLinkRow(title: german ? "Nutzungsbedingungen" : "Terms of service", url: terms)
-                    rowHairline
-                }
-
-                ProfileQuietRow(
-                    title: german ? "Datenquellen und Danksagung" : "Data sources and credits",
-                    subtitle: "AniList, MangaDex, MangaUpdates, AnimeThemes"
-                ) {
-                    showDataSources = true
                 }
             }
             .alert(german ? "Konto löschen?" : "Delete your account?", isPresented: $showDeleteConfirmation) {
@@ -610,7 +614,7 @@ struct ProfileView: View {
                         } catch {
                             guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
                             showToast(.error, title: german ? "Konto nicht gelöscht" : "Account not deleted",
-                                      subtitle: error.localizedDescription)
+                                      subtitle: Self.deletionFailureLine(error, german: german))
                         }
                     }
                 }
@@ -623,7 +627,37 @@ struct ProfileView: View {
             if isDeleting {
                 statusLine(german ? "Konto wird gelöscht …" : "Deleting account …")
             }
+        }
+    }
 
+    /// A plain EN/DE line for a failed deletion (never the raw, English-only error text).
+    private static func deletionFailureLine(_ error: Error, german: Bool) -> String {
+        if error is URLError {
+            return german ? "Versuch es erneut, wenn du online bist." : "Try again when you're online."
+        }
+        return german ? "Versuch es gleich noch einmal." : "Try again in a moment."
+    }
+
+    // MARK: About
+
+    /// Spec D11: Profile > About holds Data sources and credits, the Terms link (once confirmed) and
+    /// the version.
+    private var aboutSection: some View {
+        let german = isGermanLocale
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+            sectionHeader(german ? "Über Kuro." : "About.")
+            profileGroup {
+                ProfileQuietRow(
+                    title: german ? "Datenquellen und Danksagung" : "Data sources and credits",
+                    subtitle: "AniList, MangaDex, MangaUpdates, AnimeThemes"
+                ) {
+                    showDataSources = true
+                }
+                if let terms = KuroLegalLinks.terms {
+                    rowHairline
+                    ProfileLinkRow(title: german ? "Nutzungsbedingungen" : "Terms of service", url: terms)
+                }
+            }
             versionLine
         }
     }
@@ -1086,7 +1120,7 @@ private struct ProfileImportResultCard: View {
                         Text(isGermanLocale ? "Im Concierge prüfen" : "Review in Concierge")
                             .font(.kuroButtonLabel(weight: .medium))
                     }
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(Color.kuroWhite)
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .background(
                         RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)

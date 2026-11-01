@@ -4,8 +4,8 @@ import SwiftUI
 
 // MARK: - Profile "Your lists" (rulebook §14.3, spec D9)
 // One row per main status: the word and its real count, then up to six equal covers (56 pt wide).
-// A row is one target: it opens Collection filtered to that status (and the medium of its newest
-// title). Counts come from the whole Library; covers from Collection's bounded preview read.
+// A row is one target: it opens Collection filtered to that status, in the medium that holds most of
+// that status (ties: the medium of its newest title). Counts come from the whole Library; covers from Collection's bounded preview read.
 
 /// Pure rules of the preview (tested in `KuroTests/ProfileLaneTests.swift`).
 enum ProfileListsPolicy {
@@ -48,9 +48,16 @@ enum ProfileListsPolicy {
         }
     }
 
-    /// The Collection request a row opens: its status, in the medium of its newest cover.
-    static func request(for status: ListStatus, covers: [Media]) -> CollectionListRequest {
-        CollectionListRequest(medium: covers.first?.kind, status: status)
+    /// The Collection request a row opens: its status, in the medium with more titles of that status
+    /// (Library counts), so "Watching & reading 11" never lands on a strip of 1. A tie (or no
+    /// entries) uses the newest cover's medium; nothing at all keeps the page's remembered medium.
+    static func request(for status: ListStatus, entries: [LibraryEntry], covers: [Media]) -> CollectionListRequest {
+        let covered = rows.first { $0.status == status }?.covers ?? [status]
+        let anime = entries.filter { $0.key.kind == .anime && covered.contains($0.status) }.count
+        let manga = entries.filter { $0.key.kind == .manga && covered.contains($0.status) }.count
+        let medium: MediaKind?
+        if anime != manga { medium = anime > manga ? .anime : .manga } else { medium = covers.first?.kind }
+        return CollectionListRequest(medium: medium, status: status)
     }
 }
 
@@ -72,7 +79,7 @@ struct ProfileListsPreview: View {
                         count: count,
                         covers: Array((previews[row.status] ?? []).prefix(CollectionStore.previewLimit))
                     ) {
-                        onOpen(ProfileListsPolicy.request(for: row.status, covers: previews[row.status] ?? []))
+                        onOpen(ProfileListsPolicy.request(for: row.status, entries: entries, covers: previews[row.status] ?? []))
                     }
                     Rectangle().fill(Color.kuroHairline).frame(height: 0.5)
                 }

@@ -93,6 +93,18 @@ struct ProfileLaneTests {
                 "soonest first, undated last in feed order")
     }
 
+    @Test("Next release: a hidden low-confidence estimate sorts as undated")
+    func nextReleaseIgnoresHiddenEstimates() {
+        let hidden = ReleaseScheduleItem(medium: .anime, mediaId: 5, title: "Hidden", unitKind: .episode,
+                                         unitNumber: 2, releaseAt: Self.now.addingTimeInterval(3600),
+                                         basis: .estimated, confidence: 0.4, source: "anilist")
+        #expect(!hidden.isDisplayable)
+        let estimated = FolioItem(media: Self.media(.anime, 5, title: "Hidden"), entry: Self.entry(.anime, 5, .current),
+                                  progress: 1, next: hidden, banner: nil)
+        let dated = Self.item(.anime, 6, title: "Dated", releaseIn: 48)
+        #expect(FolioPolicy.sorted([estimated, dated], by: .nextRelease).map(\.media.id) == [6, 5])
+    }
+
     @Test("Search matches case- and accent-insensitively; an empty query matches all")
     func search() {
         let row = Self.item(.anime, 1, title: "Pokémon Horizons")
@@ -130,6 +142,23 @@ struct ProfileLaneTests {
         #expect(FolioPolicy.positionLine(medium: .manga, progress: 141, total: nil, german: true) == "Kap. 141")
         #expect(FolioPolicy.positionLine(medium: .manga, progress: 0, total: nil, german: false) == nil)
         #expect(FolioCopy.advanced(medium: .anime, to: 8, german: true) == "F. 8 markiert.")
+    }
+
+    @Test("Shelf covers show only the short position, so it fits beside the 44 pt key; totals stay in VoiceOver")
+    func shelfPosition() {
+        #expect(FolioPolicy.shelfPositionLine(medium: .manga, progress: 141, german: true) == "Kap. 141")
+        #expect(FolioPolicy.shelfPositionLine(medium: .manga, progress: 12, german: false) == "Ch. 12")
+        #expect(FolioPolicy.shelfPositionLine(medium: .manga, progress: 0, german: false) == nil)
+        let row = Self.item(.manga, 9, title: "Long Run", progress: 141, total: 1100)
+        #expect(FolioAccessibility.label(row, german: false).contains("Ch. 141 / 1100"))
+    }
+
+    @Test("Bounded search/sort and in-flight Undo say so, in EN and DE")
+    func boundedAndUndoCopy() {
+        #expect(FolioCopy.showingFirst(1530, german: false) == "Covers your first 1530 titles only.")
+        #expect(FolioCopy.showingFirst(1530, german: true) == "Berücksichtigt nur deine ersten 1530 Titel.")
+        #expect(FolioCopy.undoInFlight(german: false) != FolioCopy.undoInFlight(german: true))
+        #expect(FolioPolicy.localOrderingPageLimit == 12)
     }
 
     // MARK: Adaptivity
@@ -178,7 +207,7 @@ struct ProfileLaneTests {
 
     // MARK: Profile
 
-    @Test("Your lists: counts across both media, the summary line, and the request opens the newest cover's medium")
+    @Test("Your lists: counts across both media, the summary line, and the request opens the larger medium (ties: newest cover)")
     func profileLists() {
         let entries = [
             Self.entry(.anime, 1, .current), Self.entry(.manga, 2, .repeating), Self.entry(.manga, 3, .completed),
@@ -189,8 +218,14 @@ struct ProfileLaneTests {
         #expect(ProfileListsPolicy.summary(entries, german: false) == "2 anime · 2 manga · 1 completed")
         #expect(ProfileListsPolicy.summary(entries, german: true) == "2 Anime · 2 Manga · 1 abgeschlossen")
         let covers = [Self.media(.manga, 2, title: "B"), Self.media(.anime, 1, title: "A")]
-        #expect(ProfileListsPolicy.request(for: .current, covers: covers) == CollectionListRequest(medium: .manga, status: .current))
-        #expect(ProfileListsPolicy.request(for: .planning, covers: []).medium == nil)
+        // One anime and one manga watching: a tie opens the newest cover's medium.
+        #expect(ProfileListsPolicy.request(for: .current, entries: entries, covers: covers)
+                == CollectionListRequest(medium: .manga, status: .current))
+        // Ten manga and one recently changed anime: the row opens manga even though anime is newest.
+        let mostlyManga = (10...19).map { Self.entry(.manga, $0, .current) } + [Self.entry(.anime, 1, .current)]
+        #expect(ProfileListsPolicy.request(for: .current, entries: mostlyManga,
+                                           covers: [Self.media(.anime, 1, title: "A")]).medium == .manga)
+        #expect(ProfileListsPolicy.request(for: .planning, entries: [], covers: []).medium == nil)
         #expect(ProfileListsPolicy.rows.map(\.status) == [.current, .planning, .completed])
     }
 
@@ -202,6 +237,8 @@ struct ProfileLaneTests {
             #expect(!source.use(german: true).isEmpty && source.use(german: true) != source.use(german: false))
         }
         #expect(KuroLegalLinks.privacy?.absoluteString == "https://kuro.app/privacy")
+        // No invented Terms URL ships: the row stays hidden until the owner confirms the real page.
+        #expect(KuroLegalLinks.terms == nil)
     }
 
     // MARK: Editor and imports
