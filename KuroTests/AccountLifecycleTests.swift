@@ -565,14 +565,16 @@ struct AuthCallbackGuardTests {
         Case(name: "signed in: empty header/signature segments (SDK would not read exp) -> reject",
              token: "." + String(jwt(#"{"sub":"\#(a)","exp":\#(futureExp)}"#).split(separator: ".")[1]) + ".",
              currentUserId: LifecycleFixtures.userA, expected: .rejectDifferentUser),
-        Case(name: "signed out: other user, future exp -> proceed",
+        // Spec D12 (login CSRF): signed out, a token pair is never adopted without a matching pending
+        // flow started on this device (the pending-flow cases live in AuthLaneTests).
+        Case(name: "signed out: other user, future exp -> reject (no pending flow)",
              token: jwt(#"{"sub":"\#(b)","exp":\#(futureExp)}"#),
-             currentUserId: nil, expected: .proceed),
-        Case(name: "signed out: missing exp -> proceed",
+             currentUserId: nil, expected: .rejectNoPendingFlow),
+        Case(name: "signed out: missing exp -> reject (no pending flow)",
              token: jwt(#"{"sub":"\#(b)"}"#),
-             currentUserId: nil, expected: .proceed),
-        Case(name: "signed out: undecodable token -> proceed",
-             token: "not-a-jwt", currentUserId: nil, expected: .proceed),
+             currentUserId: nil, expected: .rejectNoPendingFlow),
+        Case(name: "signed out: undecodable token -> reject (no pending flow)",
+             token: "not-a-jwt", currentUserId: nil, expected: .rejectNoPendingFlow),
     ]
 
     @Test("Decision table", arguments: cases)

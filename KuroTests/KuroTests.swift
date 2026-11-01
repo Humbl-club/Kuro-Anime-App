@@ -171,7 +171,7 @@ struct AuthErrorMappingTests {
     func testOfflineTransportMessage() {
         let error = URLError(.notConnectedToInternet)
         #expect(
-            AuthService.userFacingAuthErrorMessage(from: error) ==
+            AuthService.userFacingAuthErrorMessage(from: error, german: false) ==
             "No internet connection. Check your connection and try again."
         )
     }
@@ -180,8 +180,8 @@ struct AuthErrorMappingTests {
     func testTimeoutTransportMessage() {
         let error = URLError(.timedOut)
         #expect(
-            AuthService.userFacingAuthErrorMessage(from: error) ==
-            "The request timed out. Please try again."
+            AuthService.userFacingAuthErrorMessage(from: error, german: false) ==
+            "The request timed out. Try again."
         )
     }
 
@@ -193,8 +193,8 @@ struct AuthErrorMappingTests {
             userInfo: [NSUnderlyingErrorKey: URLError(.cannotConnectToHost)]
         )
         #expect(
-            AuthService.userFacingAuthErrorMessage(from: wrapped) ==
-            "Can't reach the server right now. Please try again."
+            AuthService.userFacingAuthErrorMessage(from: wrapped, german: false) ==
+            "Can't reach Kuro right now. Try again."
         )
     }
 
@@ -206,8 +206,8 @@ struct AuthErrorMappingTests {
             userInfo: [NSLocalizedDescriptionKey: "Invalid login credentials"]
         )
         #expect(
-            AuthService.userFacingAuthErrorMessage(from: error) ==
-            "Incorrect email or password. Please try again."
+            AuthService.userFacingAuthErrorMessage(from: error, german: false) ==
+            "Incorrect email or password."
         )
     }
 }

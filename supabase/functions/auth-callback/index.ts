@@ -1,315 +1,171 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 /**
- * Auth Callback — Redirect page for Supabase email verification flows.
+ * Auth Callback — fallback redirect page for Supabase email links.
  *
- * After Supabase verifies an email token (signup, recovery, magic link, etc.),
- * it redirects here with session tokens in the URL hash fragment.
- * This page attempts to deep-link into the Kuro iOS app, falling back to
- * a beautiful confirmation page with a manual "Open Kuro" button.
+ * The app's own redirect is `kuro://auth/callback` (AuthService.authCallbackURL), so this page is only
+ * used when a link is configured to land on the web first. It forwards only an allow-list into the
+ * app and holds nothing itself:
+ *   - PKCE (`?code=…`, the SDK default), `type` and the error parameters (`error`, `error_code`,
+ *     `error_description`) are forwarded as query parameters;
+ *   - from an implicit-flow fragment only the error parameters are forwarded (as a fragment). Session
+ *     tokens (`access_token`, `refresh_token`) are NEVER relayed into the unclaimed `kuro://` scheme
+ *     (any app can register it; fix plan §5.2.11 / §6.5): a tokens-only link shows "request a new
+ *     link in Kuro" instead.
+ * The app accepts a link only for a flow it started on that device (spec D12).
+ *
+ * 2026-11-01 re-skin (prepared, NOT deployed): white page and #181818 ink to match the app's welcome,
+ * system fonts only (no Google Fonts request), EN/DE copy, strict CSP with a per-request script nonce,
+ * `Referrer-Policy: no-referrer`, no dead "continue in browser" link, reduced motion respected.
  *
  * Deployed with verify_jwt=false since this is a public redirect endpoint.
  */
 
-Deno.serve((_req: Request) => {
-  const html = `<!DOCTYPE html>
+const FORWARDED_QUERY_KEYS = [
+  "code",
+  "type",
+  "error",
+  "error_code",
+  "error_description",
+];
+
+/** Fragment keys that may be relayed: errors only, never session tokens. */
+const FORWARDED_FRAGMENT_KEYS = [
+  "error",
+  "error_code",
+  "error_description",
+];
+
+function page(nonce: string): string {
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<meta name="referrer" content="no-referrer">
 <title>Kuro</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
-
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
   :root {
-    --bg: #0a0a0a;
-    --fg: #f5f5f0;
-    --fg-dim: rgba(245,245,240,0.45);
-    --fg-muted: rgba(245,245,240,0.22);
-    --accent: #f5f5f0;
-    --serif: 'Cormorant', Georgia, 'Times New Roman', serif;
-    --sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    --page: #ffffff;
+    --ink: #181818;
+    --ink-secondary: #5c5c5c;
+    --ink-quiet: #6b6b6b;
+    --hairline: rgba(0, 0, 0, 0.10);
+    --serif: Georgia, 'Times New Roman', Times, serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
   }
-
-  html, body {
-    height: 100%;
-    background: var(--bg);
-    color: var(--fg);
-    font-family: var(--sans);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overflow: hidden;
-  }
-
-  /* Grain overlay */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    pointer-events: none;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-size: 200px 200px;
-  }
-
-  .container {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 32px;
-    position: relative;
-  }
-
-  /* Subtle radial glow behind logo */
-  .container::before {
-    content: '';
-    position: absolute;
-    width: 320px;
-    height: 320px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(245,245,240,0.03) 0%, transparent 70%);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -60%);
-    pointer-events: none;
-  }
-
-  /* Logo mark */
-  .logo {
-    font-family: var(--serif);
-    font-weight: 300;
-    font-size: 72px;
-    letter-spacing: 0.15em;
-    line-height: 1;
-    opacity: 0;
-    transform: translateY(12px) scale(0.96);
-    animation: fadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Thin rule */
-  .rule {
-    width: 36px;
-    height: 1px;
-    background: var(--fg-muted);
-    margin: 28px 0;
-    opacity: 0;
-    animation: fadeIn 0.8s ease 0.6s forwards;
-  }
-
-  /* Status heading */
-  .status {
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--fg-dim);
-    opacity: 0;
-    transform: translateY(8px);
-    animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.8s forwards;
-    text-align: center;
-  }
-
-  /* Subtitle */
-  .subtitle {
-    font-family: var(--serif);
-    font-weight: 300;
-    font-style: italic;
-    font-size: 18px;
-    color: var(--fg-dim);
-    margin-top: 14px;
-    opacity: 0;
-    transform: translateY(8px);
-    animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1s forwards;
-    text-align: center;
-    line-height: 1.5;
-  }
-
-  /* Loading dots */
-  .dots {
-    display: flex;
-    gap: 6px;
-    margin-top: 32px;
-    opacity: 0;
-    animation: fadeIn 0.6s ease 1.2s forwards;
-    transition: opacity 0.4s ease;
-  }
-  .dots.hidden { opacity: 0 !important; }
-  .dot {
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background: var(--fg-dim);
-    animation: pulse 1.4s ease-in-out infinite;
-  }
-  .dot:nth-child(2) { animation-delay: 0.15s; }
-  .dot:nth-child(3) { animation-delay: 0.3s; }
-
-  /* CTA button (hidden initially, shown as fallback) */
-  .cta {
-    display: none;
-    margin-top: 36px;
-    padding: 14px 42px;
-    font-family: var(--sans);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    text-decoration: none;
-    color: var(--bg);
-    background: var(--accent);
-    border: none;
-    border-radius: 0;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    opacity: 0;
-    transform: translateY(8px);
-    -webkit-tap-highlight-color: transparent;
-  }
-  .cta.visible {
-    display: block;
-    animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  }
-  .cta:hover { background: rgba(245,245,240,0.85); }
-  .cta:active { transform: translateY(0) scale(0.97); }
-
-  /* Secondary link */
-  .secondary {
-    display: none;
-    margin-top: 16px;
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    color: var(--fg-muted);
-    text-decoration: none;
-    transition: color 0.2s;
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  .secondary.visible {
-    display: block;
-    animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
-  }
-  .secondary:hover { color: var(--fg-dim); }
-
-  /* Footer */
-  .footer {
-    position: absolute;
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 10px;
-    letter-spacing: 0.12em;
-    color: var(--fg-muted);
-    opacity: 0;
-    animation: fadeIn 0.6s ease 1.4s forwards;
-    white-space: nowrap;
-  }
-
-  @keyframes fadeUp {
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  @keyframes fadeIn {
-    to { opacity: 1; }
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 0.3; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.3); }
-  }
+  html, body { min-height: 100%; background: var(--page); color: var(--ink); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; }
+  main { min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
+    max-width: 440px; margin: 0 auto; padding: 48px 28px; }
+  .mark { font-family: var(--serif); font-weight: 700; font-size: 20px; letter-spacing: 4px; color: var(--ink); opacity: 0.72; }
+  h1 { font-family: var(--serif); font-weight: 400; font-size: 34px; line-height: 1.2; margin-top: 28px; }
+  .rule { width: 46px; height: 2px; background: var(--ink); margin-top: 16px; }
+  p { font-size: 17px; line-height: 1.55; color: var(--ink-secondary); margin-top: 16px; }
+  .cta { display: none; margin-top: 32px; padding: 16px 24px; min-height: 52px; border-radius: 999px;
+    background: var(--ink); color: #ffffff; font-size: 17px; font-weight: 600; text-align: center;
+    text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .cta.visible { display: block; }
+  .cta:active { background: #2e2e2e; transform: scale(0.98); }
+  .note { font-size: 13px; color: var(--ink-quiet); margin-top: 20px; }
+  main > * { animation: rise 280ms ease-out both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { main > * { animation: none; } .cta:active { transform: none; } }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="logo">K</div>
-  <div class="rule"></div>
-  <div class="status" id="status">Verifying</div>
-  <div class="subtitle" id="subtitle">One moment&hellip;</div>
-  <div class="dots" id="dots">
-    <span class="dot"></span>
-    <span class="dot"></span>
-    <span class="dot"></span>
-  </div>
-  <a class="cta" id="cta" href="#">Open Kuro</a>
-  <a class="secondary" id="secondary" href="#">Continue in browser</a>
-  <div class="footer">KURO &mdash; Curated Anime &amp; Manga</div>
-</div>
+<main>
+  <div class="mark" aria-hidden="true">Kuro</div>
+  <h1 id="title">Opening Kuro</h1>
+  <div class="rule" aria-hidden="true"></div>
+  <p id="message" role="status">One moment.</p>
+  <a class="cta" id="cta" href="kuro://">Open Kuro</a>
+  <p class="note" id="note"></p>
+</main>
+<script nonce="${nonce}">
+(function () {
+  var german = (navigator.language || '').toLowerCase().indexOf('de') === 0;
+  if (german) { document.documentElement.lang = 'de'; }
+  function t(en, de) { return german ? de : en; }
 
-<script>
-(function() {
-  const statusEl = document.getElementById('status');
-  const subtitleEl = document.getElementById('subtitle');
-  const dotsEl = document.getElementById('dots');
-  const ctaEl = document.getElementById('cta');
-  const secondaryEl = document.getElementById('secondary');
+  var query = new URLSearchParams(window.location.search);
+  var hash = window.location.hash || '';
+  var hashParams = new URLSearchParams(hash.charAt(0) === '#' ? hash.substring(1) : hash);
+  var forwarded = new URLSearchParams();
+  ${JSON.stringify(FORWARDED_QUERY_KEYS)}.forEach(function (key) {
+    var value = query.get(key);
+    if (value) { forwarded.set(key, value); }
+  });
+  var forwardedFragment = new URLSearchParams();
+  ${JSON.stringify(FORWARDED_FRAGMENT_KEYS)}.forEach(function (key) {
+    var value = hashParams.get(key);
+    if (value) { forwardedFragment.set(key, value); }
+  });
+  var search = forwarded.toString();
+  var fragment = forwardedFragment.toString();
+  var target = 'kuro://auth/callback' + (search ? '?' + search : '') + (fragment ? '#' + fragment : '');
 
-  // Read tokens from URL hash fragment (set by Supabase after token verification)
-  const hash = window.location.hash.substring(1);
-  const params = new URLSearchParams(hash);
-  const type = params.get('type') || 'signup';
-  const accessToken = params.get('access_token');
-  const refreshToken = params.get('refresh_token');
-
-  // Type-specific messaging
-  const messages = {
-    signup:       { status: 'Email Verified',    subtitle: 'Welcome to Kuro' },
-    recovery:     { status: 'Identity Confirmed', subtitle: 'Set your new password in the app' },
-    magiclink:    { status: 'Link Verified',     subtitle: 'Signing you in' },
-    email_change: { status: 'Email Updated',     subtitle: 'Your new email is confirmed' },
-    invite:       { status: 'Invitation Accepted', subtitle: 'Welcome aboard' },
-  };
-
-  const msg = messages[type] || messages.signup;
-
-  // Update UI after initial animation
-  setTimeout(function() {
-    statusEl.textContent = msg.status;
-    subtitleEl.textContent = msg.subtitle;
-  }, 1600);
-
-  if (accessToken && refreshToken) {
-    // Build deep link with tokens
-    var deepLink = 'kuro://auth/callback?access_token=' +
-      encodeURIComponent(accessToken) +
-      '&refresh_token=' + encodeURIComponent(refreshToken) +
-      '&type=' + encodeURIComponent(type);
-
-    // Attempt app redirect after animation settles
-    setTimeout(function() {
-      window.location.href = deepLink;
-    }, 2200);
-
-    // If still here after 4s, show fallback button
-    setTimeout(function() {
-      dotsEl.classList.add('hidden');
-      subtitleEl.textContent = msg.subtitle;
-      ctaEl.href = deepLink;
-      ctaEl.classList.add('visible');
-    }, 4000);
-  } else {
-    // No tokens — just show confirmation + open app button
-    setTimeout(function() {
-      dotsEl.classList.add('hidden');
-      ctaEl.href = 'kuro://';
-      ctaEl.classList.add('visible');
-    }, 2500);
+  var failed = forwarded.has('error') || forwarded.has('error_code') || forwardedFragment.has('error') || forwardedFragment.has('error_code');
+  // Only a PKCE code is a link the app can finish; an implicit token pair is not relayed.
+  var hasLink = forwarded.has('code');
+  var tokensOnly = !hasLink && !failed && hashParams.has('access_token');
+  var type = forwarded.get('type') || hashParams.get('type') || '';
+  // Session tokens never stay in the address bar (history, screenshots, shared links).
+  if (hashParams.has('access_token') || hashParams.has('refresh_token')) {
+    try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch (e) {}
   }
+
+  var title = document.getElementById('title');
+  var message = document.getElementById('message');
+  var cta = document.getElementById('cta');
+  var note = document.getElementById('note');
+  cta.textContent = t('Open Kuro', 'Kuro öffnen');
+  note.textContent = t('Open this link on the device where you asked for it.',
+                       'Öffne diesen Link auf dem Gerät, auf dem du ihn angefordert hast.');
+
+  if (failed) {
+    title.textContent = t('This link has expired', 'Dieser Link ist abgelaufen');
+    message.textContent = t('Request a new one in Kuro and use the most recent email.',
+                            'Fordere in Kuro einen neuen an und nutze die neueste E-Mail.');
+  } else if (tokensOnly) {
+    title.textContent = t('Request a new link in Kuro', 'Fordere in Kuro einen neuen Link an');
+    message.textContent = t('This link can’t be opened here. Request a new one in Kuro and use the most recent email.',
+                            'Dieser Link lässt sich hier nicht öffnen. Fordere in Kuro einen neuen an und nutze die neueste E-Mail.');
+  } else if (type === 'recovery') {
+    title.textContent = t('Choose a new password', 'Wähle ein neues Passwort');
+    message.textContent = t('Kuro opens on the screen for your new password.',
+                            'Kuro öffnet sich auf dem Bildschirm für dein neues Passwort.');
+  } else {
+    title.textContent = t('Opening Kuro', 'Kuro wird geöffnet');
+    message.textContent = t('One moment.', 'Einen Moment.');
+  }
+
+  cta.setAttribute('href', hasLink || failed ? target : 'kuro://');
+  if (hasLink || failed) {
+    setTimeout(function () { window.location.href = target; }, 400);
+  }
+  // Still here (the app did not open): offer the button.
+  setTimeout(function () { cta.classList.add('visible'); }, hasLink ? 2500 : 0);
 })();
 </script>
 </body>
 </html>`;
+}
 
-  return new Response(html, {
+Deno.serve((_req: Request) => {
+  const nonce = crypto.randomUUID().replace(/-/g, "");
+  return new Response(page(nonce), {
     headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'X-Frame-Options': 'DENY',
-      'X-Content-Type-Options': 'nosniff',
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "Content-Security-Policy":
+        `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src 'none'; ` +
+        "base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      "Referrer-Policy": "no-referrer",
+      "X-Frame-Options": "DENY",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 });

@@ -5,7 +5,29 @@
 
 import Foundation
 
-enum DeepLink: Equatable {
+/// What a `kuro://auth/callback` link carries (spec D12). Supabase's PKCE flow (the SDK default)
+/// redirects with `?code=…`; the implicit flow with `#access_token=…&refresh_token=…&type=…`; a failed
+/// or expired link with `error` / `error_code` / `error_description` (query or fragment). The router
+/// only parses: `AuthCallbackGuard` decides what may be applied.
+nonisolated struct AuthCallbackPayload: Equatable, Sendable {
+    /// PKCE authorization code (`?code=`), exchanged with this device's code verifier.
+    var code: String? = nil
+    /// Implicit-flow token pair; both present or both nil.
+    var accessToken: String? = nil
+    var refreshToken: String? = nil
+    /// The flow the link belongs to (`recovery`, `magiclink`, `signup`, ...), when the link says.
+    var type: String? = nil
+    /// GoTrue's machine code for a failed link (e.g. `otp_expired`), or the OAuth `error`.
+    var errorCode: String? = nil
+    var errorDescription: String? = nil
+
+    /// True when the link reports a failure and carries nothing to apply.
+    var isErrorOnly: Bool { errorCode != nil && code == nil && accessToken == nil }
+    /// True when the link carries an implicit-flow token pair.
+    var hasTokens: Bool { accessToken != nil && refreshToken != nil }
+}
+
+nonisolated enum DeepLink: Equatable {
     case anime(id: Int)
     case manga(id: Int)
     case club(id: String)
@@ -13,7 +35,7 @@ enum DeepLink: Equatable {
     case collection
     case discover
     case concierge(prompt: String?)
-    case authCallback(accessToken: String, refreshToken: String)
+    case authCallback(AuthCallbackPayload)
 
     /// Parse a `kuro://` URL into a `DeepLink`.
     ///
@@ -26,8 +48,10 @@ enum DeepLink: Equatable {
     /// - `kuro://discover`
     /// - `kuro://concierge`
     /// - `kuro://concierge?prompt=hello`
-    /// - `kuro://auth/callback#access_token=...&refresh_token=...`  (Supabase fragment redirect)
-    /// - `kuro://auth/callback?access_token=...&refresh_token=...`  (edge function fallback)
+    /// - `kuro://auth/callback?code=...`  (Supabase PKCE redirect, the SDK default)
+    /// - `kuro://auth/callback#access_token=...&refresh_token=...&type=...`  (implicit fragment redirect)
+    /// - `kuro://auth/callback?access_token=...&refresh_token=...`  (legacy edge function fallback)
+    /// - `kuro://auth/callback?error=...&error_code=...&error_description=...`  (failed/expired link)
     static func from(url: URL) -> DeepLink? {
         guard let scheme = url.scheme?.lowercased(),
               scheme == "kuro" else { return nil }
@@ -63,39 +87,37 @@ enum DeepLink: Equatable {
             return .concierge(prompt: prompt)
         case "auth":
             guard pathComponents.first?.lowercased() == "callback" else { return nil }
-            // Supabase sends tokens in the URL fragment (#access_token=...&refresh_token=...).
-            // The edge function fallback sends them as query params (?access_token=...).
-            // Parse both so either path works.
-            let params = Self.parseAuthParams(fragment: url.fragment, queryItems: queryItems)
-            guard let accessToken = params["access_token"],
-                  let refreshToken = params["refresh_token"],
-                  !accessToken.isEmpty, !refreshToken.isEmpty else { return nil }
-            return .authCallback(accessToken: accessToken, refreshToken: refreshToken)
+            let fragment = URLComponents(url: url, resolvingAgainstBaseURL: false)?.percentEncodedFragment
+            return Self.authCallbackPayload(fragment: fragment, queryItems: queryItems).map { .authCallback($0) }
         default:
             return nil
         }
     }
 
-    /// Extract key-value pairs from either the URL fragment or query items.
-    /// Fragment takes priority (direct Supabase redirect), query is fallback (edge function).
-    private static func parseAuthParams(fragment: String?, queryItems: [URLQueryItem]?) -> [String: String] {
-        // Try fragment first (e.g. "access_token=abc&refresh_token=def&type=signup")
-        if let fragment, !fragment.isEmpty {
-            var params: [String: String] = [:]
-            for pair in fragment.components(separatedBy: "&") {
-                let kv = pair.components(separatedBy: "=")
-                if kv.count == 2, let key = kv[0].removingPercentEncoding,
-                   let value = kv[1].removingPercentEncoding {
-                    params[key] = value
-                }
-            }
-            if params["access_token"] != nil { return params }
-        }
-        // Fallback to query params
+    /// The auth-callback payload, or nil when the link carries neither a code, a complete token
+    /// pair nor an error. Query and fragment are both read through `URLComponents` (so values that
+    /// contain `=` survive); a fragment value wins over the same query key. `fragment` is the
+    /// percent-encoded fragment; one that is not valid percent-encoding is ignored (never trapped on).
+    static func authCallbackPayload(fragment: String?, queryItems: [URLQueryItem]?) -> AuthCallbackPayload? {
         var params: [String: String] = [:]
         for item in queryItems ?? [] {
-            if let value = item.value { params[item.name] = value }
+            if let value = item.value, !value.isEmpty { params[item.name] = value }
         }
-        return params
+        if let fragment, !fragment.isEmpty, let components = URLComponents(string: "kuro://callback?" + fragment) {
+            for item in components.queryItems ?? [] {
+                if let value = item.value, !value.isEmpty { params[item.name] = value }
+            }
+        }
+        var payload = AuthCallbackPayload()
+        payload.code = params["code"]
+        if let access = params["access_token"], let refresh = params["refresh_token"] {
+            payload.accessToken = access
+            payload.refreshToken = refresh
+        }
+        payload.type = params["type"]?.lowercased()
+        payload.errorCode = params["error_code"] ?? params["error"]
+        payload.errorDescription = params["error_description"]
+        guard payload.code != nil || payload.hasTokens || payload.errorCode != nil else { return nil }
+        return payload
     }
 }

@@ -40,7 +40,8 @@ struct KuroApp: App {
     init() {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--kuro-skip-auth") {
-            UserDefaults.standard.set(true, forKey: "kuro_onboarding_completed")
+            // The preview session has no user id: onboarding falls back to the device-level key.
+            UserDefaults.standard.set(true, forKey: OnboardingCompletion.legacyDeviceKey)
         }
         #endif
         // Make image loading feel instant when revisiting screens.
@@ -83,15 +84,11 @@ struct KuroApp: App {
                 .onOpenURL { url in
                     guard identity.configError == nil else { return }
                     if let link = DeepLink.from(url: url) {
-                        // Auth callbacks are handled immediately at the app level
-                        // (before auth gate), not passed to ContentView.
-                        if case .authCallback(let accessToken, let refreshToken) = link {
-                            Task {
-                                await session.handleAuthCallback(
-                                    accessToken: accessToken,
-                                    refreshToken: refreshToken
-                                )
-                            }
+                        // Auth callbacks are handled immediately at the app level (before the auth
+                        // gate), not passed to ContentView. The funnel decides whether the link may
+                        // be applied (pending flow on this device, PKCE exchange; spec D12).
+                        if case .authCallback(let payload) = link {
+                            Task { await session.handleAuthCallback(payload) }
                         } else {
                             pendingDeepLink = link
                         }
@@ -125,45 +122,47 @@ private struct RootView: View {
     var body: some View {
         VStack(spacing: 0) {
             if !networkMonitor.isConnected {
-                Text("OFFLINE")
-                    .font(.system(size: 9, weight: .medium))
+                Text(KuroLocale.text("Offline", "Offline"))
+                    .font(.kuroCaption(weight: .medium))
                     .tracking(1.2)
-                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.kuroInkSecondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
-                    .background(Color.primary.opacity(0.06))
+                    .background(Color.kuroCanvasQuiet)
             }
 
             Group {
                 if let error = identity.configError {
                     ZStack {
-                        Color(.systemBackground).ignoresSafeArea()
+                        Color.kuroCanvasPage.ignoresSafeArea()
                         VStack(spacing: 16) {
-                            Text("KURO")
-                                .font(.system(size: 11, weight: .regular))
-                                .tracking(1.5)
-                                .foregroundColor(.secondary)
-                            Text("Configuration Error")
+                            KuroWordmark()
+                            Text(KuroLocale.text("Configuration error", "Konfigurationsfehler"))
                                 .font(.kuroTitle())
+                                .foregroundStyle(Color.kuroInk)
+                                .accessibilityAddTraits(.isHeader)
                             Text(error)
-                                .font(.kuroCaption())
-                                .foregroundColor(.kuroTextSecondary)
+                                .font(.kuroMeta())
+                                .foregroundStyle(Color.kuroInkSecondary)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 32)
                         }
                     }
                 } else if identity.isAuthBootstrapping {
+                    // The welcome's own mark on the white page, so launch → welcome reads as one surface.
                     ZStack {
-                        Color(.systemBackground).ignoresSafeArea()
-                        VStack(spacing: 14) {
-                            Text("KURO")
-                                .font(.system(size: 11, weight: .regular))
-                                .tracking(1.5)
-                                .foregroundColor(.secondary)
+                        Color.kuroCanvasPage.ignoresSafeArea()
+                        VStack(spacing: 18) {
+                            KuroWordmark()
                             ProgressView()
-                                .tint(.secondary)
+                                .tint(Color.kuroInkQuiet)
+                                .accessibilityLabel(KuroLocale.text("Loading", "Wird geladen"))
                         }
                     }
+                } else if identity.isAuthenticated && identity.requiresPasswordUpdate {
+                    // A password-reset link signed this account in: a new password comes first (D12).
+                    AuthSetPasswordView()
                 } else if identity.isAuthenticated {
                     // The signed-in subtree's identity is the account: a direct A-to-B switch rebuilds it, so no
                     // A drafts, conversations, selections or tasks survive (a same-user token refresh keeps the id).
