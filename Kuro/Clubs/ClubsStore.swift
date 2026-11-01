@@ -77,7 +77,8 @@ final class ClubsStore: AccountScopedState {
     let realtime: ClubRealtimeCoordinator
     private var disclosureChannel: (any ClubRealtimeChannel)?
     private var disclosureJoin: Task<Void,Never>?
-    private var disclosureReloadTask: Task<Void,Never>?
+    /// The re-read of my clubs after a disclosure reset (`invalidateSharedDisclosure`).
+    @ObservationIgnored private(set) var disclosureReloadTask: Task<Void,Never>?
     /// The app's runtime flags (composition's single instance): `clubs_notifications_v1`,
     /// `clubs_realtime_v1`.
     @ObservationIgnored private let flags: FeatureFlags
@@ -238,6 +239,7 @@ final class ClubsStore: AccountScopedState {
         revocationEpochs.removeAll()
         accountSignal = nextSignal()
         myClubs = []
+        myClubsPhase = .idle
         hasUnseenClubActivity = false
         // Persisted club prefs are account-scoped; legacy unscoped values are dropped.
         removeLegacyUnscopedClubPrefs()
@@ -260,6 +262,8 @@ final class ClubsStore: AccountScopedState {
         // Enriched list cards contain peer names, artwork and activity too. A
         // failed reload must leave none of that old disclosure on screen.
         myClubs.removeAll()
+        // The rows are gone until the reload answers: never "no clubs", never fresh.
+        myClubsPhase = .idle
         hasUnseenClubActivity = false
         clubBundleLoads.cancelAll()
         clubBundleCache.removeAll()
@@ -389,28 +393,97 @@ final class ClubsStore: AccountScopedState {
 
     // MARK: - My clubs
 
+    /// How long a successful my-clubs read counts as fresh for `refreshMyClubsIfStale()` (revisiting
+    /// the Clubs page inside this window does not ask the server again).
+    nonisolated static let myClubsStaleness: TimeInterval = 60
+
+    /// The state of the current account's my-clubs read (observed by the club list views).
+    private(set) var myClubsPhase: MyClubsPhase = .idle
+
+    /// Request order of my-clubs reads: only the latest-started read may publish rows or a phase (an
+    /// older answer never overwrites a newer read's rows or its loading state).
+    @ObservationIgnored private var myClubsReadSerial = 0
+
+    /// Reads the current account's clubs (always asks the server: writes and the disclosure reload
+    /// call it right after a change). Uses `fetch_my_clubs_loading`; `fetch_my_clubs_enriched` only
+    /// when the server answers that the first function does not exist (`MyClubsReadFallback`).
+    /// Publishing rules:
+    /// - only the latest-started read publishes; a superseded answer touches nothing (the newer read,
+    ///   or whoever reset the phase, owns it);
+    /// - an answer of an ended account publishes nothing (the transition already reset everything);
+    /// - an answer that may predate a revocation in the same account is not published; the latest read
+    ///   then asks once more so the phase never stays in flight with no read running;
+    /// - a failure keeps the rows on screen and records `.failed`; a cancellation restores the phase
+    ///   it found.
     func fetchMyClubs() async {
+        await readMyClubs(rereadAfterRevocation: true)
+    }
+
+    private func readMyClubs(rereadAfterRevocation: Bool) async {
         let context = accountSession.current
         let revocations = revocationCount
+        myClubsReadSerial += 1
+        let serial = myClubsReadSerial
+        let previous = myClubsPhase.settled
+        myClubsPhase = .loading(previous: previous)
+        /// What this read may still do when it answers.
+        func standing() -> MyClubsReadStanding {
+            guard serial == myClubsReadSerial, accountSession.isCurrent(context) else { return .superseded }
+            // A revocation or disclosure reset moved `revocationCount`: the answer may predate it.
+            return revocationCount == revocations ? .publishes : .predatesRevocation
+        }
+        let outcome: Result<[ClubListRow], any Error>
         do {
             let client = try requiredClient()
-            let clubs: [ClubListRow]
-            clubs = try await accountSession.withCredentialLease(for: context) {
+            let clubs: [ClubListRow] = try await accountSession.withCredentialLease(for: context) {
                 do {
                     return try await client.rpc("fetch_my_clubs_loading").execute().value
                 } catch {
+                    // Only a missing function falls back (older server); a transport failure,
+                    // cancellation, decoding error or any other server answer is the read's failure.
+                    guard MyClubsReadFallback.shouldUseEnriched(after: error) else { throw error }
                     return try await client.rpc("fetch_my_clubs_enriched").execute().value
                 }
             }
-            // Another account, or a revocation while in flight (this answer may predate it and would
-            // bring the club back): publish nothing.
-            guard accountSession.isCurrent(context), revocationCount == revocations else { return }
-            myClubs = clubs
+            outcome = .success(clubs)
         } catch {
             #if DEBUG
             print("❌ fetchMyClubs: \(error)")
             #endif
+            outcome = .failure(error)
         }
+
+        switch standing() {
+        case .superseded:
+            return
+        case .predatesRevocation:
+            if rereadAfterRevocation {
+                await readMyClubs(rereadAfterRevocation: false)
+            } else if myClubsReadSerial == serial {
+                myClubsPhase = previous
+            }
+        case .publishes:
+            switch outcome {
+            case let .success(clubs):
+                myClubs = clubs
+                myClubsPhase = .loaded(at: Date())
+            case let .failure(error):
+                if error is CancellationError || (error as? URLError)?.code == .cancelled {
+                    myClubsPhase = previous
+                } else {
+                    myClubsPhase = .failed(transport: MyClubsPhase.isConnectivityFailure(error))
+                }
+            }
+        }
+    }
+
+    private enum MyClubsReadStanding { case publishes, predatesRevocation, superseded }
+
+    /// The Clubs page's read: asks the server only when the last successful read of this account is
+    /// older than `myClubsStaleness` (or there is none, or the last read failed).
+    func refreshMyClubsIfStale(now: Date = Date()) async {
+        guard MyClubsPhase.needsRefresh(myClubsPhase, now: now, staleness: Self.myClubsStaleness) else { return }
+        await fetchMyClubs()
     }
 
     // MARK: - Club last-seen (account-scoped per-club timestamps)
@@ -801,6 +874,27 @@ final class ClubsStore: AccountScopedState {
         let channels=[realtime.detach(),disclosureChannel].compactMap { $0 }
         disclosureChannel=nil
         return channels.isEmpty ? nil : DetachedClubChannels(channels)
+    }
+}
+
+// MARK: - My-clubs read fallback
+
+/// When the my-clubs read may switch from `fetch_my_clubs_loading` to `fetch_my_clubs_enriched`:
+/// only when the server says the first function does not exist (an older deployment). PostgREST
+/// answers a missing function with PGRST202 (HTTP 404); PostgreSQL's undefined-function SQLSTATE is
+/// 42883. Everything else (offline, timeout, cancellation, an undecodable payload, any other server
+/// answer) is the read's own failure: falling back then doubled the traffic and hid the real error.
+nonisolated enum MyClubsReadFallback {
+    static let functionMissingCodes: Set<String> = ["PGRST202", "42883"]
+
+    static func shouldUseEnriched(after error: any Error) -> Bool {
+        if let postgrest = error as? PostgrestError {
+            return postgrest.code.map(functionMissingCodes.contains) ?? false
+        }
+        if let http = error as? HTTPError {
+            return http.response.statusCode == 404
+        }
+        return false
     }
 }
 
