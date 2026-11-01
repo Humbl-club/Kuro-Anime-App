@@ -78,7 +78,7 @@ struct Anime: Identifiable, Codable {
     let updatedAt: Date
     let lastSyncedAt: Date?
     
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case id
         case idMal = "mal_id"
         case idKitsu = "kitsu_id"
@@ -203,7 +203,7 @@ struct Manga: Identifiable, Codable {
     let createdAt: Date
     let updatedAt: Date
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case id
         case idMal = "mal_id"
         case titleEnglish = "title_english"
