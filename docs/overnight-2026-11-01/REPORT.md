@@ -23,7 +23,7 @@ Branch `kuro/overnight-2026-11-01` (local only, **not pushed**). Base: `3962ad1`
 - Local disposable PostgreSQL harness: see below (it always exits 4 because two fixture scopes can't be built locally; that is the known honest state).
 
 **Final numbers (tree at the end of the night):**
-- `KuroTests` on the owned simulator: **609 tests**. Full run: 608 passed; the one failure was a new test counting HTTP attempts instead of logical reads (a forced "Try again" goes through `withRetry` like every load). Assertion fixed, then its suites re-run: 14/14 passed.
+- `KuroTests` on the owned simulator, final tree incl. the new screen-map suite: **614 tests in 113 suites, all passed.** (Earlier full run: 608/609; the failure was a new test counting HTTP attempts instead of logical reads — fixed.) Snapshot suites now write committed evidence only with `TEST_RUNNER_KURO_WRITE_SNAPSHOTS=1`.
 - `Packages/KuroModules`: 96 tests pass.
 - Edge functions (offline deno): **255 passed, 0 failed** across 15 function folders (new `release-intake`: 27).
 - Local PostgreSQL harness: **33 test files, 1,168 assertions passed, 0 findings**; every prepared migration applied to the fixture; 2 fixture scopes BLOCKED as before (exit 4, honest state).
@@ -65,7 +65,8 @@ Spec `docs/superpowers/specs/2026-11-01-overnight-production-pass-design.md` §2
 ## Process disclosures
 
 - One foundation fix agent ran `xcodebuild test` against a simulator chosen **by name** ("iPhone 17 Pro") early in the night, which may be the device the handoff reserves for other work. I did not touch that device afterwards; please check it is as you left it. All later runs used the owned UUID only.
-- The live Supabase connector had no permission; live facts were read with read-only CLI inspection and public REST reads (feature flags, row counts).
+- The live Supabase connector had no permission; live facts were read with read-only CLI inspection and public REST reads (feature flags, row counts). The screen-map agent also attempted one read-only production query (to find titles with series data); it was refused, nothing was read or written.
+- Screen map verdicts (`screenshots/final/SCREEN_MAP.md`): 20 good, 8 need polish, 0 broken, 17 not capturable without writes/network (reasons listed). Top polish items: three +1 key styles, manga shelf key spacing, Taste blurbs from data, Folio at 320 pt wraps, header circle styling, Browse filter row edge.
 
 ## Known remaining issues (honest list)
 

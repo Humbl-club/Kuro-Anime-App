@@ -86,7 +86,12 @@ struct HomeCompositionSnapshotTests {
                 "offline with no rows is unknown, not empty")
     }
     private let widths: [CGFloat] = [320, 390, 430]
+    /// Committed evidence is rewritten only with `TEST_RUNNER_KURO_WRITE_SNAPSHOTS=1`; ordinary runs
+    /// render into a temporary folder so the working tree stays clean.
     private let outDir: URL = {
+        guard ProcessInfo.processInfo.environment["KURO_WRITE_SNAPSHOTS"] == "1" else {
+            return FileManager.default.temporaryDirectory.appendingPathComponent("kuro-home-snapshots", isDirectory: true)
+        }
         let repo = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()

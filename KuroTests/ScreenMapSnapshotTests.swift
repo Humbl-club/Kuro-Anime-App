@@ -12,10 +12,18 @@ import UIKit
 @Suite("Screen map snapshots", .serialized, .timeLimit(.minutes(3)))
 @MainActor
 struct ScreenMapSnapshotTests {
-    private static let outDir: URL = URL(fileURLWithPath: #filePath)
-        .deletingLastPathComponent()
-        .deletingLastPathComponent()
-        .appendingPathComponent("docs/overnight-2026-11-01/screenshots/final/fixture")
+    /// Committed evidence is rewritten only on purpose: run with `TEST_RUNNER_KURO_WRITE_SNAPSHOTS=1`
+    /// (xcodebuild passes it to the test host as `KURO_WRITE_SNAPSHOTS`). Ordinary runs render into a
+    /// temporary folder so the working tree stays clean.
+    private static let outDir: URL = {
+        guard ProcessInfo.processInfo.environment["KURO_WRITE_SNAPSHOTS"] == "1" else {
+            return FileManager.default.temporaryDirectory.appendingPathComponent("kuro-screen-map", isDirectory: true)
+        }
+        return URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("docs/overnight-2026-11-01/screenshots/final/fixture")
+    }()
 
     private static let repo: URL = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
