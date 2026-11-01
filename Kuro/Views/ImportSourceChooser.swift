@@ -6,8 +6,9 @@ import UniformTypeIdentifiers
 
 /// Focused AniList / MAL account / MAL XML choice. Uses the existing Profile import coordinator.
 /// Does not create a credential store or skip review.
-/// Renders every coordinator outcome itself (it is offered from Onboarding and the empty Collection,
-/// where no Profile is mounted): the progress line, the toast, a retry for an uncertain delivery, and
+/// Renders every coordinator outcome itself (it is offered from Onboarding, the empty Collection and
+/// Profile's new-account block; it owns its own coordinator instance, so it never relies on Profile's):
+/// the progress line, the toast, a retry for an uncertain delivery, and
 /// the result card with Undo (an applied legacy AniList import) or the Concierge review handoff (an
 /// import that needs review). The sheet cannot be closed while an import runs, because closing stops
 /// the coordinator and would cancel the write without a word.

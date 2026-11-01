@@ -352,7 +352,7 @@ struct AuthView: View {
                         Spacer()
                     }
 
-                    KuroPrototypeWordmark()
+                    KuroFormWordmark()
                         .accessibilityHidden(true)
                 }
                 .padding(.horizontal, 12)
@@ -703,7 +703,7 @@ struct KuroWordmark: View {
 
 /// The prototype header's wordmark (PROTOTYPE_SPEC §4 Header: "KURO", SF 18 w800, tracking 3, ink)
 /// for the screens past the frozen welcome: the auth form, set-password and onboarding.
-struct KuroPrototypeWordmark: View {
+struct KuroFormWordmark: View {
     var body: some View {
         Text(verbatim: "KURO")
             .font(.kuroCustom(18, weight: .heavy, relativeTo: .headline, maxSize: 28))
@@ -738,7 +738,7 @@ struct AuthSetPasswordView: View {
             Color.kuroCanvasPage.ignoresSafeArea()
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    KuroPrototypeWordmark()
+                    KuroFormWordmark()
                         .frame(maxWidth: .infinity)
                         .padding(.top, 12)
 

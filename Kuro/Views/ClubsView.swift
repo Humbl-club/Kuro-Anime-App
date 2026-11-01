@@ -336,7 +336,7 @@ nonisolated enum ClubsEmptyCopy {
 }
 
 /// The prototype's club-room colours (PROTOTYPE_SPEC §4 "Club room"). No shared token carries them.
-enum ClubRoomPalette {
+fileprivate enum ClubRoomPalette {
     static let room = Color(hex: "252B28")
     static let glow = Color(hex: "444A46")
     static let border = Color(hex: "535A55", opacity: Double(0x4C) / 255)
@@ -357,7 +357,7 @@ enum ClubRoomPalette {
 
 /// The dark room: `#252b28` under a radial `#444a46` glow from the top-left, a hairline border, the
 /// inset top highlight and the soft drop.
-struct ClubRoomBackground: View {
+fileprivate struct ClubRoomBackground: View {
     var cornerRadius: CGFloat = 24
 
     var body: some View {

@@ -59,7 +59,7 @@ struct OnboardingView: View {
                             .frame(height: bandHeight * 0.82)
                             .accessibilityHidden(true)
 
-                        KuroPrototypeWordmark()
+                        KuroFormWordmark()
 
                         frameContent
                             .id(frame)

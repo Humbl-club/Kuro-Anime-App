@@ -210,8 +210,9 @@ struct ClubNoteCard: View {
                     .foregroundStyle(Color.kuroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if isRevealed {
+                    // A member's (spoiler) note is sans; the prototype's serif is only the club quote.
                     Text(note)
-                        .font(.kuroEditorial(size: 18)).tracking(-0.3)
+                        .font(.kuroBody(weight: .regular))
                         .foregroundStyle(Color.kuroInk)
                         .fixedSize(horizontal: false, vertical: true)
                         .transition(.opacity)
