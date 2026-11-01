@@ -5,6 +5,9 @@
 -- never in the live home_events_page_v1), tracked-status scope, per-title next unit,
 -- anime.next_airing_at fallback, idempotent natural-key upserts, all-or-nothing validation,
 -- theme ordering/flags and convergence with finish_series_enrichment_v1's key.
+-- Review repairs (2026-11-01): confirmed = instant only (D10), per-source credit-link hosts,
+-- the 0.70 real/numeric confidence boundary, ISO-only instants, and finish_series_enrichment_v1
+-- no longer deleting rows owned by upsert_theme_links_v1.
 -- The tables and home_events_page_v1 come from 20261007040000 (live since 2026-10-08), so
 -- they are prerequisites; every object this migration adds is the subject under test.
 -- @requires table public.release_events
@@ -54,7 +57,8 @@ insert into public.anime (id, title_romaji, cover_image_large, anilist_id, next_
   (990003, 'Finished For Me', null, null, 9, now() + interval '1 day'),
   (990004, 'Nobody Tracks', null, null, 1, now() + interval '1 day');
 insert into public.manga (id, title_english) values
-  (990101, 'Weekly Manga'), (990102, 'Irregular Manga'), (990103, 'Volume Manga');
+  (990101, 'Weekly Manga'), (990102, 'Irregular Manga'), (990103, 'Volume Manga'),
+  (990104, 'Boundary Manga'), (990105, 'Below Boundary Manga');
 insert into public.anime_user_lists (user_id, anime_id, list_type, progress) values
   (tests.uid(981)::text, 990001, 'WATCHING', 6),
   (tests.uid(981)::text, 990002, 'PLANNING', 0),
@@ -92,8 +96,9 @@ select public.upsert_release_events_v1(jsonb_build_array(
   jsonb_build_object('medium', 'manga', 'media_id', 990101, 'unit_kind', 'chapter', 'unit_number', 101,
     'basis', 'estimated', 'source', 'kuro_estimate', 'confidence', 0.8, 'release_at', now() + interval '5 days'),
   jsonb_build_object('medium', 'manga', 'media_id', 990101, 'unit_kind', 'chapter', 'unit_number', 100,
-    'basis', 'confirmed', 'source', 'mangaupdates', 'precision', 'day',
-    'source_local_date', to_char(now() - interval '2 days', 'YYYY-MM-DD'), 'source_zone', 'Asia/Tokyo'),
+    'basis', 'announced', 'source', 'mangaupdates', 'precision', 'day', 'status', 'released',
+    'source_local_date', to_char(now() - interval '2 days', 'YYYY-MM-DD'), 'source_zone', 'Asia/Tokyo',
+    'source_url', 'https://www.mangaupdates.com/series/pb8uwds'),
   jsonb_build_object('medium', 'manga', 'media_id', 990102, 'unit_kind', 'chapter', 'unit_number', 6,
     'basis', 'estimated', 'source', 'kuro_estimate', 'confidence', 0.5, 'release_at', now() + interval '1 day'),
   jsonb_build_object('medium', 'manga', 'media_id', 990103, 'unit_kind', 'volume', 'unit_number', 12,
@@ -105,7 +110,7 @@ select tests.eq('first write inserts six rows', :'w1'::jsonb, '{"inserted":6,"up
 select tests.eq('defaults: past confirmed instant is released, announced is announced, estimate is scheduled',
   (select string_agg(unit_label || '=' || status, ',' order by unit_label) from public.release_events
     where coalesce(anime_id, manga_id) in (990002, 990101, 990103)),
-  'Ch. 100=scheduled,Ch. 101=scheduled,Ep. 2=released,Ep. 3=scheduled,Vol. 12=announced');
+  'Ch. 100=released,Ch. 101=scheduled,Ep. 2=released,Ep. 3=scheduled,Vol. 12=announced');
 select tests.eq('natural keys (estimate keyed per title + kind as :next)',
   (select string_agg(source_identity, ',' order by source_identity) from public.release_events where coalesce(anime_id, manga_id) in (990002, 990101)),
   'anilist:anime:990002:episode:2,anilist:anime:990002:episode:3,kuro_estimate:manga:990101:chapter:next,mangaupdates:manga:990101:chapter:100');
@@ -173,11 +178,14 @@ select tests.as_anon();
 select tests.eq('anime 990002: last confirmed past unit first (is_past), then upcoming',
   (select string_agg(unit_label || ':' || is_past, ',') from public.media_release_schedule_v1('anime', 990002)),
   'Ep. 2:true,Ep. 3:false');
-select tests.eq('manga 990101: past confirmed day-precision chapter, then the replaced estimate (now Ch. 101 @ 0.95)',
+select tests.eq('manga 990101: an announced (day) past chapter is not the "last confirmed" unit; the replaced estimate (Ch. 101 @ 0.95) is',
   (select string_agg(unit_label || ':' || basis || ':' || is_past || ':' || release_precision, ',') from public.media_release_schedule_v1('manga', 990101)),
-  'Ch. 100:confirmed:true:day,Ch. 101:estimated:false:instant');
-select tests.eq('day precision release_at is local midnight in source_zone',
-  (select to_char(release_at at time zone 'Asia/Tokyo', 'HH24:MI') from public.media_release_schedule_v1('manga', 990101) where is_past), '00:00');
+  'Ch. 101:estimated:false:instant');
+select tests.reset();
+select tests.eq('day precision release_at is local midnight in source_zone (helper, as owner)',
+  (select to_char(release_at at time zone 'Asia/Tokyo', 'HH24:MI') || '/' || basis || '/' || is_past
+     from public._release_schedule_units_v1(null, array[990101]) where unit_number = 100), '00:00/announced/true');
+select tests.as_anon();
 select tests.eq('anime 990001: fallback row for anon', (select count(*) from public.media_release_schedule_v1('anime', 990001)), 1::bigint);
 select tests.eq('unknown id: empty, not an error', (select count(*) from public.media_release_schedule_v1('anime', 999999)), 0::bigint);
 select tests.raises('invalid medium raises INVALID_MEDIUM', $q$select * from public.media_release_schedule_v1('film', 1)$q$, 'INVALID_MEDIUM:%');
@@ -235,14 +243,67 @@ select tests.raises('non-https source_url -> INVALID_SOURCE_URL',
   $q$select public.upsert_release_events_v1('[{"medium":"anime","media_id":990001,"unit_kind":"episode","unit_number":8,"basis":"confirmed","source":"anilist","release_at":"2030-01-01T00:00:00Z","source_url":"javascript:alert(1)"}]'::jsonb)$q$,
   'INVALID_SOURCE_URL:%');
 select tests.raises('unknown zone -> INVALID_SOURCE_ZONE',
-  $q$select public.upsert_release_events_v1('[{"medium":"manga","media_id":990101,"unit_kind":"chapter","unit_number":103,"basis":"confirmed","source":"mangaupdates","source_local_date":"2030-01-01","source_zone":"Mars/Base"}]'::jsonb)$q$,
+  $q$select public.upsert_release_events_v1('[{"medium":"manga","media_id":990101,"unit_kind":"chapter","unit_number":103,"basis":"announced","source":"mangaupdates","source_local_date":"2030-01-01","source_zone":"Mars/Base"}]'::jsonb)$q$,
   'INVALID_SOURCE_ZONE:%');
+select tests.raises('D10: confirmed with only a day (no time) -> INVALID_PRECISION',
+  $q$select public.upsert_release_events_v1('[{"medium":"manga","media_id":990101,"unit_kind":"chapter","unit_number":103,"basis":"confirmed","source":"mangaupdates","source_local_date":"2030-01-01"}]'::jsonb)$q$,
+  'INVALID_PRECISION:%');
+select tests.raises('credit link on a foreign host for anilist -> INVALID_SOURCE_URL',
+  $q$select public.upsert_release_events_v1('[{"medium":"anime","media_id":990001,"unit_kind":"episode","unit_number":8,"basis":"confirmed","source":"anilist","release_at":"2030-01-01T00:00:00Z","source_url":"https://any-host.example/anime/12345"}]'::jsonb)$q$,
+  'INVALID_SOURCE_URL:%');
+select tests.raises('look-alike host (mangaupdates.com.evil.example) -> INVALID_SOURCE_URL',
+  $q$select public.upsert_release_events_v1('[{"medium":"manga","media_id":990101,"unit_kind":"chapter","unit_number":103,"basis":"announced","source":"mangaupdates","source_local_date":"2030-01-01","source_url":"https://mangaupdates.com.evil.example/series/pb8uwds"}]'::jsonb)$q$,
+  'INVALID_SOURCE_URL:%');
+select tests.raises('an estimate crediting a non-MangaUpdates host -> INVALID_SOURCE_URL',
+  $q$select public.upsert_release_events_v1('[{"medium":"manga","media_id":990101,"unit_kind":"chapter","unit_number":103,"basis":"estimated","source":"kuro_estimate","confidence":0.9,"source_local_date":"2030-01-01","source_url":"https://anilist.co/manga/1"}]'::jsonb)$q$,
+  'INVALID_SOURCE_URL:%');
+select tests.raises('publisher rows carry no link until a publisher host list exists -> INVALID_SOURCE_URL',
+  $q$select public.upsert_release_events_v1('[{"medium":"manga","media_id":990103,"unit_kind":"volume","unit_number":13,"basis":"announced","source":"publisher","precision":"month","source_local_date":"2030-03-01","source_url":"https://publisher.example/x"}]'::jsonb)$q$,
+  'INVALID_SOURCE_URL:%');
+select tests.raises('release_at ''infinity'' -> INVALID_RELEASE_AT',
+  $q$select public.upsert_release_events_v1('[{"medium":"anime","media_id":990001,"unit_kind":"episode","unit_number":8,"basis":"confirmed","source":"anilist","release_at":"infinity"}]'::jsonb)$q$,
+  'INVALID_RELEASE_AT:%');
+select tests.raises('release_at ''tomorrow'' -> INVALID_RELEASE_AT',
+  $q$select public.upsert_release_events_v1('[{"medium":"anime","media_id":990001,"unit_kind":"episode","unit_number":8,"basis":"confirmed","source":"anilist","release_at":"tomorrow"}]'::jsonb)$q$,
+  'INVALID_RELEASE_AT:%');
+select tests.raises('release_at far in the future -> INVALID_RELEASE_AT',
+  $q$select public.upsert_release_events_v1('[{"medium":"anime","media_id":990001,"unit_kind":"episode","unit_number":8,"basis":"confirmed","source":"anilist","release_at":"9999-01-01T00:00:00Z"}]'::jsonb)$q$,
+  'INVALID_RELEASE_AT:%');
+select tests.raises('observed_at ''epoch'' -> INVALID_OBSERVED_AT',
+  $q$select public.upsert_release_events_v1('[{"medium":"anime","media_id":990001,"unit_kind":"episode","unit_number":8,"basis":"confirmed","source":"anilist","release_at":"2030-01-01T00:00:00Z","observed_at":"epoch"}]'::jsonb)$q$,
+  'INVALID_OBSERVED_AT:%');
 select tests.reset();
 select tests.eq('failed calls wrote nothing', (select count(*) from public.release_events), :'n_before'::bigint);
 select tests.raises('table constraint backstop: a direct estimated row without confidence is rejected',
   $q$insert into public.release_events (medium, manga_id, kind, precision, utc_instant, status, unit_kind, unit_number, unit_label, basis, source, observed_at)
      values ('manga', 990101, 'Ch. 9', 'instant', now(), 'scheduled', 'chapter', 9, 'Ch. 9', 'estimated', 'kuro_estimate', now())$q$,
   '%release_events_estimate_check%');
+select tests.raises('table constraint backstop: a direct row crediting a foreign host is rejected',
+  $q$insert into public.release_events (medium, anime_id, kind, precision, utc_instant, status, unit_kind, unit_number, unit_label, basis, source, source_url, observed_at)
+     values ('anime', 990001, 'Ep. 9', 'instant', now(), 'scheduled', 'episode', 9, 'Ep. 9', 'confirmed', 'anilist', 'https://evil.example/anime/1', now())$q$,
+  '%release_events_source_url_check%');
+select tests.raises('table constraint backstop: a direct confirmed day row is rejected (D10)',
+  $q$insert into public.release_events (medium, manga_id, kind, precision, source_local_date, status, unit_kind, unit_number, unit_label, basis, source, observed_at)
+     values ('manga', 990101, 'Ch. 9', 'day', '2030-01-01', 'scheduled', 'chapter', 9, 'Ch. 9', 'confirmed', 'mangaupdates', now())$q$,
+  '%release_events_confirmed_instant_check%');
+
+-- ---- 7b. confidence boundary: 0.70 is shown, 0.69 is hidden (real vs numeric) ---------
+:as_service
+select public.upsert_release_events_v1(jsonb_build_array(
+  jsonb_build_object('medium', 'manga', 'media_id', 990104, 'unit_kind', 'chapter', 'unit_number', 50,
+    'basis', 'estimated', 'source', 'kuro_estimate', 'confidence', 0.7, 'precision', 'day',
+    'source_local_date', to_char(now() + interval '6 days', 'YYYY-MM-DD'),
+    'source_url', 'https://www.mangaupdates.com/series/abc'),
+  jsonb_build_object('medium', 'manga', 'media_id', 990105, 'unit_kind', 'chapter', 'unit_number', 50,
+    'basis', 'estimated', 'source', 'kuro_estimate', 'confidence', 0.69, 'precision', 'day',
+    'source_local_date', to_char(now() + interval '6 days', 'YYYY-MM-DD'))
+)) as w_bound \gset
+select tests.as_anon();
+select tests.eq('an estimate scored exactly 0.70 is returned',
+  (select count(*) from public.media_release_schedule_v1('manga', 990104) where basis = 'estimated'), 1::bigint);
+select tests.eq('an estimate scored 0.69 is hidden',
+  (select count(*) from public.media_release_schedule_v1('manga', 990105)), 0::bigint);
+select tests.reset();
 
 -- ---- 8. themes -------------------------------------------------------------------
 -- a row as finish_series_enrichment_v1 writes it (no source column), plus a curated and an unmatched row
@@ -290,6 +351,32 @@ select tests.raises('theme validation: unsafe source_id -> INVALID_SOURCE_ID',
 select tests.reset();
 select tests.eq('identical theme re-run is unchanged', :'t_same'::jsonb, '{"inserted":0,"updated":0,"unchanged":1}'::jsonb);
 select tests.eq('theme rows for the anime (4 producer + 2 others)', (select count(*) from public.theme_links where anime_id = 990001), 6::bigint);
+:as_service
+select tests.raises('theme validation: credit link on a foreign host -> INVALID_SOURCE_URL',
+  $q$select public.upsert_theme_links_v1('[{"anime_id":990001,"source_id":"t9","kind":"OP","title":"x","source_url":"https://evil.example/anime/x"}]'::jsonb)$q$, 'INVALID_SOURCE_URL:%');
+select tests.reset();
+select tests.raises('theme table constraint backstop: a foreign credit host is rejected',
+  $q$insert into public.theme_links (anime_id, role, match_state, source_url) values (990001, 'op', 'search', 'https://animethemes.moe.evil.example/x')$q$,
+  '%theme_links_source_url_check%');
+
+-- ---- 9. finish_series_enrichment_v1 cannot delete rows owned by upsert_theme_links_v1 ----
+-- a legacy finish-written row (source NULL) that the incoming set drops IS deleted (its own key
+-- space); the upsert-owned rows t2/t3/t4 (source animethemes) are kept.
+insert into public.theme_links (anime_id, role, sequence_order, song_title, match_state, evidence, source_identity)
+values (990001, 'op', 5, 'Legacy Only', 'search', 'Exact external ID: 12345 / ', 'animethemes:990001:t9');
+insert into public.series_enrichment_jobs (medium, media_id, source_revision, payload, lease_token, lease_until)
+values ('anime', 990001, 'rev-98', '{}'::jsonb, '00000000-0000-0000-0000-000000000098', now() + interval '1 hour')
+on conflict (medium, media_id) do update set source_revision = excluded.source_revision, payload = excluded.payload,
+  lease_token = excluded.lease_token, lease_until = excluded.lease_until;
+:as_service
+select public.finish_series_enrichment_v1('anime', 990001, 'rev-98', '00000000-0000-0000-0000-000000000098', null, null,
+  '[{"source_id":"t1","role":"op","sequence_order":1,"song_title":"First Light","artist":"Band A"}]'::jsonb) as fin \gset
+select tests.reset();
+select tests.eq('finish with p_themes applied', :'fin'::jsonb ->> 'outcome', 'applied');
+select tests.eq('finish deleted only its own dropped key (t9); upsert-owned t2/t3/t4 survive',
+  (select string_agg(source_identity, ',' order by source_identity) from public.theme_links
+     where anime_id = 990001 and source_identity like 'animethemes:%'),
+  'animethemes:990001:t1,animethemes:990001:t2,animethemes:990001:t3,animethemes:990001:t4');
 
 select tests.reset();
 rollback;

@@ -8,9 +8,12 @@
 --      confidence, source, source_url, observed_at) and theme_links (episodes, version,
 --      is_spoiler, is_nsfw, source, source_url). Every existing column, constraint, index,
 --      policy and reader keeps working; the new columns are nullable or defaulted.
---   2. Certainty model (D10): basis confirmed | announced | estimated. An estimated row must
---      carry a confidence, use source 'kuro_estimate' and status 'scheduled'. Estimated rows
---      are stored but only READ back when confidence >= 0.7.
+--   2. Certainty model (D10): basis confirmed | announced | estimated. A confirmed row is
+--      always precision 'instant' (the source states the time); a source date or window
+--      without a time is 'announced'. An estimated row must carry a confidence, use source
+--      'kuro_estimate' and status 'scheduled'. Estimated rows are stored but only READ back
+--      when confidence >= 0.7 (compared as real). Credit links (source_url) must point at the
+--      source's own host (table CHECK + writer).
 --   3. home_events_page_v1 (live Home RPC) is re-created byte-for-byte except that it now
 --      ignores basis='estimated' rows, so a stored estimate can never surface there as a
 --      fact. home_pending_page_v1 needs no change: it reads status='announced' only and an
@@ -27,14 +30,20 @@
 --      Validation is all-or-nothing per call (one bad row raises, nothing is written);
 --      natural keys make re-runs idempotent (an identical re-run changes no business field
 --      and does not advance revision).
+--   6. finish_series_enrichment_v1 re-created with one predicate so it can never delete theme
+--      rows owned by upsert_theme_links_v1 (section 10).
 --
 -- Error codes are in the MESSAGE prefix (UNAUTHENTICATED:, INVALID_MEDIUM:, ...), because
 -- supabase-swift does not surface PostgREST `details` (CLAUDE.md caveat).
--- Rollback: drop the five new functions, re-create home_events_page_v1 from
--- 20261007040000, drop the new constraints/indexes/columns (no reader depends on them).
+-- Rollback: drop the five new functions, re-create home_events_page_v1 and
+-- finish_series_enrichment_v1 from 20261007040000, drop the new constraints/indexes/columns (no reader depends on them).
 
 begin;
 
+-- release_events / theme_links are tiny, but ALTER TABLE takes an ACCESS EXCLUSIVE lock: fail
+-- fast instead of queueing every reader behind a busy lock; the apply can simply be retried.
+set local lock_timeout = '3s';
+set local statement_timeout = '60s';
 set local search_path = public, extensions;
 
 -- ---------------------------------------------------------------------------
@@ -66,8 +75,17 @@ begin
      $c$check (confidence is null or (confidence >= 0 and confidence <= 1))$c$),
     ('release_events_source_check',
      $c$check (source is null or source in ('anilist','mangaupdates','mangadex','publisher','kuro_estimate'))$c$),
+    -- the credit link must point at the source's own site (writer applies the same rule)
     ('release_events_source_url_check',
-     $c$check (source_url is null or (source_url ~ '^https://[^[:space:]]+$' and char_length(source_url) <= 2048))$c$),
+     $c$check (source_url is null or (char_length(source_url) <= 2048 and source_url !~ '[[:space:]]' and case source
+        when 'anilist' then source_url ~ '^https://anilist\.co/'
+        when 'mangaupdates' then source_url ~ '^https://(www\.)?mangaupdates\.com/'
+        when 'kuro_estimate' then source_url ~ '^https://(www\.)?mangaupdates\.com/'
+        when 'mangadex' then source_url ~ '^https://mangadex\.org/'
+        else false end))$c$),
+    -- D10: confirmed = the source states the instant; a date or window without a time is announced
+    ('release_events_confirmed_instant_check',
+     $c$check (basis is distinct from 'confirmed' or precision = 'instant')$c$),
     -- an estimate is always labelled, scored and Kuro-computed; only an estimate uses kuro_estimate
     ('release_events_estimate_check',
      $c$check ((basis is distinct from 'estimated' or (source = 'kuro_estimate' and confidence is not null and status = 'scheduled'))
@@ -116,7 +134,8 @@ begin
     ('theme_links_version_check',  $c$check (version is null or version between 1 and 99)$c$),
     ('theme_links_source_check',   $c$check (source is null or source in ('animethemes'))$c$),
     ('theme_links_source_url_check',
-     $c$check (source_url is null or (source_url ~ '^https://[^[:space:]]+$' and char_length(source_url) <= 2048))$c$)
+     $c$check (source_url is null or (char_length(source_url) <= 2048 and source_url !~ '[[:space:]]'
+        and source_url ~ '^https://animethemes\.moe/'))$c$)
   ) as t(name, def) loop
     if not exists (select 1 from pg_constraint where conrelid = 'public.theme_links'::regclass and conname = c.name) then
       execute format('alter table public.theme_links add constraint %I %s', c.name, c.def);
@@ -221,7 +240,9 @@ as $$
       and ((r.medium = 'anime' and r.anime_id = any (coalesce(p_anime_ids, '{}')))
         or (r.medium = 'manga' and r.manga_id = any (coalesce(p_manga_ids, '{}'))))
       and r.status in ('scheduled', 'announced', 'delayed', 'released')
-      and (r.basis <> 'estimated' or r.confidence >= 0.7)
+      -- compare in real: confidence is real, and 0.7::real widens to 0.699999988 against a
+      -- numeric 0.7, which would hide every estimate scored exactly 0.70
+      and (r.basis <> 'estimated' or r.confidence >= 0.7::real)
   ), ev2 as (
     select ev.*,
            case ev.precision when 'instant' then ev.release_at
@@ -422,22 +443,28 @@ comment on function public.media_themes_v1(integer) is
 --   confidence    0..1; required for estimated
 --   precision     instant | day | month | quarter | year | unknown   (default: instant when
 --                 release_at, day when source_local_date, else unknown)
---   release_at    ISO-8601 instant (precision instant)
+--   release_at    ISO-8601 instant 'YYYY-MM-DDTHH:MM...' (precision instant); finite,
+--                 within now()-100y .. now()+5y ('infinity'/'tomorrow' are rejected)
 --   source_local_date  'YYYY-MM-DD' = start of the window (day/month/quarter/year)
 --   source_zone   IANA zone of source_local_date (optional, default UTC)
 --   status        scheduled | released | delayed | cancelled | announced (default:
 --                 announced for basis announced, released for a past instant, else scheduled;
 --                 estimated rows are always scheduled)
 --   unit_label    <= 64 chars (default 'Ep. 7' / 'Ch. 10.5' / 'Vol. 3' / 'Season 2')
---   source_url    https URL (credit link), optional
---   observed_at   ISO-8601 instant the source was read (default now())
+--   source_url    credit link, optional; host must match the source:
+--                   anilist https://anilist.co/...  mangaupdates / kuro_estimate
+--                   https://(www.)mangaupdates.com/...  mangadex https://mangadex.org/...
+--                   publisher: must be null until a publisher host list exists
+--   observed_at   ISO-8601 instant the source was read (default now()); finite, not
+--                 older than 5 years, not more than 1 hour in the future
 --   territory     ISO 3166-1 alpha-2, optional
 --   external_id   source-side id for evidence, optional (<= 120 chars)
 -- Natural key (source_identity):
 --   <source>:<medium>:<media_id>:<unit_kind>:<unit_number>    confirmed / announced
 --   kuro_estimate:<medium>:<media_id>:<unit_kind>:next        estimated (one per title+kind;
 --                                                              a new estimate replaces the old)
--- Basis rules: confirmed and estimated need precision instant or day; announced any.
+-- Basis rules (D10): confirmed needs precision instant (a source-stated date without a time is
+-- announced); estimated needs instant or day; announced any.
 -- Returns {"inserted":n,"updated":n,"unchanged":n}. Any invalid row raises (nothing written).
 -- ---------------------------------------------------------------------------
 create or replace function public.upsert_release_events_v1(p_rows jsonb)
@@ -451,7 +478,7 @@ declare
   v_medium text; v_media integer; v_kind text; v_num numeric; v_label text; v_basis text;
   v_conf real; v_source text; v_url text; v_prec text; v_instant timestamptz; v_day text;
   v_zone text; v_status text; v_observed timestamptz; v_identity text; v_territory text;
-  v_evidence text; v_old public.release_events%rowtype; v_n integer;
+  v_evidence text; v_old public.release_events%rowtype; v_n integer; v_host_ok boolean;
   v_inserted integer := 0; v_updated integer := 0; v_unchanged integer := 0;
 begin
   if p_rows is null or jsonb_typeof(p_rows) <> 'array' then
@@ -515,14 +542,32 @@ begin
     if v_url is not null and (v_url !~ '^https://[^[:space:]]+$' or char_length(v_url) > 2048) then
       raise exception 'INVALID_SOURCE_URL: row % source_url must be an https URL', i;
     end if;
+    -- the credit link must point at the source's own site (same rule as release_events_source_url_check)
+    -- (assigned first: a CASE inside an IF condition would end the condition at its first THEN)
+    v_host_ok := v_url is null or case v_source
+         when 'anilist' then v_url ~ '^https://anilist\.co/'
+         when 'mangaupdates' then v_url ~ '^https://(www\.)?mangaupdates\.com/'
+         when 'kuro_estimate' then v_url ~ '^https://(www\.)?mangaupdates\.com/'
+         when 'mangadex' then v_url ~ '^https://mangadex\.org/'
+         else false end;
+    if not v_host_ok then
+      raise exception 'INVALID_SOURCE_URL: row % source_url host does not belong to source %', i, v_source;
+    end if;
 
     v_instant := null; v_day := null;
     if nullif(r->>'release_at', '') is not null then
+      -- ISO-8601 only: the bare ::timestamptz cast also accepts 'infinity', 'tomorrow', 'epoch'
+      if (r->>'release_at') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}' then
+        raise exception 'INVALID_RELEASE_AT: row % release_at is not an ISO-8601 instant', i;
+      end if;
       begin
         v_instant := (r->>'release_at')::timestamptz;
       exception when others then
         raise exception 'INVALID_RELEASE_AT: row % release_at is not an ISO-8601 instant', i;
       end;
+      if not isfinite(v_instant) or v_instant < now() - interval '100 years' or v_instant > now() + interval '5 years' then
+        raise exception 'INVALID_RELEASE_AT: row % release_at is outside the accepted range', i;
+      end if;
     end if;
     if nullif(r->>'source_local_date', '') is not null then
       v_day := r->>'source_local_date';
@@ -548,8 +593,12 @@ begin
        or (v_prec = 'year' and substr(v_day, 6, 5) <> '01-01') then
       raise exception 'INVALID_PRECISION: row % precision % does not match release_at/source_local_date', i, v_prec;
     end if;
-    if v_basis in ('confirmed', 'estimated') and v_prec not in ('instant', 'day') then
-      raise exception 'INVALID_PRECISION: row % % rows need an instant or a day', i, v_basis;
+    -- D10: confirmed means the source states the instant; a date without a time is announced.
+    if v_basis = 'confirmed' and v_prec <> 'instant' then
+      raise exception 'INVALID_PRECISION: row % confirmed rows need an instant (a date without a time is announced)', i;
+    end if;
+    if v_basis = 'estimated' and v_prec not in ('instant', 'day') then
+      raise exception 'INVALID_PRECISION: row % estimated rows need an instant or a day', i;
     end if;
 
     v_zone := nullif(r->>'source_zone', '');
@@ -579,11 +628,17 @@ begin
 
     v_observed := now();
     if nullif(r->>'observed_at', '') is not null then
+      if (r->>'observed_at') !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}' then
+        raise exception 'INVALID_OBSERVED_AT: row % observed_at is not an ISO-8601 instant', i;
+      end if;
       begin
         v_observed := (r->>'observed_at')::timestamptz;
       exception when others then
         raise exception 'INVALID_OBSERVED_AT: row % observed_at is not an ISO-8601 instant', i;
       end;
+      if not isfinite(v_observed) or v_observed < now() - interval '5 years' then
+        raise exception 'INVALID_OBSERVED_AT: row % observed_at is outside the accepted range', i;
+      end if;
       if v_observed > now() + interval '1 hour' then
         raise exception 'INVALID_OBSERVED_AT: row % observed_at is in the future', i;
       end if;
@@ -748,8 +803,8 @@ begin
       raise exception 'INVALID_SOURCE: row % source must be animethemes', i;
     end if;
     v_url := nullif(r->>'source_url', '');
-    if v_url is not null and (v_url !~ '^https://[^[:space:]]+$' or char_length(v_url) > 2048) then
-      raise exception 'INVALID_SOURCE_URL: row % source_url must be an https URL', i;
+    if v_url is not null and (v_url !~ '^https://animethemes\.moe/[^[:space:]]*$' or char_length(v_url) > 2048) then
+      raise exception 'INVALID_SOURCE_URL: row % source_url must be an https://animethemes.moe/ link', i;
     end if;
 
     v_identity := 'animethemes:' || v_anime || ':' || v_source_id;
@@ -791,5 +846,103 @@ end;
 $$;
 revoke all on function public.upsert_theme_links_v1(jsonb) from public, anon, authenticated;
 grant execute on function public.upsert_theme_links_v1(jsonb) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- 10. finish_series_enrichment_v1 (live since 2026-10-08): re-created from 20261007040000
+--     byte-for-byte except ONE added predicate in its theme delete,
+--       and t.source is distinct from 'animethemes'
+--     RULE: theme rows written by upsert_theme_links_v1 (source = 'animethemes', including
+--     the '<theme>.v<n>' / '<theme>.e<entry>' version keys only that writer knows) are owned
+--     by it. An older worker build or a manual finish call that still passes p_themes can
+--     update its own keys but can no longer delete those rows. The current worker omits
+--     p_themes (themes moved to the --themes pass).
+-- ---------------------------------------------------------------------------
+create or replace function public.finish_series_enrichment_v1(p_medium text,p_media_id integer,p_source_revision text,
+ p_lease_token uuid,p_copy jsonb default null,p_material jsonb default null,p_themes jsonb default null,p_error text default null)
+returns jsonb language plpgsql security definer set search_path=public,extensions as $$
+declare job public.series_enrichment_jobs%rowtype; theme jsonb; source text;
+begin
+ -- Catalogue writers/deletion take the catalogue row before their job trigger.
+ -- Match that order before touching a job, including theme_links FK admission,
+ -- so concurrent catalogue deletion cannot create a catalogue/job deadlock.
+ if p_medium='anime' then perform 1 from public.anime where id=p_media_id for key share;
+ elsif p_medium='manga' then perform 1 from public.manga where id=p_media_id for key share;
+ else return jsonb_build_object('outcome','superseded');end if;
+ if not found then return jsonb_build_object('outcome','superseded');end if;
+ select * into job from public.series_enrichment_jobs where medium=p_medium and media_id=p_media_id for update;
+ if not found or p_lease_token is null or p_source_revision is null
+  or job.source_revision<>p_source_revision or job.lease_token is distinct from p_lease_token
+  or job.lease_until is null or job.lease_until<=now()
+ then return jsonb_build_object('outcome','superseded');end if;
+ if p_error is not null then
+  update public.series_enrichment_jobs set attempts=attempts+1,last_error=left(p_error,120),lease_token=null,lease_until=null,
+   due_at=now()+make_interval(secs=>least(86400,60*power(2,least(attempts,10)))::integer) where medium=p_medium and media_id=p_media_id;
+  return jsonb_build_object('outcome','retry');
+ end if;
+ if nullif(p_copy->>'synopsis','') is not null then
+  if p_medium='anime' then
+   insert into public.detail_copy(medium,anime_id,locale,premise,synopsis,provenance,review_state,source_revision,freshness)
+   values('anime',p_media_id,'en',left(p_copy->>'premise',240),p_copy->>'synopsis','catalogue_bridge_v1','source',p_source_revision,now())
+   on conflict(anime_id,locale) where provenance='catalogue_bridge_v1' and section_id is null and anime_id is not null
+   do update set premise=excluded.premise,synopsis=excluded.synopsis,source_revision=excluded.source_revision,freshness=now();
+  else
+   insert into public.detail_copy(medium,manga_id,locale,premise,synopsis,provenance,review_state,source_revision,freshness)
+   values('manga',p_media_id,'en',left(p_copy->>'premise',240),p_copy->>'synopsis','catalogue_bridge_v1','source',p_source_revision,now())
+   on conflict(manga_id,locale) where provenance='catalogue_bridge_v1' and section_id is null and manga_id is not null
+   do update set premise=excluded.premise,synopsis=excluded.synopsis,source_revision=excluded.source_revision,freshness=now();
+  end if;
+ end if;
+ if p_material is not null then
+  if p_material->>'image_url' is distinct from job.payload->>'image_url'
+   or coalesce(p_material->>'digest','') !~ '^[0-9a-f]{64}$'
+   or coalesce(p_material->>'base','') !~ '^#[0-9A-Fa-f]{6}$'
+   or coalesce(p_material->>'deep','') !~ '^#[0-9A-Fa-f]{6}$'
+   or coalesce(p_material->>'wash','') !~ '^#[0-9A-Fa-f]{6}$'
+   or coalesce(p_material->>'edge','') !~ '^#[0-9A-Fa-f]{6}$'
+   or coalesce(p_material->>'ink','') !~ '^#[0-9A-Fa-f]{6}$'
+   or coalesce(p_material->>'contrast','') !~ '^[0-9]+(\.[0-9]+)?$'
+  then raise exception 'INVALID_MATERIAL';end if;
+  if (p_material->>'contrast')::numeric<7 then raise exception 'INVALID_MATERIAL';end if;
+  -- Different catalogue jobs can share an artwork URL. Serialize the current-image
+  -- flip independently of their job-row locks; the partial unique index remains
+  -- the last backstop. Digest includes URL AND bytes in the worker, so identical
+  -- content at two provider URLs has two identities without cross-URL mutation.
+  perform pg_advisory_xact_lock(hashtextextended('series-artwork:'||(p_material->>'image_url'),0));
+  if exists(select 1 from public.artwork_materials where image_digest=p_material->>'digest'
+    and image_url is distinct from p_material->>'image_url') then raise exception 'INVALID_MATERIAL_IDENTITY';end if;
+  update public.artwork_materials set is_current=false where image_url=p_material->>'image_url';
+  insert into public.artwork_materials(image_digest,image_url,content_revision,extraction_version,base_color,deep_color,wash_color,edge_color,ink_color,contrast,is_current)
+  values(p_material->>'digest',p_material->>'image_url',p_source_revision,'art-hue-v1',p_material->>'base',p_material->>'deep',
+   p_material->>'wash',p_material->>'edge',p_material->>'ink',p_material->>'contrast',true)
+  on conflict(image_digest) do update set is_current=true,content_revision=excluded.content_revision,
+   extraction_version=excluded.extraction_version,base_color=excluded.base_color,deep_color=excluded.deep_color,
+   wash_color=excluded.wash_color,edge_color=excluded.edge_color,ink_color=excluded.ink_color,contrast=excluded.contrast;
+ end if;
+ if p_medium='anime' and p_themes is not null then
+  if jsonb_typeof(p_themes)<>'array' or jsonb_array_length(p_themes)>30 then raise exception 'INVALID_THEMES';end if;
+  -- NULL means unknown/provider failure: retain last good. A known exact-ID set,
+  -- including [], supersedes only this producer's rows, never curated links.
+  delete from public.theme_links t where t.anime_id=p_media_id
+   and t.source_identity like 'animethemes:'||p_media_id||':%'
+   and t.source is distinct from 'animethemes'
+   and not exists(select 1 from jsonb_array_elements(p_themes) incoming
+     where t.source_identity='animethemes:'||p_media_id||':'||(incoming->>'source_id'));
+  for theme in select * from jsonb_array_elements(p_themes) loop
+   source:='animethemes:'||p_media_id||':'||(theme->>'source_id');
+   if nullif(theme->>'source_id','') is null or theme->>'role' not in ('op','ed') then raise exception 'INVALID_THEME';end if;
+   insert into public.theme_links(anime_id,role,sequence_order,song_title,artist,match_state,evidence,source_identity,freshness)
+   values(p_media_id,theme->>'role',coalesce((theme->>'sequence_order')::integer,1),theme->>'song_title',theme->>'artist',
+    'search','Exact external ID: '||coalesce(job.payload->>'anilist_id','')||' / '||coalesce(job.payload->>'mal_id',''),source,now())
+   on conflict(source_identity) where source_identity is not null do update set song_title=excluded.song_title,
+    artist=excluded.artist,sequence_order=excluded.sequence_order,role=excluded.role,
+    match_state='search',external_url=null,evidence=excluded.evidence,freshness=now();
+  end loop;
+ end if;
+ update public.series_enrichment_jobs set lease_token=null,lease_until=null,attempts=0,last_error=null,
+  last_success_at=now(),due_at=now()+interval '7 days' where medium=p_medium and media_id=p_media_id;
+ return jsonb_build_object('outcome','applied');
+end; $$;
+revoke all on function public.finish_series_enrichment_v1(text,integer,text,uuid,jsonb,jsonb,jsonb,text) from public,anon,authenticated;
+grant execute on function public.finish_series_enrichment_v1(text,integer,text,uuid,jsonb,jsonb,jsonb,text) to service_role;
 
 commit;
