@@ -122,13 +122,14 @@ private struct RootView: View {
     var body: some View {
         VStack(spacing: 0) {
             if !networkMonitor.isConnected {
-                Text("Offline")
-                    .kuroKicker()
+                Text(KuroLocale.text("Offline", "Offline"))
+                    .font(.kuroCaption(weight: .medium))
+                    .tracking(1.2)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.kuroInkSecondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
                     .background(Color.kuroCanvasQuiet)
-                    .accessibilityLabel(KuroLocale.text("Offline", "Offline"))
-                    .accessibilityAddTraits(.isStaticText)
             }
 
             Group {

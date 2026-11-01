@@ -421,7 +421,7 @@ struct AuthLaneSessionTests {
     func failedResetRecordsNothing() async throws {
         let h = try Self.harness(StubAuth.signInResponder { request in
             StubAuth.isAuth(request, "recover")
-                ? .json(#"{"code":429,"error_code":"over_email_send_rate_limit","msg":"rate limited"}"#, status: 429)
+                ? .json(#"{"error_code":"over_email_send_rate_limit","msg":"rate limited"}"#, status: 429)
                 : .emptyArray
         })
 
@@ -474,7 +474,7 @@ struct AuthLaneSessionTests {
     func failedExchange() async throws {
         let h = try Self.harness(StubAuth.signInResponder { request in
             if StubAuth.isAuth(request, "token"), request.query("grant_type") == "pkce" {
-                return .json(#"{"code":404,"error_code":"flow_state_not_found","msg":"invalid flow state"}"#, status: 404)
+                return .json(#"{"error_code":"flow_state_not_found","msg":"invalid flow state"}"#, status: 404)
             }
             return .emptyArray
         })
