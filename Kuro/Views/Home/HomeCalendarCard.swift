@@ -4,8 +4,10 @@ import SwiftUI
 // MARK: - Home "Coming up." calendar card (PROTOTYPE_SPEC.md §4 "Calendar", "Dates to come")
 // The prototype's calendar: an SF sans "Coming up." heading with its summary ("6 releases · 7 days"),
 // then one rounded card of day groups. Each group has a date chip ("2 / OCT"), "Today / Tomorrow /
-// Fri 9 Oct", a release count, up to three stacked covers and a disclosure; the first group starts
-// open and lists its rows (poster, title, unit, and the row's own time or certainty on the right).
+// Fri 9 Oct", a release count, up to three stacked covers and a disclosure; the first dated group
+// starts open and lists its rows (poster, title, "S2 · Episode 9", and the row's own time or
+// certainty on the right). With no dated group the card opens with "No confirmed dates yet." above a
+// closed Dates to come.
 // Past four groups a "Next N dates" row reveals the rest; an open day with more than three rows
 // offers "Show N more releases". "Dates to come" closes the card and exists only when undated rows do.
 //
@@ -29,6 +31,8 @@ struct HomeCalendarCard: View {
     var coverFor: (ReleaseScheduleItem) -> String?
     /// The row's title when the schedule row carries none.
     var titleFor: (ReleaseScheduleItem) -> String
+    /// The row's season prefix ("S2"), when Home knows the title's season number (anime).
+    var seasonFor: (ReleaseScheduleItem) -> String?
     /// The reference time for "today" (fixtures pin it).
     var now: Date
     /// The medium when Home knows it (the groups may be empty while loading).
@@ -49,11 +53,13 @@ struct HomeCalendarCard: View {
     init(groups: [HomeCalendarDay], coverage: ReleaseScheduleCoverage,
          coverFor: @escaping (ReleaseScheduleItem) -> String? = { $0.coverImage },
          titleFor: @escaping (ReleaseScheduleItem) -> String = { $0.title },
+         seasonFor: @escaping (ReleaseScheduleItem) -> String? = { _ in nil },
          now: Date = Date(), medium: MediaKind? = nil) {
         self.groups = groups
         self.coverage = coverage
         self.coverFor = coverFor
         self.titleFor = titleFor
+        self.seasonFor = seasonFor
         self.now = now
         self.medium = medium
     }
@@ -110,7 +116,9 @@ struct HomeCalendarCard: View {
 
     private var card: some View {
         let paged = HomeCalendarPresentation.paged(groups, showAll: showsAllDates)
-        let first = groups.first?.id
+        // "The first group starts open" applies to dated groups only: Dates to come starts closed.
+        let first = HomeCalendarPresentation.initiallyOpenGroup(groups)
+        let noDates = paged.visible.isEmpty && paged.hidden.isEmpty
         let shape = UnevenRoundedRectangle(topLeadingRadius: palette.topRadius,
                                            bottomLeadingRadius: palette.bottomRadius,
                                            bottomTrailingRadius: palette.bottomRadius,
@@ -123,18 +131,36 @@ struct HomeCalendarCard: View {
             if !paged.hidden.isEmpty {
                 nextDatesRow(paged.hidden)
             }
+            if noDates {
+                noDatesBand
+            }
             if let undated = paged.undated {
-                dayGroup(undated, isFirst: paged.visible.isEmpty && paged.hidden.isEmpty,
-                         initiallyOpen: undated.id == first)
+                dayGroup(undated, isFirst: false, initiallyOpen: undated.id == first)
             }
         }
         .background(palette.card)
         .clipShape(shape)
         .overlay(shape.strokeBorder(palette.cardRule, lineWidth: palette.cardRule == .clear ? 0 : 1))
         .background {
+            // CSS `0 2px 6px -4px`: a negative spread is the shadow of a smaller shape, so the drop
+            // shows under the card only, never at its sides.
             shape.fill(palette.card)
+                .padding(palette.cardShadowInset)
                 .shadow(color: palette.cardShadow, radius: palette.cardShadowRadius, y: palette.cardShadowY)
         }
+    }
+
+    /// No dated release at all: the card opens with "No confirmed dates yet." (§7.1) above the closed
+    /// Dates to come group, instead of opening the announcements.
+    private var noDatesBand: some View {
+        Text(KuroLocale.text("No confirmed dates yet.", "Noch keine bestätigten Termine."))
+            .font(.kuroCustom(isManga ? 13 : 12, relativeTo: .footnote, maxSize: 24))
+            .foregroundStyle(Color(hex: "68736A"))
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
+            .background(palette.card)
     }
 
     // MARK: Day group
@@ -161,7 +187,8 @@ struct HomeCalendarCard: View {
             .accessibilityHint(open ? KuroLocale.text("Hides the releases", "Blendet die Veröffentlichungen aus")
                                     : KuroLocale.text("Shows the releases", "Zeigt die Veröffentlichungen"))
             if open {
-                events(day).background(undated ? palette.pendingFill : palette.eventsFill,
+                // An open list sits on the events fill (white on anime), Dates to come included.
+                events(day).background(palette.eventsFill,
                                        in: UnevenRoundedRectangle(bottomLeadingRadius: palette.eventsBottomRadius,
                                                                   bottomTrailingRadius: palette.eventsBottomRadius,
                                                                   style: .continuous))
@@ -193,10 +220,13 @@ struct HomeCalendarCard: View {
             if !dynamicTypeSize.isAccessibilitySize {
                 dayArt(day.items, rim: day.kind == .undated ? palette.pendingFill : (open ? Color.white : palette.card))
             }
-            Image(systemName: open ? "chevron.up" : "chevron.down")
-                .font(.kuroCustom(14, weight: .light, relativeTo: .body, maxSize: 22))
+            // The prototype's text mark: "⌄" / "⌃", SF 21 w300 (`.disclosure-mark`).
+            Text(open ? "⌃" : "⌄")
+                .font(.kuroCustom(21, weight: .light, relativeTo: .body, maxSize: 30))
                 .foregroundStyle(Color(hex: "727D73"))
                 .frame(width: 18, height: 24)
+                // The marks sit off-centre as in the prototype: ⌃ level with the day label, ⌄ low.
+                .offset(y: open ? -3 : 4)
                 .accessibilityHidden(true)
         }
         .padding(12)
@@ -292,8 +322,8 @@ struct HomeCalendarCard: View {
                     }
                     .padding(.horizontal, 13)
                     .frame(maxWidth: .infinity, minHeight: 44)
-                    .background(Color(hex: "F6F8F4"), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color(hex: "D9E0D7"), lineWidth: 1))
+                    .background(Color(hex: "F6F8F4"), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color(hex: "D9E0D7"), lineWidth: 1))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(HomeContactStyle())
@@ -321,7 +351,7 @@ struct HomeCalendarCard: View {
                         .foregroundStyle(Color.kuroInk)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? 4 : 2)
                         .multilineTextAlignment(.leading)
-                    Text(copy.unitSpokenLabel(item))
+                    Text(HomeCalendarPresentation.rowUnit(item, season: seasonFor(item), copy: copy))
                         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
                         .foregroundStyle(Color(hex: "68736A"))
                     if dynamicTypeSize.isAccessibilitySize {
@@ -396,6 +426,8 @@ struct HomeCalendarPalette: Equatable {
     let cardShadow: Color
     let cardShadowRadius: CGFloat
     let cardShadowY: CGFloat
+    /// The shadow's negative spread (anime `-4px`): the shadow is cast by a shape this much smaller.
+    var cardShadowInset: CGFloat = 0
     let topRadius: CGFloat
     let bottomRadius: CGFloat
     /// The open day's row list (the toggle above it is white in both variants).
@@ -418,7 +450,8 @@ struct HomeCalendarPalette: Equatable {
 
     static let anime = HomeCalendarPalette(
         card: Color(hex: "FAFCF9"), cardRule: Color(hex: "D8DDD9"),
-        cardShadow: Color(hex: "1D291C", opacity: Double(0x20) / 255), cardShadowRadius: 2, cardShadowY: 2,
+        cardShadow: Color(hex: "1D291C", opacity: Double(0x20) / 255), cardShadowRadius: 3, cardShadowY: 2,
+        cardShadowInset: 4,
         topRadius: 18, bottomRadius: 18,
         eventsFill: .white, chipFill: .white, chipRule: Color(hex: "D4DBD4"),
         closedRule: Color(hex: "DDE2DD"), pendingFill: Color(hex: "F0F3ED"), pendingRule: Color(hex: "D7DED5"),

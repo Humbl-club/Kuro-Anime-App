@@ -68,6 +68,25 @@ struct HomeMangaLaneTests {
         #expect(small.leafHeight == 219) // 119 + 6 + 44 + 50
     }
 
+    @Test("Calendar rows carry the season (S2 · Episode 9); Dates to come never starts open")
+    func calendarRowSeasonAndUndatedClosed() throws {
+        let english = try Self.copy(german: false)
+        let german = try Self.copy(german: true)
+        let episode = Self.row(9, Self.now.addingTimeInterval(3_600), medium: .anime, unit: .episode)
+        #expect(HomeCalendarPresentation.rowUnit(episode, season: "S2", copy: english) == "S2 · Episode 9")
+        #expect(HomeCalendarPresentation.rowUnit(episode, season: "S2", copy: german) == "S2 · Folge 9")
+        #expect(HomeCalendarPresentation.rowUnit(episode, season: nil, copy: english) == "Episode 9")
+        let chapter = Self.row(26, Self.now.addingTimeInterval(3_600))
+        #expect(HomeCalendarPresentation.rowUnit(chapter, season: nil, copy: english) == "Chapter 26")
+        // Only undated rows: no group starts open (the card says "No confirmed dates yet." instead).
+        let undated = HomeCalendarPresentation.groups([Self.row(1, nil, basis: .announced),
+                                                       Self.row(2, nil, basis: .announced)], copy: english)
+        #expect(HomeCalendarPresentation.initiallyOpenGroup(undated) == nil)
+        let mixed = HomeCalendarPresentation.groups([Self.row(1, nil, basis: .announced),
+                                                     Self.row(3, Self.now.addingTimeInterval(3_600))], copy: english)
+        #expect(HomeCalendarPresentation.initiallyOpenGroup(mixed) == mixed.first { $0.kind == .day }?.id)
+    }
+
     @Test("A releasing manga reached its released chapter: the leaf is caught up (no +1 for an unreleased chapter)")
     func mangaLeafKeyHasAReleaseCeiling() {
         // RELEASING, no catalogue total, the schedule's next (non-estimated) chapter is 115, read 114.

@@ -2027,3 +2027,11 @@ Local branch only; nothing on the live server changed.
 - **Taste** uses the same Anime / Manga switch as Home, with the first pick's artwork showing through the chosen word.
 - **Your manga lists** use the dark manga key, as in the prototype; loading blocks stay visible on every background; error and empty screens use the same bold headline.
 - **Tests:** account-deletion tests no longer touch the device's Keychain (they failed on unsigned test builds), and a telemetry test that sometimes raced is fixed.
+
+### Change Log — 2 November 2026: Home matches the prototype more closely (prototype pass, step 10 review)
+
+- **Small phones:** the manga Home now fits a 320-point phone (it used to be laid out too wide and cut off at both edges).
+- **Calendar:** with no confirmed dates it says "No confirmed dates yet." and keeps "Dates to come" closed; anime rows say the season ("S2 · Episode 9"); spacing and shadow match the prototype.
+- **Manga:** a book whose newest chapter you have read shows "Caught up" with a light ✓ key instead of a +1 for a chapter that is not out yet.
+- **Fixes from review:** the new-account welcome ends once you start a planned title; German VoiceOver grammar for one club member; club names hide when social activity is switched off; "Clear cache" also clears the colours taken from artwork.
+- Still open, needing a decision or backend work: "Finished …" / "… started" in the club room, a chapter count for manga with only undated announcements, and "English edition" on volume rows. Details in `docs/prototype-fidelity/FIDELITY_REVIEW.md`.

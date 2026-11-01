@@ -68,20 +68,37 @@ Every reference has a primary native render (38 references).
 
 ## Fixture notes for the Home renders (read before judging a difference)
 
+Differences that stay, and why, are listed per finding in `../FIDELITY_REVIEW.md`.
+
+- **Locale.** English renders run with `-testLanguage en -testRegion GB` (the reference's "Fri 9 Oct" and
+  24-hour times; English `KuroLocale` follows the device region). German renders run with
+  `-testLanguage de -testRegion DE`.
+- **Schedule on calendar days.** Anime rows are anchored to the reader's days (today at 16:00 / 17:00 /
+  18:00 while those are ahead, later days at noon), so a render never depends on the hour it runs.
+  Busy and quiet: 3 today, 2 tomorrow, 1 in six days. Full (both media): 6 on each of 8 days
+  ("Show 3 more releases", "Next 4 dates · 24 releases").
+- **Anime totals.** Demon Slayer 4 / 5 and Attack on Titan 7 / 8, as the reference. Quiet: 5 / 5 and 8 / 8.
+- **Anime undated.** Demon Slayer episode 6 and Attack on Titan episode 9 are announced without a date
+  (so 5 and 8 are out: "2 new episodes"), plus Mob Psycho 100's new season.
+- **Scene foot colours.** The prototype hand-set its two scene banners' materials (`OVERRIDES` in
+  `build_art_materials.py`); the app derives them (FIDELITY_REVIEW note A).
 - **Manga sixth title.** The references show Vagabond. The fixture art for that slot is Vinland Saga's
   cover, so the fixture names it Vinland Saga rather than put a wrong cover under a real title.
 - **Manga busy headline.** "4 new chapters" is computed, not written: Chainsaw Man 24 against chapter 26
   ahead, Jujutsu Kaisen 19 against 22, SPY x FAMILY 4 against 6 (released = next known chapter - 1).
-  Solo Leveling is finished at 9 (a backlog is never "new"). So Jujutsu Kaisen reads Ch. 19 and SPY x
-  FAMILY Ch. 4 where the reference shows 16 and 5.
-- **Manga quiet keys.** Every title is caught up and the page says "Keep reading." with the quiet line,
-  but only Solo Leveling (at its total) shows the ✓ key: Home keeps the manga +1 capped by the catalogue
-  total only (`HomeView.keyState`), while the reference draws ✓ on the first three. A product rule, not
-  a fixture artifact.
-- **Manga undated headline.** With only undated announcements nothing released is known, so the page says
-  "Keep reading." (no count, no quiet line) where the reference shows "4 new chapters".
-- **Club room.** The fixture account has one club, "Sunday Club" (activity two hours ago), so the club
-  room shows the bundle's notes. The anime notes are about Attack on Titan, the manga notes about Berserk.
+  Solo Leveling is finished at 9 (a backlog is never "new"). Berserk and Vinland Saga are on hiatus
+  (released count unknown: their keys keep the +1, as the reference). So Jujutsu Kaisen reads Ch. 19
+  and SPY x FAMILY Ch. 4 where the reference shows 16 and 5.
+- **Manga quiet keys.** Chainsaw Man, Solo Leveling and Jujutsu Kaisen read Caught up with the light ✓
+  key, as the reference. SPY x FAMILY also reads Caught up (its chapter 6 is tomorrow) where the
+  reference draws a +1: Home never offers a +1 for an unreleased chapter (PF-QA-1).
+- **Manga undated headline.** With only undated volume announcements nothing released is known, so the page
+  says "Keep reading." where the reference shows "4 new chapters" (FIDELITY_REVIEW note G).
+- **Club room.** The fixture account has one club, "Sunday Club" (activity two hours ago). Mina's note and
+  her ending-scoped spoiler are on Death Note (anime) / Berserk (manga); Jules's note is on Attack on
+  Titan / Solo Leveling. The verbs "Finished …" / "… started" need data Home does not have yet
+  (FIDELITY_REVIEW note B).
 - **New account.** The selected medium word shows the mountain (empty shelf), the picks come from the
   seeded Discover bundle (`HomeNewAccount`'s own loader), and the page sits on the medium's canvas.
-
+- **Lane harness renders** (`home-manga/home-manga-*`, `home-anime-calendar-club-*`) and the first-run
+  HomeView renders were re-rendered with this pass; the other `firstrun/` and `detail/` renders were not.

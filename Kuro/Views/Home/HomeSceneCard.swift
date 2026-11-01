@@ -223,7 +223,9 @@ struct HomeSceneCard<Key: View>: View {
             }
             .foregroundStyle(HomeInk.tabInk)
             .padding(.horizontal, 8)
-            .padding(.vertical, 7)
+            // The measured face: 31 pt tall (padding 7/8), the word and number centred in it.
+            .frame(minHeight: 31)
+            .fixedSize(horizontal: false, vertical: true)
             .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 8, topTrailingRadius: 8))
             .shadow(color: Color.white.opacity(Double(0x65) / 255), radius: 0, y: -1)
             .frame(minWidth: 44, minHeight: 44, alignment: .bottomLeading)
@@ -272,7 +274,9 @@ struct HomeSceneCard<Key: View>: View {
                     key().frame(width: HomeSceneMetrics.keyColumn, height: 44)
                 }
                 .padding(.leading, compact ? 8 : 12)
-                .frame(minHeight: 48)
+                // The progress control is a fixed 112 pt column (12 + readout + 2 + key), so a
+                // caught-up readout never moves the divider; it grows only for larger text.
+                .frame(minWidth: compact ? 104 : 112, minHeight: 48, alignment: .leading)
                 .overlay(alignment: .leading) {
                     Rectangle().fill(Color.white.opacity(Double(0x24) / 255)).frame(width: 1, height: 48)
                 }
@@ -338,7 +342,7 @@ struct HomeSceneReadoutView: View {
                 // readout's column instead of widening the foot and squeezing the title.
                 .lineLimit(readout.caughtUp ? 3 : 1)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(width: readout.caughtUp ? 62 : nil, alignment: .leading)
+                .frame(width: readout.caughtUp ? 54 : nil, alignment: .leading)
             HStack(alignment: .lastTextBaseline, spacing: 0) {
                 Text(readout.value)
                     .font(.kuroCustom(compact ? 17 : 19, weight: .medium, relativeTo: .title3, maxSize: 34))

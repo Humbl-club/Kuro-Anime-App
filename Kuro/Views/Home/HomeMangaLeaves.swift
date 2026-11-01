@@ -98,6 +98,8 @@ struct HomeMangaLeaves<Key: View>: View {
                     .font(.kuroCustom(9, relativeTo: .caption2, maxSize: 18))
                     .foregroundStyle(Color(hex: "59665A"))
                     .lineLimit(showsCount ? 1 : 3)
+                    // "Caught up" in a 44 pt readout at 320 pt phones: scale a little, never "Caught…".
+                    .minimumScaleFactor(showsCount ? 0.8 : 1)
                     .fixedSize(horizontal: false, vertical: !showsCount)
                 if showsCount {
                     Text(state.label)

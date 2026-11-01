@@ -86,8 +86,10 @@ struct HomeView: View {
                     importRecoveryBanner
                     shelfBody(proxy: proxy)
                     if showsFooter {
-                        // The page footer, last in the scroll content (PROTOTYPE_SPEC.md §4 "Footer").
+                        // The page footer, last in the scroll content (PROTOTYPE_SPEC.md §4 "Footer"),
+                        // on the paper feed's side padding.
                         HomeFooter()
+                            .padding(.horizontal, HomeFeedInsets.feed)
                     }
                 }
                 .padding(.horizontal, gutter)
@@ -97,8 +99,13 @@ struct HomeView: View {
                 .kuroReadableWidth()
             }
             .id(home.medium)
-            .onGeometryChange(for: CGSize.self) { $0.size } action: { containerSize = $0 }
         }
+        // The container is measured outside anything the content can widen: a frame with both bounds
+        // takes the proposed size whatever its child asks. Measured on the scroll view itself, a
+        // fixed-width child laid out from the 375 pt fallback (the manga leaves' grid) held the scroll
+        // view at 374 pt on a 320 pt phone, so the page never shrank to the real column.
+        .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { containerSize = $0 }
         .background(Color.clear)
         .tint(Color.kuroInk)
         // Outside the scroll view, so the new-account block's Plan toast sits at the screen foot.
@@ -436,17 +443,17 @@ struct HomeView: View {
                         let lanes = HomeShelfPolicy.scenes(split.inProgress)
                         animeScenes(lanes.scenes)
                         animeAlsoWatching(lanes.alsoWatching)
+                    } else if containerSize.width > 0 {
+                        // The manga activity stage has no top margin: the covers start 21 pt under the
+                        // opening row (the stack's 12 plus the opening's 6 and the line box).
+                        mangaLeaves(split.inProgress)
+                    } else {
+                        // Covers are sized from the measured column: wait for the first measurement.
+                        sceneLoadingShape
                     }
                 }
             }
-            if !split.inProgress.isEmpty, mediumKind == .manga {
-                // Covers are sized from the measured column: wait for the first measurement.
-                if containerSize.width > 0 {
-                    mangaLeaves(split.inProgress)
-                } else {
-                    sceneLoadingShape
-                }
-            } else if split.inProgress.isEmpty, awaitingInProgress {
+            if split.inProgress.isEmpty, awaitingInProgress {
                 sceneLoadingShape
             } else if split.inProgress.isEmpty, scene != .inProgress {
                 restingBand(hasPlanned: !split.planned.isEmpty, hasPaused: !split.paused.isEmpty)
@@ -728,7 +735,8 @@ struct HomeView: View {
                     }
                 }
             }
-            // 25 pt under the last scene (the opening block's 12 pt spacing plus 13).
+            // 25 pt under the last scene (the opening block's 12 pt spacing plus 13), to the heading
+            // row's 21 pt line box.
             .padding(.top, 13)
         }
     }
@@ -788,7 +796,9 @@ struct HomeView: View {
             value: state.label,
             total: state.cap,
             caughtUp: state.caughtUp,
-            fraction: fraction,
+            // A tile shows no total: caught up, its trace is full (everything out so far is watched),
+            // as the prototype's tiles read; a scene keeps the catalogue fraction beside "N / total".
+            fraction: onTile && state.caughtUp ? 1 : fraction,
             spoken: progressSpoken(card, state: state))
     }
 
@@ -1021,12 +1031,24 @@ struct HomeView: View {
             HomeCalendarCard(groups: groups, coverage: coverage,
                              coverFor: { coverURL(for: $0) },
                              titleFor: { item in home.bundle?.active.first { $0.mediaId == item.mediaId }?.title ?? "" },
+                             seasonFor: { item in seasonPrefix(for: item) },
                              medium: mediumKind)
                 // 32 pt above the heading (the shelf's 24 pt spacing plus 8).
                 .padding(.top, 8)
+                // The paper feed's 22 pt side padding (18 on small phones): 2 pt inside the gutter.
+                .padding(.horizontal, HomeFeedInsets.feed)
                 .id("upcoming-calendar")
                 .accessibilityFocused($calendarFocused)
         }
+    }
+
+    /// "S2" for an anime row whose title's season number Home holds (the card's ladder section);
+    /// nil for manga and when the number is unknown (never "S1" by default).
+    private func seasonPrefix(for item: ReleaseScheduleItem) -> String? {
+        guard item.medium == .anime,
+              let card = home.bundle?.active.first(where: { $0.mediaId == item.mediaId }),
+              let tab = HomeSeasonTab.make(card), tab.word != nil else { return nil }
+        return "S\(tab.number)"
     }
 
     // MARK: Private club room (only with real clubs and real, authorized notes)
@@ -1058,6 +1080,10 @@ struct HomeView: View {
                          notesFailed: notesFailed, notesOffline: notesFailed && !network.isConnected,
                          onRetry: { perform(origin: origin) { await home.load() } },
                          onOpenClubs: onOpenClubs)
+                // `.club-room` margin 32/-5/0: 32 pt under the calendar (the shelf's 24 + 8) and 5 pt
+                // past the paper feed on each side (3 pt past the page gutter).
+                .padding(.top, 8)
+                .padding(.horizontal, HomeFeedInsets.room)
         case .failed, .offline:
             HomeClubRoomFailure(medium: mediumKind, offline: presentation == .offline) {
                 perform(origin: origin) { await clubs.fetchMyClubs() }
@@ -1094,6 +1120,13 @@ struct HomeView: View {
             Color.kuroMissingArt
         }
     }
+}
+
+/// The prototype's paper feed sits 2 pt inside Home's gutter (22 pt at 390/430, 18 pt at 320, the
+/// `.paper-feed` padding 0/22/20); the club room bleeds 5 pt past the feed (`margin 32/-5/0`).
+enum HomeFeedInsets {
+    static let feed: CGFloat = 2
+    static let room: CGFloat = -3
 }
 
 /// ScrollPosition alone discards its absolute point after a user drag. Keep the observed

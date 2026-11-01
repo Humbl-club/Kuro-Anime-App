@@ -178,6 +178,20 @@ enum HomeCalendarPresentation {
         }
     }
 
+    /// The group that starts open: the first dated group. Dates to come never starts open (with no
+    /// dated group the card says "No confirmed dates yet." above it instead).
+    static func initiallyOpenGroup(_ groups: [HomeCalendarDay]) -> String? {
+        groups.first { $0.kind != .undated }?.id
+    }
+
+    /// A release row's unit line (§7.1 "Calendar row"): "S2 · Episode 9" when the title's season
+    /// number is known, else "Episode 9"; manga "Chapter 26" / "Volume 11". German "S2 · Folge 9".
+    static func rowUnit(_ item: ReleaseScheduleItem, season: String?, copy: ReleaseCopy) -> String {
+        let unit = copy.unitSpokenLabel(item)
+        guard let season, !season.isEmpty, item.unitKind != .season else { return unit }
+        return "\(season) · \(unit)"
+    }
+
     /// The groups shown before "Next N dates", the hidden dated groups, and the undated group (always
     /// last and always shown: "Dates to come" exists only when rows without a date exist).
     static func paged(_ groups: [HomeCalendarDay], showAll: Bool)

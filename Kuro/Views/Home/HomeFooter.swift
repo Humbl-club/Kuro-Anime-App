@@ -18,7 +18,8 @@ struct HomeFooter: View {
                 .accessibilityHidden(true)
         }
         .foregroundStyle(Color.kuroMuted)
-        .padding(.top, 20)
+        // The feed's 20 pt bottom padding plus `.app-end`'s 20 pt top, less Home's 12 pt stack spacing.
+        .padding(.top, 28)
         .padding(.bottom, 28)
         .frame(maxWidth: .infinity)
         .accessibilityElement(children: .combine)

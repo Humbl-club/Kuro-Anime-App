@@ -23,6 +23,14 @@ struct HomeAlsoWatchingTile<Key: View>: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    /// The text column: the prototype's fixed `44px 114px` grid (88 at ≤ 360), so a title never
+    /// shares its width with the key; flexible at accessibility sizes (one column, wider tiles).
+    private var textColumn: CGFloat? {
+        // 89 at ≤ 360: SF at 11 pt sets "Mob Psycho 100" at 88.5 pt, which the browser's subpixel
+        // text still fits in its 88 pt column (one line in the reference).
+        dynamicTypeSize.isAccessibilitySize ? nil : (compact ? 89 : 114)
+    }
+
     var body: some View {
         // The poster sits centred against the 92 pt column (the prototype's `align-items: center`).
         HStack(alignment: .center, spacing: compact ? 7 : 9) {
@@ -39,18 +47,24 @@ struct HomeAlsoWatchingTile<Key: View>: View {
                         .multilineTextAlignment(.leading)
                         .lineLimit(HomeSceneMetrics.tileTitleLines(accessibility: dynamicTypeSize.isAccessibilitySize))
                         .fixedSize(horizontal: false, vertical: true)
-                        // The prototype's 48 pt title row; a short title sits centred in it.
-                        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                        // The prototype's 44 pt title button at the top of its 48 pt row: a one-line
+                        // title's first line sits level with the poster's top.
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .frame(minHeight: 48, alignment: .top)
                 .accessibilityLabel(KuroLocale.text("Open \(title)", "\(title) öffnen"))
+                // The 44 pt progress row (gap 2): the count centred, its 1 pt track level with the
+                // key face's bottom edge.
                 HStack(alignment: .center, spacing: 2) {
                     readoutView
                     key().frame(width: HomeSceneMetrics.keyColumn, height: 44)
                 }
+                .frame(minHeight: 44)
             }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(width: textColumn, alignment: .topLeading)
+            .frame(maxWidth: textColumn == nil ? .infinity : nil, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -58,6 +72,13 @@ struct HomeAlsoWatchingTile<Key: View>: View {
     private var poster: some View {
         HomeArtwork(url: posterURL, maxPixelSize: 300, placeholder: HomeInk.posterFill)
             .frame(width: 44, height: 66)
+            .background {
+                // `0 3px 7px -4px #22222255`: cast by a shape 4 pt smaller, so it shows below only.
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(HomeInk.posterFill)
+                    .padding(4)
+                    .shadow(color: Color(hex: "222222", opacity: Double(0x55) / 255), radius: 3.5, y: 3)
+            }
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.black.opacity(Double(0x0B) / 255), lineWidth: 1))
             .overlay(alignment: .bottomTrailing) {
@@ -76,12 +97,11 @@ struct HomeAlsoWatchingTile<Key: View>: View {
                     .background(HomeInk.tabFace, in: UnevenRoundedRectangle(topLeadingRadius: 5))
                 }
             }
-            .shadow(color: Color(hex: "222222", opacity: Double(0x55) / 255), radius: 3, y: 2)
             .homeEntrance()
     }
 
     private var readoutView: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        ZStack(alignment: .leading) {
             HStack(alignment: .lastTextBaseline, spacing: 3) {
                 Text(readout.unit)
                     .font(.kuroCustom(compact ? 9 : 10, relativeTo: .caption2, maxSize: 20))
@@ -95,8 +115,11 @@ struct HomeAlsoWatchingTile<Key: View>: View {
                     .kuroCountRoll(value: readout.value)
             }
             HomeScrub(fraction: readout.fraction, track: HomeInk.tileTrack, trace: HomeInk.tileTrace)
+                .frame(maxHeight: .infinity, alignment: .bottom)
+                // The key face (34 in the 44 pt row) ends 5 pt above the row's foot: the track too.
+                .padding(.bottom, 5)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(readout.spoken)
     }
@@ -133,6 +156,8 @@ struct HomeAlsoWatchingHeading: View {
                 .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 20))
                 .foregroundStyle(Color.kuroMuted)
         }
+        // The heading row's 21 pt line box (SF 15/21), so its 25 / 12 margins measure as in the CSS.
+        .frame(minHeight: 21)
     }
 }
 

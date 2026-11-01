@@ -412,6 +412,10 @@ struct HomeAnimeLaneTests {
                 try await Self.render(Self.home(graph, materials, canvas: .kuroCanvasHomeManga), width: width,
                                       height: 2_400, to: url, canvas: .kuroCanvasHomeManga)
                 #expect(FileManager.default.fileExists(atPath: url.path))
+                // The page fits its width: the gutters' outer 8 pt stay canvas beside the switch, the
+                // covers and the calendar (a page laid out wider than the phone is clipped there).
+                #expect(Self.edgesAreBlank(url, inset: 8, rows: 0..<900),
+                        "\(scenario.rawValue) manga at \(Int(width)) draws into its outer 8 pt")
             }
         }
     }
@@ -460,8 +464,10 @@ struct HomeAnimeLaneTests {
     /// Busy, full and undated read Chainsaw Man 24, Solo Leveling 8 (finished at 9: a backlog, never
     /// "new"), Jujutsu Kaisen 19, Berserk 12, SPY x FAMILY 4 and Vinland Saga 40 (the reference's
     /// sixth title is Vagabond; the fixture art is Vinland Saga's cover, so the title follows the art).
-    /// Against the dated chapters ahead (26, 22, 13, 6, 41) that is 1 + 2 + 0 + 1 + 0 = "4 new
-    /// chapters", the reference's headline, honestly. Quiet has read every released chapter (the caught-up account).
+    /// Against the dated chapters ahead (26, 22, 6) that is 1 + 2 + 1 = "4 new chapters", the
+    /// reference's headline, honestly. Berserk and Vinland Saga are on hiatus: how many chapters are
+    /// out is not known, so their keys keep the +1 (as the reference draws them) and they never block
+    /// the quiet line. Quiet has read every released chapter (the caught-up account).
     static func mangaBundle(_ scenario: Scenario) -> HomeBundle? {
         let quiet = scenario == .quiet
         func card(_ id: Int, progress: Int, chapters: Int?, status: String) -> String {
@@ -477,9 +483,9 @@ struct HomeAnimeLaneTests {
             card(1, progress: quiet ? 25 : 24, chapters: nil, status: "RELEASING"),
             card(2, progress: quiet ? 9 : 8, chapters: 9, status: "FINISHED"),
             card(3, progress: quiet ? 21 : 19, chapters: nil, status: "RELEASING"),
-            card(4, progress: 12, chapters: nil, status: "RELEASING"),
+            card(4, progress: 12, chapters: nil, status: "HIATUS"),
             card(5, progress: quiet ? 5 : 4, chapters: nil, status: "RELEASING"),
-            card(6, progress: 40, chapters: nil, status: "RELEASING")
+            card(6, progress: 40, chapters: nil, status: "HIATUS")
         ].joined(separator: ",")
         // The notes are two hours old whenever the suite runs (the references' "2h ago").
         let noteAt = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-7_200))
@@ -487,6 +493,8 @@ struct HomeAnimeLaneTests {
         {"state":"ready","label":"Sunday Club","items":[
           {"comment_id":"m1","media_id":4,"media_type":"MANGA","text":"Just one more. Famous last words.",
            "display_name":"Mina","spoiler_scope":"none","created_at":"\(noteAt)"},
+          {"comment_id":"m3","media_id":4,"media_type":"MANGA","text":null,"display_name":"Mina",
+           "spoiler_scope":"ending","created_at":"\(noteAt)"},
           {"comment_id":"m2","media_id":2,"media_type":"MANGA","text":"Started.","display_name":"Jules",
            "spoiler_scope":"none","created_at":"\(noteAt)"}]}
         """
@@ -498,7 +506,7 @@ struct HomeAnimeLaneTests {
 
     /// Manga releases are announced for a day (00:00 UTC of the reader's local day, as stored). Busy and
     /// quiet: three today, two tomorrow, one in a week (the reference's 6 releases · 7 days), plus three
-    /// undated volume announcements. Undated: the announcements only. Full: six weeks of releases.
+    /// undated volume announcements. Undated: the announcements only. Full: 48 releases on eight days.
     static func mangaSchedule(_ scenario: Scenario) -> [ReleaseScheduleItem] {
         func dayRow(_ days: Int) -> Date {
             let calendar = KuroLocale.calendar
@@ -524,15 +532,15 @@ struct HomeAnimeLaneTests {
         case .busy, .quiet:
             return week + undated
         case .full:
-            // 48 dated releases: the six above, then seven a week for six weeks (the last 41 days ahead,
-            // so the span reads "6 weeks"). Each title's chapters (Solo Leveling's volumes) keep counting.
+            // The reference's 48: six releases on each of eight days over six weeks (today, tomorrow,
+            // +4, +7, then four more out to 41 days, so the span reads "6 weeks"): "Show 3 more
+            // releases" under today and "Next 4 dates · 24 releases". Each title's chapters (Solo
+            // Leveling's volumes) keep counting from the busy numbers, so availability is unchanged.
             let base: [Int: Double] = [1: 26, 2: 11, 3: 22, 4: 13, 5: 6, 6: 41]
-            var rows = week
-            for weekIndex in 1...6 {
-                for slot in 0..<7 {
-                    let id = slot % 6 + 1
-                    let number = (base[id] ?? 1) + Double(weekIndex * 2 + slot / 6)
-                    rows.append(row(id, id == 2 ? .volume : .chapter, number, weekIndex * 7 - 1))
+            var rows: [ReleaseScheduleItem] = []
+            for (index, day) in [0, 1, 4, 7, 14, 21, 28, 41].enumerated() {
+                for id in 1...6 {
+                    rows.append(row(id, id == 2 ? .volume : .chapter, (base[id] ?? 1) + Double(index), day))
                 }
             }
             return rows + undated
@@ -632,15 +640,15 @@ struct HomeAnimeLaneTests {
         """
     }
 
-    /// Quiet (the reference's caught-up account): Demon Slayer has watched every aired episode of 12
-    /// (the next one is still ahead: the schedule-gated ✓ and "Caught up 5 / 12"), Attack on Titan is
-    /// finished at 8 / 8, Jujutsu Kaisen has watched the 9 aired, and the finished titles are at their
-    /// totals, as the reference's ✓ keys show.
+    /// The reference's totals: Demon Slayer 4 / 5 and Attack on Titan 7 / 8 (releasing; the schedule's
+    /// next episodes 6 and 9 say 5 and 8 are out, so each has one new episode). Quiet (the reference's
+    /// caught-up account): Demon Slayer 5 / 5 and Attack on Titan 8 / 8, Jujutsu Kaisen has watched
+    /// the 9 aired, and the finished titles are at their totals, as the reference's ✓ keys show.
     static func bundle(_ scenario: Scenario) -> HomeBundle? {
         let quiet = scenario == .quiet
         let cards = [
-            cardJSON(1, progress: quiet ? 5 : 4, episodes: 12, status: "RELEASING", season: 1),
-            cardJSON(2, progress: quiet ? 8 : 7, episodes: quiet ? 8 : 12, status: quiet ? "FINISHED" : "RELEASING", season: 2),
+            cardJSON(1, progress: quiet ? 5 : 4, episodes: 5, status: "RELEASING", season: 1),
+            cardJSON(2, progress: quiet ? 8 : 7, episodes: 8, status: quiet ? "FINISHED" : "RELEASING", season: 2),
             cardJSON(3, progress: quiet ? 9 : 6, episodes: 23, status: "RELEASING", season: 2),
             cardJSON(4, progress: quiet ? 37 : 11, episodes: 37, status: "FINISHED", season: nil),
             cardJSON(5, progress: quiet ? 12 : 3, episodes: 12, status: "FINISHED", season: 2),
@@ -650,8 +658,10 @@ struct HomeAnimeLaneTests {
         let noteAt = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-7_200))
         let club = """
         {"state":"ready","label":"Sunday Club","items":[
-          {"comment_id":"c1","media_id":2,"media_type":"ANIME","text":"Famous last words.","display_name":"Mina",
-           "spoiler_scope":"none","created_at":"\(noteAt)"},
+          {"comment_id":"c1","media_id":4,"media_type":"ANIME","text":"Just one more. Famous last words.",
+           "display_name":"Mina","spoiler_scope":"none","created_at":"\(noteAt)"},
+          {"comment_id":"c3","media_id":4,"media_type":"ANIME","text":null,"display_name":"Mina",
+           "spoiler_scope":"ending","created_at":"\(noteAt)"},
           {"comment_id":"c2","media_id":2,"media_type":"ANIME","text":"Again.","display_name":"Jules",
            "spoiler_scope":"none","created_at":"\(noteAt)"}]}
         """
@@ -661,40 +671,61 @@ struct HomeAnimeLaneTests {
         """)
     }
 
-    /// The account's schedule relative to now (rows behind now never show). Quiet keeps the busy dates;
-    /// the caught-up titles' next episodes are still ahead. Busy and full: Jujutsu Kaisen's rows carry no
-    /// episode number (the source did not state one), so how many episodes are out stays unknown: its
-    /// key keeps the +1 and it adds nothing to "2 new episodes" (the reference's composition, honestly).
+    /// The account's schedule on the reader's calendar days, so a render never depends on the hour it
+    /// runs at (rows behind now never show). Today's rows sit at 16:00, 17:00, 18:00 … while those are
+    /// still ahead, otherwise a few minutes from now (before midnight); later days at noon.
+    /// - busy / quiet: three today (Demon Slayer 6, Attack on Titan 9, Jujutsu Kaisen), two tomorrow,
+    ///   one in six days (the reference's 6 releases · 7 days), plus three undated announcements. Busy
+    ///   leaves Jujutsu Kaisen's row without an episode number (the source did not state one), so how
+    ///   many of its episodes are out stays unknown: its key keeps the +1 and it adds nothing to
+    ///   "2 new episodes" (the reference's composition, honestly). Quiet numbers it 10.
+    /// - full: six releases on each of eight days over six weeks (48), the reference's "Show 3 more
+    ///   releases" and "Next 4 dates · 24 releases".
+    /// - undated: no dated row. Demon Slayer's next episode (6) and Attack on Titan's (9) are announced
+    ///   without a date, which says episodes 5 and 8 are out (`availableUnits`: one before the next
+    ///   announced unit), so the page still reads "2 new episodes"; Mob Psycho 100's new season is
+    ///   announced too (the reference's three announcements).
     static func schedule(_ scenario: Scenario) -> [ReleaseScheduleItem] {
         let now = Date()
-        func row(_ id: Int, _ unit: Double?, _ offset: TimeInterval?) -> ReleaseScheduleItem {
-            ReleaseScheduleItem(medium: .anime, mediaId: id, title: titles.first { $0.id == id }?.title ?? "",
-                                coverImage: art(id).cover, unitKind: .episode, unitNumber: unit,
-                                releaseAt: offset.map { now.addingTimeInterval($0) },
-                                basis: offset == nil ? .announced : .confirmed, source: "anilist")
+        let calendar = KuroLocale.calendar
+        let today = calendar.startOfDay(for: now)
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: today) ?? today.addingTimeInterval(86_400)
+        func at(day: Int, slot: Int) -> Date {
+            guard day == 0 else {
+                let start = calendar.date(byAdding: .day, value: day, to: today) ?? today
+                return start.addingTimeInterval(TimeInterval(12 + slot) * 3_600)
+            }
+            let fixed = today.addingTimeInterval(TimeInterval(16 + slot) * 3_600)
+            if fixed > now.addingTimeInterval(120), fixed < tomorrow { return fixed }
+            return min(now.addingTimeInterval(TimeInterval(slot + 1) * 60), tomorrow.addingTimeInterval(-TimeInterval(10 - slot)))
         }
-        let hour: TimeInterval = 3_600, day: TimeInterval = 86_400
-        let undated = [row(4, 1, nil), row(5, 1, nil), row(6, 1, nil)]
+        func row(_ id: Int, _ unit: Double?, day: Int?, slot: Int = 0, kind: ReleaseUnitKind = .episode) -> ReleaseScheduleItem {
+            ReleaseScheduleItem(medium: .anime, mediaId: id, title: titles.first { $0.id == id }?.title ?? "",
+                                coverImage: art(id).cover, unitKind: kind, unitNumber: unit,
+                                releaseAt: day.map { at(day: $0, slot: slot) },
+                                basis: day == nil ? .announced : .confirmed, source: "anilist")
+        }
+        let undated = [row(4, 1, day: nil), row(5, 1, day: nil), row(6, 1, day: nil)]
+        let week = { (jujutsu: Double?) in
+            [row(1, 6, day: 0, slot: 0), row(2, 9, day: 0, slot: 1), row(3, jujutsu, day: 0, slot: 2),
+             row(4, 38, day: 1, slot: 0), row(5, 13, day: 1, slot: 1), row(6, 65, day: 6)]
+        }
         switch scenario {
         case .undated:
-            return undated
+            return [row(1, 6, day: nil), row(2, 9, day: nil), row(5, nil, day: nil, kind: .season)]
         case .busy:
-            return [row(1, 6, 0.2 * hour), row(2, 9, 0.4 * hour), row(3, nil, 0.6 * hour),
-                    row(4, 38, day), row(5, 13, day + hour), row(6, 65, 6 * day)] + undated
+            return week(nil) + undated
         case .quiet:
-            return [row(1, 6, 0.2 * hour), row(2, 9, 0.4 * hour), row(3, 10, 0.6 * hour),
-                    row(4, 38, day), row(5, 13, day + hour), row(6, 65, 6 * day)] + undated
+            return week(10) + undated
         case .full:
-            // The reference's 48 dated releases: six today, then seven a week for six weeks (the last
-            // about 41 days ahead, so the span reads "6 weeks").
-            var rows = [row(1, 6, 0.2 * hour), row(2, 9, 0.4 * hour), row(3, nil, 0.6 * hour),
-                        row(4, 38, 0.8 * hour), row(5, 13, 1.0 * hour), row(6, 65, 1.2 * hour)]
-            for week in 1...6 {
-                let start = Double(week * 7 - 1) * day
-                for slot in 0..<7 {
-                    let id = slot % 6 + 1
-                    let unit: Double? = id == 3 ? nil : Double(6 + week * 2 + slot / 6 + id)
-                    rows.append(row(id, unit, start + Double(slot) * hour))
+            // Eight days of six (today, tomorrow, +4, +7, then four more out to six weeks). Jujutsu
+            // Kaisen's rows stay unnumbered, as in busy.
+            var rows: [ReleaseScheduleItem] = []
+            for (index, day) in [0, 1, 4, 7, 14, 21, 28, 41].enumerated() {
+                for id in 1...6 {
+                    let first: [Int: Double] = [1: 6, 2: 9, 4: 38, 5: 13, 6: 65]
+                    let unit = first[id].map { $0 + Double(index) }
+                    rows.append(row(id, unit, day: day, slot: id - 1))
                 }
             }
             return rows + undated
@@ -731,6 +762,31 @@ struct HomeAnimeLaneTests {
             if ready { return }
             try? await Task.sleep(for: .milliseconds(50))
         }
+    }
+
+    /// True when the outer `inset` columns on both sides of the PNG at `url` hold one flat colour (the
+    /// canvas) over `rows`: nothing is drawn into the gutters' outer edge.
+    static func edgesAreBlank(_ url: URL, inset: Int, rows: Range<Int>) -> Bool {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil),
+              let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(data: nil, width: image.width, height: image.height, bitsPerComponent: 8,
+                                      bytesPerRow: image.width * 4, space: space,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        guard let data = context.data?.bindMemory(to: UInt8.self, capacity: image.width * image.height * 4) else { return false }
+        func pixel(_ x: Int, _ y: Int) -> [Int] {
+            let offset = (y * image.width + x) * 4
+            return (0..<3).map { Int(data[offset + $0]) }
+        }
+        let reference = pixel(0, rows.lowerBound)
+        for y in rows where y < image.height {
+            for x in Array(0..<inset) + Array((image.width - inset)..<image.width) {
+                let value = pixel(x, y)
+                if zip(value, reference).contains(where: { abs($0 - $1) > 6 }) { return false }
+            }
+        }
+        return true
     }
 
     static func render<V: View>(_ view: V, width: CGFloat, height: CGFloat, to url: URL,
