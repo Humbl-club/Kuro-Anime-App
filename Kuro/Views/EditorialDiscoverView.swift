@@ -1,6 +1,10 @@
-// Editorial Discover View - REDESIGNED
-// Functional-first anime discovery with refined aesthetics
-// Dense content, efficient browsing, elegant presentation
+// Discover (spec D8, D2; rulebook §14.5)
+// Issue-style frames on the white page: one lead frame (today's pick), then rails and equal-frame
+// grids of picture, title and one line. Section heads are serif, sentence case, EN/DE. The page
+// reads the `discover_bundle` once per launch (`DiscoveryStore.ensureDiscoverBundle`); only pull to
+// refresh asks for a fresh one. "Airing today" is ordered by the stated air time where the
+// catalogue states one (never estimated). States: stable skeleton on first paint, then
+// `KuroStateView` for offline, failed and empty.
 
 import KuroCore
 import KuroLibrary
@@ -11,13 +15,17 @@ struct EditorialDiscoverView: View {
     @Environment(SocialActivityStore.self) private var social
     @Environment(CatalogStore.self) private var catalog
     @Environment(DiscoveryStore.self) private var discovery
+    @Environment(ReleasesStore.self) private var releases
     @Environment(TasteStore.self) private var taste
     @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(FeatureFlags.self) private var flags
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.kuroRoutes) private var routes
     @State private var vm = DiscoverViewModel()
     @State private var isLoadingSections = false
     @State private var didInitialLoad = false
     @State private var bannerMessage: String? = nil
+    @State private var bannerTask: Task<Void, Never>? = nil
     @State private var loadError = false
 
     @State private var activeRoute: EditorialDiscoverRoute? = nil
@@ -29,17 +37,33 @@ struct EditorialDiscoverView: View {
         case all = "ALL"
         case anime = "ANIME"
         case manga = "MANGA"
+
+        func title(german: Bool) -> String {
+            switch self {
+            case .all: return german ? "Alle" : "All"
+            case .anime: return "Anime"
+            case .manga: return "Manga"
+            }
+        }
     }
+
+    private var showsAnime: Bool { selectedMediaType != .manga }
+    private var showsManga: Bool { selectedMediaType != .anime }
 
     private var secondarySectionCount: Int {
         var count = 0
-        if !vm.classics.isEmpty { count += 1 }
-        if !vm.currentSeason.isEmpty { count += 1 }
-        if !vm.topRated.isEmpty { count += 1 }
-        if !vm.newlyAdded.isEmpty { count += 1 }
-        if !vm.classicsManga.isEmpty { count += 1 }
-        if !vm.trendingManga.isEmpty { count += 1 }
-        if !vm.topRatedManga.isEmpty { count += 1 }
+        if showsAnime {
+            if !vm.classics.isEmpty { count += 1 }
+            if !vm.currentSeason.isEmpty { count += 1 }
+            if !vm.topRated.isEmpty { count += 1 }
+            if !vm.newlyAdded.isEmpty { count += 1 }
+        }
+        if showsManga {
+            if !vm.classicsManga.isEmpty { count += 1 }
+            if !vm.trendingManga.isEmpty { count += 1 }
+            if !vm.topRatedManga.isEmpty { count += 1 }
+            if !vm.newlyAddedManga.isEmpty { count += 1 }
+        }
         return count
     }
 
@@ -60,396 +84,466 @@ struct EditorialDiscoverView: View {
         !vm.newlyAddedManga.isEmpty
     }
 
+    /// Browse is a pager page in the live order; where the pager has none (series Home), Discover
+    /// offers the catalogue through the Browse route (spec D2).
+    private var offersBrowseEntry: Bool { DiscoverBrowseEntry.isOffered(flags: flags) }
+
+    /// Stated slots for the Airing today rail: the catalogue read, then the reader's own upcoming
+    /// airings (the same `next_airing_at`) for titles the read has not covered.
+    private var airingSlots: [Int: DiscoverAiringSlot] {
+        var slots = discovery.airingSlots
+        for airing in releases.upcomingAirings where slots[airing.anime_id] == nil {
+            slots[airing.anime_id] = DiscoverAiringSlot(
+                animeId: airing.anime_id,
+                airingAt: airing.next_airing_at,
+                episode: airing.next_episode_number
+            )
+        }
+        return slots
+    }
+
     var body: some View {
         GeometryReader { geo in
-            let currentWidth = max(320, geo.size.width)
-            // Hero slot (One Thing / skeleton / FEATURED fallback) is tuned for
-            // phone widths: the 4:5 crop derives height = width x 1.25, so an
-            // uncapped iPad/landscape width scales it into a full-screen
-            // monster. Cap at the app's 520 max-content-width idiom; the card
-            // is centered via .frame(maxWidth: .infinity) at the call sites.
-            let heroWidth = min(currentWidth - 40, 520)
+            let width = DiscoverLayout.contentWidth(
+                container: geo.size.width,
+                regularWidth: horizontalSizeClass == .regular
+            )
             ScrollView(.vertical, showsIndicators: false) {
-                if isLoadingSections && !hasAnyContent {
-                    EditorialLoadingView()
-                } else if loadError && !hasAnyContent {
-                    VStack(spacing: KuroDesignSpacing.md) {
-                        Image(systemName: "wifi.slash")
-                            .font(.system(size: 28, weight: .light))
-                            .foregroundColor(.black.opacity(0.25))
-                        Text("COULDN'T LOAD")
-                            .font(.kuroCaption(weight: .medium))
-                            .tracking(1.6)
-                            .foregroundColor(.black.opacity(0.55))
-                        Text("Check your connection and try again.")
-                            .font(.kuroBody(weight: .light))
-                            .foregroundColor(.black.opacity(0.40))
-                        Button {
-                            Task { await refreshSections() }
-                        } label: {
-                            Text("RETRY")
-                                .font(.kuroCaption(weight: .medium))
-                                .tracking(1.6)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 10)
-                                .background(Capsule().fill(Color.black))
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, KuroDesignSpacing.sm)
-                    }
-                    .padding(.top, 80)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Failed to load discover content. Retry button available.")
-                } else if !isLoadingSections && !hasAnyContent {
-                    EditorialEmptyView(onRetry: {
-                        await refreshSections()
-                    })
-                } else {
-                    VStack(spacing: KuroDesignSpacing.lg) {
-                    // Stale data indicator when offline but showing cached content
-                    if !networkMonitor.isConnected && hasAnyContent {
-                        Text("SHOWING CACHED DATA")
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.2)
-                            .foregroundColor(.kuroTextTertiary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.bottom, 4)
-                    }
-
-                    // MARK: Media type filter
-                    HStack {
-                        Spacer()
-                        Menu {
-                            ForEach(DiscoverMediaTypeFilter.allCases, id: \.self) { type in
-                                Button(type.rawValue) {
-                                    selectedMediaType = type
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: "rectangle.stack")
-                                    .font(.system(size: 9, weight: .regular))
-                                Text(selectedMediaType == .all ? "TYPE" : selectedMediaType.rawValue)
-                                    .font(.system(size: 9, weight: .medium))
-                                    .tracking(0.8)
-                            }
-                            .foregroundColor(selectedMediaType != .all ? .black : .black.opacity(0.35))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 20)
-
-                    // MARK: Primary sections (always visible, ordered by user value)
-
-                    // MARK: The One Thing (daily editorial hero; falls back to legacy FEATURED)
-                    if let feature = vm.dailyFeature,
-                       (selectedMediaType == .all
-                        || (selectedMediaType == .anime && feature.kind == .anime)
-                        || (selectedMediaType == .manga && feature.kind == .manga)) {
-                        DiscoverOneThingCard(feature: feature, width: heroWidth)
-                            .padding(.horizontal, 20)
-                            .frame(maxWidth: .infinity)
-                    } else if !vm.dailyFeatureResolved && selectedMediaType != .manga {
-                        DiscoverOneThingSkeleton(width: heroWidth)
-                            .padding(.horizontal, 20)
-                            .frame(maxWidth: .infinity)
-                    } else if let featured = vm.featured, (selectedMediaType == .all || selectedMediaType == .anime) {
-                        KuroHeroCard(media: featured, width: heroWidth)
-                            .padding(.horizontal, 20)
-                            .frame(maxWidth: .infinity)
-                    }
-
-                    if !vm.airingToday.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
-                        CompactHorizontalSection(
-                            title: "AIRING TODAY",
-                            subtitle: "Next 24 hours",
-                            items: Array(vm.airingToday.prefix(10)),
-                            containerWidth: currentWidth,
-                            onSeeAll: { activeRoute = .animeAiringToday },
-                            largeCards: true
-                        )
-                    }
-
-                    // Because-You replaces NEW TO YOU when the taste rail has
-                    // enough signal (mixed anime+manga feed: ALL filter only).
-                    if !vm.becauseYou.isEmpty && selectedMediaType == .all {
-                        Dense2ColumnSectionFixed(
-                            title: "BECAUSE YOU LOVED",
-                            subtitle: "Similar picks, not in your list",
-                            items: Array(vm.becauseYou.prefix(8)),
-                            screenWidth: currentWidth,
-                            onSeeAll: { activeRoute = .animeBecauseYou },
-                            reason: vm.becauseYouReason
-                        )
-                    } else if !vm.newToYou.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
-                        Dense2ColumnSectionFixed(
-                            title: "NEW TO YOU",
-                            subtitle: "High score, not in your list",
-                            items: Array(vm.newToYou.prefix(8)),
-                            screenWidth: currentWidth,
-                            onSeeAll: { activeRoute = .animeNewToYou }
-                        )
-                    }
-
-                    // Stage 4 — The Shelf (tonight's realm), flag-gated.
-                    if flags.discoverRealmRailsV1Enabled,
-                       !vm.tonightShelf.isEmpty,
-                       selectedMediaType == .all || selectedMediaType == .anime {
-                        CompactHorizontalSection(
-                            title: (vm.tonightShelfTitle ?? "THE SHELF").uppercased(),
-                            subtitle: vm.tonightShelfSubtitle ?? "Tonight's realm",
-                            items: Array(vm.tonightShelf.prefix(10)),
-                            containerWidth: currentWidth,
-                            onSeeAll: nil,
-                            largeCards: true
-                        )
-                    }
-
-                    if !vm.essentials.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
-                        CompactHorizontalSection(
-                            title: "ESSENTIAL ANIME",
-                            subtitle: "Gateway picks (high confidence)",
-                            items: Array(vm.essentials.prefix(10)),
-                            containerWidth: currentWidth,
-                            onSeeAll: { activeRoute = .animeEssentials },
-                            largeCards: true
-                        )
-                    }
-
-                    // Stage 4 — Hidden Gem (reuse One Thing card grammar).
-                    if flags.discoverRealmRailsV1Enabled,
-                       let gem = vm.hiddenGem,
-                       (selectedMediaType == .all
-                        || (selectedMediaType == .anime && gem.kind == .anime)
-                        || (selectedMediaType == .manga && gem.kind == .manga)) {
-                        DiscoverOneThingCard(
-                            feature: gem,
-                            width: heroWidth,
-                            eyebrow: "HIDDEN GEM"
-                        )
-                        .padding(.horizontal, 20)
-                        .frame(maxWidth: .infinity)
-                    }
-
-                    if !vm.newToYouManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
-                        Dense2ColumnMangaSectionFixed(
-                            title: "NEW TO YOU (MANGA)",
-                            subtitle: "High score, not in your list",
-                            items: Array(vm.newToYouManga.prefix(8)),
-                            screenWidth: currentWidth,
-                            onSeeAll: { activeRoute = .mangaNewToYou }
-                        )
-                    }
-
-                    if !vm.trending.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
-                        CompactHorizontalSection(
-                            title: "TRENDING",
-                            subtitle: "Popular right now",
-                            items: vm.trending,
-                            containerWidth: currentWidth,
-                            onSeeAll: { activeRoute = .animeTrending },
-                            showFilters: true,
-                            largeCards: true
-                        )
-                    }
-
-                    if !vm.essentialsManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
-                        CompactHorizontalMangaSection(
-                            title: "ESSENTIAL MANGA",
-                            subtitle: "Foundational reads",
-                            items: Array(vm.essentialsManga.prefix(10)),
-                            containerWidth: currentWidth,
-                            onSeeAll: { activeRoute = .mangaEssentials },
-                            largeCards: true
-                        )
-                    }
-
-                    // MARK: "Show More" expansion
-
-                    if !showMoreSections && secondarySectionCount > 0 {
-                        Button {
-                            withAnimation(KuroAnimation.editorial) {
-                                showMoreSections = true
-                            }
-                            UserDefaults.standard.set(true, forKey: "kuro_discover_show_more")
-                        } label: {
-                            HStack(spacing: 6) {
-                                Text("\(secondarySectionCount) MORE SECTIONS")
-                                    .font(.kuroCaption(weight: .medium))
-                                    .tracking(1.6)
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 10, weight: .medium))
-                            }
-                            .foregroundColor(.black.opacity(0.55))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous)
-                                    .stroke(Color.black.opacity(0.10), lineWidth: 0.8)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal, 20)
-                    }
-
-                    // MARK: Secondary sections (behind "Show More")
-
-                    if showMoreSections {
-                        if !vm.classics.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
-                            Dense2ColumnSectionFixed(
-                                title: "CLASSICS",
-                                subtitle: "Proven greats",
-                                items: Array(vm.classics.prefix(8)),
-                                screenWidth: currentWidth,
-                                onSeeAll: { activeRoute = .animeClassics }
-                            )
-                        }
-
-                        if !vm.currentSeason.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
-                            CompactHorizontalSection(
-                                title: "CURRENT SEASON",
-                                subtitle: "Airing now",
-                                items: Array(vm.currentSeason.prefix(10)),
-                                containerWidth: currentWidth,
-                                onSeeAll: { activeRoute = .animeCurrentSeason },
-                                largeCards: true
-                            )
-                        }
-
-                        if !vm.topRated.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
-                            Dense2ColumnSectionFixed(
-                                title: "TOP RATED",
-                                subtitle: "Highest scores",
-                                items: vm.topRated,
-                                screenWidth: currentWidth,
-                                onSeeAll: { activeRoute = .animeTopRated },
-                                showFilters: true
-                            )
-                        }
-
-                        if !vm.newlyAdded.isEmpty && (selectedMediaType == .all || selectedMediaType == .anime) {
-                            Dense2ColumnSectionFixed(
-                                title: "JUST ADDED",
-                                subtitle: "Fresh arrivals",
-                                items: Array(vm.newlyAdded.prefix(8)),
-                                screenWidth: currentWidth,
-                                onSeeAll: { activeRoute = .animeNewlyAdded }
-                            )
-                        }
-
-                        if !vm.classicsManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
-                            Dense2ColumnMangaSectionFixed(
-                                title: "MANGA CLASSICS",
-                                subtitle: "Proven greats",
-                                items: Array(vm.classicsManga.prefix(8)),
-                                screenWidth: currentWidth,
-                                onSeeAll: { activeRoute = .mangaClassics }
-                            )
-                        }
-
-                        if !vm.trendingManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
-                            CompactHorizontalMangaSection(
-                                title: "TRENDING MANGA",
-                                subtitle: "Popular manga",
-                                items: Array(vm.trendingManga.prefix(10)),
-                                containerWidth: currentWidth,
-                                largeCards: true
-                            )
-                        }
-
-                        if !vm.topRatedManga.isEmpty && (selectedMediaType == .all || selectedMediaType == .manga) {
-                            Dense2ColumnMangaSectionFixed(
-                                title: "TOP RATED MANGA",
-                                subtitle: "Highest scores",
-                                items: Array(vm.topRatedManga.prefix(8)),
-                                screenWidth: currentWidth
-                            )
-                        }
-                    }
-                }
-                .padding(.top, 12)
-                .padding(.bottom, KuroDesignSpacing.xl)
-            }
+                content(width: width, minHeight: geo.size.height)
+                    .frame(width: width)
+                    .frame(maxWidth: .infinity)
             }
             // A parent `.scrollDisabled(true)` (e.g. on a paging container) can propagate via environment.
             // Keep Discover scrollable regardless.
             .scrollDisabled(false)
-            .background(Color.kuroBackground)
+            .background(Color.kuroCanvasPage)
             .refreshable {
                 // Pull-to-refresh is user-initiated: also re-read the Library projection
                 // (badges/progress), next to the bundle. The first load relies on the session refresh.
                 async let libraryRefresh: Void? = try? library.refresh()
-                await refreshSections()
+                await refreshSections(force: true)
                 _ = await libraryRefresh
             }
             .overlay(alignment: .top) {
                 if let bannerMessage {
                     KuroTransientBanner(message: bannerMessage)
                         .padding(.top, 10)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .transition(.opacity)
                 }
             }
             .task {
                 if !didInitialLoad {
                     didInitialLoad = true
-                    await refreshSections()
+                    await refreshSections(force: false)
                 }
+            }
+            .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
+                // Back online after a failed first load: read again (the launch bundle, if the
+                // reconnect already brought one, or a new read).
+                guard networkMonitor.isConnected, loadError || !hasAnyContent, !isLoadingSections else { return }
+                Task { await refreshSections(force: false) }
+            }
+            .onDisappear {
+                bannerTask?.cancel()
             }
         }
         .sheet(item: $activeRoute) { route in
-            switch route {
-            case .animeEssentials:
-                FullSectionView(title: route.title, items: vm.essentials)
-            case .animeClassics:
-                FullSectionView(title: route.title, items: vm.classics)
-            case .animeNewToYou:
-                FullSectionView(title: route.title, items: vm.newToYou)
-            case .animeBecauseYou:
-                FullSectionView(title: route.title, items: vm.becauseYou)
-            case .animeAiringToday:
-                FullSectionView(title: route.title, items: vm.airingToday)
-            case .animeCurrentSeason:
-                FullSectionView(title: route.title, items: vm.currentSeason)
-            case .animeTrending:
-                FullSectionView(title: route.title, items: vm.trending)
-            case .animeTopRated:
-                FullSectionView(title: route.title, items: vm.topRated)
-            case .animeNewlyAdded:
-                FullSectionView(title: route.title, items: vm.newlyAdded)
-            case .mangaEssentials:
-                FullMangaSectionView(title: route.title, items: vm.essentialsManga)
-            case .mangaClassics:
-                FullMangaSectionView(title: route.title, items: vm.classicsManga)
-            case .mangaNewToYou:
-                FullMangaSectionView(title: route.title, items: vm.newToYouManga)
-            }
+            fullSection(for: route)
         }
     }
 
-    private func refreshSections() async {
-        let perf = KuroPerf.begin("discover.refresh")
-        let shouldSkip = await MainActor.run { () -> Bool in
-            if isLoadingSections { return true }
-            isLoadingSections = true
-            return false
+    // MARK: Page
+
+    @ViewBuilder
+    private func content(width: CGFloat, minHeight: CGFloat) -> some View {
+        let gutter = DiscoverLayout.gutter(for: width)
+        if isLoadingSections && !hasAnyContent {
+            DiscoverLoadingSkeleton(containerWidth: width)
+        } else if loadError && !hasAnyContent {
+            KuroStateView(
+                networkMonitor.isConnected ? .failed(hasCachedContent: false) : .offline(hasCachedContent: false),
+                retry: { Task { await refreshSections(force: true) } }
+            )
+            .frame(minHeight: minHeight * 0.8)
+        } else if !isLoadingSections && !hasAnyContent {
+            VStack(spacing: KuroDesignSpacing.lg) {
+                KuroStateView(
+                    .empty,
+                    title: KuroLocale.text("Nothing to show yet.", "Noch nichts zu zeigen."),
+                    message: KuroLocale.text("Pull to refresh, or browse the catalogue.",
+                                             "Zieh zum Aktualisieren, oder durchstöbere den Katalog."),
+                    retry: { Task { await refreshSections(force: true) } }
+                )
+                if offersBrowseEntry {
+                    browseEntry
+                        .padding(.horizontal, gutter)
+                }
+            }
+            .frame(minHeight: minHeight * 0.8)
+        } else {
+            sections(width: width, gutter: gutter)
         }
-        if shouldSkip {
+    }
+
+    private func sections(width: CGFloat, gutter: CGFloat) -> some View {
+        let leadWidth = max(0, width - gutter * 2)
+        return VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
+            VStack(alignment: .leading, spacing: 0) {
+                if !networkMonitor.isConnected {
+                    KuroStateView(.offline(hasCachedContent: true), layout: .inline)
+                        .padding(.horizontal, gutter)
+                }
+
+                DiscoverWordPicker(
+                    options: DiscoverMediaTypeFilter.allCases.map { ($0, $0.title(german: KuroLocale.isGerman)) },
+                    selection: $selectedMediaType,
+                    accessibilityLabel: KuroLocale.text("Show", "Anzeigen")
+                )
+                .contentMargins(.horizontal, gutter, for: .scrollContent)
+            }
+
+            lead(width: leadWidth)
+                .padding(.horizontal, gutter)
+
+            if showsAnime, !vm.airingToday.isEmpty {
+                let ordered = DiscoverAiringOrder.ordered(vm.airingToday, id: \.id, slots: airingSlots, now: Date())
+                DiscoverRail(
+                    title: headline(.animeAiringToday),
+                    items: Array(ordered.prefix(10)),
+                    containerWidth: width,
+                    onSeeAll: { activeRoute = .animeAiringToday },
+                    airingSlots: todaysSlots(for: ordered)
+                )
+            }
+
+            // Because-You replaces NEW TO YOU when the taste rail has enough signal (mixed anime +
+            // manga feed: All only).
+            if !vm.becauseYou.isEmpty && selectedMediaType == .all {
+                DiscoverGridSection(
+                    title: headline(.animeBecauseYou),
+                    items: Array(vm.becauseYou.prefix(8)),
+                    containerWidth: width,
+                    onSeeAll: { activeRoute = .animeBecauseYou }
+                )
+            } else if showsAnime, !vm.newToYou.isEmpty {
+                DiscoverGridSection(
+                    title: headline(.animeNewToYou),
+                    items: Array(vm.newToYou.prefix(8)),
+                    containerWidth: width,
+                    onSeeAll: { activeRoute = .animeNewToYou }
+                )
+            }
+
+            // Stage 4 — The Shelf (tonight's realm), flag-gated.
+            if flags.discoverRealmRailsV1Enabled, showsAnime, !vm.tonightShelf.isEmpty {
+                DiscoverRail(
+                    title: (vm.tonightShelfTitle ?? KuroLocale.text("Tonight's shelf", "Das Regal für heute Abend")) + ".",
+                    items: Array(vm.tonightShelf.prefix(10)),
+                    containerWidth: width
+                )
+            }
+
+            if showsAnime, !vm.essentials.isEmpty {
+                DiscoverRail(
+                    title: headline(.animeEssentials),
+                    items: Array(vm.essentials.prefix(10)),
+                    containerWidth: width,
+                    onSeeAll: { activeRoute = .animeEssentials }
+                )
+            }
+
+            // Stage 4 — Hidden Gem (the lead frame grammar).
+            if flags.discoverRealmRailsV1Enabled,
+               let gem = vm.hiddenGem,
+               selectedMediaType == .all
+                || (selectedMediaType == .anime && gem.kind == .anime)
+                || (selectedMediaType == .manga && gem.kind == .manga) {
+                DiscoverOneThingCard(
+                    feature: gem,
+                    width: leadWidth,
+                    eyebrow: KuroLocale.text("Hidden gem", "Verborgenes Juwel")
+                )
+                .padding(.horizontal, gutter)
+            }
+
+            if showsManga, !vm.newToYouManga.isEmpty {
+                DiscoverGridSection(
+                    title: headline(.mangaNewToYou),
+                    items: Array(vm.newToYouManga.prefix(8)),
+                    containerWidth: width,
+                    onSeeAll: { activeRoute = .mangaNewToYou }
+                )
+            }
+
+            if showsAnime, !vm.trending.isEmpty {
+                DiscoverRail(
+                    title: headline(.animeTrending),
+                    items: Array(vm.trending.prefix(20)),
+                    containerWidth: width,
+                    onSeeAll: { activeRoute = .animeTrending },
+                    showsFilters: true
+                )
+            }
+
+            if showsManga, !vm.essentialsManga.isEmpty {
+                DiscoverRail(
+                    title: headline(.mangaEssentials),
+                    items: Array(vm.essentialsManga.prefix(10)),
+                    containerWidth: width,
+                    onSeeAll: { activeRoute = .mangaEssentials }
+                )
+            }
+
+            if !showMoreSections && secondarySectionCount > 0 {
+                KuroInkButton(
+                    KuroLocale.text(
+                        secondarySectionCount == 1 ? "1 more section" : "\(secondarySectionCount) more sections",
+                        secondarySectionCount == 1 ? "1 weiterer Bereich" : "\(secondarySectionCount) weitere Bereiche"
+                    ),
+                    role: .secondary,
+                    haptic: false
+                ) {
+                    withAnimation(KuroMotion.resolve(KuroMotion.contextChange)) {
+                        showMoreSections = true
+                    }
+                    UserDefaults.standard.set(true, forKey: "kuro_discover_show_more")
+                }
+                .padding(.horizontal, gutter)
+            }
+
+            if showMoreSections {
+                secondarySections(width: width)
+            }
+
+            if offersBrowseEntry {
+                browseEntry
+                    .padding(.horizontal, gutter)
+            }
+        }
+        .padding(.top, KuroDesignSpacing.sm)
+        .padding(.bottom, KuroDesignSpacing.xxl)
+    }
+
+    @ViewBuilder
+    private func secondarySections(width: CGFloat) -> some View {
+        if showsAnime, !vm.classics.isEmpty {
+            DiscoverGridSection(
+                title: headline(.animeClassics),
+                items: Array(vm.classics.prefix(8)),
+                containerWidth: width,
+                onSeeAll: { activeRoute = .animeClassics }
+            )
+        }
+
+        if showsAnime, !vm.currentSeason.isEmpty {
+            DiscoverRail(
+                title: headline(.animeCurrentSeason),
+                items: Array(vm.currentSeason.prefix(10)),
+                containerWidth: width,
+                onSeeAll: { activeRoute = .animeCurrentSeason }
+            )
+        }
+
+        if showsAnime, !vm.topRated.isEmpty {
+            DiscoverGridSection(
+                title: headline(.animeTopRated),
+                items: Array(vm.topRated.prefix(8)),
+                containerWidth: width,
+                onSeeAll: { activeRoute = .animeTopRated },
+                showsFilters: true
+            )
+        }
+
+        if showsAnime, !vm.newlyAdded.isEmpty {
+            DiscoverGridSection(
+                title: headline(.animeNewlyAdded),
+                items: Array(vm.newlyAdded.prefix(8)),
+                containerWidth: width,
+                onSeeAll: { activeRoute = .animeNewlyAdded }
+            )
+        }
+
+        if showsManga, !vm.classicsManga.isEmpty {
+            DiscoverGridSection(
+                title: headline(.mangaClassics),
+                items: Array(vm.classicsManga.prefix(8)),
+                containerWidth: width,
+                onSeeAll: { activeRoute = .mangaClassics }
+            )
+        }
+
+        if showsManga, !vm.trendingManga.isEmpty {
+            DiscoverRail(
+                title: headline(.mangaTrending),
+                items: Array(vm.trendingManga.prefix(10)),
+                containerWidth: width,
+                onSeeAll: { activeRoute = .mangaTrending }
+            )
+        }
+
+        if showsManga, !vm.topRatedManga.isEmpty {
+            DiscoverGridSection(
+                title: headline(.mangaTopRated),
+                items: Array(vm.topRatedManga.prefix(8)),
+                containerWidth: width,
+                onSeeAll: { activeRoute = .mangaTopRated }
+            )
+        }
+
+        if showsManga, !vm.newlyAddedManga.isEmpty {
+            DiscoverRail(
+                title: headline(.mangaNewlyAdded),
+                items: Array(vm.newlyAddedManga.prefix(10)),
+                containerWidth: width,
+                onSeeAll: { activeRoute = .mangaNewlyAdded }
+            )
+        }
+    }
+
+    /// The lead frame: today's pick, its skeleton while it resolves, or the season/trending lead.
+    @ViewBuilder
+    private func lead(width: CGFloat) -> some View {
+        if let feature = vm.dailyFeature,
+           selectedMediaType == .all
+            || (selectedMediaType == .anime && feature.kind == .anime)
+            || (selectedMediaType == .manga && feature.kind == .manga) {
+            DiscoverOneThingCard(feature: feature, width: width)
+        } else if !vm.dailyFeatureResolved && selectedMediaType != .manga {
+            DiscoverOneThingSkeleton(width: width)
+        } else if let featured = vm.featured, showsAnime {
+            DiscoverLeadFrame(
+                kicker: vm.currentSeason.isEmpty
+                    ? KuroLocale.text("Trending now", "Gerade beliebt")
+                    : KuroLocale.text("This season", "Diese Season"),
+                title: featured.title,
+                line: DiscoverFrameCopy.line(
+                    kind: .anime,
+                    year: featured.year,
+                    episodes: featured.episodes,
+                    chapters: nil,
+                    statusRaw: featured.statusRaw,
+                    formatRaw: featured.formatRaw,
+                    german: KuroLocale.isGerman,
+                    locale: KuroLocale.locale,
+                    timeZone: KuroLocale.timeZone
+                ),
+                imageURL: URL(string: (featured.bannerImage?.isEmpty == false ? featured.bannerImage : featured.imageURL) ?? ""),
+                isWideArt: featured.bannerImage?.isEmpty == false,
+                route: MediaRoute(kind: .anime, id: featured.id),
+                width: width
+            )
+        } else if selectedMediaType == .manga, let manga = vm.essentialsManga.first ?? vm.trendingManga.first {
+            // The manga page leads with its first essential (or trending) title: a cover crop.
+            DiscoverLeadFrame(
+                kicker: vm.essentialsManga.isEmpty
+                    ? KuroLocale.text("Trending now", "Gerade beliebt")
+                    : KuroLocale.text("Essential reading", "Lesenswert"),
+                title: manga.title,
+                line: DiscoverFrameCopy.line(
+                    kind: .manga,
+                    year: manga.year,
+                    episodes: nil,
+                    chapters: manga.chapters,
+                    statusRaw: manga.statusRaw,
+                    formatRaw: manga.formatRaw,
+                    german: KuroLocale.isGerman,
+                    locale: KuroLocale.locale,
+                    timeZone: KuroLocale.timeZone
+                ),
+                imageURL: URL(string: manga.imageURL ?? ""),
+                isWideArt: false,
+                route: MediaRoute(kind: .manga, id: manga.id),
+                width: width
+            )
+        }
+    }
+
+    /// "Browse the catalogue": the invitation action that opens Browse as a sheet (spec D2).
+    private var browseEntry: some View {
+        KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
+            routes.openBrowse()
+        }
+    }
+
+    /// A section heading with the editorial full stop.
+    private func headline(_ route: EditorialDiscoverRoute) -> String {
+        route.title(german: KuroLocale.isGerman, reason: route == .animeBecauseYou ? vm.becauseYouReason : nil) + "."
+    }
+
+    /// The rail's slots that lie on today's rail day (a rolled-forward time is not shown).
+    private func todaysSlots(for items: [AnimeCard]) -> [Int: DiscoverAiringSlot] {
+        let now = Date()
+        let slots = airingSlots
+        var today: [Int: DiscoverAiringSlot] = [:]
+        for item in items {
+            if let slot = DiscoverAiringOrder.todaysSlot(slots[item.id], now: now) {
+                today[item.id] = slot
+            }
+        }
+        return today
+    }
+
+    // MARK: See all
+
+    @ViewBuilder
+    private func fullSection(for route: EditorialDiscoverRoute) -> some View {
+        let title = route.title(german: KuroLocale.isGerman, reason: route == .animeBecauseYou ? vm.becauseYouReason : nil)
+        switch route {
+        case .animeEssentials:
+            FullSectionView(title: title, items: vm.essentials)
+        case .animeClassics:
+            FullSectionView(title: title, items: vm.classics)
+        case .animeNewToYou:
+            FullSectionView(title: title, items: vm.newToYou)
+        case .animeBecauseYou:
+            FullSectionView(title: title, items: vm.becauseYou)
+        case .animeAiringToday:
+            let ordered = DiscoverAiringOrder.ordered(vm.airingToday, id: \.id, slots: airingSlots, now: Date())
+            FullSectionView(title: title, items: ordered, airingSlots: todaysSlots(for: ordered))
+        case .animeCurrentSeason:
+            FullSectionView(title: title, items: vm.currentSeason)
+        case .animeTrending:
+            FullSectionView(title: title, items: vm.trending)
+        case .animeTopRated:
+            FullSectionView(title: title, items: vm.topRated)
+        case .animeNewlyAdded:
+            FullSectionView(title: title, items: vm.newlyAdded)
+        case .mangaEssentials:
+            FullMangaSectionView(title: title, items: vm.essentialsManga)
+        case .mangaClassics:
+            FullMangaSectionView(title: title, items: vm.classicsManga)
+        case .mangaNewToYou:
+            FullMangaSectionView(title: title, items: vm.newToYouManga)
+        case .mangaTrending:
+            FullMangaSectionView(title: title, items: vm.trendingManga)
+        case .mangaTopRated:
+            FullMangaSectionView(title: title, items: vm.topRatedManga)
+        case .mangaNewlyAdded:
+            FullMangaSectionView(title: title, items: vm.newlyAddedManga)
+        }
+    }
+
+    // MARK: Loading
+
+    /// Loads the page. `force == false` (first appearance, reconnect) reuses the launch bundle;
+    /// `force == true` (pull to refresh, Try again) asks for a fresh one.
+    private func refreshSections(force: Bool) async {
+        let perf = KuroPerf.begin("discover.refresh")
+        guard !isLoadingSections else {
             KuroPerf.end(perf, message: "skipped (already loading)")
             return
         }
-        defer {
-            Task { @MainActor in
-                isLoadingSections = false
-            }
-        }
+        isLoadingSections = true
+        defer { isLoadingSections = false }
 
-        let hadContentBefore = await MainActor.run { hasAnyContent }
+        let hadContentBefore = hasAnyContent
 
         // List state for badges/progress comes from the Library projection (session refresh +
         // realtime hints); only the server bundle is fetched here.
         async let dailyFeatureResult = discovery.fetchDailyFeature()
-        let bundle = await discovery.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
+        let bundle = force
+            ? await discovery.fetchDiscoverBundle(limit: 30, hours: 24, force: true)
+            : await discovery.ensureDiscoverBundle(limit: 30, hours: 24)
 
         let gotAnyNew = bundle.map { b in
             !(b.anime.essentials.isEmpty && b.anime.classics.isEmpty && b.anime.newToYou.isEmpty &&
@@ -459,17 +553,8 @@ struct EditorialDiscoverView: View {
               b.manga.trending.isEmpty && b.manga.topRated.isEmpty && b.manga.newlyAdded.isEmpty)
         } ?? false
 
-        await MainActor.run {
-            guard let bundle else {
-                if hadContentBefore {
-                    showBanner("Couldn't refresh. Try again.")
-                } else {
-                    loadError = true
-                }
-                return
-            }
+        if let bundle {
             loadError = false
-
             vm.essentials = bundle.anime.essentials
             vm.classics = bundle.anime.classics
             vm.newToYou = bundle.anime.newToYou
@@ -486,7 +571,7 @@ struct EditorialDiscoverView: View {
             vm.topRatedManga = bundle.manga.topRated
             vm.newlyAddedManga = bundle.manga.newlyAdded
 
-            // Featured: best available from current season, else trending.
+            // Lead fallback: best available from the current season, else trending.
             let featuredCandidates = vm.currentSeason.isEmpty ? vm.trending : vm.currentSeason
             vm.featured = featuredCandidates
                 .filter { ($0.averageScore ?? 0) > 80 }
@@ -494,49 +579,46 @@ struct EditorialDiscoverView: View {
                 .first ?? featuredCandidates.first
 
             if hadContentBefore && !gotAnyNew {
-                showBanner("Couldn't refresh. Try again.")
+                showBanner(KuroLocale.text("Couldn't refresh. Try again.", "Konnte nicht aktualisiert werden. Versuch es noch einmal."))
             }
+        } else if hadContentBefore {
+            showBanner(KuroLocale.text("Couldn't refresh. Try again.", "Konnte nicht aktualisiert werden. Versuch es noch einmal."))
+        } else {
+            loadError = true
         }
 
-        // The One Thing: resolve alongside the bundle; nil -> legacy hero fallback.
-        let dailyFeature = await dailyFeatureResult
-        await MainActor.run {
-            vm.dailyFeature = dailyFeature
-            vm.dailyFeatureResolved = true
+        // Stated air times of today's rail (the bundle rows carry none).
+        if let airingIds = bundle?.anime.airingToday.map(\.id), !airingIds.isEmpty {
+            await discovery.loadAiringSlots(for: airingIds)
         }
 
-        // Discover P1, flag-gated: Because-You replaces NEW TO YOU when the
-        // taste rail clears the evidence floor (>= 4 cards). Otherwise the
-        // existing personalized NTY swap runs, failing that the bundle rail.
+        // The One Thing: resolve alongside the bundle; nil -> the lead fallback.
+        vm.dailyFeature = await dailyFeatureResult
+        vm.dailyFeatureResolved = true
+
+        // Discover P1, flag-gated: Because-You replaces NEW TO YOU when the taste rail clears the
+        // evidence floor (>= 4 cards). Otherwise the personalized NTY swap runs, failing that the
+        // bundle rail.
         if flags.personalizedNewToYouV1Enabled {
             var becauseApplied = false
             if let rail = await discovery.fetchBecauseYouRail(limit: 12), rail.count >= 4 {
-                let items = rail.map { $0.toMedia() }
-                let reason = rail.first?.reasonTitle
-                await MainActor.run {
-                    vm.becauseYou = items
-                    vm.becauseYouReason = reason
-                }
+                vm.becauseYou = rail.map { $0.toMedia() }
+                vm.becauseYouReason = rail.first?.reasonTitle
                 becauseApplied = true
             }
             if !becauseApplied {
-                await MainActor.run {
-                    vm.becauseYou = []
-                    vm.becauseYouReason = nil
-                }
+                vm.becauseYou = []
+                vm.becauseYouReason = nil
                 // Personalized NEW TO YOU (flag-gated): swap the rail's data source.
                 // Any error or empty result quietly keeps the bundle rail.
                 if let personalized = await taste.fetchPersonalizedNewToYou(limit: 20, mediaType: "ANIME"),
                    !personalized.isEmpty {
-                    let mapped = personalized.map { $0.toAnimeCard() }
-                    await MainActor.run { vm.newToYou = mapped }
+                    vm.newToYou = personalized.map { $0.toAnimeCard() }
                 }
             }
         } else {
-            await MainActor.run {
-                vm.becauseYou = []
-                vm.becauseYouReason = nil
-            }
+            vm.becauseYou = []
+            vm.becauseYouReason = nil
         }
 
         // Stage 4 — The Shelf + Hidden Gem (flag-gated, independent of P1).
@@ -545,54 +627,46 @@ struct EditorialDiscoverView: View {
             async let gemResult = discovery.fetchRealmHiddenGem()
             let shelf = await shelfResult
             let gem = await gemResult
-            await MainActor.run {
-                if let shelf, !shelf.isEmpty {
-                    vm.tonightShelf = shelf.map { $0.toMedia() }
-                    vm.tonightShelfTitle = shelf.first?.displayName.map { "THE SHELF · \($0.uppercased())" }
-                        ?? "THE SHELF"
-                    vm.tonightShelfSubtitle = shelf.first?.blurb ?? "Tonight's realm"
-                } else {
-                    vm.tonightShelf = []
-                    vm.tonightShelfTitle = nil
-                    vm.tonightShelfSubtitle = nil
+            if let shelf, !shelf.isEmpty {
+                vm.tonightShelf = shelf.map { $0.toMedia() }
+                vm.tonightShelfTitle = shelf.first?.displayName.map {
+                    KuroLocale.text("Tonight's shelf: \($0)", "Das Regal für heute Abend: \($0)")
                 }
-                vm.hiddenGem = gem?.toDailyFeature()
-            }
-        } else {
-            await MainActor.run {
+                vm.tonightShelfSubtitle = shelf.first?.blurb
+            } else {
                 vm.tonightShelf = []
                 vm.tonightShelfTitle = nil
                 vm.tonightShelfSubtitle = nil
-                vm.hiddenGem = nil
             }
+            vm.hiddenGem = gem?.toDailyFeature()
+        } else {
+            vm.tonightShelf = []
+            vm.tonightShelfTitle = nil
+            vm.tonightShelfSubtitle = nil
+            vm.hiddenGem = nil
         }
 
         KuroPerf.end(perf, message: gotAnyNew ? "ok" : "no new data")
 
-        // Prefetch friend tracking counts for card indicators
+        // Friend tracking counts for the frames' one line.
         if flags.isSocialActivityV1Enabled {
-            let items: [(mediaType: String, mediaId: Int)] = await MainActor.run {
-                let anime = (vm.essentials + vm.trending + vm.topRated + vm.newToYou + vm.newlyAdded + vm.currentSeason)
-                    .map { (mediaType: "ANIME", mediaId: $0.id) }
-                let manga = (vm.essentialsManga + vm.trendingManga + vm.topRatedManga + vm.newToYouManga + vm.newlyAddedManga)
-                    .map { (mediaType: "MANGA", mediaId: $0.id) }
-                return Array((anime + manga).prefix(100))
-            }
+            let anime = (vm.essentials + vm.trending + vm.topRated + vm.newToYou + vm.newlyAdded + vm.currentSeason)
+                .map { (mediaType: "ANIME", mediaId: $0.id) }
+            let manga = (vm.essentialsManga + vm.trendingManga + vm.topRatedManga + vm.newToYouManga + vm.newlyAddedManga)
+                .map { (mediaType: "MANGA", mediaId: $0.id) }
+            let items = Array((anime + manga).prefix(100))
             if !items.isEmpty {
                 social.prefetchFriendCounts(items: items)
             }
         }
 
-        let ladderCandidates: [(mediaType: String, mediaId: Int)] = await MainActor.run {
-            var items: [(mediaType: String, mediaId: Int)] = []
-            if let featured = vm.featured {
-                items.append((mediaType: "ANIME", mediaId: featured.id))
-            }
-            items += Array(vm.currentSeason.prefix(4)).map { ("ANIME", $0.id) }
-            items += Array(vm.trending.prefix(4)).map { ("ANIME", $0.id) }
-            items += Array(vm.essentialsManga.prefix(4)).map { ("MANGA", $0.id) }
-            return items
+        var ladderCandidates: [(mediaType: String, mediaId: Int)] = []
+        if let featured = vm.featured {
+            ladderCandidates.append((mediaType: "ANIME", mediaId: featured.id))
         }
+        ladderCandidates += Array(vm.currentSeason.prefix(4)).map { ("ANIME", $0.id) }
+        ladderCandidates += Array(vm.trending.prefix(4)).map { ("ANIME", $0.id) }
+        ladderCandidates += Array(vm.essentialsManga.prefix(4)).map { ("MANGA", $0.id) }
         if !ladderCandidates.isEmpty {
             catalog.prefetchMediaRelationRefreshRequests(
                 items: ladderCandidates,
@@ -600,731 +674,196 @@ struct EditorialDiscoverView: View {
             )
         }
 
-        // Prefetch covers so the next scroll feels instant.
-        let urls: [URL] = await MainActor.run {
-            let anime = (vm.essentials.prefix(14) + vm.newToYou.prefix(14) + vm.trending.prefix(14) + vm.topRated.prefix(10))
-                .compactMap { URL(string: $0.imageURL ?? "") }
-            let manga = (vm.essentialsManga.prefix(14) + vm.newToYouManga.prefix(14) + vm.trendingManga.prefix(14) + vm.topRatedManga.prefix(10))
-                .compactMap { URL(string: $0.imageURL ?? "") }
-            return Array((anime + manga).prefix(70))
-        }
+        // Prefetch covers at the frames' decode size so the next scroll feels instant.
+        let anime = (vm.essentials.prefix(14) + vm.newToYou.prefix(14) + vm.trending.prefix(14) + vm.topRated.prefix(10))
+            .compactMap { URL(string: $0.imageURL ?? "") }
+        let manga = (vm.essentialsManga.prefix(14) + vm.newToYouManga.prefix(14) + vm.trendingManga.prefix(14) + vm.topRatedManga.prefix(10))
+            .compactMap { URL(string: $0.imageURL ?? "") }
+        let urls = Array((anime + manga).prefix(70))
         if !urls.isEmpty {
-            Task { await ImagePipeline.shared.prefetch(urls: urls) }
+            Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 360) }
         }
     }
 
-    private func currentSeasonQueryParams() -> (season: String, year: Int) {
-        let m = Calendar.current.component(.month, from: Date())
-        let season: String
-        switch m {
-        case 12, 1, 2: season = "WINTER"
-        case 3, 4, 5: season = "SPRING"
-        case 6, 7, 8: season = "SUMMER"
-        default: season = "FALL"
-        }
-        return (season, Calendar.current.component(.year, from: Date()))
-    }
-
-    @MainActor
     private func showBanner(_ message: String) {
-        withAnimation(.easeInOut(duration: 0.18)) {
+        bannerTask?.cancel()
+        withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
             bannerMessage = message
         }
-        Task { @MainActor in
+        bannerTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 1_800_000_000)
-            withAnimation(.easeInOut(duration: 0.18)) {
+            guard !Task.isCancelled else { return }
+            withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
                 bannerMessage = nil
             }
         }
     }
 }
 
-// MARK: - Section Reason Line (Discover P1)
-// Italic serif line under a section's tracked title when a reason exists
-// (Because-You now; other editorial sections later). ADR typography stance:
-// italic serif for reflective lines.
-struct DiscoverReasonLine: View {
-    let text: String
+// MARK: - See all
 
-    var body: some View {
-        Text(text)
-            .font(.kuroCustom(14, weight: .light, design: .serif, relativeTo: .callout))
-            .italic()
-            .foregroundColor(.kuroTextSecondary)
-            .lineLimit(2)
-    }
-}
-
-// MARK: - Compact Horizontal Section
-// Dense horizontal scroll showing many anime
-struct CompactHorizontalSection<Item: MediaDisplayable>: View {
-    let title: String
-    let subtitle: String
-    let items: [Item]
-    var containerWidth: CGFloat
-    var onSeeAll: (() -> Void)? = nil
-    var showFilters: Bool = false
-    /// Italic serif line under the title when the section has a reason (Discover P1).
-    var reason: String? = nil
-    /// Discover-only: ~15-20% larger rail cards (fewer faces, more presence).
-    var largeCards: Bool = false
-
-    @State private var selectedFilter: AnimeFilter = .all
-
-    enum AnimeFilter: String, CaseIterable {
-        case all = "All"
-        case short = "Short"
-        case long = "Long"
-        case completed = "Completed"
-    }
-
-    private var filteredItems: [Item] {
-        switch selectedFilter {
-        case .all:
-            return items
-        case .short:
-            return items.filter { ($0.episodes ?? 0) > 0 && ($0.episodes ?? 0) <= 13 }
-        case .long:
-            return items.filter { ($0.episodes ?? 0) > 50 }
-        case .completed:
-            return items.filter { $0.statusRaw == "FINISHED" }
-        }
-    }
-
-    private var cardWidth: CGFloat {
-        if largeCards {
-            let candidate = floor((containerWidth - 56) / 2.35)
-            return min(170, max(132, candidate))
-        }
-        // Scale up horizontal cards on large screens while preserving density.
-        let candidate = floor((containerWidth - 56) / 2.8)
-        return min(144, max(112, candidate))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Clean section header with See All button
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .tracking(0.5)
-                        .foregroundColor(.black)
-                        .accessibilityAddTraits(.isHeader)
-
-                    if let reason, !reason.isEmpty {
-                        DiscoverReasonLine(text: reason)
-                    }
-
-                    Text(subtitle)
-                        .font(.system(size: 11, weight: .regular))
-                        .tracking(0.3)
-                        .foregroundColor(.black.opacity(0.5))
-                }
-
-                Spacer()
-
-                if onSeeAll != nil {
-                    Button(action: { onSeeAll?() }) {
-                        Text("See All")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.black.opacity(0.6))
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-
-            // Filter chips
-            if showFilters {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("REFINE THIS RAIL")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.2)
-                        .foregroundColor(.kuroTextTertiary)
-                        .padding(.horizontal, 20)
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(AnimeFilter.allCases, id: \.self) { filter in
-                                FilterChip(
-                                    title: filter.rawValue,
-                                    isSelected: selectedFilter == filter,
-                                    action: { selectedFilter = filter }
-                                )
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                    }
-                    .kuroSwipeExclusionZone()
-                }
-            }
-
-            // Horizontal scroll with compact cards
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 12) {
-                    ForEach(filteredItems, id: \.id) { anime in
-                        KuroCompactCard(media: anime, width: cardWidth)
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
-            .kuroSwipeExclusionZone()
-        }
-    }
-}
-
-// MARK: - Editorial Loading View
-struct EditorialLoadingView: View {
-    var body: some View {
-        VStack(spacing: 24) {
-            ForEach(0..<3, id: \.self) { _ in
-                VStack(alignment: .leading, spacing: 12) {
-                    Rectangle()
-                        .fill(Color.black.opacity(0.06))
-                        .frame(width: 120, height: 16)
-                        .kuroShimmer()
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                        .padding(.horizontal, 20)
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(0..<5, id: \.self) { _ in
-                                Rectangle()
-                                    .fill(Color.black.opacity(0.04))
-                                    .frame(width: 110, height: 200)
-                                    .kuroShimmer()
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                    }
-                    .kuroSwipeExclusionZone()
-                }
-            }
-        }
-        .padding(.top, 12)
-    }
-}
-
-// MARK: - Editorial Empty View
-struct EditorialEmptyView: View {
-    var onRetry: (() async -> Void)? = nil
-
-    @State private var isRetrying = false
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "square.stack.3d.up.slash")
-                .font(.system(size: 28, weight: .light))
-                .foregroundColor(.black.opacity(0.25))
-
-            Text("NO CONTENT FOUND")
-                .font(.system(size: 14, weight: .medium))
-                .tracking(1.5)
-                .foregroundColor(.kuroTextTertiary)
-
-            Text("Pull to refresh or tap retry.")
-                .font(.system(size: 12, weight: .light))
-                .tracking(0.5)
-                .foregroundColor(.kuroTextTertiary)
-
-            if let onRetry {
-                Button(action: {
-                    guard !isRetrying else { return }
-                    KuroAccessibility.impactHaptic(.light)
-                    isRetrying = true
-                    Task {
-                        await onRetry()
-                        isRetrying = false
-                    }
-                }) {
-                    HStack(spacing: 6) {
-                        if isRetrying {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                                .tint(.black.opacity(0.6))
-                        }
-                        Text(isRetrying ? "LOADING" : "RETRY")
-                            .font(.system(size: 11, weight: .medium))
-                            .tracking(1.5)
-                            .foregroundColor(.black.opacity(0.6))
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(
-                        Capsule()
-                            .stroke(Color.black.opacity(0.15), lineWidth: 0.5)
-                    )
-                }
-                .disabled(isRetrying)
-                .padding(.top, 8)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, 120)
-    }
-}
-
-// MARK: - Manga Section Components
-
-// Compact Horizontal Manga Section
-struct CompactHorizontalMangaSection<Item: MediaDisplayable>: View {
-    let title: String
-    let subtitle: String
-    let items: [Item]
-    var containerWidth: CGFloat
-    var onSeeAll: (() -> Void)? = nil
-    /// Italic serif line under the title when the section has a reason (Discover P1).
-    var reason: String? = nil
-    /// Discover-only: ~15-20% larger rail cards (fewer faces, more presence).
-    var largeCards: Bool = false
-
-    private var cardWidth: CGFloat {
-        if largeCards {
-            let candidate = floor((containerWidth - 56) / 2.35)
-            return min(170, max(132, candidate))
-        }
-        let candidate = floor((containerWidth - 56) / 2.8)
-        return min(144, max(112, candidate))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .tracking(0.5)
-                        .foregroundColor(.black)
-                        .accessibilityAddTraits(.isHeader)
-
-                    if let reason, !reason.isEmpty {
-                        DiscoverReasonLine(text: reason)
-                    }
-
-                    Text(subtitle)
-                        .font(.system(size: 11, weight: .regular))
-                        .tracking(0.3)
-                        .foregroundColor(.black.opacity(0.5))
-                }
-
-                Spacer()
-
-                if onSeeAll != nil {
-                    Button(action: { onSeeAll?() }) {
-                        Text("See All")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.black.opacity(0.6))
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(items, id: \.id) { manga in
-                        CompactAnimeCard(media: manga, cardWidth: cardWidth)
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
-            .kuroSwipeExclusionZone()
-        }
-    }
-}
-
-// MARK: - Full Section Header
-struct DiscoverFullSectionHeader: View {
-    let title: String
-    let countLabel: String
-    @Binding var searchText: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("EDITORIAL RAIL")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.4)
-                        .foregroundColor(.kuroTextTertiary)
-
-                    Text(title)
-                        .font(.kuroTitle(weight: .semibold))
-                        .tracking(0.4)
-                        .foregroundColor(.black)
-                        .lineLimit(2)
-                }
-
-                Spacer(minLength: 12)
-
-                Text(countLabel)
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(1.2)
-                    .foregroundColor(.kuroTextTertiary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(Color.kuroBlack05)
-                    )
-            }
-
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.kuroCaption(weight: .semibold))
-                    .foregroundColor(.kuroTextTertiary)
-                TextField("Search \(title.lowercased())...", text: $searchText)
-                    .font(.kuroBody(weight: .light))
-                    .foregroundColor(.black)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.black.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.black.opacity(0.05), lineWidth: 0.8)
-                    )
-            )
-        }
-        .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-        .padding(.top, 12)
-    }
-}
-
-#Preview {
-    EditorialDiscoverView()
-        .environment(AppComposition.shared.identity)
-        .environment(AppComposition.shared.library)
-        .environment(AppComposition.shared.catalog)
-        .environment(AppComposition.shared.discovery)
-        .environment(AppComposition.shared.social)
-        .environment(AppComposition.shared.availability)
-        .environment(AppComposition.shared.clubs)
-        .environment(AppComposition.shared.taste)
-        .environment(AppComposition.shared.flags)
-        .environment(AppComposition.shared.libraryActions)
-}
-
-// MARK: - Dense 2-Column Section Fixed (No GeometryReader)
-struct Dense2ColumnSectionFixed<Item: MediaDisplayable>: View {
-    let title: String
-    let subtitle: String
-    let items: [Item]
-    let screenWidth: CGFloat
-    var onSeeAll: (() -> Void)? = nil
-    var showFilters: Bool = false
-    /// Italic serif line under the title when the section has a reason (Discover P1).
-    var reason: String? = nil
-
-    @State private var selectedFilter: AnimeFilter = .all
-
-    enum AnimeFilter: String, CaseIterable {
-        case all = "All"
-        case short = "Short"
-        case long = "Long"
-        case completed = "Completed"
-    }
-
-    private var filteredItems: [Item] {
-        switch selectedFilter {
-        case .all:
-            return items
-        case .short:
-            return items.filter { ($0.episodes ?? 0) > 0 && ($0.episodes ?? 0) <= 13 }
-        case .long:
-            return items.filter { ($0.episodes ?? 0) > 50 }
-        case .completed:
-            return items.filter { $0.statusRaw == "FINISHED" }
-        }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .tracking(0.5)
-                        .foregroundColor(.black)
-                        .accessibilityAddTraits(.isHeader)
-
-                    if let reason, !reason.isEmpty {
-                        DiscoverReasonLine(text: reason)
-                    }
-
-                    Text(subtitle)
-                        .font(.system(size: 11, weight: .regular))
-                        .tracking(0.3)
-                        .foregroundColor(.black.opacity(0.5))
-                }
-
-                Spacer()
-
-                if onSeeAll != nil {
-                    Button(action: { onSeeAll?() }) {
-                        Text("See All")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.black.opacity(0.6))
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-
-            // Filter chips
-            if showFilters {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("REFINE THIS RAIL")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(1.2)
-                        .foregroundColor(.kuroTextTertiary)
-                        .padding(.horizontal, 20)
-
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(AnimeFilter.allCases, id: \.self) { filter in
-                                FilterChip(
-                                    title: filter.rawValue,
-                                    isSelected: selectedFilter == filter,
-                                    action: { selectedFilter = filter }
-                                )
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                    }
-                    .kuroSwipeExclusionZone()
-                }
-            }
-
-            let horizontalPadding: CGFloat = 20
-            let spacing: CGFloat = 12
-            let totalHorizontalPadding = horizontalPadding * 2
-            let totalSpacing = spacing
-            let availableWidth = screenWidth - totalHorizontalPadding - totalSpacing
-            let cardWidth = floor(availableWidth / 2)
-            let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 52
-            let cardSpacing: CGFloat = 8
-            let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
-            let rowSpacing: CGFloat = 14
-
-            let columns = [
-                GridItem(.fixed(cardWidth), spacing: spacing),
-                GridItem(.fixed(cardWidth), spacing: spacing)
-            ]
-
-            LazyVGrid(columns: columns, spacing: rowSpacing) {
-                ForEach(filteredItems, id: \.id) { anime in
-                    GridAnimeCard(media: anime, cardWidth: cardWidth, cardHeight: totalCardHeight)
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-}
-
-// MARK: - Dense 2-Column Manga Section Fixed
-struct Dense2ColumnMangaSectionFixed<Item: MediaDisplayable>: View {
-    let title: String
-    let subtitle: String
-    let items: [Item]
-    let screenWidth: CGFloat
-    var onSeeAll: (() -> Void)? = nil
-    /// Italic serif line under the title when the section has a reason (Discover P1).
-    var reason: String? = nil
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .tracking(0.5)
-                        .foregroundColor(.black)
-                        .accessibilityAddTraits(.isHeader)
-
-                    if let reason, !reason.isEmpty {
-                        DiscoverReasonLine(text: reason)
-                    }
-
-                    Text(subtitle)
-                        .font(.system(size: 11, weight: .regular))
-                        .tracking(0.3)
-                        .foregroundColor(.black.opacity(0.5))
-                }
-
-                Spacer()
-
-                if onSeeAll != nil {
-                    Button(action: { onSeeAll?() }) {
-                        Text("See All")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.black.opacity(0.6))
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-
-            let horizontalPadding: CGFloat = 20
-            let spacing: CGFloat = 12
-            let totalHorizontalPadding = horizontalPadding * 2
-            let totalSpacing = spacing
-            let availableWidth = screenWidth - totalHorizontalPadding - totalSpacing
-            let cardWidth = floor(availableWidth / 2)
-            let imageHeight = floor(cardWidth / 0.7)
-            let textBlockHeight: CGFloat = 52
-            let cardSpacing: CGFloat = 8
-            let totalCardHeight = imageHeight + cardSpacing + textBlockHeight
-            let rowSpacing: CGFloat = 14
-
-            let columns = [
-                GridItem(.fixed(cardWidth), spacing: spacing),
-                GridItem(.fixed(cardWidth), spacing: spacing)
-            ]
-
-            LazyVGrid(columns: columns, spacing: rowSpacing) {
-                ForEach(items, id: \.id) { manga in
-                    GridAnimeCard(media: manga, cardWidth: cardWidth, cardHeight: totalCardHeight)
-                }
-            }
-            .padding(.horizontal, 20)
-        }
-    }
-}
-
-// MARK: - Full Section View (for "See All")
+/// A Discover section in full: the loaded titles as an equal-frame grid with an in-place filter.
+/// Its own presentation context: its frames open their routes on top of this sheet.
 struct FullSectionView<Item: MediaDisplayable>: View {
     let title: String
     let items: [Item]
-    @Environment(\.dismiss) private var dismiss
-    @State private var searchText = ""
-    
-    private var filtered: [Item] {
-        if searchText.isEmpty {
-            return items
-        }
-        return items.filter { media in
-            media.title.localizedCaseInsensitiveContains(searchText) ||
-            media.displayDescription.localizedCaseInsensitiveContains(searchText)
-        }
-    }
-    
+    var airingSlots: [Int: DiscoverAiringSlot] = [:]
+
     var body: some View {
-        NavigationView {
-            GeometryReader { geo in
-                let metrics = KuroCardMetrics.grid(for: geo.size.width, columns: 2)
-                let compactCardHeight = max(0, metrics.cardHeight - 4)
-                let rowSpacing: CGFloat = 14
-
-                ScrollView(.vertical, showsIndicators: false) {
-                    DiscoverFullSectionHeader(
-                        title: title,
-                        countLabel: "\(filtered.count)",
-                        searchText: $searchText
-                    )
-
-                    // Grid (no fixed height; allow ScrollView to size content correctly)
-                    LazyVGrid(
-                        columns: metrics.columns,
-                        alignment: .center,
-                        spacing: rowSpacing
-                    ) {
-                        ForEach(filtered, id: \.id) { anime in
-                            GridAnimeCard(media: anime, cardWidth: metrics.cardWidth, cardHeight: compactCardHeight)
-                                .frame(width: metrics.cardWidth, height: compactCardHeight, alignment: .top)
-                        }
-                    }
-                    .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                    .padding(.top, 12)
-                    .padding(.bottom, 24)
-                }
-                // Ensure the last rows can scroll fully above the home indicator / tab chrome.
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 24)
-                }
-            }
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark")
-                            .foregroundColor(.black)
-                    }
-                }
-            }
-        }
-        // This "see all" sheet's own presentation context: its grid cards open their routes here.
-        .routePresenter()
+        DiscoverFullSectionSheet(title: title, items: items, airingSlots: airingSlots)
     }
 }
 
-// MARK: - Full Manga Section View (for "See All")
+/// The manga "See all" sheet (same grammar as `FullSectionView`).
 struct FullMangaSectionView<Item: MediaDisplayable>: View {
     let title: String
     let items: [Item]
+
+    var body: some View {
+        DiscoverFullSectionSheet(title: title, items: items)
+    }
+}
+
+private struct DiscoverFullSectionSheet<Item: MediaDisplayable>: View {
+    let title: String
+    let items: [Item]
+    var airingSlots: [Int: DiscoverAiringSlot] = [:]
+
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var searchText = ""
 
     private var filtered: [Item] {
-        if searchText.isEmpty { return items }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return items }
         return items.filter { media in
-            media.title.localizedCaseInsensitiveContains(searchText) ||
-            media.displayDescription.localizedCaseInsensitiveContains(searchText)
+            media.title.localizedCaseInsensitiveContains(query) ||
+            media.displayDescription.localizedCaseInsensitiveContains(query)
         }
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             GeometryReader { geo in
-                let metrics = KuroCardMetrics.grid(for: geo.size.width, columns: 2)
-                let compactCardHeight = max(0, metrics.cardHeight - 4)
-                let rowSpacing: CGFloat = 14
+                let width = DiscoverLayout.contentWidth(container: geo.size.width, regularWidth: horizontalSizeClass == .regular)
+                let gutter = DiscoverLayout.gutter(for: width)
+                let inner = max(0, width - gutter * 2)
+                let columns = DiscoverLayout.columnCount(for: inner, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
+                let frameWidth = DiscoverLayout.gridFrameWidth(for: inner, columns: columns)
+                let shown = filtered
 
                 ScrollView(.vertical, showsIndicators: false) {
-                    DiscoverFullSectionHeader(
-                        title: title,
-                        countLabel: "\(filtered.count)",
-                        searchText: $searchText
-                    )
+                    VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
+                        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                            Text(title)
+                                .font(.kuroHeadline(weight: .light))
+                                .foregroundStyle(Color.kuroInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityAddTraits(.isHeader)
+                            Text(KuroLocale.text(
+                                shown.count == 1 ? "1 title" : "\(shown.count) titles",
+                                "\(shown.count) Titel"
+                            ))
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkQuiet)
+                        }
 
-                    LazyVGrid(
-                        columns: metrics.columns,
-                        alignment: .center,
-                        spacing: rowSpacing
-                    ) {
-                        ForEach(filtered, id: \.id) { manga in
-                            GridAnimeCard(media: manga, cardWidth: metrics.cardWidth, cardHeight: compactCardHeight)
-                                .frame(width: metrics.cardWidth, height: compactCardHeight, alignment: .top)
+                        DiscoverFilterField(
+                            text: $searchText,
+                            prompt: KuroLocale.text("Filter these titles", "Diese Titel filtern")
+                        )
+
+                        if shown.isEmpty {
+                            KuroStateView(
+                                .empty,
+                                title: KuroLocale.text("No titles match \u{201C}\(searchText)\u{201D}.",
+                                                       "Keine Titel passen zu \u{201E}\(searchText)\u{201C}."),
+                                layout: .inline
+                            )
+                        } else {
+                            LazyVGrid(
+                                columns: Array(repeating: GridItem(.fixed(frameWidth), spacing: DiscoverLayout.frameSpacing, alignment: .top), count: columns),
+                                alignment: .leading,
+                                spacing: KuroDesignSpacing.lg
+                            ) {
+                                ForEach(shown, id: \.id) { item in
+                                    DiscoverFrame(media: item, width: frameWidth, airing: airingSlots[item.id])
+                                }
+                            }
                         }
                     }
-                    .padding(.horizontal, KuroCardMetrics.horizontalPadding)
-                    .padding(.top, 12)
-                    .padding(.bottom, 24)
+                    .padding(.horizontal, gutter)
+                    .padding(.top, KuroDesignSpacing.sm)
+                    .padding(.bottom, KuroDesignSpacing.xl)
+                    .frame(width: width)
+                    .frame(maxWidth: .infinity)
                 }
-                // Ensure the last rows can scroll fully above the home indicator / tab chrome.
-                .safeAreaInset(edge: .bottom) {
-                    Color.clear.frame(height: 24)
-                }
+                .background(Color.kuroCanvasPage)
             }
-            .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { dismiss() }) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
                         Image(systemName: "xmark")
-                            .foregroundColor(.black)
+                            .font(.kuroBody(weight: .regular))
+                            .foregroundStyle(Color.kuroInk)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(KuroLocale.text("Close", "Schließen"))
                 }
             }
         }
-        // This "see all" sheet's own presentation context: its grid cards open their routes here.
+        // This "see all" sheet's own presentation context: its frames open their routes here.
         .routePresenter()
     }
 }
 
-// MARK: - Genre Picker Sheet
+/// A quiet filter field: magnifier, text, a labelled clear key, an ink hairline under it.
+struct DiscoverFilterField: View {
+    @Binding var text: String
+    let prompt: String
+
+    var body: some View {
+        HStack(spacing: KuroDesignSpacing.sm) {
+            Image(systemName: "magnifyingglass")
+                .font(.kuroBody(weight: .regular))
+                .foregroundStyle(Color.kuroInkQuiet)
+                .accessibilityHidden(true)
+            TextField("", text: $text, prompt: Text(prompt).foregroundStyle(Color.kuroInkQuiet))
+                .font(.kuroBody(weight: .regular))
+                .foregroundStyle(Color.kuroInk)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.done)
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.kuroMeta(weight: .medium))
+                        .foregroundStyle(Color.kuroInkQuiet)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(KuroLocale.text("Clear", "Leeren"))
+            }
+        }
+        .frame(minHeight: 44)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.kuroHairline)
+                .frame(height: 1)
+        }
+    }
+}
+
+// MARK: - Genre Picker Sheet (unreferenced; kept for the owner's dead-code pass)
 struct GenrePickerSheet: View {
     let genres: [String]
     let onSelect: (String?) -> Void
@@ -1340,7 +879,7 @@ struct GenrePickerSheet: View {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 10) {
                     FilterChip(
-                        title: "Cancel",
+                        title: KuroLocale.text("Cancel", "Abbrechen"),
                         isSelected: false,
                         action: {
                             onSelect(nil)
@@ -1362,14 +901,30 @@ struct GenrePickerSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
             }
-            .navigationTitle("Genres")
+            .navigationTitle(KuroLocale.text("Genres", "Genres"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(.black.opacity(0.8))
+                    Button(KuroLocale.text("Done", "Fertig")) { dismiss() }
+                        .foregroundStyle(Color.kuroInk)
                 }
             }
         }
     }
+}
+
+#Preview {
+    EditorialDiscoverView()
+        .environment(AppComposition.shared.identity)
+        .environment(AppComposition.shared.library)
+        .environment(AppComposition.shared.catalog)
+        .environment(AppComposition.shared.discovery)
+        .environment(AppComposition.shared.releases)
+        .environment(AppComposition.shared.social)
+        .environment(AppComposition.shared.availability)
+        .environment(AppComposition.shared.clubs)
+        .environment(AppComposition.shared.taste)
+        .environment(AppComposition.shared.flags)
+        .environment(AppComposition.shared.libraryActions)
+        .environment(NetworkMonitor())
 }

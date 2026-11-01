@@ -1,7 +1,10 @@
-// Browse View
-// Filter anime/manga by Genre, Length, Status
-// Practical discovery with smart filters
+// Browse (the catalogue; spec D2, rulebook §5/§9)
+// Filter anime or manga by sort, status, length, genre, year and format, in an equal-frame grid of
+// issue frames whose column count follows the width (readable column on iPad). Reached as a pager
+// page in the live order and through the Browse route from Discover and Search. A failed page is a
+// failure (offline or failed state), never "no matches".
 
+import KuroCore
 import SwiftUI
 
 struct BrowseView: View {
@@ -9,6 +12,7 @@ struct BrowseView: View {
     @Environment(DiscoveryStore.self) private var discovery
     @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(FeatureFlags.self) private var flags
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var selectedGenre: String? = nil
     @State private var selectedLengthFilter: LengthFilter? = nil
     @State private var selectedStatusFilter: StatusFilter? = nil
@@ -34,6 +38,7 @@ struct BrowseView: View {
     @State private var didInitialLoad = false
     @State private var reloadGeneration: Int = 0
     @State private var bannerMessage: String? = nil
+    @State private var bannerTask: Task<Void, Never>? = nil
     @State private var loadError = false
 
     private let pageSize: Int = 60
@@ -50,6 +55,17 @@ struct BrowseView: View {
         case epic100 = "100+ EPS"
         case epic200 = "200+ EPS"
         case manga200 = "200+ CH"
+
+        func title(german: Bool) -> String {
+            switch self {
+            case .short: return german ? "1\u{2013}13 Folgen" : "1\u{2013}13 eps"
+            case .standard: return german ? "14\u{2013}26 Folgen" : "14\u{2013}26 eps"
+            case .long: return german ? "27\u{2013}99 Folgen" : "27\u{2013}99 eps"
+            case .epic100: return german ? "100+ Folgen" : "100+ eps"
+            case .epic200: return german ? "200+ Folgen" : "200+ eps"
+            case .manga200: return german ? "200+ Kapitel" : "200+ chapters"
+            }
+        }
 
         var episodeRange: (min: Int, max: Int?)? {
             switch self {
@@ -74,6 +90,15 @@ struct BrowseView: View {
         case finished = "FINISHED"
         case airing = "AIRING"
 
+        func title(german: Bool, anime: Bool) -> String {
+            switch self {
+            case .finished: return german ? "Abgeschlossen" : "Finished"
+            case .airing:
+                if german { return anime ? "Läuft" : "Erscheint" }
+                return anime ? "Airing" : "Publishing"
+            }
+        }
+
         var statusValue: String {
             switch self {
             case .finished: return "FINISHED"
@@ -88,6 +113,16 @@ struct BrowseView: View {
         case d2000s = "2000s"
         case d1990s = "1990s"
         case classic = "< 1990"
+
+        func title(german: Bool) -> String {
+            switch self {
+            case .d2020s: return german ? "2020er" : "2020s"
+            case .d2010s: return german ? "2010er" : "2010s"
+            case .d2000s: return german ? "2000er" : "2000s"
+            case .d1990s: return german ? "1990er" : "1990s"
+            case .classic: return german ? "Vor 1990" : "Before 1990"
+            }
+        }
 
         var yearRange: (min: Int, max: Int?) {
             switch self {
@@ -106,6 +141,26 @@ struct BrowseView: View {
         case ova = "OVA"
         case ona = "ONA"
         case special = "SPECIAL"
+
+        func title(german: Bool) -> String {
+            DiscoverFrameCopy.formatName(rawValue, german: german)
+        }
+    }
+
+    /// A genre's reading name (the AniList genre stays the filter value).
+    static func genreTitle(_ genre: String, german: Bool) -> String {
+        guard german else { return genre }
+        switch genre {
+        case "Adventure": return "Abenteuer"
+        case "Comedy": return "Komödie"
+        case "Mystery": return "Mystery"
+        case "Psychological": return "Psychologisch"
+        case "Romance": return "Romantik"
+        case "Slice of Life": return "Alltag"
+        case "Sports": return "Sport"
+        case "Supernatural": return "Übernatürlich"
+        default: return genre
+        }
     }
 
     private var displayItems: [any MediaDisplayable] {
@@ -148,18 +203,31 @@ struct BrowseView: View {
     }
 
     private var activeFiltersLabel: String {
+        let german = KuroLocale.isGerman
         var parts: [String] = []
-        if let s = selectedStatusFilter { parts.append(s.rawValue) }
-        if let l = selectedLengthFilter { parts.append(l.rawValue) }
-        if let g = selectedGenre { parts.append(g.uppercased()) }
-        if selectedSort != .popular { parts.append(selectedSort.rawValue) }
-        if let d = selectedDecade { parts.append(d.rawValue) }
-        if let f = selectedFormat { parts.append(f.rawValue) }
+        if let s = selectedStatusFilter { parts.append(s.title(german: german, anime: showAnime)) }
+        if let l = selectedLengthFilter { parts.append(l.title(german: german)) }
+        if let g = selectedGenre { parts.append(Self.genreTitle(g, german: german)) }
+        if selectedSort != .popular { parts.append(selectedSort.title(german: german)) }
+        if let d = selectedDecade { parts.append(d.title(german: german)) }
+        if let f = selectedFormat { parts.append(f.title(german: german)) }
         return parts.joined(separator: " · ")
+    }
+
+    private func clearFilters() {
+        withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
+            selectedStatusFilter = nil
+            selectedLengthFilter = nil
+            selectedGenre = nil
+            selectedSort = .popular
+            selectedDecade = nil
+            selectedFormat = nil
+        }
     }
 
     var body: some View {
         GeometryReader { geometry in
+            let width = DiscoverLayout.contentWidth(container: geometry.size.width, regularWidth: horizontalSizeClass == .regular)
             VStack(spacing: 0) {
                 BrowseControlBar(
                     showAnime: $showAnime,
@@ -171,101 +239,49 @@ struct BrowseView: View {
                     selectedFormat: $selectedFormat,
                     allGenres: allGenres,
                     hasActiveFilters: hasActiveFilters,
-                    activeFiltersLabel: activeFiltersLabel
+                    activeFiltersLabel: activeFiltersLabel,
+                    gutter: DiscoverLayout.gutter(for: width)
                 ) {
                     showFiltersSheet = true
                 } onClear: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedStatusFilter = nil
-                        selectedLengthFilter = nil
-                        selectedGenre = nil
-                        selectedSort = .popular
-                        selectedDecade = nil
-                        selectedFormat = nil
-                    }
+                    clearFilters()
                 }
+                .frame(width: width)
 
                 // Results Grid
                 ScrollView(.vertical, showsIndicators: false) {
-                    let hero = displayItems.first
-                    let gridItems = Array(displayItems.dropFirst())
-
-                    if displayItems.isEmpty {
-                        if isLoadingResults {
-                            BrowseGridSkeleton(geometry: geometry)
-                        } else if loadError {
-                            VStack(spacing: KuroDesignSpacing.md) {
-                                Image(systemName: "wifi.slash")
-                                    .font(.system(size: 32, weight: .light))
-                                    .foregroundColor(.kuroTextTertiary)
-                                Text("COULDN'T LOAD")
-                                    .font(.kuroCaption(weight: .medium))
-                                    .tracking(1.6)
-                                    .foregroundColor(.kuroTextSecondary)
-                                Text("Check your connection and try again.")
-                                    .font(.kuroBody())
-                                    .foregroundColor(.kuroTextTertiary)
-                                    .multilineTextAlignment(.center)
-                                Button {
-                                    loadError = false
-                                    Task { await reload(mode: .pullToRefresh) }
-                                } label: {
-                                    Text("RETRY")
-                                        .font(.kuroCaption(weight: .medium))
-                                        .tracking(1.6)
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 10)
-                                        .background(Capsule().fill(Color.black))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        } else {
-                            BrowseEmptyState(
-                                activeFilterCount: activeFilterCount,
-                                activeFilterSummary: activeFiltersLabel,
-                                onClearFilters: {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        selectedStatusFilter = nil
-                                        selectedLengthFilter = nil
-                                        selectedGenre = nil
-                                        selectedSort = .popular
-                                        selectedDecade = nil
-                                        selectedFormat = nil
+                    Group {
+                        if displayItems.isEmpty {
+                            if isLoadingResults {
+                                BrowseGridSkeleton(width: width)
+                            } else if loadError {
+                                KuroStateView(
+                                    networkMonitor.isConnected ? .failed(hasCachedContent: false) : .offline(hasCachedContent: false),
+                                    retry: {
+                                        Task { await reload(mode: .pullToRefresh) }
                                     }
-                                }
-                            )
-                        }
-                    } else {
-                        if !isLoadingResults {
-                            BrowseResultsHeader(
-                                title: showAnime ? "ANIME BROWSE" : "MANGA BROWSE",
-                                subtitle: hasActiveFilters ? activeFiltersLabel : "Hero pick first, then a denser grid",
-                                countLabel: "\(displayItems.count)"
-                            )
-                            .padding(.top, 8)
-                        }
-
-                        VStack(spacing: 14) {
-                            if let hero {
-                                BrowseHeroCard(media: hero, geometry: geometry)
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 10)
+                                )
+                                .frame(minHeight: geometry.size.height * 0.6)
+                            } else {
+                                BrowseEmptyState(
+                                    activeFilterCount: activeFilterCount,
+                                    activeFilterSummary: activeFiltersLabel,
+                                    onClearFilters: { clearFilters() }
+                                )
+                            }
+                        } else {
+                            BrowseGrid(items: displayItems, width: width) {
+                                await fetchNextPage()
                             }
 
-                            if !gridItems.isEmpty {
-                                BrowseGrid(items: gridItems, geometry: geometry) {
-                                    await fetchNextPage()
-                                }
+                            if isLoadingResults {
+                                BrowsePaginationSkeleton(width: width)
                             }
-                        }
-                        .padding(.bottom, 10)
-
-                        if isLoadingResults, !displayItems.isEmpty {
-                            BrowsePaginationSkeleton(geometry: geometry)
                         }
                     }
+                    .frame(width: width)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, KuroDesignSpacing.lg)
                 }
                 // Keep vertical scrolling enabled even if an ancestor disables scroll via environment.
                 .scrollDisabled(false)
@@ -273,17 +289,18 @@ struct BrowseView: View {
                     reloadTask?.cancel()
                     await reload(mode: .pullToRefresh)
                 }
-                .background(Color.kuroBackground)
+                .background(Color.kuroCanvasPage)
                 .overlay(alignment: .top) {
                     if let bannerMessage {
                         KuroTransientBanner(message: bannerMessage)
                             .padding(.top, 10)
-                            .transition(.move(edge: .top).combined(with: .opacity))
+                            .transition(.opacity)
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
         }
-        .background(Color.kuroBackground)
+        .background(Color.kuroCanvasPage)
         .sheet(isPresented: $showFiltersSheet) {
             BrowseFiltersSheet(
                 showAnime: showAnime,
@@ -295,7 +312,7 @@ struct BrowseView: View {
                 selectedFormat: selectedFormat,
                 allGenres: allGenres
             ) { next in
-                withAnimation(.easeInOut(duration: 0.2)) {
+                withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
                     showAnime = next.showAnime
                     selectedSort = next.sort
                     selectedStatusFilter = next.status
@@ -314,6 +331,7 @@ struct BrowseView: View {
         }
         .onDisappear {
             reloadTask?.cancel()
+            bannerTask?.cancel()
         }
         .onChange(of: networkMonitor.reconnectionGeneration) { _, _ in
             guard networkMonitor.isConnected, loadError else { return }
@@ -392,19 +410,21 @@ struct BrowseView: View {
             animeCursorDate = nil
             animeCursorId = nil
 
-            let page0 = await fetchAnimePage(cursorInt: nil, cursorDate: nil, cursorId: nil)
+            let fetched = await fetchAnimePage(cursorInt: nil, cursorDate: nil, cursorId: nil)
             guard gen == reloadGeneration else { return }
             hasMore = true
+            let page0 = fetched ?? []
 
-            if mode == .pullToRefresh, page0.isEmpty, !oldAnime.isEmpty {
-                // Keep old content if refresh failed (service returns [] on error).
+            if fetched == nil, mode == .pullToRefresh, !oldAnime.isEmpty {
+                // A failed refresh of the same filters keeps the old content.
                 animeResults = oldAnime
-                showBanner("Couldn't refresh. Try again.")
-            } else {
-                animeResults = page0
+                showBanner(KuroLocale.text("Couldn't refresh. Try again.", "Konnte nicht aktualisiert werden. Versuch es noch einmal."))
+                loadError = false
+                hasMore = false
+                return
             }
-
-            loadError = page0.isEmpty && !networkMonitor.isConnected
+            animeResults = page0
+            loadError = fetched == nil
 
             hasMore = page0.count == pageSize
             if let last = page0.last {
@@ -412,7 +432,7 @@ struct BrowseView: View {
             }
 
             let urls = page0.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
-            if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
+            if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 360) } }
 
             if flags.isSocialActivityV1Enabled, !page0.isEmpty {
                 social.prefetchFriendCounts(items: page0.map { (mediaType: "ANIME", mediaId: $0.id) })
@@ -422,18 +442,20 @@ struct BrowseView: View {
             mangaCursorDate = nil
             mangaCursorId = nil
 
-            let page0 = await fetchMangaPage(cursorInt: nil, cursorDate: nil, cursorId: nil)
+            let fetched = await fetchMangaPage(cursorInt: nil, cursorDate: nil, cursorId: nil)
             guard gen == reloadGeneration else { return }
             hasMore = true
+            let page0 = fetched ?? []
 
-            if mode == .pullToRefresh, page0.isEmpty, !oldManga.isEmpty {
+            if fetched == nil, mode == .pullToRefresh, !oldManga.isEmpty {
                 mangaResults = oldManga
-                showBanner("Couldn't refresh. Try again.")
-            } else {
-                mangaResults = page0
+                showBanner(KuroLocale.text("Couldn't refresh. Try again.", "Konnte nicht aktualisiert werden. Versuch es noch einmal."))
+                loadError = false
+                hasMore = false
+                return
             }
-
-            loadError = page0.isEmpty && !networkMonitor.isConnected
+            mangaResults = page0
+            loadError = fetched == nil
 
             hasMore = page0.count == pageSize
             if let last = page0.last {
@@ -441,7 +463,7 @@ struct BrowseView: View {
             }
 
             let urls = page0.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
-            if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
+            if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 360) } }
 
             if flags.isSocialActivityV1Enabled, !page0.isEmpty {
                 social.prefetchFriendCounts(items: page0.map { (mediaType: "MANGA", mediaId: $0.id) })
@@ -457,8 +479,14 @@ struct BrowseView: View {
         defer { isLoadingResults = false }
 
         if showAnime {
-            let page = await fetchAnimePage(cursorInt: animeCursorInt, cursorDate: animeCursorDate, cursorId: animeCursorId)
+            let fetched = await fetchAnimePage(cursorInt: animeCursorInt, cursorDate: animeCursorDate, cursorId: animeCursorId)
             guard gen == reloadGeneration else { return }
+            guard let page = fetched else {
+                // The next page failed: stop paging until a reload, and say so once.
+                hasMore = false
+                showBanner(KuroLocale.text("Couldn't load more. Pull to refresh.", "Konnte nicht mehr laden. Zum Aktualisieren ziehen."))
+                return
+            }
             animeResults.append(contentsOf: page)
             hasMore = page.count == pageSize
             if let last = page.last {
@@ -466,14 +494,19 @@ struct BrowseView: View {
             }
 
             let urls = page.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
-            if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
+            if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 360) } }
 
             if flags.isSocialActivityV1Enabled, !page.isEmpty {
                 social.prefetchFriendCounts(items: page.map { (mediaType: "ANIME", mediaId: $0.id) })
             }
         } else {
-            let page = await fetchMangaPage(cursorInt: mangaCursorInt, cursorDate: mangaCursorDate, cursorId: mangaCursorId)
+            let fetched = await fetchMangaPage(cursorInt: mangaCursorInt, cursorDate: mangaCursorDate, cursorId: mangaCursorId)
             guard gen == reloadGeneration else { return }
+            guard let page = fetched else {
+                hasMore = false
+                showBanner(KuroLocale.text("Couldn't load more. Pull to refresh.", "Konnte nicht mehr laden. Zum Aktualisieren ziehen."))
+                return
+            }
             mangaResults.append(contentsOf: page)
             hasMore = page.count == pageSize
             if let last = page.last {
@@ -481,7 +514,7 @@ struct BrowseView: View {
             }
 
             let urls = page.prefix(48).compactMap { URL(string: $0.imageURL ?? "") }
-            if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls) } }
+            if !urls.isEmpty { Task { await ImagePipeline.shared.prefetch(urls: urls, maxPixelSize: 360) } }
 
             if flags.isSocialActivityV1Enabled, !page.isEmpty {
                 social.prefetchFriendCounts(items: page.map { (mediaType: "MANGA", mediaId: $0.id) })
@@ -489,10 +522,10 @@ struct BrowseView: View {
         }
     }
 
-    private func fetchAnimePage(cursorInt: Int?, cursorDate: Date?, cursorId: Int?) async -> [AnimeCard] {
+    private func fetchAnimePage(cursorInt: Int?, cursorDate: Date?, cursorId: Int?) async -> [AnimeCard]? {
         let range = selectedLengthFilter?.episodeRange
         let yearRange = selectedDecade?.yearRange
-        return await discovery.fetchBrowseAnimePageKeyset(
+        return await discovery.browseAnimePage(
             genre: selectedGenre,
             status: selectedStatusFilter?.statusValue,
             minEpisodes: range?.min,
@@ -508,10 +541,10 @@ struct BrowseView: View {
         )
     }
 
-    private func fetchMangaPage(cursorInt: Int?, cursorDate: Date?, cursorId: Int?) async -> [MangaCard] {
+    private func fetchMangaPage(cursorInt: Int?, cursorDate: Date?, cursorId: Int?) async -> [MangaCard]? {
         let range = selectedLengthFilter?.chapterRange
         let yearRange = selectedDecade?.yearRange
-        return await discovery.fetchBrowseMangaPageKeyset(
+        return await discovery.browseMangaPage(
             genre: selectedGenre,
             status: selectedStatusFilter?.statusValue,
             minChapters: range?.min,
@@ -565,12 +598,14 @@ struct BrowseView: View {
 
     @MainActor
     private func showBanner(_ message: String) {
-        withAnimation(.easeInOut(duration: 0.18)) {
+        bannerTask?.cancel()
+        withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
             bannerMessage = message
         }
-        Task { @MainActor in
+        bannerTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 1_800_000_000)
-            withAnimation(.easeInOut(duration: 0.18)) {
+            guard !Task.isCancelled else { return }
+            withAnimation(KuroMotion.resolve(KuroMotion.settle)) {
                 bannerMessage = nil
             }
         }
