@@ -52,7 +52,7 @@ struct FriendsActivitySection: View {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
                 EditorialLayout.divider()
 
-                Text(editorial ? "Between us." : "FRIENDS")
+                Text(editorial ? KuroLocale.text("Between us.", "Unter uns.") : KuroLocale.text("FRIENDS", "FREUNDE"))
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.6)
                     .foregroundColor(.kuroBlack80)
@@ -61,7 +61,7 @@ struct FriendsActivitySection: View {
                 if isLoading && activity == nil {
                     HStack(spacing: 10) {
                         ProgressView().scaleEffect(0.8).tint(.kuroInkQuiet)
-                        Text("Loading...")
+                        Text(KuroLocale.text("Loading…", "Wird geladen …"))
                             .font(.kuroCaption(weight: .light))
                             .foregroundColor(.kuroInkQuiet)
                     }
@@ -76,7 +76,9 @@ struct FriendsActivitySection: View {
                         commentsSection(activity.comments)
                     }
                     if activity.comments_next != nil || activity.friends_next != nil {
-                        Button(loadingMore ? "Loading…" : "More from your clubs") { Task { await loadMoreActivity() } }
+                        Button(loadingMore
+                               ? KuroLocale.text("Loading…", "Wird geladen …")
+                               : KuroLocale.text("More from your clubs", "Mehr aus deinen Clubs")) { Task { await loadMoreActivity() } }
                             .font(.kuroCaption()).frame(minHeight: 44).disabled(loadingMore)
                     }
 
@@ -90,14 +92,16 @@ struct FriendsActivitySection: View {
                             .foregroundColor(.red.opacity(0.85))
                     }
                 } else {
-                    Text(editorial ? "A quiet room. Leave the first thought." : "No friends tracking this yet")
+                    Text(editorial
+                         ? KuroLocale.text("A quiet room. Leave the first thought.", "Noch ist es still. Hinterlass den ersten Gedanken.")
+                         : KuroLocale.text("No friends are following this yet.", "Noch verfolgt kein Freund diesen Titel."))
                         .font(.kuroCaption(weight: .light))
                         .foregroundColor(.kuroInkQuiet)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .alert("Delete your comment?", isPresented: $showDeleteConfirm) {
-                Button("Delete", role: .destructive) {
+            .alert(KuroLocale.text("Delete your comment?", "Deinen Kommentar löschen?"), isPresented: $showDeleteConfirm) {
+                Button(KuroLocale.text("Delete", "Löschen"), role: .destructive) {
                     launchAction(origin: origin, permission: permission) { ticket in
                         do {
                             try await social.deleteTitleComment(
@@ -111,13 +115,13 @@ struct FriendsActivitySection: View {
                             return
                         } catch {
                             guard mayPublish(ticket, permission: permission) else { return }
-                            errorText = "Could not delete comment."
+                            errorText = KuroLocale.text("Couldn't delete your comment. Try again.", "Kommentar konnte nicht gelöscht werden. Versuch es noch einmal.")
                         }
                         guard mayPublish(ticket, permission: permission) else { return }
                         await loadActivity()
                     }
                 }
-                Button("Cancel", role: .cancel) {}
+                Button(KuroLocale.text("Cancel", "Abbrechen"), role: .cancel) {}
             }
             .onAppear { actionScope.activate(session: social.accountSession) }
             .onDisappear {
@@ -167,9 +171,11 @@ struct FriendsActivitySection: View {
     }
 
     private func friendDetail(_ friend: SocialActivityStore.FriendTitleActivity) -> String {
-        let prefix = mediaType.uppercased() == "ANIME" ? "EP" : "CH"
+        let prefix = mediaType.uppercased() == "ANIME"
+            ? KuroLocale.text("Ep.", "F.")
+            : KuroLocale.text("Ch.", "Kap.")
         if let status = friend.status?.uppercased() {
-            if status == "COMPLETED" { return "Completed" }
+            if status == "COMPLETED" { return statusLabel(status) }
             if let progress = friend.progress, progress > 0 {
                 return "\(prefix) \(progress)"
             }
@@ -178,15 +184,12 @@ struct FriendsActivitySection: View {
         return ""
     }
 
+    /// A friend's status word for the medium (EN/DE, third person in German: "Schaut" / "Liest");
+    /// an unknown value keeps its own text.
     private func statusLabel(_ status: String) -> String {
-        switch status {
-        case "CURRENT", "WATCHING": return "Watching"
-        case "READING": return "Reading"
-        case "PLANNING", "PLANNED": return "Planning"
-        case "PAUSED", "ON_HOLD": return "Paused"
-        case "DROPPED": return "Dropped"
-        default: return status.capitalized
-        }
+        let kind: MediaKind = mediaType.uppercased() == "MANGA" ? .manga : .anime
+        return DetailCopy.listStatus(status, medium: kind, german: KuroLocale.isGerman, perspective: .other)
+            ?? status.capitalized
     }
 
     // MARK: - Comments
@@ -236,7 +239,7 @@ struct FriendsActivitySection: View {
                     }
                     .buttonStyle(.plain)
                     .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityLabel("Edit thought")
+                    .accessibilityLabel(KuroLocale.text("Edit thought", "Gedanken bearbeiten"))
 
                     Button {
                         KuroAccessibility.impactHaptic(.light)
@@ -248,19 +251,19 @@ struct FriendsActivitySection: View {
                     }
                     .buttonStyle(.plain)
                     .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityLabel("Delete comment")
+                    .accessibilityLabel(KuroLocale.text("Delete comment", "Kommentar löschen"))
                 }
             }
 
             if comment.spoiler_scope != nil && comment.spoiler_scope != "none" && !comment.is_own && !revealed.contains(comment.id) {
-                Button("Spoiler · Reveal") { revealed.insert(comment.id) }
+                Button(KuroLocale.text("Spoiler · Reveal", "Spoiler · Anzeigen")) { revealed.insert(comment.id) }
                     .font(.kuroCaption()).frame(minHeight: 44)
-                    .accessibilityHint("Reveals a club member's spoiler")
+                    .accessibilityHint(KuroLocale.text("Reveals a club member's spoiler", "Zeigt den Spoiler eines Clubmitglieds"))
             } else {
                 Text(comment.text).font(.kuroBody(weight: .light))
                     .foregroundColor(.kuroBlack80).lineSpacing(4)
                 if revealed.contains(comment.id) {
-                    Button("Hide spoiler") { revealed.remove(comment.id) }.frame(minHeight: 44)
+                    Button(KuroLocale.text("Hide spoiler", "Spoiler ausblenden")) { revealed.remove(comment.id) }.frame(minHeight: 44)
                 }
             }
 
@@ -342,7 +345,9 @@ struct FriendsActivitySection: View {
         }
         .buttonStyle(.plain)
         .frame(minWidth: 44, minHeight: 44)
-        .accessibilityLabel(type == "up" ? "Like thought" : "Dislike thought")
+        .accessibilityLabel(type == "up"
+                            ? KuroLocale.text("Like thought", "Gedanken mögen")
+                            : KuroLocale.text("Dislike thought", "Gedanken nicht mögen"))
     }
 
     // MARK: - Comment Input
@@ -356,7 +361,11 @@ struct FriendsActivitySection: View {
         if !hasExisting {
             HStack(spacing: KuroDesignSpacing.sm) {
                 TextField(
-                    isEditing ? "Edit your thought…" : (editorial ? "Leave a thought…" : "Leave a comment…"),
+                    isEditing
+                        ? KuroLocale.text("Edit your thought…", "Deinen Gedanken bearbeiten …")
+                        : (editorial
+                           ? KuroLocale.text("Leave a thought…", "Hinterlass einen Gedanken …")
+                           : KuroLocale.text("Leave a comment…", "Hinterlass einen Kommentar …")),
                     text: $commentText,
                     axis: .vertical
                 )
@@ -386,7 +395,9 @@ struct FriendsActivitySection: View {
                     }
                     .buttonStyle(.plain)
                     .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityLabel(isEditing ? "Save thought" : "Post thought")
+                    .accessibilityLabel(isEditing
+                                        ? KuroLocale.text("Save thought", "Gedanken speichern")
+                                        : KuroLocale.text("Post thought", "Gedanken teilen"))
                     .disabled(!canSubmit)
                 }
 
@@ -395,7 +406,7 @@ struct FriendsActivitySection: View {
                         isEditing = false
                         commentText = ""
                     } label: {
-                        Text("Cancel")
+                        Text(KuroLocale.text("Cancel", "Abbrechen"))
                             .font(.kuroCaption(weight: .light))
                             .foregroundColor(.kuroInkQuiet)
                     }
@@ -407,7 +418,7 @@ struct FriendsActivitySection: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.kuroBlack08, lineWidth: 0.8))
-            if editorial { Toggle("Contains spoilers", isOn: $containsSpoilers).font(.kuroCaption()).frame(minHeight: 44) }
+            if editorial { Toggle(KuroLocale.text("Contains spoilers", "Enthält Spoiler"), isOn: $containsSpoilers).font(.kuroCaption()).frame(minHeight: 44) }
         }
     }
 
@@ -462,7 +473,7 @@ struct FriendsActivitySection: View {
             errorText = nil
         } catch is CancellationError { return
         } catch {
-            if token == loadToken { errorText = "Your club discussion could not be loaded. Try again." }
+            if token == loadToken { errorText = KuroLocale.text("Couldn't load your club's thoughts. Try again.", "Die Gedanken deines Clubs konnten nicht geladen werden. Versuch es noch einmal.") }
             #if DEBUG
             print("[FriendsActivity] loadActivity error: \(error.localizedDescription)")
             #endif
@@ -486,7 +497,7 @@ struct FriendsActivitySection: View {
             comments_next: previous.comments_next == nil ? nil : page.comments_next,
             friends_next: previous.friends_next == nil ? nil : page.friends_next)
         } catch is CancellationError { return }
-        catch { if token == loadToken { errorText = "More thoughts could not be loaded. Try again." } }
+        catch { if token == loadToken { errorText = KuroLocale.text("Couldn't load more thoughts. Try again.", "Weitere Gedanken konnten nicht geladen werden. Versuch es noch einmal.") } }
     }
 
     private func submitComment(text: String, spoilerScope: String?, origin: AccountActionScope.Ticket,
@@ -513,7 +524,7 @@ struct FriendsActivitySection: View {
             return
         } catch {
             guard mayPublish(origin, permission: permission) else { return }
-            errorText = "Could not save comment."
+            errorText = KuroLocale.text("Couldn't save your comment. Try again.", "Kommentar konnte nicht gespeichert werden. Versuch es noch einmal.")
             KuroAccessibility.errorHaptic()
             isSubmitting = false
             return
@@ -548,9 +559,9 @@ struct FriendsActivitySection: View {
     private func relativeTime(_ isoString: String) -> String {
         guard let date = ClubsStore.parseISO8601(isoString) else { return "" }
         let seconds = Date().timeIntervalSince(date)
-        if seconds < 60 { return "now" }
-        if seconds < 3600 { return "\(Int(seconds / 60))m" }
-        if seconds < 86400 { return "\(Int(seconds / 3600))h" }
-        return "\(Int(seconds / 86400))d"
+        if seconds < 60 { return KuroLocale.text("now", "jetzt") }
+        if seconds < 3600 { return KuroLocale.text("\(Int(seconds / 60))m", "\(Int(seconds / 60)) Min.") }
+        if seconds < 86400 { return KuroLocale.text("\(Int(seconds / 3600))h", "\(Int(seconds / 3600)) Std.") }
+        return KuroLocale.text("\(Int(seconds / 86400))d", "\(Int(seconds / 86400)) T.")
     }
 }

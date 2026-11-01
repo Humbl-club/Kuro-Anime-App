@@ -19,15 +19,23 @@ struct ProviderSelectionSheet: View {
     }
 
     private var explainerTitle: String {
-        if links.isEmpty { return "No legal links yet" }
-        return isVerifiedOnly ? "Verified for this title" : "Catalog fallback"
+        if links.isEmpty { return KuroLocale.text("No legal links yet", "Noch keine legalen Links") }
+        return isVerifiedOnly
+            ? KuroLocale.text("Matched to this title", "Zu diesem Titel passend")
+            : KuroLocale.text("From the provider's catalogue", "Aus dem Katalog des Anbieters")
     }
 
     private var explainerBody: String {
-        if links.isEmpty { return "We do not have a legal provider link for this title yet." }
+        if links.isEmpty {
+            return KuroLocale.text("There's no legal link for this title yet.", "Für diesen Titel gibt es noch keinen legalen Link.")
+        }
         return isVerifiedOnly
-            ? "These providers are matched to this title directly. Language and subtitle options can still vary by region."
-            : "These are legal catalog links from the provider directory. Title-specific availability may still vary by region."
+            ? KuroLocale.text(
+                "These providers carry this title. Language and subtitles may vary by region.",
+                "Diese Anbieter führen den Titel. Sprache und Untertitel können je nach Region abweichen.")
+            : KuroLocale.text(
+                "Legal links from each provider's catalogue. Whether this title is there may vary by region.",
+                "Legale Links aus den Katalogen der Anbieter. Ob der Titel dort verfügbar ist, kann je nach Region abweichen.")
     }
 
     var body: some View {
@@ -50,7 +58,8 @@ struct ProviderSelectionSheet: View {
                             }) {
                                 ProviderSelectionLinkCard(link: link)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(KuroPressStyle())
+                            .accessibilityLabel(link.accessibilityLabel)
                         }
                     }
                 }
@@ -63,8 +72,7 @@ struct ProviderSelectionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") { dismiss() }
-                        .font(.kuroMicro(weight: .medium))
+                    DetailSheetCloseButton { dismiss() }
                 }
             }
         }
@@ -85,21 +93,22 @@ private struct ProviderSelectionExplainerCard: View {
                 Image(systemName: isVerifiedOnly ? "checkmark.seal.fill" : "rectangle.stack.fill")
                     .font(.kuroCustom(12, weight: .semibold, maxSize: 19))
                     .foregroundColor(isVerifiedOnly ? .kuroBlack : .kuroBlack60)
-                Text(title.uppercased())
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(1.0)
+                Text(title)
+                    .font(.kuroMeta(weight: .medium))
                     .foregroundColor(.kuroBlack80)
+                    .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: KuroSpacing.md)
                 if linkCount > 0 {
-                    Text("\(linkCount) \(linkCount == 1 ? "LINK" : "LINKS")")
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(0.8)
+                    Text(linkCount == 1
+                         ? KuroLocale.text("1 link", "1 Link")
+                         : KuroLocale.text("\(linkCount) links", "\(linkCount) Links"))
+                        .font(.kuroMeta())
                         .foregroundColor(.kuroBlack60)
                 }
             }
 
             Text(message)
-                .font(.kuroMicro(weight: .light))
+                .font(.kuroMeta(weight: .light))
                 .foregroundColor(.kuroBlack60)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -144,9 +153,8 @@ private struct ProviderSelectionLinkCard: View {
                         .font(.kuroBody(weight: .regular))
                         .foregroundColor(.kuroBlack)
                     Spacer(minLength: KuroSpacing.sm)
-                    Text(link.badgeText.uppercased())
-                        .font(.kuroMicro(weight: .medium))
-                        .tracking(0.8)
+                    Text(link.badgeText)
+                        .font(.kuroCaption(weight: .medium))
                         .foregroundColor(link.isVerified ? .kuroBlack : .kuroBlack60)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -170,9 +178,8 @@ private struct ProviderSelectionLinkCard: View {
                 Image(systemName: "arrow.up.right")
                     .font(.kuroCustom(12, weight: .semibold, maxSize: 19))
                     .foregroundColor(.kuroInkQuiet)
-                Text("OPEN")
-                    .font(.kuroMicro(weight: .medium))
-                    .tracking(0.8)
+                Text(KuroLocale.text("Open", "Öffnen"))
+                    .font(.kuroCaption(weight: .medium))
                     .foregroundColor(.kuroBlack60)
             }
             .padding(.top, 2)
@@ -189,74 +196,61 @@ private struct ProviderSelectionLinkCard: View {
     }
 }
 
-private struct ProviderBrandPalette {
-    let label: String
-    let background: Color
-    let foreground: Color
-}
-
-private struct ProviderBrandMark: View {
-    let providerTitle: String?
-    let fallbackSystemImage: String
-    let size: CGFloat
-    let isAvailable: Bool
-
-    private var palette: ProviderBrandPalette? {
-        providerTitle.map(providerBrandPalette(for:))
-    }
-
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(palette?.background ?? (isAvailable ? Color.kuroBlack08 : Color.kuroBlack05))
-                .frame(minWidth: palette == nil ? size : 64, minHeight: size)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke((palette?.foreground ?? .kuroBlack30).opacity(0.14), lineWidth: 0.8)
-                )
-
-            if let palette {
-                Text(palette.label)
-                    .font(.kuroCustom(10, weight: .semibold, design: .rounded, maxSize: 16))
-                    .tracking(0.2)
-                    .foregroundColor(palette.foreground)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .padding(.horizontal, 8)
-            } else {
-                Image(systemName: fallbackSystemImage)
-                    .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
-                    .foregroundColor(isAvailable ? .kuroBlack : .kuroBlack30)
-            }
-        }
-    }
-}
-
-private func providerBrandPalette(for title: String) -> ProviderBrandPalette {
-    let normalized = normalizedProviderKey(title)
-    switch normalized {
-    case "crunchyroll":
-        return .init(label: "Crunchyroll", background: Color.orange.opacity(0.18), foreground: Color.orange)
-    case "netflix":
-        return .init(label: "Netflix", background: Color.red.opacity(0.16), foreground: Color.red)
-    case "amazon prime video", "prime video":
-        return .init(label: "Prime", background: Color.blue.opacity(0.16), foreground: Color.blue)
-    case "hulu":
-        return .init(label: "Hulu", background: Color.green.opacity(0.16), foreground: Color.green)
-    case "youtube":
-        return .init(label: "YouTube", background: Color.red.opacity(0.14), foreground: Color.red)
-    case "disney plus", "disneyplus":
-        return .init(label: "Disney+", background: Color.cyan.opacity(0.16), foreground: Color.blue)
+/// A provider's short name for its chip; brand colours are not used (monochrome, rulebook §13.2).
+private func providerChipLabel(for title: String) -> String {
+    switch normalizedProviderKey(title) {
+    case "crunchyroll": return "Crunchyroll"
+    case "netflix": return "Netflix"
+    case "amazon prime video", "prime video": return "Prime"
+    case "hulu": return "Hulu"
+    case "youtube": return "YouTube"
+    case "disney plus", "disneyplus": return "Disney+"
     default:
         let letters = title
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
             .prefix(2)
             .compactMap { $0.first.map { String($0).uppercased() } }
             .joined()
-        return .init(
-            label: letters.isEmpty ? "PL" : letters,
-            background: Color.kuroBlack08,
-            foreground: .kuroBlack80
-        )
+        return letters
+    }
+}
+
+/// The provider chip: a neutral quiet-canvas tile with the provider's name in ink (no brand palette),
+/// or a symbol when the title gives no letters.
+private struct ProviderBrandMark: View {
+    let providerTitle: String?
+    let fallbackSystemImage: String
+    let size: CGFloat
+    let isAvailable: Bool
+
+    private var label: String? {
+        guard let providerTitle else { return nil }
+        let label = providerChipLabel(for: providerTitle)
+        return label.isEmpty ? nil : label
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                .fill(Color.kuroCanvasQuiet)
+                .frame(minWidth: label == nil ? size : 64, minHeight: size)
+                .overlay(
+                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                        .stroke(Color.kuroBlack08, lineWidth: 0.8)
+                )
+
+            if let label {
+                Text(label)
+                    .font(.kuroCaption(weight: .semibold))
+                    .foregroundColor(.kuroInk)
+                    .lineLimit(1)
+                    .padding(.horizontal, 8)
+            } else {
+                Image(systemName: fallbackSystemImage)
+                    .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
+                    .foregroundColor(isAvailable ? .kuroInk : .kuroInkQuiet)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }

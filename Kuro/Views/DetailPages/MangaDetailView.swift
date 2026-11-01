@@ -87,10 +87,8 @@ struct MangaDetailView: View {
                     
                     // Content Section
                     VStack(spacing: KuroDesignSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width)) {
-                        // Title & Quick Info
+                        // Title with its one metadata line (score, year, format, chapters, volumes, status).
                         MangaTitleSection(manga: manga)
-                        
-                        MangaMetaLineSection(manga: manga)
 
                         // Next chapter / volume with its certainty; hidden until a source dates one.
                         DetailNextReleaseSection(items: releaseItems ?? [])
@@ -212,22 +210,11 @@ struct MangaDetailView: View {
                     .padding(.top, safeTop + KuroSpacing.md)
                     .padding(.leading, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
             }
-            .safeAreaInset(edge: .bottom) {
-                MangaActionButtons(manga: manga, onToast: showToast)
-                    .padding(.horizontal, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
-                    .padding(.top, 10)
-                    .padding(.bottom, 10)
-                    .background(
-                        Rectangle()
-                            .fill(Color.kuroBackground.opacity(0.86))
-                            .overlay(
-                                Rectangle()
-                                    .fill(Color.kuroBlack08)
-                                    .frame(height: 0.5),
-                                alignment: .top
-                            )
-                            .ignoresSafeArea()
-                    )
+            // The opaque dock reserves its own height at the end of the scroll content (no ghosting).
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                DetailDockBar(horizontalPadding: geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding) {
+                    MangaActionButtons(manga: manga, onToast: showToast)
+                }
             }
             .overlay(alignment: .bottom) {
                 if let toast {
@@ -341,32 +328,22 @@ struct MangaMetaLineSection: View {
         return String(format: "%.1f", Double(score) / 10.0)
     }
 
-    private var chaptersText: String? {
-        manga.chapterCount.map { "\($0) CH" }
-    }
-
-    private var volumesText: String? {
-        manga.volumeCount.map { "\($0) VOL" }
-    }
-
-    private var statusText: String? {
-        manga.status?.replacingOccurrences(of: "_", with: " ").uppercased()
-    }
-
     var body: some View {
+        let german = KuroLocale.isGerman
         let parts: [String] = [
-            scoreText.map { KuroLocale.text("SCORE \($0)", "WERTUNG \($0)") },
+            scoreText.map { KuroLocale.text("Score \($0)", "Wertung \($0)") },
             manga.year.isEmpty ? nil : manga.year,
-            manga.format?.uppercased(),
-            chaptersText,
-            volumesText,
-            statusText
+            DetailCopy.format(manga.format, german: german),
+            manga.chapterCount.map { DetailCopy.chapters($0, german: german) },
+            manga.volumeCount.map { DetailCopy.volumes($0, german: german) },
+            DetailCopy.releaseStatus(manga.status, german: german)
         ].compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
 
         if !parts.isEmpty {
             Text(parts.joined(separator: " · "))
                 .font(.kuroMicro(weight: .light))
                 .tracking(1.2)
+                .textCase(.uppercase)
                 .foregroundColor(.kuroBlack60)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -583,23 +560,9 @@ struct MangaTitleSection: View {
                 .tracking(0.5)
                 .foregroundColor(.kuroBlack)
                 .lineSpacing(4)
-            
-            // Year & Format
-            HStack(spacing: KuroSpacing.sm) {
-                Text(manga.year)
-                    .font(.kuroMicro(weight: .regular))
-                    .tracking(1.0)
-                    .foregroundColor(.kuroBlack60)
-                
-                if let format = manga.format {
-                    Text("•")
-                        .foregroundColor(.kuroInkQuiet)
-                    Text(format)
-                        .font(.kuroMicro(weight: .light))
-                        .tracking(1.0)
-                        .foregroundColor(.kuroBlack60)
-                }
-            }
+
+            // Year and format appear once, in the metadata line (no second "2015 • Manga" line).
+            MangaMetaLineSection(manga: manga)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -658,7 +621,8 @@ struct ChaptersSection: View {
                 
                 Spacer()
                 
-                Text("\(knownChapterTotal) TOTAL")
+                Text(KuroLocale.text("\(knownChapterTotal) total", "\(knownChapterTotal) insgesamt"))
+                    .textCase(.uppercase)
                     .font(.kuroMicro(weight: .light))
                     .tracking(0.5)
                     .foregroundColor(.kuroBlack60)
@@ -802,14 +766,12 @@ struct ChaptersSection: View {
 
     private func emptyStateMessage() -> String {
         switch chapterStatus?.mappingStatus.lowercased() {
-        case "syncing":
-            return "Syncing chapter data..."
-        case "unresolved":
-            return "Chapter data is still being matched for this title."
+        case "syncing", "unresolved":
+            return KuroLocale.text("Chapters are on their way.", "Die Kapitel sind unterwegs.")
         case "no_source":
-            return "Chapter data is not available for this title yet."
+            return KuroLocale.text("No chapter list for this title yet.", "Für diesen Titel gibt es noch keine Kapitelliste.")
         default:
-            return "No chapter data yet"
+            return KuroLocale.text("No chapters yet.", "Noch keine Kapitel.")
         }
     }
 }
@@ -905,7 +867,7 @@ struct ChapterItemRow: View {
 
     private func accessibilityLabelText() -> Text {
         var parts: [String] = []
-        parts.append("Chapter \(chapter.number)")
+        parts.append(KuroLocale.text("Chapter \(chapter.number)", "Kapitel \(chapter.number)"))
         if let title = chapter.title ?? chapter.titleRomaji, !title.isEmpty {
             parts.append(title)
         } else if let date = chapter.releaseDate {
@@ -1029,12 +991,11 @@ struct ChapterListSheet: View {
                 .padding(.bottom, KuroSpacing.xl)
             }
             .background(Color.kuroBackground)
-            .navigationTitle("Chapters")
+            .navigationTitle(KuroLocale.text("Chapters", "Kapitel"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") { dismiss() }
-                        .font(.kuroMicro(weight: .medium))
+                    DetailSheetCloseButton { dismiss() }
                 }
             }
             .task(id: manga.id) {
@@ -1145,14 +1106,10 @@ struct ChapterListSheet: View {
 
     private func emptyStateMessage() -> String {
         switch chapterStatus?.mappingStatus.lowercased() {
-        case "syncing":
-            return "Chapter data may still be importing."
-        case "unresolved":
-            return "Matching is still in progress for this title."
         case "no_source":
-            return "No chapter source is available yet."
+            return KuroLocale.text("No chapter list for this title yet.", "Für diesen Titel gibt es noch keine Kapitelliste.")
         default:
-            return "Chapter data may still be importing."
+            return KuroLocale.text("Chapters are on their way.", "Die Kapitel sind unterwegs.")
         }
     }
 
@@ -1181,7 +1138,8 @@ struct VolumesSection: View {
                 
                 Spacer()
                 
-                Text("\(volumeCount) TOTAL")
+                Text(KuroLocale.text("\(volumeCount) total", "\(volumeCount) insgesamt"))
+                    .textCase(.uppercase)
                     .font(.kuroMicro(weight: .light))
                     .tracking(0.5)
                     .foregroundColor(.kuroBlack60)
@@ -1264,115 +1222,46 @@ struct MangaActionButtons: View {
         readLink.flatMap { ProviderAvailabilityStore.validatedOutboundURL($0.url) } != nil
     }
 
+    private var listButtonTitle: String {
+        isSaved ? KuroLocale.text("Edit list", "Liste bearbeiten") : KuroLocale.text("Add to list", "Zur Liste")
+    }
+
     private var verdictButtonTitle: String {
         guard let verdict = userEntry?.verdict else { return isGermanLocale ? "Urteil" : "Verdict" }
         return isGermanLocale ? verdict.displayNameDE : verdict.displayName
     }
 
+    /// The line under the dock. Without a legal link (the read button is hidden) it says so first, so the
+    /// caption or note never implies links that are not there and VoiceOver hears why there is no button.
     private var readStatusLine: String {
+        guard hasReadLink else {
+            return KuroLocale.text("No legal provider link is available yet.", "Noch kein legaler Link verfügbar.")
+        }
         if let status = readAvailabilityStatusCaption, !status.isEmpty {
             return status
         }
         if let note = readAvailabilityNote, !note.isEmpty {
             return note
         }
-        return hasReadLink
-            ? (isGermanLocale ? "Rechtlich verfügbaren Link öffnen." : "Open legal provider link.")
-            : (isGermanLocale ? "Noch kein legaler Link verfügbar." : "No legal provider link is available yet.")
+        return KuroLocale.text("Open legal provider link.", "Rechtlich verfügbaren Link öffnen.")
     }
 
     var body: some View {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Button { toggleSaved(origin: origin) } label: {
-                    Image(systemName: isSaved ? "heart.fill" : "heart")
-                        .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
-                        .foregroundColor(.kuroBlack)
-                        .frame(width: 44, height: 44)
-                        .background(Color.kuroBlack08)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(isSaved ? KuroLocale.text("Saved", "Gemerkt") : KuroLocale.text("Save", "Merken"))
-
-                Button {
-                    KuroAccessibility.impactHaptic(.medium)
-                    routes.presentTrackingEditor(TrackingEditorRequest(media: manga))
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
-                        Text(isSaved ? KuroLocale.text("EDIT LIST", "LISTE BEARBEITEN") : KuroLocale.text("ADD TO LIST", "ZUR LISTE"))
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(1.1)
-                    }
-                    .foregroundColor(.kuroWhite)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .padding(.vertical, 12)
-                    .background(Color.kuroBlack)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    KuroAccessibility.impactHaptic(.light)
-                    showQuickVerdict = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "tag")
-                            .font(.kuroCustom(11, weight: .semibold, maxSize: 18))
-                        Text(verdictButtonTitle.uppercased())
-                            .font(.kuroMicro(weight: .medium))
-                            .tracking(0.9)
-                            .lineLimit(1)
-                    }
-                    .foregroundColor(.kuroBlack70)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 10)
-                    .frame(minHeight: 44)
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(Color.kuroBlack06)
-                    )
-                    .overlay(
-                        Capsule(style: .continuous)
-                            .stroke(Color.kuroBlack12, lineWidth: 0.6)
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(userEntry?.verdict == nil ? KuroLocale.text("Set verdict", "Urteil festlegen") : KuroLocale.text("Edit verdict", "Urteil bearbeiten"))
-
-                Button(action: handleReadAction) {
-                    Image(systemName: hasReadLink ? "book.fill" : "book.closed")
-                        .font(.kuroCustom(13, weight: .semibold, maxSize: 21))
-                        .foregroundColor(hasReadLink ? .kuroBlack : .kuroBlack30)
-                        .frame(width: 44, height: 44)
-                        .background(Color.kuroBlack08)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(
-                    hasReadLink
-                        ? (allLinks.count > 1 ? KuroLocale.text("Choose reading provider", "Anbieter zum Lesen wählen") : KuroLocale.text("Open reading provider", "Anbieter zum Lesen öffnen"))
-                        : KuroLocale.text("No legal reading link available", "Kein legaler Link zum Lesen verfügbar")
-                )
+            ViewThatFits(in: .horizontal) {
+                dockRow(origin: origin, listForm: .full, verdictForm: .full)
+                dockRow(origin: origin, listForm: .full, verdictForm: .icon)
+                dockRow(origin: origin, listForm: .text, verdictForm: .icon)
+                dockRow(origin: origin, listForm: .icon, verdictForm: .icon)
             }
 
             Text(readStatusLine)
-                .font(.kuroMicro(weight: .light))
-                .foregroundColor(.kuroTextTertiary)
+                .font(.kuroCaption(weight: .regular))
+                .foregroundColor(.kuroInkQuiet)
                 .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.kuroBackground)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.kuroBlack08, lineWidth: 0.8)
-                )
-        )
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
         .onDisappear { actionScope.deactivate() }
         .task(id: manga.id) {
@@ -1383,7 +1272,7 @@ struct MangaActionButtons: View {
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(
-                title: KuroLocale.text("Read On", "Lesen bei"),
+                title: KuroLocale.text("Read on", "Lesen bei"),
                 links: allLinks,
                 statusCaption: readAvailabilityStatusCaption
             ) { link in
@@ -1394,6 +1283,60 @@ struct MangaActionButtons: View {
                 } else {
                     onToast(.init(kind: .error, title: KuroLocale.text("Couldn’t open link", "Link konnte nicht geöffnet werden"), subtitle: KuroLocale.text("Try a different provider.", "Versuch einen anderen Anbieter."), actionTitle: nil, onAction: nil))
                 }
+            }
+        }
+    }
+
+    /// One arrangement of the dock's buttons. `body` offers the widest first and steps down (verdict
+    /// to its icon, then the list button to its word, then to its glyph) so nothing truncates.
+    @ViewBuilder
+    private func dockRow(origin: AccountActionScope.Ticket?, listForm: DetailDockLabelForm, verdictForm: DetailDockLabelForm) -> some View {
+        HStack(spacing: 8) {
+            Button { toggleSaved(origin: origin) } label: {
+                DetailDockCapsule(role: .secondary, iconOnly: true) {
+                    Image(systemName: isSaved ? "heart.fill" : "heart")
+                }
+            }
+            .buttonStyle(KuroPressStyle())
+            .accessibilityLabel(isSaved ? KuroLocale.text("Saved", "Gemerkt") : KuroLocale.text("Save", "Merken"))
+
+            Button {
+                KuroAccessibility.impactHaptic(.medium)
+                routes.presentTrackingEditor(TrackingEditorRequest(media: manga))
+            } label: {
+                DetailDockCapsule(role: .primary, iconOnly: listForm == .icon) {
+                    // The glyph says which action this is (add vs edit) when the word does not fit.
+                    DetailDockLabel(form: listForm, systemImage: isSaved ? "pencil" : "plus", title: listButtonTitle)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(KuroPressStyle())
+            .accessibilityLabel(listButtonTitle)
+
+            Button {
+                KuroAccessibility.impactHaptic(.light)
+                showQuickVerdict = true
+            } label: {
+                DetailDockCapsule(role: .secondary, iconOnly: verdictForm == .icon) {
+                    DetailDockLabel(form: verdictForm, systemImage: "tag", title: verdictButtonTitle)
+                }
+            }
+            .buttonStyle(KuroPressStyle())
+            .accessibilityLabel(userEntry?.verdict == nil ? KuroLocale.text("Set verdict", "Urteil festlegen") : KuroLocale.text("Edit verdict, \(verdictButtonTitle)", "Urteil bearbeiten, \(verdictButtonTitle)"))
+
+            // Shown only with a legal link to open; without one the line below says so (no greyed button).
+            if hasReadLink {
+                Button(action: handleReadAction) {
+                    DetailDockCapsule(role: .secondary, iconOnly: true) {
+                        Image(systemName: "book.fill")
+                    }
+                }
+                .buttonStyle(KuroPressStyle())
+                .accessibilityLabel(
+                    allLinks.count > 1
+                        ? KuroLocale.text("Choose reading provider", "Anbieter zum Lesen wählen")
+                        : KuroLocale.text("Open reading provider", "Anbieter zum Lesen öffnen")
+                )
             }
         }
     }
@@ -1427,7 +1370,7 @@ struct MangaActionButtons: View {
                         .init(
                             kind: .error,
                             title: KuroLocale.text("Couldn't save", "Nicht gespeichert"),
-                            subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: false) },
+                            subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: KuroLocale.isGerman) },
                             actionTitle: nil,
                             onAction: nil
                         )

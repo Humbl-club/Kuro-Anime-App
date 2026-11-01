@@ -1,3 +1,4 @@
+import KuroCore
 import SwiftUI
 
 // MARK: - Club Activity Section for Media Detail Views
@@ -26,10 +27,12 @@ struct ClubActivitySection: View {
                 EditorialLayout.divider()
 
                 HStack(spacing: 10) {
-                    Text("CLUBS")
+                    Text(KuroLocale.text("Clubs", "Clubs"))
                         .font(.kuroCaption(weight: .medium))
                         .tracking(1.6)
+                        .textCase(.uppercase)
                         .foregroundColor(.kuroBlack80)
+                        .accessibilityAddTraits(.isHeader)
 
                     Spacer(minLength: 0)
 
@@ -41,24 +44,28 @@ struct ClubActivitySection: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "plus")
                                         .font(.kuroMicro(weight: .semibold))
-                                    Text("ADD")
-                                        .font(.kuroMicro(weight: .medium))
-                                        .tracking(1.4)
+                                    Text(KuroLocale.text("Add", "Hinzufügen"))
+                                        .font(.kuroMeta(weight: .medium))
                                 }
                             .foregroundColor(.kuroBlack80)
                             .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
+                            .frame(minHeight: 44)
                             .background(
                                 Capsule()
                                     .stroke(Color.kuroBlack12, lineWidth: 0.8)
+                                    .padding(.vertical, 4)
                             )
+                            .contentShape(Capsule())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(KuroPressStyle())
+                        .accessibilityLabel(KuroLocale.text("Add to a club rail", "Zu einer Club-Leiste hinzufügen"))
                     }
                 }
 
                 if activities.isEmpty {
-                    Text("Add this to a club rail to watch together. No feeds, just shared rails.")
+                    Text(KuroLocale.text(
+                        "Add this to a club rail to share it with your club.",
+                        "Füge den Titel einer Club-Leiste hinzu, um ihn mit deinem Club zu teilen."))
                         .font(.kuroCaption(weight: .light))
                         .foregroundColor(.kuroInkQuiet)
                 } else {
@@ -122,24 +129,27 @@ private struct ClubActivityItemRow: View {
         if let tracking = counts["_tracking_count"], tracking > 0 {
             let notStarted = max(0, memberCount - tracking)
             // Tracking count represents members with any started progress/status.
-            return "\(tracking) started \u{00B7} \(notStarted) not started"
+            return KuroLocale.text("\(tracking) started \u{00B7} \(notStarted) not started",
+                                   "\(tracking) begonnen \u{00B7} \(notStarted) noch nicht begonnen")
         }
+        let german = KuroLocale.isGerman
+        let kind: MediaKind = item.media_type.uppercased() == "MANGA" ? .manga : .anime
         var parts: [String] = []
         let watching = (counts["CURRENT"] ?? 0) + (counts["WATCHING"] ?? 0) + (counts["READING"] ?? 0)
         let completed = counts["COMPLETED"] ?? 0
         let planning = (counts["PLANNING"] ?? 0) + (counts["PLANNED"] ?? 0)
         let paused = (counts["PAUSED"] ?? 0) + (counts["ON_HOLD"] ?? 0)
         let dropped = counts["DROPPED"] ?? 0
-        if watching > 0 { parts.append("\(watching) watching") }
-        if completed > 0 { parts.append("\(completed) completed") }
-        if planning > 0 { parts.append("\(planning) planning") }
-        if paused > 0 { parts.append("\(paused) paused") }
-        if dropped > 0 { parts.append("\(dropped) dropped") }
+        // "3 Watching" / "3 schauen": a count of members, so German uses the plural verb or participle.
+        for (count, status) in [(watching, FolioStatus.watching), (completed, .completed), (planning, .planned),
+                                (paused, .paused), (dropped, .dropped)] where count > 0 {
+            parts.append(DetailCopy.statusCount(count, status: status, medium: kind, german: german))
+        }
         let tracked = counts
             .filter { $0.key != "_tracking_count" }
             .reduce(0) { $0 + $1.value }
         let notStarted = max(0, memberCount - tracked)
-        if notStarted > 0 { parts.append("\(notStarted) not started") }
+        if notStarted > 0 { parts.append(KuroLocale.text("\(notStarted) not started", "\(notStarted) noch nicht begonnen")) }
         return parts.joined(separator: " \u{00B7} ")
     }
 
@@ -149,7 +159,9 @@ private struct ClubActivityItemRow: View {
 
     /// Format progress with fraction when total is available.
     private func progressText(current: Int, total: Int?) -> String {
-        let prefix = item.media_type.uppercased() == "ANIME" ? "Ep" : "Ch"
+        let prefix = item.media_type.uppercased() == "ANIME"
+            ? KuroLocale.text("Ep.", "F.")
+            : KuroLocale.text("Ch.", "Kap.")
         if let total, total > 0 {
             return "\(prefix) \(current)/\(total)"
         }
@@ -166,10 +178,10 @@ private struct ClubActivityItemRow: View {
 
             if let myStatus = item.my_status {
                 HStack(spacing: 6) {
-                    Text("You:")
+                    Text(KuroLocale.text("You:", "Du:"))
                         .font(.kuroCaption())
                         .foregroundColor(.kuroTextSecondary)
-                    ClubStatusPill(status: myStatus)
+                    ClubStatusPill(status: myStatus, mediaType: item.media_type, perspective: .own)
                     if let progress = item.my_progress, progress > 0 {
                         Text(progressText(current: progress, total: item.totalCount))
                             .font(.kuroCaption())
@@ -189,7 +201,9 @@ private struct ClubActivityItemRow: View {
                         totalCount: item.totalCount
                     )
                 } label: {
-                    Text(showMembers ? "Hide members" : "\(members.count) members")
+                    Text(showMembers
+                         ? KuroLocale.text("Hide members", "Mitglieder ausblenden")
+                         : KuroLocale.text("\(members.count) members", "\(members.count) Mitglieder"))
                         .font(.kuroCaption(weight: .medium))
                         .foregroundColor(.kuroTextSecondary)
                 }
@@ -203,17 +217,15 @@ private struct ClubActivityItemRow: View {
 
 private struct ClubStatusPill: View {
     let status: String
+    let mediaType: String
+    /// `.own` for the viewer's row ("Schaue ich"), `.other` for another member ("Schaut").
+    let perspective: DetailCopy.Perspective
 
+    /// The status word for the medium (EN/DE); an unknown value keeps its own text.
     private var displayText: String {
-        switch status.uppercased() {
-        case "CURRENT", "WATCHING": return "Watching"
-        case "READING": return "Reading"
-        case "COMPLETED": return "Completed"
-        case "PLANNING", "PLANNED": return "Planning"
-        case "PAUSED", "ON_HOLD": return "Paused"
-        case "DROPPED": return "Dropped"
-        default: return status.capitalized
-        }
+        let kind: MediaKind = mediaType.uppercased() == "MANGA" ? .manga : .anime
+        return DetailCopy.listStatus(status, medium: kind, german: KuroLocale.isGerman, perspective: perspective)
+            ?? status.capitalized
     }
 
     var body: some View {
@@ -295,16 +307,25 @@ private struct ClubMemberStatusList: View {
         self.statusByUserId = statusMap
     }
 
+    /// A club role as a word ("Owner" / "Inhaber"); other roles keep their own text.
+    static func roleWord(_ role: String) -> String {
+        switch role.lowercased() {
+        case "owner": return KuroLocale.text("Owner", "Inhaber")
+        case "admin": return KuroLocale.text("Admin", "Admin")
+        default: return role.capitalized
+        }
+    }
+
     private func memberLabel(_ userId: String) -> String {
-        if let currentUserId, userId == currentUserId { return "You" }
+        if let currentUserId, userId == currentUserId { return KuroLocale.text("You", "Du") }
         if let displayName = displayNameById[userId] { return displayName }
         if let role = roleById[userId], role.lowercased() != "member" {
-            return role.capitalized
+            return Self.roleWord(role)
         }
         // Stable short identifier from UUID (consistent across sessions)
         let compact = userId.replacingOccurrences(of: "-", with: "")
         let short = String(compact.prefix(6))
-        return short.isEmpty ? "Unknown" : short
+        return short.isEmpty ? DetailCopy.unknown(german: KuroLocale.isGerman) : short
     }
 
     private func memberInitial(_ label: String, userId: String) -> String {
@@ -338,7 +359,9 @@ private struct ClubMemberStatusList: View {
 
     /// Format progress text with fraction.
     private func progressText(_ progress: Int) -> String {
-        let prefix = mediaType.uppercased() == "ANIME" ? "Ep" : "Ch"
+        let prefix = mediaType.uppercased() == "ANIME"
+            ? KuroLocale.text("Ep.", "F.")
+            : KuroLocale.text("Ch.", "Kap.")
         if let total = totalCount, total > 0 {
             return "\(prefix) \(progress)/\(total)"
         }
@@ -401,7 +424,7 @@ private struct ClubMemberStatusList: View {
                                 if let role = roleById[ms.user_id]?.uppercased(),
                                    role != "MEMBER",
                                    displayNameById[ms.user_id] != nil {
-                                    Text(role)
+                                    Text(Self.roleWord(role).uppercased())
                                         .font(.kuroMicro(weight: .medium))
                                         .tracking(1.0)
                                         .foregroundColor(.kuroTextTertiary)
@@ -416,9 +439,9 @@ private struct ClubMemberStatusList: View {
 
                             HStack(spacing: 6) {
                                 if let status = ms.status {
-                                    ClubStatusPill(status: status)
+                                    ClubStatusPill(status: status, mediaType: mediaType, perspective: isMe ? .own : .other)
                                 } else {
-                                    Text("Not started")
+                                    Text(KuroLocale.text("Not started", "Noch nicht begonnen"))
                                         .font(.kuroCaption())
                                         .foregroundColor(.kuroTextTertiary)
                                 }

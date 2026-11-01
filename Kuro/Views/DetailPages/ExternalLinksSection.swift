@@ -23,7 +23,7 @@ struct ExternalLinksSection: View {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
                 EditorialLayout.divider()
 
-                Text("REFERENCE")
+                Text(KuroLocale.text("REFERENCE", "NACHSCHLAGEN"))
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.6)
                     .foregroundColor(.kuroInkQuiet)
@@ -69,7 +69,7 @@ private struct ExternalLinkButton: View {
                     )
             )
         }
-        .accessibilityLabel("Reference link: \(title)")
+        .accessibilityLabel(KuroLocale.text("Reference link: \(title)", "Nachschlagen bei \(title)"))
         .simultaneousGesture(TapGesture().onEnded {
             outboundLinks.recordOutboundLink(
                 mediaType: mediaType.uppercased(),

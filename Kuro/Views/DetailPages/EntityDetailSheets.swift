@@ -3,10 +3,23 @@ import SwiftUI
 
 // MARK: - Entity Sort Mode
 
-enum EntitySortMode: String, CaseIterable {
+/// A filter or sort option with a reader-facing word (EN/DE); `rawValue` stays the stable identity.
+protocol EntityOptionTitled {
+    var title: String { get }
+}
+
+enum EntitySortMode: String, CaseIterable, EntityOptionTitled {
     case rating = "RATING"
     case year = "YEAR"
     case era = "ERA"
+
+    var title: String {
+        switch self {
+        case .rating: return KuroLocale.text("Rating", "Wertung")
+        case .year: return KuroLocale.text("Year", "Jahr")
+        case .era: return KuroLocale.text("Era", "Epoche")
+        }
+    }
 }
 
 enum EntityWorkIdentity {
@@ -36,18 +49,36 @@ enum EntityEraBucket: Int, CaseIterable {
     }
 }
 
-enum CharacterMediaFilter: String, CaseIterable {
+enum CharacterMediaFilter: String, CaseIterable, EntityOptionTitled {
     case all = "ALL"
     case anime = "ANIME"
     case manga = "MANGA"
+
+    var title: String {
+        switch self {
+        case .all: return KuroLocale.text("All", "Alle")
+        case .anime: return "Anime"
+        case .manga: return "Manga"
+        }
+    }
 }
 
-enum StaffRoleFilter: String, CaseIterable {
+enum StaffRoleFilter: String, CaseIterable, EntityOptionTitled {
     case all = "ALL ROLES"
     case director = "DIRECTOR"
     case writer = "WRITER"
     case music = "MUSIC"
     case design = "DESIGN"
+
+    var title: String {
+        switch self {
+        case .all: return KuroLocale.text("All roles", "Alle Rollen")
+        case .director: return KuroLocale.text("Director", "Regie")
+        case .writer: return KuroLocale.text("Writer", "Drehbuch")
+        case .music: return KuroLocale.text("Music", "Musik")
+        case .design: return KuroLocale.text("Design", "Design")
+        }
+    }
 
     static func from(role: String) -> StaffRoleFilter? {
         let normalized = role.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -86,11 +117,20 @@ enum StaffRoleFilter: String, CaseIterable {
     }
 }
 
-enum AuthorRoleFilter: String, CaseIterable {
+enum AuthorRoleFilter: String, CaseIterable, EntityOptionTitled {
     case all = "ALL"
     case story = "STORY"
     case art = "ART"
     case storyArt = "STORY & ART"
+
+    var title: String {
+        switch self {
+        case .all: return KuroLocale.text("All", "Alle")
+        case .story: return KuroLocale.text("Story", "Geschichte")
+        case .art: return KuroLocale.text("Art", "Zeichnungen")
+        case .storyArt: return KuroLocale.text("Story & art", "Geschichte & Zeichnungen")
+        }
+    }
 
     static func from(role: String) -> AuthorRoleFilter? {
         let normalized = role.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -162,12 +202,12 @@ struct CharacterDetailSheet: View {
                     EntityHeroSection(
                         imageURL: character.imageLarge,
                         isCircle: true,
-                        name: character.nameFull ?? "Unknown",
+                        name: character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman),
                         nameNative: character.nameNative,
                         metadataLines: characterMetadata
                     )
 
-                    EntitySectionLead(text: "Browse appearances by medium, rating, year, or era.")
+                    EntitySectionLead(text: KuroLocale.text("Browse appearances by medium, rating, year or era.", "Auftritte nach Medium, Wertung, Jahr oder Epoche durchsehen."))
 
                     if availableMediaFilters.count > 1 {
                         EntityFilterBar(
@@ -179,8 +219,10 @@ struct CharacterDetailSheet: View {
                     }
 
                     EntityWorksRail(
-                        title: "APPEARS IN",
-                        subtitle: mediaFilter == .all ? "Across anime and manga" : "Filtered by medium",
+                        title: KuroLocale.text("Appears in", "Auftritte"),
+                        subtitle: mediaFilter == .all
+                            ? KuroLocale.text("Across anime and manga", "In Anime und Manga")
+                            : KuroLocale.text("Filtered by medium", "Nach Medium gefiltert"),
                         items: sortedWorks.map { (media: $0, role: nil as String?) },
                         isLoading: isLoading,
                         sortMode: $sortMode
@@ -193,9 +235,8 @@ struct CharacterDetailSheet: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(.kuroBlack80)
+                ToolbarItem(placement: .topBarTrailing) {
+                    DetailSheetCloseButton { dismiss() }
                 }
             }
         }
@@ -210,10 +251,15 @@ struct CharacterDetailSheet: View {
     private var characterMetadata: [String] {
         var lines: [String] = []
         if let gender = character.gender, !gender.isEmpty {
-            lines.append(gender.uppercased())
+            switch gender.lowercased() {
+            case "male": lines.append(KuroLocale.text("MALE", "MÄNNLICH"))
+            case "female": lines.append(KuroLocale.text("FEMALE", "WEIBLICH"))
+            case "non-binary": lines.append(KuroLocale.text("NON-BINARY", "NICHTBINÄR"))
+            default: lines.append(gender.uppercased())
+            }
         }
         if let age = character.age, !age.isEmpty {
-            lines.append("AGE \(age)")
+            lines.append(KuroLocale.text("AGE \(age)", "ALTER \(age)"))
         }
         return lines
     }
@@ -264,13 +310,13 @@ struct StaffDetailSheet: View {
                     EntityHeroSection(
                         imageURL: staff.imageLarge,
                         isCircle: true,
-                        name: staff.nameFull ?? "Unknown",
+                        name: staff.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman),
                         nameNative: staff.nameNative,
                         metadataLines: [],
                         occupations: staff.primaryOccupations
                     )
 
-                    EntitySectionLead(text: "Filter this filmography by craft, rating, year, or era.")
+                    EntitySectionLead(text: KuroLocale.text("Filter this filmography by craft, rating, year or era.", "Filmografie nach Bereich, Wertung, Jahr oder Epoche filtern."))
 
                     if availableRoleFilters.count > 1 {
                         EntityFilterBar(
@@ -282,8 +328,10 @@ struct StaffDetailSheet: View {
                     }
 
                     EntityWorksRail(
-                        title: "FILMOGRAPHY",
-                        subtitle: roleFilter == .all ? "All credited anime work" : "Filtered by role",
+                        title: KuroLocale.text("Filmography", "Filmografie"),
+                        subtitle: roleFilter == .all
+                            ? KuroLocale.text("All credited anime work", "Alle Anime mit Nennung")
+                            : KuroLocale.text("Filtered by role", "Nach Rolle gefiltert"),
                         items: sortedWorks.map { (media: $0.media, role: $0.role as String?) },
                         isLoading: isLoading,
                         sortMode: $sortMode
@@ -296,9 +344,8 @@ struct StaffDetailSheet: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(.kuroBlack80)
+                ToolbarItem(placement: .topBarTrailing) {
+                    DetailSheetCloseButton { dismiss() }
                 }
             }
         }
@@ -356,12 +403,12 @@ struct AuthorDetailSheet: View {
                     EntityHeroSection(
                         imageURL: author.imageLarge,
                         isCircle: true,
-                        name: author.nameFull ?? "Unknown",
+                        name: author.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman),
                         nameNative: author.nameNative,
                         metadataLines: []
                     )
 
-                    EntitySectionLead(text: "Browse works by role, rating, year, or era.")
+                    EntitySectionLead(text: KuroLocale.text("Browse works by role, rating, year or era.", "Werke nach Rolle, Wertung, Jahr oder Epoche durchsehen."))
 
                     if availableRoleFilters.count > 1 {
                         EntityFilterBar(
@@ -373,8 +420,10 @@ struct AuthorDetailSheet: View {
                     }
 
                     EntityWorksRail(
-                        title: "WORKS",
-                        subtitle: roleFilter == .all ? "Story, art, and complete works" : "Filtered by author role",
+                        title: KuroLocale.text("Works", "Werke"),
+                        subtitle: roleFilter == .all
+                            ? KuroLocale.text("Story, art and complete works", "Geschichte, Zeichnungen und ganze Werke")
+                            : KuroLocale.text("Filtered by author role", "Nach Autorenrolle gefiltert"),
                         items: sortedWorks.map { (media: $0.media, role: $0.role as String?) },
                         isLoading: isLoading,
                         sortMode: $sortMode
@@ -387,9 +436,8 @@ struct AuthorDetailSheet: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(.kuroBlack80)
+                ToolbarItem(placement: .topBarTrailing) {
+                    DetailSheetCloseButton { dismiss() }
                 }
             }
         }
@@ -434,13 +482,13 @@ struct StudioDetailSheet: View {
             ScrollView {
                 VStack(spacing: KuroSpacing.lg) {
                     VStack(spacing: KuroSpacing.sm) {
-                        Text((studio.name ?? "Unknown").uppercased())
+                        Text((studio.name ?? DetailCopy.unknown(german: KuroLocale.isGerman)).uppercased())
                             .font(.kuroDisplay())
                             .foregroundColor(.kuroBlack80)
                             .multilineTextAlignment(.center)
 
                         if studio.isAnimationStudio == true {
-                            Text("ANIMATION STUDIO")
+                            Text(KuroLocale.text("ANIMATION STUDIO", "ANIMATIONSSTUDIO"))
                                 .font(.kuroMicro(weight: .medium))
                                 .tracking(1.4)
                                 .foregroundColor(.kuroTextSecondary)
@@ -454,11 +502,11 @@ struct StudioDetailSheet: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, KuroSpacing.lg)
 
-                    EntitySectionLead(text: "A studio page sorted by impact, year, or era.")
+                    EntitySectionLead(text: KuroLocale.text("The studio's work by rating, year or era.", "Die Werke des Studios nach Wertung, Jahr oder Epoche."))
 
                     EntityWorksRail(
-                        title: "PRODUCTIONS",
-                        subtitle: "Best-known productions",
+                        title: KuroLocale.text("Productions", "Produktionen"),
+                        subtitle: KuroLocale.text("Best-known productions", "Bekannteste Produktionen"),
                         items: sortedWorks.map { (media: $0, role: nil as String?) },
                         isLoading: isLoading,
                         sortMode: $sortMode
@@ -471,9 +519,8 @@ struct StudioDetailSheet: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(.kuroBlack80)
+                ToolbarItem(placement: .topBarTrailing) {
+                    DetailSheetCloseButton { dismiss() }
                 }
             }
         }
@@ -595,7 +642,9 @@ struct EntityWorksRail: View {
                     Text(title)
                         .font(.kuroCaption(weight: .semibold))
                         .tracking(1.6)
+                        .textCase(.uppercase)
                         .foregroundColor(.kuroBlack80)
+                        .accessibilityAddTraits(.isHeader)
 
                     if let subtitle, !subtitle.isEmpty {
                         Text(subtitle)
@@ -612,14 +661,16 @@ struct EntityWorksRail: View {
                         Button {
                             sortMode = mode
                         } label: {
-                            Text(mode.rawValue)
+                            Text(mode.title)
                                 .font(.kuroMicro(weight: sortMode == mode ? .semibold : .regular))
                                 .tracking(1.0)
+                                .textCase(.uppercase)
                                 .foregroundColor(sortMode == mode ? .kuroBlack80 : .kuroTextTertiary)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 5)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityAddTraits(sortMode == mode ? .isSelected : [])
                     }
                 }
                 .background(
@@ -631,14 +682,14 @@ struct EntityWorksRail: View {
                 HStack(spacing: 8) {
                     ProgressView()
                         .controlSize(.small)
-                    Text("Loading...")
+                    Text(KuroLocale.text("Loading…", "Wird geladen …"))
                         .font(.kuroCaption(weight: .light))
                         .foregroundColor(.kuroTextTertiary)
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, KuroSpacing.lg)
             } else if items.isEmpty {
-                Text("No works found")
+                Text(KuroLocale.text("No works found", "Keine Werke gefunden"))
                     .font(.kuroCaption(weight: .light))
                     .foregroundColor(.kuroInkQuiet)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -669,7 +720,7 @@ struct EntitySectionLead: View {
     }
 }
 
-struct EntityFilterBar<Option: Hashable & RawRepresentable>: View where Option.RawValue == String {
+struct EntityFilterBar<Option: Hashable & EntityOptionTitled>: View {
     let options: [Option]
     let selected: Option
     let onSelect: (Option) -> Void
@@ -681,9 +732,10 @@ struct EntityFilterBar<Option: Hashable & RawRepresentable>: View where Option.R
                     Button {
                         onSelect(option)
                     } label: {
-                        Text(option.rawValue)
+                        Text(option.title)
                             .font(.kuroMicro(weight: selected == option ? .semibold : .regular))
                             .tracking(0.9)
+                            .textCase(.uppercase)
                             .foregroundColor(selected == option ? .white : .kuroBlack80)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 7)

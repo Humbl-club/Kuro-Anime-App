@@ -29,7 +29,7 @@ struct ProviderLinkSnapshot: Equatable {
     let all: [ProviderSheetItem]
     /// The availability line under the action bar.
     let note: String
-    /// Verification freshness ("Verified 2 days ago.", "Refreshing verified availability now.").
+    /// Availability freshness ("Checked 2 days ago.", "Checking where to find it now.").
     let statusCaption: String?
 }
 
@@ -56,8 +56,8 @@ extension ProviderAvailabilityStore {
             preferredAudio: preferredAudio,
             preferredSubtitle: preferredAudio,
             originalLanguage: originalLanguage,
-            catalogSubtitle: "Catalog link only. Availability may vary by region.",
-            unverifiedNote: "Availability, audio, and subtitle options may vary by region.",
+            catalogSubtitle: KuroLocale.text("From the provider's catalogue. Availability may vary by region.", "Aus dem Katalog des Anbieters. Die Verfügbarkeit kann je nach Region abweichen."),
+            unverifiedNote: KuroLocale.text("Availability, audio and subtitles may vary by region.", "Verfügbarkeit, Ton und Untertitel können je nach Region abweichen."),
             preferredSite: episodeLink?.site
         )
     }
@@ -78,8 +78,8 @@ extension ProviderAvailabilityStore {
             preferredAudio: preferredAudio,
             preferredSubtitle: nil,
             originalLanguage: nil,
-            catalogSubtitle: "Catalog link only. Reading rights may vary by region and publisher.",
-            unverifiedNote: "Reading availability may vary by region and publisher.",
+            catalogSubtitle: KuroLocale.text("From the provider's catalogue. Reading rights may vary by region and publisher.", "Aus dem Katalog des Anbieters. Leserechte können je nach Region und Verlag abweichen."),
+            unverifiedNote: KuroLocale.text("Reading availability may vary by region and publisher.", "Die Verfügbarkeit zum Lesen kann je nach Region und Verlag abweichen."),
             preferredSite: nil
         )
     }
@@ -103,7 +103,7 @@ extension ProviderAvailabilityStore {
         if isStreamingAvailabilityEnabled {
             // One status read per media id within `detailAvailabilityTTL` (the anime page re-resolves on
             // every progress change); the enqueue decision reuses it instead of reading it again, and a
-            // requested refresh is reported by `requestedRefresh` (the caption says "Refreshing", also on
+            // requested refresh is reported by `requestedRefresh` (the caption says "Checking", also on
             // later resolutions within the enqueue cooldown), so the status is not re-read after the write.
             let statusRows = await detailAvailabilityStatusRows(mediaType: mediaType, mediaId: mediaId)
             availabilityStatus = statusRows?.first
@@ -126,7 +126,7 @@ extension ProviderAvailabilityStore {
                     knownStatusRows: statusRows
                 )
                 // The cached status predates a refresh enqueued within the cooldown: while it still
-                // looks stale, the refresh is still pending, so the caption keeps saying "Refreshing"
+                // looks stale, the refresh is still pending, so the caption keeps saying "Checking"
                 // on the next resolution (a progress change or a reopen) instead of falling back to
                 // "Last checked <old date>".
                 requestedRefresh = enqueued || (
@@ -167,9 +167,9 @@ extension ProviderAvailabilityStore {
         ) ?? displayedItems.first
         let note: String
         if !verifiedItems.isEmpty {
-            note = availabilityNote?.displayText ?? "Verified providers for this title."
+            note = availabilityNote?.displayText ?? KuroLocale.text("Providers matched to this title.", "Anbieter, die zu diesem Titel passen.")
         } else if isStreamingAvailabilityEnabled {
-            note = "Catalog links only. Verified availability is still being refreshed."
+            note = KuroLocale.text("Provider catalogue links for now. Still checking this title.", "Vorerst Links aus Anbieterkatalogen. Dieser Titel wird noch geprüft.")
         } else {
             note = unverifiedNote
         }

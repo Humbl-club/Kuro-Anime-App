@@ -15,9 +15,14 @@ struct ProviderSheetItem: Identifiable, Equatable {
     let subtitle: String?
     let isVerified: Bool
 
-    var badgeText: String { isVerified ? "Verified" : "Catalog" }
+    /// The badge on the sheet card (user-facing; no internal words such as "verified", rulebook §9).
+    var badgeText: String {
+        isVerified ? KuroLocale.text("Matched", "Passend") : KuroLocale.text("Provider catalogue", "Anbieterkatalog")
+    }
     var accessibilityLabel: String {
-        isVerified ? "Open verified provider \(title)" : "Open catalog link \(title)"
+        isVerified
+            ? KuroLocale.text("Open \(title), matched to this title", "\(title) öffnen, passend zu diesem Titel")
+            : KuroLocale.text("Open \(title) from the provider's catalogue", "\(title) aus dem Katalog des Anbieters öffnen")
     }
 }
 
@@ -41,6 +46,7 @@ func makeVerifiedProviderItems(
             let resolvedURL = provider.url ?? fallbackLinks.first(where: { providerMatches(site: $0.site, provider: provider) })?.url
             guard let resolvedURL, !resolvedURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
             let key = "verified-\(provider.slug)"
+            let matchedSubtitle = KuroLocale.text("Matched to this title.", "Zu diesem Titel passend.")
             guard seen.insert(key).inserted else { return nil }
             let note = ProviderAvailabilityNoteBuilder.bestNote(
                 from: [provider],
@@ -52,7 +58,7 @@ func makeVerifiedProviderItems(
                 id: key,
                 title: provider.displayName,
                 url: resolvedURL,
-                subtitle: note.map { "Verified for this title. \($0)" } ?? "Verified for this title.",
+                subtitle: note.map { "\(matchedSubtitle) \($0)" } ?? matchedSubtitle,
                 isVerified: true
             )
         }
@@ -73,7 +79,7 @@ func makeCatalogProviderItems(
         .map { link in
             ProviderSheetItem(
                 id: "catalog-\(link.id)",
-                title: link.site ?? "Provider",
+                title: link.site ?? KuroLocale.text("Provider", "Anbieter"),
                 url: link.url,
                 subtitle: fallbackSubtitle,
                 isVerified: false
@@ -126,18 +132,22 @@ func providerAvailabilityStatusCaption(
 ) -> String? {
     let formatter = RelativeDateTimeFormatter()
     formatter.unitsStyle = .short
+    formatter.locale = KuroLocale.locale
 
     if hasVerifiedProviders, let lastRefreshedAt = status?.lastRefreshedAt {
-        return "Verified \(formatter.localizedString(for: lastRefreshedAt, relativeTo: Date()))."
+        let when = formatter.localizedString(for: lastRefreshedAt, relativeTo: Date())
+        return KuroLocale.text("Checked \(when).", "Geprüft \(when).")
     }
     if requestedRefresh || status?.status.lowercased() == "pending" {
-        return "Refreshing verified availability now."
+        return KuroLocale.text("Checking where to find it now.", "Wir sehen gerade nach, wo es verfügbar ist.")
     }
     if let lastRefreshedAt = status?.lastRefreshedAt {
-        return "Last checked \(formatter.localizedString(for: lastRefreshedAt, relativeTo: Date()))."
+        let when = formatter.localizedString(for: lastRefreshedAt, relativeTo: Date())
+        return KuroLocale.text("Last checked \(when).", "Zuletzt geprüft \(when).")
     }
     if let nextRefreshAt = status?.nextRefreshAt {
-        return "Next verification \(formatter.localizedString(for: nextRefreshAt, relativeTo: Date()))."
+        let when = formatter.localizedString(for: nextRefreshAt, relativeTo: Date())
+        return KuroLocale.text("Next check \(when).", "Nächste Prüfung \(when).")
     }
     return nil
 }

@@ -26,9 +26,10 @@ struct AdaptationPathSection: View {
     var body: some View {
         if shouldShow {
             VStack(alignment: .leading, spacing: KuroSpacing.md) {
-                Text("ADAPTATION PATH")
+                Text(KuroLocale.text("Adaptation path", "Adaptionsweg"))
                     .font(.kuroCaption(weight: .semibold))
                     .tracking(1.6)
+                    .textCase(.uppercase)
                     .foregroundColor(.kuroBlack80)
                     .accessibilityAddTraits(.isHeader)
 
@@ -83,16 +84,16 @@ private struct FootnoteStatement: View {
             if let author = src.sourceAuthorName, !author.isEmpty {
                 let format = src.format?.uppercased() ?? ""
                 if format == "MANGA" || format == "ONE_SHOT" {
-                    return "Based on the manga by \(author)"
+                    return KuroLocale.text("Based on the manga by \(author)", "Nach dem Manga von \(author)")
                 } else if format == "NOVEL" || format == "LIGHT_NOVEL" {
-                    return "Based on the light novel by \(author)"
+                    return KuroLocale.text("Based on the light novel by \(author)", "Nach der Light Novel von \(author)")
                 }
             }
-            return "Based on \(src.title)"
+            return KuroLocale.text("Based on \(src.title)", "Nach der Vorlage \(src.title)")
         case .manga:
             guard let adpt = adaptation else { return "" }
             let yearStr = adpt.year.map { " (\($0))" } ?? ""
-            return "Adapted as \(adpt.title)\(yearStr)"
+            return KuroLocale.text("Adapted as \(adpt.title)\(yearStr)", "Adaptiert als \(adpt.title)\(yearStr)")
         }
     }
 
@@ -131,29 +132,14 @@ private struct FootnoteMetadataLine: View {
         guard let item else { return [] }
         var parts: [String] = [item.title]
         if let year = item.year { parts.append(String(year)) }
-        if let format = item.format {
-            let formatted = formatLabel(format)
-            if !formatted.isEmpty { parts.append(formatted) }
+        if let formatted = DetailCopy.format(item.format, german: KuroLocale.isGerman) {
+            parts.append(formatted)
         }
         if let rating = item.rating {
             let display = rating > 10 ? rating / 10.0 : rating
             parts.append(String(format: "%.1f", display))
         }
         return parts
-    }
-
-    private func formatLabel(_ format: String) -> String {
-        switch format.uppercased() {
-        case "TV": return "Television"
-        case "MOVIE": return "Film"
-        case "OVA": return "OVA"
-        case "ONA": return "ONA"
-        case "SPECIAL": return "Special"
-        case "MANGA": return "Manga"
-        case "ONE_SHOT": return "One-shot"
-        case "NOVEL", "LIGHT_NOVEL": return "Novel"
-        default: return format.capitalized.replacingOccurrences(of: "_", with: " ")
-        }
     }
 
     var body: some View {
@@ -217,10 +203,26 @@ private struct FootnoteProseContent: View {
     @Binding var selectedItem: MediaLadderItem?
     @Binding var showFullPath: Bool
 
+    private let german = KuroLocale.isGerman
+
+    /// "a 2015 television series" (EN, with its article) / "Fernsehserie (2015)" (DE, no article needed).
     private func alternateLabel(_ item: MediaLadderItem) -> String {
+        let format = item.format?.uppercased() ?? ""
+        if german {
+            let noun: String
+            switch format {
+            case "TV": noun = "Fernsehserie"
+            case "MOVIE": noun = "Film"
+            case "MANGA": noun = "Manga"
+            case "NOVEL": noun = "Roman"
+            case "LIGHT_NOVEL": noun = "Light Novel"
+            default: noun = DetailCopy.format(item.format, german: true) ?? "Adaption"
+            }
+            return item.year.map { "\(noun) (\($0))" } ?? noun
+        }
         let year = item.year.map { "\($0) " } ?? ""
         let label: String
-        switch item.format?.uppercased() ?? "" {
+        switch format {
         case "TV": label = "television series"
         case "MOVIE": label = "film"
         case "OVA": label = "OVA"
@@ -231,8 +233,12 @@ private struct FootnoteProseContent: View {
         default: label = (item.format ?? "adaptation").lowercased()
             .replacingOccurrences(of: "_", with: " ")
         }
-        return "\(year)\(label)"
+        let phrase = "\(year)\(label)"
+        let article = phrase.first.map { "aeiouAEIOU".contains($0) } == true ? "an" : "a"
+        return "\(article) \(phrase)"
     }
+
+    private var fullPathWords: String { KuroLocale.text("see the full path", "den ganzen Weg ansehen") }
 
     var body: some View {
         let proseFont = Font.kuroCustom(14, weight: .light, design: .serif, maxSize: 22)
@@ -244,17 +250,21 @@ private struct FootnoteProseContent: View {
                 .font(linkFont)
                 .foregroundColor(.kuroBlack80)
                 .underline()
-            let fullPathLink = Text("see the full path")
+            let fullPathLink = Text(fullPathWords)
                 .font(linkFont)
                 .foregroundColor(.kuroBlack80)
                 .underline()
 
-            Text("Also adapted as a \(altLink). The franchise includes \(count) titles \u{2014} \(fullPathLink).")
+            (german
+                ? Text("Auch adaptiert als \(altLink). Das Franchise umfasst \(count) Titel \u{2014} \(fullPathLink).")
+                : Text("Also adapted as \(altLink). The franchise includes \(count) titles \u{2014} \(fullPathLink)."))
                 .font(proseFont)
                 .foregroundColor(.kuroTextSecondary)
             .onTapGesture { showFullPath = true }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Also adapted as a \(altLabel). The franchise includes \(count) titles. Tap to see the full path.")
+            .accessibilityLabel(german
+                ? "Auch adaptiert als \(altLabel). Das Franchise umfasst \(count) Titel. Tippen, um den ganzen Weg zu sehen."
+                : "Also adapted as \(altLabel). The franchise includes \(count) titles. Tap to see the full path.")
             .accessibilityAddTraits(.isButton)
         } else if let alt = alternateItem {
             let altLabel = alternateLabel(alt)
@@ -265,26 +275,32 @@ private struct FootnoteProseContent: View {
                     .font(linkFont)
                     .foregroundColor(.kuroBlack80)
                     .underline()
-                Text("Also adapted as a \(altLink).")
+                (german ? Text("Auch adaptiert als \(altLink).") : Text("Also adapted as \(altLink)."))
                     .font(proseFont)
                     .foregroundColor(.kuroTextSecondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Also adapted as a \(altLabel). Tap to view.")
+            .accessibilityLabel(german
+                ? "Auch adaptiert als \(altLabel). Tippen zum Ansehen."
+                : "Also adapted as \(altLabel). Tap to view.")
         } else if let count = franchiseCount {
             Button {
                 showFullPath = true
             } label: {
-                let fullPathLink = Text("see the full path")
+                let fullPathLink = Text(fullPathWords)
                     .font(linkFont)
                     .foregroundColor(.kuroBlack80)
                     .underline()
-                Text("The franchise includes \(count) titles \u{2014} \(fullPathLink).")
+                (german
+                    ? Text("Das Franchise umfasst \(count) Titel \u{2014} \(fullPathLink).")
+                    : Text("The franchise includes \(count) titles \u{2014} \(fullPathLink)."))
                     .font(proseFont)
                     .foregroundColor(.kuroTextSecondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("The franchise includes \(count) titles. Tap to see the full path.")
+            .accessibilityLabel(german
+                ? "Das Franchise umfasst \(count) Titel. Tippen, um den ganzen Weg zu sehen."
+                : "The franchise includes \(count) titles. Tap to see the full path.")
         }
     }
 }
@@ -299,22 +315,22 @@ private struct FranchisePathSheet: View {
     private var groups: [(label: String, items: [MediaLadderItem])] {
         var result: [(label: String, items: [MediaLadderItem])] = []
         if !ladder.sourceMaterial.isEmpty {
-            result.append(("Source", ladder.sourceMaterial))
+            result.append((KuroLocale.text("Source", "Vorlage"), ladder.sourceMaterial))
         }
         if !ladder.adaptations.isEmpty {
-            result.append(("Adaptations", ladder.adaptations))
+            result.append((KuroLocale.text("Adaptations", "Adaptionen"), ladder.adaptations))
         }
         if !ladder.prequels.isEmpty {
-            result.append(("Prequels", ladder.prequels))
+            result.append((KuroLocale.text("Prequels", "Vorgeschichten"), ladder.prequels))
         }
         if !ladder.sequels.isEmpty {
-            result.append(("Sequels", ladder.sequels))
+            result.append((KuroLocale.text("Sequels", "Fortsetzungen"), ladder.sequels))
         }
         if !ladder.sideStories.isEmpty {
-            result.append(("Side Stories", ladder.sideStories))
+            result.append((KuroLocale.text("Side stories", "Nebengeschichten"), ladder.sideStories))
         }
         if !ladder.spinOffs.isEmpty {
-            result.append(("Spin-Offs", ladder.spinOffs))
+            result.append((KuroLocale.text("Spin-offs", "Spin-offs"), ladder.spinOffs))
         }
         return result
     }
@@ -335,12 +351,11 @@ private struct FranchisePathSheet: View {
                 .padding(.vertical, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)
-            .navigationTitle("ADAPTATION PATH")
+            .navigationTitle(KuroLocale.text("Adaptation path", "Adaptionsweg"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
-                        .foregroundColor(.kuroBlack80)
+                ToolbarItem(placement: .topBarTrailing) {
+                    DetailSheetCloseButton { dismiss() }
                 }
             }
         }
@@ -379,8 +394,8 @@ private struct FranchisePathRow: View {
     private var metadataParts: [String] {
         var parts: [String] = []
         if let year = item.year { parts.append(String(year)) }
-        if let format = item.format {
-            parts.append(format.capitalized.replacingOccurrences(of: "_", with: " "))
+        if let formatted = DetailCopy.format(item.format, german: KuroLocale.isGerman) {
+            parts.append(formatted)
         }
         if let rating = item.rating {
             let display = rating > 10 ? rating / 10.0 : rating
