@@ -259,6 +259,39 @@ select tests.ok('a v2 ep 7 later than the pointer suppresses the fallback (one e
   (select count(*) = 1 and min(release_at) > now() + interval '27 days'
      from public.media_release_schedule_v1('anime', 990006) where unit_number = 7));
 select tests.reset();
+-- each rule on its own (the pointer-drop above would otherwise mask them):
+--   990007: no pointer at all, so nothing is dropped; a passed but never-released ep 4 must not
+--           be the "last aired" unit (status rule in media_release_schedule_v1)
+--   990008: a RELEASED v2 ep 7 is kept (not stale), the pointer says ep 7 is next at +21 days;
+--           the upcoming fallback must win the unit over the past row (is_past-first DISTINCT ON)
+insert into public.anime (id, title_romaji, anilist_id, next_episode_number, next_airing_at) values
+  (990007, 'No Pointer Show', 12349, null, null),
+  (990008, 'Released Then Moved Show', 12350, 7, now() + interval '21 days');
+insert into public.anime_user_lists (user_id, anime_id, list_type, progress) values
+  (tests.uid(983)::text, 990007, 'WATCHING', 3),
+  (tests.uid(983)::text, 990008, 'WATCHING', 6);
+select to_char(next_airing_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US') as t2_008_utc
+  from public.anime where id = 990008 \gset
+:as_service
+select public.upsert_release_events_v1(jsonb_build_array(
+  jsonb_build_object('medium', 'anime', 'media_id', 990007, 'unit_kind', 'episode', 'unit_number', 3,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() - interval '10 days'),
+  jsonb_build_object('medium', 'anime', 'media_id', 990007, 'unit_kind', 'episode', 'unit_number', 4,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() - interval '1 day', 'status', 'scheduled'),
+  jsonb_build_object('medium', 'anime', 'media_id', 990008, 'unit_kind', 'episode', 'unit_number', 7,
+    'basis', 'confirmed', 'source', 'anilist', 'release_at', now() - interval '1 day', 'status', 'released')
+)) as w_rules \gset
+select tests.reset();
+select tests.as_anon();
+select tests.eq('media schedule 990007: the last aired unit is the released ep 3, not the passed-but-scheduled ep 4',
+  (select string_agg(unit_label, ',') from public.media_release_schedule_v1('anime', 990007) where is_past), 'Ep. 3');
+select tests.reset();
+select tests.as_user(tests.uid(983));
+select tests.eq('user schedule 990008: the upcoming fallback ep 7 wins the unit over a past released ep 7 row',
+  (select unit_label || '@' || to_char(release_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US')
+     from public.user_release_schedule_v1() where media_id = 990008),
+  'Ep. 7@' || :'t2_008_utc');
+select tests.reset();
 
 -- ---- 6. idempotency and natural keys --------------------------------------------
 select revision as rev_before from public.release_events where source_identity = 'anilist:anime:990002:episode:3' \gset
