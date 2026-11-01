@@ -36,11 +36,11 @@ struct AnimeDetailContent {
 
 /// A credit row of "Behind the frames." (only rows with a real name exist).
 struct DetailCreditRow: Identifiable {
-    enum Target { case staff(Staff), studio(Studio), none }
+    enum Target { case staff(Staff), studio(Studio), author(Author), none }
     let role: String
     let name: String
     let target: Target
-    var id: String { role }
+    var id: String { "\(role)|\(name)" }
 
     static func anime(staff: [(staff: Staff, role: String)], studios: [Studio], sourceAuthor: String?,
                       german: Bool) -> [DetailCreditRow] {
@@ -496,7 +496,7 @@ struct AnimeDetailPage: View {
         watchLinks = snapshot
     }
 
-    static func webURL(_ raw: String) -> URL? {
+    nonisolated static func webURL(_ raw: String) -> URL? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(),
               scheme == "http" || scheme == "https", url.host?.isEmpty == false else { return nil }
@@ -512,6 +512,10 @@ struct DetailStorySection: View {
     let synopsis: String?
     let aboutTitle: String
     let expectation: String?
+    /// Manga: the hook is one of the prototype's Georgia lines (serif 25, tracking −0.6).
+    var serifHook = false
+    /// The `detail_copy` premise under the hook (manga prototype; SF 12/19.8).
+    var premise: String? = nil
     @State private var expanded = false
 
     /// Without a `detail_copy` hook the synopsis opens the section (spec §4); long text folds.
@@ -525,11 +529,20 @@ struct DetailStorySection: View {
             }
             if let hook {
                 Text(hook)
-                    .font(.detailSF(22, .medium, relativeTo: .title2))
-                    .tracking(-0.65)
+                    .font(serifHook ? .kuroEditorial(size: 25) : .detailSF(22, .medium, relativeTo: .title2))
+                    .tracking(serifHook ? -0.6 : -0.65)
+                    .lineSpacing(serifHook ? 31.25 - 29.8 : 0)
                     .foregroundStyle(Color.kuroInk)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.bottom, 3)
+                    .padding(.bottom, serifHook ? 9 : 3)
+                if let premise {
+                    Text(premise)
+                        .font(.detailSF(12, relativeTo: .footnote))
+                        .lineSpacing(19.8 - 14.3)
+                        .foregroundStyle(Color(hex: "555F59"))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, 6)
+                }
             } else if let synopsis {
                 synopsisText(synopsis)
                     .lineLimit(expanded || !foldsSynopsis ? nil : 5)
@@ -1041,6 +1054,8 @@ struct DetailUpNextKey: View {
     let pending: Bool
     let confirmTrigger: Int
     let accessibilityText: String
+    /// 12 on anime; the manga key is 11 (prototype `.unit-complete`).
+    var radius: CGFloat = 12
     let action: () -> Void
 
     var body: some View {
@@ -1062,7 +1077,7 @@ struct DetailUpNextKey: View {
             .frame(width: 44, height: 44)
             .contentShape(Rectangle())
         }
-        .buttonStyle(DetailUpNextKeyStyle(material: material, trigger: confirmTrigger))
+        .buttonStyle(DetailUpNextKeyStyle(material: material, trigger: confirmTrigger, radius: radius))
         .padding(.top, 7)
         .accessibilityLabel(accessibilityText)
         .accessibilityValue(pending ? KuroLocale.text("Saving", "Wird gespeichert") : "")
@@ -1072,10 +1087,11 @@ struct DetailUpNextKey: View {
 private struct DetailUpNextKeyStyle: ButtonStyle {
     let material: ArtworkMaterial
     let trigger: Int
+    var radius: CGFloat = 12
 
     func makeBody(configuration: Configuration) -> some View {
         let pressed = configuration.isPressed
-        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         let gradient = LinearGradient(colors: [material.base.color, material.deep.color], startPoint: .top, endPoint: .bottom)
         return configuration.label
             .background {
@@ -1382,6 +1398,8 @@ struct DetailSoundPanel: View {
 
 struct DetailCharactersRail: View {
     let characters: [(character: Character, role: String)]
+    /// Manga: square-cut portraits (radius 2) at the prototype's 0.6 saturation.
+    var bookish = false
     @State private var selected: Character?
 
     private var shown: [(character: Character, role: String)] {
@@ -1415,13 +1433,15 @@ struct DetailCharactersRail: View {
                                     .overlay {
                                         if let url = item.character.imageLarge.flatMap(AnimeDetailPage.webURL) {
                                             KuroCachedAsyncImage(url: url, maxPixelSize: 240) { phase in
-                                                if case .success(let image) = phase { image.resizable().scaledToFill() } else { Color.clear }
+                                                if case .success(let image) = phase {
+                                                    image.resizable().scaledToFill().saturation(bookish ? 0.6 : 1)
+                                                } else { Color.clear }
                                             }
                                         }
                                     }
                                     .background(DetailInk.portrait)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                                    .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.black.opacity(0x11 / 255.0), lineWidth: 1))
+                                    .clipShape(RoundedRectangle(cornerRadius: bookish ? 2 : 8, style: .continuous))
+                                    .overlay(RoundedRectangle(cornerRadius: bookish ? 2 : 8, style: .continuous).strokeBorder(Color.black.opacity(0x11 / 255.0), lineWidth: 1))
                                 Text(item.character.nameFull ?? DetailCopy.unknown(german: KuroLocale.isGerman))
                                     .font(.detailSF(10, relativeTo: .footnote))
                                     .foregroundStyle(Color.kuroInk)
@@ -1455,8 +1475,11 @@ struct DetailCharactersRail: View {
 struct DetailCreditsList: View {
     let title: String
     let rows: [DetailCreditRow]
+    /// Drawn under the rows (the manga page's "Read with the publisher").
+    var footer: AnyView? = nil
     @State private var staff: Staff?
     @State private var studio: Studio?
+    @State private var author: Author?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1466,6 +1489,7 @@ struct DetailCreditsList: View {
                     switch row.target {
                     case .staff(let person): staff = person
                     case .studio(let company): studio = company
+                    case .author(let person): author = person
                     case .none: break
                     }
                 } label: {
@@ -1487,10 +1511,12 @@ struct DetailCreditsList: View {
                 .overlay(alignment: .bottom) { Rectangle().fill(DetailInk.creditRule).frame(height: 1) }
                 .accessibilityElement(children: .combine)
             }
+            if let footer { footer }
         }
         .padding(.top, 30)
         .sheet(item: $staff) { StaffDetailSheet(staff: $0) }
         .sheet(item: $studio) { StudioDetailSheet(studio: $0) }
+        .sheet(item: $author) { AuthorDetailSheet(author: $0) }
     }
 }
 

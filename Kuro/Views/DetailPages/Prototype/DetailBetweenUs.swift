@@ -16,6 +16,8 @@ struct DetailBetweenUs: View {
     var onRoster: ([SocialActivityStore.FriendTitleActivity]) -> Void = { _ in }
     /// Fixture renders only.
     var preview: SocialActivityStore.FriendActivityResponse? = nil
+    /// Manga: the prototype's folio card (`#e7e9db→#f3f2e7`, radius 5/19/5/5, hard `2 3 #d8dfce` shadow).
+    var bookish = false
 
     @Environment(ClubsStore.self) private var clubs
     @State private var roster: [SocialActivityStore.FriendTitleActivity] = []
@@ -36,8 +38,11 @@ struct DetailBetweenUs: View {
 
     var body: some View {
         if !clubs.myClubs.isEmpty {
-            let shape = UnevenRoundedRectangle(topLeadingRadius: 22, bottomLeadingRadius: 8,
-                                               bottomTrailingRadius: 8, topTrailingRadius: 22, style: .continuous)
+            let shape = bookish
+                ? UnevenRoundedRectangle(topLeadingRadius: 5, bottomLeadingRadius: 5,
+                                         bottomTrailingRadius: 5, topTrailingRadius: 19, style: .continuous)
+                : UnevenRoundedRectangle(topLeadingRadius: 22, bottomLeadingRadius: 8,
+                                         bottomTrailingRadius: 8, topTrailingRadius: 22, style: .continuous)
             VStack(alignment: .leading, spacing: 0) {
                 heading
                 FriendsActivitySection(mediaId: mediaId, mediaType: mediaType, editorial: true, showsHeading: false,
@@ -51,13 +56,21 @@ struct DetailBetweenUs: View {
             }
             .background {
                 ZStack {
-                    LinearGradient(colors: [Self.cardTop, Self.cardBottom], startPoint: .topLeading, endPoint: .bottomTrailing)
-                    RadialGradient(colors: [Self.glow, .clear], center: .topTrailing, startRadius: 0, endRadius: 260)
+                    if bookish {
+                        LinearGradient(colors: [Color(hex: "E7E9DB"), Color(hex: "F3F2E7")], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    } else {
+                        LinearGradient(colors: [Self.cardTop, Self.cardBottom], startPoint: .topLeading, endPoint: .bottomTrailing)
+                        RadialGradient(colors: [Self.glow, .clear], center: .topTrailing, startRadius: 0, endRadius: 260)
+                    }
                 }
             }
             .clipShape(shape)
             .overlay(shape.strokeBorder(Self.border, lineWidth: 1))
-            .shadow(color: Color(hex: "2B463B", opacity: Double(0x06) / 255), radius: 6, x: 0, y: 5)
+            .background {
+                // Manga: the folio's hard offset shadow; anime: the soft lift.
+                if bookish { shape.fill(Color(hex: "D8DFCE")).offset(x: 2, y: 3) }
+            }
+            .shadow(color: bookish ? .clear : Color(hex: "2B463B", opacity: Double(0x06) / 255), radius: 6, x: 0, y: 5)
             .padding(.horizontal, -6)
         }
     }
@@ -105,7 +118,8 @@ struct DetailBetweenUs: View {
             .padding(.leading, compact ? 20 : 0)
             Spacer(minLength: 0)
         }
-        .background(LinearGradient(colors: [Self.headTop, Self.headBottom], startPoint: .topLeading, endPoint: .bottomTrailing))
+        .background(LinearGradient(colors: bookish ? [Color(hex: "DCDFCB"), Color(hex: "EFEFDF")] : [Self.headTop, Self.headBottom],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing))
         .accessibilityElement(children: .combine)
     }
 }

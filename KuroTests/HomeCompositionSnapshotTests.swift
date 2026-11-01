@@ -227,7 +227,12 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.clubs)
                     .environment(graph.social)
                     .environment(graph.catalog)
-                    .environment(graph.releases),
+                    .environment(graph.releases)
+                    // The series view now delegates to the prototype manga page (Task 7).
+                    .environment(graph.flags)
+                    .environment(graph.artworkMaterials)
+                    .environment(graph.availability)
+                    .environment(graph.outboundLinks),
                 width: width,
                 name: "detail-manga-\(Int(width)).png"
             )

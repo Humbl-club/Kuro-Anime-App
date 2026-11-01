@@ -92,7 +92,7 @@ struct LadderChainEntry: Equatable, Sendable {
     let year: Int?
     let coverImage: String?
 
-    init(mediaId: Int, title: String, format: String?, year: Int? = nil, coverImage: String? = nil) {
+    nonisolated init(mediaId: Int, title: String, format: String?, year: Int? = nil, coverImage: String? = nil) {
         self.mediaId = mediaId
         self.title = title
         self.format = format
@@ -100,7 +100,7 @@ struct LadderChainEntry: Equatable, Sendable {
         self.coverImage = coverImage
     }
 
-    init(_ item: MediaLadderItem) {
+    nonisolated init(_ item: MediaLadderItem) {
         self.init(mediaId: item.mediaId, title: item.title, format: item.format, year: item.year,
                   coverImage: item.coverImage)
     }

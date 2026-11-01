@@ -213,6 +213,8 @@ struct DetailStatusMark: View {
     let onProviders: () -> Void
     var onAddToClub: (() -> Void)? = nil
     var onShare: (() -> Void)? = nil
+    /// `.onArt` on the anime's dark band; `.onPaper` on the manga's light folio band.
+    var tone: DetailMarkTone = .onArt
 
     private var isTracked: Bool { entry != nil }
     private var german: Bool { KuroLocale.isGerman }
@@ -234,15 +236,15 @@ struct DetailStatusMark: View {
             } label: {
                 HStack(spacing: 6) {
                     Circle()
-                        .strokeBorder(DetailInk.statusInk, lineWidth: 1)
+                        .strokeBorder(tone.ink, lineWidth: 1)
                         .frame(width: 5, height: 5)
                     Text(DetailStatusCopy.label(status: entry?.status, kind: kind, german: german))
                         .font(.detailSF(10, relativeTo: .caption1))
-                        .foregroundStyle(DetailInk.statusInk)
+                        .foregroundStyle(tone.ink)
                         .lineLimit(1)
                     Image(systemName: "chevron.down")
                         .font(.detailSF(7, .semibold, relativeTo: .caption2))
-                        .foregroundStyle(DetailInk.statusInk.opacity(0.7))
+                        .foregroundStyle(tone.ink.opacity(0.7))
                 }
                 .frame(minHeight: 44)
                 .contentShape(Rectangle())
@@ -264,10 +266,10 @@ struct DetailStatusMark: View {
                 Button(action: onListSettings) {
                     Text(KuroLocale.text("Add", "Hinzufügen"))
                         .font(.detailSF(11, .medium, relativeTo: .caption1))
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(tone.addInk)
                         .padding(.horizontal, 12)
                         .frame(minHeight: 28)
-                        .overlay(Capsule().strokeBorder(Color.white.opacity(0.45), lineWidth: 1))
+                        .overlay(Capsule().strokeBorder(tone.addInk.opacity(0.45), lineWidth: 1))
                         .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
@@ -301,20 +303,31 @@ struct DetailStatusMark: View {
     }
 }
 
+/// The status mark's ink: light on the anime's material band, folio green on the manga's paper band.
+enum DetailMarkTone: Equatable, Sendable {
+    case onArt, onPaper
+
+    var ink: Color { self == .onArt ? DetailInk.statusInk : Color(hex: "626B5A") }
+    var addInk: Color { self == .onArt ? Color.white : Color.kuroInk }
+}
+
 // MARK: - Close
 
 /// The prototype's round close (44 pt, `base` fill, a soft white rim, white ×).
 struct DetailCloseButton: View {
     let material: ArtworkMaterial
+    /// The manga sheet's close is paper (`#edeedf`, 94 %) with a folio-green ×.
+    var fill: Color? = nil
+    var ink: Color = .white
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Button(action: dismiss.callAsFunction) {
             Image(systemName: "xmark")
                 .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 20))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(ink)
                 .frame(width: 44, height: 44)
-                .background(material.base.color, in: Circle())
+                .background(fill ?? material.base.color, in: Circle())
                 .overlay(Circle().strokeBorder(Color.white.opacity(0x45 / 255.0), lineWidth: 1))
                 .contentShape(Circle())
         }
