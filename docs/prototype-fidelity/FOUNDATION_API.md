@@ -1,0 +1,86 @@
+# Prototype-fidelity foundation API (Tasks 2-3, final)
+
+FINAL interfaces of Tasks 2-3 (+ marks additions beyond the plan text):
+
+Task 2 (Kuro/Design):
+- `nonisolated struct KuroRGB: Equatable, Codable, Sendable, Hashable`
+  - `init(_ r: Double, _ g: Double, _ b: Double)`, `init?(hex: String)`
+  - `var hex: String`, `var color: Color`, `var luminance: Double`
+  - `static func mix(_ a: KuroRGB, _ b: KuroRGB, _ t: Double) -> KuroRGB`
+  - `static func contrastOfWhite(on: KuroRGB) -> Double`
+- `nonisolated struct ArtworkMaterial: Equatable, Codable, Sendable`
+  - stored: `base, deep, wash, edge, ink: KuroRGB`; `contrast: Double`; `method: String` ("art-hue-v1" | "seed-hex" | "neutral" | "no-hue")
+  - constants: `static let contrastTarget = 7.0`, `paper`, `shadow`, `neutralBase` (#3a3d3c), `neutral`
+  - `init(base: KuroRGB, method: String)`
+  - `static func clamped(_ base: KuroRGB) -> KuroRGB`
+  - `static func fromHex(_ hex: String?) -> ArtworkMaterial`
+  - `static func derive(from cgImage: CGImage, banner: Bool) -> ArtworkMaterial`
+  - + `static func deriveIfHued(from cgImage: CGImage, banner: Bool) -> ArtworkMaterial?`
+  - port internals: `dominantHue(of:banner:)`, `samplePixels(of:banner:)`, `thumbnailSize(width:height:box:)`, `rgbToHSV`, `hlsToRGB(h:l:s:)`
+- `@MainActor @Observable final class ArtworkMaterialStore`
+  - `typealias Loader = @Sendable (URL) async -> CGImage?`
+  - `init(cacheDirectory: URL? = defaultCacheDirectory(), memoryLimit: Int = 600 (+), failureRetryInterval: TimeInterval = 60 (+), now: @escaping () -> Date = Date.init (+), loader: @escaping Loader = pipelineLoader)`
+  - `func material(for url: URL?, seedHex: String?) -> ArtworkMaterial`
+  - statics: `defaultMemoryLimit` (+), `noHueMethod` (+), `defaultCacheFolder`, `isBanner(_:)`, `defaultCacheDirectory()`, `cacheFile(for:in:)`, `pipelineLoader`
+  - removed: `trimMemory()`
+- Colour tokens (Color):
+  - `kuroInk` #252625, `kuroCanvasHome` #fffef8, + `kuroCanvasHomeManga` #f5f5f3, `kuroPaper` #f5f5f4, `kuroMuted` #696c6b, `kuroLine` #272b29@0x20
+  - `kuroKeyLightTop` #f1f4f2, `kuroKeyLightBottom` #d5ded8, `kuroKeyDarkTop` #444a47, `kuroKeyDarkBottom` #2c322f
+- `enum KuroTypeRole`
+  - cases: `hero, display, feature, headline, title, body, caption, micro, navigation, titleName, meta, buttonLabel, mediumWord`
+  - `var spec`, `var trackingEm`, `var tracking`, `var pointSize`
+  - + `static func displayWeight(_ requested: Font.Weight, roleDefault: Font.Weight) -> Font.Weight`
+  - + `func font(weight: Font.Weight? = nil) -> Font`
+- Font:
+  - `kuroHero(weight: = .heavy)`
+  - `kuroDisplay`, `kuroFeature`, `kuroHeadline`, `kuroTitle`, each `(weight: = .semibold)`, sans; light weights map to the role weight
+  - `kuroEditorial(size: CGFloat, weight: = .regular)`
+  - `kuroMediumWord(size: CGFloat = 36)`
+- View: `kuroTracking(_ role: KuroTypeRole)`, + `kuroRoleText(_ role: KuroTypeRole, weight: Font.Weight? = nil)`, `kuroMediumWordStyle(size: CGFloat = 36)`
+- `KuroMotion`: `static func ease(_ duration: Double) -> Animation`; `contact` (.12 s), `settle` (.22 s), `medium` (.32 s), all on (.2,.8,.25,1)
+
+Task 3:
+- `KuroAdvanceKey`
+  - `enum Style: Equatable { case light, dark, ink (+), material(ArtworkMaterial) }`
+  - `enum Phase { advance, caughtUp, needsChoice, pending }`
+  - `init(style: Style, phase: Phase = .advance, accessibilityText: String, confirmTrigger: Int = 0, action: @escaping () -> Void)`
+  - `struct KuroKeyFace { init(style:); size, radius, top, bottom, border, highlight, drop, ink }`
+  - `KuroAdvanceCopy.label(medium:nextUnit:title:current:total:german:)`, `caughtUpLabel(title:german:)`
+- `KuroMotionEffects.swift`
+  - `KuroMotion.playsMotion(reduceMotion:lowPower:) -> Bool` (nonisolated)
+  - + `KuroMotion.playsMotionNow(reduceMotion:) -> Bool`
+  - curves: `easeCurve`, `cssEaseCurve`, `pressSettleCurve`, `rollCurve`
+  - `struct KuroMotionAllowance<Content: View>(content: (Bool) -> Content)`
+  - View: `.kuroConfirmStamp(trigger:)`, `.kuroRestore(trigger:)`, `.kuroCountRoll(value:pageTurn: = false)`, `.kuroPressSettle(trigger:)`
+- `KuroBrandedStates.swift`
+  - `nonisolated enum KuroBrandedState { loading, empty, offline(hasContent:), failed(hasContent:) }` with `static func resolve(isLoading:hasContent:isOffline:failed:) -> KuroBrandedState?`
+  - `KuroBrandedCopy`: `retryTitle`, `loadingLabel`, `errorHeadline`, `errorMessage`, `offlineHeadline`, `offlineLine(hasContent:german:)`, `emptyHeadline`
+  - ridge: `KuroRidge.points` / `.path(in:)`, `KuroRidgeShape`, `KuroRidgeStroke(draws: = true, lineWidth: = 1.4)`
+  - + `KuroScrubLine(traceFraction: = 0.28, tint: Color = .kuroInk, track: Color = .kuroLine)` (`tint`/`track` are new)
+  - `KuroWordmarkSettle()`
+  - + `KuroBusyMark(width: CGFloat = 32, tint: Color = .kuroInk, track: Color = .kuroLine)`
+  - `KuroLoadingView(scope: .inline | .page = .page, label: String? = nil)`; + `nonisolated static func caption(for: String?) -> String?` (the label is shown as a muted caption)
+  - `KuroSkeleton(kind: .sceneCard | .coverLeaf | .calendarDay | .detailSection | .row)`
+  - `KuroErrorView(headline: String? = nil, message: String? = nil, retryTitle: String? = nil, retry: (() -> Void)? = nil)`; message now defaults to errorMessage
+  - `KuroOfflineView(hasContent: Bool, retry: (() -> Void)? = nil)`
+  - `KuroEmptyView(headline: String? = nil, message: String? = nil, @ViewBuilder actions:)`, plus an actionless init
+  - `KuroOutlineButton(_ title:, action:)`
+  - `KuroStateLayout(stroke:headline:message:actions:)`
+- `KuroStateView`
+  - `init(_ kind: Kind, title: String? = nil, message: String? = nil, layout: Layout = .page, retry: (() -> Void)? = nil)`, API unchanged
+  - + `nonisolated static func showsRetry(kind: Kind, hasRetry: Bool) -> Bool`
+  - `KuroStateCopy` unchanged
+- `KuroMediumSwitch`
+  - `init(selection: Binding<MediaKind>, size: Size = .large, material: ArtworkMaterial? = nil (+))`
+  - + `static func wordSize(for: Size, containerWidth: CGFloat) -> CGFloat` (compact 24; large 36, or 30 when ≤ 328)
+  - + `static let smallPhoneContainer: CGFloat = 328`
+- Header (ContentView.swift)
+  - `KuroHeaderNew(selection:showProfileSheet:showSearchSheet:onOpenSearch:onPicture:)`, which now also reads `@Environment(HomeStore.self)`
+  - `KuroHeaderNeighbour.link(for:order:)`, `.title(to:german:)`, `.spokenTitle(to:german:)`
+  - `KuroHeaderRowLayout { showsWordmark, showsNeighbour, centreShift }`
+    - `static func resolve(rowWidth:pageNames:neighbourTitle:traits: UITraitCollection? = nil (+))`
+    - + `static func metrics(rowWidth:pageNames:traits: = nil) -> (centreWidth: CGFloat, sideRoom: CGFloat)`
+    - + `static func pageNameSize(traits:)`
+    - `scaled(_:_:max:traits: = nil)`, `measure(_:size:weight:tracking:)`
+  - `KuroMainView.Section.canvas(mangaHome: Bool) -> Color` replaces the `canvas` property
+- Gate: `scripts/quality-gates/check_branded_states.sh` scans `Kuro/` (was `Kuro/Views`). It is still registered in run_all.sh as `branded-states:check_branded_states.sh:0`, and Task 10 flips it to `:1`.
