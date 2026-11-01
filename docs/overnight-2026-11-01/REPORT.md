@@ -46,13 +46,26 @@ Spec `docs/superpowers/specs/2026-11-01-overnight-production-pass-design.md` §2
 
 1. **Licensing (blocking for production intake):** AniList's terms restrict mass storage and use in tracker apps; AnimeThemes, MangaDex, MAL/Jikan restrict commercial use; MangaUpdates is permissive with credit. Details: `understand/sources.md`. Decide which sources Kuro may use commercially before scheduling `release-intake` / the themes worker.
 2. **Manga release dates:** set `MU_OFFICIAL_GROUP_IDS` (official publisher groups on MangaUpdates, e.g. MANGA Plus / VIZ / K MANGA) — until then manga schedules stay empty by design.
-3. **Deploy (when you're ready):** apply `supabase/prepared-migrations/20261101*.sql` in order (the 010100 duplicate-index file must run outside a transaction; pause `realm-similar-drive-5m` + bulk-import crons during 010000; confirm PostgreSQL ≥ 14), deploy `release-intake` + changed edge functions, upload the 5 email templates, apply `20261101030000_auth_hardening` only after the new iOS build ships. Owner checklist: backend lane report in `understand/../` and migration headers.
+3. **Deploy (when you're ready):** apply `supabase/prepared-migrations/20261101*.sql` in order (the 010100 duplicate-index file must run outside a transaction; pause `realm-similar-drive-5m` + bulk-import crons during 010000; confirm PostgreSQL ≥ 14), deploy `release-intake` + changed edge functions, upload the 5 email templates, apply `20261101030000_auth_hardening` only after the new iOS build ships. Step-by-step: **`docs/overnight-2026-11-01/DEPLOY_CHECKLIST.md`** (includes the weekly-instead-of-nightly similar-titles freshness change that needs your sign-off).
 4. **Supabase dashboard:** password minimum 8 + leaked-password check, `kuro://auth/callback` in redirect allow-list, SMTP (Resend), email-confirmation setting.
-5. **Legal URLs:** confirm `https://kuro.app/privacy` is live and give me the Terms URL (`KuroLegalLinks.terms` is nil → row hidden).
+5. **Legal URLs (App Store risk):** `kuro.app` **does not resolve** right now, so the Privacy link in the app is dead. Publish a privacy page (and Terms) and confirm the URLs; Terms stays unlinked everywhere until `KuroLegalLinks.terms` is set (the welcome no longer hard-codes an invented Terms URL).
 6. **App icon:** pick a candidate (or keep the current one).
 7. **Visual acceptance:** nothing here is owner-approved; screenshots are for your review.
 8. **Codex:** fix `~/.codex/config.toml` (`mcp_servers.higgsfield` needs `command`) if you want Codex reviews.
 9. **Push:** say the word and I push `kuro/overnight-2026-11-01`.
+
+## Not covered tonight (so "every screen" is not over-claimed)
+
+- **Concierge** (9 view files) was not redesigned (it is a sheet; out of the lanes' ownership).
+- Launch sequence: launch text now says anime & manga; `UILaunchScreen` is still an empty (white) dictionary — no launch mark yet.
+- Production-readiness items never audited tonight: `PrivacyInfo.xcprivacy` vs the new on-device storage (recent searches, pending auth flow, onboarding keys) and telemetry, App Store privacy labels, `docs/production-blockers.md`.
+- Series grouping has **no producer** (`series`, `series_sections`, `series_entry_spans`): the flag-on Home/series detail would still lack series data after deploying tonight's SQL.
+- Localhost prototype map: classification of every page on `http://127.0.0.1:8803` (selected vs rejected) is in `understand/DESIGN_RULEBOOK.md` §2; native screen map in `screenshots/final/SCREEN_MAP.md`.
+
+## Process disclosures
+
+- One foundation fix agent ran `xcodebuild test` against a simulator chosen **by name** ("iPhone 17 Pro") early in the night, which may be the device the handoff reserves for other work. I did not touch that device afterwards; please check it is as you left it. All later runs used the owned UUID only.
+- The live Supabase connector had no permission; live facts were read with read-only CLI inspection and public REST reads (feature flags, row counts).
 
 ## Known remaining issues (honest list)
 

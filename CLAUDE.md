@@ -355,7 +355,7 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 **Models (1 file):**
 - `DiscoverBundle.swift` — discover bundle response model (`SupabaseModels.swift` was deleted; models now live with their owning capability folder)
 
-### Supabase — 245 migration files in `supabase/migrations/`, 14 prepared files (+1 opt-in) in `supabase/prepared-migrations/`, 16 edge function directories (deployed list below as of 2026-07-31; `realm-describe` is deployed and dormant)
+### Supabase — 245 migration files in `supabase/migrations/`, 19 prepared files (+1 opt-in) in `supabase/prepared-migrations/` (5 of them are the unapplied 20261101* overnight files), 16 edge function directories (deployed list below as of 2026-07-31; `realm-describe` is deployed and dormant)
 
 **Migration history caveat (2026-10-08, do NOT "repair"):** live history has 249 identities = the 245 local + 4 applied from `prepared-migrations/` in one approved transaction (`20261007040000_series_home_foundation_v1`, `20261007130000_series_account_lifecycle`, `20261008100000_import_status_fence_preserves_units`, `20261008110000_import_review_recovery_v2`). The nine `20261005*` prepared files are byte-identical copies of applied migrations. `20261007120000_feature_flag_overrides` and `opt-in/` backfill are intentionally NOT applied. Never `supabase db push --include-all` or run history repair without an explicit new approval.
 
