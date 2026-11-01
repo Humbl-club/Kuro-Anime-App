@@ -390,30 +390,39 @@ struct EditorialCollectionView: View {
     @ViewBuilder
     private func emptyState(hasError: Bool, offline: Bool, gutter: CGFloat) -> some View {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let libraryKnown = library.loadState == .loaded || !library.allEntries.isEmpty
-        // The Library (the tracking authority) knows this status is empty: that is an honest empty
-        // line, never a failure, even offline (rulebook §9).
-        let knownEmptyStatus = !isImportedView && query.isEmpty && libraryKnown && (counts[status] ?? 0) == 0
-            && counts.values.reduce(0, +) > 0
-        if !libraryKnown && library.loadState != .failed {
+        let state = CollectionEmptyState.resolve(
+            libraryKnown: library.loadState == .loaded || !library.allEntries.isEmpty,
+            libraryFailed: library.loadState == .failed,
+            libraryIsEmpty: library.allEntries.isEmpty,
+            isImportedView: isImportedView,
+            hasQuery: !query.isEmpty,
+            statusCount: counts[status] ?? 0,
+            mediumTotal: counts.values.reduce(0, +),
+            hasError: hasError,
+            offline: offline,
+            feedIsEmpty: collection.displayedFeedItems.isEmpty
+        )
+        switch state {
+        case .awaitingLibrary:
             // The Library has not answered yet: keep stable geometry instead of an "empty" claim.
             KuroStateView(.loading, title: german ? "Deine Listen werden geladen." : "Loading your lists.", layout: .inline)
                 .padding(.horizontal, gutter)
-        } else if knownEmptyStatus {
+        case .statusEmpty:
+            // The Library (the tracking authority) knows this status is empty: that is an honest empty
+            // line, never a failure, even offline (rulebook §9).
             KuroStateView(.empty, title: status.emptyLine(medium: medium, german: german), layout: .inline)
                 .padding(.horizontal, gutter)
-        } else if hasError || library.loadState == .failed && library.allEntries.isEmpty
-                    || (offline && collection.displayedFeedItems.isEmpty && !library.allEntries.isEmpty) {
-            KuroStateView(offline ? .offline(hasCachedContent: false) : .failed(hasCachedContent: false),
+        case .unavailable(let isOffline):
+            KuroStateView(isOffline ? .offline(hasCachedContent: false) : .failed(hasCachedContent: false),
                           retry: { Task { await reload(refreshLibrary: true) } })
                 .frame(minHeight: 280)
-        } else if !query.isEmpty {
+        case .noMatches:
             VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
                 KuroStateView(.empty, title: FolioCopy.noMatches(query, german: german), layout: .inline)
                 if isLoadingAll {
-                    ProgressView()
-                        .tint(Color.kuroInkQuiet)
+                    KuroBusyMark(width: 44)
                         .frame(maxWidth: .infinity, minHeight: 44)
+                        .accessibilityElement(children: .ignore)
                         .accessibilityLabel(german ? "Weitere Titel werden geladen" : "Loading more titles")
                 } else if localOrderingTruncated {
                     Text(FolioCopy.showingFirst(collection.displayedFeedItems.count, german: german))
@@ -423,63 +432,50 @@ struct EditorialCollectionView: View {
                 }
             }
             .padding(.horizontal, gutter)
-        } else if library.allEntries.isEmpty && !isImportedView {
-            libraryInvitation(gutter: gutter)
-        } else if !isImportedView && counts.values.reduce(0, +) == 0 {
-            otherMediumShortcut(gutter: gutter)
-        } else if isImportedView {
+        case .invitation:
+            libraryInvitation
+        case .otherMediumEmpty:
+            otherMediumShortcut
+        case .importedEmpty:
             KuroStateView(.empty, title: german ? "Keine importierten Titel in diesem Medium." : "No imported titles in this medium.",
                           layout: .inline)
                 .padding(.horizontal, gutter)
-        } else {
-            KuroStateView(.empty, title: status.emptyLine(medium: medium, german: german), layout: .inline)
-                .padding(.horizontal, gutter)
         }
     }
 
-    /// The whole Library is empty: two invitation actions, Find and Import (rulebook §7, §9).
-    private func libraryInvitation(gutter: CGFloat) -> some View {
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-            Text(german ? "Deine Listen beginnen hier." : "Your lists start here.")
-                .font(.kuroHeadline(weight: .light))
-                .foregroundStyle(Color.kuroInk)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
-            Text(german
-                 ? "Speichere einen Titel oder bring deine Liste von AniList oder MyAnimeList mit."
-                 : "Save a title, or bring your list from AniList or MyAnimeList.")
-                .font(.kuroBody())
-                .foregroundStyle(Color.kuroInkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            KuroInkButton(german ? "Titel finden" : "Find a title", role: .secondary) { findTitle() }
-            KuroInkButton(german ? "Liste importieren" : "Import your list", role: .secondary) { showImportChooser = true }
+    /// The whole Library is empty: the new-account invitation (the prototype's ＋ block, spec §5.3),
+    /// with Import and Find (rulebook §7, §9). Never a blank page.
+    private var libraryInvitation: some View {
+        FirstRunInvitation(
+            headline: HomeNewAccountCopy.headline(german: german),
+            line: HomeNewAccountCopy.line(german: german)
+        ) {
+            KuroOutlineButton(HomeNewAccountCopy.importList(german: german)) { showImportChooser = true }
+            KuroOutlineButton(german ? "Titel finden" : "Find a title") { findTitle() }
         }
-        .padding(.horizontal, gutter)
-        .padding(.top, KuroDesignSpacing.lg)
     }
 
-    /// Nothing in this medium, but the other medium has titles: an honest shortcut, never an auto-switch.
+    /// Nothing in this medium, but the other medium may have titles: an honest shortcut, never an
+    /// auto-switch.
     @ViewBuilder
-    private func otherMediumShortcut(gutter: CGFloat) -> some View {
+    private var otherMediumShortcut: some View {
         let other: MediaKind = medium == .anime ? .manga : .anime
         let otherCount = library.allEntries.filter { $0.key.kind == other }.count
-        VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-            Text(medium == .anime
-                 ? (german ? "Noch keine Anime in deinen Listen." : "No anime in your lists yet.")
-                 : (german ? "Noch keine Manga in deinen Listen." : "No manga in your lists yet."))
-                .font(.kuroTitle())
-                .foregroundStyle(Color.kuroInk)
-                .fixedSize(horizontal: false, vertical: true)
+        FirstRunInvitation(
+            headline: medium == .anime
+                ? (german ? "Noch keine Anime in deinen Listen." : "No anime in your lists yet.")
+                : (german ? "Noch keine Manga in deinen Listen." : "No manga in your lists yet."),
+            line: nil
+        ) {
             if otherCount > 0 {
-                KuroInkButton(other == .manga
-                              ? (german ? "Deine Manga zeigen (\(otherCount))" : "Show your manga (\(otherCount))")
-                              : (german ? "Deine Anime zeigen (\(otherCount))" : "Show your anime (\(otherCount))"),
-                              role: .secondary) { medium = other }
+                KuroOutlineButton(other == .manga
+                                  ? (german ? "Deine Manga zeigen (\(otherCount))" : "Show your manga (\(otherCount))")
+                                  : (german ? "Deine Anime zeigen (\(otherCount))" : "Show your anime (\(otherCount))")) {
+                    medium = other
+                }
             }
-            KuroInkButton(german ? "Titel finden" : "Find a title", role: .secondary) { findTitle() }
+            KuroOutlineButton(german ? "Titel finden" : "Find a title") { findTitle() }
         }
-        .padding(.horizontal, gutter)
-        .padding(.top, KuroDesignSpacing.md)
     }
 
     /// One Browse, never two: the Browse route only where the pager has no Browse page (spec D2).
@@ -707,5 +703,36 @@ struct EditorialCollectionView: View {
     private func hideNotice() {
         noticeTask?.cancel()
         notice = nil
+    }
+}
+
+// MARK: - Empty block (pure)
+
+/// Which empty block the Collection shows when the list has no rows. Every input resolves to a block,
+/// so an empty list is never a blank page. Order matters: an unanswered Library never claims "empty",
+/// a known-empty status is honest even offline, a failure never shows as the invitation.
+nonisolated enum CollectionEmptyState: Equatable {
+    case awaitingLibrary
+    case statusEmpty
+    case unavailable(offline: Bool)
+    case noMatches
+    case invitation
+    case otherMediumEmpty
+    case importedEmpty
+
+    /// `statusCount`: the selected status's count in this medium; `mediumTotal`: every status of it.
+    static func resolve(libraryKnown: Bool, libraryFailed: Bool, libraryIsEmpty: Bool, isImportedView: Bool,
+                        hasQuery: Bool, statusCount: Int, mediumTotal: Int, hasError: Bool, offline: Bool,
+                        feedIsEmpty: Bool) -> CollectionEmptyState {
+        if !libraryKnown && !libraryFailed { return .awaitingLibrary }
+        if !isImportedView && !hasQuery && libraryKnown && statusCount == 0 && mediumTotal > 0 { return .statusEmpty }
+        if hasError || (libraryFailed && libraryIsEmpty) || (offline && feedIsEmpty && !libraryIsEmpty) {
+            return .unavailable(offline: offline)
+        }
+        if hasQuery { return .noMatches }
+        if libraryIsEmpty && !isImportedView { return .invitation }
+        if !isImportedView && mediumTotal == 0 { return .otherMediumEmpty }
+        if isImportedView { return .importedEmpty }
+        return .statusEmpty
     }
 }

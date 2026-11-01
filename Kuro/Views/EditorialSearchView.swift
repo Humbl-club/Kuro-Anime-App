@@ -466,11 +466,15 @@ private struct SearchIdleState: View {
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.xl) {
             if recentSearches.isEmpty {
-                Text(KuroLocale.text("Type a title, or pick a refinement.", "Gib einen Titel ein oder wähle eine Eingrenzung."))
-                    .font(.kuroBody(weight: .regular))
-                    .foregroundStyle(Color.kuroInkSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, gutter)
+                // No history: the refinements above, then the empty mark and one invitation (spec §5.3).
+                KuroEmptyView(headline: SearchIdleCopy.noHistory(german: KuroLocale.isGerman)) {
+                    // Only where the pager has no Browse page (spec D2).
+                    if DiscoverBrowseEntry.isOffered(flags: flags) {
+                        KuroOutlineButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern")) {
+                            routes.openBrowse()
+                        }
+                    }
+                }
             } else {
                 VStack(alignment: .leading, spacing: 0) {
                     KuroSectionHeader(
@@ -520,15 +524,23 @@ private struct SearchIdleState: View {
                 }
             }
 
-            // Only where the pager has no Browse page (spec D2).
-            if DiscoverBrowseEntry.isOffered(flags: flags) {
+            // Only where the pager has no Browse page (spec D2); with no history it sits in the empty block.
+            if !recentSearches.isEmpty && DiscoverBrowseEntry.isOffered(flags: flags) {
                 KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
                     routes.openBrowse()
                 }
                 .padding(.horizontal, gutter)
             }
         }
-        .padding(.top, KuroDesignSpacing.lg)
+        .padding(.top, recentSearches.isEmpty ? 0 : KuroDesignSpacing.lg)
+    }
+}
+
+/// The empty query's words, EN/DE.
+nonisolated enum SearchIdleCopy {
+    /// No recent searches on this device yet.
+    static func noHistory(german: Bool) -> String {
+        german ? "Fang mit einem Titel an, den du liebst." : "Start with a title you love."
     }
 }
 
