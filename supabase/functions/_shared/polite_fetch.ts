@@ -17,6 +17,39 @@ export class PoliteFetchError extends Error {
   }
 }
 
+/// Reads the body as UTF-8 without ever buffering more than `maxBytes`: a declared
+/// Content-Length over the cap is rejected before reading, and the stream is cancelled as
+/// soon as the running byte count passes it.
+export async function readBounded(response: Response, maxBytes: number): Promise<string> {
+  const tooLarge = () => new PoliteFetchError("parse", "source response exceeds byte limit", response.status);
+  const declared = Number(response.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    await response.body?.cancel().catch(() => {});
+    throw tooLarge();
+  }
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw tooLarge();
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 export function isPoliteCleanStop(error: unknown): boolean {
   return error instanceof PoliteFetchError && (error.kind === "budget" || error.kind === "rate_limited");
 }
@@ -111,8 +144,7 @@ export function createPoliteClient(options: PoliteClientOptions): PoliteClient {
           attempt++;
           continue;
         }
-        const text = await response.text();
-        if (text.length > maxBytes) throw new PoliteFetchError("parse", "source response exceeds byte limit", response.status);
+        const text = await readBounded(response, maxBytes);
         let json: unknown = null;
         if (text.trim()) {
           try {
