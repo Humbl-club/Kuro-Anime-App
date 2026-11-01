@@ -21,30 +21,71 @@ struct ImportCatalogMatchPicker: View {
         let detail: String
     }
 
+    private var german: Bool { KuroLocale.isGerman }
+    private var mediumWord: String { ImportCopy.medium(item.medium, german: german) }
+
     var body: some View {
+        let g = german
         NavigationStack {
             VStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
-                Text("Match \(item.title)").font(.kuroHeadline())
-                Text("Choose the correct \(item.medium.capitalized) title. Kuro will show its current values for review before saving. This match affects only this import.")
-                    .font(.kuroBody()).foregroundStyle(Color.kuroTextSecondary)
-                TextField("Search \(item.medium.capitalized) catalog", text: $query)
-                    .textFieldStyle(.roundedBorder).font(.kuroBody())
-                    .accessibilityIdentifier("import.match.query")
-                if busy { ProgressView("Searching catalog") }
-                if let error { Text(error).font(.kuroBody()) }
+                Text(g ? "„\(item.title)“ zuordnen" : "Match “\(item.title)”")
+                    .font(.kuroHeadline(weight: .light))
+                    .foregroundStyle(Color.kuroInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                Text(g ? "Wähle den richtigen \(mediumWord)-Titel. Vor dem Speichern siehst du seine aktuellen Werte. Die Zuordnung gilt nur für diesen Import."
+                       : "Choose the right \(mediumWord) title. You'll see its current values before saving. This match applies to this import only.")
+                    .font(.kuroBody()).foregroundStyle(Color.kuroInkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: KuroDesignSpacing.sm) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.kuroCustom(14, relativeTo: .body, maxSize: 22))
+                        .foregroundStyle(Color.kuroInkQuiet)
+                        .accessibilityHidden(true)
+                    TextField(g ? "\(mediumWord)-Katalog durchsuchen" : "Search the \(mediumWord) catalogue", text: $query)
+                        .font(.kuroBody())
+                        .foregroundStyle(Color.kuroInk)
+                        .textFieldStyle(.plain)
+                        .autocorrectionDisabled()
+                        .submitLabel(.search)
+                        .accessibilityIdentifier("import.match.query")
+                }
+                .padding(.horizontal, KuroDesignSpacing.md)
+                .frame(minHeight: 44)
+                .background(Color.kuroCanvasQuiet, in: RoundedRectangle(cornerRadius: KuroRadius.sm, style: .continuous))
+                if busy {
+                    KuroStateView(.loading, title: g ? "Katalog wird durchsucht." : "Searching the catalogue.", layout: .inline)
+                }
+                if let error {
+                    KuroStateView(.failed(hasCachedContent: !results.isEmpty), message: error, layout: .inline) {
+                        Task { await find() }
+                    }
+                }
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: KuroDesignSpacing.md) {
+                    LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(results) { candidate in candidateRow(candidate) }
                         if results.isEmpty, !busy, !query.isEmpty, error == nil {
-                            Text("No matching catalog title. Try another title or leave this item for later review.").font(.kuroBody())
+                            KuroStateView(.empty,
+                                          title: g ? "Kein passender Katalogtitel." : "No matching catalogue title.",
+                                          message: g ? "Versuch einen anderen Titel oder prüf diesen Eintrag später."
+                                                     : "Try another title, or leave this one for later review.",
+                                          layout: .inline)
                         }
                     }
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
-            .padding(KuroDesignSpacing.lg)
-            .background(Color.kuroBackground.ignoresSafeArea())
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .padding(.horizontal, KuroDesignSpacing.padding)
+            .padding(.vertical, KuroDesignSpacing.lg)
+            .background(Color.kuroCanvasPage.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(g ? "Abbrechen" : "Cancel") { dismiss() }
+                        .foregroundStyle(Color.kuroInk)
+                }
+            }
         }
+        .tint(Color.kuroInk)
         .onAppear { scope.activate(session: imports.accountSession); query = item.title }
         .onDisappear { scope.deactivate() }
         .onChange(of: imports.accountSession.current) { _, _ in scope.deactivate(); dismiss() }
@@ -57,13 +98,28 @@ struct ImportCatalogMatchPicker: View {
             guard scope.isCurrent(origin, session: imports.accountSession) else { return }
             onSelect(candidate.id); dismiss()
         } label: {
-            VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
-                Text(candidate.title).font(.kuroTitle()).fixedSize(horizontal: false, vertical: true)
-                Text(candidate.detail).font(.kuroCaption()).foregroundStyle(Color.kuroTextSecondary)
-                Text("Select this \(item.medium.capitalized)").font(.kuroCaption())
-            }.foregroundStyle(Color.kuroBlack80)
+            HStack(alignment: .center, spacing: KuroDesignSpacing.sm) {
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.xs) {
+                    Text(candidate.title)
+                        .font(.kuroTitle())
+                        .foregroundStyle(Color.kuroInk)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(candidate.detail).font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
+                }
+                Spacer(minLength: KuroDesignSpacing.sm)
+                Image(systemName: "arrow.right")
+                    .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 20))
+                    .foregroundStyle(Color.kuroInk)
+                    .accessibilityHidden(true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .padding(.vertical, KuroDesignSpacing.md)
+            .contentShape(Rectangle())
         }
-        .padding(KuroDesignSpacing.md).background(Color.kuroBlack04, in: RoundedRectangle(cornerRadius: KuroRadius.md))
+        .buttonStyle(KuroPressStyle(pressedScale: 0.99))
+        .overlay(alignment: .bottom) { Rectangle().fill(Color.kuroHairline).frame(height: 0.5) }
+        .accessibilityHint(german ? "Diesen Titel zuordnen" : "Matches this title")
     }
 
     private func find() async {
@@ -79,12 +135,12 @@ struct ImportCatalogMatchPicker: View {
             if item.medium.lowercased() == "manga" {
                 candidates = try await search.fetchSearchMangaPage(query: requested, filters: nil,
                     cursorRank: nil, cursorPopularity: nil, cursorId: nil, limit: 20).map {
-                        Candidate(id: $0.id, title: $0.title, detail: "Manga · \($0.format ?? "Unknown format")")
+                        Candidate(id: $0.id, title: $0.title, detail: ["Manga", $0.format].compactMap { $0 }.joined(separator: " · "))
                     }
             } else {
                 candidates = try await search.fetchSearchAnimePage(query: requested, filters: nil,
                     cursorRank: nil, cursorPopularity: nil, cursorId: nil, limit: 20).map {
-                        Candidate(id: $0.id, title: $0.title, detail: "Anime · \($0.format ?? "Unknown format")")
+                        Candidate(id: $0.id, title: $0.title, detail: ["Anime", $0.format].compactMap { $0 }.joined(separator: " · "))
                     }
             }
             guard scope.isCurrent(origin, session: imports.accountSession), requested == query.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
@@ -92,7 +148,7 @@ struct ImportCatalogMatchPicker: View {
         } catch is CancellationError { return }
         catch {
             guard scope.isCurrent(origin, session: imports.accountSession), requested == query.trimmingCharacters(in: .whitespacesAndNewlines) else { return }
-            self.error = "Catalog search could not be loaded. Try again."
+            self.error = german ? "Die Katalogsuche konnte nicht geladen werden." : "Catalogue search couldn't load."
         }
     }
 }
