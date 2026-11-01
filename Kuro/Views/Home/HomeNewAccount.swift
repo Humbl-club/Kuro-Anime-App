@@ -22,7 +22,8 @@ import SwiftUI
 // - Latch the mount condition. The first one-tap Plan here adds the account's first title, so a live
 //   `allEntries.isEmpty` check would unmount this block under the user's finger. Decide "new account"
 //   once, when the Library first reports `.loaded` with no entries (`TastePageCopy.latchNewAccount`),
-//   and keep it until the Library leaves `.loaded` (sign-out, account switch) or the next visit.
+//   and keep it until the Library leaves `.loaded` (sign-out, account switch) or the page is mounted
+//   again (the pager keeps the current page and its neighbours mounted).
 // - Plan results: install `.tastePlanHost(controller)` (with a `@State TastePlanController`) on the
 //   Home page outside its ScrollView, so the toast with Undo sits at the screen foot. Without a host,
 //   this block installs its own, and the toast is drawn at the foot of the block instead.

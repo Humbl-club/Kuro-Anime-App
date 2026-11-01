@@ -47,4 +47,9 @@ Open items for the lead / Task 10 (outside this lane)
    block installs its own and the toast draws at the foot of the block. Lane 4 should also latch its
    new-account mount condition (TastePageCopy.latchNewAccount), so the first Plan does not unmount the block.
 5. AX5 renders change the process-wide KuroTypeScale for the length of one render and restore it after.
-   A concurrently running suite that measures Kuro fonts could observe it for that moment.
+   They run only with KURO_WRITE_SNAPSHOTS=1, so ordinary and full-suite runs never touch the scale.
+6. New-account premises. ref-taste-new-manga-390 shows a premise under each new-account pick. The
+   Discover bundle rows that feed new-account picks carry no synopsis, so no premise is drawn (never a
+   placeholder). Closing this needs a synopsis on the bundle rows (backend) or a per-title read.
+7. The new-account latch clears when the Library leaves .loaded or the page is mounted again. The pager
+   keeps the current page and its neighbours mounted, so it holds while the user stays near Taste.

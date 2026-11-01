@@ -26,8 +26,10 @@ struct TastePicksView: View {
     /// Per medium: the last load could not settle that medium's picks and nothing is on screen.
     @State private var animeFailed = false
     @State private var mangaFailed = false
-    /// "A first favourite." is decided once per visit (`TastePageCopy.latchNewAccount`): a Plan on
-    /// this page never swaps the heading under the user's finger.
+    /// "A first favourite." is decided once (`TastePageCopy.latchNewAccount`): a Plan on this page
+    /// never swaps the heading under the user's finger. It is cleared when the Library leaves `.loaded`
+    /// (sign-out, account switch) and when the page is mounted again (the pager keeps the current page
+    /// and its neighbours mounted, so it holds while the user stays near Taste).
     @State private var startedAsNewAccount: Bool?
     /// The Plan keys' writes, their double-tap guard and the result toast with Undo.
     @State private var plans = TastePlanController()

@@ -17,6 +17,10 @@ struct FirstRunSnapshotTests {
         .deletingLastPathComponent()
         .deletingLastPathComponent()
 
+    /// Committed PNGs are being rewritten. The AX5 renders change the process-wide `KuroTypeScale`
+    /// for a moment, so they run only then, never in an ordinary (possibly concurrent) test run.
+    private static let writing = ProcessInfo.processInfo.environment["KURO_WRITE_SNAPSHOTS"] == "1"
+
     private static let outDir: URL = {
         guard ProcessInfo.processInfo.environment["KURO_WRITE_SNAPSHOTS"] == "1" else {
             return FileManager.default.temporaryDirectory.appendingPathComponent("kuro-firstrun", isDirectory: true)
@@ -51,11 +55,13 @@ struct FirstRunSnapshotTests {
                                     .environment(\.tasteGerman, true),
                                  width: 390, height: medium == .anime ? 1_560 : 1_880,
                                  name: "home-new-\(medium.rawValue)-de-390.png", settle: 1_400))
-            #expect(await renderAX5(Self.homeNewPage(medium: medium, picks: picks, width: 390)
+            if Self.writing {
+                #expect(await renderAX5(Self.homeNewPage(medium: medium, picks: picks, width: 390)
                                        .environment(graph.library)
                                        .environment(graph.libraryActions),
                                     width: 390, height: 2_600,
                                     name: "home-new-\(medium.rawValue)-ax5-390.png"))
+            }
         }
         await graph.session.endSession()
         defaults.removePersistentDomain(forName: "firstrun-home")
@@ -108,9 +114,11 @@ struct FirstRunSnapshotTests {
                                  name: "taste-loading-\(medium.rawValue)-390.png", settle: 400))
             #expect(await render(page(medium, .cards(busy), newAccount: false).environment(\.tasteGerman, true),
                                  width: 390, height: 844, name: "taste-busy-\(medium.rawValue)-de-390.png", settle: 1_400))
-            #expect(await renderAX5(page(medium, .cards(busy), newAccount: false), width: 390,
+            if Self.writing {
+                #expect(await renderAX5(page(medium, .cards(busy), newAccount: false), width: 390,
                                     height: 2_600,
                                     name: "taste-busy-\(medium.rawValue)-ax5-390.png"))
+            }
         }
         // A because-you pick the launch's bundle also holds: its banner makes the landscape card.
         let joined = Array(Self.cards(.anime, premise: true, banner: true).prefix(2))
