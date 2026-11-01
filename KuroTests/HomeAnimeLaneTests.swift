@@ -120,6 +120,27 @@ struct HomeAnimeLaneTests {
         #expect(!HomeShelfPolicy.isKnownCaughtUp(progress: 5, available: nil))
     }
 
+    @Test("A volume or season row never decides how many chapters or episodes are out")
+    func nextUnitMatchesTheTrackedUnit() {
+        func row(_ kind: ReleaseUnitKind, _ number: Double?, basis: ReleaseBasis = .confirmed,
+                 medium: MediaKind = .manga) -> ReleaseScheduleItem {
+            ReleaseScheduleItem(medium: medium, mediaId: 1, title: "T", unitKind: kind, unitNumber: number,
+                                releaseAt: Date(timeIntervalSince1970: 1_900_000_000), basis: basis, source: "anilist")
+        }
+        #expect(HomeShelfPolicy.nextUnitNumber([row(.volume, 11)], medium: .manga) == nil)
+        #expect(HomeShelfPolicy.nextUnitNumber([row(.volume, 11), row(.chapter, 81)], medium: .manga) == 81)
+        #expect(HomeShelfPolicy.nextUnitNumber([row(.chapter, 81, basis: .estimated)], medium: .manga) == nil)
+        #expect(HomeShelfPolicy.nextUnitNumber([row(.chapter, 81.5)], medium: .manga) == nil)
+        #expect(HomeShelfPolicy.nextUnitNumber([row(.season, 3, medium: .anime)], medium: .anime) == nil)
+        #expect(HomeShelfPolicy.nextUnitNumber([row(.episode, 9, medium: .anime)], medium: .anime) == 9)
+        // A releasing manga at ch. 80 whose only row is "Volume 11" stays unknown: never caught up.
+        let available = HomeShelfPolicy.availableUnits(
+            catalogueStatus: "RELEASING", total: nil,
+            nextUnit: HomeShelfPolicy.nextUnitNumber([row(.volume, 11)], medium: .manga))
+        #expect(available == nil)
+        #expect(!HomeShelfPolicy.isKnownCaughtUp(progress: 80, available: available))
+    }
+
     @Test("Scene footer: one honest fact, else nothing; club names only when real")
     func sceneFact() {
         #expect(HomeSceneFact.make(hasNew: true, knownCaughtUp: false, clubNames: ["Mina"], medium: .anime, german: false)

@@ -635,8 +635,12 @@ struct HomeView: View {
     /// and the next known, non-estimated release of this title.
     private func availableUnits(_ card: HomeCard) -> Int? {
         let total = mediumKind == .manga ? card.chapters : card.episodes
-        let next = releases.nextRelease(for: MediaKey(kind: mediumKind, id: card.mediaId))
-        let nextUnit = next.flatMap { $0.basis == .estimated ? nil : $0.wholeUnitNumber }
+        let key = MediaKey(kind: mediumKind, id: card.mediaId)
+        // The title's next release first, then its other rows still ahead (soonest first), so a
+        // volume or season row never decides how many chapters or episodes are out.
+        let candidates = [releases.nextRelease(for: key)].compactMap { $0 }
+            + releases.scheduleItems(for: mediumKind).filter { $0.key == key }
+        let nextUnit = HomeShelfPolicy.nextUnitNumber(candidates, medium: mediumKind)
         return HomeShelfPolicy.availableUnits(catalogueStatus: card.catalogueStatus, total: total, nextUnit: nextUnit)
     }
 

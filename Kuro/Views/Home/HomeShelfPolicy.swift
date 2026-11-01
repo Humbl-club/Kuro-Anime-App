@@ -1,4 +1,5 @@
 import Foundation
+import KuroCore
 import KuroLibrary
 
 /// Which Home shelf the selected medium should show.
@@ -131,6 +132,15 @@ enum HomeShelfPolicy {
         default:
             return nil
         }
+    }
+
+    /// The next release's unit number for availability: the first candidate row (soonest first) that
+    /// counts the unit Home tracks (episodes for anime, chapters for manga), is not an estimate and
+    /// carries a whole number. A volume or season row never stands in for a chapter or an episode.
+    static func nextUnitNumber(_ candidates: [ReleaseScheduleItem], medium: MediaKind) -> Int? {
+        let unit: ReleaseUnitKind = medium == .manga ? .chapter : .episode
+        return candidates.first { $0.unitKind == unit && $0.basis != .estimated && $0.wholeUnitNumber != nil }?
+            .wholeUnitNumber
     }
 
     /// A released unit the reader has not reached yet, on a title that is still releasing. A finished
