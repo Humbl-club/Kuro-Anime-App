@@ -1,6 +1,6 @@
 import Foundation
 
-// MARK: - Release copy (spec D10, §3.5 KuroReleaseLine)
+// MARK: - Release copy (spec D10, §3.3a, §3.5 KuroReleaseLine)
 // Pure EN/DE wording for a `ReleaseScheduleItem`. Every input that changes the output (now, language,
 // locale, time zone) is explicit, so tests pin all of them; views use `ReleaseCopy.current()`.
 //
@@ -9,11 +9,18 @@ import Foundation
 //   estimated  "Ch. 1197 · expected around Sun 9 Nov" "Kap. 1197 · voraussichtlich am So. 9. Nov."
 //   relative   "Ep. 7 · Today, 18:30" / "Tomorrow"   "Heute, 18:30" / "Morgen"
 //
-// An announced date stored as the first of a month at 00:00 UTC is a month window ("November");
-// any other announced date is a day without a time, read as its UTC calendar date (a day-only
-// value stored at 00:00 or 12:00 UTC never shows the previous day west of UTC); "today/tomorrow"
-// compares that date with the reader's local calendar day. A row with no date gets no date phrase
-// (the caller decides whether "Dates to come." fills an otherwise empty slot).
+// The row's precision (`effectivePrecision`, spec §3.3a) decides the shape, and a time of day is shown
+// only for an instant: day "Thu 15 Oct", month "November" ("February 2027" in another year), quarter
+// "Q1 2027", year "2027". Reading a date as a calendar day:
+//   - instant: the reader's local day;
+//   - a server-stated precision (day/month/quarter/year): the window starts at 00:00 in the source's
+//     zone, so the day is taken from the nearest midnight (UTC date of `releaseAt` + 11:59:59). That
+//     recovers the source date for every zone from UTC−12 to UTC+11 (JST, Europe, the Americas);
+//   - an inferred precision (no `release_precision`, the older contract): announced rows read their UTC
+//     calendar date (a day-only value stored at 00:00 or 12:00 UTC never shows the previous day west of
+//     UTC); estimated rows read the reader's local day, exactly as before the column existed.
+// "Today/tomorrow" compares that day with the reader's local calendar day. A row with no date gets no
+// date phrase (the caller decides whether "Dates to come." fills an otherwise empty slot).
 
 nonisolated struct ReleaseCopy {
     let now: Date
@@ -27,10 +34,12 @@ nonisolated struct ReleaseCopy {
     private let monthFormatter: DateFormatter
     private let monthYearFormatter: DateFormatter
     private let longDayFormatter: DateFormatter
-    /// Day-only (announced) dates: their UTC calendar date.
+    /// Day-only and window dates: their UTC (or nearest-source-midnight) calendar date.
     private let utcCalendar: Calendar
     private let utcDayFormatter: DateFormatter
     private let utcLongDayFormatter: DateFormatter
+    private let utcDayNumberFormatter: DateFormatter
+    private let utcShortMonthFormatter: DateFormatter
 
     init(now: Date, german: Bool, locale: Locale, timeZone: TimeZone) {
         self.now = now
@@ -50,6 +59,8 @@ nonisolated struct ReleaseCopy {
         utcCalendar = KuroLocale.calendar(locale: locale, timeZone: utc)
         utcDayFormatter = cache.formatter("EEEdMMM", locale: locale, timeZone: utc)
         utcLongDayFormatter = cache.formatter("EEEEdMMMM", locale: locale, timeZone: utc)
+        utcDayNumberFormatter = cache.formatter("d", locale: locale, timeZone: utc)
+        utcShortMonthFormatter = cache.formatter("MMM", locale: locale, timeZone: utc)
     }
 
     /// The reader's language, locale and zone (`KuroLocale`), at `now`.
@@ -105,25 +116,48 @@ nonisolated struct ReleaseCopy {
 
     // MARK: Date
 
+    /// How a row's date becomes a calendar day (see the file header).
+    private enum DayReading {
+        case local
+        case utc
+        case source
+    }
+
+    private func reading(_ item: ReleaseScheduleItem) -> DayReading {
+        if item.effectivePrecision == .instant { return .local }
+        if item.precision == nil { return item.basis == .estimated ? .local : .utc }
+        return .source
+    }
+
+    /// Nearest-midnight shift for a window stored at 00:00 in the source's zone.
+    private static let sourceMidnightShift: TimeInterval = 43_199
+
+    /// The date to format in UTC for a UTC or source reading.
+    private func utcDate(_ date: Date, _ reading: DayReading) -> Date {
+        reading == .source ? date.addingTimeInterval(Self.sourceMidnightShift) : date
+    }
+
     /// The date phrase after the separator, or nil when the row has no date or may not be shown.
     func datePhrase(_ item: ReleaseScheduleItem) -> String? {
         guard item.isDisplayable, let date = item.releaseAt else { return nil }
+        let precision = item.effectivePrecision
+        let reading = reading(item)
         if item.isPast {
-            return pick("released ", "erschienen ") + dayText(date, relativeCapitalized: false)
+            let when = windowText(date, precision: precision, reading: reading)
+                ?? dayPhrase(date, reading: reading, capitalized: false, long: false)
+            return pick("released ", "erschienen ") + when
         }
-        switch item.basis {
-        case .confirmed:
-            return "\(dayText(date, relativeCapitalized: true)), \(timeFormatter.string(from: date))"
-        case .announced:
-            if isMonthWindow(date) { return monthText(date) }
-            if let relative = relativeDay(announcedDay: date) { return relative.capitalized(with: locale) }
-            return utcDayFormatter.string(from: date)
-        case .estimated:
-            if relativeDay(date) != nil {
-                return pick("expected ", "voraussichtlich ") + dayText(date, relativeCapitalized: false)
+        if let window = windowText(date, precision: precision, reading: reading) {
+            return item.basis == .estimated ? estimatedWindow(window, precision: precision) : window
+        }
+        if item.basis == .estimated {
+            if let relative = relative(date, reading: reading) {
+                return pick("expected ", "voraussichtlich ") + relative
             }
-            return pick("expected around ", "voraussichtlich am ") + dayFormatter.string(from: date)
+            return pick("expected around ", "voraussichtlich am ") + dayPhrase(date, reading: reading, capitalized: false, long: false)
         }
+        let day = dayPhrase(date, reading: reading, capitalized: true, long: false)
+        return item.showsTime ? "\(day), \(timeFormatter.string(from: date))" : day
     }
 
     /// "Ep. 7 · Thu 15 Oct, 18:30". Without a date: the unit, plus " · Dates to come." when
@@ -138,21 +172,25 @@ nonisolated struct ReleaseCopy {
     func accessibilityLine(_ item: ReleaseScheduleItem) -> String {
         let unit = unitSpokenLabel(item)
         guard item.isDisplayable, let date = item.releaseAt else { return "\(unit), \(datesToCome)" }
-        let day = relativeDay(date).map { $0.capitalized(with: locale) } ?? longDayFormatter.string(from: date)
-        if item.isPast { return "\(unit), " + pick("released ", "erschienen ") + day }
-        switch item.basis {
-        case .confirmed: return "\(unit), \(day), \(timeFormatter.string(from: date))"
-        case .announced:
-            if isMonthWindow(date) { return "\(unit), " + monthText(date) }
-            let announcedDay = relativeDay(announcedDay: date).map { $0.capitalized(with: locale) }
-                ?? utcLongDayFormatter.string(from: date)
-            return "\(unit), " + announcedDay
-        case .estimated:
-            if let relative = relativeDay(date) {
+        let precision = item.effectivePrecision
+        let reading = reading(item)
+        if item.isPast {
+            let when = windowText(date, precision: precision, reading: reading)
+                ?? dayPhrase(date, reading: reading, capitalized: false, long: true)
+            return "\(unit), " + pick("released ", "erschienen ") + when
+        }
+        if let window = windowText(date, precision: precision, reading: reading) {
+            return "\(unit), " + (item.basis == .estimated ? estimatedWindow(window, precision: precision) : window)
+        }
+        if item.basis == .estimated {
+            if let relative = relative(date, reading: reading) {
                 return "\(unit), " + pick("expected ", "voraussichtlich ") + relative
             }
-            return "\(unit), " + pick("expected around ", "voraussichtlich am ") + longDayFormatter.string(from: date)
+            return "\(unit), " + pick("expected around ", "voraussichtlich am ")
+                + dayPhrase(date, reading: reading, capitalized: false, long: true)
         }
+        let day = dayPhrase(date, reading: reading, capitalized: true, long: true)
+        return item.showsTime ? "\(unit), \(day), \(timeFormatter.string(from: date))" : "\(unit), \(day)"
     }
 
     /// "Dates to come." / "Termine folgen." (rulebook §9).
@@ -172,7 +210,97 @@ nonisolated struct ReleaseCopy {
         return pick("via ", "über ") + name
     }
 
+    // MARK: Calendar grouping (Home)
+
+    /// The calendar day (year, month, day) a dated row falls on, read exactly as its date phrase reads
+    /// it; nil for an undated row, a row that may not be shown, or a month/quarter/year window.
+    func calendarDay(_ item: ReleaseScheduleItem) -> DateComponents? {
+        guard item.isDisplayable, let date = item.releaseAt else { return nil }
+        switch item.effectivePrecision {
+        case .month, .quarter, .year: return nil
+        case .instant, .day: break
+        }
+        let reading = reading(item)
+        if reading == .local { return calendar.dateComponents([.year, .month, .day], from: date) }
+        return utcCalendar.dateComponents([.year, .month, .day], from: utcDate(date, reading))
+    }
+
+    /// How many calendar days the row's day lies after the reader's today (negative: already past),
+    /// read exactly as `calendarDay` reads it. nil for windows and undated rows.
+    func daysFromToday(_ item: ReleaseScheduleItem) -> Int? {
+        guard let parts = calendarDay(item), let year = parts.year, let month = parts.month, let day = parts.day else {
+            return nil
+        }
+        let today = calendar.dateComponents([.year, .month, .day], from: now)
+        guard let todayYear = today.year, let todayMonth = today.month, let todayDay = today.day,
+              let rowNoon = utcCalendar.date(from: DateComponents(year: year, month: month, day: day, hour: 12)),
+              let todayNoon = utcCalendar.date(from: DateComponents(year: todayYear, month: todayMonth, day: todayDay, hour: 12))
+        else { return nil }
+        return utcCalendar.dateComponents([.day], from: todayNoon, to: rowNoon).day
+    }
+
+    /// Whether the row still lies ahead of the reader: an exact time not yet reached, a day not before
+    /// today, or any window. Rows without a date count as ahead (their date is still to come).
+    func isAhead(_ item: ReleaseScheduleItem) -> Bool {
+        guard item.isDisplayable, !item.isPast else { return false }
+        guard let at = item.releaseAt else { return true }
+        switch item.effectivePrecision {
+        case .instant: return at >= now
+        case .day: return (daysFromToday(item) ?? 0) >= 0
+        case .month, .quarter, .year: return true
+        }
+    }
+
+    /// A calendar day as a heading: "Today" / "Tomorrow" / "Thu 15 Oct" (capitalized), plus the day
+    /// numeral and short month for the date column. nil for incomplete components.
+    func dayHeading(_ day: DateComponents) -> (label: String, day: String, month: String)? {
+        guard let year = day.year, let month = day.month, let dayOfMonth = day.day,
+              let noon = utcCalendar.date(from: DateComponents(year: year, month: month, day: dayOfMonth, hour: 12))
+        else { return nil }
+        let label = relativeDay(announcedDay: noon).map { $0.capitalized(with: locale) } ?? utcDayFormatter.string(from: noon)
+        return (label, utcDayNumberFormatter.string(from: noon), utcShortMonthFormatter.string(from: noon))
+    }
+
     // MARK: Helpers
+
+    /// "today" / "tomorrow" (lower case) for the row's day under `reading`.
+    private func relative(_ date: Date, reading: DayReading) -> String? {
+        reading == .local ? relativeDay(date) : relativeDay(announcedDay: utcDate(date, reading))
+    }
+
+    /// The row's day: relative when it is today or tomorrow, else "Thu 15 Oct" (or "Thursday 15
+    /// October" when `long`).
+    private func dayPhrase(_ date: Date, reading: DayReading, capitalized: Bool, long: Bool) -> String {
+        if let relative = relative(date, reading: reading) {
+            return capitalized ? relative.capitalized(with: locale) : relative
+        }
+        switch reading {
+        case .local: return (long ? longDayFormatter : dayFormatter).string(from: date)
+        case .utc, .source: return (long ? utcLongDayFormatter : utcDayFormatter).string(from: utcDate(date, reading))
+        }
+    }
+
+    /// "November" / "February 2027", "Q1 2027", "2027" for a window; nil for an instant or a day.
+    private func windowText(_ date: Date, precision: ReleasePrecision, reading: DayReading) -> String? {
+        let start = utcDate(date, reading == .local ? .utc : reading)
+        switch precision {
+        case .instant, .day: return nil
+        case .month: return monthText(start)
+        case .quarter:
+            let parts = utcCalendar.dateComponents([.year, .month], from: start)
+            guard let year = parts.year, let month = parts.month else { return nil }
+            return "Q\((month - 1) / 3 + 1) \(year)"
+        case .year:
+            return utcCalendar.dateComponents([.year], from: start).year.map(String.init)
+        }
+    }
+
+    /// "expected in November" / "voraussichtlich im November"; a year window has no preposition in
+    /// German ("voraussichtlich 2027").
+    private func estimatedWindow(_ window: String, precision: ReleasePrecision) -> String {
+        if precision == .year { return pick("expected in ", "voraussichtlich ") + window }
+        return pick("expected in ", "voraussichtlich im ") + window
+    }
 
     /// "today" / "tomorrow" (lower case) when `date` falls on that calendar day in `timeZone`.
     private func relativeDay(_ date: Date) -> String? {
@@ -199,24 +327,10 @@ nonisolated struct ReleaseCopy {
         return nil
     }
 
-    private func dayText(_ date: Date, relativeCapitalized: Bool) -> String {
-        guard let relative = relativeDay(date) else { return dayFormatter.string(from: date) }
-        return relativeCapitalized ? relative.capitalized(with: locale) : relative
-    }
-
+    /// The month (UTC calendar) with its year when that is not the reader's current year.
     private func monthText(_ date: Date) -> String {
-        var utc = Calendar(identifier: .gregorian)
-        utc.timeZone = TimeZone(identifier: "UTC") ?? timeZone
-        let sameYear = utc.component(.year, from: date) == calendar.component(.year, from: now)
+        let sameYear = utcCalendar.component(.year, from: date) == calendar.component(.year, from: now)
         return sameYear ? monthFormatter.string(from: date) : monthYearFormatter.string(from: date)
-    }
-
-    /// First of a month at 00:00 UTC: the source announced a month, not a day.
-    private func isMonthWindow(_ date: Date) -> Bool {
-        var utc = Calendar(identifier: .gregorian)
-        utc.timeZone = TimeZone(identifier: "UTC") ?? timeZone
-        let parts = utc.dateComponents([.day, .hour, .minute, .second], from: date)
-        return parts.day == 1 && parts.hour == 0 && parts.minute == 0 && parts.second == 0
     }
 }
 

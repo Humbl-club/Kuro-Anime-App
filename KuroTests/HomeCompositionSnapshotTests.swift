@@ -48,35 +48,42 @@ struct HomeCompositionSnapshotTests {
         #expect(SeriesUnitPresentation.selectedEdition(Self.animeDetailBundle) == "")
     }
 
-    @Test("Calendar preserves source days and groups timed releases in the viewer's timezone")
-    func calendarSourceDays() throws {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = try #require(TimeZone(identifier: "America/Los_Angeles"))
-        let events: [HomeEvent] = Self.decode("""
-        [
-          {"event_id":"source-day","media_id":1,"title":"Demon Slayer","precision":"day","source_local_date":"2026-10-09"},
-          {"event_id":"timed","media_id":2,"title":"Attack on Titan","precision":"instant","at":"2026-10-10T02:00:00Z"},
-          {"event_id":"unknown","media_id":9,"title":"Undated title"}
+    @Test("Calendar groups the release schedule by the day each line reads, then windows, then undated")
+    func calendarReleaseDays() throws {
+        let now = Date(timeIntervalSince1970: 1_791_979_200) // Wed 14 Oct 2026, 12:00 UTC
+        let copy = ReleaseCopy(now: now, german: false, locale: Locale(identifier: "en_GB"),
+                               timeZone: try #require(TimeZone(identifier: "America/Los_Angeles")))
+        func row(_ id: Int, _ at: Date?, basis: ReleaseBasis = .confirmed, precision: ReleasePrecision? = nil) -> ReleaseScheduleItem {
+            ReleaseScheduleItem(medium: .anime, mediaId: id, title: "T\(id)", unitKind: .episode, unitNumber: 1,
+                                releaseAt: at, basis: basis, source: "anilist", precision: precision)
+        }
+        let items = [
+            // Sat 17 Oct 00:00 in Tokyo (a source day): Saturday for a reader in Los Angeles too.
+            row(1, Date(timeIntervalSince1970: 1_792_162_800), basis: .announced, precision: .day),
+            // Thu 15 Oct 16:30 UTC = 09:30 in Los Angeles (an instant on the reader's day).
+            row(2, Date(timeIntervalSince1970: 1_792_081_800)),
+            // A month window and an undated row.
+            row(3, Date(timeIntervalSince1970: 1_793_491_200), basis: .announced, precision: .month),
+            row(4, nil),
+            // Thu 15 Oct 23:00 UTC = 16:00 in Los Angeles: same day as row 2.
+            row(5, Date(timeIntervalSince1970: 1_792_105_200))
         ]
-        """)
-        let groups = HomeCalendarPresentation.groups(events, calendar: calendar)
-        #expect(groups.map(\.id) == ["2026-10-09", "unknown-unknown"])
-        try #require(groups.count == 2)
-        try #require(groups[0].events.count == 2 && groups[1].events.count == 1)
-        #expect(groups[0].events.map(\.id) == ["source-day", "timed"], "Keep the server's order within each day.")
-        #expect(groups[0].day == "9")
-        #expect(groups[1].label == "Date to come")
-        #expect(groups[1].day == "…")
-        #expect(groups[0].events[0].at == nil, "A source day must not acquire a fabricated release instant.")
-        #expect(groups[1].events[0].status == nil, "An undated event must not acquire a confirmed status.")
-        var buddhist = Calendar(identifier: .buddhist)
-        buddhist.timeZone = calendar.timeZone
-        let today = try #require(ISO8601DateFormatter().date(from: "2026-10-09T14:00:00Z"))
-        let buddhistGroups = HomeCalendarPresentation.groups(events, calendar: buddhist, now: today)
-        #expect(buddhistGroups.map(\.id) == ["2026-10-09", "unknown-unknown"], "ISO grouping must not adopt the viewer's calendar year.")
-        try #require(buddhistGroups.count == 2)
-        #expect(buddhistGroups[0].events.map(\.id) == ["source-day", "timed"])
-        #expect(buddhistGroups[0].label == "Today", "The source day and instant represent the same real local day.")
+        let groups = HomeCalendarPresentation.groups(items, copy: copy)
+        #expect(groups.map(\.id) == ["2026-10-15", "2026-10-17", "later", "undated"])
+        try #require(groups.count == 4)
+        #expect(groups[0].items.map(\.mediaId) == [2, 5], "Keep the server's order within each day.")
+        #expect(groups[0].label == "Tomorrow")
+        #expect(groups[1].label == "Sat 17 Oct" && groups[1].day == "17")
+        #expect(groups[2].kind == .later && groups[2].items.map(\.mediaId) == [3])
+        #expect(groups[3].kind == .undated && groups[3].label == "Dates to come" && groups[3].day == "…")
+        #expect(groups[3].items[0].releaseAt == nil, "An undated row never acquires a date.")
+        #expect(HomeCalendarPresentation.glanceCaption(items: items, copy: copy) == "3 this week")
+        #expect(HomeCalendarPresentation.glanceCaption(items: [row(4, nil)], copy: copy) == "Dates still to come")
+        let german = ReleaseCopy(now: now, german: true, locale: Locale(identifier: "de_DE"),
+                                 timeZone: try #require(TimeZone(identifier: "Europe/Berlin")))
+        #expect(HomeCalendarPresentation.glanceCaption(items: [], copy: german) == "Nichts angekündigt")
+        #expect(HomeCalendarPresentation.glanceCaption(items: [], copy: copy, offline: true) != "Nothing scheduled",
+                "offline with no rows is unknown, not empty")
     }
     private let widths: [CGFloat] = [320, 390, 430]
     private let outDir: URL = {
@@ -105,6 +112,8 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.library)
                     .environment(graph.libraryActions)
                     .environment(graph.imports)
+                    .environment(graph.releases)
+                    .environment(NetworkMonitor())
                     .environment(\.kuroRoutes, KuroRoutes.unhandled),
                 width: width,
                 name: "anime-home-\(Int(width)).png"
@@ -119,6 +128,8 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.library)
                     .environment(graph.libraryActions)
                     .environment(graph.imports)
+                    .environment(graph.releases)
+                    .environment(NetworkMonitor())
                     .environment(\.kuroRoutes, KuroRoutes.unhandled),
                 width: width,
                 name: "manga-home-\(Int(width)).png"
@@ -140,6 +151,8 @@ struct HomeCompositionSnapshotTests {
                 .environment(graph.library)
                 .environment(graph.libraryActions)
                 .environment(graph.imports)
+                .environment(graph.releases)
+                .environment(NetworkMonitor())
                 .environment(\.kuroRoutes, KuroRoutes.unhandled),
             width: 390,
             name: "empty-home-390.png"
@@ -190,7 +203,8 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.library)
                     .environment(graph.clubs)
                     .environment(graph.social)
-                    .environment(graph.catalog),
+                    .environment(graph.catalog)
+                    .environment(graph.releases),
                 width: width,
                 name: "detail-anime-\(Int(width)).png"
             )
@@ -201,7 +215,8 @@ struct HomeCompositionSnapshotTests {
                     .environment(graph.library)
                     .environment(graph.clubs)
                     .environment(graph.social)
-                    .environment(graph.catalog),
+                    .environment(graph.catalog)
+                    .environment(graph.releases),
                 width: width,
                 name: "detail-manga-\(Int(width)).png"
             )

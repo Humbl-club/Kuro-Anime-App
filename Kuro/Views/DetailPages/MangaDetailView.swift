@@ -48,9 +48,13 @@ struct MangaDetailView: View {
     @State private var screenLoadGeneration = UUID()
     @State private var creditsLoadGeneration = UUID()
 
+    @State private var releaseItems: [ReleaseScheduleItem]?
+    @State private var releaseSongs: [ThemeSong]?
+
     var body: some View {
         if flags.seriesHomeNativeV1Enabled {
-            SeriesMangaDetailView(manga: manga)
+            // Spec D15: the series page shows these legacy sections when its bundle has no series data.
+            SeriesMangaDetailView(manga: manga, legacy: { AnyView(legacyMangaDetail) })
         } else {
             legacyMangaDetail
         }
@@ -88,6 +92,9 @@ struct MangaDetailView: View {
                         
                         MangaMetaLineSection(manga: manga)
 
+                        // Next chapter / volume with its certainty; hidden until a source dates one.
+                        DetailNextReleaseSection(items: releaseItems ?? [])
+
                         // Description
                         if manga.hasMeaningfulSynopsis {
                             DescriptionSection(
@@ -103,7 +110,7 @@ struct MangaDetailView: View {
                         }
 
                         if !topTags.isEmpty {
-                            TagChipsSection(title: "SUB‑GENRES", tags: topTags.map(\.name))
+                            TagChipsSection(title: KuroLocale.text("SUB‑GENRES", "UNTERGENRES"), tags: topTags.map(\.name))
                         }
 
                         if flags.isCreditsCastV1Enabled {
@@ -143,7 +150,7 @@ struct MangaDetailView: View {
                         }
 
                         if !similar.isEmpty {
-                            MangaSimilarSection(title: "MORE LIKE THIS", items: similar, containerWidth: geometry.size.width)
+                            MangaSimilarSection(title: KuroLocale.text("MORE LIKE THIS", "ÄHNLICHE TITEL"), items: similar, containerWidth: geometry.size.width)
                         }
 
                         ClubActivitySection(mediaId: manga.id, mediaType: "MANGA")
@@ -160,8 +167,8 @@ struct MangaDetailView: View {
                             ) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "square.and.arrow.up")
-                                        .font(.system(size: 11, weight: .medium))
-                                    Text("SHARE")
+                                        .font(.kuroCustom(11, weight: .medium, maxSize: 18))
+                                    Text(KuroLocale.text("SHARE", "TEILEN"))
                                         .font(.kuroMicro(weight: .medium))
                                         .tracking(1.2)
                                 }
@@ -170,10 +177,10 @@ struct MangaDetailView: View {
                                 .padding(.vertical, 10)
                                 .background(
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color.black.opacity(0.04))
+                                        .fill(Color.kuroBlack04)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                                .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                                                .stroke(Color.kuroBlack08, lineWidth: 0.5)
                                         )
                                 )
                             }
@@ -187,7 +194,7 @@ struct MangaDetailView: View {
                             mediaType: "manga"
                         )
                     }
-                    .padding(.horizontal, ResponsiveLayout.padding())
+                    .padding(.horizontal, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
                     .padding(.top, KuroDesignSpacing.adaptive(KuroSpacing.lg, for: geometry.size.width))
                     .padding(.bottom, KuroDesignSpacing.adaptive(KuroSpacing.xl, for: geometry.size.width))
                 }
@@ -203,11 +210,11 @@ struct MangaDetailView: View {
                 // Custom Back Button
                 BackButton(dismiss: dismiss)
                     .padding(.top, safeTop + KuroSpacing.md)
-                    .padding(.leading, ResponsiveLayout.padding())
+                    .padding(.leading, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
             }
             .safeAreaInset(edge: .bottom) {
                 MangaActionButtons(manga: manga, onToast: showToast)
-                    .padding(.horizontal, ResponsiveLayout.padding())
+                    .padding(.horizontal, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
                     .padding(.top, 10)
                     .padding(.bottom, 10)
                     .background(
@@ -215,7 +222,7 @@ struct MangaDetailView: View {
                             .fill(Color.kuroBackground.opacity(0.86))
                             .overlay(
                                 Rectangle()
-                                    .fill(Color.black.opacity(0.08))
+                                    .fill(Color.kuroBlack08)
                                     .frame(height: 0.5),
                                 alignment: .top
                             )
@@ -302,6 +309,7 @@ struct MangaDetailView: View {
             creditsLoadGeneration = UUID()
             toastDismissTask?.cancel()
         }
+        .detailReleases(kind: .manga, id: manga.id, schedule: $releaseItems, songs: $releaseSongs)
         // This detail sheet's own presentation context: the cards and the action bar inside open their
         // routes here (stacked on this detail, as before).
         .routePresenter()
@@ -347,7 +355,7 @@ struct MangaMetaLineSection: View {
 
     var body: some View {
         let parts: [String] = [
-            scoreText.map { "SCORE \($0)" },
+            scoreText.map { KuroLocale.text("SCORE \($0)", "WERTUNG \($0)") },
             manga.year.isEmpty ? nil : manga.year,
             manga.format?.uppercased(),
             chaptersText,
@@ -423,7 +431,7 @@ struct MangaNextPickSection: View {
     var body: some View {
         if let manga = pick {
             VStack(alignment: .leading, spacing: KuroSpacing.md) {
-                Text("NEXT")
+                Text(KuroLocale.text("NEXT", "ALS NÄCHSTES"))
                     .font(.kuroCaption(weight: .medium))
                     .tracking(1.6)
                     .foregroundColor(.kuroBlack80)
@@ -466,13 +474,13 @@ struct MangaNextPickSection: View {
                         Spacer(minLength: 0)
 
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.kuroBlack30)
+                            .font(.kuroCustom(12, weight: .medium, maxSize: 19))
+                            .foregroundColor(.kuroInkQuiet)
                     }
                     .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.black.opacity(0.08), lineWidth: 0.8)
+                            .stroke(Color.kuroBlack08, lineWidth: 0.8)
                     )
                 }
                 .buttonStyle(.plain)
@@ -492,7 +500,8 @@ struct MangaHeroSection: View {
     @Binding var scrollOffset: CGFloat
     
     var body: some View {
-        let baseHeight = ResponsiveLayout.imageHeight(320)
+        // From the measured container (never the screen): about 320 pt on a 375 pt phone, capped on iPad.
+        let baseHeight = min(max(geometry.size.width * 0.85, 224), 480, max(geometry.size.height * 0.6, 224))
         let stretch = max(scrollOffset, 0)
         let parallax = min(scrollOffset, 0) * 0.32
 
@@ -540,13 +549,13 @@ struct MangaHeroSection: View {
                         .stroke(Color.white.opacity(0.65), lineWidth: 0.6)
                         .blendMode(.overlay)
                 )
-                .shadow(color: Color.black.opacity(0.22), radius: 18, x: 0, y: 12)
+                .shadow(color: Color.kuroBlack20, radius: 18, x: 0, y: 12)
 
                 Spacer(minLength: 0)
 
                 KuroStyle.mediaBadge("MANGA", isAnime: false)
             }
-            .padding(.horizontal, ResponsiveLayout.padding())
+            .padding(.horizontal, geometry.size.width <= 330 ? KuroDesignSpacing.md : KuroDesignSpacing.padding)
             .padding(.bottom, 16)
         }
         .frame(height: baseHeight)
@@ -570,7 +579,7 @@ struct MangaTitleSection: View {
             
             // Main Title
             Text(manga.displayTitle.uppercased())
-                .font(.system(size: ResponsiveLayout.fontSize(24), weight: .ultraLight, design: .serif))
+                .font(.kuroCustom(24, weight: .ultraLight, design: .serif, relativeTo: .title2, maxSize: 40))
                 .tracking(0.5)
                 .foregroundColor(.kuroBlack)
                 .lineSpacing(4)
@@ -584,7 +593,7 @@ struct MangaTitleSection: View {
                 
                 if let format = manga.format {
                     Text("•")
-                        .foregroundColor(.kuroBlack30)
+                        .foregroundColor(.kuroInkQuiet)
                     Text(format)
                         .font(.kuroMicro(weight: .light))
                         .tracking(1.0)
@@ -642,7 +651,7 @@ struct ChaptersSection: View {
         let origin = progressActionScope.capture(session: libraryActions.accountSession)
         return VStack(alignment: .leading, spacing: KuroSpacing.md) {
             HStack {
-                Text("CHAPTERS")
+                Text(KuroLocale.text("CHAPTERS", "KAPITEL"))
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.5)
                     .foregroundColor(.kuroBlack80)
@@ -656,7 +665,7 @@ struct ChaptersSection: View {
             }
 
             if shouldShowContinueLine {
-                Text("Continue with chapter \(nextChapterNumber).")
+                Text(KuroLocale.text("Continue with chapter \(nextChapterNumber).", "Weiter mit Kapitel \(nextChapterNumber)."))
                     .font(.kuroMicro(weight: .medium))
                     .foregroundColor(.kuroBlack60)
             }
@@ -691,7 +700,7 @@ struct ChaptersSection: View {
 
                 if !chapters.isEmpty && legalReadLink == nil {
                     HStack {
-                        Text("Link coming soon.")
+                        Text(KuroLocale.text("Link coming soon.", "Link folgt bald."))
                             .font(.kuroMicro(weight: .light))
                             .foregroundColor(.kuroBlack60)
                         Spacer()
@@ -705,8 +714,8 @@ struct ChaptersSection: View {
                         showAllChapters = true
                     }) {
                         DetailSectionUtilityButton(
-                            title: "VIEW ALL \(knownChapterTotal) CHAPTERS",
-                            subtitle: "Browse the full release list"
+                            title: KuroLocale.text("VIEW ALL \(knownChapterTotal) CHAPTERS", "ALLE \(knownChapterTotal) KAPITEL"),
+                            subtitle: KuroLocale.text("Browse the full release list", "Die ganze Liste durchsehen")
                         )
                     }
                 }
@@ -782,7 +791,7 @@ struct ChaptersSection: View {
             guard progressActionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             if outcome.error != nil {
                 KuroAccessibility.errorHaptic()
-                onError?(KuroToastState(kind: .error, title: "Update failed", subtitle: "Could not mark chapter \(ch.number).", actionTitle: nil, onAction: nil))
+                onError?(KuroToastState(kind: .error, title: KuroLocale.text("Update failed", "Nicht gespeichert"), subtitle: KuroLocale.text("Could not mark chapter \(ch.number).", "Kapitel \(ch.number) konnte nicht markiert werden."), actionTitle: nil, onAction: nil))
                 #if DEBUG
                 print("markRead failed for chapter \(ch.number): \(outcome)")
                 #endif
@@ -816,7 +825,7 @@ struct ChapterItemRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("CH \(chapter.number)".uppercased())
+                Text(KuroLocale.text("CH \(chapter.number)", "KAP. \(chapter.number)").uppercased())
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.0)
                     .foregroundColor(.kuroBlack80)
@@ -834,7 +843,7 @@ struct ChapterItemRow: View {
                 }
 
                 HStack(spacing: 6) {
-                    Text(hasExternalLink ? "READ READY" : "LINK PENDING")
+                    Text(hasExternalLink ? KuroLocale.text("READ READY", "LESEN") : KuroLocale.text("LINK PENDING", "LINK FOLGT"))
                         .font(.kuroMicro(weight: .medium))
                         .tracking(0.8)
                         .foregroundColor(hasExternalLink ? .kuroBlack80 : .kuroBlack60)
@@ -854,7 +863,7 @@ struct ChapterItemRow: View {
                     .scaleEffect(0.75)
             } else if isRead {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
                     .foregroundColor(.kuroBlack)
             } else {
                 Button(action: {
@@ -862,17 +871,20 @@ struct ChapterItemRow: View {
                     onMarkRead()
                 }) {
                     Image(systemName: "plus.circle")
-                        .font(.system(size: 16, weight: .regular))
+                        .font(.kuroCustom(16, weight: .regular, maxSize: 26))
                         .foregroundColor(.kuroBlack80)
+                        // 44 pt target (rulebook §8); the row's own tap opens the link.
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Mark read")
+                .accessibilityLabel(KuroLocale.text("Mark read", "Als gelesen markieren"))
             }
 
             if hasExternalLink {
                 Image(systemName: "link.circle")
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundColor(.kuroBlack30)
+                    .font(.kuroCustom(14, weight: .regular, maxSize: 22))
+                    .foregroundColor(.kuroInkQuiet)
             }
         }
         .padding(KuroSpacing.md)
@@ -884,9 +896,9 @@ struct ChapterItemRow: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(accessibilityLabelText())
         .accessibilityValue(accessibilityValueText())
-        .accessibilityHint(hasExternalLink ? "Opens legal read provider" : "")
+        .accessibilityHint(hasExternalLink ? KuroLocale.text("Opens legal read provider", "Öffnet den legalen Anbieter") : "")
         .accessibilityAction { if hasExternalLink { onOpen() } }
-        .accessibilityAction(named: "Mark read") {
+        .accessibilityAction(named: Text(KuroLocale.text("Mark read", "Als gelesen markieren"))) {
             if !isRead && !isMarking { onMarkRead() }
         }
     }
@@ -903,8 +915,8 @@ struct ChapterItemRow: View {
     }
 
     private func accessibilityValueText() -> Text {
-        if isMarking { return Text("Updating") }
-        return Text(isRead ? "Read" : "Not read")
+        if isMarking { return Text(KuroLocale.text("Updating", "Wird gespeichert")) }
+        return Text(isRead ? KuroLocale.text("Read", "Gelesen") : KuroLocale.text("Not read", "Nicht gelesen"))
     }
 }
 
@@ -967,7 +979,7 @@ struct ChapterListSheet: View {
                 VStack(spacing: KuroSpacing.sm) {
                     if legalReadLink == nil {
                         HStack {
-                            Text("Link coming soon.")
+                            Text(KuroLocale.text("Link coming soon.", "Link folgt bald."))
                                 .font(.kuroMicro(weight: .light))
                                 .foregroundColor(.kuroBlack60)
                             Spacer()
@@ -980,13 +992,13 @@ struct ChapterListSheet: View {
 
                     if hasLoadedOnce && chapters.isEmpty && !isLoading {
                         VStack(spacing: 10) {
-                            Text("NO CHAPTERS FOUND")
+                            Text(KuroLocale.text("NO CHAPTERS FOUND", "KEINE KAPITEL GEFUNDEN"))
                                 .font(.kuroMicro(weight: .medium))
                                 .tracking(1.2)
                                 .foregroundColor(.kuroBlack60)
                             Text(emptyStateMessage())
                                 .font(.kuroMicro(weight: .light))
-                                .foregroundColor(.kuroBlack30)
+                                .foregroundColor(.kuroInkQuiet)
                         }
                         .padding(.vertical, 32)
                     }
@@ -1012,7 +1024,7 @@ struct ChapterListSheet: View {
                             .padding(.vertical, 16)
                     }
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.top, KuroSpacing.md)
                 .padding(.bottom, KuroSpacing.xl)
             }
@@ -1122,7 +1134,7 @@ struct ChapterListSheet: View {
             guard progressActionScope.isCurrent(ticket, session: libraryActions.accountSession) else { return }
             if outcome.error != nil {
                 KuroAccessibility.errorHaptic()
-                showToast(KuroToastState(kind: .error, title: "Update failed", subtitle: "Could not mark chapter \(ch.number).", actionTitle: nil, onAction: nil))
+                showToast(KuroToastState(kind: .error, title: KuroLocale.text("Update failed", "Nicht gespeichert"), subtitle: KuroLocale.text("Could not mark chapter \(ch.number).", "Kapitel \(ch.number) konnte nicht markiert werden."), actionTitle: nil, onAction: nil))
                 #if DEBUG
                 print("markRead failed for chapter \(ch.number): \(outcome)")
                 #endif
@@ -1162,7 +1174,7 @@ struct VolumesSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: KuroSpacing.md) {
             HStack {
-                Text("VOLUMES")
+                Text(KuroLocale.text("VOLUMES", "BÄNDE"))
                     .font(.kuroMicro(weight: .medium))
                     .tracking(1.5)
                     .foregroundColor(.kuroBlack80)
@@ -1204,9 +1216,9 @@ struct VolumeCard: View {
         VStack(spacing: KuroSpacing.xs) {
             Image(systemName: "book.fill")
                 .font(.kuroBody())
-                .foregroundColor(.kuroBlack30)
+                .foregroundColor(.kuroInkQuiet)
             
-            Text("VOL \(volumeNumber)")
+            Text(KuroLocale.text("VOL \(volumeNumber)", "BD. \(volumeNumber)"))
                 .font(.kuroMicro(weight: .medium))
                 .tracking(0.5)
                 .foregroundColor(.kuroBlack80)
@@ -1237,7 +1249,7 @@ struct MangaActionButtons: View {
     @State private var readAvailabilityStatusCaption: String? = nil
 
     private var isGermanLocale: Bool {
-        Locale.preferredLanguages.first?.lowercased().hasPrefix("de") == true
+        KuroLocale.isGerman
     }
 
     private var isSaved: Bool {
@@ -1265,8 +1277,8 @@ struct MangaActionButtons: View {
             return note
         }
         return hasReadLink
-            ? (isGermanLocale ? "Rechtlich verfuegbaren Link oeffnen." : "Open legal provider link.")
-            : (isGermanLocale ? "Noch kein legaler Link verfuegbar." : "No legal provider link is available yet.")
+            ? (isGermanLocale ? "Rechtlich verfügbaren Link öffnen." : "Open legal provider link.")
+            : (isGermanLocale ? "Noch kein legaler Link verfügbar." : "No legal provider link is available yet.")
     }
 
     var body: some View {
@@ -1275,14 +1287,14 @@ struct MangaActionButtons: View {
             HStack(spacing: 10) {
                 Button { toggleSaved(origin: origin) } label: {
                     Image(systemName: isSaved ? "heart.fill" : "heart")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
                         .foregroundColor(.kuroBlack)
-                        .frame(width: 38, height: 38)
+                        .frame(width: 44, height: 44)
                         .background(Color.kuroBlack08)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(isSaved ? "Saved" : "Save")
+                .accessibilityLabel(isSaved ? KuroLocale.text("Saved", "Gemerkt") : KuroLocale.text("Save", "Merken"))
 
                 Button {
                     KuroAccessibility.impactHaptic(.medium)
@@ -1290,13 +1302,13 @@ struct MangaActionButtons: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text(isSaved ? "EDIT LIST" : "ADD TO LIST")
+                            .font(.kuroCustom(14, weight: .semibold, maxSize: 22))
+                        Text(isSaved ? KuroLocale.text("EDIT LIST", "LISTE BEARBEITEN") : KuroLocale.text("ADD TO LIST", "ZUR LISTE"))
                             .font(.kuroMicro(weight: .medium))
                             .tracking(1.1)
                     }
                     .foregroundColor(.kuroWhite)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, minHeight: 44)
                     .padding(.vertical, 12)
                     .background(Color.kuroBlack)
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -1309,7 +1321,7 @@ struct MangaActionButtons: View {
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "tag")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.kuroCustom(11, weight: .semibold, maxSize: 18))
                         Text(verdictButtonTitle.uppercased())
                             .font(.kuroMicro(weight: .medium))
                             .tracking(0.9)
@@ -1318,6 +1330,7 @@ struct MangaActionButtons: View {
                     .foregroundColor(.kuroBlack70)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 10)
+                    .frame(minHeight: 44)
                     .background(
                         Capsule(style: .continuous)
                             .fill(Color.kuroBlack06)
@@ -1328,21 +1341,21 @@ struct MangaActionButtons: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(userEntry?.verdict == nil ? "Set verdict" : "Edit verdict")
+                .accessibilityLabel(userEntry?.verdict == nil ? KuroLocale.text("Set verdict", "Urteil festlegen") : KuroLocale.text("Edit verdict", "Urteil bearbeiten"))
 
                 Button(action: handleReadAction) {
                     Image(systemName: hasReadLink ? "book.fill" : "book.closed")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.kuroCustom(13, weight: .semibold, maxSize: 21))
                         .foregroundColor(hasReadLink ? .kuroBlack : .kuroBlack30)
-                        .frame(width: 38, height: 38)
+                        .frame(width: 44, height: 44)
                         .background(Color.kuroBlack08)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(
                     hasReadLink
-                        ? (allLinks.count > 1 ? "Choose reading provider" : "Open reading provider")
-                        : "No legal reading link available"
+                        ? (allLinks.count > 1 ? KuroLocale.text("Choose reading provider", "Anbieter zum Lesen wählen") : KuroLocale.text("Open reading provider", "Anbieter zum Lesen öffnen"))
+                        : KuroLocale.text("No legal reading link available", "Kein legaler Link zum Lesen verfügbar")
                 )
             }
 
@@ -1357,7 +1370,7 @@ struct MangaActionButtons: View {
                 .fill(Color.kuroBackground)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.black.opacity(0.08), lineWidth: 0.8)
+                        .strokeBorder(Color.kuroBlack08, lineWidth: 0.8)
                 )
         )
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
@@ -1370,7 +1383,7 @@ struct MangaActionButtons: View {
         }
         .sheet(isPresented: $showProviders) {
             ProviderSelectionSheet(
-                title: "Read On",
+                title: KuroLocale.text("Read On", "Lesen bei"),
                 links: allLinks,
                 statusCaption: readAvailabilityStatusCaption
             ) { link in
@@ -1379,7 +1392,7 @@ struct MangaActionButtons: View {
                     outboundLinks.recordOutboundLink(mediaType: "MANGA", mediaId: manga.id, linkKind: "provider_sheet", provider: link.title)
                     openURL(url)
                 } else {
-                    onToast(.init(kind: .error, title: "Couldn’t open link", subtitle: "Try a different provider.", actionTitle: nil, onAction: nil))
+                    onToast(.init(kind: .error, title: KuroLocale.text("Couldn’t open link", "Link konnte nicht geöffnet werden"), subtitle: KuroLocale.text("Try a different provider.", "Versuch einen anderen Anbieter."), actionTitle: nil, onAction: nil))
                 }
             }
         }
@@ -1402,8 +1415,8 @@ struct MangaActionButtons: View {
                     onToast(
                         .init(
                             kind: .success,
-                            title: currentlySaved ? "Removed" : "Saved",
-                            subtitle: currentlySaved ? "Removed from your list" : "Added to Planning",
+                            title: currentlySaved ? KuroLocale.text("Removed", "Entfernt") : KuroLocale.text("Saved", "Gemerkt"),
+                            subtitle: currentlySaved ? KuroLocale.text("Removed from your list", "Aus deiner Liste entfernt") : KuroLocale.text("Added to Planning", "Zu „Geplant“ hinzugefügt"),
                             actionTitle: nil,
                             onAction: nil
                         )
@@ -1413,7 +1426,7 @@ struct MangaActionButtons: View {
                     onToast(
                         .init(
                             kind: .error,
-                            title: "Couldn't save",
+                            title: KuroLocale.text("Couldn't save", "Nicht gespeichert"),
                             subtitle: outcome.error.map { friendlyListMutationMessage($0, isGerman: false) },
                             actionTitle: nil,
                             onAction: nil
@@ -1430,8 +1443,8 @@ struct MangaActionButtons: View {
             onToast(
                 .init(
                     kind: .info,
-                    title: "Link coming soon",
-                    subtitle: "No legal provider link is available yet.",
+                    title: KuroLocale.text("Link coming soon", "Link folgt bald"),
+                    subtitle: KuroLocale.text("No legal provider link is available yet.", "Noch kein legaler Anbieter-Link verfügbar."),
                     actionTitle: nil,
                     onAction: nil
                 )

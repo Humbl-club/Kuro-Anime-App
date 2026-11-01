@@ -235,8 +235,8 @@ private struct FootnoteProseContent: View {
     }
 
     var body: some View {
-        let proseFont = Font.system(size: 14, weight: .light, design: .serif)
-        let linkFont = Font.system(size: 14, weight: .medium, design: .serif)
+        let proseFont = Font.kuroCustom(14, weight: .light, design: .serif, maxSize: 22)
+        let linkFont = Font.kuroCustom(14, weight: .medium, design: .serif, maxSize: 22)
 
         if let alt = alternateItem, let count = franchiseCount {
             let altLabel = alternateLabel(alt)
@@ -331,7 +331,7 @@ private struct FranchisePathSheet: View {
                         )
                     }
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.vertical, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)

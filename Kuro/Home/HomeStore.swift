@@ -32,11 +32,14 @@ final class HomeStore: AccountScopedState {
         set { localStatusMessage = newValue }
     }
     private(set) var storageUnavailable: String?
+    /// The last failed Home read was a lost connection (the view says "Offline.", not "Couldn't load").
+    private(set) var failureIsOffline = false
     var conflict: HomeProgressConflict? {
         guard let value = library.progressConflict else { return nil }
         let medium = value.key.kind.rawValue.lowercased()
         return HomeProgressConflict(key: "\(medium):\(value.key.id)",
-            title: (medium == "manga" ? manga : anime)?.active.first { $0.mediaId == value.key.id }?.title ?? "This title",
+            title: (medium == "manga" ? manga : anime)?.active.first { $0.mediaId == value.key.id }?.title
+                ?? KuroLocale.text("This title", "Dieser Titel"),
             localPosition: value.localPosition, serverPosition: value.serverPosition,
             serverRevision: value.serverRevision, lifecycleId: value.lifecycleId,
             medium: medium, mediaId: value.key.id)
@@ -77,7 +80,7 @@ final class HomeStore: AccountScopedState {
         if let storage = outbox ?? Self.makeOutbox() {
             configureProgress(storage: storage, sender: sender, acceptsWrites: progressWritesEnabled)
         } else {
-            storageUnavailable = "Progress could not be saved on this device."
+            storageUnavailable = HomeCopy.progressNotSaved
         }
     }
     #else
@@ -158,6 +161,7 @@ final class HomeStore: AccountScopedState {
         snapshotAccount = nil
         cachedSnapshotDates = [:]
         loadState = .idle
+        failureIsOffline = false
         statusMessage = nil
         lastAdvancedKey = nil
         lastAdvancedLifecycle = nil
@@ -235,7 +239,7 @@ final class HomeStore: AccountScopedState {
         }
         if bundle != nil, hasCachedFoundationMetadata {
             loadState = .loaded
-            statusMessage = "Showing saved Home. Club content needs a connection."
+            statusMessage = HomeCopy.showingSaved
         }
         return hasCachedFoundationMetadata
     }
@@ -287,7 +291,7 @@ final class HomeStore: AccountScopedState {
 
     func load() async {
         guard let account = accountSession.current else {
-            loadState = .failed("Sign in to see your Home.")
+            loadState = .failed(KuroLocale.text("Sign in to see your Home.", "Melde dich an, um dein Home zu sehen."))
             return
         }
         if bundle == nil { _ = await restorePersonalSnapshot(for: account, selection: .preserveSelection) }
@@ -302,7 +306,8 @@ final class HomeStore: AccountScopedState {
         loadState = .loading
         #if canImport(Supabase)
         guard let client else {
-            loadState = .failed("Home is not configured.")
+            failureIsOffline = false
+            loadState = .failed(HomeCopy.couldNotLoad)
             return
         }
         do {
@@ -324,16 +329,18 @@ final class HomeStore: AccountScopedState {
                 if requested == "manga" { manga = bundle } else { anime = bundle }
             }
             loadState = .loaded
+            failureIsOffline = false
             cachedSnapshotDates[requested] = nil
             statusMessage = nil
             await persistPersonalSnapshot(bundle, for: account)
         } catch {
             guard accountSession.current?.generation == generation, medium == requested,
                   request == loadGeneration, permissions == permissionGeneration else { return }
+            failureIsOffline = HomeCopy.isOffline(error)
             if isUsingCachedSnapshot, self.bundle != nil {
                 loadState = .loaded
-                statusMessage = "Showing saved Home. Club content needs a connection."
-            } else { loadState = .failed("Home could not be loaded.") }
+                statusMessage = failureIsOffline ? HomeCopy.offlineShowingSaved : HomeCopy.showingSaved
+            } else { loadState = .failed(failureIsOffline ? HomeCopy.offline : HomeCopy.couldNotLoad) }
             #if DEBUG
             print("[Home] bundle failed: \(error.localizedDescription)")
             #endif
@@ -341,8 +348,8 @@ final class HomeStore: AccountScopedState {
         #else
         if isUsingCachedSnapshot {
             loadState = .loaded
-            statusMessage = "Showing saved Home. Club content needs a connection."
-        } else { loadState = .failed("Home is not configured.") }
+            statusMessage = HomeCopy.showingSaved
+        } else { loadState = .failed(HomeCopy.couldNotLoad) }
         #endif
     }
 
@@ -378,7 +385,7 @@ final class HomeStore: AccountScopedState {
                 }
                 if attempt<2 { try await Task.sleep(nanoseconds:UInt64(attempt+1)*250_000_000) }
             }
-            guard adopted else { throw NSError(domain:"KuroImport",code:5,userInfo:[NSLocalizedDescriptionKey:"Your list is saved. Home is still catching up; retry to finish."]) }
+            guard adopted else { throw NSError(domain:"KuroImport",code:5,userInfo:[NSLocalizedDescriptionKey:KuroLocale.text("Your list is saved. Home is still catching up; try again to finish.", "Deine Liste ist gespeichert. Home holt noch auf; versuch es gleich noch einmal.")]) }
         }
         loadState = .loaded
         await restorePendingProjection()
@@ -406,7 +413,7 @@ final class HomeStore: AccountScopedState {
             if requested=="manga" { manga=current } else { anime=current }
         } catch {
             if accountSession.isCurrent(account),medium==requested,permissions==permissionGeneration,generation==loadGeneration,eventPageToken==token {
-                statusMessage="More dates could not be loaded. Try again."
+                statusMessage=KuroLocale.text("Couldn't load more dates. Try again.", "Weitere Termine konnten nicht geladen werden. Versuch es noch einmal.")
             }
         }
         #endif
@@ -432,7 +439,7 @@ final class HomeStore: AccountScopedState {
         } catch {
             if accountSession.isCurrent(account), medium == requested, permissions == permissionGeneration,
                generation == loadGeneration, pendingPageToken == token {
-                statusMessage = "More announcements could not be loaded. Try again."
+                statusMessage = KuroLocale.text("Couldn't load more announcements. Try again.", "Weitere Ankündigungen konnten nicht geladen werden. Versuch es noch einmal.")
             }
         }
         #endif
@@ -471,7 +478,7 @@ final class HomeStore: AccountScopedState {
         } catch {
             guard accountSession.isCurrent(account), request == loadGeneration,
                   permissions == permissionGeneration, medium == requested else { return }
-            statusMessage = "More titles could not be loaded."
+            statusMessage = KuroLocale.text("Couldn't load more titles. Try again.", "Weitere Titel konnten nicht geladen werden. Versuch es noch einmal.")
         }
         #endif
     }
@@ -509,15 +516,15 @@ final class HomeStore: AccountScopedState {
         guard let account = accountSession.current, let lifecycle = UUID(uuidString: lifecycleId) else { return }
         let current = displayedProgress(medium: medium, mediaId: mediaId, server: serverProgress, lifecycleId: lifecycle)
         if displayedUnitId(medium: medium, mediaId: mediaId, serverUnitId: serverUnitId, lifecycleId: lifecycle, serverRevision: baseRevision) != nil {
-            statusMessage = "Choose the next episode or chapter in its details."
+            statusMessage = HomeCopy.chooseNextUnit(medium: medium)
             return
         }
         if let label = displayedProgressLabel(medium: medium, mediaId: mediaId, serverLabel: serverLabel, lifecycleId: lifecycle, serverRevision: baseRevision), Int(label) != current {
-            statusMessage = "Choose the next episode or chapter in its details."
+            statusMessage = HomeCopy.chooseNextUnit(medium: medium)
             return
         }
-        if let episodeCap, current >= episodeCap { statusMessage = "Caught up"; return }
-        guard library.progressAvailable else { statusMessage = storageUnavailable ?? "Progress could not be saved on this device."; return }
+        if let episodeCap, current >= episodeCap { statusMessage = KuroLocale.text("You're caught up.", "Du bist auf dem neuesten Stand."); return }
+        guard library.progressAvailable else { statusMessage = storageUnavailable ?? HomeCopy.progressNotSaved; return }
         do {
             _ = try await library.storeProgress(ProgressIntent(accountId: account.userId.lowercased(), medium: medium,
                 mediaId: mediaId, lifecycleId: lifecycle, baseRevision: baseRevision,
@@ -529,7 +536,7 @@ final class HomeStore: AccountScopedState {
             #if canImport(UIKit)
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             #endif
-        } catch { if accountSession.isCurrent(account) { statusMessage = "Progress could not be saved on this device." } }
+        } catch { if accountSession.isCurrent(account) { statusMessage = HomeCopy.progressNotSaved } }
     }
 
     func setPosition(medium: String, mediaId: Int, user: SeriesDetailBundle.UserState, position: Int,
@@ -541,7 +548,7 @@ final class HomeStore: AccountScopedState {
                 baseRevision: user.serverRevision, position: position, positionLabel: label,
                 priorPosition: displayedProgress(medium: medium, mediaId: mediaId, server: user.progress, lifecycleId: lifecycle)))
             if accountSession.isCurrent(account) { statusMessage = nil }
-        } catch { if accountSession.isCurrent(account) { statusMessage = "Progress could not be saved on this device." } }
+        } catch { if accountSession.isCurrent(account) { statusMessage = HomeCopy.progressNotSaved } }
     }
 
     func undo(_ card: HomeCard) async {
@@ -552,7 +559,7 @@ final class HomeStore: AccountScopedState {
             if accountSession.isCurrent(account) { statusMessage = nil }
         } catch {
             if accountSession.isCurrent(account) {
-                statusMessage = (error as? LibraryError).map(LibraryActions.libraryErrorDescription) ?? "Progress could not be saved on this device."
+                statusMessage = (error as? LibraryError).map(HomeCopy.libraryError) ?? HomeCopy.progressNotSaved
             }
         }
     }
@@ -564,7 +571,7 @@ final class HomeStore: AccountScopedState {
         do {
             try await library.resolveProgressConflict(reapply: reapply, expected: expected)
             if accountSession.isCurrent(account) { statusMessage = nil }
-        } catch { if accountSession.isCurrent(account) { statusMessage = "Progress could not be saved on this device." } }
+        } catch { if accountSession.isCurrent(account) { statusMessage = HomeCopy.progressNotSaved } }
     }
 
     private func progressKey(medium: String, mediaId: Int) -> MediaKey {
@@ -604,7 +611,7 @@ final class HomeStore: AccountScopedState {
     func restorePendingProjection() async {
         guard let account = accountSession.current else { return }
         do { try await library.restoreProgress() }
-        catch { if accountSession.isCurrent(account) { statusMessage = "Saved progress could not be read." } }
+        catch { if accountSession.isCurrent(account) { statusMessage = KuroLocale.text("Saved progress couldn't be read.", "Gespeicherter Fortschritt konnte nicht gelesen werden.") } }
     }
 
     func drain() async { await library.drainProgress() }
@@ -662,3 +669,90 @@ private struct SupabaseHomeProgressSender: HomeProgressSending {
     }
 }
 #endif
+
+/// Home's EN/DE status copy (rulebook §9/§10: short, plain, true; no internal words).
+enum HomeCopy {
+    static var couldNotLoad: String {
+        KuroLocale.text("Couldn't load your Home.", "Dein Home konnte nicht geladen werden.")
+    }
+    static var offline: String {
+        KuroLocale.text("Offline. Connect to load your Home.", "Offline. Verbinde dich, um dein Home zu laden.")
+    }
+    static var showingSaved: String {
+        KuroLocale.text("Showing what you saw last.", "Du siehst den letzten Stand.")
+    }
+    static var offlineShowingSaved: String {
+        KuroLocale.text("Offline. Showing what you saw last.", "Offline. Du siehst den letzten Stand.")
+    }
+    static var progressNotSaved: String {
+        KuroLocale.text("Progress couldn't be saved on this device.", "Fortschritt konnte auf diesem Gerät nicht gespeichert werden.")
+    }
+    static func chooseNextUnit(medium: String) -> String {
+        medium == "manga"
+            ? KuroLocale.text("Choose the next chapter on its page.", "Wähle das nächste Kapitel auf der Seite des Titels.")
+            : KuroLocale.text("Choose the next episode on its page.", "Wähle die nächste Folge auf der Seite des Titels.")
+    }
+
+    /// The raw Library progress message the Undo control keys on (`KuroLibrary/LibraryProgress.swift`).
+    static let librarySavedOnDevice = "Saved on this device"
+
+    /// Library's own progress messages arrive in English (`KuroLibrary` has no locale); this is
+    /// their display text. Compare against the raw value, never against this result.
+    static func display(_ raw: String) -> String {
+        switch raw {
+        case HomeCopy.librarySavedOnDevice:
+            return KuroLocale.text("Saved on this device.", "Auf diesem Gerät gespeichert.")
+        case "That progress needs another look.":
+            return KuroLocale.text("That progress needs another look.", "Dieser Fortschritt braucht einen zweiten Blick.")
+        default:
+            // Home's own status lines are already EN/DE and pass through unchanged. Library's state
+            // message is only ever one of the two cases above (`KuroLibrary/LibraryProgress.swift`).
+            return raw
+        }
+    }
+
+    /// The message a Library `retryable`/`unavailable` error carries, as EN/DE copy. Wording Home does
+    /// not know (for example the internal "Incomplete progress receipts") never reaches the reader.
+    static func libraryMessage(_ raw: String) -> String {
+        switch raw {
+        case "That save is already on its way.":
+            return KuroLocale.text("That save is already on its way.", "Diese Speicherung ist schon unterwegs.")
+        case "Progress sync is paused.":
+            return KuroLocale.text("Progress sync is paused.", "Der Fortschrittsabgleich ist pausiert.")
+        case "This title is being changed by an import. Try again after Apply or Undo finishes.":
+            return KuroLocale.text("An import is changing this title. Try again when it's done.",
+                                   "Ein Import ändert diesen Titel gerade. Versuch es noch einmal, wenn er fertig ist.")
+        default:
+            return HomeCopy.progressNotSaved
+        }
+    }
+
+    /// A Library error as Home's EN/DE status line (Library's own text is English and partly internal).
+    static func libraryError(_ error: LibraryError) -> String {
+        switch error {
+        case .notAuthenticated:
+            return KuroLocale.text("You're signed out. Sign in and try again.", "Du bist abgemeldet. Melde dich an und versuch es noch einmal.")
+        case .notFound:
+            return KuroLocale.text("This title is no longer in your list.", "Dieser Titel ist nicht mehr in deiner Liste.")
+        case .conflict:
+            return KuroLocale.text("This changed on another device. Try again.", "Das wurde auf einem anderen Gerät geändert. Versuch es noch einmal.")
+        case .invalidValue:
+            return HomeCopy.progressNotSaved
+        case .retryable(let message), .unavailable(let message):
+            return libraryMessage(message)
+        }
+    }
+
+    /// A lost or absent connection (not a server or decoding failure).
+    static func isOffline(_ error: any Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed, .internationalRoamingOff,
+             .cannotConnectToHost, .cannotFindHost:
+            return true
+        default:
+            return false
+        }
+    }
+}
+

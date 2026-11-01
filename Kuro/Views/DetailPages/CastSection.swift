@@ -138,7 +138,7 @@ private struct CastCircleItem: View {
             .clipShape(Circle())
             .overlay(
                 Circle()
-                    .stroke(Color.black.opacity(0.08), lineWidth: 0.5)
+                    .stroke(Color.kuroBlack08, lineWidth: 0.5)
             )
 
             Text(displayName)
@@ -190,13 +190,13 @@ private struct CastCircleItem: View {
 
     private func roleBadge(_ label: String) -> some View {
         Text(label)
-            .font(.system(size: 8, weight: .semibold))
+            .font(.kuroCustom(8, weight: .semibold, maxSize: 13))
             .tracking(1.0)
-            .foregroundColor(.black.opacity(0.55))
+            .foregroundColor(.kuroTextSecondary)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(
-                Capsule().fill(Color.black.opacity(0.06))
+                Capsule().fill(Color.kuroBlack06)
             )
     }
 }
@@ -258,7 +258,7 @@ private struct CharacterDirectorySheet: View {
                         }
                     }
                 }
-                .padding(.horizontal, ResponsiveLayout.padding())
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .padding(.vertical, KuroSpacing.lg)
             }
             .background(Color.kuroBackground)
@@ -286,7 +286,7 @@ private struct CharacterDirectoryStatPill: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.kuroCustom(9, weight: .semibold, maxSize: 14))
                 .tracking(1.0)
                 .foregroundColor(.kuroTextTertiary)
 
@@ -299,7 +299,7 @@ private struct CharacterDirectoryStatPill: View {
         .padding(.vertical, 8)
         .background(
             Capsule()
-                .fill(Color.black.opacity(0.04))
+                .fill(Color.kuroBlack04)
         )
     }
 }

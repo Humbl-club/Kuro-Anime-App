@@ -45,12 +45,12 @@ struct ClubActivitySection: View {
                                         .font(.kuroMicro(weight: .medium))
                                         .tracking(1.4)
                                 }
-                            .foregroundColor(.black.opacity(0.78))
+                            .foregroundColor(.kuroBlack80)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .stroke(Color.black.opacity(0.12), lineWidth: 0.8)
+                                    .stroke(Color.kuroBlack12, lineWidth: 0.8)
                             )
                         }
                         .buttonStyle(.plain)
@@ -60,7 +60,7 @@ struct ClubActivitySection: View {
                 if activities.isEmpty {
                     Text("Add this to a club rail to watch together. No feeds, just shared rails.")
                         .font(.kuroCaption(weight: .light))
-                        .foregroundColor(.black.opacity(0.50))
+                        .foregroundColor(.kuroInkQuiet)
                 } else {
                     ForEach(activities, id: \.club.id) { activity in
                         ClubActivityCard(activity: activity, currentUserId: currentUserId)
@@ -91,7 +91,7 @@ private struct ClubActivityCard: View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
             Text(activity.club.name)
                 .font(.kuroBody(weight: .medium))
-                .foregroundColor(.black.opacity(0.85))
+                .foregroundColor(.kuroBlack85)
 
             ForEach(activity.matchingItems, id: \.item.id) { match in
                 ClubActivityItemRow(
@@ -161,19 +161,19 @@ private struct ClubActivityItemRow: View {
             if !aggregateText.isEmpty {
                 Text(aggregateText)
                     .font(.kuroCaption())
-                    .foregroundColor(.black.opacity(0.55))
+                    .foregroundColor(.kuroTextSecondary)
             }
 
             if let myStatus = item.my_status {
                 HStack(spacing: 6) {
                     Text("You:")
                         .font(.kuroCaption())
-                        .foregroundColor(.black.opacity(0.55))
+                        .foregroundColor(.kuroTextSecondary)
                     ClubStatusPill(status: myStatus)
                     if let progress = item.my_progress, progress > 0 {
                         Text(progressText(current: progress, total: item.totalCount))
                             .font(.kuroCaption())
-                            .foregroundColor(.black.opacity(0.45))
+                            .foregroundColor(.kuroInkQuiet)
                     }
                 }
             }
@@ -191,9 +191,9 @@ private struct ClubActivityItemRow: View {
                 } label: {
                     Text(showMembers ? "Hide members" : "\(members.count) members")
                         .font(.kuroCaption(weight: .medium))
-                        .foregroundColor(.black.opacity(0.55))
+                        .foregroundColor(.kuroTextSecondary)
                 }
-                .tint(.black.opacity(0.40))
+                .tint(.kuroInkQuiet)
             }
         }
     }
@@ -219,11 +219,11 @@ private struct ClubStatusPill: View {
     var body: some View {
         Text(displayText)
             .font(.kuroCaption())
-            .foregroundColor(.black.opacity(0.55))
+            .foregroundColor(.kuroTextSecondary)
             .padding(.horizontal, 8)
             .padding(.vertical, 2)
             .background(
-                Capsule().fill(Color.black.opacity(0.06))
+                Capsule().fill(Color.kuroBlack06)
             )
     }
 }
@@ -385,18 +385,18 @@ private struct ClubMemberStatusList: View {
 
                         Text(initial)
                             .font(.kuroMicro(weight: .semibold))
-                            .foregroundColor(.black.opacity(0.50))
+                            .foregroundColor(.kuroInkQuiet)
                             .frame(width: 22, height: 22)
                             .background(
                                 RoundedRectangle(cornerRadius: KuroRadius.xs)
-                                    .fill(Color.black.opacity(0.06))
+                                    .fill(Color.kuroBlack06)
                             )
 
                         VStack(alignment: .leading, spacing: 1) {
                             HStack(spacing: 6) {
                                 Text(label)
                                     .font(.kuroCaption(weight: .medium))
-                                    .foregroundColor(.black.opacity(0.70))
+                                    .foregroundColor(.kuroBlack70)
 
                                 if let role = roleById[ms.user_id]?.uppercased(),
                                    role != "MEMBER",
@@ -409,7 +409,7 @@ private struct ClubMemberStatusList: View {
 
                                 if active && !isMe {
                                     Circle()
-                                        .fill(Color.black.opacity(0.30))
+                                        .fill(Color.kuroBlack30)
                                         .frame(width: 4, height: 4)
                                 }
                             }
@@ -427,7 +427,7 @@ private struct ClubMemberStatusList: View {
                                    let progress = ms.progress, progress > 0 {
                                     Text(progressText(progress))
                                         .font(.kuroCaption())
-                                        .foregroundColor(.black.opacity(0.40))
+                                        .foregroundColor(.kuroInkQuiet)
                                         .monospacedDigit()
                                 }
                             }
@@ -441,10 +441,10 @@ private struct ClubMemberStatusList: View {
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
                                 RoundedRectangle(cornerRadius: 1)
-                                    .fill(Color.black.opacity(0.06))
+                                    .fill(Color.kuroBlack06)
                                     .frame(height: 2)
                                 RoundedRectangle(cornerRadius: 1)
-                                    .fill(Color.black.opacity(0.25))
+                                    .fill(Color.kuroBlack25)
                                     .frame(width: geo.size.width * fraction, height: 2)
                             }
                         }

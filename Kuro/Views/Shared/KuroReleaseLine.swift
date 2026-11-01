@@ -3,7 +3,9 @@ import SwiftUI
 // MARK: - Release line (spec §3.5, D10)
 // One release row in certainty copy: "Ep. 7 · Thu 15 Oct, 18:30" (confirmed), "Vol. 115 · November"
 // (announced), "Ch. 1197 · expected around Sun 9 Nov" (estimated). The wording carries the
-// certainty; colour never does. German readers get de_DE and Europe/Berlin (`ReleaseCopy`).
+// certainty; colour never does. The row's `release_precision` decides the date shape and a time is
+// shown only for an instant (day "Thu 15 Oct", month "November", quarter "Q1 2027", year "2027";
+// spec §3.3a, see `ReleaseCopy`). German readers get de_DE and Europe/Berlin.
 // A row that may not be shown (an estimate below 0.7) renders nothing.
 
 struct KuroReleaseLine: View {

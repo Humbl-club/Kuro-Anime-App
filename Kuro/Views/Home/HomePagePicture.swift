@@ -1,14 +1,16 @@
 import SwiftUI
 
-/// The one Home field: mountain when the shelf is empty, first title art when it is not.
+/// The one Home field: mountain when the shelf is empty (or nothing is in progress), the first
+/// in-progress title's art when it is not.
 /// Pinned behind the status bar and header on Home; the selected Anime/Manga word masks the same image.
 struct HomePagePicture: View {
     @Environment(HomeStore.self) private var home
     var isActive: Bool = true
     var magnify: CGFloat = 1.7
 
+    /// The first title in progress; a planned title never stands for the shelf.
     private var coverCard: HomeCard? {
-        home.bundle?.active.first
+        HomeShelfPolicy.leadCard(home.bundle?.active ?? [])
     }
 
     var body: some View {
@@ -58,8 +60,9 @@ struct HomePagePicture: View {
 struct HomePagePictureFill: View {
     @Environment(HomeStore.self) private var home
 
+    /// The first title in progress; a planned title never stands for the shelf.
     private var coverCard: HomeCard? {
-        home.bundle?.active.first
+        HomeShelfPolicy.leadCard(home.bundle?.active ?? [])
     }
 
     var body: some View {
