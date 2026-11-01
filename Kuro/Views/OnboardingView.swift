@@ -105,7 +105,8 @@ struct OnboardingView: View {
         .sheet(isPresented: $showImport) {
             // Onboarding ends where the pager starts, so no Collection filter is set here (it would be
             // invisible); the imported titles are in Collection like any other.
-            ImportSourceChooser { _ in
+            // "Continue", not "See your lists": the lists are not on screen until onboarding ends.
+            ImportSourceChooser(resultAction: .continueFlow) { _ in
                 showImport = false
                 advance(to: .clubs)
             }

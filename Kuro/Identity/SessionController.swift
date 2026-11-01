@@ -600,11 +600,12 @@ final class SessionController {
             }
         } catch {
             settleRecoveryLink()
-            // A failed leg uses the flow up only when the server proved it is gone (SEC-2). Any other
-            // rejection (a stale or crafted `?code=`, another device's code, `bad_code_verifier`,
-            // `flow_state_not_found`) and any transport failure keep it: the SDK keeps its code
-            // verifier until a successful exchange, so the real email link still works afterwards.
-            if flowKind != nil, Self.failureEndsPendingFlow(error) { pendingFlows.consume() }
+            // A failed leg never uses the flow up (SEC-2): every error describes the code in the link,
+            // not this device's flow. A stale or crafted `?code=` (even an expired one, which GoTrue
+            // answers with `flow_state_expired` before it checks the verifier), another device's code
+            // and any transport failure keep it, so the real email link still works afterwards. The
+            // SDK keeps its code verifier until a successful exchange; `PendingAuthFlow.lifetime`
+            // bounds the local flow, and only a successful leg (below) consumes it.
             // A superseded attempt reports nothing (F01).
             guard isCurrentAttempt(attempt) else { return }
             reportAuthLinkFailure(Self.linkFailureMessage(for: error, german: isGermanLocale),
@@ -664,13 +665,6 @@ final class SessionController {
         guard recoveryLinkInFlight else { return }
         recoveryLinkInFlight = false
         identity.requiresPasswordUpdate = accountSession.current.map { passwordUpdates.isRequired(for: $0.userId) } ?? false
-    }
-
-    /// Whether a failed exchange or token apply proves the pending flow is over: only the server's
-    /// "expired" answers. Everything else (unknown codes, a foreign verifier, transport) keeps it.
-    nonisolated static func failureEndsPendingFlow(_ error: Error) -> Bool {
-        guard let code = AuthService.authErrorCode(of: error) else { return false }
-        return code == ErrorCode.flowStateExpired.rawValue || code == ErrorCode.otpExpired.rawValue
     }
 
     /// The message for a link whose exchange or verification failed.

@@ -1055,15 +1055,22 @@ struct KuroHeaderNew: View {
                             .foregroundColor(onPicture ? Color.kuroInk : Color.kuroTextTertiary)
                             .lineLimit(1)
                             .fixedSize()
+                            .accessibilitySortPriority(3)
                     }
                     Spacer(minLength: 0)
                     actionButtons
+                        .accessibilityElement(children: .contain)
+                        .accessibilitySortPriority(1)
                 }
 
                 sectionControl
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.trailing, layout.centreShift * 2)
+                    .accessibilitySortPriority(2)
             }
+            // The ZStack declares the section control last; explicit priorities keep the reading
+            // order wordmark, section, search, profile (as in the former single HStack).
+            .accessibilityElement(children: .contain)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
             .padding(.horizontal, 20)
             // 44 pt targets + 5 pt keeps the header at its 54 pt height at the default text size.

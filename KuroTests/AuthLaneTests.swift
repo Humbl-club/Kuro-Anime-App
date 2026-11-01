@@ -562,8 +562,8 @@ struct AuthLaneSessionTests {
         await h.tearDown()
     }
 
-    @Test("An exchange the server answers with an expired flow uses the flow up")
-    func definitiveFailureConsumesFlow() async throws {
+    @Test("An exchange the server answers with an expired flow keeps the pending flow (a stale or crafted expired code must not void the real link)")
+    func expiredCodeKeepsFlow() async throws {
         let h = try Self.harness(StubAuth.signInResponder { request in
             if StubAuth.isAuth(request, "token"), request.query("grant_type") == "pkce" {
                 return .json(#"{"error_code":"flow_state_expired","msg":"flow state has expired"}"#, status: 400)
@@ -574,7 +574,27 @@ struct AuthLaneSessionTests {
 
         await h.session.handleAuthCallback(AuthCallbackPayload(code: "stale"))
 
-        #expect(h.session.pendingFlows.current() == nil)
+        #expect(!h.identity.isAuthenticated)
+        #expect(!h.identity.requiresPasswordUpdate)
+        let kept = try #require(h.session.pendingFlows.current(), "only a successful leg or the flow's own lifetime ends it")
+        #expect(kept.kind == .recovery)
+        await h.tearDown()
+    }
+
+    @Test("An exchange the server answers with otp_expired keeps the pending flow")
+    func otpExpiredKeepsFlow() async throws {
+        let h = try Self.harness(StubAuth.signInResponder { request in
+            if StubAuth.isAuth(request, "token"), request.query("grant_type") == "pkce" {
+                return .json(#"{"error_code":"otp_expired","msg":"Email link is invalid or has expired"}"#, status: 403)
+            }
+            return .emptyArray
+        })
+        h.session.pendingFlows.begin(.recovery, email: "a@example.com")
+
+        await h.session.handleAuthCallback(AuthCallbackPayload(code: "expired"))
+
+        #expect(!h.identity.isAuthenticated)
+        #expect(h.session.pendingFlows.current() != nil)
         await h.tearDown()
     }
 
@@ -595,21 +615,6 @@ struct AuthLaneSessionTests {
         let kept = try #require(h.session.pendingFlows.current(), "a failed exchange must not void the real link")
         #expect(kept.kind == .recovery)
         await h.tearDown()
-    }
-
-    @Test("Only the server's expired answers end a pending flow after a failed link")
-    func failureEndsPendingFlowRule() throws {
-        let response = try #require(HTTPURLResponse(
-            url: URL(fileURLWithPath: "/token"), statusCode: 400, httpVersion: nil, headerFields: nil
-        ))
-        func apiError(_ code: ErrorCode) -> AuthError {
-            .api(message: code.rawValue, errorCode: code, underlyingData: Data(), underlyingResponse: response)
-        }
-        #expect(SessionController.failureEndsPendingFlow(apiError(.flowStateExpired)))
-        #expect(SessionController.failureEndsPendingFlow(apiError(.otpExpired)))
-        #expect(!SessionController.failureEndsPendingFlow(apiError(.badCodeVerifier)))
-        #expect(!SessionController.failureEndsPendingFlow(apiError(.flowStateNotFound)))
-        #expect(!SessionController.failureEndsPendingFlow(URLError(.notConnectedToInternet)))
     }
 
     @Test("Signed in, the account's own reset link is exchanged and opens the set-password screen")

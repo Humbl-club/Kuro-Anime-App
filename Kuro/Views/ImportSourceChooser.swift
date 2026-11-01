@@ -12,6 +12,14 @@ import UniformTypeIdentifiers
 /// import that needs review). The sheet cannot be closed while an import runs, because closing stops
 /// the coordinator and would cancel the write without a word.
 struct ImportSourceChooser: View {
+    /// What the result card's primary button does: open the lists, or (Onboarding, which cannot show
+    /// the lists yet) continue the presenter's own flow. Either way it calls `onNavigate`.
+    enum ResultAction {
+        case seeLists
+        case continueFlow
+    }
+
+    var resultAction: ResultAction = .seeLists
     var onNavigate: (ImportResultDestination) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -36,12 +44,15 @@ struct ImportSourceChooser: View {
     @State private var aniListInFlight = false
     /// The review handed to Concierge (an item sheet, so the prompt is never read stale).
     @State private var conciergeReview: ConciergeReview?
+    /// From the Undo tap until the coordinator's undo finishes: closing would cancel it mid-write.
+    @State private var undoInFlight = false
 
     private var isGerman: Bool { KuroLocale.isGerman }
 
     var body: some View {
         let owner = coordinator
-        let busy = aniListInFlight || owner?.isProcessingAniListImport == true
+        let undoing = undoInFlight
+        let busy = aniListInFlight || undoing || owner?.isProcessingAniListImport == true
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 HStack {
@@ -78,7 +89,9 @@ struct ImportSourceChooser: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                if busy {
+                if undoing {
+                    statusLine(isGerman ? "Import wird rückgängig gemacht …" : "Undoing the import …")
+                } else if busy {
                     statusLine(isGerman ? "Deine Liste wird importiert …" : "Importing your list …")
                 }
 
@@ -86,8 +99,19 @@ struct ImportSourceChooser: View {
                     ImportChooserResultCard(
                         result: result,
                         isGermanLocale: isGerman,
+                        primaryTitle: resultAction == .continueFlow
+                            ? (isGerman ? "Weiter" : "Continue")
+                            : (isGerman ? "Zu deinen Listen" : "See your lists"),
+                        isBusy: busy,
                         onDismiss: { owner?.dismissImportResult() },
-                        onUndo: { owner?.undo() },
+                        onUndo: {
+                            guard let task = owner?.undo() else { return }
+                            undoInFlight = true
+                            Task { @MainActor in
+                                await task.value
+                                undoInFlight = false
+                            }
+                        },
                         onReview: {
                             guard case .needsReview(_, _, _, let importText) = result else { return }
                             owner?.dismissImportResult()
@@ -323,6 +347,10 @@ private struct ConciergeReview: Identifiable {
 private struct ImportChooserResultCard: View {
     let result: ProfileImportResult
     let isGermanLocale: Bool
+    /// "See your lists", or "Continue" where the presenter cannot show the lists (Onboarding).
+    let primaryTitle: String
+    /// An import or its undo is running: every action here would close the chooser or cancel it.
+    let isBusy: Bool
     let onDismiss: () -> Void
     let onUndo: () -> Void
     let onReview: () -> Void
@@ -360,13 +388,14 @@ private struct ImportChooserResultCard: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .disabled(isBusy)
                 .accessibilityLabel(isGermanLocale ? "Hinweis schließen" : "Dismiss")
             }
 
             if isReview {
                 primaryButton(isGermanLocale ? "Im Concierge prüfen" : "Review in Concierge", action: onReview)
             } else {
-                primaryButton(isGermanLocale ? "Zu deinen Listen" : "See your lists", action: onSeeLists)
+                primaryButton(primaryTitle, action: onSeeLists)
                 if result.undoSessionId != nil {
                     Button(action: onUndo) {
                         Text(isGermanLocale ? "Import rückgängig machen" : "Undo import")
@@ -380,6 +409,7 @@ private struct ImportChooserResultCard: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .disabled(isBusy)
                 }
             }
         }
@@ -412,6 +442,7 @@ private struct ImportChooserResultCard: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(isBusy)
     }
 }
 
