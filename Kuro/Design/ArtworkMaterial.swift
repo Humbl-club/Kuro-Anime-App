@@ -139,6 +139,15 @@ nonisolated struct ArtworkMaterial: Equatable, Codable, Sendable {
         return ArtworkMaterial(base: clamped(KuroRGB(r, g, b)), method: "art-hue-v1")
     }
 
+    /// `derive`, or nil when no pixel qualifies (greyscale or monochrome artwork, such as black-and-white
+    /// manga covers). `derive` keeps the port's hue .4 fallback for parity with the prototype; the store
+    /// uses this variant so it never publishes that invented teal over a real AniList seed colour.
+    static func deriveIfHued(from cgImage: CGImage, banner: Bool) -> ArtworkMaterial? {
+        guard let hue = dominantHue(of: cgImage, banner: banner) else { return nil }
+        let (r, g, b) = hlsToRGB(h: hue, l: 0.24, s: 0.20)
+        return ArtworkMaterial(base: clamped(KuroRGB(r, g, b)), method: "art-hue-v1")
+    }
+
     // MARK: - Port internals
 
     /// The centre of the heaviest hue bin, or nil when no pixel qualifies (or the image cannot be drawn).

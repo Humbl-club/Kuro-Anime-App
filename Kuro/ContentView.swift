@@ -71,35 +71,13 @@ struct KuroRootView: View {
 }
 
 // MARK: - Launch View
+/// The launch overlay: the branded page loader (spec §5.4), the KURO wordmark settling letter by
+/// letter above the scrub line. Reduce Motion and Low Power show it composed.
 struct KuroLaunchView: View {
-    @State private var logoOpacity: Double = 0
-    @State private var subtitleOpacity: Double = 0
-    
     var body: some View {
         ZStack {
-            Color.kuroBackground.ignoresSafeArea()
-
-            VStack(spacing: 8) {
-                Text("KURO")
-                    .font(.kuroHeadline(weight: .ultraLight))
-                    .tracking(8)
-                    .foregroundColor(.kuroBlack)
-                    .opacity(logoOpacity)
-
-                Text(KuroLocale.text("CURATED ANIME & MANGA", "KURATIERTE ANIME & MANGA"))
-                    .font(.kuroMicro(weight: .light))
-                    .tracking(3)
-                    .foregroundColor(.kuroTextTertiary)
-                    .opacity(subtitleOpacity)
-            }
-            .onAppear {
-                withAnimation(.easeOut(duration: 1.2)) {
-                    logoOpacity = 1.0
-                }
-                withAnimation(.easeOut(duration: 1.2).delay(0.3)) {
-                    subtitleOpacity = 1.0
-                }
-            }
+            Color.kuroCanvasPage.ignoresSafeArea()
+            KuroLoadingView(scope: .page)
         }
     }
 }
@@ -275,7 +253,9 @@ struct KuroMainView: View {
 	                    .ignoresSafeArea()
 	                HomeInvitationWash()
 	            } else {
-	                selection.canvas.ignoresSafeArea()
+	                selection.canvas(mangaHome: home.medium == "manga").ignoresSafeArea()
+	                    .animation(KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.medium : nil,
+	                               value: selection.canvas(mangaHome: home.medium == "manga"))
 	            }
 
 	            VStack(spacing: 0) {
@@ -843,9 +823,28 @@ struct KuroHeaderRowLayout: Equatable {
     /// The prototype wordmark's tracking (SF 18 w800, tracking 3).
     static let wordmarkTracking: CGFloat = 3
 
-    /// A font size scaled with Dynamic Type for `style`, capped.
-    static func scaled(_ size: CGFloat, _ style: UIFont.TextStyle, max cap: CGFloat) -> CGFloat {
-        min(UIFontMetrics(forTextStyle: style).scaledValue(for: size), cap)
+    /// A font size scaled with Dynamic Type for `style`, capped. `traits` nil: the current text size.
+    static func scaled(_ size: CGFloat, _ style: UIFont.TextStyle, max cap: CGFloat,
+                       traits: UITraitCollection? = nil) -> CGFloat {
+        let metrics = UIFontMetrics(forTextStyle: style)
+        let value = traits.map { metrics.scaledValue(for: size, compatibleWith: $0) } ?? metrics.scaledValue(for: size)
+        return min(value, cap)
+    }
+
+    /// The page name's size (the navigation role) at `traits`, or at the current text size.
+    static func pageNameSize(traits: UITraitCollection?) -> CGFloat {
+        guard let traits else { return KuroTypeRole.navigation.pointSize }
+        let spec = KuroTypeRole.navigation.spec
+        return scaled(spec.base, spec.style, max: spec.cap, traits: traits)
+    }
+
+    /// The centre's width (sized for the longest page name) and the room on each side of it.
+    static func metrics(rowWidth: CGFloat, pageNames: [String],
+                        traits: UITraitCollection? = nil) -> (centreWidth: CGFloat, sideRoom: CGFloat) {
+        let nameSize = pageNameSize(traits: traits)
+        let longest = pageNames.map { measure($0, size: nameSize, weight: .regular) }.max() ?? 0
+        let centreWidth = max(44, longest + 8)
+        return (centreWidth, (rowWidth - centreWidth) / 2)
     }
 
     /// The width of `text` in the system font.
@@ -857,36 +856,42 @@ struct KuroHeaderRowLayout: Equatable {
 
     /// `rowWidth`: the row inside its side padding. `pageNames`: every page name in the pager (the
     /// centre is sized for the longest, so paging never moves it). `neighbourTitle`: the link's text, nil
-    /// when the page has none.
-    static func resolve(rowWidth: CGFloat, pageNames: [String], neighbourTitle: String?) -> KuroHeaderRowLayout {
-        let nameSize = KuroTypeRole.navigation.pointSize
-        let longest = pageNames.map { measure($0, size: nameSize, weight: .regular) }.max() ?? 0
-        let centreWidth = max(44, longest + 8)
-        let sideRoom = (rowWidth - centreWidth) / 2
-        let wordmarkWidth = measure("KURO", size: scaled(18, .headline, max: 26), weight: .heavy,
+    /// when the page has none. `traits` measures at that text size (tests); nil uses the current one.
+    /// The link is only ever shown with the wordmark, and the shift never exceeds the room beside the
+    /// centre, so the page name is never pushed past the leading edge.
+    static func resolve(rowWidth: CGFloat, pageNames: [String], neighbourTitle: String?,
+                        traits: UITraitCollection? = nil) -> KuroHeaderRowLayout {
+        let (_, sideRoom) = metrics(rowWidth: rowWidth, pageNames: pageNames, traits: traits)
+        let wordmarkWidth = measure("KURO", size: scaled(18, .headline, max: 26, traits: traits), weight: .heavy,
                                     tracking: wordmarkTracking)
-        let neighbourWidth = neighbourTitle.map { max(44, measure($0, size: scaled(12, .footnote, max: 20), weight: .regular) + 12) }
+        let neighbourWidth = neighbourTitle.map {
+            max(44, measure($0, size: scaled(12, .footnote, max: 20, traits: traits), weight: .regular) + 12)
+        }
         func fit(rightWidth: CGFloat) -> (fits: Bool, shift: CGFloat) {
-            let shift = max(0, rightWidth - sideRoom)
+            let shift = min(max(0, rightWidth - sideRoom), max(0, sideRoom))
             return (sideRoom - shift - wordmarkGap >= wordmarkWidth, shift)
         }
+        let withoutLink = fit(rightWidth: actionsWidth)
         guard let neighbourWidth else {
-            let plain = fit(rightWidth: actionsWidth)
-            return KuroHeaderRowLayout(showsWordmark: plain.fits, showsNeighbour: false, centreShift: plain.shift)
+            return KuroHeaderRowLayout(showsWordmark: withoutLink.fits, showsNeighbour: false, centreShift: withoutLink.shift)
         }
         let withLink = fit(rightWidth: actionsWidth + neighbourWidth)
         if withLink.fits { return KuroHeaderRowLayout(showsWordmark: true, showsNeighbour: true, centreShift: withLink.shift) }
-        let withoutLink = fit(rightWidth: actionsWidth)
-        if withoutLink.fits { return KuroHeaderRowLayout(showsWordmark: true, showsNeighbour: false, centreShift: withoutLink.shift) }
-        return KuroHeaderRowLayout(showsWordmark: false, showsNeighbour: true, centreShift: withLink.shift)
+        // The link steps aside first, then (largest text sizes on narrow rows) the wordmark too.
+        return KuroHeaderRowLayout(showsWordmark: withoutLink.fits, showsNeighbour: false, centreShift: withoutLink.shift)
     }
 }
 
 extension KuroMainView.Section {
-    /// The page canvas behind the pager and the header: the prototype's warm Home canvas on Home,
-    /// the white page elsewhere.
-    var canvas: Color {
-        self == .home ? Color.kuroCanvasHome : Color.kuroBackground
+    /// The page canvas behind the pager and the header (PROTOTYPE_SPEC.md §2): the warm Home canvas
+    /// `#fffef8` on Home and Taste, the manga Home canvas `#f5f5f3` while Home shows manga, the white
+    /// page elsewhere.
+    func canvas(mangaHome: Bool) -> Color {
+        switch self {
+        case .home: return mangaHome ? Color.kuroCanvasHomeManga : Color.kuroCanvasHome
+        case .taste: return Color.kuroCanvasHome
+        default: return Color.kuroBackground
+        }
     }
 }
 
@@ -901,8 +906,15 @@ struct KuroHeaderNew: View {
     @Environment(SessionController.self) private var session
     @Environment(ClubsStore.self) private var clubs
     @Environment(FeatureFlags.self) private var flags
+    @Environment(HomeStore.self) private var home
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    /// Reduce Motion and Low Power show the composed final frame (no slide, no dot travel, no fade).
+    private var playsMotion: Bool { KuroMotion.playsMotionNow(reduceMotion: reduceMotion) }
+
+    /// This page's canvas (Home's follows its medium).
+    private var canvas: Color { selection.canvas(mangaHome: home.medium == "manga") }
 
     private var swipeOrder: [KuroMainView.Section] {
         KuroMainView.Section.pagerOrder(
@@ -992,7 +1004,7 @@ struct KuroHeaderNew: View {
                     }
                 }
             }
-            .animation(reduceMotion ? nil : KuroMotion.settle, value: selection)
+            .animation(playsMotion ? KuroMotion.settle : nil, value: selection)
             .accessibilityHidden(true)
         }
         .frame(minHeight: 44)
@@ -1129,7 +1141,7 @@ struct KuroHeaderNew: View {
                 displayedSection = newValue
 
                 titleProgress = 0.0
-                withAnimation(reduceMotion ? nil : KuroMotion.settle) {
+                withAnimation(playsMotion ? KuroMotion.settle : nil) {
                     titleProgress = 1.0
                 }
 
@@ -1157,8 +1169,8 @@ struct KuroHeaderNew: View {
         }
         // Grows with the text size instead of clipping it.
         .frame(minHeight: 54)
-        .background(onPicture ? Color.clear : selection.canvas)
-        .kuroAnimation(KuroMotion.medium, value: selection == .home)
+        .background(onPicture ? Color.clear : canvas)
+        .animation(playsMotion ? KuroMotion.medium : nil, value: canvas)
     }
 }
 

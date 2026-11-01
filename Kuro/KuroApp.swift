@@ -152,15 +152,11 @@ private struct RootView: View {
                         }
                     }
                 } else if identity.isAuthBootstrapping {
-                    // The welcome's own mark on the white page, so launch → welcome reads as one surface.
+                    // The branded page loader (spec §5.4: launch and bootstrap), on the same white page as
+                    // the launch overlay, so launch → bootstrap reads as one surface.
                     ZStack {
                         Color.kuroCanvasPage.ignoresSafeArea()
-                        VStack(spacing: 18) {
-                            KuroWordmark()
-                            ProgressView()
-                                .tint(Color.kuroInkQuiet)
-                                .accessibilityLabel(KuroLocale.text("Loading", "Wird geladen"))
-                        }
+                        KuroLoadingView(scope: .page)
                     }
                 } else if identity.isAuthenticated && identity.requiresPasswordUpdate {
                     // A password-reset link signed this account in: a new password comes first (D12).

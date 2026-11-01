@@ -134,7 +134,7 @@ struct ConciergeAniListImportSheet: View {
             }
         case .ready:
             if usesStructuredPath {
-                ProgressView(isGermanLocale ? "Prüfung wird geöffnet …" : "Opening your review …")
+                KuroLoadingView(scope: .inline, label: isGermanLocale ? "Prüfung wird geöffnet …" : "Opening your review …")
             } else {
             VStack(alignment: .leading, spacing: 14) {
                 selectionSummaryCard
@@ -242,8 +242,7 @@ struct ConciergeAniListImportSheet: View {
             } label: {
                 HStack(spacing: 10) {
                     if coordinator.isPreviewing {
-                        ProgressView()
-                            .tint(Color.kuroWhite)
+                        KuroBusyMark(width: 24, tint: Color.kuroWhite, track: Color.kuroWhite.opacity(0.28))
                     }
                     Text(usesStructuredPath ? "READ COMPLETE LIST FOR REVIEW" : (isGermanLocale ? "VORSCHAU" : "PREVIEW"))
                         .font(.kuroCaption(weight: .medium))
@@ -443,9 +442,7 @@ struct ConciergeAniListImportSheet: View {
 
             if isImporting {
                 HStack(spacing: 8) {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                        .tint(.black.opacity(0.45))
+                    KuroBusyMark(width: 24)
                     Text(isGermanLocale ? "Import läuft..." : "Importing...")
                         .font(.kuroCaption(weight: .light))
                         .foregroundColor(.black.opacity(0.50))
@@ -466,9 +463,7 @@ struct ConciergeAniListImportSheet: View {
     private var previewLoadingCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                ProgressView()
-                    .scaleEffect(0.95)
-                    .tint(.black.opacity(0.45))
+                KuroBusyMark(width: 24)
                 Text(isGermanLocale ? "Vorschau wird geladen..." : "Loading preview...")
                     .font(.kuroCaption(weight: .light))
                     .foregroundColor(.kuroBlack60)
@@ -536,8 +531,7 @@ struct ConciergeAniListImportSheet: View {
             Button(action: primaryAction) {
                 HStack(spacing: 10) {
                     if coordinator.isImporting || coordinator.isPreviewing {
-                        ProgressView()
-                            .tint(Color.kuroWhite)
+                        KuroBusyMark(width: 24, tint: Color.kuroWhite, track: Color.kuroWhite.opacity(0.28))
                     }
                     Text(primaryTitle)
                         .font(.kuroCaption(weight: .medium))

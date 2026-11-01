@@ -5,6 +5,8 @@ import SwiftUI
 // materials (it only shows confirm / count / restore; these states are an extrapolation):
 //   KuroLoadingView   .inline: the travelling ink scrub line. .page: the KURO wordmark settling
 //                     letter by letter (60 ms stagger) above the scrub line. Launch / first loads.
+//                     A caller's `label` ("Searching the catalogue.") shows as a muted caption.
+//   KuroBusyMark      a short scrub line for a control that is working (button labels, rows).
 //   KuroSkeleton      quiet blocks shaped like the real component, with the scrub line under them.
 //   KuroErrorView     one ink stroke draws the mountain ridge once (1.2 s), a serif headline that
 //                     names what happened, one plain sentence, an ink-rule "Try again →".
@@ -14,7 +16,7 @@ import SwiftUI
 // `KuroBrandedState.resolve` decides which one a surface shows. Motion: the scrub line loops only
 // while loading and visible; everything else plays once. Reduce Motion and Low Power show the
 // composed final frame (the ridge drawn, the letters settled, the scrub line resting).
-// This file is the only place under Kuro/Views allowed to use `ProgressView(`
+// This file is the only place under Kuro/ allowed to use `ProgressView(`
 // (scripts/quality-gates/check_branded_states.sh).
 
 /// What a surface shows instead of (or over) its content. Pure.
@@ -140,8 +142,18 @@ struct KuroRidgeStroke: View {
                 .trim(from: 0, to: (draws && plays) ? progress : 1)
                 .stroke(Color.kuroInk, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
                 .onAppear {
-                    guard draws && plays, progress < 1 else { return }
-                    withAnimation(KuroMotion.ease(1.2)) { progress = 1 }
+                    guard progress < 1 else { return }
+                    if draws && plays {
+                        withAnimation(KuroMotion.ease(1.2)) { progress = 1 }
+                    } else {
+                        // Appeared still (Reduce Motion / Low Power): the ridge counts as drawn, so it
+                        // stays whole when motion is allowed again (Low Power turns off by itself at 80 %).
+                        progress = 1
+                    }
+                }
+                .onChange(of: plays) { _, _ in
+                    // Motion turning on or off after the view appeared never replays or hides the stroke.
+                    if progress < 1 { progress = 1 }
                 }
         }
         .accessibilityHidden(true)
@@ -152,13 +164,26 @@ struct KuroRidgeStroke: View {
 
 /// The prototype's progress underline as a loading cue: a short ink trace that travels the hairline
 /// once every 1.6 s while it is visible, the scene is active and motion may play. Otherwise it rests
-/// at the start of the line (the composed final frame).
+/// at the start of the line (the composed final frame). "Visible" is both mounted (`onAppear`) and
+/// inside its scroll view's bounds (`onScrollVisibilityChange`), so stacked skeletons in a non-lazy
+/// stack stop when scrolled offscreen.
 struct KuroScrubLine: View {
     /// Fraction of the line the trace covers.
     var traceFraction: CGFloat = 0.28
+    /// The travelling trace (white on an ink button).
+    var tint: Color = .kuroInk
+    /// The hairline it travels on.
+    var track: Color = .kuroLine
+
+    init(traceFraction: CGFloat = 0.28, tint: Color = .kuroInk, track: Color = .kuroLine) {
+        self.traceFraction = traceFraction
+        self.tint = tint
+        self.track = track
+    }
 
     @Environment(\.scenePhase) private var scenePhase
     @State private var visible = false
+    @State private var inScrollBounds = true
 
     private static let period: Double = 1.6
 
@@ -168,16 +193,16 @@ struct KuroScrubLine: View {
                 let width = geo.size.width
                 let trace = max(8, width * traceFraction)
                 ZStack(alignment: .leading) {
-                    Rectangle().fill(Color.kuroLine)
-                    if plays && visible && scenePhase == .active {
+                    Rectangle().fill(track)
+                    if plays && visible && inScrollBounds && scenePhase == .active {
                         TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
                             Rectangle()
-                                .fill(Color.kuroInk)
+                                .fill(tint)
                                 .frame(width: trace)
                                 .offset(x: offset(width: width, trace: trace, date: context.date))
                         }
                     } else {
-                        Rectangle().fill(Color.kuroInk).frame(width: trace)
+                        Rectangle().fill(tint).frame(width: trace)
                     }
                 }
                 .frame(height: 1)
@@ -188,6 +213,7 @@ struct KuroScrubLine: View {
         .frame(height: 2)
         .onAppear { visible = true }
         .onDisappear { visible = false }
+        .onScrollVisibilityChange(threshold: 0.01) { inScrollBounds = $0 }
         .accessibilityHidden(true)
     }
 
@@ -226,8 +252,29 @@ struct KuroWordmarkSettle: View {
     }
 }
 
+/// A control that is working (a button's label, a row's trailing slot): a short scrub line in place
+/// of a system spinner. Decorative; the control carries the spoken state ("In progress").
+struct KuroBusyMark: View {
+    var width: CGFloat = 32
+    var tint: Color = .kuroInk
+    var track: Color = .kuroLine
+
+    init(width: CGFloat = 32, tint: Color = .kuroInk, track: Color = .kuroLine) {
+        self.width = width
+        self.tint = tint
+        self.track = track
+    }
+
+    var body: some View {
+        KuroScrubLine(traceFraction: 0.4, tint: tint, track: track)
+            .frame(width: width)
+            .frame(minHeight: 20)
+    }
+}
+
 /// A loading state. `.inline` is the scrub line in its section; `.page` adds the settling wordmark,
-/// centred in the available space (launch, bootstrap, first page loads).
+/// centred in the available space (launch, bootstrap, first page loads). A `label` names the work in
+/// progress: it is spoken and shown as a small muted caption under the line.
 struct KuroLoadingView: View {
     enum Scope {
         case inline
@@ -243,25 +290,44 @@ struct KuroLoadingView: View {
         self.label = label
     }
 
+    /// The visible caption for `label`: the caller's words, or nil (a bare line) when none are given.
+    nonisolated static func caption(for label: String?) -> String? {
+        guard let trimmed = label?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
+
     var body: some View {
+        let caption = Self.caption(for: label)
         Group {
             switch scope {
             case .inline:
-                KuroScrubLine()
-                    .frame(maxWidth: 120)
-                    .padding(.vertical, KuroDesignSpacing.md)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                    KuroScrubLine().frame(maxWidth: 120)
+                    if let caption { captionText(caption, alignment: .leading) }
+                }
+                .padding(.vertical, KuroDesignSpacing.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
             case .page:
                 VStack(spacing: KuroDesignSpacing.md) {
                     KuroWordmarkSettle()
                     KuroScrubLine().frame(width: 64)
+                    if let caption { captionText(caption, alignment: .center) }
                 }
+                .padding(.horizontal, KuroDesignSpacing.padding)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(label ?? KuroBrandedCopy.loadingLabel(german: KuroLocale.isGerman))
         .accessibilityAddTraits(.updatesFrequently)
+    }
+
+    private func captionText(_ text: String, alignment: TextAlignment) -> some View {
+        Text(text)
+            .font(.kuroMeta())
+            .foregroundStyle(Color.kuroMuted)
+            .multilineTextAlignment(alignment)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -377,9 +443,10 @@ struct KuroErrorView: View {
     var retryTitle: String?
     var retry: (() -> Void)?
 
+    /// `headline` nil: "Couldn't load this."; `message` nil: the plain "Try again in a moment."
     init(headline: String? = nil, message: String? = nil, retryTitle: String? = nil, retry: (() -> Void)? = nil) {
         self.headline = headline ?? KuroBrandedCopy.errorHeadline(german: KuroLocale.isGerman)
-        self.message = message
+        self.message = message ?? KuroBrandedCopy.errorMessage(german: KuroLocale.isGerman)
         self.retryTitle = retryTitle
         self.retry = retry
     }

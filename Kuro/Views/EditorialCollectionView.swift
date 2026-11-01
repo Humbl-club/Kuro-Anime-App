@@ -366,9 +366,9 @@ struct EditorialCollectionView: View {
                         _ = await collection.fetchNextCollectionFeedPage(limit: 90)
                     }
                 } else if isLoadingAll {
-                    ProgressView()
-                        .tint(Color.kuroInkQuiet)
+                    KuroBusyMark(width: 44)
                         .frame(maxWidth: .infinity, minHeight: 44)
+                        .accessibilityElement(children: .ignore)
                         .accessibilityLabel(german ? "Weitere Titel werden geladen" : "Loading more titles")
                 } else if localOrderingTruncated {
                     truncationLine(gutter: gutter)

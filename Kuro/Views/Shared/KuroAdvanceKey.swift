@@ -7,9 +7,11 @@ import SwiftUI
 //   light     34 pt face, radius 7, `kuroKeyLightTop → kuroKeyLightBottom`, ink #29352c
 //             (Anime scene foot on art)
 //   dark      38 pt face, radius 6, solid #2b342e with a #2b342e border, ink #f8faf7 (Manga leaf)
+//   ink       34 pt face, radius 7, `kuroKeyDarkTop → kuroKeyDarkBottom` (#444a47 → #2c322f), ink
+//             #f8faf7: the CSS `--key-face` dark for keys without artwork (Folio)
 //   material  34 pt face, radius 7, the title's artwork `base → deep`, white ink (Also watching,
 //             the detail "Up next" key)
-// Light and material faces: 1 pt #20282326 border, inset 0 1 white highlight, 0 1 2 drop shadow.
+// Light, ink and material faces: 1 pt #20282326 border, inset 0 1 white highlight, 0 1 2 drop shadow.
 // Pressed (120 ms contact): face scale 0.95, darkened to 86 %, inset 0 2 3 shadow.
 // Glyph: `plus`; `checkmark` when caught up (disabled); `list.number` when the next unit needs a
 // choice. A selection tick on tap; the caller fires the success haptic only after the durable accept
@@ -19,7 +21,10 @@ import SwiftUI
 struct KuroAdvanceKey: View {
     enum Style: Equatable {
         case light
+        /// The manga leaf key: a solid #2b342e face.
         case dark
+        /// The prototype's dark gradient key for keys without an artwork material (Folio).
+        case ink
         /// A face cut from the title's artwork material.
         case material(ArtworkMaterial)
     }
@@ -133,6 +138,11 @@ struct KuroKeyFace {
             top = Self.leaf; bottom = Self.leaf
             border = Self.leaf; highlight = Color.white.opacity(Double(0x1F) / 255)
             drop = Color(hex: "28372A", opacity: Double(0x14) / 255)
+            ink = Color(hex: "F8FAF7")
+        case .ink:
+            size = 34; radius = 7
+            top = .kuroKeyDarkTop; bottom = .kuroKeyDarkBottom
+            border = Self.raisedBorder; highlight = Self.raisedHighlight; drop = Self.raisedDrop
             ink = Color(hex: "F8FAF7")
         case .material(let material):
             size = 34; radius = 7

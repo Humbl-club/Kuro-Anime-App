@@ -175,9 +175,9 @@ struct QuickVerdictActionCard: View {
                 Spacer(minLength: 0)
 
                 if isMutating {
-                    ProgressView()
-                        .scaleEffect(0.85)
-                        .tint(.kuroBlack60)
+                    KuroBusyMark(width: 24)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(KuroLocale.text("Saving", "Wird gespeichert"))
                 }
             }
 

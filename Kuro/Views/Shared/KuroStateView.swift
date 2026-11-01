@@ -2,8 +2,9 @@ import SwiftUI
 
 // MARK: - State view (spec §3.5, rulebook §9)
 // Since the prototype-fidelity pass (Task 3) a thin wrapper over the branded family in
-// `KuroBrandedStates.swift` (loading → `KuroLoadingView`, empty → `KuroEmptyView`, offline / failed /
-// denied → the ridge layout); its API and its pinned copy (`KuroStateCopy`) are unchanged.
+// `KuroBrandedStates.swift` (loading → `KuroLoadingView`, whose caption shows `title`; empty →
+// `KuroEmptyView`, with Try again when the caller passes `retry`; offline / failed / denied → the ridge
+// layout); its API and its pinned copy (`KuroStateCopy`) are unchanged.
 // One honest voice for the states a surface can be in. A failure, offline state or denial never
 // renders as a successful empty state. Copy is short, plain and true, names the action that fixes the
 // state, and ships in EN and DE. Pass `title`/`message` to say what is empty ("No clubs yet.").
@@ -52,7 +53,13 @@ struct KuroStateView: View {
         case (.loading, .inline):
             KuroLoadingView(scope: .inline, label: title)
         case (.empty, .page):
-            KuroEmptyView(headline: shownTitle, message: shownMessage)
+            // The invitation keeps the caller's refresh (Discover's "Nothing to show yet." has no other
+            // on-screen way to reload; pull-to-refresh has no VoiceOver equivalent).
+            KuroEmptyView(headline: shownTitle, message: shownMessage) {
+                if let retry, Self.showsRetry(kind: kind, hasRetry: true) {
+                    KuroOutlineButton(KuroStateCopy.retryTitle(german: KuroLocale.isGerman), action: retry)
+                }
+            }
         case (_, .page):
             // Offline and denied hold the ridge still; a failure draws it once.
             KuroStateLayout(stroke: KuroRidgeStroke(draws: isFailure), headline: shownTitle, message: shownMessage) {
@@ -68,9 +75,14 @@ struct KuroStateView: View {
         return false
     }
 
+    /// Try again is offered for every state but loading whenever the caller can retry (pure).
+    nonisolated static func showsRetry(kind: Kind, hasRetry: Bool) -> Bool {
+        hasRetry && kind != .loading
+    }
+
     @ViewBuilder
     private var retryButton: some View {
-        if let retry, kind != .loading {
+        if let retry, Self.showsRetry(kind: kind, hasRetry: true) {
             KuroInkButton(KuroStateCopy.retryTitle(german: KuroLocale.isGerman), role: .secondary, haptic: false, action: retry)
         }
     }

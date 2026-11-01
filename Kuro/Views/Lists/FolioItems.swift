@@ -237,7 +237,7 @@ private struct FolioCoverCell: View {
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
         .overlay(alignment: .bottomTrailing) {
             if let phase {
-                KuroAdvanceKey(style: .dark, phase: phase.advanceKeyPhase,
+                KuroAdvanceKey(style: .ink, phase: phase.advanceKeyPhase,
                                accessibilityText: FolioAccessibility.keyLabel(item, phase: phase, german: german)) {
                     actions.advance(item)
                 }

@@ -228,7 +228,7 @@ struct AddToClubRailSheet: View {
                             }
 
                             if isPending && isSubmitting {
-                                ProgressView().tint(Color.kuroInk)
+                                KuroBusyMark(width: 20)
                             } else {
                                 Image(systemName: isPending ? "checkmark" : "plus")
                                     .font(.kuroMeta(weight: .semibold))

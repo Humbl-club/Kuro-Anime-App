@@ -271,9 +271,9 @@ struct EditorialSearchView: View {
                     }
                 }
                 if search.isSearching {
-                    ProgressView()
-                        .tint(Color.kuroInkQuiet)
+                    KuroBusyMark(width: 44)
                         .frame(maxWidth: .infinity, minHeight: 44)
+                        .accessibilityElement(children: .ignore)
                         .accessibilityLabel(KuroLocale.text("Loading more", "Lädt weitere"))
                 }
             }

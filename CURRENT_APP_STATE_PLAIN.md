@@ -2006,3 +2006,13 @@ Local branch only; nothing on the live server changed.
 - **Loading, error, offline and empty screens** now have one branded look: the KURO letters settling with a thin ink line moving under them while loading; a single ink stroke drawing the mountain ridge when something fails, with "Try again"; "You're offline. Showing what you saw last." when old content is still on screen; and the prototype's "＋" invitation when there is nothing yet.
 - **The header** now matches the prototype: KURO on the left, the page name small in the middle, and on Home a "‹ Taste" link, with search and profile as simple ink icons. Home gets the prototype's warm background.
 - A new check lists every old-style spinner still left in the screens; the next steps replace them.
+
+### Change Log — 1 November 2026: Fixes after the review of the prototype groundwork
+
+Local branch only; nothing on the live server changed.
+- **No more plain spinners** in shared buttons, lists and the launch screen: they show the branded KURO loader or a short moving ink line instead. The few left are in screens the next steps rebuild anyway.
+- **Loading screens say what they are doing** again ("Searching the catalogue.") under the moving line, and an empty page that offered "Try again" keeps it.
+- **The Anime / Manga switch** now uses the prototype's heavy capital letters, with the chosen word coloured by the current title's artwork.
+- **Artwork colours** are more careful: black-and-white covers keep AniList's own colour instead of an invented tint, and a cover that failed to load (for example while offline) is tried again a minute later.
+- **The header** keeps the page name on screen even at the largest text sizes, and the Taste page and manga Home get their prototype backgrounds.
+- Thin leftover heading weights now draw in the prototype's strong sans-serif.

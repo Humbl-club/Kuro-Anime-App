@@ -10,7 +10,9 @@
 //
 
 import CoreGraphics
+import SwiftUI
 import Testing
+import UIKit
 @testable import Kuro
 
 @Suite("Branded states (loading, error, offline, empty)")
@@ -151,5 +153,104 @@ struct BrandedStateTests {
             let plain = KuroHeaderRowLayout.resolve(rowWidth: row, pageNames: german, neighbourTitle: nil)
             #expect(plain.showsWordmark && !plain.showsNeighbour, "DE \(width) without link: \(plain)")
         }
+    }
+
+    // MARK: review fixes (Task 3 follow-up)
+
+    @Test("Try again is offered for every state but loading, including a full-page empty state")
+    func emptyPageKeepsRetry() {
+        #expect(KuroStateView.showsRetry(kind: .empty, hasRetry: true))
+        #expect(KuroStateView.showsRetry(kind: .failed(hasCachedContent: false), hasRetry: true))
+        #expect(KuroStateView.showsRetry(kind: .offline(hasCachedContent: true), hasRetry: true))
+        #expect(KuroStateView.showsRetry(kind: .denied, hasRetry: true))
+        #expect(!KuroStateView.showsRetry(kind: .loading, hasRetry: true))
+        #expect(!KuroStateView.showsRetry(kind: .empty, hasRetry: false))
+    }
+
+    @Test("a loading state shows the caller's words under the scrub line; no words, no caption")
+    func loadingCaption() {
+        #expect(KuroLoadingView.caption(for: "Searching the catalogue.") == "Searching the catalogue.")
+        #expect(KuroLoadingView.caption(for: "  ") == nil)
+        #expect(KuroLoadingView.caption(for: nil) == nil)
+    }
+
+    @Test("KuroErrorView without a message says the plain default sentence")
+    @MainActor
+    func errorViewDefaultsMessage() {
+        #expect(KuroErrorView().message == KuroBrandedCopy.errorMessage(german: KuroLocale.isGerman))
+        #expect(KuroErrorView(message: "Check your clubs.").message == "Check your clubs.")
+    }
+
+    @Test("the header never shows the link without the wordmark, and the page name stays on screen at AX sizes")
+    @MainActor
+    func headerAccessibilitySizes() {
+        let german = ["Geschmack", "Start", "Entdecken", "Sammlung", "Clubs"]
+        let english = ["Taste", "Home", "Discover", "Collection", "Clubs"]
+        let sizes: [UIContentSizeCategory] = [.large, .extraExtraExtraLarge, .accessibilityMedium,
+                                              .accessibilityExtraLarge, .accessibilityExtraExtraExtraLarge]
+        for size in sizes {
+            let traits = UITraitCollection(preferredContentSizeCategory: size)
+            for row: CGFloat in [276, 331, 346, 386] {
+                for (names, link) in [(german, "‹ Geschmack"), (english, "‹ Taste")] {
+                    let layout = KuroHeaderRowLayout.resolve(rowWidth: row, pageNames: names, neighbourTitle: link, traits: traits)
+                    #expect(layout.showsWordmark || !layout.showsNeighbour, "\(size.rawValue) \(row): \(layout)")
+                    let metrics = KuroHeaderRowLayout.metrics(rowWidth: row, pageNames: names, traits: traits)
+                    // The centre's left edge: centred in the row, moved left by the shift.
+                    let leftEdge = (row - metrics.centreWidth) / 2 - layout.centreShift
+                    #expect(leftEdge >= 0 || metrics.centreWidth > row, "\(size.rawValue) \(row): left edge \(leftEdge)")
+                }
+            }
+        }
+        // AX5 on a 320 pt phone in German: the link and the wordmark step aside, the name stays whole.
+        let ax5 = UITraitCollection(preferredContentSizeCategory: .accessibilityExtraExtraExtraLarge)
+        let narrow = KuroHeaderRowLayout.resolve(rowWidth: 276, pageNames: german, neighbourTitle: "‹ Geschmack", traits: ax5)
+        #expect(!narrow.showsNeighbour)
+        // The nil-traits path keeps the default-size behaviour pinned by `headerKeepsWordmark`.
+        let standard = UITraitCollection(preferredContentSizeCategory: .large)
+        let pinned = KuroHeaderRowLayout.resolve(rowWidth: 346, pageNames: english, neighbourTitle: "‹ Taste", traits: standard)
+        #expect(pinned.showsWordmark && pinned.showsNeighbour)
+    }
+
+    @Test("the warm Home canvas is on Home and Taste; manga Home takes its own canvas")
+    @MainActor
+    func pageCanvas() {
+        #expect(KuroMainView.Section.home.canvas(mangaHome: false) == Color.kuroCanvasHome)
+        #expect(KuroMainView.Section.taste.canvas(mangaHome: false) == Color.kuroCanvasHome)
+        #expect(KuroMainView.Section.taste.canvas(mangaHome: true) == Color.kuroCanvasHome)
+        #expect(KuroMainView.Section.home.canvas(mangaHome: true) == Color.kuroCanvasHomeManga)
+        #expect(KuroMainView.Section.discover.canvas(mangaHome: true) == Color.kuroBackground)
+    }
+
+    @Test("the medium switch words are 36 pt, 30 pt on phones ≤ 360 pt, and 24 pt compact")
+    @MainActor
+    func mediumSwitchWordSize() {
+        // The switch's row is the phone less its gutters: 390 → 350, 375 → 343, 360 → 328, 320 → 288.
+        #expect(KuroMediumSwitch.wordSize(for: .large, containerWidth: 350) == 36)
+        #expect(KuroMediumSwitch.wordSize(for: .large, containerWidth: 343) == 36)
+        #expect(KuroMediumSwitch.wordSize(for: .large, containerWidth: 328) == 30)
+        #expect(KuroMediumSwitch.wordSize(for: .large, containerWidth: 288) == 30)
+        #expect(KuroMediumSwitch.wordSize(for: .large, containerWidth: 0) == 36, "unmeasured: the 390 size")
+        #expect(KuroMediumSwitch.wordSize(for: .compact, containerWidth: 390) == 24)
+    }
+
+    @Test("display roles never render thin: light weights left over from the serif ramp take the role's weight")
+    @MainActor
+    func displayRolesIgnoreLightWeights() {
+        #expect(KuroTypeRole.displayWeight(.ultraLight, roleDefault: .semibold) == .semibold)
+        #expect(KuroTypeRole.displayWeight(.thin, roleDefault: .heavy) == .heavy)
+        #expect(KuroTypeRole.displayWeight(.light, roleDefault: .semibold) == .semibold)
+        #expect(KuroTypeRole.displayWeight(.regular, roleDefault: .semibold) == .regular)
+        #expect(KuroTypeRole.displayWeight(.bold, roleDefault: .semibold) == .bold)
+    }
+
+    @Test("the ink key is the prototype's dark gradient for keys without artwork (e.g. Folio)")
+    @MainActor
+    func inkKeyFace() {
+        let ink = KuroKeyFace(style: .ink)
+        #expect(ink.top == Color.kuroKeyDarkTop)
+        #expect(ink.bottom == Color.kuroKeyDarkBottom)
+        #expect(ink.size == 34 && ink.radius == 7)
+        let leaf = KuroKeyFace(style: .dark)
+        #expect(leaf.size == 38 && leaf.radius == 6, "the manga leaf key keeps its solid face")
     }
 }

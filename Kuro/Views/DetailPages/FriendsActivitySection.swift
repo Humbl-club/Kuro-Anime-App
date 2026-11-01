@@ -60,7 +60,7 @@ struct FriendsActivitySection: View {
 
                 if isLoading && activity == nil {
                     HStack(spacing: 10) {
-                        ProgressView().scaleEffect(0.8).tint(.kuroInkQuiet)
+                        KuroBusyMark(width: 24)
                         Text(KuroLocale.text("Loading…", "Wird geladen …"))
                             .font(.kuroCaption(weight: .light))
                             .foregroundColor(.kuroInkQuiet)
@@ -378,7 +378,10 @@ struct FriendsActivitySection: View {
                 }
 
                 if isSubmitting {
-                    ProgressView().scaleEffect(0.75).tint(.kuroInkQuiet)
+                    KuroBusyMark(width: 24)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(KuroLocale.text("Posting", "Wird gesendet"))
                 } else {
                     Button {
                         let text = commentText.trimmingCharacters(in: .whitespacesAndNewlines)

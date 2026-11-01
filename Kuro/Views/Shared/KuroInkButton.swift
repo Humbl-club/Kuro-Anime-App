@@ -27,7 +27,7 @@ struct KuroInkButton: View {
 
     let title: String
     var role: Role = .primary
-    /// Shows a spinner in place of the label and ignores taps.
+    /// Shows the branded busy mark (a short scrub line) in place of the label and ignores taps.
     var isLoading: Bool = false
     /// Light impact on tap (off for buttons that only reveal more of the same screen).
     var haptic: Bool = true
@@ -67,8 +67,8 @@ struct KuroInkButton: View {
                     .multilineTextAlignment(.center)
                     .opacity(isLoading ? 0 : 1)
                 if isLoading {
-                    ProgressView()
-                        .tint(role == .primary ? Color.kuroWhite : Color.kuroDestructiveInk)
+                    let ink = role == .primary ? Color.kuroWhite : Color.kuroDestructiveInk
+                    KuroBusyMark(width: 40, tint: ink, track: ink.opacity(0.28))
                 }
             }
             .frame(maxWidth: .infinity, minHeight: 52)
@@ -82,7 +82,7 @@ struct KuroInkButton: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     if isLoading {
-                        ProgressView().tint(Color.kuroInk)
+                        KuroBusyMark(width: 24)
                     } else {
                         Image(systemName: "arrow.right")
                             .font(.kuroMeta(weight: .regular))

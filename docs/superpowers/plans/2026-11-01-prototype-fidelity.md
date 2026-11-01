@@ -159,6 +159,17 @@ Data comes from existing owners only; no new live backend.
 - [ ] **Step 5:** Run tests and both builds. Expected: PASS and SUCCEEDED.
 - [ ] **Step 6: Commit:** `feat: prototype keys, motion effects, branded state family, header`
 
+**Phase 1 review follow-up (2026-11-01).** Reviewer findings on Tasks 2-3 were fixed in Phase 1 (commit `fix: Phase 1 review follow-up …`). What the lanes inherit:
+- **Gate scope:** `check_branded_states.sh` scans all of `Kuro/` (the launch and bootstrap in `KuroApp.swift`/`ContentView.swift` now use `KuroLoadingView(scope: .page)`). Shared spinners (`KuroInkButton`, `KuroLoadMoreSentinel`) and every file no lane owns were fixed in Phase 1 with `KuroBusyMark` / `KuroLoadingView`. The remaining offenders each belong to a lane, which must clear them:
+  - Task 6: `Kuro/Views/DetailPages/AnimeDetailView.swift` (2, legacy body)
+  - Task 7: `Kuro/Views/DetailPages/MangaDetailView.swift` (2, legacy body)
+  - Task 8: `Kuro/Views/EditorialCollectionView.swift` (1, inside the empty block's no-matches branch)
+  - Task 9: `Kuro/Views/ProfileView.swift` (2), `Kuro/Views/ImportSourceChooser.swift` (1), `Kuro/Views/AuthView.swift` (1, `AuthLinkProgress`; if it shows on the frozen welcome, swap only the spinner for `KuroBusyMark` and keep the layout)
+- **Tracking:** a `Font` cannot carry tracking, so the display roles' tight tracking is applied per call site. Each lane uses `.kuroRoleText(_:)` (font + tracking) or `.kuroTracking(_:)` for display-role text in the files it owns. Task 10 sweeps every remaining file. Light weights passed to the display roles (`.ultraLight/.thin/.light`) are already mapped centrally to the role's weight.
+- **Medium switch:** restyled in Phase 1 (heavy sans uppercase, 36/30 pt, material-filled selected word, ink rule, muted other word). Task 4 passes the current title's material (`KuroMediumSwitch(selection:size:material:)`) and owns `Kuro/Views/Shared/KuroMediumSwitch.swift` if Home needs the prototype's two-column grid with the hairline (PROTOTYPE_SPEC §4).
+- **Canvas:** the pager and header take `Section.canvas(mangaHome:)`: `#fffef8` on Home and Taste, `#f5f5f3` (`kuroCanvasHomeManga`) while Home shows manga. Tasks 4/5/8 paint their pages to match.
+- **Keys:** `.ink` (`kuroKeyDarkTop → kuroKeyDarkBottom`) is the dark key for keys without artwork (Folio, switched at `FolioItems.swift:240`); `.dark` is only the manga leaf's solid face; `.material` for keys on art.
+
 ---
 
 ## Phase 2 — Screen lanes (parallel worktrees from the Phase 1 commit)

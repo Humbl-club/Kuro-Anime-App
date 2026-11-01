@@ -119,6 +119,9 @@ extension Color {
     // `ArtworkMaterial`, never from a fixed per-title table.
     /// The Home (Poster) canvas, also the Taste page: warm paper white `#fffef8`.
     static let kuroCanvasHome = Color(hex: "FFFEF8")
+    /// The manga Home canvas `#f5f5f3` (poster manga Home, computed). The header and pager take it
+    /// while Home shows manga, crossfading over `KuroMotion.medium` on a medium switch.
+    static let kuroCanvasHomeManga = Color(hex: "F5F5F3")
     /// The detail sheet paper `#f5f5f4` (`--paper`).
     static let kuroPaper = Color(hex: "F5F5F4")
     /// Secondary text, e.g. the header's page name (`--muted` #696c6b, about 5.3:1 on white).
@@ -276,6 +279,36 @@ enum KuroTypeRole {
         }
     }
 
+    /// The weight a display role draws with. The serif ramp's `.ultraLight` / `.thin` / `.light`
+    /// arguments (about 30 call sites) would render thin SF sans, the opposite of the prototype's heavy
+    /// and semibold sans, so they take the role's own weight; every other weight is honoured.
+    static func displayWeight(_ requested: Font.Weight, roleDefault: Font.Weight) -> Font.Weight {
+        switch requested {
+        case .ultraLight, .thin, .light: return roleDefault
+        default: return requested
+        }
+    }
+
+    /// The role's `Font` (the same one `Font.kuroHero()` … `Font.kuroButtonLabel()` return). `weight`
+    /// nil uses the role's default.
+    func font(weight: Font.Weight? = nil) -> Font {
+        switch self {
+        case .hero: return weight.map { Font.kuroHero(weight: $0) } ?? .kuroHero()
+        case .display: return weight.map { Font.kuroDisplay(weight: $0) } ?? .kuroDisplay()
+        case .feature: return weight.map { Font.kuroFeature(weight: $0) } ?? .kuroFeature()
+        case .headline: return weight.map { Font.kuroHeadline(weight: $0) } ?? .kuroHeadline()
+        case .title: return weight.map { Font.kuroTitle(weight: $0) } ?? .kuroTitle()
+        case .body: return weight.map { Font.kuroBody(weight: $0) } ?? .kuroBody()
+        case .caption: return weight.map { Font.kuroCaption(weight: $0) } ?? .kuroCaption()
+        case .micro: return weight.map { Font.kuroMicro(weight: $0) } ?? .kuroMicro()
+        case .navigation: return weight.map { Font.kuroNavigation(weight: $0) } ?? .kuroNavigation()
+        case .titleName: return weight.map { Font.kuroTitleName(weight: $0) } ?? .kuroTitleName()
+        case .meta: return weight.map { Font.kuroMeta(weight: $0) } ?? .kuroMeta()
+        case .buttonLabel: return weight.map { Font.kuroButtonLabel(weight: $0) } ?? .kuroButtonLabel()
+        case .mediumWord: return .kuroMediumWord()
+        }
+    }
+
     /// The tracking in points at the current text size (`trackingEm` × `pointSize`).
     var tracking: CGFloat { trackingEm * pointSize }
 
@@ -289,8 +322,10 @@ enum KuroTypeRole {
 // MARK: - Typography System (prototype-fidelity pass)
 // The display roles (hero, display, feature, headline, title) speak the prototype's language: the system
 // sans (SF Pro) at the prototype's weights. A `Font` cannot carry tracking, so the matching tight
-// tracking is `KuroTypeRole.tracking` / `.kuroTracking(_:)` at the call site. The serif is reserved for
-// the prototype's few editorial headings (`kuroEditorial`). Explicit `weight:` arguments are honoured.
+// tracking is `KuroTypeRole.tracking` / `.kuroTracking(_:)` at the call site, or font and tracking
+// together with `.kuroRoleText(_:)`. The serif is reserved for the prototype's few editorial headings
+// (`kuroEditorial`). Explicit `weight:` arguments are honoured, except that the display roles turn the
+// old serif ramp's light weights into their own weight (`KuroTypeRole.displayWeight`).
 extension Font {
     /// A custom size that scales with Dynamic Type relative to `textStyle`. `maxSize` caps it
     /// (nil: no cap, the legacy behaviour).
@@ -311,28 +346,28 @@ extension Font {
 
     // HERO - Dramatic statements (64pt sans heavy; prototype w850 at display size)
     static func kuroHero(weight: Font.Weight = .heavy) -> Font {
-        kuroRole(.hero, weight: weight, design: .default)
+        kuroRole(.hero, weight: KuroTypeRole.displayWeight(weight, roleDefault: .heavy), design: .default)
     }
 
     // DISPLAY - Large section headers and the one cover line per screen (44pt sans semibold;
     // prototype detail title w600)
     static func kuroDisplay(weight: Font.Weight = .semibold) -> Font {
-        kuroRole(.display, weight: weight, design: .default)
+        kuroRole(.display, weight: KuroTypeRole.displayWeight(weight, roleDefault: .semibold), design: .default)
     }
 
     // FEATURE - Feature titles, prominent elements (34pt sans semibold)
     static func kuroFeature(weight: Font.Weight = .semibold) -> Font {
-        kuroRole(.feature, weight: weight, design: .default)
+        kuroRole(.feature, weight: KuroTypeRole.displayWeight(weight, roleDefault: .semibold), design: .default)
     }
 
     // HEADLINE - Section headings, card titles (26pt sans semibold; prototype "Coming up." w550)
     static func kuroHeadline(weight: Font.Weight = .semibold) -> Font {
-        kuroRole(.headline, weight: weight, design: .default)
+        kuroRole(.headline, weight: KuroTypeRole.displayWeight(weight, roleDefault: .semibold), design: .default)
     }
 
     // TITLE - Secondary titles, section heads (19pt sans semibold; prototype "Seasons" w550)
     static func kuroTitle(weight: Font.Weight = .semibold) -> Font {
-        kuroRole(.title, weight: weight, design: .default)
+        kuroRole(.title, weight: KuroTypeRole.displayWeight(weight, roleDefault: .semibold), design: .default)
     }
 
     // EDITORIAL - The prototype's few serif headings (system serif, New York, standing in for its
@@ -402,6 +437,13 @@ extension View {
     /// The prototype's tight tracking for `role` at the current text size (0 for untracked roles).
     func kuroTracking(_ role: KuroTypeRole) -> some View {
         tracking(role.tracking)
+    }
+
+    /// A display role's font and its tracking together: `Text("Coming up").kuroRoleText(.headline)`.
+    /// `weight` nil uses the role's default. The screen lanes adopt it in the files they own (plan
+    /// Tasks 4-9); Task 10 sweeps what is left.
+    func kuroRoleText(_ role: KuroTypeRole, weight: Font.Weight? = nil) -> some View {
+        font(role.font(weight: weight)).tracking(role.tracking)
     }
 
     /// A medium switch word: heavy sans, uppercase, the prototype's −1.9 / 36 tracking at `size`.

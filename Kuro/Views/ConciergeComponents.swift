@@ -1411,9 +1411,7 @@ struct ConciergeConfirmBubble: View {
                         }) {
                             HStack(spacing: 8) {
                                 if isApplying {
-                                    ProgressView()
-                                        .scaleEffect(0.7)
-                                        .tint(.kuroWhite80)
+                                    KuroBusyMark(width: 20, tint: .kuroWhite80, track: Color.kuroWhite80.opacity(0.3))
                                     Text("APPLYING")
                                         .font(.kuroCaption(weight: .medium))
                                         .tracking(2.0)

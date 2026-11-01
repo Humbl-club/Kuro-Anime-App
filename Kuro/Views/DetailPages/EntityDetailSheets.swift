@@ -680,8 +680,7 @@ struct EntityWorksRail: View {
 
             if isLoading {
                 HStack(spacing: 8) {
-                    ProgressView()
-                        .controlSize(.small)
+                    KuroBusyMark(width: 24)
                     Text(KuroLocale.text("Loading…", "Wird geladen …"))
                         .font(.kuroCaption(weight: .light))
                         .foregroundColor(.kuroTextTertiary)

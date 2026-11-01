@@ -16,6 +16,13 @@ extension KuroMotion {
         !reduceMotion && !lowPower
     }
 
+    /// `playsMotion` with Low Power Mode read now, for one-off animation sites (`withAnimation`,
+    /// `.animation(_:value:)`) that re-evaluate on every change. Views whose motion runs on are
+    /// wrapped in `KuroMotionAllowance` instead, which observes Low Power live.
+    static func playsMotionNow(reduceMotion: Bool) -> Bool {
+        playsMotion(reduceMotion: reduceMotion, lowPower: ProcessInfo.processInfo.isLowPowerModeEnabled)
+    }
+
     /// CSS `cubic-bezier(.2,.8,.25,1)` (`--ease`) as a keyframe curve.
     static let easeCurve = UnitCurve.bezier(startControlPoint: UnitPoint(x: 0.2, y: 0.8),
                                             endControlPoint: UnitPoint(x: 0.25, y: 1))
@@ -114,12 +121,16 @@ private struct KuroConfirmStampModifier<T: Equatable>: ViewModifier {
                     view.opacity(frame.opacity).scaleEffect(frame.scale)
                 } keyframes: { _ in
                     // 0 % → 20 % (130 ms) in, hold to 65 % (293 ms), fade to 100 % (227 ms).
+                    // Each track starts from the keyframe's 0 % values, so a second +1 replays the
+                    // whole pop instead of starting from the previous stamp's end (scale 1).
                     KeyframeTrack(\.opacity) {
+                        MoveKeyframe(0)
                         LinearKeyframe(1, duration: 0.13, timingCurve: KuroMotion.easeCurve)
                         LinearKeyframe(1, duration: 0.2925)
                         LinearKeyframe(0, duration: 0.2275, timingCurve: KuroMotion.easeCurve)
                     }
                     KeyframeTrack(\.scale) {
+                        MoveKeyframe(0.8)
                         LinearKeyframe(1, duration: 0.13, timingCurve: KuroMotion.easeCurve)
                         LinearKeyframe(1, duration: 0.52)
                     }
