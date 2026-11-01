@@ -15,6 +15,8 @@
 
 begin;
 
+set local lock_timeout = '3s';
+
 do $$
 begin
   if to_regprocedure('public.check_email_exists(text)') is null then

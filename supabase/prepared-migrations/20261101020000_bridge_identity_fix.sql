@@ -38,6 +38,10 @@
 
 begin;
 
+-- The repair LOCKs catalogue_units / release_events (SHARE ROW EXCLUSIVE; both tables are
+-- tiny on live, schema.md section 1): fail fast on a busy lock and retry instead of queueing.
+set local lock_timeout = '3s';
+set local statement_timeout = '60s';
 set local search_path = public, extensions;
 
 create or replace function public._bridge_legacy_unit_v1(p_medium text, p_source_id integer, p_media_id integer,

@@ -7,23 +7,42 @@
 -- DROP INDEX CONCURRENTLY, which cannot run in a transaction: they are in the separate file
 -- 20261101010100_perf_drop_duplicate_indexes.sql (apply with psql, not in a transaction).
 --
+-- APPLY PROCEDURE (operator; the file is one transaction and takes table locks on the hot
+-- catalog tables anime / manga / media_relations):
+--   a. Pause the jobs that hold long reads/writes on those tables, e.g.
+--        select cron.alter_job(jobid, active := false) from cron.job
+--         where jobname in ('realm-similar-drive-5m') or jobname like 'bulk-import-%';
+--      and wait for any running instance to finish (cron.job_run_details status 'running').
+--   b. Apply. lock_timeout = 3s / statement_timeout = 60s make a busy lock fail fast instead
+--      of queueing every Discover/Browse/detail/Search reader behind this transaction; on a
+--      lock timeout just retry. Triggers are installed with CREATE OR REPLACE TRIGGER
+--      (PostgreSQL 14+; confirm with select version()), which takes SHARE ROW EXCLUSIVE, not
+--      the ACCESS EXCLUSIVE lock DROP TRIGGER takes, so readers are not blocked.
+--   c. Resume: select cron.alter_job(jobid, active := true) for the same jobs.
+--
 -- 1. Similar-titles driver gate (P0-1; 97% of DB time). The existing
 --    rebuild_media_similar_titles(integer) is RENAMED to _rebuild_media_similar_titles_core_v1
 --    (body untouched). A new rebuild_media_similar_titles(integer) with the same signature
 --    (the 5-minute cron keeps calling it unchanged) returns 0 immediately, without the global
 --    franchise rebuild, when NOTHING it depends on changed and no seed is stale. "Changed" is
---    a sequence bumped by row-level triggers that fire only on real change:
+--    a row in media_similar_graph_dirty (one row per writing transaction, keyed by its xid8;
+--    transactional, so a change becomes visible exactly when it commits) written by row-level
+--    triggers that fire only on real change:
 --      media_relations       insert, delete, update of the endpoints
 --      franchise_component_cut  any write (when the table exists)
 --      anime / manga         insert of a visible title (non-adult with cover), delete, and
 --                            updates that move the seed universe or entry points (crossing
 --                            average_score 70, is_adult, cover null-ness, format, start year)
 --    ON CONFLICT DO UPDATE with identical endpoints therefore does not trip the gate.
---    built_graph_rev advances only after a core run that returned >= 0 (-1 = lock busy).
+--    The wrapper snapshots the dirty xids it can see BEFORE running the core and, only after
+--    a core run that returned >= 0 (-1 = lock busy), deletes exactly those xids. A change that
+--    was still uncommitted (or committed while the core ran) keeps its row and reopens the
+--    gate on the next fire. (Not a sequence: nextval is non-transactional, so an in-flight
+--    writer's bump could be consumed by a core run that cannot see its rows.)
 -- 2. The nightly blanket re-stale (`update media_similar_seed_state set stale = true`,
 --    ~76 heavy fires a day) is replaced by media_similar_nightly_v1(): one forced gate bump
 --    (a single universe/franchise sync as a safety net) plus re-staling one seventh of the
---    seeds (seed_media_id % 7 = ISO weekday % 7). FRESHNESS CHANGE: each seed's similar list
+--    seeds (seed_media_id % 7 = ISO weekday % 7). The forced sync is a dirty row. FRESHNESS CHANGE: each seed's similar list
 --    is now rebuilt at least weekly (was nightly); realm/tag refreshes reach a seed within
 --    7 days. Owner may revert by rescheduling the old command.
 -- 3. catalog_safety_audit retention (P0-2): prune_catalog_safety_audit_v1(limit) deletes a row
@@ -45,24 +64,38 @@
 --    Not in this file (open): synopsis queue index rebuild without updated_at, fillfactor.
 -- 6. assert_exact_duplicate_index_v1(dup, survivor): guard used by 20261101010100.
 --
--- Rollback: rename the core back over the wrapper, drop the triggers/sequence/gate table and
+-- Rollback: rename the core back over the wrapper, drop the triggers/dirty table/gate table and
 -- the new functions, reschedule the two cron commands from 20260804130000 / the baseline,
 -- recreate mv_anime_current_season from the baseline, repoint the two triggers to
 -- update_updated_at_column().
 
 begin;
 
+-- Fail fast on a busy lock (see APPLY PROCEDURE in the header); retry the apply on timeout.
+set local lock_timeout = '3s';
+set local statement_timeout = '60s';
 set local search_path = public, extensions;
 
 -- ---------------------------------------------------------------------------
 -- 1. Similar-titles gate
 -- ---------------------------------------------------------------------------
-create sequence if not exists public.media_similar_graph_rev_seq;
-revoke all on sequence public.media_similar_graph_rev_seq from public, anon, authenticated;
+create table if not exists public.media_similar_graph_dirty (
+  xid xid8 primary key default pg_current_xact_id(),
+  noted_at timestamptz not null default now()
+);
+alter table public.media_similar_graph_dirty enable row level security;
+revoke all on public.media_similar_graph_dirty from public, anon, authenticated;
+grant select, insert, delete on public.media_similar_graph_dirty to service_role;
+drop policy if exists media_similar_graph_dirty_service_only on public.media_similar_graph_dirty;
+create policy media_similar_graph_dirty_service_only on public.media_similar_graph_dirty
+  for all to service_role using (true) with check (true);
+comment on table public.media_similar_graph_dirty is
+  '20261101010000: one row per transaction that changed an input of the similar-titles franchise/universe sync (written by the media_similar_graph_rev_* triggers; visible only once that transaction commits). rebuild_media_similar_titles deletes the rows it saw before a successful core run. Service role / definer functions only.';
+-- the first fire after deploy runs the core once
+insert into public.media_similar_graph_dirty default values on conflict (xid) do nothing;
 
 create table if not exists public.media_similar_rebuild_gate (
   id smallint primary key default 1 check (id = 1),
-  built_graph_rev bigint not null default -1,
   last_core_run_at timestamptz
 );
 insert into public.media_similar_rebuild_gate (id) values (1) on conflict (id) do nothing;
@@ -73,7 +106,7 @@ drop policy if exists media_similar_rebuild_gate_service_only on public.media_si
 create policy media_similar_rebuild_gate_service_only on public.media_similar_rebuild_gate
   for all to service_role using (true) with check (true);
 comment on table public.media_similar_rebuild_gate is
-  '20261101010000: single row. built_graph_rev = media_similar_graph_rev_seq value the last successful core run of rebuild_media_similar_titles started from. Service role / definer functions only.';
+  '20261101010000: single row, observability only: last_core_run_at = end of the last core run of rebuild_media_similar_titles that returned >= 0. Service role / definer functions only.';
 
 create or replace function public.bump_media_similar_graph_rev_v1()
 returns trigger
@@ -82,42 +115,38 @@ security definer
 set search_path = public, extensions
 as $$
 begin
-  perform nextval('public.media_similar_graph_rev_seq');
+  -- one row per writing transaction; repeat fires in the same transaction hit the PK and do
+  -- nothing; different transactions never wait on each other (different keys)
+  insert into public.media_similar_graph_dirty default values on conflict (xid) do nothing;
   return null;
 end;
 $$;
 revoke all on function public.bump_media_similar_graph_rev_v1() from public, anon, authenticated;
 
-drop trigger if exists media_similar_graph_rev_ins on public.media_relations;
-create trigger media_similar_graph_rev_ins after insert on public.media_relations
+create or replace trigger media_similar_graph_rev_ins after insert on public.media_relations
   for each row execute function public.bump_media_similar_graph_rev_v1();
-drop trigger if exists media_similar_graph_rev_upd on public.media_relations;
-create trigger media_similar_graph_rev_upd after update on public.media_relations
+create or replace trigger media_similar_graph_rev_upd after update on public.media_relations
   for each row
   when ((old.from_media_type, old.from_media_id, old.to_media_type, old.to_media_id)
         is distinct from (new.from_media_type, new.from_media_id, new.to_media_type, new.to_media_id))
   execute function public.bump_media_similar_graph_rev_v1();
-drop trigger if exists media_similar_graph_rev_del on public.media_relations;
-create trigger media_similar_graph_rev_del after delete on public.media_relations
+create or replace trigger media_similar_graph_rev_del after delete on public.media_relations
   for each row execute function public.bump_media_similar_graph_rev_v1();
 
 do $$
 declare t text;
 begin
   if to_regclass('public.franchise_component_cut') is not null then
-    execute 'drop trigger if exists media_similar_graph_rev_any on public.franchise_component_cut';
-    execute 'create trigger media_similar_graph_rev_any after insert or update or delete on public.franchise_component_cut
+    execute 'create or replace trigger media_similar_graph_rev_any after insert or update or delete on public.franchise_component_cut
                for each row execute function public.bump_media_similar_graph_rev_v1()';
   else
     raise notice 'franchise_component_cut absent here: its gate trigger is not created';
   end if;
   foreach t in array array['anime', 'manga'] loop
-    execute format('drop trigger if exists media_similar_graph_rev_ins on public.%I', t);
-    execute format($f$create trigger media_similar_graph_rev_ins after insert on public.%I
+    execute format($f$create or replace trigger media_similar_graph_rev_ins after insert on public.%I
       for each row when (coalesce(new.is_adult, false) = false and new.cover_image_large is not null)
       execute function public.bump_media_similar_graph_rev_v1()$f$, t);
-    execute format('drop trigger if exists media_similar_graph_rev_upd on public.%I', t);
-    execute format($f$create trigger media_similar_graph_rev_upd
+    execute format($f$create or replace trigger media_similar_graph_rev_upd
       after update of average_score, is_adult, cover_image_large, format, start_date_year on public.%I
       for each row when (
         ((coalesce(old.average_score, 0) >= 70) is distinct from (coalesce(new.average_score, 0) >= 70))
@@ -126,8 +155,7 @@ begin
         or (old.format is distinct from new.format)
         or (old.start_date_year is distinct from new.start_date_year))
       execute function public.bump_media_similar_graph_rev_v1()$f$, t);
-    execute format('drop trigger if exists media_similar_graph_rev_del on public.%I', t);
-    execute format($f$create trigger media_similar_graph_rev_del after delete on public.%I
+    execute format($f$create or replace trigger media_similar_graph_rev_del after delete on public.%I
       for each row execute function public.bump_media_similar_graph_rev_v1()$f$, t);
   end loop;
 end $$;
@@ -156,29 +184,27 @@ security definer
 set search_path = public, extensions
 as $$
 declare
-  v_last bigint;
-  v_called boolean;
-  v_rev bigint;
-  v_built bigint;
+  v_seen xid8[];
   v_result integer;
 begin
-  select last_value, is_called into v_last, v_called from public.media_similar_graph_rev_seq;
-  v_rev := case when v_called then v_last else 0 end;
-  select built_graph_rev into v_built from public.media_similar_rebuild_gate where id = 1;
+  -- The dirty xids this statement's snapshot can see: every one of them committed BEFORE the
+  -- core's statements start, so the core sees their changes. Rows of transactions still in
+  -- flight are invisible here and survive the delete below.
+  select coalesce(array_agg(d.xid), '{}') into v_seen from public.media_similar_graph_dirty d;
 
   -- Nothing changed since the last successful core run and nothing is stale: the converged
   -- state is current. Skip the global franchise rebuild entirely.
-  if v_built is not distinct from v_rev
+  if cardinality(v_seen) = 0
      and not exists (select 1 from public.media_similar_seed_state where stale) then
     return 0;
   end if;
 
   v_result := public._rebuild_media_similar_titles_core_v1(p_batch);
   if v_result >= 0 then
-    -- v_rev was read BEFORE the core ran: a change committed meanwhile keeps the gate open.
-    update public.media_similar_rebuild_gate
-       set built_graph_rev = v_rev, last_core_run_at = now()
-     where id = 1;
+    -- Delete exactly what was seen (never by xid range: xid order is not commit order). A
+    -- change that committed while the core ran keeps its row and reopens the gate next fire.
+    delete from public.media_similar_graph_dirty where xid = any (v_seen);
+    update public.media_similar_rebuild_gate set last_core_run_at = now() where id = 1;
   end if;
   return v_result;
 end;
@@ -186,7 +212,7 @@ $$;
 revoke all on function public.rebuild_media_similar_titles(integer) from public, anon, authenticated;
 grant execute on function public.rebuild_media_similar_titles(integer) to service_role;
 comment on function public.rebuild_media_similar_titles(integer) is
-  '20261101010000 gate: returns 0 without work when media_similar_graph_rev_seq equals media_similar_rebuild_gate.built_graph_rev and no seed is stale; otherwise runs _rebuild_media_similar_titles_core_v1(p_batch) and records the revision it started from (only when the core returned >= 0).';
+  '20261101010000 gate: returns 0 without work when media_similar_graph_dirty has no visible row and no seed is stale; otherwise runs _rebuild_media_similar_titles_core_v1(p_batch) and, only when the core returned >= 0, deletes the dirty rows it saw before the run.';
 
 create or replace function public.media_similar_nightly_v1()
 returns jsonb
@@ -198,7 +224,8 @@ declare
   v_part integer := extract(isodow from now())::integer % 7;
   v_n bigint;
 begin
-  perform nextval('public.media_similar_graph_rev_seq');  -- one safety-net universe/franchise sync
+  -- one safety-net universe/franchise sync
+  insert into public.media_similar_graph_dirty default values on conflict (xid) do nothing;
   update public.media_similar_seed_state
      set stale = true
    where stale = false and (seed_media_id % 7) = v_part;
@@ -318,11 +345,11 @@ end;
 $$;
 revoke all on function public.update_catalog_updated_at_v1() from public, anon, authenticated;
 
-drop trigger if exists update_anime_updated_at on public.anime;
-create trigger update_anime_updated_at before update on public.anime
+-- CREATE OR REPLACE keeps the name (BEFORE-trigger order unchanged) and takes SHARE ROW
+-- EXCLUSIVE instead of DROP TRIGGER's ACCESS EXCLUSIVE, so catalog readers are not blocked.
+create or replace trigger update_anime_updated_at before update on public.anime
   for each row execute function public.update_catalog_updated_at_v1();
-drop trigger if exists update_manga_updated_at on public.manga;
-create trigger update_manga_updated_at before update on public.manga
+create or replace trigger update_manga_updated_at before update on public.manga
   for each row execute function public.update_catalog_updated_at_v1();
 
 -- ---------------------------------------------------------------------------
