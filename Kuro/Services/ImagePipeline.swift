@@ -7,22 +7,65 @@ import ImageIO
 #endif
 
 // Lightweight image pipeline:
-// - in-memory cache (NSCache)
-// - URLCache-backed disk cache via URLRequest cachePolicy
-// - de-dup in-flight requests
+// - in-memory cache (NSCache), keyed by URL AND decode size: one URL decoded for a 120 pt thumbnail
+//   and for a 1200 px hero are two entries, and a request is served only by a decode of its own size
+//   bucket or larger (never by a smaller one, which would look soft), or by the full image
+// - URLCache-backed disk cache via URLRequest cachePolicy (the bytes are shared by every size)
+// - de-dup in-flight requests (a request joins a running decode of its size or larger)
+// - prefetch decodes at card size (`defaultPrefetchPixelSize`) unless the caller names a size, so a
+//   rail prefetch no longer fills the memory cache with full-resolution decodes
 //
 // Intentionally minimal (no third-party dependency) to keep the app snappy.
 actor ImagePipeline {
     static let shared = ImagePipeline()
 
+    // MARK: Size buckets and cache keys (pure; tested)
+
+    /// Decode sizes (longest side, pixels). A requested size rounds UP to the next bucket, so nearby
+    /// requests share one decode. The last bucket equals the decode cap.
+    nonisolated static let pixelBuckets: [Int] = [180, 240, 360, 480, 640, 900, 1200]
+    /// Smallest and largest decode size; requests are clamped into this range first.
+    nonisolated static let minDecodePixelSize = 180
+    nonisolated static let maxDecodePixelSize = 1200
+    /// The decode size of a prefetch that names none: a standard card (300 pt at 3x).
+    nonisolated static let defaultPrefetchPixelSize = 900
+
+    /// The bucket a request decodes at: nil (full image) stays nil; otherwise the requested size is
+    /// clamped to [min, max] and rounded up to the next bucket.
+    nonisolated static func pixelBucket(for requested: Int?) -> Int? {
+        guard let requested else { return nil }
+        let clamped = min(maxDecodePixelSize, max(minDecodePixelSize, requested))
+        return pixelBuckets.first { $0 >= clamped } ?? maxDecodePixelSize
+    }
+
+    /// The memory/in-flight key of one decode: the URL plus its bucket ("#full" for an undownsampled
+    /// decode, which serves every size).
+    nonisolated static func cacheKey(url: URL, bucket: Int?) -> String {
+        "\(url.absoluteString)#\(bucket.map { "px\($0)" } ?? "full")"
+    }
+
+    /// The keys that may serve a request of `bucket`, best first: the exact bucket, then every larger
+    /// bucket, then the full image. A full-image request is served only by a full decode.
+    nonisolated static func servingKeys(url: URL, bucket: Int?) -> [String] {
+        guard let bucket else { return [cacheKey(url: url, bucket: nil)] }
+        let candidates = pixelBuckets.filter { $0 >= bucket }
+        return candidates.map { cacheKey(url: url, bucket: $0) } + [cacheKey(url: url, bucket: nil)]
+    }
+
+    /// The bucket a finished decode is stored under: when the source was smaller than the requested
+    /// bucket the decode IS the full image (downsampling never upscales), so it is stored as "full" and
+    /// serves every later request of that URL.
+    nonisolated static func storageBucket(requested bucket: Int?, decodedLongestSide: Int) -> Int? {
+        guard let bucket else { return nil }
+        return decodedLongestSide < bucket ? nil : bucket
+    }
+
 #if canImport(UIKit)
-    private let memory = NSCache<NSURL, UIImage>()
-    private var inFlight: [URL: Task<UIImage?, Never>] = [:]
+    private let memory = NSCache<NSString, UIImage>()
+    private var inFlight: [String: Task<UIImage?, Never>] = [:]
     private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Kuro", category: "image")
     private let maxPrefetchFanout = 12
     private let maxInFlightCap = 40
-    private let maxDecodePixelSize = 1200
-    private let minDecodePixelSize = 180
 
     init() {
         // ~80MB in-memory images (roughly, cost is RGBA bytes).
@@ -33,59 +76,85 @@ actor ImagePipeline {
         memory.removeAllObjects()
     }
 
+    /// Warms the caches for `urls` (at most `maxPrefetchFanout` new loads per call). `maxPixelSize`
+    /// nil decodes at card size (`defaultPrefetchPixelSize`), not at full resolution.
     func prefetch(urls: [URL], maxPixelSize: Int? = nil) {
-        let clampedPixelSize = clampPixelSize(maxPixelSize)
+        let bucket = Self.pixelBucket(for: maxPixelSize ?? Self.defaultPrefetchPixelSize)
         var queued = 0
         var seen: Set<URL> = []
         let uniqueUrls = urls.filter { seen.insert($0).inserted }
         for url in uniqueUrls {
             if queued >= maxPrefetchFanout { break }
             if inFlight.count >= maxInFlightCap { break }
-            if memory.object(forKey: url as NSURL) != nil { continue }
-            if inFlight[url] != nil { continue }
-            let task = makeLoadTask(url: url, maxPixelSize: clampedPixelSize)
-            inFlight[url] = task
+            if cachedImage(url: url, bucket: bucket) != nil { continue }
+            if runningTask(url: url, bucket: bucket) != nil { continue }
+            let key = Self.cacheKey(url: url, bucket: bucket)
+            inFlight[key] = makeLoadTask(url: url, bucket: bucket, key: key)
             queued += 1
         }
     }
 
     func image(url: URL, maxPixelSize: Int? = nil) async -> UIImage? {
-        let clampedPixelSize = clampPixelSize(maxPixelSize)
-        if let cached = memory.object(forKey: url as NSURL) {
+        let bucket = Self.pixelBucket(for: maxPixelSize)
+        if let cached = cachedImage(url: url, bucket: bucket) {
             log.debug("mem hit \(url.absoluteString, privacy: .private(mask: .hash))")
             return cached
         }
-        if let task = inFlight[url] { return await task.value }
-        await waitForInFlightSlot(for: url)
-        if let cached = memory.object(forKey: url as NSURL) {
+        if let task = runningTask(url: url, bucket: bucket) { return await task.value }
+        let key = Self.cacheKey(url: url, bucket: bucket)
+        await waitForInFlightSlot(for: key)
+        if let cached = cachedImage(url: url, bucket: bucket) {
             log.debug("mem hit after wait \(url.absoluteString, privacy: .private(mask: .hash))")
             return cached
         }
-        if let task = inFlight[url] { return await task.value }
+        if let task = runningTask(url: url, bucket: bucket) { return await task.value }
 
-        let task = makeLoadTask(url: url, maxPixelSize: clampedPixelSize)
-        inFlight[url] = task
+        let task = makeLoadTask(url: url, bucket: bucket, key: key)
+        inFlight[key] = task
         return await task.value
     }
 
-    private func makeLoadTask(url: URL, maxPixelSize: Int?) -> Task<UIImage?, Never> {
+    /// The best cached decode that may serve `bucket` (same size or larger, or the full image).
+    private func cachedImage(url: URL, bucket: Int?) -> UIImage? {
+        for key in Self.servingKeys(url: url, bucket: bucket) {
+            if let image = memory.object(forKey: key as NSString) { return image }
+        }
+        return nil
+    }
+
+    /// A running decode that may serve `bucket`.
+    private func runningTask(url: URL, bucket: Int?) -> Task<UIImage?, Never>? {
+        for key in Self.servingKeys(url: url, bucket: bucket) {
+            if let task = inFlight[key] { return task }
+        }
+        return nil
+    }
+
+    private func makeLoadTask(url: URL, bucket: Int?, key: String) -> Task<UIImage?, Never> {
         Task<UIImage?, Never> { [weak self] in
             guard let self else { return nil }
-            let image = await self.load(url: url, maxPixelSize: maxPixelSize)
-            await self.finishInFlight(url: url)
+            let image = await self.load(url: url, maxPixelSize: bucket)
+            await self.finishInFlight(key: key)
             return image
         }
     }
 
-    private func finishInFlight(url: URL) {
-        inFlight[url] = nil
+    private func finishInFlight(key: String) {
+        inFlight[key] = nil
     }
 
-    private func waitForInFlightSlot(for url: URL) async {
-        while inFlight.count >= maxInFlightCap && inFlight[url] == nil {
+    private func waitForInFlightSlot(for key: String) async {
+        while inFlight.count >= maxInFlightCap && inFlight[key] == nil {
             await Task.yield()
             try? await Task.sleep(nanoseconds: 25_000_000)
         }
+    }
+
+    /// Stores a finished decode under its storage bucket (see `storageBucket`).
+    private func store(_ image: UIImage, url: URL, requested bucket: Int?) {
+        let longest = Int(max(image.size.width, image.size.height) * image.scale)
+        let key = Self.cacheKey(url: url, bucket: Self.storageBucket(requested: bucket, decodedLongestSide: longest))
+        memory.setObject(image, forKey: key as NSString, cost: imageCostBytes(image))
     }
 
     private func load(url: URL, maxPixelSize: Int?) async -> UIImage? {
@@ -93,13 +162,12 @@ actor ImagePipeline {
         var request = URLRequest(url: url)
         request.cachePolicy = .returnCacheDataElseLoad
         request.timeoutInterval = 20
-        let decodePixelSize = clampPixelSize(maxPixelSize)
+        let decodePixelSize = maxPixelSize
 
         // Fast path: decode from URLCache first to avoid network/decode jitter.
         if let cached = URLCache.shared.cachedResponse(for: request),
            let image = decodeImage(data: cached.data, maxPixelSize: decodePixelSize) {
-            let cost = imageCostBytes(image)
-            memory.setObject(image, forKey: url as NSURL, cost: cost)
+            store(image, url: url, requested: maxPixelSize)
             KuroPerf.end(perf, message: "disk cache hit")
             return image
         }
@@ -122,19 +190,13 @@ actor ImagePipeline {
             let cached = CachedURLResponse(response: response, data: data)
             URLCache.shared.storeCachedResponse(cached, for: request)
 
-            let cost = imageCostBytes(image)
-            memory.setObject(image, forKey: url as NSURL, cost: cost)
+            store(image, url: url, requested: maxPixelSize)
             KuroPerf.end(perf, message: "ok")
             return image
         } catch {
             KuroPerf.end(perf, message: "error")
             return nil
         }
-    }
-
-    private func clampPixelSize(_ requested: Int?) -> Int? {
-        guard let requested else { return nil }
-        return min(maxDecodePixelSize, max(minDecodePixelSize, requested))
     }
 
     private func decodeImage(data: Data, maxPixelSize: Int?) -> UIImage? {

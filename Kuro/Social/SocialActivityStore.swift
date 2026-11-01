@@ -29,7 +29,7 @@ import Supabase
 @Observable
 final class SocialActivityStore: AccountScopedState {
 
-    struct TitleComment: Decodable, Sendable, Identifiable {
+    nonisolated struct TitleComment: Decodable, Sendable, Identifiable {
         let id: String
         let user_id: String
         let display_name: String?
@@ -43,7 +43,7 @@ final class SocialActivityStore: AccountScopedState {
         let spoiler_scope: String?
     }
 
-    struct FriendTitleActivity: Decodable, Sendable {
+    nonisolated struct FriendTitleActivity: Decodable, Sendable {
         let user_id: String
         let display_name: String?
         let status: String?
@@ -52,23 +52,23 @@ final class SocialActivityStore: AccountScopedState {
         let updated_at: String?
     }
 
-    struct FriendActivityResponse: Decodable, Sendable {
+    nonisolated struct FriendActivityResponse: Decodable, Sendable {
         let friends_tracking: [FriendTitleActivity]
         let comments: [TitleComment]
         let own_comment: TitleComment?
         let comments_next: CommentCursor?
         let friends_next: String?
 
-        struct CommentCursor: Decodable, Sendable { let at: String; let id: String }
+        nonisolated struct CommentCursor: Decodable, Sendable { let at: String; let id: String }
     }
 
-    struct FriendCountItem: Decodable, Sendable {
+    nonisolated struct FriendCountItem: Decodable, Sendable {
         let media_type: String
         let media_id: Int
         let count: Int
     }
 
-    struct UpsertCommentResponse: Decodable, Sendable {
+    nonisolated struct UpsertCommentResponse: Decodable, Sendable {
         let id: String
         let user_id: String
         let text: String
@@ -76,7 +76,7 @@ final class SocialActivityStore: AccountScopedState {
         let updated_at: String
     }
 
-    struct ToggleCommentReactionResponse: Decodable, Sendable {
+    nonisolated struct ToggleCommentReactionResponse: Decodable, Sendable {
         let toggled_on: Bool
         let reaction_type: String
     }
@@ -100,7 +100,18 @@ final class SocialActivityStore: AccountScopedState {
 
     /// Club-mates tracking each title, keyed "<mediaType>-<id>" (case-sensitive, as requested).
     var friendTrackingCounts: [String: Int] = [:]
+    /// The most recently started friend-count prefetch (callers and tests may await it).
     @ObservationIgnored var friendCountPrefetchTask: Task<Void, Never>?
+    /// Every friend-count prefetch still running, by id. Prefetches of different screens no longer
+    /// cancel each other (Discover's counts used to be dropped by a Browse page, and vice versa); the
+    /// account funnel and a club revocation cancel all of them.
+    @ObservationIgnored private var friendCountPrefetchTasks: [UUID: Task<Void, Never>] = [:]
+    /// Keys being requested right now, with the prefetch that owns them.
+    @ObservationIgnored private var friendCountInFlight: [String: UUID] = [:]
+    /// When each key's count was last stored (`friendCountTTL`): a fresh key is not requested again.
+    @ObservationIgnored private var friendCountFetchedAt: [String: Date] = [:]
+    /// How long a friend count is reused before a prefetch asks for it again.
+    nonisolated static let friendCountTTL: TimeInterval = 120
     /// The friend-scope (permission) generation (F03): changes on every club revocation and every
     /// account transition, never returns to an earlier value. Views compare it for equality only.
     private(set) var friendScopeGeneration = 0
@@ -110,10 +121,14 @@ final class SocialActivityStore: AccountScopedState {
     func cancelAccountWork() {
         friendCountPrefetchTask?.cancel()
         friendCountPrefetchTask = nil
+        for task in friendCountPrefetchTasks.values { task.cancel() }
+        friendCountPrefetchTasks.removeAll()
+        friendCountInFlight.removeAll()
     }
 
     func clearPrivateState() {
         friendTrackingCounts.removeAll()
+        friendCountFetchedAt.removeAll()
         friendScopeGeneration += 1
     }
 
@@ -242,17 +257,38 @@ final class SocialActivityStore: AccountScopedState {
         friendTrackingCounts["\(mediaType)-\(mediaId)"] ?? 0
     }
 
+    /// Requests the friend counts of `items` in batches of 100. Keys stored within `friendCountTTL` or
+    /// already being requested by another prefetch are skipped; when nothing is left, no request is
+    /// made. A key is marked fresh only after its batch answered under the current account and friend
+    /// scope.
     func prefetchFriendCounts(items: [(mediaType: String, mediaId: Int)]) {
-        friendCountPrefetchTask?.cancel()
+        let pending = Self.friendCountKeysToRequest(
+            items.map { Self.friendCountKey(mediaType: $0.mediaType, mediaId: $0.mediaId) },
+            fetchedAt: friendCountFetchedAt,
+            inFlight: Set(friendCountInFlight.keys),
+            now: Date(),
+            ttl: Self.friendCountTTL
+        )
+        guard !pending.isEmpty else { return }
+        let pendingSet = Set(pending)
+        var seen = Set<String>()
+        let requested = items.filter { item in
+            let key = Self.friendCountKey(mediaType: item.mediaType, mediaId: item.mediaId)
+            return pendingSet.contains(key) && seen.insert(key).inserted
+        }
         let scope = currentFriendScope
-        friendCountPrefetchTask = Task { [weak self] in
-            guard let self, !items.isEmpty else { return }
+        let id = UUID()
+        for key in pending { friendCountInFlight[key] = id }
+        let task = Task { [weak self] in
+            guard let self else { return }
+            defer { self.finishFriendCountPrefetch(id, keys: pending) }
             do {
                 let client = try requiredClient()
                 // Each batch is bounded before entering the RPC; never one request per card.
-                for start in stride(from: 0, to: items.count, by: 100) {
+                for start in stride(from: 0, to: requested.count, by: 100) {
                     guard !Task.isCancelled, self.isCurrent(scope) else { return }
-                    let payload = items[start..<min(start+100,items.count)].map { ["media_type": $0.mediaType, "media_id": "\($0.mediaId)"] }
+                    let batch = requested[start..<min(start + 100, requested.count)]
+                    let payload = batch.map { ["media_type": $0.mediaType, "media_id": "\($0.mediaId)"] }
                     let data = try JSONSerialization.data(withJSONObject: payload)
                     guard let jsonString = String(data: data, encoding: .utf8) else { return }
                     let counts: [FriendCountItem] = try await accountSession.withCredentialLease(for: scope.context) {
@@ -261,16 +297,53 @@ final class SocialActivityStore: AccountScopedState {
                     guard !Task.isCancelled, self.isCurrent(scope) else { return }
                     // Zero-result titles are omitted by the server. Replace this batch's
                     // projection rather than retaining an earlier member's count.
-                    for item in items[start..<min(start+100,items.count)] {
-                        self.friendTrackingCounts["\(item.mediaType)-\(item.mediaId)"] = 0
+                    let now = Date()
+                    for item in batch {
+                        let key = Self.friendCountKey(mediaType: item.mediaType, mediaId: item.mediaId)
+                        self.friendTrackingCounts[key] = 0
+                        self.friendCountFetchedAt[key] = now
                     }
-                    for item in counts { self.friendTrackingCounts["\(item.media_type)-\(item.media_id)"] = item.count }
+                    for item in counts {
+                        self.friendTrackingCounts[Self.friendCountKey(mediaType: item.media_type, mediaId: item.media_id)] = item.count
+                    }
                 }
             } catch {
                 #if DEBUG
                 print("[SocialActivity] prefetchFriendCounts error: \(error.localizedDescription)")
                 #endif
             }
+        }
+        friendCountPrefetchTasks[id] = task
+        friendCountPrefetchTask = task
+    }
+
+    /// Releases the keys a prefetch still owns (a newer prefetch after a reset may own them now).
+    private func finishFriendCountPrefetch(_ id: UUID, keys: [String]) {
+        friendCountPrefetchTasks[id] = nil
+        for key in keys where friendCountInFlight[key] == id {
+            friendCountInFlight[key] = nil
+        }
+    }
+
+    /// The count key of one title ("<mediaType>-<id>", case-sensitive, as requested).
+    nonisolated static func friendCountKey(mediaType: String, mediaId: Int) -> String {
+        "\(mediaType)-\(mediaId)"
+    }
+
+    /// The keys of `keys` a prefetch should request: de-duplicated in first-seen order, without keys
+    /// being requested (`inFlight`) or stored less than `ttl` ago.
+    nonisolated static func friendCountKeysToRequest(
+        _ keys: [String],
+        fetchedAt: [String: Date],
+        inFlight: Set<String>,
+        now: Date,
+        ttl: TimeInterval
+    ) -> [String] {
+        var seen = Set<String>()
+        return keys.filter { key in
+            guard seen.insert(key).inserted, !inFlight.contains(key) else { return false }
+            if let stored = fetchedAt[key], now.timeIntervalSince(stored) < ttl { return false }
+            return true
         }
     }
 }

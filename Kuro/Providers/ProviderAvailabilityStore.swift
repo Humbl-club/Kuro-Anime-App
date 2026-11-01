@@ -25,19 +25,19 @@ import Supabase
 @Observable
 final class ProviderAvailabilityStore: AccountScopedState {
 
-    struct ProviderInfo: Decodable, Sendable {
+    nonisolated struct ProviderInfo: Decodable, Sendable {
         let slug: String
         let display_name: String
         let language: String?
     }
 
-    struct BatchProviderResult: Decodable, Sendable {
+    nonisolated struct BatchProviderResult: Decodable, Sendable {
         let media_type: String
         let media_id: Int
         let providers: [ProviderInfo]
     }
 
-    struct StreamingServiceRecord: Decodable, Sendable, Identifiable {
+    nonisolated struct StreamingServiceRecord: Decodable, Sendable, Identifiable {
         let slug: String
         let display_name: String
         let media_types: [String]
@@ -46,19 +46,19 @@ final class ProviderAvailabilityStore: AccountScopedState {
         var id: String { slug }
     }
 
-    struct ClubSharedProvidersResponse: Decodable, Sendable {
+    nonisolated struct ClubSharedProvidersResponse: Decodable, Sendable {
         let shared_services: [SharedService]
         let member_count_total: Int
         let member_count_with_services: Int
         let coverage_pct: Int
 
-        struct SharedService: Decodable, Sendable {
+        nonisolated struct SharedService: Decodable, Sendable {
             let slug: String
             let display_name: String
         }
     }
 
-    struct ProviderAvailabilityQueueSummary: Decodable, Sendable {
+    nonisolated struct ProviderAvailabilityQueueSummary: Decodable, Sendable {
         let urgentPendingCount: Int
         let oldestPendingRequestAgeSeconds: Int
         let requestReasonMix: [String: Int]
@@ -176,6 +176,21 @@ final class ProviderAvailabilityStore: AccountScopedState {
     @ObservationIgnored var providerAvailabilityPrefetchTask: Task<Void, Never>?
     var availabilityRefreshEnqueueCooldown: [String: Date] = [:]
     var streamingServiceRegistry: [StreamingServiceRecord] = []
+    /// When the registry was last read successfully (`streamingServiceRegistryTTL`).
+    @ObservationIgnored var streamingServiceRegistryLoadedAt: Date?
+    /// Availability status rows per media ("ANIME-42") read by the detail link resolution, kept for
+    /// `detailAvailabilityTTL`: one status read per media id while its page is open.
+    @ObservationIgnored var detailAvailabilityStatusCache: [String: TimedCache<[MediaAvailabilityStatus]>] = [:]
+    /// When the detail link resolution last fetched provider v2 for a media and audio language
+    /// ("ANIME-42|en").
+    @ObservationIgnored var detailProviderAvailabilityFetchedAt: [String: Date] = [:]
+
+    /// Lifetime of the detail resolution's status and provider v2 reads (matches the enqueue cooldown).
+    nonisolated static let detailAvailabilityTTL: TimeInterval = 10 * 60
+    /// The service registry is static reference data: one read per 30 minutes is enough.
+    nonisolated static let streamingServiceRegistryTTL: TimeInterval = 30 * 60
+    /// The columns `StreamingServiceRecord` decodes.
+    nonisolated static let streamingServiceColumns = "slug,display_name,media_types,priority,is_active"
 
     // MARK: Private state (account-scoped)
 
@@ -387,24 +402,36 @@ final class ProviderAvailabilityStore: AccountScopedState {
         mediaId: Int,
         reason: String = "on_demand_open"
     ) async -> Bool {
-        let key = "\(mediaType.uppercased())-\(mediaId)"
-        if let last = availabilityRefreshEnqueueCooldown[key],
-           Date().timeIntervalSince(last) < 10 * 60 {
+        if isAvailabilityRefreshCoolingDown(mediaType: mediaType, mediaId: mediaId) { return false }
+        let rows: [MediaAvailabilityStatus]
+        do {
+            rows = try await fetchMediaAvailabilityStatusRows(mediaType: mediaType, mediaId: mediaId)
+        } catch {
+            #if DEBUG
+            print("[Streaming] enqueueAvailabilityRefreshIfStale error: \(error.localizedDescription)")
+            #endif
             return false
         }
-        do {
-            let rows = try await fetchMediaAvailabilityStatusRows(
-                mediaType: mediaType,
-                mediaId: mediaId
-            )
-            let shouldQueue: Bool
-            if let status = rows.first {
-                shouldQueue = (!status.hasRows) || ((status.staleDays ?? 999) >= 30)
-            } else {
-                shouldQueue = true
-            }
+        return await enqueueAvailabilityRefresh(
+            mediaType: mediaType,
+            mediaId: mediaId,
+            reason: reason,
+            knownStatusRows: rows
+        )
+    }
 
-            guard shouldQueue else { return false }
+    /// The refresh-enqueue write decided from status rows the caller already read (the detail link
+    /// resolution passes its own read instead of reading the status a second time). Cooldown-gated;
+    /// true only when the write went through.
+    func enqueueAvailabilityRefresh(
+        mediaType: String,
+        mediaId: Int,
+        reason: String,
+        knownStatusRows rows: [MediaAvailabilityStatus]
+    ) async -> Bool {
+        if isAvailabilityRefreshCoolingDown(mediaType: mediaType, mediaId: mediaId) { return false }
+        guard Self.shouldQueueAvailabilityRefresh(rows.first) else { return false }
+        do {
             let client = try requiredClient()
             let enqueueParams = RPCEnqueueMediaAvailabilityRefreshParams(
                 p_media_type: mediaType.uppercased(),
@@ -415,14 +442,73 @@ final class ProviderAvailabilityStore: AccountScopedState {
                 .rpc("enqueue_media_availability_refresh", params: enqueueParams)
                 .execute()
                 .value
-            availabilityRefreshEnqueueCooldown[key] = Date()
+            availabilityRefreshEnqueueCooldown[Self.availabilityKey(mediaType: mediaType, mediaId: mediaId)] = Date()
             return true
         } catch {
             #if DEBUG
-            print("[Streaming] enqueueAvailabilityRefreshIfStale error: \(error.localizedDescription)")
+            print("[Streaming] enqueueAvailabilityRefresh error: \(error.localizedDescription)")
             #endif
             return false
         }
+    }
+
+    private func isAvailabilityRefreshCoolingDown(mediaType: String, mediaId: Int) -> Bool {
+        guard let last = availabilityRefreshEnqueueCooldown[Self.availabilityKey(mediaType: mediaType, mediaId: mediaId)] else {
+            return false
+        }
+        return Date().timeIntervalSince(last) < 10 * 60
+    }
+
+    /// A refresh is queued when the title has no availability rows (or no status row at all) or its
+    /// rows are at least 30 days old.
+    nonisolated static func shouldQueueAvailabilityRefresh(_ status: MediaAvailabilityStatus?) -> Bool {
+        guard let status else { return true }
+        return !status.hasRows || (status.staleDays ?? 999) >= 30
+    }
+
+    /// The per-media key of the availability caches ("ANIME-42").
+    nonisolated static func availabilityKey(mediaType: String, mediaId: Int) -> String {
+        "\(mediaType.uppercased())-\(mediaId)"
+    }
+
+    // MARK: Detail link resolution caches
+
+    /// The status rows of one media for the detail link resolution: served from
+    /// `detailAvailabilityStatusCache` within `detailAvailabilityTTL`, otherwise read once and kept.
+    /// nil when the read failed (nothing is cached then).
+    func detailAvailabilityStatusRows(mediaType: String, mediaId: Int) async -> [MediaAvailabilityStatus]? {
+        let key = Self.availabilityKey(mediaType: mediaType, mediaId: mediaId)
+        if let cached = detailAvailabilityStatusCache[key],
+           Date().timeIntervalSince(cached.storedAt) < Self.detailAvailabilityTTL {
+            return cached.value
+        }
+        do {
+            let rows = try await fetchMediaAvailabilityStatusRows(mediaType: mediaType, mediaId: mediaId)
+            trimTimedCache(&detailAvailabilityStatusCache, maxEntries: 100)
+            detailAvailabilityStatusCache[key] = TimedCache(value: rows, storedAt: Date())
+            return rows
+        } catch {
+            #if DEBUG
+            print("[Streaming] detailAvailabilityStatusRows error: \(error.localizedDescription)")
+            #endif
+            return nil
+        }
+    }
+
+    /// Whether the detail resolution should fetch provider v2 for this media and audio language: not
+    /// within `detailAvailabilityTTL` of its last fetch.
+    func shouldFetchDetailProviderAvailability(mediaType: String, mediaId: Int, audio: String) -> Bool {
+        let key = "\(Self.availabilityKey(mediaType: mediaType, mediaId: mediaId))|\(audio)"
+        guard let last = detailProviderAvailabilityFetchedAt[key] else { return true }
+        return Date().timeIntervalSince(last) >= Self.detailAvailabilityTTL
+    }
+
+    func markDetailProviderAvailabilityFetched(mediaType: String, mediaId: Int, audio: String) {
+        if detailProviderAvailabilityFetchedAt.count > 200 {
+            let cutoff = Date().addingTimeInterval(-Self.detailAvailabilityTTL)
+            detailProviderAvailabilityFetchedAt = detailProviderAvailabilityFetchedAt.filter { $0.value > cutoff }
+        }
+        detailProviderAvailabilityFetchedAt["\(Self.availabilityKey(mediaType: mediaType, mediaId: mediaId))|\(audio)"] = Date()
     }
 
     func mediaAvailabilityStatus(
@@ -486,17 +572,24 @@ final class ProviderAvailabilityStore: AccountScopedState {
             .value
     }
 
+    /// The active service registry (static reference data): read at most once per
+    /// `streamingServiceRegistryTTL` once it has loaded.
     func fetchStreamingServiceRegistry() async {
+        if let loadedAt = streamingServiceRegistryLoadedAt, !streamingServiceRegistry.isEmpty,
+           Date().timeIntervalSince(loadedAt) < Self.streamingServiceRegistryTTL {
+            return
+        }
         do {
             let client = try requiredClient()
             let records: [StreamingServiceRecord] = try await client
                 .from("streaming_services")
-                .select()
+                .select(Self.streamingServiceColumns)
                 .eq("is_active", value: true)
                 .order("priority", ascending: true)
                 .execute()
                 .value
             streamingServiceRegistry = records
+            streamingServiceRegistryLoadedAt = Date()
         } catch {
             #if DEBUG
             print("[Streaming] fetchStreamingServiceRegistry error: \(error.localizedDescription)")

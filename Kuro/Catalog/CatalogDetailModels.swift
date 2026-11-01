@@ -29,7 +29,7 @@ struct Episode: Identifiable, Codable {
     let createdAt: Date
     let updatedAt: Date
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case id
         case animeId = "anime_id"
         case number, title
@@ -63,7 +63,7 @@ struct MangaChapter: Identifiable, Codable {
     let createdAt: Date
     let updatedAt: Date
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case id
         case mangaId = "manga_id"
         case number, title
@@ -110,7 +110,7 @@ struct ExternalLink: Identifiable, Codable {
     let createdAt: Date
     let updatedAt: Date
 
-    enum CodingKeys: String, CodingKey {
+    enum CodingKeys: String, CodingKey, CaseIterable {
         case id
         case mediaType = "media_type"
         case mediaId = "media_id"

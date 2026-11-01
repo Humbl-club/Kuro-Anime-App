@@ -48,6 +48,19 @@ final class CatalogStore: MemoryPressureTrimmable {
     var mediaLadderCache: [String: TimedCache<MediaLadderResponse>] = [:]
     var mediaLadderRefreshEnqueueCooldown: [String: Date] = [:]
 
+    // Card-projection rows ("More like this" hydration). Kept apart from the detail caches: a card
+    // row lacks the synopsis, banner and credits fields, so it must never be served as a detail model
+    // (similar cards open their detail by id through `fetchAnimeById` / `fetchMangaById`).
+    @ObservationIgnored private var animeCardCache: [Int: Anime] = [:]
+    @ObservationIgnored private var mangaCardCache: [Int: Manga] = [:]
+
+    // External links per media ("ANIME-42"), TTL `externalLinksTTL`; only successful reads are kept.
+    @ObservationIgnored private var externalLinksCache: [String: TimedCache<[ExternalLink]>] = [:]
+    // Stream link of one episode ("42#4"; a nil value = the episode has no stream link), TTL
+    // `externalLinksTTL`; only successful reads are kept.
+    @ObservationIgnored private var episodeStreamLinkCache: [String: TimedCache<EpisodeStreamLink?>] = [:]
+    nonisolated static let externalLinksTTL: TimeInterval = 10 * 60
+
     // In-flight public loads: a concurrent duplicate read joins the running request instead of
     // issuing its own. Public data is not account-scoped, so these run with a nil context and are
     // never cancelled by an account transition.
@@ -59,9 +72,18 @@ final class CatalogStore: MemoryPressureTrimmable {
     private let mangaCharactersLoads = AccountScopedLoads<Int, [(character: Character, role: String)]>()
     private let mangaAuthorsLoads = AccountScopedLoads<Int, [(author: Author, role: String)]>()
     private let mediaLadderLoads = AccountScopedLoads<String, MediaLadderResponse>()
+    private let externalLinksLoads = AccountScopedLoads<String, [ExternalLink]>()
+    private let studioWorksLoads = AccountScopedLoads<String, [Media]>()
+    private let staffWorksLoads = AccountScopedLoads<String, [(media: Media, role: String)]>()
+    private let authorWorksLoads = AccountScopedLoads<String, [(media: Media, role: String)]>()
+    private let characterWorksLoads = AccountScopedLoads<String, [Media]>()
 
-    /// Sheds the entity, ladder and detail caches under memory pressure.
+    /// Sheds the entity, ladder, link and detail caches under memory pressure.
     func trimCachesForMemoryPressure() {
+        animeCardCache.removeAll()
+        mangaCardCache.removeAll()
+        externalLinksCache.removeAll()
+        episodeStreamLinkCache.removeAll()
         animeCharactersCache.removeAll()
         animeStaffCache.removeAll()
         animeStudiosCache.removeAll()
@@ -94,7 +116,7 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let rows: [Anime] = try await client
                 .from("anime")
-                .select()
+                .select(CatalogColumns.select(CatalogColumns.animeDetail))
                 .eq("id", value: animeId)
                 .limit(1)
                 .execute()
@@ -139,7 +161,7 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let rows: [Manga] = try await client
                 .from("manga")
-                .select()
+                .select(CatalogColumns.select(CatalogColumns.mangaDetail))
                 .eq("id", value: mangaId)
                 .limit(1)
                 .execute()
@@ -168,57 +190,46 @@ final class CatalogStore: MemoryPressureTrimmable {
         }
     }
 
-    // MARK: - Batched detail fetch (ids in caller order; detail cache first)
+    // MARK: - Batched card fetch (ids in caller order; detail cache, then card cache, then one batch)
+    // "More like this" hydration. Missing ids are read in batches of 100 with the card projection
+    // (`CatalogColumns.animeCard` / `.mangaCard`) and kept in the card caches, never in the detail
+    // caches. An id the batch did not return is missing or adult-filtered on the server, so it is
+    // not retried one by one (that was an N+1: one request per unresolved id on every load).
 
     func fetchAnimeByIdsPreservingOrder(_ ids: [Int]) async -> [Anime]? {
         if ids.isEmpty { return [] }
 
         var resultsById: [Int: Anime] = [:]
         resultsById.reserveCapacity(ids.count)
-
         for id in ids {
-            if let cached = animeDetailCache[id] {
+            if let cached = animeDetailCache[id] ?? animeCardCache[id] {
                 resultsById[id] = cached
             }
         }
 
-        let missing = ids.filter { resultsById[$0] == nil }
-        if !missing.isEmpty {
-            for start in stride(from: 0, to: missing.count, by: 100) {
-                let end = min(start + 100, missing.count)
-                let chunk = Array(missing[start..<end])
-                do {
-                    let client = try requiredClient()
-                    let rows: [Anime] = try await client
-                        .from("anime")
-                        .select()
-                        .in("id", values: chunk)
-                        .execute()
-                        .value
-                    for row in rows {
-                        resultsById[row.id] = row
-                        animeDetailCache[row.id] = row
-                    }
-                } catch {
-                    #if DEBUG
-                    print("❌ anime batch detail fetch: \(error)")
-                    #endif
+        let missing = Self.uniqueMissingIds(ids, resolved: Set(resultsById.keys))
+        for chunk in Self.batchChunks(missing) {
+            do {
+                let client = try requiredClient()
+                let rows: [Anime] = try await client
+                    .from("anime")
+                    .select(CatalogColumns.select(CatalogColumns.animeCard))
+                    .in("id", values: chunk)
+                    .execute()
+                    .value
+                for row in rows {
+                    resultsById[row.id] = row
+                    animeCardCache[row.id] = row
                 }
-            }
-
-            let unresolved = missing.filter { resultsById[$0] == nil }
-            if !unresolved.isEmpty {
-                await withTaskGroup(of: Anime?.self) { group in
-                    for id in unresolved {
-                        group.addTask { [weak self] in
-                            guard let self else { return nil }
-                            return try? await self.fetchAnimeById(id)
-                        }
-                    }
-                    for await item in group {
-                        if let item { resultsById[item.id] = item }
+                if animeCardCache.count > Self.cardCacheLimit {
+                    for key in animeCardCache.keys.prefix(animeCardCache.count - Self.cardCacheLimit) {
+                        animeCardCache.removeValue(forKey: key)
                     }
                 }
+            } catch {
+                #if DEBUG
+                print("❌ anime batch card fetch: \(error)")
+                #endif
             }
         }
 
@@ -231,55 +242,59 @@ final class CatalogStore: MemoryPressureTrimmable {
 
         var resultsById: [Int: Manga] = [:]
         resultsById.reserveCapacity(ids.count)
-
         for id in ids {
-            if let cached = mangaDetailCache[id] {
+            if let cached = mangaDetailCache[id] ?? mangaCardCache[id] {
                 resultsById[id] = cached
             }
         }
 
-        let missing = ids.filter { resultsById[$0] == nil }
-        if !missing.isEmpty {
-            for start in stride(from: 0, to: missing.count, by: 100) {
-                let end = min(start + 100, missing.count)
-                let chunk = Array(missing[start..<end])
-                do {
-                    let client = try requiredClient()
-                    let rows: [Manga] = try await client
-                        .from("manga")
-                        .select()
-                        .in("id", values: chunk)
-                        .execute()
-                        .value
-                    for row in rows {
-                        resultsById[row.id] = row
-                        mangaDetailCache[row.id] = row
-                    }
-                } catch {
-                    #if DEBUG
-                    print("❌ manga batch detail fetch: \(error)")
-                    #endif
+        let missing = Self.uniqueMissingIds(ids, resolved: Set(resultsById.keys))
+        for chunk in Self.batchChunks(missing) {
+            do {
+                let client = try requiredClient()
+                let rows: [Manga] = try await client
+                    .from("manga")
+                    .select(CatalogColumns.select(CatalogColumns.mangaCard))
+                    .in("id", values: chunk)
+                    .execute()
+                    .value
+                for row in rows {
+                    resultsById[row.id] = row
+                    mangaCardCache[row.id] = row
                 }
-            }
-
-            let unresolved = missing.filter { resultsById[$0] == nil }
-            if !unresolved.isEmpty {
-                await withTaskGroup(of: Manga?.self) { group in
-                    for id in unresolved {
-                        group.addTask { [weak self] in
-                            guard let self else { return nil }
-                            return try? await self.fetchMangaById(id)
-                        }
-                    }
-                    for await item in group {
-                        if let item { resultsById[item.id] = item }
+                if mangaCardCache.count > Self.cardCacheLimit {
+                    for key in mangaCardCache.keys.prefix(mangaCardCache.count - Self.cardCacheLimit) {
+                        mangaCardCache.removeValue(forKey: key)
                     }
                 }
+            } catch {
+                #if DEBUG
+                print("❌ manga batch card fetch: \(error)")
+                #endif
             }
         }
 
         let ordered = ids.compactMap { resultsById[$0] }
         return ordered.isEmpty ? nil : ordered
+    }
+
+    /// Upper bound of each card cache (oldest-unordered eviction, like the detail caches).
+    nonisolated static let cardCacheLimit = 300
+    /// Ids per batched `id=in.(...)` read.
+    nonisolated static let batchSize = 100
+
+    /// The ids of `ids` not in `resolved`, de-duplicated, in first-seen order.
+    nonisolated static func uniqueMissingIds(_ ids: [Int], resolved: Set<Int>) -> [Int] {
+        var seen = resolved
+        return ids.filter { seen.insert($0).inserted }
+    }
+
+    /// `ids` split into consecutive batches of at most `size` (one request each).
+    nonisolated static func batchChunks(_ ids: [Int], size: Int = batchSize) -> [[Int]] {
+        guard size > 0, !ids.isEmpty else { return [] }
+        return stride(from: 0, to: ids.count, by: size).map { start in
+            Array(ids[start..<min(start + size, ids.count)])
+        }
     }
 
     // MARK: - Tags (per-title "sub-genres"; row shapes shared with the genre facets in Discovery)
@@ -413,8 +428,10 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let joins: [AnimeCharacterJoin] = try await client
                 .from("anime_characters")
-                .select("role, characters(id, anilist_id, name_full, name_native, image_large, description, gender, age)")
+                .select("role, \(CatalogColumns.characterEmbed)")
                 .eq("anime_id", value: animeId)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.creditsRowLimit)
                 .execute()
                 .value
             let result = joins.map { (character: $0.characters, role: $0.role ?? "SUPPORTING") }
@@ -444,8 +461,10 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let joins: [AnimeStaffJoin] = try await client
                 .from("anime_staff")
-                .select("role, staff(id, anilist_id, name_full, name_native, image_large, description, primary_occupations)")
+                .select("role, \(CatalogColumns.staffEmbed)")
                 .eq("anime_id", value: animeId)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.creditsRowLimit)
                 .execute()
                 .value
             let result = joins.map { (staff: $0.staff, role: $0.role ?? "") }
@@ -477,6 +496,8 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .from("anime_studios")
                 .select("studios(id, anilist_id, name, is_animation_studio, site_url, favourites)")
                 .eq("anime_id", value: animeId)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.creditsRowLimit)
                 .execute()
                 .value
             let result = joins.map(\.studios)
@@ -506,8 +527,10 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let joins: [MangaCharacterJoin] = try await client
                 .from("manga_characters")
-                .select("role, characters(id, anilist_id, name_full, name_native, image_large, description, gender, age)")
+                .select("role, \(CatalogColumns.characterEmbed)")
                 .eq("manga_id", value: mangaId)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.creditsRowLimit)
                 .execute()
                 .value
             let result = joins.map { (character: $0.characters, role: $0.role ?? "SUPPORTING") }
@@ -537,8 +560,10 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let joins: [MangaAuthorJoin] = try await client
                 .from("manga_authors")
-                .select("role, authors(id, anilist_id, name_full, name_native, image_large, description)")
+                .select("role, \(CatalogColumns.authorEmbed)")
                 .eq("manga_id", value: mangaId)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.creditsRowLimit)
                 .execute()
                 .value
             let result = joins.map { (author: $0.authors, role: $0.role ?? "") }
@@ -557,11 +582,21 @@ final class CatalogStore: MemoryPressureTrimmable {
 
     // -- Entity sheet fetches (reverse joins: entity → media) --
 
+    // Each sheet read joins a concurrent duplicate (in-flight join per entity key), is ordered by the
+    // join row id for a deterministic page and is bounded by `CatalogColumns.entityWorksRowLimit`.
+
     func fetchAnimeByStudio(studioId: Int) async -> [Media] {
         let key = "studio-\(studioId)"
         if let cached = studioWorksCache[key], Date().timeIntervalSince(cached.storedAt) < 120 {
             return cached.value
         }
+        let result = try? await studioWorksLoads.run(key: key, context: nil) { [weak self] in
+            await self?.loadAnimeByStudio(studioId: studioId, key: key) ?? []
+        }
+        return result ?? []
+    }
+
+    private func loadAnimeByStudio(studioId: Int, key: String) async -> [Media] {
         do {
             let client = try requiredClient()
             let joins: [StudioAnimeJoin] = try await client
@@ -569,6 +604,8 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .select("anime!inner(id, title_english, title_romaji, cover_image_large, average_score, season_year, format, status, genres, is_adult, episodes)")
                 .eq("studio_id", value: studioId)
                 .eq("anime.is_adult", value: false)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.entityWorksRowLimit)
                 .execute()
                 .value
             // Defense-in-depth: client-side filter in case nested eq is ignored
@@ -591,6 +628,13 @@ final class CatalogStore: MemoryPressureTrimmable {
         if let cached = staffWorksCache[key], Date().timeIntervalSince(cached.storedAt) < 120 {
             return cached.value
         }
+        let result = try? await staffWorksLoads.run(key: key, context: nil) { [weak self] in
+            await self?.loadAnimeByStaff(staffId: staffId, key: key) ?? []
+        }
+        return result ?? []
+    }
+
+    private func loadAnimeByStaff(staffId: Int, key: String) async -> [(media: Media, role: String)] {
         do {
             let client = try requiredClient()
             let joins: [StaffAnimeJoin] = try await client
@@ -598,6 +642,8 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .select("role, anime!inner(id, title_english, title_romaji, cover_image_large, average_score, season_year, format, status, genres, is_adult, episodes)")
                 .eq("staff_id", value: staffId)
                 .eq("anime.is_adult", value: false)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.entityWorksRowLimit)
                 .execute()
                 .value
             // Defense-in-depth: client-side filter in case nested eq is ignored
@@ -625,6 +671,13 @@ final class CatalogStore: MemoryPressureTrimmable {
         if let cached = authorWorksCache[key], Date().timeIntervalSince(cached.storedAt) < 120 {
             return cached.value
         }
+        let result = try? await authorWorksLoads.run(key: key, context: nil) { [weak self] in
+            await self?.loadMangaByAuthor(authorId: authorId, key: key) ?? []
+        }
+        return result ?? []
+    }
+
+    private func loadMangaByAuthor(authorId: Int, key: String) async -> [(media: Media, role: String)] {
         do {
             let client = try requiredClient()
             let joins: [AuthorMangaJoin] = try await client
@@ -632,6 +685,8 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .select("role, manga!inner(id, title_english, title_romaji, cover_image_large, average_score, start_date_year, format, status, genres, is_adult, chapters)")
                 .eq("author_id", value: authorId)
                 .eq("manga.is_adult", value: false)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.entityWorksRowLimit)
                 .execute()
                 .value
             // Defense-in-depth: client-side filter in case nested eq is ignored
@@ -659,6 +714,13 @@ final class CatalogStore: MemoryPressureTrimmable {
         if let cached = characterWorksCache[key], Date().timeIntervalSince(cached.storedAt) < 120 {
             return cached.value
         }
+        let result = try? await characterWorksLoads.run(key: key, context: nil) { [weak self] in
+            await self?.loadMediaByCharacter(characterId: characterId, key: key) ?? []
+        }
+        return result ?? []
+    }
+
+    private func loadMediaByCharacter(characterId: Int, key: String) async -> [Media] {
         do {
             let client = try requiredClient()
             async let animeJoins: [CharacterAnimeJoin] = client
@@ -666,6 +728,8 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .select("anime!inner(id, title_english, title_romaji, cover_image_large, average_score, season_year, format, status, genres, is_adult, episodes)")
                 .eq("character_id", value: characterId)
                 .eq("anime.is_adult", value: false)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.entityWorksRowLimit)
                 .execute()
                 .value
             async let mangaJoins: [CharacterMangaJoin] = client
@@ -673,6 +737,8 @@ final class CatalogStore: MemoryPressureTrimmable {
                 .select("manga!inner(id, title_english, title_romaji, cover_image_large, average_score, start_date_year, format, status, genres, is_adult, chapters)")
                 .eq("character_id", value: characterId)
                 .eq("manga.is_adult", value: false)
+                .order("id", ascending: true)
+                .limit(CatalogColumns.entityWorksRowLimit)
                 .execute()
                 .value
 
@@ -796,19 +862,21 @@ final class CatalogStore: MemoryPressureTrimmable {
     }
 
     // MARK: - External Links
+    // Cached per media for `externalLinksTTL` (the detail action bar re-resolves its links whenever the
+    // viewer's progress changes; the links themselves do not change with it). A concurrent duplicate
+    // joins the running read. A failed read returns [] and is not cached.
 
     func fetchExternalLinks(mediaType: String, mediaId: Int) async -> [ExternalLink] {
+        let key = Self.externalLinksKey(mediaType: mediaType, mediaId: mediaId)
+        if let cached = externalLinksCache[key],
+           Date().timeIntervalSince(cached.storedAt) < Self.externalLinksTTL {
+            return cached.value
+        }
         do {
-            let client = try requiredClient()
-            return try await client
-                .from("external_links")
-                .select()
-                .eq("media_type", value: mediaType.uppercased())
-                .eq("media_id", value: mediaId)
-                .eq("is_disabled", value: false)
-                .order("priority", ascending: true)
-                .execute()
-                .value
+            return try await externalLinksLoads.run(key: key, context: nil) { [weak self] in
+                guard let self else { return [] }
+                return try await self.loadExternalLinks(mediaType: mediaType, mediaId: mediaId, key: key)
+            }
         } catch {
             #if DEBUG
             print("❌ Error fetching external links: \(error)")
@@ -817,12 +885,38 @@ final class CatalogStore: MemoryPressureTrimmable {
         }
     }
 
+    private func loadExternalLinks(mediaType: String, mediaId: Int, key: String) async throws -> [ExternalLink] {
+        let client = try requiredClient()
+        let links: [ExternalLink] = try await client
+            .from("external_links")
+            .select(CatalogColumns.select(CatalogColumns.externalLinks))
+            .eq("media_type", value: mediaType.uppercased())
+            .eq("media_id", value: mediaId)
+            .eq("is_disabled", value: false)
+            .order("priority", ascending: true)
+            .limit(Self.externalLinksRowLimit)
+            .execute()
+            .value
+        trimTimedCache(&externalLinksCache, maxEntries: 100)
+        externalLinksCache[key] = TimedCache(value: links, storedAt: Date())
+        return links
+    }
+
+    /// Row bound of one title's external links (a handful in practice).
+    nonisolated static let externalLinksRowLimit = 100
+
+    /// The external-links cache key: media type upper-cased, so "anime" and "ANIME" share an entry and
+    /// an anime and a manga with the same id never do.
+    nonisolated static func externalLinksKey(mediaType: String, mediaId: Int) -> String {
+        "\(mediaType.uppercased())-\(mediaId)"
+    }
+
     // MARK: - Episodes / Chapters (paged)
 
     func fetchEpisodesNext(animeId: Int, fromNumber: Int, limit: Int = 20) async -> [Episode] {
         do {
             let client = try requiredClient()
-            var q = client.from("episodes").select()
+            var q = client.from("episodes").select(CatalogColumns.select(CatalogColumns.episodeList))
                 .eq("anime_id", value: animeId)
 
             if fromNumber > 1 {
@@ -844,7 +938,7 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let from = max(0, offset)
             let to = from + max(1, limit) - 1
-            return try await client.from("episodes").select()
+            return try await client.from("episodes").select(CatalogColumns.select(CatalogColumns.episodeList))
                 .eq("anime_id", value: animeId)
                 .order("number", ascending: true)
                 .range(from: from, to: to)
@@ -861,7 +955,7 @@ final class CatalogStore: MemoryPressureTrimmable {
     func fetchChaptersNext(mangaId: Int, fromNumber: Int, limit: Int = 20) async -> [MangaChapter] {
         do {
             let client = try requiredClient()
-            var q = client.from("chapters").select()
+            var q = client.from("chapters").select(CatalogColumns.select(CatalogColumns.chapterList))
                 .eq("manga_id", value: mangaId)
 
             if fromNumber > 1 {
@@ -883,7 +977,7 @@ final class CatalogStore: MemoryPressureTrimmable {
             let client = try requiredClient()
             let from = max(0, offset)
             let to = from + max(1, limit) - 1
-            return try await client.from("chapters").select()
+            return try await client.from("chapters").select(CatalogColumns.select(CatalogColumns.chapterList))
                 .eq("manga_id", value: mangaId)
                 .order("number", ascending: true)
                 .range(from: from, to: to)
@@ -913,27 +1007,52 @@ final class CatalogStore: MemoryPressureTrimmable {
         }
     }
 
+    /// The stream link of one episode (two columns), cached per episode for `externalLinksTTL`,
+    /// including "no link". The request stays a structured child of the caller, so a superseded detail
+    /// run cancels it at the transport; a failed or cancelled read is not cached.
     func getStreamLinkForEpisode(animeId: Int, episodeNumber: Int) async -> (url: String, site: String)? {
+        let key = "\(animeId)#\(episodeNumber)"
+        if let cached = episodeStreamLinkCache[key],
+           Date().timeIntervalSince(cached.storedAt) < Self.externalLinksTTL {
+            return cached.value.flatMap(\.pair)
+        }
         do {
             let client = try requiredClient()
-            let rows: [Episode] = try await client
+            let rows: [EpisodeStreamLink] = try await client
                 .from("episodes")
-                .select()
+                .select(CatalogColumns.select(CatalogColumns.episodeStreamLink))
                 .eq("anime_id", value: animeId)
                 .eq("number", value: episodeNumber)
                 .limit(1)
                 .execute()
                 .value
-            if let ep = rows.first, let url = ep.streamUrl, let site = ep.streamSite {
-                return (url, site)
-            }
+            let link = rows.first.flatMap { $0.pair == nil ? nil : $0 }
+            trimTimedCache(&episodeStreamLinkCache, maxEntries: 200)
+            episodeStreamLinkCache[key] = TimedCache(value: link, storedAt: Date())
+            return link?.pair
         } catch {
             #if DEBUG
             print("❌ Error fetching episode stream: \(error)")
             #endif
-            // Error logged in debug only
         }
         return nil
+    }
+}
+
+/// The two `episodes` columns behind an episode's watch link.
+struct EpisodeStreamLink: Decodable, Sendable {
+    let streamUrl: String?
+    let streamSite: String?
+
+    enum CodingKeys: String, CodingKey {
+        case streamUrl = "stream_url"
+        case streamSite = "stream_site"
+    }
+
+    /// The link when both the URL and the site are present.
+    var pair: (url: String, site: String)? {
+        guard let streamUrl, let streamSite else { return nil }
+        return (streamUrl, streamSite)
     }
 }
 #endif

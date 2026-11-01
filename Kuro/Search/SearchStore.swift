@@ -208,59 +208,86 @@ final class SearchStore {
         }
     }
 
+    /// One combined page: the anime and manga pages run in parallel (they were sequential, so the
+    /// "All" scope paid two round trips per page). Each successful side is published; any failure
+    /// ends paging and surfaces the message, as before.
     private func loadNextCombinedSearchPage(query trimmedQuery: String, generation: Int) async {
-        do {
-            let filters = currentSearchFilters
+        let filters = currentSearchFilters
+        let loadAnime = hasMoreSearchAnime
+        let loadManga = hasMoreSearchManga
+        let animeCursor = (rank: searchCursorAnimeRank, popularity: searchCursorAnimePopularity, id: searchCursorAnimeId)
+        let mangaCursor = (rank: searchCursorMangaRank, popularity: searchCursorMangaPopularity, id: searchCursorMangaId)
+        let pageSize = searchPageSize
 
-            if hasMoreSearchAnime {
-                let page = try await fetchSearchAnimePage(
+        async let animeResult: Result<[AnimeCard], Error>? = loadAnime
+            ? Self.capture {
+                try await self.fetchSearchAnimePage(
                     query: trimmedQuery,
                     filters: filters,
-                    cursorRank: searchCursorAnimeRank,
-                    cursorPopularity: searchCursorAnimePopularity,
-                    cursorId: searchCursorAnimeId,
-                    limit: searchPageSize
+                    cursorRank: animeCursor.rank,
+                    cursorPopularity: animeCursor.popularity,
+                    cursorId: animeCursor.id,
+                    limit: pageSize
                 )
-                guard generation == queryGeneration else { return }
-                searchAnimeItems.append(contentsOf: page)
-                hasMoreSearchAnime = page.count == searchPageSize
-                if let last = page.last {
-                    searchCursorAnimeRank = last.rank ?? 0
-                    searchCursorAnimePopularity = last.popularity ?? 0
-                    searchCursorAnimeId = last.id
-                }
             }
-
-            if hasMoreSearchManga {
-                let page = try await fetchSearchMangaPage(
+            : nil
+        async let mangaResult: Result<[MangaCard], Error>? = loadManga
+            ? Self.capture {
+                try await self.fetchSearchMangaPage(
                     query: trimmedQuery,
                     filters: filters,
-                    cursorRank: searchCursorMangaRank,
-                    cursorPopularity: searchCursorMangaPopularity,
-                    cursorId: searchCursorMangaId,
-                    limit: searchPageSize
+                    cursorRank: mangaCursor.rank,
+                    cursorPopularity: mangaCursor.popularity,
+                    cursorId: mangaCursor.id,
+                    limit: pageSize
                 )
-                guard generation == queryGeneration else { return }
-                searchMangaItems.append(contentsOf: page)
-                hasMoreSearchManga = page.count == searchPageSize
-                if let last = page.last {
-                    searchCursorMangaRank = last.rank ?? 0
-                    searchCursorMangaPopularity = last.popularity ?? 0
-                    searchCursorMangaId = last.id
-                }
             }
+            : nil
+        let (anime, manga) = await (animeResult, mangaResult)
+        guard generation == queryGeneration else { return }
 
-            hasMoreSearch = hasMoreSearchAnime || hasMoreSearchManga
-        } catch {
-            guard generation == queryGeneration else { return }
-            errorMessage = "Search failed: \(error.localizedDescription)"
+        var failure: Error?
+        switch anime {
+        case .success(let page):
+            searchAnimeItems.append(contentsOf: page)
+            hasMoreSearchAnime = page.count == pageSize
+            if let last = page.last {
+                searchCursorAnimeRank = last.rank ?? 0
+                searchCursorAnimePopularity = last.popularity ?? 0
+                searchCursorAnimeId = last.id
+            }
+        case .failure(let error): failure = error
+        case nil: break
+        }
+        switch manga {
+        case .success(let page):
+            searchMangaItems.append(contentsOf: page)
+            hasMoreSearchManga = page.count == pageSize
+            if let last = page.last {
+                searchCursorMangaRank = last.rank ?? 0
+                searchCursorMangaPopularity = last.popularity ?? 0
+                searchCursorMangaId = last.id
+            }
+        case .failure(let error): failure = failure ?? error
+        case nil: break
+        }
+
+        if let failure {
+            errorMessage = "Search failed: \(failure.localizedDescription)"
             hasMoreSearch = false
             hasMoreSearchAnime = false
             hasMoreSearchManga = false
             #if DEBUG
-            print("❌ Combined search error: \(error)")
+            print("❌ Combined search error: \(failure)")
             #endif
+            return
         }
+        hasMoreSearch = hasMoreSearchAnime || hasMoreSearchManga
+    }
+
+    /// Runs `work`, capturing its outcome (for the parallel combined pages).
+    private static func capture<T>(_ work: () async throws -> T) async -> Result<T, Error> {
+        do { return .success(try await work()) } catch { return .failure(error) }
     }
 
     // MARK: - Search refresh (keeps old results on transient failures)
@@ -333,22 +360,26 @@ final class SearchStore {
                 searchCursorMangaPopularity = nil
                 searchCursorMangaId = nil
 
-                let animePage = try await fetchSearchAnimePage(
+                // Both first pages in parallel (all-or-error, as before).
+                let filters = currentSearchFilters
+                let pageSize = searchPageSize
+                async let animeFirst = fetchSearchAnimePage(
                     query: trimmedQuery,
-                    filters: currentSearchFilters,
+                    filters: filters,
                     cursorRank: nil,
                     cursorPopularity: nil,
                     cursorId: nil,
-                    limit: searchPageSize
+                    limit: pageSize
                 )
-                let mangaPage = try await fetchSearchMangaPage(
+                async let mangaFirst = fetchSearchMangaPage(
                     query: trimmedQuery,
-                    filters: currentSearchFilters,
+                    filters: filters,
                     cursorRank: nil,
                     cursorPopularity: nil,
                     cursorId: nil,
-                    limit: searchPageSize
+                    limit: pageSize
                 )
+                let (animePage, mangaPage) = try await (animeFirst, mangaFirst)
                 guard generation == queryGeneration else { return }
                 searchAnimeItems = animePage
                 searchMangaItems = mangaPage

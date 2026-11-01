@@ -5,13 +5,16 @@ import Foundation
 // MARK: - Detail page provider links (watch / read)
 // The one resolution behind the Anime and Manga detail action bars (formerly duplicated as
 // `ActionButtons.refreshLinks` and `MangaActionButtons.refreshLinks`): the legal catalog links, and
-// behind `streaming_availability_v1` the availability status, the provider v2 fetch, the
-// `enqueueAvailabilityRefreshIfStale` server write (cooldown-gated) and the status re-read; then the
+// behind `streaming_availability_v1` the availability status (one read per media id within
+// `detailAvailabilityTTL`), the provider v2 fetch (skipped when fetched within the same TTL) and the
+// refresh-enqueue server write (cooldown-gated, decided from that same status read); then the
 // verified-vs-catalog item lists (verified when any survive, otherwise the catalog fallback), the
 // preferred primary, the note and the status caption. Every item passes `validatedOutboundURL(_:)`.
 //
 // Keys (kept from the pages): Anime is keyed on the viewer's progress, because its primary link is
-// the provider of the next episode's stream link; Manga is keyed on the manga id, and its primary is
+// the provider of the next episode's stream link. A progress change therefore re-runs the resolution,
+// but only the next episode's two-column stream link is new: the external links (CatalogStore), the
+// status and the provider v2 answer come from their caches. Manga is keyed on the manga id, and its primary is
 // the first item. The Manga chapter rows open `getBestLegalReadLink` (the first legal catalog link)
 // instead of this snapshot; that divergence is preserved as found (a product question, not changed).
 //
@@ -98,20 +101,30 @@ extension ProviderAvailabilityStore {
         var availabilityStatus: MediaAvailabilityStatus? = nil
         var requestedRefresh = false
         if isStreamingAvailabilityEnabled {
-            availabilityStatus = await mediaAvailabilityStatus(mediaId: mediaId, mediaType: mediaType)
-            await fetchProviderAvailabilityV2(
-                items: [(mediaType: mediaType, mediaId: mediaId)],
-                preferredAudioLang: preferredAudio,
-                preferredSubLang: nil,
-                includeUnknown: true
-            )
-            requestedRefresh = await enqueueAvailabilityRefreshIfStale(
-                mediaType: mediaType,
-                mediaId: mediaId,
-                reason: "detail_open"
-            )
-            if requestedRefresh {
-                availabilityStatus = await mediaAvailabilityStatus(mediaId: mediaId, mediaType: mediaType)
+            // One status read per media id within `detailAvailabilityTTL` (the anime page re-resolves on
+            // every progress change); the enqueue decision reuses it instead of reading it again, and a
+            // requested refresh is reported by `requestedRefresh` (the caption says "Refreshing"), so the
+            // status is not re-read after the write either.
+            let statusRows = await detailAvailabilityStatusRows(mediaType: mediaType, mediaId: mediaId)
+            availabilityStatus = statusRows?.first
+            if shouldFetchDetailProviderAvailability(mediaType: mediaType, mediaId: mediaId, audio: preferredAudio) {
+                await fetchProviderAvailabilityV2(
+                    items: [(mediaType: mediaType, mediaId: mediaId)],
+                    preferredAudioLang: preferredAudio,
+                    preferredSubLang: nil,
+                    includeUnknown: true
+                )
+                if !Task.isCancelled {
+                    markDetailProviderAvailabilityFetched(mediaType: mediaType, mediaId: mediaId, audio: preferredAudio)
+                }
+            }
+            if let statusRows {
+                requestedRefresh = await enqueueAvailabilityRefresh(
+                    mediaType: mediaType,
+                    mediaId: mediaId,
+                    reason: "detail_open",
+                    knownStatusRows: statusRows
+                )
             }
         }
         let verifiedAvailability = isStreamingAvailabilityEnabled
