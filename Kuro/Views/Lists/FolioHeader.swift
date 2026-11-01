@@ -25,6 +25,7 @@ struct FolioStatusStrip: View {
                 }
                 .padding(.horizontal, gutter)
             }
+            .kuroTrailingOverflowFade()
             .kuroSwipeExclusionZone()
             .onChange(of: selection) { _, value in
                 if reduceMotion { proxy.scrollTo(value, anchor: .center) }
@@ -267,6 +268,7 @@ struct FolioVerdictWords: View {
                 }
                 .padding(.horizontal, gutter)
             }
+            .kuroTrailingOverflowFade()
             .kuroSwipeExclusionZone()
             if unsortedCount > 0 {
                 Text(german
@@ -384,5 +386,42 @@ struct FolioNoticeBar: View {
         )
         .padding(.horizontal, KuroDesignSpacing.padding)
         .accessibilityElement(children: .contain)
+    }
+}
+
+// MARK: - Overflow cue
+
+/// A soft trailing fade on a sideways word strip while more of it lies past the trailing edge, so a
+/// clipped last word ("Paused (") reads as "scroll for more" (visual QA). No fade once the end is
+/// reached or when everything fits.
+private struct KuroTrailingOverflowFade: ViewModifier {
+    var width: CGFloat = 28
+    @State private var hasMore = false
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.visibleRect.maxX < geometry.contentSize.width - 1
+            } action: { _, more in
+                hasMore = more
+            }
+            .mask {
+                HStack(spacing: 0) {
+                    Rectangle()
+                    LinearGradient(
+                        colors: [.black, hasMore ? .clear : .black],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: width)
+                }
+            }
+    }
+}
+
+extension View {
+    /// Fades the trailing edge of a horizontal `ScrollView` while it has more content past that edge.
+    func kuroTrailingOverflowFade() -> some View {
+        modifier(KuroTrailingOverflowFade())
     }
 }

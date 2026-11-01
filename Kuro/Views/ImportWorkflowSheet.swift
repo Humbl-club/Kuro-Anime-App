@@ -128,7 +128,7 @@ struct ImportWorkflowSheet: View {
             Text(ImportCopy.source(job.selection, german: german))
                 .font(.kuroMeta()).foregroundStyle(Color.kuroInkSecondary)
             Text(german ? "Anime und Manga bleiben getrennt. Deine Kuro-Werte bleiben, solange du keine Änderung bestätigst."
-                        : "Anime and Manga stay separate. Your Kuro values stay unless you approve a change.")
+                        : "Anime and Manga stay separate. Your Kuro values stay unless you confirm a change.")
                 .font(.kuroBody()).foregroundStyle(Color.kuroInkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             if !job.selection.media.allSatisfy({ job.exhaustedMedia[$0] == true }) {
@@ -172,7 +172,7 @@ struct ImportWorkflowSheet: View {
         if job.isTerminal, job.counts.applied == 0, job.counts.unchanged > 0 { return g ? "Schon in deiner Bibliothek." : "Already in your Library." }
         switch job.phase {
         case .preparing: return g ? "Deine Quelle wird gelesen." : "Reading your source."
-        case .applying: return g ? "Bestätigte Titel werden gespeichert." : "Saving approved titles."
+        case .applying: return g ? "Die bestätigten Titel werden gespeichert." : "Saving the titles you confirmed."
         case .finalizing: return g ? "Gespeichert. Bibliothek wird aktualisiert." : "Saved. Refreshing your Library."
         case .cancelled: return g ? "Import angehalten." : "Import stopped."
         case .failed: return g ? "Der Import braucht dich." : "The import needs attention."
@@ -189,11 +189,11 @@ struct ImportWorkflowSheet: View {
             let g = german
             if job.phase == .reviewing, model.manifest == nil {
                 note(g ? "Diese Prüfung begann auf einem anderen Gerät. Hier kannst du sie ansehen oder anhalten; bestätigen kannst du sie auf dem Gerät mit der ursprünglichen Quelle."
-                       : "This review started on another device. Inspect or stop it here; approve changes on the device that has the original source.")
+                       : "This review started on another device. Inspect or stop it here; confirm changes on the device that has the original source.")
             }
             if job.phase == .reviewing, let manifest = model.manifest, manifest.decisions != nil {
                 note(g ? "Deine bestätigte Auswahl ist schon gesichert. Setz sie fort, ohne erneut zu bestätigen."
-                       : "Your approved choices are already saved. Resume them without approving a second time.")
+                       : "The choices you confirmed are already saved. Resume without confirming again.")
             }
             if job.phase == .reviewing, model.manifest?.phase == .reviewing, model.manifest?.decisions == nil {
                 note(g ? "Aus dieser Prüfung wird nichts gespeichert, bis du bestätigst." : "Nothing from this review is saved until you confirm.")

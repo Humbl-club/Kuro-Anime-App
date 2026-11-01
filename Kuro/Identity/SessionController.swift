@@ -526,8 +526,9 @@ final class SessionController {
     ///   the live flow this device started for the signed-in account's address;
     /// - signed out: only a link for the live flow this device started. A PKCE code is exchanged, a
     ///   token pair applied, both inside the credential gate (F33) as the newest attempt (F01); the
-    ///   account it yields must be the flow's address. The flow is consumed once the SDK leg answered
-    ///   (single use); a transport failure keeps it, so the same link can be retried once online.
+    ///   account it yields must be the flow's address. The flow is consumed once the SDK leg succeeded
+    ///   (single use) or the server answered that the flow expired; any other failure keeps it, so a
+    ///   stale or crafted link cannot void the real email link, and a transport failure can be retried.
     /// A recovery link opens the set-new-password screen before the app ever renders.
     func handleAuthCallback(_ payload: AuthCallbackPayload) async {
         // While the launch restore is still running, the SDK's stored session is the signed-in account.
@@ -599,9 +600,12 @@ final class SessionController {
             }
         } catch {
             settleRecoveryLink()
-            // Single use, but only once the server answered: a transport failure (offline, timeout)
-            // keeps the flow, so the same link works once the device is back online.
-            if flowKind != nil, !AuthService.permitsOfflineRestore(error) { pendingFlows.consume() }
+            // A failed leg never uses the flow up (SEC-2): every error describes the code in the link,
+            // not this device's flow. A stale or crafted `?code=` (even an expired one, which GoTrue
+            // answers with `flow_state_expired` before it checks the verifier), another device's code
+            // and any transport failure keep it, so the real email link still works afterwards. The
+            // SDK keeps its code verifier until a successful exchange; `PendingAuthFlow.lifetime`
+            // bounds the local flow, and only a successful leg (below) consumes it.
             // A superseded attempt reports nothing (F01).
             guard isCurrentAttempt(attempt) else { return }
             reportAuthLinkFailure(Self.linkFailureMessage(for: error, german: isGermanLocale),

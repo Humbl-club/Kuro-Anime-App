@@ -13,12 +13,17 @@ import KuroLibrary
 import SwiftUI
 
 struct EditorialCollectionView: View {
+    /// Moves the pager to its Browse page. Used where the pager has one (the live order); where it has
+    /// none (series Home), "Find a title" opens the Browse route instead (spec D2, `DiscoverBrowseEntry`).
+    let onOpenBrowsePage: () -> Void
+
     @Environment(LibraryStore.self) private var library
     @Environment(CollectionStore.self) private var collection
     @Environment(ReleasesStore.self) private var releases
     @Environment(NetworkMonitor.self) private var networkMonitor
     @Environment(LibraryActions.self) private var libraryActions
     @Environment(HomeStore.self) private var home
+    @Environment(FeatureFlags.self) private var flags
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -211,6 +216,11 @@ struct EditorialCollectionView: View {
             guard request != nil, let request = collection.consumeListRequest() else { return }
             apply(request)
             Task { await reload() }
+        }
+        .onChange(of: storedMedium) { _, raw in
+            // Onboarding's medium choice while this page is already mounted (its first load has run).
+            guard didInitialLoad, let chosen = MediaKind(rawValue: raw), chosen != medium else { return }
+            medium = chosen
         }
         .onChange(of: medium) { _, value in
             storedMedium = value.rawValue
@@ -441,7 +451,7 @@ struct EditorialCollectionView: View {
                 .font(.kuroBody())
                 .foregroundStyle(Color.kuroInkSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-            KuroInkButton(german ? "Titel finden" : "Find a title", role: .secondary) { routes.openBrowse() }
+            KuroInkButton(german ? "Titel finden" : "Find a title", role: .secondary) { findTitle() }
             KuroInkButton(german ? "Liste importieren" : "Import your list", role: .secondary) { showImportChooser = true }
         }
         .padding(.horizontal, gutter)
@@ -466,10 +476,19 @@ struct EditorialCollectionView: View {
                               : (german ? "Deine Anime zeigen (\(otherCount))" : "Show your anime (\(otherCount))"),
                               role: .secondary) { medium = other }
             }
-            KuroInkButton(german ? "Titel finden" : "Find a title", role: .secondary) { routes.openBrowse() }
+            KuroInkButton(german ? "Titel finden" : "Find a title", role: .secondary) { findTitle() }
         }
         .padding(.horizontal, gutter)
         .padding(.top, KuroDesignSpacing.md)
+    }
+
+    /// One Browse, never two: the Browse route only where the pager has no Browse page (spec D2).
+    private func findTitle() {
+        if DiscoverBrowseEntry.isOffered(flags: flags) {
+            routes.openBrowse()
+        } else {
+            onOpenBrowsePage()
+        }
     }
 
     // MARK: Loading

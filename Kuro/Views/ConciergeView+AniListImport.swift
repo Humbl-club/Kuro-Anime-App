@@ -94,9 +94,13 @@ struct ConciergeAniListImportSheet: View {
                 .font(.kuroCustom(26, weight: .ultraLight, design: .serif, relativeTo: .title2))
                 .foregroundStyle(Color.kuroBlack.opacity(0.84))
 
-            Text(usesStructuredPath ? "Read the complete selected list, review every title, then approve saving. Existing Kuro values stay unless you choose updates." : (isGermanLocale
-                ? "Erst Vorschau, dann Import. So siehst du Titel, Status und Umfang, bevor Kuro etwas übernimmt."
-                : "Preview first, then confirm. See titles, status, and scope before Kuro imports anything.")
+            Text(usesStructuredPath
+                ? (isGermanLocale
+                    ? "Kuro liest die ganze ausgewählte Liste, du prüfst jeden Titel und bestätigst dann, was gespeichert wird. Deine Kuro-Werte bleiben, solange du keine Änderung wählst."
+                    : "Kuro reads the complete selected list, you review every title, then confirm what to save. Existing Kuro values stay unless you choose updates.")
+                : (isGermanLocale
+                    ? "Erst Vorschau, dann Import. So siehst du Titel, Status und Umfang, bevor Kuro etwas übernimmt."
+                    : "Preview first, then confirm. See titles, status, and scope before Kuro imports anything.")
             )
             .font(.kuroBody(weight: .light))
             .foregroundStyle(Color.kuroBlack.opacity(0.62))
@@ -130,7 +134,7 @@ struct ConciergeAniListImportSheet: View {
             }
         case .ready:
             if usesStructuredPath {
-                ProgressView("Opening prepared review")
+                ProgressView(isGermanLocale ? "Prüfung wird geöffnet …" : "Opening your review …")
             } else {
             VStack(alignment: .leading, spacing: 14) {
                 selectionSummaryCard
@@ -265,7 +269,9 @@ struct ConciergeAniListImportSheet: View {
             .foregroundColor(.kuroTextTertiary)
             .padding(.top, 2)
             if usesStructuredPath {
-                Text("All selected pages are read before approval. Existing status, progress, rating and notes stay unchanged by default. Unavailable fields are identified in review; a public list cannot expose private AniList entries.")
+                Text(isGermanLocale
+                    ? "Alle ausgewählten Seiten werden gelesen, bevor du bestätigst. Status, Fortschritt, Bewertung und Notizen bleiben standardmäßig unverändert. Fehlende Felder siehst du in der Prüfung; eine öffentliche Liste kann keine privaten AniList-Einträge zeigen."
+                    : "All selected pages are read before you confirm. Existing status, progress, rating and notes stay unchanged by default. Unavailable fields are shown in review; a public list cannot expose private AniList entries.")
                     .font(.kuroCaption()).foregroundStyle(Color.kuroTextSecondary)
             }
         }

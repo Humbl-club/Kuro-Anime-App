@@ -6,7 +6,20 @@ import UniformTypeIdentifiers
 
 /// Focused AniList / MAL account / MAL XML choice. Uses the existing Profile import coordinator.
 /// Does not create a credential store or skip review.
+/// Renders every coordinator outcome itself (it is offered from Onboarding and the empty Collection,
+/// where no Profile is mounted): the progress line, the toast, a retry for an uncertain delivery, and
+/// the result card with Undo (an applied legacy AniList import) or the Concierge review handoff (an
+/// import that needs review). The sheet cannot be closed while an import runs, because closing stops
+/// the coordinator and would cancel the write without a word.
 struct ImportSourceChooser: View {
+    /// What the result card's primary button does: open the lists, or (Onboarding, which cannot show
+    /// the lists yet) continue the presenter's own flow. Either way it calls `onNavigate`.
+    enum ResultAction {
+        case seeLists
+        case continueFlow
+    }
+
+    var resultAction: ResultAction = .seeLists
     var onNavigate: (ImportResultDestination) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -26,11 +39,23 @@ struct ImportSourceChooser: View {
     @State private var showWorkflow = false
     @State private var workflowJob: ImportOutcome?
     @State private var sheetDetent: PresentationDetent = .large
+    /// From confirming the AniList sheet until the coordinator returns (covers the gap before its own
+    /// processing flag is set).
+    @State private var aniListInFlight = false
+    /// The review handed to Concierge (an item sheet, so the prompt is never read stale).
+    @State private var conciergeReview: ConciergeReview?
+    /// From the Undo tap until the coordinator's undo finishes: closing would cancel it mid-write.
+    @State private var undoInFlight = false
+    /// From the Retry tap until the resend finishes (covers the gap before the coordinator's own
+    /// processing flag is set).
+    @State private var retryInFlight = false
 
     private var isGerman: Bool { KuroLocale.isGerman }
 
     var body: some View {
         let owner = coordinator
+        let undoing = undoInFlight
+        let busy = aniListInFlight || retryInFlight || undoing || owner?.isProcessingAniListImport == true
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 HStack {
@@ -40,11 +65,12 @@ struct ImportSourceChooser: View {
                     } label: {
                         Text(isGerman ? "Schließen" : "Close")
                             .font(.kuroMeta(weight: .medium))
-                            .foregroundStyle(Color.kuroInk)
+                            .foregroundStyle(busy ? Color.kuroInkQuiet : Color.kuroInk)
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .disabled(busy)
                 }
                 Text(isGerman ? "Importiere deine Liste" : "Import your list")
                     .font(.kuroDisplay(weight: .light))
@@ -56,21 +82,74 @@ struct ImportSourceChooser: View {
                 Rectangle()
                     .fill(Color.kuroInk)
                     .frame(width: 46, height: 2)
+                // True in both worlds: an import only adds titles at once when none of them is in the
+                // lists yet (`ImportReconciler.qualifiesForAutoApply`); anything else goes to review.
                 Text(isGerman
-                     ? "Wähle eine Quelle. Bestehende Titel bleiben, bis du eine Änderung bestätigst."
-                     : "Choose a source. Existing titles stay until you approve a change.")
+                     ? "Wähle eine Quelle. Titel, die schon in deinen Listen sind, ändern sich erst, wenn du bestätigst."
+                     : "Choose a source. Titles already in your lists change only after you confirm.")
                     .font(.kuroBody())
                     .foregroundStyle(Color.kuroInkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
+                if undoing {
+                    statusLine(isGerman ? "Import wird rückgängig gemacht …" : "Undoing the import …")
+                } else if busy {
+                    statusLine(isGerman ? "Deine Liste wird importiert …" : "Importing your list …")
+                }
+
+                if let result = owner?.importResult {
+                    ImportChooserResultCard(
+                        result: result,
+                        isGermanLocale: isGerman,
+                        primaryTitle: resultAction == .continueFlow
+                            ? (isGerman ? "Weiter" : "Continue")
+                            : (isGerman ? "Zu deinen Listen" : "See your lists"),
+                        isBusy: busy,
+                        onDismiss: { owner?.dismissImportResult() },
+                        onUndo: {
+                            guard let task = owner?.undo() else { return }
+                            undoInFlight = true
+                            Task { @MainActor in
+                                await task.value
+                                undoInFlight = false
+                            }
+                        },
+                        onReview: {
+                            guard case .needsReview(_, _, _, let importText) = result else { return }
+                            owner?.dismissImportResult()
+                            conciergeReview = ConciergeReview(text: importText)
+                        },
+                        onSeeLists: { onNavigate(.fullCollection) }
+                    )
+                }
+
+                if owner?.profileRetryOffered == true, !busy {
+                    sourceButton(
+                        kicker: isGerman ? "Unterbrochen" : "Interrupted",
+                        title: isGerman ? "Import wiederholen" : "Retry import",
+                        label: isGerman ? "Dieselbe Übernahme erneut senden" : "Send the same import again"
+                    ) {
+                        guard let task = owner?.retry() else { return }
+                        retryInFlight = true
+                        Task { @MainActor in
+                            await task.value
+                            retryInFlight = false
+                        }
+                    }
+                }
+
+                // Flags off, the legacy AniList path adds new titles at once when nothing needs review.
                 sourceButton(
                     kicker: "AniList",
-                    title: isGerman ? "Benutzername, dann Prüfung" : "Username, then review",
+                    title: flags.seriesFoundationV1Enabled
+                        ? (isGerman ? "Benutzername, dann Prüfung" : "Username, then review")
+                        : (isGerman ? "Benutzername, dann Import" : "Username, then import"),
                     label: isGerman ? "AniList importieren" : "Import from AniList"
                 ) {
                     if owner?.beginAniListSelection() == true { showAniList = true }
                 }
+                .disabled(busy)
 
                 // Without `series_foundation_v1` the coordinator refuses both MAL paths: AniList only.
                 if flags.seriesFoundationV1Enabled {
@@ -81,6 +160,7 @@ struct ImportSourceChooser: View {
                     ) {
                         if owner?.beginMALFileSelection() == true { showMALImporter = true }
                     }
+                    .disabled(busy)
 
                     if imports.malAccountAvailable {
                         if let identity = imports.malAccountIdentity {
@@ -94,6 +174,7 @@ struct ImportSourceChooser: View {
                             ) {
                                 owner?.prepareConnectedMAL()
                             }
+                            .disabled(busy)
                         }
                         sourceButton(
                             kicker: "MAL",
@@ -103,7 +184,7 @@ struct ImportSourceChooser: View {
                             guard let malAnchor else { return }
                             owner?.connectAndImportMAL(presentationAnchor: malAnchor)
                         }
-                        .disabled(malAnchor == nil)
+                        .disabled(malAnchor == nil || busy)
                         Text(ImportCopy.malNotesLimitation(german: isGerman))
                             .font(.kuroMeta())
                             .foregroundStyle(Color.kuroInkSecondary)
@@ -129,8 +210,22 @@ struct ImportSourceChooser: View {
             .kuroReadableWidth()
         }
         .background(Color.kuroCanvasPage)
+        .overlay(alignment: .top) {
+            if let toast = owner?.toast {
+                KuroToast(toast: toast)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    .transition(.opacity)
+            }
+        }
         .presentationDetents([.medium, .large], selection: $sheetDetent)
         .presentationDragIndicator(.visible)
+        // Closing stops the coordinator, which would cancel a running import mid-write.
+        .interactiveDismissDisabled(busy)
+        .onChange(of: owner?.importResult?.id) { _, id in
+            // The result card (Undo, review) must be in view, not below a medium detent.
+            if id != nil { sheetDetent = .large }
+        }
         .background(ImportWindowAnchor { malAnchor = $0 }.frame(width: 0, height: 0))
         .task {
             actionScope.activate(session: imports.accountSession)
@@ -169,7 +264,9 @@ struct ImportSourceChooser: View {
                     pendingAniListTicket = origin
                 }
             ) { response in
+                aniListInFlight = true
                 await owner?.receiveAniList(response)
+                aniListInFlight = false
             }
         }
         .onChange(of: owner?.workflowJob?.id) { _, _ in
@@ -184,6 +281,38 @@ struct ImportSourceChooser: View {
                 onNavigate(destination)
             }
         }
+        .sheet(item: $conciergeReview) { review in
+            // The same review Profile hands to Concierge, presented here because neither Onboarding
+            // nor Collection has a Concierge page to hand it to.
+            NavigationStack {
+                ConciergeView(assistantEnabled: true, initialPrompt: review.text) { destination in
+                    conciergeReview = nil
+                    onNavigate(destination)
+                }
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(isGerman ? "Fertig" : "Done") { conciergeReview = nil }
+                            .font(.kuroBody(weight: .light))
+                    }
+                }
+                // The review sheet's own presentation context (ConciergeView reads its routes).
+                .routePresenter()
+            }
+        }
+    }
+
+    private func statusLine(_ text: String) -> some View {
+        HStack(spacing: 10) {
+            ProgressView()
+                .tint(Color.kuroInkSecondary)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.kuroMeta())
+                .foregroundStyle(Color.kuroInkSecondary)
+            Spacer(minLength: 0)
+        }
+        .frame(minHeight: 44, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     private func sourceButton(kicker: String, title: String, label: String, action: @escaping () -> Void) -> some View {
@@ -212,6 +341,116 @@ struct ImportSourceChooser: View {
         }
         .buttonStyle(HomeContactStyle())
         .accessibilityLabel(label)
+    }
+}
+
+/// An import text handed to the Concierge review sheet.
+private struct ConciergeReview: Identifiable {
+    let id = UUID()
+    let text: String
+}
+
+/// The coordinator's import result inside the chooser: what was saved (with Undo while the server
+/// still offers it) or the review the import needs. Same content as Profile's card.
+private struct ImportChooserResultCard: View {
+    let result: ProfileImportResult
+    let isGermanLocale: Bool
+    /// "See your lists", or "Continue" where the presenter cannot show the lists (Onboarding).
+    let primaryTitle: String
+    /// An import or its undo is running: every action here would close the chooser or cancel it.
+    let isBusy: Bool
+    let onDismiss: () -> Void
+    let onUndo: () -> Void
+    let onReview: () -> Void
+    let onSeeLists: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(isReview ? (isGermanLocale ? "Prüfung" : "Review") : "Import")
+                        .kuroKicker()
+                        .accessibilityHidden(true)
+                    Text(result.titleText)
+                        .font(.kuroTitle())
+                        .foregroundStyle(Color.kuroInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                    Text(result.summaryText)
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let detail = result.detailText {
+                        Text(detail)
+                            .font(.kuroMeta())
+                            .foregroundStyle(Color.kuroInkQuiet)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                Spacer(minLength: 0)
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark")
+                        .font(.kuroCustom(13, weight: .medium, relativeTo: .footnote, maxSize: 20))
+                        .foregroundStyle(Color.kuroInkSecondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isBusy)
+                .accessibilityLabel(isGermanLocale ? "Hinweis schließen" : "Dismiss")
+            }
+
+            if isReview {
+                primaryButton(isGermanLocale ? "Im Concierge prüfen" : "Review in Concierge", action: onReview)
+            } else {
+                primaryButton(primaryTitle, action: onSeeLists)
+                if result.undoSessionId != nil {
+                    Button(action: onUndo) {
+                        Text(isGermanLocale ? "Import rückgängig machen" : "Undo import")
+                            .font(.kuroButtonLabel(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .background(
+                                RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                                    .stroke(Color.kuroHairline, lineWidth: 0.8)
+                            )
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isBusy)
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                .fill(Color.kuroCanvasQuiet)
+                .overlay(
+                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                        .stroke(Color.kuroHairline, lineWidth: 0.5)
+                )
+        )
+    }
+
+    private var isReview: Bool {
+        if case .needsReview = result { return true }
+        return false
+    }
+
+    private func primaryButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.kuroButtonLabel(weight: .medium))
+                .foregroundStyle(Color.kuroWhite)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: KuroRadius.md, style: .continuous)
+                        .fill(Color.kuroInk)
+                )
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isBusy)
     }
 }
 

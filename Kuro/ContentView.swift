@@ -181,6 +181,11 @@ struct KuroMainView: View {
     @State private var tapSuppressionResetTask: Task<Void, Never>? = nil
     @State private var didTrackSuppressionThisGesture = false
     @State private var didApplyStartArgument = false
+    /// A start argument, a deep link, onboarding or the user's own paging chose the page. From then
+    /// on, hydrating the series flags never moves the pager to Home (`pageAfterSeriesHomeChange`).
+    @State private var pageChosen = false
+    /// The page the flag rule itself selected last (its own selection change is not a choice).
+    @State private var autoSelectedPage: Section? = nil
     /// Set on appear from the signed-in account's completion (this tree is keyed by the account).
     @State private var showOnboarding = false
     @State private var edgeBounceOffset: CGFloat = 0
@@ -310,6 +315,11 @@ struct KuroMainView: View {
                                 selection = .collection
                                 mountedSections.insert(.collection)
                             },
+                            onOpenBrowse: {
+                                guard swipeOrder.contains(.browse) else { return }
+                                selection = .browse
+                                mountedSections.insert(.browse)
+                            },
                             onImportNavigation: navigateFromImport,
                             bottomInset: pagerProxy.safeAreaInsets.bottom
 	                    )
@@ -345,13 +355,16 @@ struct KuroMainView: View {
                     let raw = String(value).trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
                     if raw == "concierge" && !swipeOrder.contains(.concierge) {
                         // Archived concierge opens as a sheet when the Deck owns index 0.
+                        pageChosen = true
                         conciergeSheetPrompt = nil
                         showConciergeSheet = true
                     } else if let target = sectionFromLaunchArgument(raw) {
+                        pageChosen = true
                         selection = target
                         mountedSections.insert(target)
                     }
                 } else if args.contains("--kuro-start-concierge") {
+                    pageChosen = true
                     if !swipeOrder.contains(.concierge) {
                         conciergeSheetPrompt = nil
                         showConciergeSheet = true
@@ -359,9 +372,8 @@ struct KuroMainView: View {
                         selection = .concierge
                         mountedSections.insert(.concierge)
                     }
-                } else if flags.seriesHomeNativeV1Enabled {
-                    selection = .home
-                    mountedSections = [.home]
+                } else if flags.seriesHomeNativeV1Enabled, !pageChosen {
+                    autoSelect(.home)
                 }
             }
 	        .simultaneousGesture(
@@ -443,6 +455,10 @@ struct KuroMainView: View {
 	                }
 	        )
 	            .onChange(of: selection) { _, newValue in
+                    // Any page change the flag rule did not make itself is a choice (paging, header,
+                    // VoiceOver adjust, onboarding, import navigation, Profile's Collection link).
+                    if newValue != autoSelectedPage { pageChosen = true }
+                    autoSelectedPage = nil
 	                mountedSections.insert(newValue)
                     if newValue == .clubs {
                         clubs.clearClubNotificationBadge()
@@ -526,12 +542,12 @@ struct KuroMainView: View {
                 handleDeepLink(link)
             }
             .onChange(of: flags.seriesHomeNativeV1Enabled) { _, enabled in
-                if enabled {
-                    selection = .home
-                    mountedSections = [.home]
-                } else if !swipeOrder.contains(selection) {
-                    selection = .discover
-                    mountedSections = [.discover]
+                // The flags hydrate about 1.4 s after launch: never override a start argument, a deep
+                // link or the user's own paging (visual QA), but always leave a page the order lost.
+                if let target = Self.pageAfterSeriesHomeChange(
+                    enabled: enabled, current: selection, order: swipeOrder, pageChosen: pageChosen
+                ) {
+                    autoSelect(target)
                 }
             }
             .onAppear {
@@ -579,6 +595,14 @@ struct KuroMainView: View {
             }
     }
 
+    /// A page the flag rule selects (not a choice; see `pageChosen`).
+    private func autoSelect(_ target: Section) {
+        guard selection != target else { return }
+        autoSelectedPage = target
+        selection = target
+        mountedSections = [target]
+    }
+
     private func navigateFromImport(_ destination: ImportResultDestination) {
         switch destination {
         case .importedTitles(let keys): collection.showImportedTitles(keys)
@@ -591,6 +615,8 @@ struct KuroMainView: View {
     }
 
     private func handleDeepLink(_ link: DeepLink) {
+        // A link (also one stashed before this view existed) decides the page; hydrating flags won't.
+        pageChosen = true
         switch link {
         case .anime(let id):
             routes.openMedia(MediaRoute(kind: .anime, id: id))
@@ -632,6 +658,25 @@ struct KuroMainView: View {
     }
 }
 
+extension KuroMainView {
+    /// The page after `series_home_native_v1` hydrates or flips; `nil` keeps the current page.
+    /// Flag on: Home only while nothing chose a page yet (a start argument, a deep link, onboarding or
+    /// the user's own paging win), otherwise only when the current page left the order. Flag off: a
+    /// page the live order no longer has (Home) falls back to Discover.
+    static func pageAfterSeriesHomeChange(
+        enabled: Bool,
+        current: Section,
+        order: [Section],
+        pageChosen: Bool
+    ) -> Section? {
+        if enabled {
+            if !pageChosen { return current == .home ? nil : .home }
+            return order.contains(current) ? nil : .home
+        }
+        return order.contains(current) ? nil : .discover
+    }
+}
+
 // MARK: - Interactive section pager (keeps tabs mounted once visited)
 private struct KuroSectionPager: View {
     typealias Section = KuroMainView.Section
@@ -645,6 +690,8 @@ private struct KuroSectionPager: View {
     var onOpenImport: () -> Void
     var onFindTitle: (String) -> Void = { _ in }
     var onOpenCollection: () -> Void = {}
+    /// Collection's "Find a title" in the live order (the pager's own Browse page; spec D2).
+    var onOpenBrowse: () -> Void = {}
     var onImportNavigation: (ImportResultDestination) -> Void
     /// Bottom safe-area inset captured before the pager ignores it. The Deck's art
     /// runs edge-to-edge; every other page gets the inset back as padding.
@@ -701,7 +748,7 @@ private struct KuroSectionPager: View {
                 case .browse:
                     BrowseView()
                 case .collection:
-                    EditorialCollectionView()
+                    EditorialCollectionView(onOpenBrowsePage: onOpenBrowse)
                 case .clubs:
                     ClubsView(pendingJoinCode: $pendingJoinCode)
                 }
@@ -768,6 +815,8 @@ struct KuroHeaderNew: View {
     @State private var titleProgress: CGFloat = 1.0
     @State private var titleTextWidth: CGFloat = 92
     @State private var previousSectionCleanupTask: Task<Void, Never>? = nil
+    /// The header row's width inside its side padding (0 until the first layout).
+    @State private var rowWidth: CGFloat = 0
 
     private var canSwipeLeft: Bool {
         guard let i = swipeOrder.firstIndex(of: selection) else { return false }
@@ -871,124 +920,158 @@ struct KuroHeaderNew: View {
             .contentShape(Rectangle())
     }
 
+    /// The two header buttons: 44 pt targets, the trailing inset keeps the circles where they were.
+    private static let actionsWidth: CGFloat = 44 * 2 - 6
+    /// Breathing room between the wordmark and the section window.
+    private static let wordmarkGap: CGFloat = 8
+
+    /// Where the section window sits and whether the wordmark fits beside it. Sized for the longest
+    /// title in the order (plus the Concierge mark where it can show), so paging never moves it.
+    private var rowLayout: (showsWordmark: Bool, centreShift: CGFloat) {
+        guard rowWidth > 0 else { return (!dynamicTypeSize.isAccessibilitySize, 0) }
+        let longestTitle = swipeOrder.map { Self.measureTitleWidth($0.title) + Self.windowTextSlack }.max() ?? 0
+        var centreWidth = max(54, longestTitle) + Self.windowTextPaddingX * 2
+        if swipeOrder.contains(.concierge) && !dynamicTypeSize.isAccessibilitySize { centreWidth += 40 }
+        let sideRoom = (rowWidth - centreWidth) / 2
+        let shift = max(0, Self.actionsWidth - sideRoom)
+        let leftRoom = sideRoom - shift
+        let wordmarkWidth = Self.measureTitleWidth("KURO")
+        return (leftRoom - Self.wordmarkGap >= wordmarkWidth, shift)
+    }
+
+    /// The centred section window with its position dots: one adjustable VoiceOver control.
+    private var sectionControl: some View {
+        VStack(spacing: 4) {
+            HStack(spacing: 10) {
+                if selection == .concierge && !dynamicTypeSize.isAccessibilitySize {
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .frame(width: 30, height: 30)
+                        .overlay(
+                            Circle().stroke(Color.kuroBlack10, lineWidth: 0.7)
+                        )
+                        .overlay(
+                            Image(systemName: "bubble.left.and.bubble.right.fill")
+                                .font(.kuroCustom(13, weight: .semibold, relativeTo: .caption1))
+                                .foregroundColor(.kuroBlack70)
+                        )
+                        .accessibilityHidden(true)
+                }
+
+                titleWindow
+            }
+
+            // Dot indicators for positional context
+            HStack(spacing: 5) {
+                ForEach(swipeOrder, id: \.self) { section in
+                    ZStack {
+                            Circle()
+                            .fill(section == selection
+                                  ? (onPicture ? Color.kuroInk : Color.kuroTextSecondary)
+                                  : (onPicture ? Color.kuroInk.opacity(0.28) : Color.kuroBlack15))
+                            .frame(width: 4, height: 4)
+
+                        // Badge dot for Clubs when unseen activity exists
+                        if section == .clubs && clubs.hasUnseenClubActivity && selection != .clubs {
+                            Circle()
+                                .fill(Color.kuroBlack70)
+                                .frame(width: 6, height: 6)
+                                .offset(x: 5, y: -3)
+                        }
+                    }
+                }
+            }
+            .animation(.easeOut(duration: 0.18), value: selection)
+            .accessibilityHidden(true)
+        }
+        .contentShape(Rectangle())
+        // One adjustable control: VoiceOver swipes up/down (and Switch Control) page the app.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(KuroLocale.text("Section", "Bereich"))
+        .accessibilityValue(sectionAccessibilityValue)
+        .accessibilityHint(KuroLocale.text("Swipe up or down to change sections.",
+                                           "Zum Wechseln nach oben oder unten wischen."))
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: moveSection(by: 1)
+            case .decrement: moveSection(by: -1)
+            @unknown default: break
+            }
+        }
+    }
+
+    private var actionButtons: some View {
+        HStack(spacing: 0) {
+            Button(action: {
+                KuroAccessibility.impactHaptic(.light)
+                onOpenSearch()
+            }) {
+                headerIconCircle {
+                    // Fixed inside its 32 pt circle: the glyph stops growing where the circle does.
+                    Image(systemName: "magnifyingglass")
+                        .font(.kuroCustom(13, weight: .regular, relativeTo: .caption1, maxSize: 15))
+                        .foregroundColor(onPicture ? Color.kuroInk : Color.kuroBlack60)
+                }
+            }
+            .buttonStyle(KuroHeaderIconButtonStyle())
+            .accessibilityLabel(KuroLocale.text("Search", "Suche"))
+            .accessibilityHint(KuroLocale.text("Opens search", "Öffnet die Suche"))
+
+            Menu {
+                Button(KuroLocale.text("Profile", "Profil")) {
+                    showProfileSheet = true
+                }
+                Button(KuroLocale.text("Sign out", "Abmelden"), role: .destructive) {
+                    Task { await session.signOut() }
+                }
+            } label: {
+                headerIconCircle {
+                    Text(identity.currentUserInitial)
+                        .font(.kuroCustom(12, weight: .medium, relativeTo: .caption1, maxSize: 14))
+                        .lineLimit(1)
+                        .foregroundColor(onPicture ? Color.kuroInk : Color.kuroBlack80)
+                }
+            }
+            .buttonStyle(KuroHeaderIconButtonStyle())
+            .accessibilityLabel(KuroLocale.text("Profile", "Profil"))
+            .accessibilityHint(KuroLocale.text("Opens account menu", "Öffnet das Kontomenü"))
+        }
+        .padding(.trailing, -6)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Three-part layout with proper spacing
-            HStack(alignment: .center) {
-                // Left: Brand (30% opacity). Decorative and redundant: at accessibility text sizes it
-                // gives its room to the section window so nothing truncates or overlaps at 320 pt.
-                HStack(spacing: 10) {
-                    if !dynamicTypeSize.isAccessibilitySize {
+            // The section window stays centred on the row at every text size; the wordmark and the two
+            // buttons sit on its sides. The wordmark steps aside only when the row is too narrow for it
+            // (largest text sizes on the narrowest phones), and the window moves off centre only when
+            // it would otherwise run under the buttons.
+            let layout = rowLayout
+            ZStack {
+                HStack(spacing: 0) {
+                    if layout.showsWordmark {
                         Text("KURO")
                             .font(.kuroNavigation(weight: onPicture ? .medium : .regular))
-                            .tracking(1.5)
+                            .tracking(Self.titleTracking)
                             .foregroundColor(onPicture ? Color.kuroInk : Color.kuroTextTertiary)
+                            .lineLimit(1)
+                            .fixedSize()
+                            .accessibilitySortPriority(3)
                     }
+                    Spacer(minLength: 0)
+                    actionButtons
+                        .accessibilityElement(children: .contain)
+                        .accessibilitySortPriority(1)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Center: Section (full opacity)
-                VStack(spacing: 4) {
-                    HStack(spacing: 10) {
-                        if selection == .concierge && !dynamicTypeSize.isAccessibilitySize {
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .frame(width: 30, height: 30)
-                                .overlay(
-                                    Circle().stroke(Color.kuroBlack10, lineWidth: 0.7)
-                                )
-                                .overlay(
-                                    Image(systemName: "bubble.left.and.bubble.right.fill")
-                                        .font(.kuroCustom(13, weight: .semibold, relativeTo: .caption1))
-                                        .foregroundColor(.kuroBlack70)
-                                )
-                                .accessibilityHidden(true)
-                        }
-
-                        titleWindow
-                    }
-
-                    // Dot indicators for positional context
-                    HStack(spacing: 5) {
-                        ForEach(swipeOrder, id: \.self) { section in
-                            ZStack {
-                                    Circle()
-                                    .fill(section == selection
-                                          ? (onPicture ? Color.kuroInk : Color.kuroTextSecondary)
-                                          : (onPicture ? Color.kuroInk.opacity(0.28) : Color.kuroBlack15))
-                                    .frame(width: 4, height: 4)
-
-                                // Badge dot for Clubs when unseen activity exists
-                                if section == .clubs && clubs.hasUnseenClubActivity && selection != .clubs {
-                                    Circle()
-                                        .fill(Color.kuroBlack70)
-                                        .frame(width: 6, height: 6)
-                                        .offset(x: 5, y: -3)
-                                }
-                            }
-                        }
-                    }
-                    .animation(.easeOut(duration: 0.18), value: selection)
-                    .accessibilityHidden(true)
-                }
-                .contentShape(Rectangle())
-                // One adjustable control: VoiceOver swipes up/down (and Switch Control) page the app.
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(KuroLocale.text("Section", "Bereich"))
-                .accessibilityValue(sectionAccessibilityValue)
-                .accessibilityHint(KuroLocale.text("Swipe up or down to change sections.",
-                                                   "Zum Wechseln nach oben oder unten wischen."))
-                .accessibilityAdjustableAction { direction in
-                    switch direction {
-                    case .increment: moveSection(by: 1)
-                    case .decrement: moveSection(by: -1)
-                    @unknown default: break
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .center)
-                // At accessibility sizes the section window is laid out before the side columns
-                // (default sizes keep three equal columns, so the title stays centred).
-                .layoutPriority(dynamicTypeSize.isAccessibilitySize ? 1 : 0)
-
-                // Right: Actions (44 pt targets; the trailing inset keeps the circles where they were)
-                HStack(spacing: 0) {
-                    Spacer()
-
-                    Button(action: {
-                        KuroAccessibility.impactHaptic(.light)
-                        onOpenSearch()
-                    }) {
-                        headerIconCircle {
-                            Image(systemName: "magnifyingglass")
-                                .font(.kuroCustom(13, weight: .regular, relativeTo: .caption1))
-                                .foregroundColor(onPicture ? Color.kuroInk : Color.kuroBlack60)
-                        }
-                    }
-                    .buttonStyle(KuroHeaderIconButtonStyle())
-                    .accessibilityLabel(KuroLocale.text("Search", "Suche"))
-                    .accessibilityHint(KuroLocale.text("Opens search", "Öffnet die Suche"))
-
-                    Menu {
-                        Button(KuroLocale.text("Profile", "Profil")) {
-                            showProfileSheet = true
-                        }
-                        Button(KuroLocale.text("Sign Out", "Abmelden"), role: .destructive) {
-                            Task { await session.signOut() }
-                        }
-                    } label: {
-                        headerIconCircle {
-                            Text(identity.currentUserInitial)
-                                .font(.kuroCustom(12, weight: .medium, relativeTo: .caption1))
-                                .foregroundColor(onPicture ? Color.kuroInk : Color.kuroBlack80)
-                        }
-                    }
-                    .buttonStyle(KuroHeaderIconButtonStyle())
-                    .accessibilityLabel(KuroLocale.text("Profile", "Profil"))
-                    .accessibilityHint(KuroLocale.text("Opens account menu", "Öffnet das Kontomenü"))
-                }
-                .padding(.trailing, -6)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                sectionControl
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.trailing, layout.centreShift * 2)
+                    .accessibilitySortPriority(2)
             }
+            // The ZStack declares the section control last; explicit priorities keep the reading
+            // order wordmark, section, search, profile (as in the former single HStack).
+            .accessibilityElement(children: .contain)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
             .padding(.horizontal, 20)
             // 44 pt targets + 5 pt keeps the header at its 54 pt height at the default text size.
             .padding(.vertical, 5)
