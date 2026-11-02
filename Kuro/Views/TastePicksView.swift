@@ -656,9 +656,12 @@ final class TastePlanController {
 
     @ObservationIgnored private var dismissTask: Task<Void, Never>?
     @ObservationIgnored private let holdSeconds: Double
+    @ObservationIgnored private let assistiveTechnologyRunning: @MainActor () -> Bool
 
-    init(holdSeconds: Double = 4) {
+    init(holdSeconds: Double = 4,
+         assistiveTechnologyRunning: @escaping @MainActor () -> Bool = KuroToastHold.assistiveTechnologyRunning) {
         self.holdSeconds = holdSeconds
+        self.assistiveTechnologyRunning = assistiveTechnologyRunning
     }
 
     /// Runs one Plan key tap. Returns the write's task (nil for the editor, a tap while the title's
@@ -732,10 +735,13 @@ final class TastePlanController {
         }
     }
 
-    private func show(_ message: String, undo: Undo?) {
+    /// Shows one result. With VoiceOver or Switch Control on it waits for × or the next result
+    /// (`KuroToastHold`); otherwise it leaves after the hold.
+    func show(_ message: String, undo: Undo?) {
         dismissTask?.cancel()
         let toast = Toast(message: message, undo: undo)
         self.toast = toast
+        guard !assistiveTechnologyRunning() else { dismissTask = nil; return }
         let hold = holdSeconds
         dismissTask = Task { @MainActor [weak self] in
             try? await Task.sleep(for: .seconds(hold))

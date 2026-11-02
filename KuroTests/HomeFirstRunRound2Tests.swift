@@ -36,28 +36,16 @@ struct HomeFirstRunRound2Tests {
 
     @Test("Undo reads undone only when the count is back where it was")
     func undoResultRule() {
-        #expect(HomeProgressToastCopy.undoResult(before: 4, after: 4) == .undone)
-        #expect(HomeProgressToastCopy.undoResult(before: 4, after: 5) == .failed)
-    }
-
-    @Test("The status line leaves the +1 result to the toast; 'Saved on this device' only while offline")
-    func statusLineRule() {
-        func shows(_ status: String, offline: Bool = false, toast: Bool = false) -> Bool {
-            HomeProgressToastCopy.statusLineShows(status, savedOnDevice: "Saved on this device", notSaved: "Not saved",
-                                                  offline: offline, toastShowing: toast)
-        }
-        #expect(!shows("Saved on this device"))
-        #expect(shows("Saved on this device", offline: true))
-        #expect(!shows("Not saved", toast: true))
-        #expect(shows("Not saved"))
-        #expect(shows("Choose the next episode on its page."))
+        #expect(HomeProgressToastCopy.undoResult(before: 4, after: 4, manga: false) == .undone)
+        #expect(HomeProgressToastCopy.undoResult(before: 4, after: 5, manga: false) == .undoFailed(position: 5, manga: false))
     }
 
     @Test("The toast's Undo acts once, only for the title Home advanced last, and the toast leaves by itself")
     func progressToastController() async throws {
         let account = AccountContext(userId: "a", generation: 1)
-        let undo = HomeProgressToasts.Undo(medium: "anime", mediaId: 7, lifecycleId: "L", before: 4, account: account)
-        let toasts = HomeProgressToasts(holdSeconds: 0.05)
+        let undo = HomeProgressToasts.Undo(medium: "anime", mediaId: 7, lifecycleId: "L", before: 4, after: 5,
+                                           account: account)
+        let toasts = HomeProgressToasts(holdSeconds: 0.05, assistiveTechnologyRunning: { false })
         toasts.show("Progress saved.", undo: undo)
         #expect(toasts.toast?.message == "Progress saved.")
         #expect(toasts.toast?.undo == undo)

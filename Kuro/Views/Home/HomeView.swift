@@ -613,13 +613,17 @@ struct HomeView: View {
 
     /// Home's status line under the feed. The +1 result and its Undo are the screen-foot toast
     /// (`progressToast`), so this line carries only what the toast does not: Library's "Saved on this
-    /// device." while offline (online, the save is on its way and the toast already said so), and
-    /// Home's other states (choose the next unit on its page, a page that failed to load).
+    /// device." while a save is still waiting in the outbox (online or offline; Library keeps the
+    /// message after the receipt, so the outbox decides), and Home's other states (choose the next unit
+    /// on its page, a page that failed to load).
     @ViewBuilder
     private func shelfStatus(origin: AccountActionScope.Ticket?, renderedMedium: String) -> some View {
         if let status = home.statusMessage,
            HomeProgressToastCopy.statusLineShows(status, savedOnDevice: HomeCopy.librarySavedOnDevice,
-                                                 notSaved: HomeCopy.progressNotSaved, offline: !network.isConnected,
+                                                 notSaved: HomeCopy.progressNotSaved,
+                                                 onItsWay: HomeCopy.libraryMessage("That save is already on its way."),
+                                                 savePending: status == HomeCopy.librarySavedOnDevice && progressSavePending,
+                                                 offline: !network.isConnected,
                                                  toastShowing: progressToasts.toast != nil) {
             Text(HomeCopy.display(status))
                 .font(.kuroMeta())
@@ -889,7 +893,7 @@ struct HomeView: View {
         let undo = account.flatMap { account -> HomeProgressToasts.Undo? in
             guard result != .failed else { return nil }
             return HomeProgressToasts.Undo(medium: home.medium, mediaId: card.mediaId, lifecycleId: card.lifecycleId,
-                                           before: before, account: account)
+                                           before: before, after: after, account: account)
         }
         plans.dismiss()
         progressToasts.show(HomeProgressToastCopy.message(result, german: KuroLocale.isGerman), undo: undo)
@@ -915,8 +919,14 @@ struct HomeView: View {
         }
     }
 
-    /// Restores the count the toast reports, once, for the account and medium that made the +1; then
-    /// "Undone." or the failure.
+    /// A progress save of this account still waits in the outbox (unsent, on its way, or offline).
+    private var progressSavePending: Bool {
+        library.allEntries.contains { library.pendingProgress(for: $0.key) != nil }
+    }
+
+    /// Restores the count the toast reports, once, for the account and medium that made the +1, also
+    /// once the drain has attempted it (`HomeProgressToasts.performUndo`); then "Undone." or where the
+    /// progress stays.
     private func undoAdvance() {
         guard progressUndoApplies, let undo = progressToasts.takeUndo(),
               libraryActions.accountSession.isCurrent(undo.account), home.medium == undo.medium,
@@ -925,10 +935,10 @@ struct HomeView: View {
               }) else { return }
         let origin = actionScope.capture(session: libraryActions.accountSession)
         performTicketed(origin: origin) { ticket in
-            await home.undo(card)
+            let result = await HomeProgressToasts.performUndo(undo, card: card, home: home,
+                                                              session: libraryActions.accountSession)
             guard actionScope.isCurrent(ticket, session: libraryActions.accountSession),
                   home.medium == undo.medium else { return }
-            let result = HomeProgressToastCopy.undoResult(before: undo.before, after: home.displayedProgress(for: card))
             progressToasts.show(HomeProgressToastCopy.message(result, german: KuroLocale.isGerman), undo: nil)
         }
     }

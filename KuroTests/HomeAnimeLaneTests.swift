@@ -427,21 +427,27 @@ struct HomeAnimeLaneTests {
         Self.seedClub(graph)
         let card = try #require(graph.home.bundle?.active.first { $0.mediaId == 3 })
         let before = graph.home.displayedProgress(for: card)
-        // Undo through the store puts the count back while the save is still on this device.
+        let account = try #require(graph.accountSession.current)
+        // Undo puts the count back after the drain has attempted the +1 (this graph has no client, so
+        // the attempt fails as offline; HomeToastRound3Tests covers in flight and acknowledged).
         await graph.home.advance(card)
-        await graph.home.undo(card)
-        #expect(HomeProgressToastCopy.undoResult(before: before, after: graph.home.displayedProgress(for: card)) == .undone)
+        graph.library.cancelProgressWork()
+        await graph.home.drain()
+        let firstUndo = HomeProgressToasts.Undo(medium: "anime", mediaId: card.mediaId, lifecycleId: card.lifecycleId,
+                                                before: before, after: before + 1, account: account)
+        #expect(await HomeProgressToasts.performUndo(firstUndo, card: card, home: graph.home,
+                                                     session: graph.accountSession) == .undone)
+        #expect(graph.home.displayedProgress(for: card) == before)
         await graph.home.advance(card)
         let after = graph.home.displayedProgress(for: card)
         #expect(after == before + 1, "The +1 is saved on this device (\(graph.home.statusMessage ?? "no status")).")
-        let account = try #require(graph.accountSession.current)
         let undo = HomeProgressToasts.Undo(medium: "anime", mediaId: card.mediaId, lifecycleId: card.lifecycleId,
-                                           before: before, account: account)
+                                           before: before, after: after, account: account)
         #expect(HomeProgressToasts.undoApplies(undo, lastKey: graph.home.lastAdvancedKey,
                                                lastLifecycle: graph.home.lastAdvancedLifecycle?.uuidString))
         let result = try #require(HomeProgressToastCopy.advanceResult(before: before, after: after,
                                                                       caughtUpAfter: false, saveFailed: false))
-        let toasts = HomeProgressToasts(holdSeconds: 60)
+        let toasts = HomeProgressToasts(holdSeconds: 60, assistiveTechnologyRunning: { false })
         // After the page's first appearance (which resets its presentation for the account), as a tap
         // on the key would be.
         let message = HomeProgressToastCopy.message(result, german: KuroLocale.isGerman)
