@@ -1504,3 +1504,7 @@ Pinned `HomePagePicture` behind the status bar and header on Home; cleared Home 
 ### Change Log — 2 November 2026: Contact form (website + app)
 
 Status: implemented locally on `kuro/prototype-fidelity`, NOT deployed. Prepared migration `20261102100000_contact_messages.sql`, Edge Function `contact-submit` (deploy `--no-verify-jwt`), legal site `kontakt.html` + privacy §4.15, app owner `SupportStore` + `ContactSheet`. Go-live needs owner approval: migration, function, `CONTACT_IP_HASH_SECRET`, optional Resend env, legal-site redeploy.
+
+### Change Log — 2 November 2026: Contact form review fixes
+
+Status: fixed locally on `kuro/prototype-fidelity`, NOT deployed. `contact-submit` limiter (IPv6 /64 buckets, IP check before token verification, app IP cap 30/h, per-account 5/h, web global 200/h, notification ceiling 50/h), CORS for `kuro-legal.vercel.app`, Resend alert required for go-live; app consent link to the contact-form section, UTF-16 length rules, reset on reopen, Art. 16 DSA hint; legal pages lead with Max Hufschlag. Go-live is now a hard release prerequisite: `docs/go-live/2026-11-02/CONTACT_FORM_RELEASE.md`.

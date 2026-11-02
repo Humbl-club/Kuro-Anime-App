@@ -262,7 +262,7 @@ Flags defined in `FeatureFlags.swift` (selected):
 
 ### iOS app — 214 Swift files in `Kuro/`
 
-Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 60 in `KuroTests/` and 3 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
+Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 61 in `KuroTests/` and 3 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
 
 **Entry points:**
 - `KuroApp.swift` — `@main`, scenePhase lifecycle, NetworkMonitor + `AppComposition` owners injected with `.environment(...)`, `.onOpenURL` deep link handler
