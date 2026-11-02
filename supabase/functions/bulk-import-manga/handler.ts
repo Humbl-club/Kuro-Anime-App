@@ -40,7 +40,7 @@ import {
   type SweepState,
   type TrackPresetName,
 } from "../bulk-import-anime/tracks.ts";
-import { isCleanStop } from "../_shared/anilist_client.ts";
+import { isCleanStop, pastAniListPageDepth } from "../_shared/anilist_client.ts";
 
 const DEFAULT_DELAY_MS = 670; // ms
 const DEFAULT_PER_PAGE = 25;
@@ -256,23 +256,26 @@ export async function run(payload: any, deps: MangaImportDeps): Promise<Response
     let stoppedEarly: string | null = null;
     let sweepCompleted = false;
     for (let page = startPage; page < startPage + pagesPerBatch; page++) {
-      let manga: any[];
-      try {
-        manga = await deps.fetchPage(page, perPage, includeRelations, retries, {
-          sort: spec.sort,
-          statusIn: spec.statusIn,
-          deadlineMs,
-        });
-      } catch (e) {
-        // No request was sent for this page: commit what this run fully persisted and stop.
-        if (isCleanStop(e)) {
-          stoppedEarly = (e as { kind: string }).kind;
-          break;
+      let manga: any[] = [];
+      // A page past AniList's depth limit is never requested: it ends the list like an empty page.
+      if (!pastAniListPageDepth(page, perPage)) {
+        try {
+          manga = await deps.fetchPage(page, perPage, includeRelations, retries, {
+            sort: spec.sort,
+            statusIn: spec.statusIn,
+            deadlineMs,
+          });
+        } catch (e) {
+          // No request was sent for this page: commit what this run fully persisted and stop.
+          if (isCleanStop(e)) {
+            stoppedEarly = (e as { kind: string }).kind;
+            break;
+          }
+          throw e;
         }
-        throw e;
       }
       if (!manga.length) {
-        // A real empty page (the transport throws on errors): the list is exhausted.
+        // A real empty page (the transport throws on errors) or the depth limit: the list is exhausted.
         if (watermarkMode) sweepCompleted = true;
         // Cursor wrap-around: if we hit the end, reset so the next run starts from page 1.
         else if (useCursor && page === startPage) lastProcessed = 0;

@@ -30,6 +30,14 @@ export const ANILIST_GRAPHQL_URL = "https://graphql.anilist.co";
 export const DEFAULT_ANILIST_PER_MINUTE = 25;
 export const INTAKE_USER_AGENT = "Kuro-Intake/1.0 (+https://kuro.app)";
 
+// AniList refuses a Page that reaches past this many entries ("Page depth exceeds maximum
+// allowed for API requests (5000 entries)"). A paged crawl treats that page as the end of the list.
+export const ANILIST_MAX_PAGE_DEPTH = 5000;
+
+export function pastAniListPageDepth(page: number, perPage: number): boolean {
+  return page * perPage > ANILIST_MAX_PAGE_DEPTH;
+}
+
 export type AniListErrorKind =
   | "graphql"
   | "missing_data"

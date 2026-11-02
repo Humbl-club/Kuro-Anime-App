@@ -525,3 +525,39 @@ Deno.test("manga releasing track uses status_in + UPDATED_AT_DESC and its own cu
   assert.equal(row.last_results.cursor.watermark, 50);
   assert.equal(cursor(db), 9);
 });
+
+Deno.test("AniList page depth: the last reachable page is imported and the next page ends the list", async () => {
+  // perPage 25: page 200 holds entries 4,976–5,000; AniList refuses page 201 (entry 5,025).
+  const db = new Db();
+  db.seed("import_state", [{ media_type: "MANGA", last_page: 199 }]);
+  const fetched: number[] = [];
+  const res = await run({ ...cursorRunPayload(), pagesPerBatch: 2 }, {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage(page) {
+      fetched.push(page);
+      return Promise.resolve([media(page * 10)]);
+    },
+  });
+  assert.equal(res.status, 200);
+  assert.deepEqual(fetched, [200], "page 201 must never be requested");
+  assert.equal(cursor(db), 200);
+});
+
+Deno.test("AniList page depth: a cursor at the limit wraps to page 1 without a request", async () => {
+  const db = new Db();
+  db.seed("import_state", [{ media_type: "MANGA", last_page: 200 }]);
+  const fetched: number[] = [];
+  const res = await run(cursorRunPayload(), {
+    supabase: db,
+    heavyImportsEnabled: true,
+    fetchPage(page) {
+      fetched.push(page);
+      return Promise.resolve([media(page * 10)]);
+    },
+  });
+  assert.equal(res.status, 200);
+  assert.deepEqual(fetched, []);
+  assert.equal(cursor(db), 0);
+  assert.equal(db.lockHeld.size, 0);
+});

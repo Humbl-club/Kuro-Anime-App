@@ -39,7 +39,7 @@ import {
   type SweepState,
   type TrackPresetName,
 } from "./tracks.ts";
-import { isCleanStop } from "../_shared/anilist_client.ts";
+import { isCleanStop, pastAniListPageDepth } from "../_shared/anilist_client.ts";
 
 const DEFAULT_DELAY_MS = 670; // ms
 const DEFAULT_PER_PAGE = 25;
@@ -251,23 +251,26 @@ export async function run(payload: any, deps: AnimeImportDeps): Promise<Response
     const step = Math.max(1, pagesPerBatch);
     outer: while (true) {
       for (let p = page; p < page + step; p++) {
-        let anime: any[];
-        try {
-          anime = await deps.fetchPage(p, perPage, includeRelations, includeEpisodes, retries, {
-            sort: spec.sort,
-            statusIn: spec.statusIn,
-            deadlineMs,
-          });
-        } catch (e) {
-          // No request was sent for this page: commit what this run fully persisted and stop.
-          if (isCleanStop(e)) {
-            stoppedEarly = (e as { kind: string }).kind;
-            break outer;
+        let anime: any[] = [];
+        // A page past AniList's depth limit is never requested: it ends the list like an empty page.
+        if (!pastAniListPageDepth(p, perPage)) {
+          try {
+            anime = await deps.fetchPage(p, perPage, includeRelations, includeEpisodes, retries, {
+              sort: spec.sort,
+              statusIn: spec.statusIn,
+              deadlineMs,
+            });
+          } catch (e) {
+            // No request was sent for this page: commit what this run fully persisted and stop.
+            if (isCleanStop(e)) {
+              stoppedEarly = (e as { kind: string }).kind;
+              break outer;
+            }
+            throw e;
           }
-          throw e;
         }
         if (!anime.length) {
-          // A real empty page (the transport throws on errors): the list is exhausted.
+          // A real empty page (the transport throws on errors) or the depth limit: the list is exhausted.
           if (watermarkMode) {
             sweepCompleted = true;
           } else {
