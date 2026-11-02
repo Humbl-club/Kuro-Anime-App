@@ -29,6 +29,7 @@ struct KuroApp: App {
     @State private var concierge = AppComposition.shared.concierge
     @State private var taste = AppComposition.shared.taste
     @State private var deviceIntelligence = AppComposition.shared.deviceIntelligence
+    @State private var support = AppComposition.shared.support
     @State private var banner = AppComposition.shared.banner
     @State private var flags = AppComposition.shared.flags
     @State private var interactionTelemetry = AppComposition.shared.interactionTelemetry
@@ -74,6 +75,7 @@ struct KuroApp: App {
                 .environment(concierge)
                 .environment(taste)
                 .environment(deviceIntelligence)
+                .environment(support)
                 .environment(banner)
                 .environment(flags)
                 .environment(interactionTelemetry)

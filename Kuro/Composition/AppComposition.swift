@@ -32,7 +32,8 @@ import UIKit
 ///   refreshed by the Collection change sink).
 /// - Assistant owners (E6b) on that same client: `imports` (Imports), `concierge` (Concierge) and
 ///   `taste` (Taste, with the deck signal outbox drained whenever the app returns to the foreground),
-///   plus `deviceIntelligence`, the single on-device FM service. The server-side list writers among
+///   plus `deviceIntelligence`, the single on-device FM service.
+/// - Support owner on that same client: `support` (the in-app contact form; account-scoped draft). The server-side list writers among
 ///   them reach the Library through one hook (`LibraryRefreshHook`), connected to `libraryActions`.
 /// `KuroApp` injects the view-facing owners into the environment.
 @MainActor
@@ -66,6 +67,8 @@ final class AppComposition {
     var concierge: ConciergeStore { graph.concierge }
     var taste: TasteStore { graph.taste }
     var deviceIntelligence: AppleFMService { graph.deviceIntelligence }
+    /// The contact form (Profile > About > Contact us).
+    var support: SupportStore { graph.support }
     /// The runtime flags (the single instance; views read it from the environment).
     var flags: FeatureFlags { graph.flags }
     /// The transient banner (newest wins, auto-clear).
@@ -207,6 +210,7 @@ final class AppComposition {
             malCredentials: malCredentials
         )
         let collection = makeCollection(client: client, accountSession: accountSession)
+        let support = makeSupport(client: client, accountSession: accountSession)
         let home = HomeStore(client: client, accountSession: accountSession, library: wiring.store,
             outbox: progressOutbox,
             progressWritesEnabled: { shell.flags.seriesFoundationV1Enabled })
@@ -265,6 +269,7 @@ final class AppComposition {
                 personalData: personalData,
                 clubs: clubs,
                 assistant: assistant,
+                support: support,
                 shell: shell
             )
         )
@@ -292,6 +297,7 @@ final class AppComposition {
             concierge: assistant.concierge,
             taste: assistant.taste,
             deviceIntelligence: assistant.deviceIntelligence,
+            support: support,
             libraryHook: assistant.libraryHook,
             flags: shell.flags,
             banner: shell.banner,
@@ -346,8 +352,8 @@ final class AppComposition {
     /// account's Library refreshes are cancelled before anything else; the funnel rebinds/resets the
     /// store itself before this list runs), the Collection pages, the public-data owners (Discovery),
     /// the personal-data owners (Releases, Social, ProviderAvailability), Clubs, the assistant owners
-    /// (Imports, Concierge, Taste) and the interaction telemetry LAST (the ending account's queued
-    /// events are dropped before the funnel sets the new user id).
+    /// (Imports, Concierge, Taste), Support (the contact draft) and the interaction telemetry LAST (the
+    /// ending account's queued events are dropped before the funnel sets the new user id).
     static func makeAccountScopedStates(
         libraryActions: LibraryActions,
         home: HomeStore,
@@ -356,10 +362,12 @@ final class AppComposition {
         personalData: PersonalDataOwners,
         clubs: ClubsStore,
         assistant: AssistantOwners,
+        support: SupportStore,
         shell: ShellOwners
     ) -> [any AccountScopedState] {
         [libraryActions, home, collection] + publicData.accountScopedStates
-            + personalData.accountScopedStates + [clubs] + assistant.accountScopedStates + [shell.interactionTelemetry]
+            + personalData.accountScopedStates + [clubs] + assistant.accountScopedStates + [support]
+            + [shell.interactionTelemetry]
     }
 
     /// The Library writer mapping and refresh paths over `library` (account-scoped: refreshes,
@@ -474,6 +482,13 @@ final class AppComposition {
         )
     }
 
+    /// The Support owner over `client` (the single SDK client; never a second one): the in-app contact
+    /// form's draft and its one `contact-submit` call (account-scoped: the draft is cleared on every
+    /// account transition).
+    static func makeSupport(client: SupabaseClient?, accountSession: AccountSessionCoordinator) -> SupportStore {
+        SupportStore(client: client, accountSession: accountSession)
+    }
+
     /// The Collection owner over `client` (the single SDK client; never a second one): the account's
     /// card pages and feed (account-scoped). The Collection change sink points at it once it exists
     /// (`LibraryChangeSinks.connect(releases:collection:imports:clubs:)`).
@@ -580,6 +595,8 @@ struct AppGraph {
     let concierge: ConciergeStore
     let taste: TasteStore
     let deviceIntelligence: AppleFMService
+    /// Support: the in-app contact form (account-scoped draft).
+    let support: SupportStore
     /// The single Library hook of the server-side list writers, connected to `libraryActions`.
     let libraryHook: LibraryRefreshHook
     let flags: FeatureFlags

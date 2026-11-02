@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 
 // Profile: the account hub (rulebook §14.3). Order: identity, Your library (counts + "Your lists"),
 // Imports and connections (incl. pending and resumable imports), Clubs, Preferences, Account and
-// privacy, About (Data sources and credits, Terms once confirmed, version), then a quiet Advanced disclosure (cache tools; the streaming freshness card when that
+// privacy, About (Data sources and credits, Contact us, Terms once confirmed, version), then a quiet Advanced disclosure (cache tools; the streaming freshness card when that
 // feature is on). Rows: serif title, sans subtitle in secondary ink, hairlines, no chevrons.
 struct ProfileView: View {
     var onOpenConciergeImportReview: ((String) -> Void)? = nil
@@ -43,6 +43,7 @@ struct ProfileView: View {
     @State private var showImportWorkflow = false
     @State private var importWorkflowJob: ImportOutcome?
     @State private var showDataSources = false
+    @State private var showContact = false
     @State private var showImportChooser = false
     @State private var showFindSheet = false
     @State private var streamingObservability: ProviderAvailabilityStore.StreamingObservabilitySnapshot? = nil
@@ -177,6 +178,9 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showDataSources) {
             DataSourcesView()
+        }
+        .sheet(isPresented: $showContact) {
+            ContactSheet()
         }
         .sheet(isPresented: $showImportChooser) {
             ImportSourceChooser { destination in
@@ -699,8 +703,8 @@ struct ProfileView: View {
 
     // MARK: About
 
-    /// Spec D11: Profile > About holds Data sources and credits, the Terms link (once confirmed) and
-    /// the version.
+    /// Spec D11: Profile > About holds Data sources and credits, Contact us (the contact form, the
+    /// Impressum's second contact channel), the Terms link (once confirmed) and the version.
     private var aboutSection: some View {
         let german = isGermanLocale
         return VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
@@ -711,6 +715,13 @@ struct ProfileView: View {
                     subtitle: "AniList, MangaDex, MangaUpdates, AnimeThemes"
                 ) {
                     showDataSources = true
+                }
+                rowHairline
+                ProfileQuietRow(
+                    title: german ? "Kontakt" : "Contact us",
+                    subtitle: german ? "Frage, Hilfe, Datenschutz oder Inhalt melden" : "Questions, help, privacy or reporting content"
+                ) {
+                    showContact = true
                 }
                 if let terms = KuroLegalLinks.terms {
                     rowHairline

@@ -198,6 +198,7 @@ struct RestyleSnapshotTests {
             .environment(graph.concierge)
             .environment(graph.taste)
             .environment(graph.deviceIntelligence)
+            .environment(graph.support)
             .environment(graph.banner)
             .environment(graph.flags)
             .environment(graph.interactionTelemetry)
