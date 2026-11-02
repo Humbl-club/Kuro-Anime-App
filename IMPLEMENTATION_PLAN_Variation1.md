@@ -1520,3 +1520,7 @@ Status: foundation implemented locally on `kuro/prototype-fidelity`, NOT deploye
 ### Change Log — 2 November 2026: Navigation lane "detail"
 
 Status: anime + manga detail pages migrated to journey pages locally on `kuro/nav-detail` (not pushed, not deployed): shrinking header with Back/✕ chrome, grabber always visible, every in-detail tap pushes (seasons, source/adaptation, characters, staff/studio/author, ladder "Original work", club rail cards), folds with session memory. Gate offenders 16 → 2 (clubs lane). Open: UI chain tests on the owned simulator (spec §5) at integration; verdict sheet close (QuickVerdictActionCard, not this lane).
+
+### Change Log — 2 November 2026: Navigation lane "clubs"
+
+Status: implemented locally on `kuro/nav-clubs` (from foundation `b03c885`), NOT deployed, NOT pushed. Club detail is a journey page (chrome with back/settings/✕, shrinking paper bar, swipe-back restored; rail items and This-week entries push titles), creating a club opens it, Home season overview is a journey with ✕ + grabber, verdict sheets have a grabber + Cancel, create club/rail/poll + tracking editor + contact block swipe-down on unsaved input and confirm "Discard changes?", the import chooser keeps Stop reachable while busy. Gate offenders 16 → 14. Open: UI tests on the owned simulator (§5) for Club → rail item → detail → add to club → cancel.

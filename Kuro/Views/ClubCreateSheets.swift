@@ -129,6 +129,33 @@ struct ClubInlineError: View {
     }
 }
 
+// MARK: - Unsaved input (navigation contract N7)
+
+/// Whether a club form holds input that Cancel or swipe-down would lose. Pure (NavclubsTests).
+nonisolated enum ClubFormRules {
+    /// The audience a new club starts with (`CreateClubSheet`).
+    static let defaultSharingLevel = "status"
+
+    static func hasText(_ text: String) -> Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Create club: a name, a description, or an audience other than the default.
+    static func createClubIsDirty(name: String, description: String, sharingLevel: String) -> Bool {
+        hasText(name) || hasText(description) || sharingLevel != defaultSharingLevel
+    }
+
+    /// Create rail: a title or a description.
+    static func createRailIsDirty(title: String, description: String) -> Bool {
+        hasText(title) || hasText(description)
+    }
+
+    /// Create poll: a question, any option text, or options added or removed (it starts with two).
+    static func createPollIsDirty(question: String, options: [String]) -> Bool {
+        hasText(question) || options.contains(where: hasText) || options.count != 2
+    }
+}
+
 // MARK: - Create Club Rail Sheet
 
 struct CreateClubRailSheet: View {
@@ -143,9 +170,12 @@ struct CreateClubRailSheet: View {
     @State private var description: String = ""
     @State private var isWorking = false
     @State private var errorText: String? = nil
+    @State private var confirmDiscard = false
     @FocusState private var focus: Field?
 
     private enum Field: Hashable { case title, description }
+
+    private var isDirty: Bool { ClubFormRules.createRailIsDirty(title: title, description: description) }
 
     static let descriptionLimit = 500
 
@@ -190,18 +220,28 @@ struct CreateClubRailSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(KuroLocale.text("Cancel", "Abbrechen")) { dismiss() }
+                    Button(KuroLocale.text("Cancel", "Abbrechen")) { cancel() }
                         .font(.kuroBody(weight: .regular))
                         .tint(Color.kuroInk)
                 }
             }
         }
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .kuroDiscardGuard(isDirty: isDirty, isBusy: isWorking, isConfirming: $confirmDiscard) { dismiss() }
         .onAppear {
             actionScope.activate(session: clubs.accountSession)
             focus = .title
         }
         .onDisappear { actionScope.deactivate(); isWorking = false }
+    }
+
+    /// Cancel (N7): a clean form closes; unsaved input asks "Discard changes?" first.
+    private func cancel() {
+        switch KuroDiscardGuard.cancelStep(isDirty: isDirty) {
+        case .close: dismiss()
+        case .confirm: confirmDiscard = true
+        }
     }
 
     private var canSubmit: Bool {
@@ -254,9 +294,14 @@ struct CreateClubPollSheet: View {
     @State private var options: [PollOptionDraft] = [PollOptionDraft(), PollOptionDraft()]
     @State private var isWorking = false
     @State private var errorText: String? = nil
+    @State private var confirmDiscard = false
     @FocusState private var focus: Field?
 
     private enum Field: Hashable { case question, option(UUID) }
+
+    private var isDirty: Bool {
+        ClubFormRules.createPollIsDirty(question: question, options: options.map(\.text))
+    }
 
     /// One editable option; a stable id keeps focus and rows right when an option is removed.
     struct PollOptionDraft: Identifiable, Equatable {
@@ -363,18 +408,28 @@ struct CreateClubPollSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(KuroLocale.text("Cancel", "Abbrechen")) { dismiss() }
+                    Button(KuroLocale.text("Cancel", "Abbrechen")) { cancel() }
                         .font(.kuroBody(weight: .regular))
                         .tint(Color.kuroInk)
                 }
             }
         }
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .kuroDiscardGuard(isDirty: isDirty, isBusy: isWorking, isConfirming: $confirmDiscard) { dismiss() }
         .onAppear {
             actionScope.activate(session: clubs.accountSession)
             focus = .question
         }
         .onDisappear { actionScope.deactivate(); isWorking = false }
+    }
+
+    /// Cancel (N7): a clean form closes; unsaved input asks "Discard changes?" first.
+    private func cancel() {
+        switch KuroDiscardGuard.cancelStep(isDirty: isDirty) {
+        case .close: dismiss()
+        case .confirm: confirmDiscard = true
+        }
     }
 
     private func binding(for id: UUID) -> Binding<String> {

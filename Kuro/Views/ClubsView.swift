@@ -18,6 +18,9 @@ struct ClubsView: View {
     @Environment(NetworkMonitor.self) private var networkMonitor
     /// Set while the pager is swiping: a swipe never opens a club (rulebook §7).
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    /// A club opens as a journey (navigation contract §1): pushed inside a journey, a new journey from
+    /// the pager or from Profile's Clubs sheet (whose content installs its own presenter).
+    @Environment(\.kuroRoutes) private var routes
     @State private var actionScope = AccountActionScope()
 
     @Binding var pendingJoinCode: String?
@@ -25,7 +28,9 @@ struct ClubsView: View {
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
     @State private var joinPrefillCode = ""
-    @State private var selectedClubId: String? = nil
+    /// The club just created: opened once the create sheet has finished closing (presenting while a
+    /// sheet is still leaving fails silently).
+    @State private var createdClubId: String? = nil
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
 
@@ -96,28 +101,20 @@ struct ClubsView: View {
                 await clubs.checkClubNotifications()
             }
         }
-        .sheet(isPresented: $showCreateSheet) {
+        .sheet(isPresented: $showCreateSheet, onDismiss: openCreatedClub) {
             CreateClubSheet { response in
                 guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
+                createdClubId = response.club_id
                 showToast(.success, title: KuroLocale.text("Club created", "Club erstellt"), subtitle: response.name)
             }
+            .kuroLeavesJourney()
         }
         .sheet(isPresented: $showJoinSheet, onDismiss: { joinPrefillCode = "" }) {
             JoinClubSheet(initialCode: joinPrefillCode) { response in
                 guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
                 showToast(.success, title: KuroLocale.text("You joined", "Du bist beigetreten"), subtitle: response.club_name)
             }
-        }
-        .sheet(isPresented: Binding(
-            get: { selectedClubId != nil },
-            set: { if !$0 { selectedClubId = nil } }
-        )) {
-            if let clubId = selectedClubId {
-                NavigationStack {
-                    ClubDetailView(clubId: clubId)
-                        .id(clubId)
-                }
-            }
+            .kuroLeavesJourney()
         }
     }
 
@@ -169,7 +166,7 @@ struct ClubsView: View {
                     Button {
                         guard !suppressCardTaps else { return }
                         KuroAccessibility.impactHaptic(.light)
-                        selectedClubId = club.id
+                        routes.openClub(club.id)
                     } label: {
                         ClubListCard(club: club, hasUnseen: hasUnseen)
                     }
@@ -212,6 +209,16 @@ struct ClubsView: View {
         showJoinSheet = true
     }
 
+    /// The create sheet has closed: a club created there opens as its own journey (navigation
+    /// contract: creating a club opens it). Cancel opens nothing.
+    private func openCreatedClub() {
+        guard let clubId = ClubCreationFollowUp.clubToOpen(created: createdClubId,
+                                                           isCurrent: actionScope.capture(session: clubs.accountSession) != nil)
+        else { createdClubId = nil; return }
+        createdClubId = nil
+        routes.openClub(clubId)
+    }
+
     private func retry(origin: AccountActionScope.Ticket?) {
         actionScope.launch(origin: origin, session: clubs.accountSession) { _ in
             await clubs.fetchMyClubs()
@@ -241,6 +248,17 @@ struct ClubsView: View {
             guard !Task.isCancelled else { return }
             withAnimation(KuroMotion.resolve(KuroMotion.settle)) { toast = nil }
         }
+    }
+}
+
+// MARK: - Create, then open
+
+/// What happens when the create-club sheet has closed (pure, NavclubsTests): the club created there
+/// opens, but only for the account that created it; a cancelled sheet opens nothing.
+nonisolated enum ClubCreationFollowUp {
+    static func clubToOpen(created clubId: String?, isCurrent: Bool) -> String? {
+        guard isCurrent, let clubId, !clubId.isEmpty else { return nil }
+        return clubId
     }
 }
 
@@ -651,12 +669,17 @@ private struct CreateClubSheet: View {
 
     @State private var name = ""
     @State private var description = ""
-    @State private var sharingLevel = "status"
+    @State private var sharingLevel = ClubFormRules.defaultSharingLevel
     @State private var isSubmitting = false
     @State private var errorText: String? = nil
+    @State private var confirmDiscard = false
     @FocusState private var focus: Field?
 
     private enum Field: Hashable { case name, description }
+
+    private var isDirty: Bool {
+        ClubFormRules.createClubIsDirty(name: name, description: description, sharingLevel: sharingLevel)
+    }
 
     static let nameLimit = 80
     static let descriptionLimit = 500
@@ -738,17 +761,27 @@ private struct CreateClubSheet: View {
             .background(Color.kuroCanvasPage)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(KuroLocale.text("Cancel", "Abbrechen")) { dismiss() }
+                    Button(KuroLocale.text("Cancel", "Abbrechen")) { cancel() }
                         .font(.kuroBody(weight: .regular))
                         .tint(Color.kuroInk)
                 }
             }
         }
+        .presentationDragIndicator(.visible)
+        .kuroDiscardGuard(isDirty: isDirty, isBusy: isSubmitting, isConfirming: $confirmDiscard) { dismiss() }
         .onAppear {
             actionScope.activate(session: clubs.accountSession)
             focus = .name
         }
         .onDisappear { actionScope.deactivate(); isSubmitting = false }
+    }
+
+    /// Cancel (N7): a clean form closes; unsaved input asks "Discard changes?" first.
+    private func cancel() {
+        switch KuroDiscardGuard.cancelStep(isDirty: isDirty) {
+        case .close: dismiss()
+        case .confirm: confirmDiscard = true
+        }
     }
 
     private func submit(origin: AccountActionScope.Ticket?) {
@@ -897,6 +930,8 @@ private struct JoinClubSheet: View {
                 }
             }
         }
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(isSubmitting)
         .onAppear {
             actionScope.activate(session: clubs.accountSession)
             if inviteCode.isEmpty { codeFocused = true }

@@ -14,9 +14,16 @@ struct ContactSheet: View {
     @Environment(SupportStore.self) private var support
     @Environment(IdentityStore.self) private var identity
     @FocusState private var focus: Field?
+    /// The draft as the sheet opened (after the e-mail prefill): anything else is unsaved input (N7).
+    @State private var baseline: ContactDraft?
+    @State private var confirmDiscard = false
 
     private enum Field: Hashable {
         case email, name, message
+    }
+
+    private var isDirty: Bool {
+        ContactDiscardRule.isDirty(draft: support.draft, baseline: baseline, state: support.state)
     }
 
     var body: some View {
@@ -43,9 +50,17 @@ struct ContactSheet: View {
             }
         }
         .overlay(alignment: .topTrailing) { closeButton(german: german) }
+        .presentationDragIndicator(.visible)
+        // Swipe-down is blocked while the form has changes or is sending; ✕ asks first (N7). Discard
+        // empties the kept draft too (it lives in `SupportStore`), so it really is discarded.
+        .kuroDiscardGuard(isDirty: isDirty, isBusy: support.isSending, isConfirming: $confirmDiscard) {
+            if let baseline { support.draft = baseline }
+            dismiss()
+        }
         .onAppear {
             support.prepareForReopen()
             support.prepare(prefillEmail: identity.currentUserEmail)
+            baseline = ContactDiscardRule.baseline(opening: support.draft)
         }
     }
 
@@ -292,7 +307,10 @@ struct ContactSheet: View {
     private func closeButton(german: Bool) -> some View {
         Button {
             KuroAccessibility.impactHaptic(.light)
-            dismiss()
+            switch KuroDiscardGuard.cancelStep(isDirty: isDirty) {
+            case .close: dismiss()
+            case .confirm: confirmDiscard = true
+            }
         } label: {
             Image(systemName: "xmark")
                 .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 22))
@@ -429,5 +447,24 @@ private struct ContactNotice: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Unsaved input (navigation contract N7)
+
+/// When closing the contact form would lose input (pure, NavclubsTests).
+nonisolated enum ContactDiscardRule {
+    /// The draft the sheet compares against: what was there when it opened. A draft kept from an
+    /// earlier visit counts as the user's own input only once it differs from an empty form (the
+    /// prefilled e-mail never counts), so the baseline is an empty form with that e-mail.
+    static func baseline(opening draft: ContactDraft) -> ContactDraft {
+        ContactDraft(email: draft.email)
+    }
+
+    /// Dirty: the draft differs from the baseline (topic, name, message, consent; e-mail edits too),
+    /// and the message has not been sent (a sent message has nothing left to lose).
+    static func isDirty(draft: ContactDraft, baseline: ContactDraft?, state: ContactSubmitState) -> Bool {
+        guard state != .sent, let baseline else { return false }
+        return draft != baseline
     }
 }

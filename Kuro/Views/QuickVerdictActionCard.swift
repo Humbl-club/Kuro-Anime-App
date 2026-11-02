@@ -486,11 +486,12 @@ struct QuickVerdictActionSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Capsule(style: .continuous)
-                .fill(Color.kuroBlack12)
-                .frame(width: 40, height: 5)
-                .padding(.top, 10)
-                .padding(.bottom, 14)
+            // N8: the system grabber is visible and Cancel closes the sheet (back to its page).
+            HStack {
+                Spacer(minLength: 0)
+                QuickVerdictCancelButton { dismiss() }
+            }
+            .padding(.top, 14)
 
             QuickVerdictActionCard(
                 media: media,
@@ -503,8 +504,24 @@ struct QuickVerdictActionSheet: View {
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
         .background(Color.kuroBackground.ignoresSafeArea())
-        .presentationDetents([.height(250), .medium])
-        .presentationDragIndicator(.hidden)
+        .presentationDetents([.height(290), .medium])
+        .presentationDragIndicator(.visible)
+    }
+}
+
+/// The verdict sheets' Cancel (N8): every sheet has a visible close control, never swipe-down alone.
+private struct QuickVerdictCancelButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(KuroLocale.text("Cancel", "Abbrechen"))
+                .font(.kuroBody(weight: .regular))
+                .foregroundStyle(Color.kuroInk)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -540,16 +557,16 @@ struct QuickVerdictPickerSheet: View {
     var body: some View {
         let origin = actionScope.capture(session: libraryActions.accountSession)
         VStack(alignment: .leading, spacing: 16) {
-            Capsule(style: .continuous)
-                .fill(Color.kuroBlack12)
-                .frame(width: 40, height: 5)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 10)
-
-            Text(isGermanLocale ? "URTEIL" : "VERDICT")
-                .font(.kuroMicro(weight: .medium))
-                .tracking(1.6)
-                .foregroundColor(.kuroTextTertiary)
+            // N8: the system grabber is visible and Cancel closes the sheet (back to its page).
+            HStack(alignment: .center) {
+                Text(isGermanLocale ? "URTEIL" : "VERDICT")
+                    .font(.kuroMicro(weight: .medium))
+                    .tracking(1.6)
+                    .foregroundColor(.kuroTextTertiary)
+                Spacer(minLength: 0)
+                QuickVerdictCancelButton { dismiss() }
+            }
+            .padding(.top, 14)
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -604,8 +621,8 @@ struct QuickVerdictPickerSheet: View {
         .background(Color.kuroBackground.ignoresSafeArea())
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
         .onDisappear { actionScope.deactivate() }
-        .presentationDetents([.height(188)])
-        .presentationDragIndicator(.hidden)
+        .presentationDetents([.height(220)])
+        .presentationDragIndicator(.visible)
     }
 
     private func apply(_ choice: QuickVerdictChoice, origin: AccountActionScope.Ticket?) {
