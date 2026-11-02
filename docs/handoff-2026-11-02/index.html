@@ -1,0 +1,351 @@
+<title>Kuro Build Handoff</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap">
+<style>
+/* Layout: Kuro's own paper-and-ink language — warm paper, heavy tight sans headlines, serif for the human notes;
+   a status board up top, then one band per part of the work with big visuals and short bullets. */
+:root {
+  --paper: #fffef8;
+  --quiet: #f5f5f3;
+  --ink: #252625;
+  --muted: #5f6362;
+  --line: rgba(39,43,41,.14);
+  --room: #252b28;
+  --room-ink: #f0f4ef;
+  --good: #2f5a40;
+  --wait: #8a6a1f;
+  --open: #9b3b2e;
+  --chip-good: #e3ede5;
+  --chip-wait: #f3ead3;
+  --chip-open: #f6e1dc;
+  --display: "Archivo", -apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  --serif: "Newsreader", "New York", Georgia, serif;
+  --body: -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #141514; --quiet: #1c1e1d; --ink: #eeefea; --muted: #b0b4ae; --line: rgba(238,239,234,.14);
+    --room: #0e110f; --room-ink: #eef2ec; --good: #8cc49c; --wait: #e2bf6b; --open: #f0907f;
+    --chip-good: #1f2f24; --chip-wait: #33291a; --chip-open: #3a211c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #141514; --quiet: #1c1e1d; --ink: #eeefea; --muted: #b0b4ae; --line: rgba(238,239,234,.14);
+  --room: #0e110f; --room-ink: #eef2ec; --good: #8cc49c; --wait: #e2bf6b; --open: #f0907f;
+  --chip-good: #1f2f24; --chip-wait: #33291a; --chip-open: #3a211c; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 36px 80px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 72px; }
+.kicker { font: 700 12px/1 var(--body); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+h1 { font: 900 clamp(44px, 8vw, 92px)/.95 var(--display); letter-spacing: -.045em; margin: 10px 0 0; text-transform: uppercase; text-wrap: balance; }
+h2 { font: 800 clamp(30px, 5vw, 46px)/1.02 var(--display); letter-spacing: -.035em; margin: 0; text-wrap: balance; }
+h3 { font: 700 19px/1.25 var(--display); letter-spacing: -.01em; margin: 0; }
+.rule { width: 46px; height: 3px; background: var(--ink); margin-top: 18px; }
+.lede { font: 400 21px/1.45 var(--serif); max-width: 62ch; margin: 18px 0 0; color: var(--ink); }
+.muted { color: var(--muted); }
+nav { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 26px; padding-block: 12px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+nav a { color: var(--ink); text-decoration: none; font-weight: 600; font-size: 14px; border-bottom: 1px solid transparent; }
+nav a:hover, nav a:focus-visible { border-bottom-color: var(--ink); outline: none; }
+
+/* numbers */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-top: 28px; }
+.stat { background: var(--paper); padding: 18px 18px 16px; }
+.stat b { display: block; font: 900 40px/1 var(--display); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.stat span { display: block; font-size: 13.5px; color: var(--muted); margin-top: 8px; line-height: 1.35; }
+
+/* status board */
+.board { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.col { border-radius: 16px; padding: 18px 18px 14px; background: var(--quiet); display: grid; gap: 10px; align-content: start; min-width: 0; }
+.col h3 { display: flex; align-items: center; gap: 10px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+.col ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; }
+.col.live .dot { background: var(--muted); } .col.local .dot { background: var(--good); } .col.ready .dot { background: var(--wait); } .col.you .dot { background: var(--open); }
+
+/* timeline */
+.timeline { display: grid; gap: 0; border-left: 3px solid var(--ink); margin-left: 6px; }
+.step { position: relative; padding: 0 0 26px 28px; }
+.step::before { content: ""; position: absolute; left: -9px; top: 4px; width: 15px; height: 15px; border-radius: 50%; background: var(--paper); border: 3px solid var(--ink); }
+.step .when { font: 700 12px/1 var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.step h3 { margin-top: 6px; }
+.step p { margin: 6px 0 0; max-width: 70ch; }
+
+/* sections */
+section { display: grid; gap: 22px; scroll-margin-top: 20px; }
+.head { display: grid; gap: 8px; max-width: 760px; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 820px) { .split { grid-template-columns: 1fr; } }
+ul.points { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+ul.points li strong { font-weight: 700; }
+figure { margin: 0; display: grid; gap: 8px; }
+figure img { width: 100%; height: auto; border-radius: 14px; border: 1px solid var(--line); background: #fff; display: block; }
+figcaption { font-size: 13.5px; color: var(--muted); }
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 22px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: var(--muted); }
+.legend i { display: inline-block; width: 22px; height: 4px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+
+/* before/after table */
+.ba { width: 100%; border-collapse: collapse; font-size: 15px; }
+.ba th { text-align: left; font: 700 12px/1.2 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 10px 12px; border-bottom: 2px solid var(--ink); }
+.ba td { padding: 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ba td:first-child { font-weight: 700; width: 22%; }
+.tablebox { overflow-x: auto; }
+.chip { display: inline-block; font: 700 11.5px/1 var(--body); letter-spacing: .06em; text-transform: uppercase; padding: 6px 9px; border-radius: 999px; white-space: nowrap; }
+.chip.good { background: var(--chip-good); color: var(--good); }
+.chip.wait { background: var(--chip-wait); color: var(--wait); }
+.chip.open { background: var(--chip-open); color: var(--open); }
+
+/* flow diagram */
+.flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+@media (max-width: 820px) { .flow { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 460px) { .flow { grid-template-columns: 1fr; } }
+.node { background: var(--quiet); border-radius: 14px; padding: 16px; display: grid; gap: 8px; align-content: start; position: relative; min-width: 0; }
+.node .kicker { font-size: 11px; }
+.node h3 { font-size: 17px; }
+.node ul { margin: 0; padding-left: 16px; font-size: 14px; display: grid; gap: 4px; }
+.node.dark { background: var(--room); color: var(--room-ink); }
+.node.dark .kicker { color: #c0cbbb; }
+
+/* room callout */
+.room { background: var(--room); color: var(--room-ink); border-radius: 22px; padding: clamp(20px, 4vw, 36px); display: grid; gap: 16px; }
+.room h2 { color: var(--room-ink); }
+.room p { margin: 0; font: 400 19px/1.5 var(--serif); max-width: 64ch; }
+.room .ba th { color: #c0cbbb; border-bottom-color: var(--room-ink); }
+.room .ba td { border-bottom-color: rgba(240,244,239,.16); }
+.room .chip.good { background: #2f4636; color: #bfe0c7; } .room .chip.open { background: #4a2b25; color: #f3b7aa; } .room .chip.wait { background: #4a3d1f; color: #f1d58d; }
+
+.next { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+.card { border: 1px solid var(--line); border-radius: 16px; padding: 18px; display: grid; gap: 8px; align-content: start; }
+.card .n { font: 900 32px/1 var(--display); letter-spacing: -.04em; }
+footer { border-top: 1px solid var(--line); padding-top: 18px; color: var(--muted); font-size: 14px; }
+code { font: 13.5px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--quiet); padding: 1px 5px; border-radius: 5px; }
+a { color: inherit; }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="kicker">Kuro · build handoff · 31 Oct – 2 Nov 2026</span>
+  <h1>Everything that was built</h1>
+  <div class="rule"></div>
+  <p class="lede">Three rounds of work on this Mac: saving the October work, an overnight audit and rebuild, and a second rebuild that makes the app follow your approved prototype. Nothing on the live server or in the App Store was changed.</p>
+  <div class="stats" role="list">
+    <div class="stat" role="listitem"><b>165</b><span>local commits on two branches (not pushed)</span></div>
+    <div class="stat" role="listitem"><b>784</b><span>app tests, all passing on your simulator</span></div>
+    <div class="stat" role="listitem"><b>255</b><span>server-function tests passing</span></div>
+    <div class="stat" role="listitem"><b>1,168</b><span>database checks passing on a throwaway local database</span></div>
+    <div class="stat" role="listitem"><b>0</b><span>changes made to live users, the live database or the App Store</span></div>
+  </div>
+  <nav aria-label="Sections">
+    <a href="#status">Where things stand</a><a href="#timeline">What happened</a><a href="#screens">Screens</a>
+    <a href="#intake">Data intake</a><a href="#api">App ↔ server calls</a><a href="#database">Database</a>
+    <a href="#security">Security & bugs</a><a href="#problems">Problems found</a><a href="#commercial">“Commercial”</a><a href="#next">Your decisions</a>
+  </nav>
+</header>
+
+<section id="status">
+  <div class="head"><span class="kicker">At a glance</span><h2>Where things stand</h2></div>
+  <div class="board">
+    <div class="col live"><h3><span class="dot"></span>Live for users today</h3>
+      <ul><li>Unchanged. Users still see the app as it was on 31 Oct.</li><li>The new Home stays switched off live.</li></ul></div>
+    <div class="col local"><h3><span class="dot"></span>Built on this Mac</h3>
+      <ul><li>All new screens and fixes, in branches <code>kuro/overnight-2026-11-01</code> and <code>kuro/prototype-fidelity</code>.</li><li>Backups: git bundle + archive in <code>~/Kuro-backups/</code>.</li></ul></div>
+    <div class="col ready"><h3><span class="dot"></span>Ready, waiting for your approval</h3>
+      <ul><li>5 database changes (release dates, songs, speed fixes).</li><li>New data job for release dates, fixed catalog import.</li><li>5 re-branded emails.</li></ul></div>
+    <div class="col you"><h3><span class="dot"></span>Needs your decision</h3>
+      <ul><li>Which data sources Kuro may use.</li><li>A working privacy page (kuro.app doesn't load).</li><li>App icon. Pushing to GitHub.</li></ul></div>
+  </div>
+</section>
+
+<section id="timeline">
+  <div class="head"><span class="kicker">In order</span><h2>What happened</h2></div>
+  <div class="timeline">
+    <div class="step"><span class="when">31 Oct · afternoon</span><h3>Looked at the app, then saved everything</h3>
+      <p>All October work existed only on this Mac (about 1,900 unsaved files). I made a full backup, then saved it as five tidy commits. Three automatic checks were failing and are fixed. About 20 places that could crash on missing data now fail safely.</p></div>
+    <div class="step"><span class="when">31 Oct · night</span><h3>Audit of every API call, data source and table</h3>
+      <p>Eight parallel reviews read the whole app and server: every network call, every way data comes in, all 140 live tables, the external data sources and their terms, every screen, sign-in, and the design rules.</p></div>
+    <div class="step"><span class="when">1 Nov · overnight</span><h3>First rebuild</h3>
+      <p>New release-date and song system (prepared), database speed fixes (prepared), faster app data loading, the new lists ("Folio"), Profile, Discover, Clubs, sign-in and onboarding redesigned, security fixes. Reviewed from five angles; 15 confirmed problems fixed.</p></div>
+    <div class="step"><span class="when">1 Nov · evening</span><h3>You: “follow the prototype”</h3>
+      <p>Side-by-side comparison showed the app didn't match your approved prototype. New plan: the prototype wins, warm tints back, colours taken from each title's artwork, every screen and state branded.</p></div>
+    <div class="step"><span class="when">1–2 Nov</span><h3>Second rebuild to the prototype</h3>
+      <p>Captured every prototype screen as a reference, rebuilt Home, both title pages, first-time screens and Taste, restyled the rest. A strict reviewer compared every screen to the prototype twice; every difference was fixed or explained.</p></div>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="head"><span class="kicker">The visible part</span><h2>Screens</h2>
+    <div class="legend"><span><i style="background:var(--ink)"></i>Your prototype</span><span><i style="background:#8c8c88"></i>Before</span><span><i style="background:var(--good)"></i>Now</span></div></div>
+  <div class="split">
+    <figure><img src="img/home-anime.jpg" alt="Anime Home: prototype, before and now side by side" loading="lazy"><figcaption>Anime Home</figcaption></figure>
+    <ul class="points">
+      <li><strong>Bold ANIME / MANGA switch</strong> with the artwork inside the selected word.</li>
+      <li><strong>“Coming up” card</strong> with artwork and how many releases this week; tap to jump to the calendar.</li>
+      <li><strong>Scene cards</strong> with a strip in the title's own colour, the episode count and a raised +1.</li>
+      <li><strong>Also watching</strong> grid, the <strong>calendar card</strong>, the <strong>club room</strong> and “Your pace. Your place.”</li>
+      <li>+1 shows a message with <strong>Undo</strong>.</li>
+    </ul>
+  </div>
+  <div class="shots">
+    <figure><img src="img/home-manga.jpg" alt="Manga Home comparison" loading="lazy"><figcaption>Manga Home: three covers per row, chapter count and dark +1 under each.</figcaption></figure>
+    <figure><img src="img/first-time.jpg" alt="First-time Home comparison" loading="lazy"><figcaption>First time: “Begin here.”, import, and starter picks you can save in one tap.</figcaption></figure>
+  </div>
+  <div class="split">
+    <figure><img src="img/detail-anime.jpg" alt="Anime title page comparison" loading="lazy"><figcaption>Anime title page</figcaption></figure>
+    <ul class="points">
+      <li><strong>Artwork header</strong> with the title on the artwork's own colour and a “Watching” mark. Tap it for list settings; hold it for Favourite, Verdict, Where to watch, Remove.</li>
+      <li><strong>Story</strong>, who in your clubs is watching, <strong>seasons</strong>, progress with <strong>Up next +</strong>, the episode list.</li>
+      <li><strong>The original story</strong> (link to the manga), <strong>“The sound of it.”</strong> (songs), characters, credits, <strong>“Between us.”</strong> with club notes.</li>
+      <li>Sections without real data are hidden, never filled with made-up content.</li>
+      <li>+1 on a Planned title now starts it; Remove asks first and can be undone.</li>
+    </ul>
+  </div>
+  <div class="shots">
+    <figure><img src="img/detail-manga.jpg" alt="Manga title page comparison" loading="lazy"><figcaption>Manga title page: bookmark, chapters, “Seen the anime?”, “Behind the pages.”</figcaption></figure>
+    <figure><img src="img/lists.jpg" alt="Lists before and after" loading="lazy"><figcaption>Lists (“Folio”): status words with counts, covers or rows, +1 with Undo, next release date.</figcaption></figure>
+    <figure><img src="img/profile.jpg" alt="Profile before and after" loading="lazy"><figcaption>Profile: your lists at a glance, imports, account and privacy, Data sources & credits.</figcaption></figure>
+    <figure><img src="img/auth.jpg" alt="Sign-in before and after" loading="lazy"><figcaption>Sign-in: approved welcome kept; form rebranded; new “choose a new password” screen.</figcaption></figure>
+    <figure><img src="img/taste.jpg" alt="Taste comparison" loading="lazy"><figcaption>Taste, including the new-account version.</figcaption></figure>
+    <figure><img src="img/states.jpg" alt="Not in your list and +1 Undo states" loading="lazy"><figcaption>New states: “Not in your list” with Add, and the +1 Undo message.</figcaption></figure>
+  </div>
+  <ul class="points">
+    <li><strong>Branded loading, error, offline and empty screens everywhere:</strong> placeholders shaped like the real content with a moving ink line, an ink stroke drawing the mountain ridge on errors, “Try again →”. A check fails the build if a plain system spinner appears.</li>
+    <li><strong>Every animation has a still version</strong> for Reduce Motion and Low Power Mode. Every text in English and German. Buttons at least 44 pt.</li>
+  </ul>
+</section>
+
+<section id="intake">
+  <div class="head"><span class="kicker">“Injections” — how data gets into Kuro</span><h2>Data intake</h2>
+    <p class="muted">Background jobs that pull anime and manga information from outside sources into our database, which the app then reads.</p></div>
+  <div class="flow">
+    <div class="node"><span class="kicker">1 · Sources</span><h3>Outside services</h3><ul><li>AniList: catalog, episodes, airing times</li><li>MangaDex: chapters</li><li>MangaUpdates: manga releases (new)</li><li>AnimeThemes: songs</li></ul></div>
+    <div class="node"><span class="kicker">2 · Intake jobs</span><h3>Server functions</h3><ul><li>Catalog import (hourly)</li><li>Release intake (new, off)</li><li>Chapter enrichment</li><li>Song worker (manual)</li></ul></div>
+    <div class="node"><span class="kicker">3 · Database</span><h3>Supabase</h3><ul><li>Titles, episodes, chapters</li><li>Release dates with certainty</li><li>Songs</li></ul></div>
+    <div class="node dark"><span class="kicker">4 · App</span><h3>What you see</h3><ul><li>Next episode / chapter / volume</li><li>Songs on title pages</li><li>Calendar on Home</li></ul></div>
+  </div>
+  <div class="tablebox"><table class="ba">
+    <thead><tr><th>Intake</th><th>Problem found</th><th>What changed</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Catalog import</td><td>The “airing” and “recent” jobs re-walked the whole catalog by popularity, so next-episode times could be days stale.</td><td>Each job now asks for what it's for (airing, updated, new titles).</td><td><span class="chip wait">Prepared</span></td></tr>
+      <tr><td>Catalog import</td><td>An AniList error reset the job to page 1; no respect for AniList's rate limit (30/min).</td><td>Errors stop cleanly; a 25/min limiter honours “retry after”.</td><td><span class="chip wait">Prepared</span></td></tr>
+      <tr><td>Catalog import</td><td>Overwrote our own mirrored images and synopsis work; some link tables silently never updated.</td><td>Those fields are preserved; link tables update correctly.</td><td><span class="chip wait">Prepared</span></td></tr>
+      <tr><td>Release dates</td><td>Nothing filled next chapter or volume dates; manga “next chapter” was always empty.</td><td>New release-intake job: AniList airing schedule (confirmed), MangaUpdates official releases (estimates only when reliable).</td><td><span class="chip wait">Prepared, off</span></td></tr>
+      <tr><td>Songs</td><td>Song table existed but was empty; the worker used a retired API.</td><td>Worker moved to the current AnimeThemes API; still manual only.</td><td><span class="chip open">Needs licence decision</span></td></tr>
+      <tr><td>Chapters</td><td>MangaDex volume grouping was thrown away; 622,698 chapter rows are mostly placeholders.</td><td>Volume grouping kept; placeholder chapters hidden in the app.</td><td><span class="chip wait">Prepared</span></td></tr>
+    </tbody>
+  </table></div>
+  <ul class="points"><li><strong>Never invented:</strong> every date is labelled <em>confirmed</em>, <em>announced</em> or <em>expected</em> (expected only when the pattern is reliable), and never shows a time the source didn't state.</li></ul>
+</section>
+
+<section id="api">
+  <div class="head"><span class="kicker">The app talking to the server</span><h2>App ↔ server calls</h2></div>
+  <div class="tablebox"><table class="ba">
+    <thead><tr><th>Where</th><th>Before</th><th>Now</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Every +1 / save</td><td>Your own save echoed back and triggered a full reload: about 4–10 extra requests each time.</td><td>Your own echoes are ignored; other devices' changes still update.</td><td><span class="chip good">Built</span></td></tr>
+      <tr><td>Discover</td><td>Loaded twice per launch and recorded views twice.</td><td>Once per launch.</td><td><span class="chip good">Built</span></td></tr>
+      <tr><td>Title pages</td><td>Availability checked 3×; watch links re-fetched on every progress change; one request per missing title.</td><td>Checked once, cached for 10 minutes, batched.</td><td><span class="chip good">Built</span></td></tr>
+      <tr><td>Catalog reads</td><td>Asked for every column, including internal moderation fields.</td><td>Asks only for what the screen shows.</td><td><span class="chip good">Built</span></td></tr>
+      <tr><td>Sign-in</td><td>Read the whole library twice.</td><td>Once.</td><td><span class="chip good">Built</span></td></tr>
+      <tr><td>Clubs</td><td>Re-fetched on every tab visit.</td><td>Re-fetched only when older than a minute.</td><td><span class="chip good">Built</span></td></tr>
+      <tr><td>Images</td><td>Thumbnails decoded at full size, filling memory.</td><td>Decoded at the size shown.</td><td><span class="chip good">Built</span></td></tr>
+      <tr><td>Feature flags</td><td>A missing server table switched the new Home off in the middle of launch.</td><td>Ignored safely.</td><td><span class="chip good">Built</span></td></tr>
+      <tr><td>New data</td><td>—</td><td>Release dates and songs: the app uses the new server functions when they exist and quietly falls back today.</td><td><span class="chip wait">Waits for deploy</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="database">
+  <div class="head"><span class="kicker">Tables and speed</span><h2>Database</h2></div>
+  <div class="split">
+    <ul class="points">
+      <li><strong>97% of all database time</strong> went to one job rebuilding “similar titles” every 5 minutes, even when nothing changed. Now it only runs when something changed. <span class="muted">(Side effect needing your OK: each title's similar list refreshes weekly instead of nightly.)</span></li>
+      <li><strong>131 MB audit table</strong> with no cleanup: now keeps the last 3 entries per title or 90 days.</li>
+      <li><strong>22 duplicate indexes</strong> slowing every write: dropped.</li>
+      <li><strong>Release dates and songs</strong> tables extended (certainty, source, credit link) with three new read functions for the app.</li>
+      <li><strong>Episode identity bug</strong> that froze episode data after a re-import: fixed.</li>
+    </ul>
+    <ul class="points">
+      <li><strong>5 prepared files</strong> in <code>supabase/prepared-migrations/20261101*</code>. None applied to the live database.</li>
+      <li>Tested on a throwaway local database: <strong>1,168 checks pass</strong>.</li>
+      <li>Step-by-step instructions: <code>docs/overnight-2026-11-01/DEPLOY_CHECKLIST.md</code>.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="security">
+  <div class="room">
+    <span class="kicker" style="color:#c0cbbb">Security and bugs</span>
+    <h2>What was fixed</h2>
+    <div class="tablebox"><table class="ba">
+      <thead><tr><th>Issue</th><th>What could happen</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Sign-in links</td><td>While signed out, any link could sign your phone into someone else's account. Now only links this phone asked for are accepted.</td><td><span class="chip good">Fixed</span></td></tr>
+        <tr><td>Password reset</td><td>A reset link just signed you in; you never set a new password. Now there's a real “choose a new password” screen.</td><td><span class="chip good">Fixed</span></td></tr>
+        <tr><td>“Email taken” check</td><td>Anyone could test which emails have accounts. The app no longer does this; the server lock is prepared.</td><td><span class="chip good">Fixed in app</span></td></tr>
+        <tr><td>Recent searches</td><td>Stayed on the phone after deleting the account. Now removed.</td><td><span class="chip good">Fixed</span></td></tr>
+        <tr><td>Planned + 1</td><td>Adding progress to a Planned title left it Planned. Now it starts it; Undo puts it back.</td><td><span class="chip good">Fixed</span></td></tr>
+        <tr><td>Remove</td><td>Deleted a title in one tap. Now asks first and offers Undo.</td><td><span class="chip good">Fixed</span></td></tr>
+        <tr><td>Release build</td><td>A test-only change broke App Store builds; a reviewer caught it before it shipped.</td><td><span class="chip good">Fixed</span></td></tr>
+        <tr><td>Parse rate limit</td><td>A public function trusts a header callers can fake, so its rate limit can be dodged.</td><td><span class="chip open">Needs deploy</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section id="problems">
+  <div class="head"><span class="kicker">Honest list</span><h2>Problems found along the way</h2></div>
+  <div class="split">
+    <ul class="points">
+      <li><strong>All October work was unsaved</strong> and only on this Mac. <span class="chip good">Saved</span></li>
+      <li><strong>The first redesign didn't follow your prototype.</strong> Redone; about 100 differences found and fixed or explained. <span class="chip good">Done</span></li>
+      <li><strong>Tests leaked state into each other</strong> (import journal, phone keychain), so results depended on order. <span class="chip good">Fixed</span></li>
+      <li><strong>Privacy link is dead:</strong> <code>kuro.app</code> doesn't load. Apple can reject the app for this. <span class="chip open">Your action</span></li>
+    </ul>
+    <ul class="points">
+      <li><strong>Data the app doesn't have yet:</strong> club notes can't say “Finished Berserk”, manga can't say “4 new chapters”, title pages have no editorial story lines, and season grouping has no data. <span class="chip wait">Server work</span></li>
+      <li><strong>Codex couldn't start</strong> because of a setting in your Codex config (<code>higgsfield</code> entry without a command). <span class="chip open">Your config</span></li>
+      <li><strong>One early test run used a simulator picked by name</strong>, possibly the one reserved for your other work. Please check it. <span class="chip open">Check</span></li>
+    </ul>
+  </div>
+</section>
+
+<section id="commercial">
+  <div class="head"><span class="kicker">Your question</span><h2>What “commercial” means here</h2>
+    <p class="lede">Being free doesn't automatically make Kuro non-commercial. Ads, affiliate or referral links, a paid tier, or a company running the app all count. And for AniList, money isn't the issue at all.</p></div>
+  <div class="tablebox"><table class="ba">
+    <thead><tr><th>Source</th><th>What its terms say</th><th>For Kuro today (free, no ads)</th></tr></thead>
+    <tbody>
+      <tr><td>AniList</td><td>Bans mass collection and storage of its data, and use inside other anime/manga list or tracker apps, <em>whether or not you make money</em>. Commercial use is free under $150/month revenue.</td><td><span class="chip open">Problem either way</span> Kuro is a tracker built on a full AniList copy. Needs written permission from AniList.</td></tr>
+      <tr><td>MangaDex</td><td>No ads or paid services in the app; credit required.</td><td><span class="chip good">OK while free and ad-free</span> with credit (now in Profile → Data sources).</td></tr>
+      <tr><td>AnimeThemes</td><td>No use in any revenue-generating project without their approval.</td><td><span class="chip wait">OK while free</span> Ask them before any ads, referrals or paid tier.</td></tr>
+      <tr><td>MangaUpdates</td><td>Allowed with credit and polite request spacing.</td><td><span class="chip good">OK</span></td></tr>
+      <tr><td>MyAnimeList</td><td>Needs their API agreement; no scraping.</td><td><span class="chip wait">Agreement needed</span> for the MAL connection.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted">Kuro's research notes plan book referrals and publisher-funded samples later. Those would count as commercial and change the MangaDex and AnimeThemes answers.</p>
+</section>
+
+<section id="next">
+  <div class="head"><span class="kicker">What's next</span><h2>Your decisions</h2></div>
+  <div class="next">
+    <div class="card"><span class="n">1</span><h3>Push to GitHub</h3><p>Back up both branches and open a pull request to main.</p></div>
+    <div class="card"><span class="n">2</span><h3>Data sources</h3><p>Email AniList for permission; decide on ads/referrals before using AnimeThemes and MangaDex.</p></div>
+    <div class="card"><span class="n">3</span><h3>Privacy page</h3><p>Get kuro.app (or another address) serving a privacy policy and terms.</p></div>
+    <div class="card"><span class="n">4</span><h3>App icon</h3><figure><img src="img/icons.jpg" alt="Three app icon candidates: brush K, serif K, mountain" loading="lazy"></figure></div>
+    <div class="card"><span class="n">5</span><h3>Deploy</h3><p>Apply the prepared database changes and data jobs step by step, with you.</p></div>
+    <div class="card"><span class="n">6</span><h3>Real-phone test</h3><p>A TestFlight build for you and a few testers, then a gradual rollout of the new Home.</p></div>
+  </div>
+</section>
+
+<footer>
+  Full details: <code>docs/overnight-2026-11-01/REPORT.md</code>, <code>docs/prototype-fidelity/FIDELITY_REVIEW.md</code>, all screens side by side at <code>docs/prototype-fidelity/index.html</code>.
+</footer>
+
+</div>
