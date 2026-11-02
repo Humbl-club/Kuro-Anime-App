@@ -18,6 +18,7 @@ struct ClubsView: View {
     @Environment(NetworkMonitor.self) private var networkMonitor
     /// Set while the pager is swiping: a swipe never opens a club (rulebook §7).
     @Environment(\.kuroSuppressCardTaps) private var suppressCardTaps
+    @Environment(\.kuroRoutes) private var routes
     @State private var actionScope = AccountActionScope()
 
     @Binding var pendingJoinCode: String?
@@ -25,7 +26,6 @@ struct ClubsView: View {
     @State private var showCreateSheet = false
     @State private var showJoinSheet = false
     @State private var joinPrefillCode = ""
-    @State private var selectedClubId: String? = nil
     @State private var toast: KuroToastState? = nil
     @State private var toastDismissTask: Task<Void, Never>? = nil
 
@@ -108,17 +108,6 @@ struct ClubsView: View {
                 showToast(.success, title: KuroLocale.text("You joined", "Du bist beigetreten"), subtitle: response.club_name)
             }
         }
-        .sheet(isPresented: Binding(
-            get: { selectedClubId != nil },
-            set: { if !$0 { selectedClubId = nil } }
-        )) {
-            if let clubId = selectedClubId {
-                NavigationStack {
-                    ClubDetailView(clubId: clubId)
-                        .id(clubId)
-                }
-            }
-        }
     }
 
     // MARK: - Content
@@ -169,7 +158,9 @@ struct ClubsView: View {
                     Button {
                         guard !suppressCardTaps else { return }
                         KuroAccessibility.impactHaptic(.light)
-                        selectedClubId = club.id
+                        // Navigation contract: the club opens as a journey (pager) or is pushed (Profile's
+                        // journey), never as a page-local sheet.
+                        routes.openClub(club.id)
                     } label: {
                         ClubListCard(club: club, hasUnseen: hasUnseen)
                     }

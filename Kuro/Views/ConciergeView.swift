@@ -23,6 +23,9 @@ struct ConciergeView: View {
     @Environment(ConciergeStore.self) private var concierge
     @Environment(AppleFMService.self) private var deviceIntelligence
     @Environment(\.kuroRoutes) private var routes
+    /// Inside a shell journey (Concierge sheet, Profile → Concierge): a recommendation pushes its title
+    /// and fires `onDisappear` here; the chat keeps working until it is popped or the journey ends.
+    @Environment(\.shellPageLifetime) private var pageLifetime
 
     let assistantEnabled: Bool
     var initialPrompt: String? = nil
@@ -167,7 +170,11 @@ struct ConciergeView: View {
                 onImportNavigation?(destination)
             }
         }
-        .onAppear { workflow.activate(session: imports.accountSession) }
+        .onAppear {
+            workflow.activate(session: imports.accountSession)
+            let lifetime = workflow
+            pageLifetime?.onJourneyEnd { lifetime.deactivate() }
+        }
         .task {
             // Warm up under the same account/chat lifetime as foreground actions.
             warmupTask = workflow.launch(origin: workflow.capture(session: imports.accountSession), session: imports.accountSession) {
@@ -182,6 +189,9 @@ struct ConciergeView: View {
             }
         }
         .onDisappear {
+            // Covered by a pushed page (a recommendation's detail): keep the chat's work running.
+            if pageLifetime?.isStillInJourney == true { return }
+            pageLifetime?.didTearDown()
             workflow.deactivate()
             cancelAuxiliaryTasks()
             isWorking = false

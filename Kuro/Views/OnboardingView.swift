@@ -10,8 +10,18 @@ import SwiftUI
 //      sentence names only the sources that import in the current world (MyAnimeList files need the
 //      series foundation) and promises no review step (the legacy AniList path may auto-apply).
 //   3. Clubs are private.
+// Steps 2 and 3 show a Back chevron (top-left, "Back"/"Zurück") to the previous step (navigation
+// contract N1); Skip stays top-right on steps 1 and 2.
 // The copy works in both worlds (flags off: no Home page; flags on: Home). Completion is stored per
 // account (`OnboardingCompletion`, Kuro/Identity), so a second account on the device sees it once too.
+
+/// The onboarding steps in order (pure; tested in NavshellTests).
+nonisolated enum OnboardingStep: Int, CaseIterable {
+    case medium, list, clubs
+
+    /// The step Back returns to (navigation contract N1); nil on the first step (no Back control).
+    var previous: OnboardingStep? { OnboardingStep(rawValue: rawValue - 1) }
+}
 
 enum OnboardingDestination {
     /// Land where the pager starts.
@@ -28,9 +38,7 @@ struct OnboardingView: View {
     @Environment(FeatureFlags.self) private var flags
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private enum Frame: Int, CaseIterable {
-        case medium, list, clubs
-    }
+    private typealias Frame = OnboardingStep
 
     @State private var frame: Frame = .medium
     @State private var medium: MediaKind = .anime
@@ -78,9 +86,25 @@ struct OnboardingView: View {
                     .kuroReadableWidth()
                 }
 
-                if frame != .clubs {
-                    HStack {
-                        Spacer()
+                HStack {
+                    // Back to the previous step (N1); the first step has none.
+                    if let previous = frame.previous {
+                        Button {
+                            KuroAccessibility.impactHaptic(.light)
+                            advance(to: previous)
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 20))
+                                .foregroundStyle(Color.kuroInk)
+                                .frame(width: 44, height: 44)
+                                .background(Circle().fill(Color.kuroCanvasPage.opacity(0.92)))
+                                .contentShape(Circle())
+                        }
+                        .buttonStyle(KuroPressStyle())
+                        .accessibilityLabel(german ? "Zurück" : "Back")
+                    }
+                    Spacer()
+                    if frame != .clubs {
                         Button {
                             complete(.home)
                         } label: {
@@ -94,9 +118,9 @@ struct OnboardingView: View {
                         }
                         .buttonStyle(KuroPressStyle())
                     }
-                    .padding(.horizontal, KuroDesignSpacing.md)
-                    .padding(.top, KuroDesignSpacing.xs)
                 }
+                .padding(.horizontal, KuroDesignSpacing.md)
+                .padding(.top, KuroDesignSpacing.xs)
             }
         }
         .onAppear {

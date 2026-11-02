@@ -103,6 +103,8 @@ struct KuroMainView: View {
     @Environment(InteractionTelemetry.self) private var interactionTelemetry
     @Environment(BannerCenter.self) private var banner
     @Environment(\.kuroRoutes) private var routes
+    /// The root's collapse coordinator (navigation contract N10); nil only in previews/test hosts.
+    @Environment(\.kuroNavigation) private var navigation
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -184,6 +186,9 @@ struct KuroMainView: View {
     @State private var pendingPromptClearTask: Task<Void, Never>? = nil
     @State private var showConciergeSheet = false
     @State private var conciergeSheetPrompt: String? = nil
+    /// A deep link that arrived while the onboarding cover was showing: it runs once the cover has
+    /// finished closing (N10: the cover finishes first).
+    @State private var linkAfterOnboarding: DeepLink? = nil
 	// Taste-flagged funnel: [Taste] ← [Discover] → Browse → Collection → Clubs.
     // Flag off restores the legacy order with Concierge at index 0 (one DB UPDATE rollback).
     private var swipeOrder: [Section] {
@@ -502,42 +507,27 @@ struct KuroMainView: View {
                 // Check club notifications
                 await clubs.checkClubNotifications()
             }
+            // Profile and Search are journeys (navigation contract §1): one sheet hosting a stack;
+            // every tap inside pushes, ✕ / swipe-down collapses the whole sheet.
             .sheet(isPresented: $showProfileSheet) {
-                ProfileView(
-                    onOpenConciergeImportReview: { prompt in
-                        showProfileSheet = false
-                        Task { @MainActor in
-                            try? await Task.sleep(nanoseconds: 300_000_000)
-                            handleDeepLink(.concierge(prompt: prompt))
-                        }
-                    },
+                ShellJourneyHost(root: ShellJourneyPages.profile(
                     onImportNavigation: navigateFromImport,
                     onOpenCollection: {
-                        showProfileSheet = false
-                        selection = .collection
-                        mountedSections.insert(.collection)
-                    }
-                )
-            }
-            .sheet(isPresented: $showSearchSheet) {
-                NavigationStack {
-                    EditorialSearchView(initialScope: pendingSearchScope)
-                        .id(searchSession)
-                        .toolbar {
-                            ToolbarItem(placement: .topBarLeading) {
-                                Button(action: { showSearchSheet = false }) {
-                                    Image(systemName: "xmark")
-                                        .font(.kuroBody(weight: .light))
-                                        .foregroundColor(.kuroBlack60)
-                                        .frame(width: 44, height: 44)
-                                        .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel(KuroLocale.text("Close", "Schließen"))
-                            }
+                        // N11: Collection cannot be shown inside the journey (one shared feed); the
+                        // sheet collapses like ✕, then the pager switches.
+                        collapseThen {
+                            selection = .collection
+                            mountedSections.insert(.collection)
                         }
-                }
+                    }
+                ))
             }
+            .kuroNavigationLayer("profile", isPresented: $showProfileSheet)
+            .sheet(isPresented: $showSearchSheet) {
+                ShellJourneyHost(root: ShellJourneyPages.search(scope: pendingSearchScope))
+                    .id(searchSession)
+            }
+            .kuroNavigationLayer("search", isPresented: $showSearchSheet)
             .onDisappear {
                 tapSuppressionResetTask?.cancel()
             }
@@ -594,20 +584,16 @@ struct KuroMainView: View {
                 }
             }
             .sheet(isPresented: $showConciergeSheet) {
-                NavigationStack {
-                    ConciergeView(assistantEnabled: true, initialPrompt: conciergeSheetPrompt,
-                                  onImportNavigation: navigateFromImport)
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button("Done") { showConciergeSheet = false }
-                                    .font(.kuroBody(weight: .light))
-                            }
-                        }
-                        // The Concierge sheet's own presentation context (ConciergeView reads its routes).
-                        .routePresenter()
-                }
+                ShellJourneyHost(root: ShellJourneyPages.concierge(prompt: conciergeSheetPrompt,
+                                                                   onImportNavigation: navigateFromImport))
             }
-            .fullScreenCover(isPresented: $showOnboarding) {
+            .kuroNavigationLayer("concierge", isPresented: $showConciergeSheet)
+            .fullScreenCover(isPresented: $showOnboarding, onDismiss: {
+                // N10: a link that arrived during onboarding runs after the cover has finished closing.
+                guard let link = linkAfterOnboarding else { return }
+                linkAfterOnboarding = nil
+                handleDeepLink(link)
+            }) {
                 OnboardingView { destination in
                     showOnboarding = false
                     // The Taste page is TastePicksView in both pager orders (spec D7).
@@ -617,6 +603,7 @@ struct KuroMainView: View {
                     }
                 }
             }
+            .kuroNavigationLayer("onboarding", kind: .cover, isPresented: $showOnboarding)
             if let transientBannerMessage = banner.message {
                 VStack {
                     KuroTransientBanner(message: transientBannerMessage)
@@ -642,34 +629,53 @@ struct KuroMainView: View {
         case .importedTitles(let keys): collection.showImportedTitles(keys)
         case .fullCollection: collection.clearImportedTitles()
         }
-        showProfileSheet = false
-        showConciergeSheet = false
-        selection = .collection
-        mountedSections.insert(.collection)
+        // N11: the import result lands on the Collection page; whatever is open (Profile, Concierge,
+        // a journey) collapses first.
+        collapseThen {
+            selection = .collection
+            mountedSections.insert(.collection)
+        }
+    }
+
+    /// N10/N11: collapses every open sheet, tool and journey (the onboarding cover first), then runs
+    /// `action`. Without a root coordinator (previews) the header sheets close and `action` runs now.
+    private func collapseThen(_ action: @escaping () -> Void) {
+        if let navigation {
+            navigation.collapseThen(action)
+        } else {
+            showProfileSheet = false
+            showSearchSheet = false
+            showConciergeSheet = false
+            action()
+        }
     }
 
     private func handleDeepLink(_ link: DeepLink) {
         // A link (also one stashed before this view existed) decides the page; hydrating flags won't.
         pageChosen = true
-        switch link {
-        case .anime(let id):
-            routes.openMedia(MediaRoute(kind: .anime, id: id))
-        case .manga(let id):
-            routes.openMedia(MediaRoute(kind: .manga, id: id))
-        case .club(let id):
-            routes.openClub(id)
-        case .collection:
-            selection = .collection
-            mountedSections.insert(.collection)
-        case .discover:
-            selection = .discover
-        case .concierge(let prompt):
-            if !swipeOrder.contains(.concierge) {
-                // Archived: present Concierge as a sheet; prompt injection is preserved
-                // via ConciergeView's initialPrompt (consumed once on appear).
+        switch ShellLinkPolicy.action(for: link, onboardingOpen: showOnboarding,
+                                      conciergeInPager: swipeOrder.contains(.concierge)) {
+        case .waitForOnboarding:
+            // Replayed from the cover's onDismiss (after its animation), never under it.
+            linkAfterOnboarding = link
+        case .openJourney(let page):
+            // N10: collapse everything, then open the target as a new journey (a target already on
+            // top of the open journey keeps it).
+            if let navigation { navigation.collapseThenOpen(page) } else { routes.openPage(page) }
+        case .switchPage(let page):
+            collapseThen {
+                selection = page
+                mountedSections.insert(page)
+            }
+        case .openConciergeSheet(let prompt):
+            // Archived: Concierge is a sheet; the prompt reaches a fresh ConciergeView's initialPrompt
+            // (consumed once on appear).
+            collapseThen {
                 conciergeSheetPrompt = prompt
                 showConciergeSheet = true
-            } else {
+            }
+        case .openConciergePage(let prompt):
+            collapseThen {
                 selection = .concierge
                 mountedSections.insert(.concierge)
                 pendingConciergePrompt = prompt
@@ -683,11 +689,13 @@ struct KuroMainView: View {
             }
         case .joinClub(let code):
             // ClubsView consumes pendingJoinCode and opens the join sheet prefilled.
-            selection = .clubs
-            mountedSections.insert(.clubs)
-            pendingJoinCode = code
-        case .authCallback:
-            break // Handled at app level in KuroApp.swift, never reaches here
+            collapseThen {
+                selection = .clubs
+                mountedSections.insert(.clubs)
+                pendingJoinCode = code
+            }
+        case .none:
+            break // Auth callbacks are handled at app level in KuroApp.swift, never reach here
         }
     }
 }

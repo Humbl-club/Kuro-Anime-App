@@ -353,16 +353,18 @@ struct WhyThisSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
             }
-            .navigationTitle("Why This?")
+            .navigationTitle(KuroLocale.text("Why this?", "Warum dieser Titel?"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button(KuroLocale.text("Done", "Fertig")) {
                         dismiss()
                     }
                 }
             }
         }
+        // N8: a visible close control and a visible grabber.
+        .presentationDragIndicator(.visible)
     }
     
     private var headerSection: some View {
@@ -412,7 +414,7 @@ struct WhyThisSheet: View {
     
     private var reasoningSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Recommended because:")
+            Text(KuroLocale.text("Recommended because:", "Empfohlen, weil:"))
                 .font(.kuroBody(weight: .medium))
                 .foregroundColor(.primary)
             
@@ -422,7 +424,10 @@ struct WhyThisSheet: View {
                     .foregroundColor(.secondary)
                     .lineSpacing(4)
             } else {
-                Text("This title matches your taste profile based on your viewing history and preferences.")
+                Text(KuroLocale.text(
+                    "This title matches your taste profile based on your viewing history and preferences.",
+                    "Dieser Titel passt zu deinem Geschmack, basierend auf deinem Verlauf und deinen Vorlieben."
+                ))
                     .font(.kuroBody())
                     .foregroundColor(.secondary)
             }
@@ -431,7 +436,7 @@ struct WhyThisSheet: View {
     
     private func signalsSection(signals: [String]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("What you might like:")
+            Text(KuroLocale.text("What you might like:", "Was dir gefallen könnte:"))
                 .font(.kuroBody(weight: .medium))
             
             VStack(alignment: .leading, spacing: 8) {

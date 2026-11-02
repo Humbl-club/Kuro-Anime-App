@@ -3,9 +3,11 @@ import SwiftUI
 // MARK: - About > Data sources & credits (spec D11)
 // Names every source whose data Kuro shows, what it supplies and a link to it, plus the
 // non-affiliation line. Plain hairline rows on white; no logos (brand marks are their owners').
+// Navigation contract: pushed inside Profile's journey (Back + edge swipe-back, ✕ collapses the journey);
+// the headline scrolls under the compact bar.
 
 struct DataSourcesView: View {
-    @Environment(\.dismiss) private var dismiss
+    @State private var collapse: CGFloat = 0
 
     var body: some View {
         let german = KuroLocale.isGerman
@@ -58,23 +60,9 @@ struct DataSourcesView: View {
             .padding(.bottom, KuroDesignSpacing.xxl)
             .kuroReadableWidth()
         }
+        .kuroCollapseTracking($collapse, start: 0, distance: 64)
         .background(Color.kuroCanvasPage.ignoresSafeArea())
-        .overlay(alignment: .topTrailing) {
-            Button {
-                KuroAccessibility.impactHaptic(.light)
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 22))
-                    .foregroundStyle(Color.kuroInk)
-                    .frame(width: 44, height: 44)
-                    .background(Circle().fill(Color.kuroWhite).overlay(Circle().strokeBorder(Color.kuroHairline, lineWidth: 0.5)))
-            }
-            .buttonStyle(KuroPressStyle())
-            .accessibilityLabel(german ? "Schließen" : "Close")
-            .padding(.top, 12)
-            .padding(.trailing, 12)
-        }
+        .kuroJourneyChrome(title: ShellJourneyPages.dataSourcesTitle, collapseProgress: collapse)
     }
 }
 

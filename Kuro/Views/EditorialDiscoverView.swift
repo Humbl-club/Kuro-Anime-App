@@ -28,7 +28,6 @@ struct EditorialDiscoverView: View {
     @State private var bannerTask: Task<Void, Never>? = nil
     @State private var loadError = false
 
-    @State private var activeRoute: EditorialDiscoverRoute? = nil
 
     @State private var showMoreSections = UserDefaults.standard.bool(forKey: "kuro_discover_show_more")
     @State private var selectedMediaType: DiscoverMediaTypeFilter = .all
@@ -147,9 +146,6 @@ struct EditorialDiscoverView: View {
                 bannerTask?.cancel()
             }
         }
-        .sheet(item: $activeRoute) { route in
-            fullSection(for: route)
-        }
     }
 
     // MARK: Page
@@ -216,7 +212,7 @@ struct EditorialDiscoverView: View {
                     title: headline(.animeAiringToday),
                     items: Array(ordered.prefix(10)),
                     containerWidth: width,
-                    onSeeAll: { activeRoute = .animeAiringToday },
+                    onSeeAll: { openSeeAll(.animeAiringToday) },
                     airingSlots: todaysSlots(for: ordered)
                 )
             }
@@ -228,14 +224,14 @@ struct EditorialDiscoverView: View {
                     title: headline(.animeBecauseYou),
                     items: Array(vm.becauseYou.prefix(8)),
                     containerWidth: width,
-                    onSeeAll: { activeRoute = .animeBecauseYou }
+                    onSeeAll: { openSeeAll(.animeBecauseYou) }
                 )
             } else if showsAnime, !vm.newToYou.isEmpty {
                 DiscoverGridSection(
                     title: headline(.animeNewToYou),
                     items: Array(vm.newToYou.prefix(8)),
                     containerWidth: width,
-                    onSeeAll: { activeRoute = .animeNewToYou }
+                    onSeeAll: { openSeeAll(.animeNewToYou) }
                 )
             }
 
@@ -253,7 +249,7 @@ struct EditorialDiscoverView: View {
                     title: headline(.animeEssentials),
                     items: Array(vm.essentials.prefix(10)),
                     containerWidth: width,
-                    onSeeAll: { activeRoute = .animeEssentials }
+                    onSeeAll: { openSeeAll(.animeEssentials) }
                 )
             }
 
@@ -276,7 +272,7 @@ struct EditorialDiscoverView: View {
                     title: headline(.mangaNewToYou),
                     items: Array(vm.newToYouManga.prefix(8)),
                     containerWidth: width,
-                    onSeeAll: { activeRoute = .mangaNewToYou }
+                    onSeeAll: { openSeeAll(.mangaNewToYou) }
                 )
             }
 
@@ -285,7 +281,7 @@ struct EditorialDiscoverView: View {
                     title: headline(.animeTrending),
                     items: Array(vm.trending.prefix(20)),
                     containerWidth: width,
-                    onSeeAll: { activeRoute = .animeTrending },
+                    onSeeAll: { openSeeAll(.animeTrending) },
                     showsFilters: true
                 )
             }
@@ -295,7 +291,7 @@ struct EditorialDiscoverView: View {
                     title: headline(.mangaEssentials),
                     items: Array(vm.essentialsManga.prefix(10)),
                     containerWidth: width,
-                    onSeeAll: { activeRoute = .mangaEssentials }
+                    onSeeAll: { openSeeAll(.mangaEssentials) }
                 )
             }
 
@@ -336,7 +332,7 @@ struct EditorialDiscoverView: View {
                 title: headline(.animeClassics),
                 items: Array(vm.classics.prefix(8)),
                 containerWidth: width,
-                onSeeAll: { activeRoute = .animeClassics }
+                onSeeAll: { openSeeAll(.animeClassics) }
             )
         }
 
@@ -345,7 +341,7 @@ struct EditorialDiscoverView: View {
                 title: headline(.animeCurrentSeason),
                 items: Array(vm.currentSeason.prefix(10)),
                 containerWidth: width,
-                onSeeAll: { activeRoute = .animeCurrentSeason }
+                onSeeAll: { openSeeAll(.animeCurrentSeason) }
             )
         }
 
@@ -354,7 +350,7 @@ struct EditorialDiscoverView: View {
                 title: headline(.animeTopRated),
                 items: Array(vm.topRated.prefix(8)),
                 containerWidth: width,
-                onSeeAll: { activeRoute = .animeTopRated },
+                onSeeAll: { openSeeAll(.animeTopRated) },
                 showsFilters: true
             )
         }
@@ -364,7 +360,7 @@ struct EditorialDiscoverView: View {
                 title: headline(.animeNewlyAdded),
                 items: Array(vm.newlyAdded.prefix(8)),
                 containerWidth: width,
-                onSeeAll: { activeRoute = .animeNewlyAdded }
+                onSeeAll: { openSeeAll(.animeNewlyAdded) }
             )
         }
 
@@ -373,7 +369,7 @@ struct EditorialDiscoverView: View {
                 title: headline(.mangaClassics),
                 items: Array(vm.classicsManga.prefix(8)),
                 containerWidth: width,
-                onSeeAll: { activeRoute = .mangaClassics }
+                onSeeAll: { openSeeAll(.mangaClassics) }
             )
         }
 
@@ -382,7 +378,7 @@ struct EditorialDiscoverView: View {
                 title: headline(.mangaTrending),
                 items: Array(vm.trendingManga.prefix(10)),
                 containerWidth: width,
-                onSeeAll: { activeRoute = .mangaTrending }
+                onSeeAll: { openSeeAll(.mangaTrending) }
             )
         }
 
@@ -391,7 +387,7 @@ struct EditorialDiscoverView: View {
                 title: headline(.mangaTopRated),
                 items: Array(vm.topRatedManga.prefix(8)),
                 containerWidth: width,
-                onSeeAll: { activeRoute = .mangaTopRated }
+                onSeeAll: { openSeeAll(.mangaTopRated) }
             )
         }
 
@@ -400,7 +396,7 @@ struct EditorialDiscoverView: View {
                 title: headline(.mangaNewlyAdded),
                 items: Array(vm.newlyAddedManga.prefix(10)),
                 containerWidth: width,
-                onSeeAll: { activeRoute = .mangaNewlyAdded }
+                onSeeAll: { openSeeAll(.mangaNewlyAdded) }
             )
         }
     }
@@ -463,7 +459,7 @@ struct EditorialDiscoverView: View {
         }
     }
 
-    /// "Browse the catalogue": the invitation action that opens Browse as a sheet (spec D2).
+    /// "Browse the catalogue": opens the catalogue as a journey (spec D2; navigation contract §1).
     private var browseEntry: some View {
         KuroInkButton(KuroLocale.text("Browse the catalogue", "Den Katalog durchstöbern"), role: .secondary) {
             routes.openBrowse()
@@ -489,6 +485,14 @@ struct EditorialDiscoverView: View {
     }
 
     // MARK: See all
+
+    /// "See all" opens the section as a journey (navigation contract §1): its frames push their title,
+    /// ✕ / swipe-down collapses back to Discover. The rail's items are the ones on screen at the tap.
+    private func openSeeAll(_ route: EditorialDiscoverRoute) {
+        let title = route.title(german: KuroLocale.isGerman, reason: route == .animeBecauseYou ? vm.becauseYouReason : nil)
+        let page = fullSection(for: route)
+        routes.openPage(.seeAll(AnyJourneyPage(id: DiscoverSeeAllPolicy.pageID(route), title: title) { page }))
+    }
 
     @ViewBuilder
     private func fullSection(for route: EditorialDiscoverRoute) -> some View {
@@ -708,7 +712,7 @@ struct EditorialDiscoverView: View {
 // MARK: - See all
 
 /// A Discover section in full: the loaded titles as an equal-frame grid with an in-place filter.
-/// Its own presentation context: its frames open their routes on top of this sheet.
+/// A journey page (`routes.openPage(.seeAll(...))`): its frames push their title inside the journey.
 struct FullSectionView<Item: MediaDisplayable>: View {
     let title: String
     let items: [Item]
@@ -719,7 +723,7 @@ struct FullSectionView<Item: MediaDisplayable>: View {
     }
 }
 
-/// The manga "See all" sheet (same grammar as `FullSectionView`).
+/// The manga "See all" page (same grammar as `FullSectionView`).
 struct FullMangaSectionView<Item: MediaDisplayable>: View {
     let title: String
     let items: [Item]
@@ -734,10 +738,11 @@ private struct DiscoverFullSectionSheet<Item: MediaDisplayable>: View {
     let items: [Item]
     var airingSlots: [Int: DiscoverAiringSlot] = [:]
 
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var searchText = ""
+    /// The headline scrolls under the compact bar (H1).
+    @State private var collapse: CGFloat = 0
 
     private var filtered: [Item] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -749,83 +754,73 @@ private struct DiscoverFullSectionSheet<Item: MediaDisplayable>: View {
     }
 
     var body: some View {
-        NavigationStack {
-            GeometryReader { geo in
-                let width = DiscoverLayout.contentWidth(container: geo.size.width, regularWidth: horizontalSizeClass == .regular)
-                let gutter = DiscoverLayout.gutter(for: width)
-                let inner = max(0, width - gutter * 2)
-                let columns = DiscoverLayout.columnCount(for: inner, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
-                let frameWidth = DiscoverLayout.gridFrameWidth(for: inner, columns: columns)
-                let shown = filtered
+        // A journey's root page (opened from a Discover rail): ✕ only; the frames push their title.
+        GeometryReader { geo in
+            let width = DiscoverLayout.contentWidth(container: geo.size.width, regularWidth: horizontalSizeClass == .regular)
+            let gutter = DiscoverLayout.gutter(for: width)
+            let inner = max(0, width - gutter * 2)
+            let columns = DiscoverLayout.columnCount(for: inner, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
+            let frameWidth = DiscoverLayout.gridFrameWidth(for: inner, columns: columns)
+            let shown = filtered
 
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
-                        VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                            Text(title)
-                                .kuroRoleText(.headline)
-                                .foregroundStyle(Color.kuroInk)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .accessibilityAddTraits(.isHeader)
-                            Text(KuroLocale.text(
-                                shown.count == 1 ? "1 title" : "\(shown.count) titles",
-                                "\(shown.count) Titel"
-                            ))
-                            .font(.kuroMeta())
-                            .foregroundStyle(Color.kuroInkQuiet)
-                        }
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: KuroDesignSpacing.lg) {
+                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                        Text(title)
+                            .kuroRoleText(.headline)
+                            .foregroundStyle(Color.kuroInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
+                        Text(KuroLocale.text(
+                            shown.count == 1 ? "1 title" : "\(shown.count) titles",
+                            "\(shown.count) Titel"
+                        ))
+                        .font(.kuroMeta())
+                        .foregroundStyle(Color.kuroInkQuiet)
+                    }
 
-                        DiscoverFilterField(
-                            text: $searchText,
-                            prompt: KuroLocale.text("Filter these titles", "Diese Titel filtern")
+                    DiscoverFilterField(
+                        text: $searchText,
+                        prompt: KuroLocale.text("Filter these titles", "Diese Titel filtern")
+                    )
+
+                    if shown.isEmpty {
+                        KuroStateView(
+                            .empty,
+                            title: KuroLocale.text("No titles match \u{201C}\(searchText)\u{201D}.",
+                                                   "Keine Titel passen zu \u{201E}\(searchText)\u{201C}."),
+                            layout: .inline
                         )
-
-                        if shown.isEmpty {
-                            KuroStateView(
-                                .empty,
-                                title: KuroLocale.text("No titles match \u{201C}\(searchText)\u{201D}.",
-                                                       "Keine Titel passen zu \u{201E}\(searchText)\u{201C}."),
-                                layout: .inline
-                            )
-                        } else {
-                            LazyVGrid(
-                                columns: Array(repeating: GridItem(.fixed(frameWidth), spacing: DiscoverLayout.frameSpacing, alignment: .top), count: columns),
-                                alignment: .leading,
-                                spacing: KuroDesignSpacing.lg
-                            ) {
-                                ForEach(shown, id: \.id) { item in
-                                    DiscoverFrame(media: item, width: frameWidth, airing: airingSlots[item.id])
-                                }
+                    } else {
+                        LazyVGrid(
+                            columns: Array(repeating: GridItem(.fixed(frameWidth), spacing: DiscoverLayout.frameSpacing, alignment: .top), count: columns),
+                            alignment: .leading,
+                            spacing: KuroDesignSpacing.lg
+                        ) {
+                            ForEach(shown, id: \.id) { item in
+                                DiscoverFrame(media: item, width: frameWidth, airing: airingSlots[item.id])
                             }
                         }
                     }
-                    .padding(.horizontal, gutter)
-                    .padding(.top, KuroDesignSpacing.sm)
-                    .padding(.bottom, KuroDesignSpacing.xl)
-                    .frame(width: width)
-                    .frame(maxWidth: .infinity)
                 }
-                .background(Color.kuroCanvasPage)
+                .padding(.horizontal, gutter)
+                // Clears the ✕ key row; the headline then scrolls under the compact bar.
+                .padding(.top, KuroJourneyChrome.barHeight)
+                .padding(.bottom, KuroDesignSpacing.xl)
+                .frame(width: width)
+                .frame(maxWidth: .infinity)
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.kuroBody(weight: .regular))
-                            .foregroundStyle(Color.kuroInk)
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(KuroLocale.text("Close", "Schließen"))
-                }
-            }
+            .kuroCollapseTracking($collapse, start: 0, distance: KuroJourneyChrome.barHeight)
+            .background(Color.kuroCanvasPage)
         }
-        // This "see all" sheet's own presentation context: its frames open their routes here.
-        .routePresenter()
+        .kuroJourneyChrome(title: title, collapseProgress: collapse)
     }
+}
+
+/// The "See all" journey pages' identity (pure, tested in NavshellTests): one page per rail, so a
+/// second tap on the same rail's "See all" never stacks a copy (N5).
+enum DiscoverSeeAllPolicy {
+    static func pageID(_ route: EditorialDiscoverRoute) -> String { "discover:\(route.id)" }
 }
 
 /// A quiet filter field: magnifier, text, a labelled clear key, an ink hairline under it.

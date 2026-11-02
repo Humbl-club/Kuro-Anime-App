@@ -8,12 +8,22 @@ import UniformTypeIdentifiers
 // Imports and connections (incl. pending and resumable imports), Clubs, Preferences, Account and
 // privacy, About (Data sources and credits, Contact us, Terms once confirmed, version), then a quiet Advanced disclosure (cache tools; the streaming freshness card when that
 // feature is on). Rows: serif title, sans subtitle in secondary ink, hairlines, no chevrons.
+//
+// Navigation contract (2026-11-02): Profile is the root of a journey (`ShellJourneyPages.profile`).
+// Your clubs, Data sources, Find, Concierge and the import review PUSH inside it (back chevron + edge
+// swipe-back); Contact, the import chooser, the AniList/MAL imports, the review workflow and the
+// streaming picker stay tool sheets that close back to Profile. Your lists cannot be shown inside the
+// journey (Collection's one shared feed), so its rows say "Opens Collection" and the journey collapses
+// like ✕ before the pager switches (N11). A push fires `onDisappear` here: the account-scoped import
+// work keeps running while Profile is covered and stops when the journey ends (`\.shellPageLifetime`).
 struct ProfileView: View {
-    var onOpenConciergeImportReview: ((String) -> Void)? = nil
     var onImportNavigation: ((ImportResultDestination) -> Void)? = nil
     var onOpenCollection: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroJourney) private var journey
+    @Environment(\.shellPageLifetime) private var pageLifetime
     @Environment(LibraryStore.self) private var library
     @Environment(IdentityStore.self) private var identity
     @Environment(AuthService.self) private var auth
@@ -29,7 +39,11 @@ struct ProfileView: View {
     @State private var deleteConfirmationTicket: AccountActionScope.Ticket?
     @State private var importCoordinator: ProfileImportCoordinator?
     @State private var isSyncing: Bool = false
-    @State private var showClubs: Bool = false
+    /// The account this Profile's import work was set up for (`ProfileLifecyclePolicy.needsSetup`): a
+    /// page popped back to keeps its import coordinator, toast and result card.
+    @State private var setUpAccount: String?? = nil
+    /// The shrinking header's progress (the scenery band scrolls under the compact bar, H1).
+    @State private var collapse: CGFloat = 0
     @State private var toast: KuroToastState? = nil
     @State private var showDeleteConfirmation: Bool = false
     @State private var isDeleting: Bool = false
@@ -39,17 +53,22 @@ struct ProfileView: View {
     @State private var pendingAniListTicket: AccountActionScope.Ticket?
     @State private var showMALImporter: Bool = false
     @State private var malPresentationAnchor: ASPresentationAnchor?
-    @State private var showConciergeSheet: Bool = false
     @State private var showImportWorkflow = false
     @State private var importWorkflowJob: ImportOutcome?
-    @State private var showDataSources = false
     @State private var showContact = false
     @State private var showImportChooser = false
-    @State private var showFindSheet = false
     @State private var streamingObservability: ProviderAvailabilityStore.StreamingObservabilitySnapshot? = nil
     @State private var isRefreshingStreamingObservability: Bool = false
 
     private var isGermanLocale: Bool { KuroLocale.isGerman }
+    /// The still scenery band at the top (the shrinking header's hero).
+    static let bandHeight: CGFloat = 132
+
+    /// Opens a page inside Profile's journey (pushed: Back + edge swipe-back; ✕ collapses all).
+    private func push(_ page: JourneyPage) {
+        KuroAccessibility.impactHaptic(.light)
+        routes.openPage(page)
+    }
 
     var body: some View {
         let profileImports = importCoordinator
@@ -88,6 +107,7 @@ struct ProfileView: View {
                 .padding(.bottom, KuroDesignSpacing.xxl)
                 .kuroReadableWidth()
             }
+            .kuroCollapseTracking($collapse, start: 0, distance: Self.bandHeight - KuroJourneyChrome.barHeight)
             // Ensure the last rows can scroll fully above the home indicator / tab chrome.
             .safeAreaInset(edge: .bottom) {
                 Color.clear.frame(height: 24)
@@ -99,14 +119,29 @@ struct ProfileView: View {
         // implicit motion (rulebook §8 asks to keep this suppression).
         .transaction { $0.animation = nil }
         .task(id: identity.currentUserId) {
+            // Back from a pushed page (Clubs, Data sources, Find, Concierge): the import work kept
+            // running for this account, so only the list preview is read again (its own TTL).
+            guard ProfileLifecyclePolicy.needsSetup(setUpFor: setUpAccount, current: identity.currentUserId,
+                                                    hasCoordinator: importCoordinator != nil) else {
+                await collection.loadListPreview()
+                return
+            }
+            setUpAccount = .some(identity.currentUserId)
             profileActionScope.deactivate()
             profileActionScope.activate(session: imports.accountSession)
             deleteConfirmationTicket = nil
             showDeleteConfirmation = false
             isDeleting = false
             importCoordinator?.stop()
-            importCoordinator = ProfileImportCoordinator(imports: imports, library: library,
+            let coordinator = ProfileImportCoordinator(imports: imports, library: library,
                 collection: collection, releases: releases, flags: flags, isGermanLocale: isGermanLocale)
+            importCoordinator = coordinator
+            // Inside the journey the teardown waits for the sheet to end (a push is not an exit).
+            let scope = profileActionScope
+            pageLifetime?.onJourneyEnd {
+                scope.deactivate()
+                coordinator.stop()
+            }
             await importCoordinator?.refreshMALIdentity()
             await collection.loadListPreview()
             // Keep the profile "club context" warm so Clubs opens instantly.
@@ -116,6 +151,10 @@ struct ProfileView: View {
             }
         }
         .onDisappear {
+            // Covered by a pushed page: keep the import work (it ends with the journey).
+            if pageLifetime?.isStillInJourney == true { return }
+            pageLifetime?.didTearDown()
+            setUpAccount = nil
             profileActionScope.deactivate()
             deleteConfirmationTicket = nil
             importCoordinator?.stop()
@@ -129,26 +168,8 @@ struct ProfileView: View {
             showDeleteConfirmation = false
             deleteConfirmationTicket = nil
         }
-        .overlay(alignment: .topTrailing) {
-            Button(action: {
-                KuroAccessibility.impactHaptic(.light)
-                dismiss()
-            }) {
-                Image(systemName: "xmark")
-                    .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 22))
-                    .foregroundStyle(Color.kuroInk)
-                    .frame(width: 44, height: 44)
-                    .background {
-                        Circle()
-                            .fill(Color.kuroWhite)
-                            .overlay(Circle().stroke(Color.kuroHairline, lineWidth: 0.5))
-                    }
-            }
-            .buttonStyle(KuroPressStyle())
-            .accessibilityLabel(isGermanLocale ? "Schließen" : "Close")
-            .padding(.top, 12)
-            .padding(.trailing, 12)
-        }
+        // Journey root: ✕ only (N3), the round key over the scenery band, then the compact bar (H1).
+        .kuroJourneyChrome(title: ShellJourneyPages.profileTitle, collapseProgress: collapse)
         .overlay(alignment: .top) {
             if let toast = profileImports?.toast ?? toast {
                 KuroToast(toast: toast)
@@ -156,28 +177,6 @@ struct ProfileView: View {
                     .padding(.top, 10)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
-        }
-        .sheet(isPresented: $showClubs) {
-            NavigationStack {
-                ClubsView()
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .principal) {
-                            Text(isGermanLocale ? "Clubs" : "Clubs")
-                                .font(.kuroCustom(15, weight: .semibold, relativeTo: .headline, maxSize: 28)).tracking(-0.2)
-                                .foregroundStyle(Color.kuroInk)
-                                .accessibilityAddTraits(.isHeader)
-                        }
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button(isGermanLocale ? "Fertig" : "Done") { showClubs = false }
-                                .font(.kuroBody(weight: .regular))
-                                .foregroundStyle(Color.kuroInk)
-                        }
-                    }
-            }
-        }
-        .sheet(isPresented: $showDataSources) {
-            DataSourcesView()
         }
         .sheet(isPresented: $showContact) {
             ContactSheet()
@@ -187,26 +186,6 @@ struct ProfileView: View {
                 showImportChooser = false
                 guard profileActionScope.capture(session: imports.accountSession) != nil else { return }
                 onImportNavigation?(destination)
-            }
-        }
-        .sheet(isPresented: $showFindSheet) {
-            NavigationStack {
-                // EditorialSearchView installs its own `.routePresenter()`; the close control matches
-                // the header's Search sheet (ContentView).
-                EditorialSearchView()
-                    .toolbar {
-                        ToolbarItem(placement: .topBarLeading) {
-                            Button(action: { showFindSheet = false }) {
-                                Image(systemName: "xmark")
-                                    .font(.kuroBody(weight: .light))
-                                    .foregroundColor(.kuroBlack60)
-                                    .frame(width: 44, height: 44)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(KuroLocale.text("Close", "Schließen"))
-                        }
-                    }
             }
         }
         .fileImporter(isPresented: $showMALImporter, allowedContentTypes: [.xml]) { result in
@@ -242,20 +221,6 @@ struct ProfileView: View {
                 onImportNavigation?(destination)
             }
         }
-        .sheet(isPresented: $showConciergeSheet) {
-            NavigationStack {
-                ConciergeView(assistantEnabled: true, onImportNavigation: onImportNavigation)
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button(isGermanLocale ? "Fertig" : "Done") { showConciergeSheet = false }
-                                .font(.kuroBody(weight: .regular))
-                                .foregroundStyle(Color.kuroInk)
-                        }
-                    }
-                    // The Concierge sheet's own presentation context (ConciergeView reads its routes).
-                    .routePresenter()
-            }
-        }
     }
 
     // MARK: Identity
@@ -265,7 +230,7 @@ struct ProfileView: View {
     private var identityHeader: some View {
         VStack(alignment: .leading, spacing: 0) {
             KuroSceneryLoop(tone: .neutralCanvas, isActive: false, magnify: 1.7)
-                .frame(height: 132)
+                .frame(height: Self.bandHeight)
                 .frame(maxWidth: .infinity)
                 .clipped()
                 .overlay {
@@ -407,7 +372,7 @@ struct ProfileView: View {
     private var newAccountActions: some View {
         let german = isGermanLocale
         KuroOutlineButton(ProfileListsPolicy.importTitle(german: german)) { showImportChooser = true }
-        KuroOutlineButton(ProfileListsPolicy.findTitle(german: german)) { showFindSheet = true }
+        KuroOutlineButton(ProfileListsPolicy.findTitle(german: german)) { push(ShellJourneyPages.search()) }
     }
 
     // MARK: Imports and connections
@@ -519,7 +484,7 @@ struct ProfileView: View {
                     subtitle: german ? "Private Gruppen mit 2 bis 20 Mitgliedern" : "Private groups of 2 to 20 people",
                     trailing: count > 0 ? "\(count)" : nil
                 ) {
-                    showClubs = true
+                    push(ShellJourneyPages.clubs)
                 }
             }
         }
@@ -548,7 +513,7 @@ struct ProfileView: View {
                         ? "Beschreibe eine Stimmung oder füge eine Liste ein"
                         : "Describe a mood or paste a list"
                 ) {
-                    showConciergeSheet = true
+                    push(ShellJourneyPages.concierge(onImportNavigation: onImportNavigation))
                 }
 
                 if flags.isStreamingAvailabilityV1Enabled {
@@ -673,7 +638,7 @@ struct ProfileView: View {
                             guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
                             try await session.deleteAccount(appleAuthorizationCode: appleCode, expectedAccount: origin.account)
                             guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
-                            dismiss()
+                            if let journey { journey.close() } else { dismiss() }
                         } catch {
                             guard profileActionScope.isCurrent(origin, session: imports.accountSession) else { return }
                             showToast(.error, title: german ? "Konto nicht gelöscht" : "Account not deleted",
@@ -714,7 +679,7 @@ struct ProfileView: View {
                     title: german ? "Datenquellen und Danksagung" : "Data sources and credits",
                     subtitle: "AniList, MangaDex, MangaUpdates, AnimeThemes"
                 ) {
-                    showDataSources = true
+                    push(ShellJourneyPages.dataSources)
                 }
                 rowHairline
                 ProfileQuietRow(
@@ -797,7 +762,9 @@ struct ProfileView: View {
             onContinueToConcierge: {
                 guard case .needsReview(_, _, _, let importText) = result else { return }
                 importCoordinator?.dismissImportResult()
-                onOpenConciergeImportReview?(importText)
+                // The review pushes inside this journey (Back returns to Profile).
+                push(ShellJourneyPages.concierge(prompt: importText, review: true,
+                                                 onImportNavigation: onImportNavigation))
             }
         )
     }
@@ -884,6 +851,16 @@ struct ProfileView: View {
         }
         .frame(minHeight: 44, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Profile's lifecycle inside its journey (pure, tested in NavshellTests).
+nonisolated enum ProfileLifecyclePolicy {
+    /// Whether Profile sets its account-scoped import work up again on appear: the first appearance,
+    /// another account, or after a teardown. Coming back from a pushed page keeps what is running.
+    static func needsSetup(setUpFor: String??, current: String?, hasCoordinator: Bool) -> Bool {
+        guard hasCoordinator, let setUpFor else { return true }
+        return setUpFor != current
     }
 }
 

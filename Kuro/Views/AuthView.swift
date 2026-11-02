@@ -908,18 +908,19 @@ private struct AuthResetPasswordSheet: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
+                // A tool sheet (N7/N8): Cancel top-left closes it back to the sign-in form.
                 HStack {
-                    Spacer()
                     Button {
                         dismiss()
                     } label: {
-                        Text(german ? "Schließen" : "Close")
+                        Text(german ? "Abbrechen" : "Cancel")
                             .font(.kuroMeta(weight: .medium))
                             .foregroundStyle(Color.kuroInk)
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    Spacer()
                 }
 
                 Text(german ? "Passwort zurücksetzen" : "Reset password")
@@ -982,6 +983,7 @@ private struct AuthResetPasswordSheet: View {
         .scrollDismissesKeyboard(.interactively)
         .background(Color.kuroCanvasPage.ignoresSafeArea())
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
         .onAppear {
             email = initialEmail
             if AuthFormRules.trimmedEmail(initialEmail).isEmpty { focusedField = .email }
