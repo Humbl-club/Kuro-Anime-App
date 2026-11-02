@@ -30,3 +30,6 @@
 20261101010100_perf_drop_duplicate_indexes.sql
 20261101020000_bridge_identity_fix.sql
 20261101030000_auth_hardening.sql
+
+# 2026-11-02 contact form (prepared only; owner approval required to deploy).
+20261102100000_contact_messages.sql

@@ -52,7 +52,10 @@ select tests.eq('CASCADE set is the reviewed one',
   || 'home_publications.account_user_id, import_sessions.user_id, library_import_jobs.user_id, list_entry_tombstones.account_user_id, llm_daily_usage.user_id, mutation_receipts.account_user_id, outbound_link_events.user_id, profiles.id, taste_import_context.user_id, taste_profile_recompute_queue.user_id, taste_signal_events.user_id, title_aliases.user_id, title_comment_reactions.user_id, title_comments.user_id, user_series_intent.account_user_id, user_streaming_services.user_id, user_taste_profiles.user_id');
 select tests.eq('SET NULL set is the reviewed one',
   (select string_agg(tbl || '.' || col, ', ' order by tbl, col) from _fk where rule = 'SET NULL'),
-  'club_member_blocks.blocked_by, club_polls.created_by, club_rail_items.added_by, club_rails.created_by, clubs.created_by, concierge_runs.user_id');
+  'club_member_blocks.blocked_by, club_polls.created_by, club_rail_items.added_by, club_rails.created_by, clubs.created_by, concierge_runs.user_id'
+  -- 2026-11-02: contact_messages (prepared 20261102100000) unlinks on account deletion and is
+  -- purged after 12 months (93_contact_messages.sql); expected only when present (--exclude-pending).
+  || case when to_regclass('public.contact_messages') is not null then ', contact_messages.user_id' else '' end);
 
 -- user-identifying columns with NO foreign key to auth.users (no cascade on account deletion).
 -- account_deletion_barriers.user_id is deliberately FK-free: the barrier must outlive the
