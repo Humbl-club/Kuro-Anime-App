@@ -11,7 +11,8 @@
 //  Chains: Back pops one level with the scroll position kept (N1); edge swipe-back pops, a half swipe
 //  stays (N2); ✕ on level 5 lands on the start page (N3/N4); swipe-down on level 3 collapses the
 //  journey (N3); a tool's Close returns to its detail (N7); opening a page already in the stack pops
-//  back to it and the top page is never pushed again (N5); a deep link collapses the journey first (N10).
+//  back to it and the top page is never pushed again (N5); a deep link collapses the journey first (N10),
+//  also when a pager page's own sheet (Browse → Filters) is open.
 //  Screenshots are attached; set TEST_RUNNER_KURO_NAV_SHOTS=<dir> to also write them as PNGs.
 //
 
@@ -281,6 +282,36 @@ final class NavigationContractUITests: XCTestCase {
         targetClose.tap()
         XCTAssertTrue(targetClose.waitForNonExistence(timeout: 6))
         assertOnStartPage()
+    }
+
+    /// N10 from a pager page's OWN sheet (not a header journey, not the fixture's root journey): Browse →
+    /// Filters is open when a link arrives. The filters close first, then the target opens as a journey;
+    /// ✕ returns to the pager (before the fix the link was lost under the open sheet).
+    func testDeepLinkCollapsesPagerPageSheetThenOpensTarget() throws {
+        app.terminate()
+        app.launchArguments.removeAll { $0 == "--kuro-nav-fixture" || $0.hasPrefix("--kuro-start=") }
+        app.launchArguments.append("--kuro-start=browse")
+        app.launch()
+        let filters = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Filters'")).firstMatch
+        XCTAssertTrue(filters.waitForExistence(timeout: 20), "the Browse page shows its Filters control")
+        filters.tap()
+        let cancel = app.buttons["Cancel"].firstMatch
+        XCTAssertTrue(cancel.waitForExistence(timeout: 8), "the page's own Filters sheet opened")
+        shot("nav-09-pager-sheet-open")
+        try openLinkInProcess("kuro://anime/21")
+        XCTAssertTrue(cancel.waitForNonExistence(timeout: 10), "the pager page's sheet collapsed first")
+        sleep(3)
+        shot("nav-10-pager-sheet-link-target")
+        let targetClose = app.buttons.matching(NSPredicate(format: "label == 'Close'")).firstMatch
+        XCTAssertTrue(targetClose.waitForExistence(timeout: 10), "…then the target opened as a new journey")
+        targetClose.tap()
+        XCTAssertTrue(targetClose.waitForNonExistence(timeout: 6))
+        XCTAssertTrue(pagerProfile.waitForExistence(timeout: 5), "✕ returned to the pager")
+        XCTAssertTrue(pagerProfile.isHittable, "nothing covers the pager")
+        // The filters still open normally afterwards (their state was cleared, not left stuck).
+        filters.tap()
+        XCTAssertTrue(cancel.waitForExistence(timeout: 8), "Filters opens again after the collapse")
+        cancel.tap()
     }
 
     /// N10 keep-journey: a link to the page already on top of the open journey keeps that journey (its

@@ -533,11 +533,11 @@ struct KuroMainView: View {
                             mountedSections.insert(.collection)
                         }
                     }
-                ))
+                ), layer: "profile")
             }
             .kuroNavigationLayer("profile", isPresented: $showProfileSheet)
             .sheet(isPresented: $showSearchSheet) {
-                ShellJourneyHost(root: ShellJourneyPages.search(scope: pendingSearchScope))
+                ShellJourneyHost(root: ShellJourneyPages.search(scope: pendingSearchScope), layer: "search")
                     .id(searchSession)
             }
             .kuroNavigationLayer("search", isPresented: $showSearchSheet)
@@ -598,7 +598,8 @@ struct KuroMainView: View {
             }
             .sheet(isPresented: $showConciergeSheet) {
                 ShellJourneyHost(root: ShellJourneyPages.concierge(prompt: conciergeSheetPrompt,
-                                                                   onImportNavigation: navigateFromImport))
+                                                                   onImportNavigation: navigateFromImport),
+                                 layer: "concierge")
             }
             .kuroNavigationLayer("concierge", isPresented: $showConciergeSheet)
             .fullScreenCover(isPresented: $showOnboarding, onDismiss: {

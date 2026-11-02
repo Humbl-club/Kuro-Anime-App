@@ -129,6 +129,8 @@ struct RecommendationRail: View {
                 WhyThisSheet(item: item)
             }
         }
+        // N10: a deep link collapses this sheet too.
+        .kuroNavigationLayer("concierge.whyThis", isPresented: $viewModel.showWhyThisSheet)
         .overlay(alignment: .bottom) {
             if viewModel.showHiddenToast, let item = viewModel.recentlyHiddenItem {
                 HiddenToast(item: item, onUndo: { viewModel.undoHide() })

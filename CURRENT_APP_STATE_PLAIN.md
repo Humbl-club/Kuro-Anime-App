@@ -2086,3 +2086,13 @@ The four pieces of navigation work are combined: title pages, character/staff/st
 - The check for screens that break the rules now blocks any change that would break them again.
 
 Screenshots are in `docs/navigation-2026-11-02/`. Nothing was deployed.
+
+### Change Log — 2 November 2026: Navigation review fixes
+- A link from outside the app (for example a notification) now first closes any sheet a page opened itself, such as Browse filters or "create a club", and then opens its target. Before, the link could get lost under the open sheet.
+- A link to the page you are already looking at keeps your place and only closes what covers it: club settings, Search or Profile.
+- The back and close buttons over title artwork stay clearly visible at every scroll position. They switch from white-on-colour to dark-on-paper in one step instead of fading through grey.
+- The AniList import can no longer be cancelled by accident. While it runs, the button says Stop and asks first.
+- A few import sheets now show their grab handle.
+- From Profile, reviewing an import opens inside Profile, so Back returns there.
+- Profile "Advanced" opens and closes smoothly and stays open for the session.
+- All automatic tests passed. Nothing was deployed.

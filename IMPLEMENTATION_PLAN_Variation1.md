@@ -1539,3 +1539,21 @@ Status: done locally on `kuro/prototype-fidelity`. Not pushed, not deployed.
   - The Concierge sheet teardown leaves some auxiliary tasks running.
   - Owner visual check of the manga Back key over the folio cover.
   - `check_navigation.sh` does not implement spec §5's third check ("a sheet without a close/cancel control").
+
+### Change Log — 2 November 2026: Navigation review fixes
+
+Status: done locally on `kuro/prototype-fidelity`. Not pushed, not deployed.
+- 14 findings → 11 fixes (3 duplicates folded), none rejected:
+  - N10: pager-page and journey-page sheets are registered; header journeys can be kept; a link during a dismissal waits; a UIKit fallback dismisses unregistered presentations.
+  - Swift 6: `kuroJourneyRefreshable` is MainActor.
+  - H2: single-threshold chrome contrast.
+  - VoiceOver: sort priority and escape action.
+  - N7: AniList Stop.
+  - N8: grabbers.
+  - §1: the chooser review pushes inside the journey.
+  - F1–F3: Profile Advanced fold.
+- **Verification:** KuroTests 872/872; NavigationContractUITests 11/11 (new pager-sheet deep-link test, with negative control); NavshellUITests 4/4; Release OK; gate 0 offenders.
+- **Open:**
+  - VoiceOver order and escape are unverified on a device.
+  - The gate does not yet require `.kuroNavigationLayer` on new page-level sheets.
+  - The spec §5 close/cancel check is still not implemented.

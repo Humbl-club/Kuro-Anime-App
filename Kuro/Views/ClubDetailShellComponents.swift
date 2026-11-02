@@ -90,6 +90,9 @@ struct JournalStatusBar: View {
                 .opacity(Double(shown))
                 .allowsHitTesting(false)
         }
+        // Back (or the club name once shown) first after a push or pop, before the club's content.
+        .accessibilityElement(children: .contain)
+        .accessibilitySortPriority(1)
         .animation(reduceMotion ? .easeInOut(duration: 0.2) : nil, value: shown)
         .kuroAnimation(KuroMotion.settle, value: onRoom)
     }

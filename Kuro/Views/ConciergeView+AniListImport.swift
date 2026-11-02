@@ -32,6 +32,11 @@ struct ConciergeAniListImportSheet: View {
     @State private var includeDropped: Bool = false
     @State private var includeRepeating: Bool = false
     @FocusState private var usernameFocused: Bool
+    /// The Stop confirmation is showing (N7).
+    @State private var confirmStop = false
+
+    /// AniList is being read or the import is being sent: closing would cancel it (N7).
+    private var isBusy: Bool { coordinator.isPreviewing || coordinator.isImporting }
 
     private var canPreview: Bool {
         !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -72,14 +77,29 @@ struct ConciergeAniListImportSheet: View {
             .background(Color.kuroBackground.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(isGermanLocale ? "Fertig" : "Done") {
-                        dismiss()
+                    // N7: while AniList is read or the import is sent, closing would cancel it without a
+                    // word, so the control becomes Stop (confirmed), as in the import chooser.
+                    Button(isBusy ? ImportChooserTopControl.stopAction(german: isGermanLocale)
+                                  : (isGermanLocale ? "Fertig" : "Done")) {
+                        if isBusy { confirmStop = true } else { dismiss() }
                     }
                     .font(.kuroCaption(weight: .medium))
+                    .accessibilityHint(isBusy
+                                       ? (isGermanLocale ? "Hält den laufenden Import an." : "Stops the running import.")
+                                       : "")
                 }
             }
         }
         .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(isBusy)
+        .confirmationDialog(ImportChooserTopControl.stopTitle(german: isGermanLocale),
+                            isPresented: $confirmStop, titleVisibility: .visible) {
+            Button(ImportChooserTopControl.stopAction(german: isGermanLocale), role: .destructive) { stopImport() }
+            Button(isGermanLocale ? "Weiter importieren" : "Keep importing", role: .cancel) {}
+        } message: {
+            Text(ImportChooserTopControl.stopMessage(german: isGermanLocale))
+        }
         .onAppear {
             coordinator.activate(using: imports)
             usernameFocused = true
@@ -680,6 +700,14 @@ struct ConciergeAniListImportSheet: View {
             return truncated ? "\(count) Titel, gekürzt" : "\(count) Titel"
         }
         return truncated ? "\(count) items, truncated" : "\(count) items"
+    }
+
+    /// Stop (confirmed): the running read or import is dropped and the form is shown again; the sheet
+    /// stays open.
+    private func stopImport() {
+        resetForm()
+        KuroAccessibility.impactHaptic(.light)
+        AccessibilityNotification.Announcement(ImportChooserTopControl.stoppedLine(german: isGermanLocale)).post()
     }
 
     private func resetForm() {

@@ -26,6 +26,9 @@ struct ImportSourceChooser: View {
     var onNavigate: (ImportResultDestination) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    /// The journey whose page opened the chooser (Profile), nil for Onboarding / the pager's pages.
+    @Environment(\.kuroJourney) private var journey
+    @Environment(\.kuroRoutes) private var routes
     @Environment(ImportsService.self) private var imports
     @Environment(LibraryStore.self) private var library
     @Environment(CollectionStore.self) private var collection
@@ -120,7 +123,16 @@ struct ImportSourceChooser: View {
                         onReview: {
                             guard case .needsReview(_, _, _, let importText) = result else { return }
                             owner?.dismissImportResult()
-                            conciergeReview = ConciergeReview(text: importText)
+                            if journey != nil {
+                                // §1/N9: opened from a journey page (Profile), the review is pushed onto
+                                // that journey (Back returns to the page) and the chooser closes; never a
+                                // second content sheet stacked on this tool.
+                                routes.openPage(ShellJourneyPages.concierge(prompt: importText, review: true,
+                                                                            onImportNavigation: onNavigate))
+                                dismiss()
+                            } else {
+                                conciergeReview = ConciergeReview(text: importText)
+                            }
                         },
                         onSeeLists: { onNavigate(.fullCollection) }
                     )
@@ -289,8 +301,8 @@ struct ImportSourceChooser: View {
             }
         }
         .sheet(item: $conciergeReview) { review in
-            // The same review Profile hands to Concierge, presented here because neither Onboarding
-            // nor Collection has a Concierge page to hand it to.
+            // The same review Profile hands to Concierge, presented here only outside a journey
+            // (Onboarding, the pager's Collection / Home), which has no stack to push it onto.
             NavigationStack {
                 ConciergeView(assistantEnabled: true, initialPrompt: review.text) { destination in
                     conciergeReview = nil
@@ -305,6 +317,7 @@ struct ImportSourceChooser: View {
                 // The review sheet's own presentation context (ConciergeView reads its routes).
                 .routePresenter()
             }
+            .presentationDragIndicator(.visible)
         }
     }
 

@@ -210,6 +210,8 @@ struct ClubDetailView: View {
                 .kuroLeavesJourney()
             }
         }
+        // N10: a deep link to this club (already on top) keeps the journey and closes these tools.
+        .kuroNavigationLayer("club.settings", isPresented: $showSettings)
         .sheet(isPresented: $showCreateRail) {
             CreateClubRailSheet(clubId: clubId) {
                 guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
@@ -218,6 +220,7 @@ struct ClubDetailView: View {
             }
             .kuroLeavesJourney()
         }
+        .kuroNavigationLayer("club.createRail", isPresented: $showCreateRail)
         .sheet(isPresented: $showCreatePoll) {
             CreateClubPollSheet(clubId: clubId) {
                 guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
@@ -226,6 +229,7 @@ struct ClubDetailView: View {
             }
             .kuroLeavesJourney()
         }
+        .kuroNavigationLayer("club.createPoll", isPresented: $showCreatePoll)
         .sheet(isPresented: Binding(
             get: { addToRailId != nil },
             set: { if !$0 { addToRailId = nil } }
@@ -239,9 +243,12 @@ struct ClubDetailView: View {
                 .kuroLeavesJourney()
             }
         }
+        .kuroNavigationLayer("club.addItem", item: $addToRailId)
         // Inside a journey this forwards: rail items and "This week" entries push their title onto the
         // journey's stack. Outside one (previews, snapshot tests) it presents as before.
         .routePresenter()
+        // VoiceOver escape: Back when pushed, ✕ on the journey's first page (N1/N3).
+        .kuroJourneyEscape()
     }
 
     // MARK: - Journal Content

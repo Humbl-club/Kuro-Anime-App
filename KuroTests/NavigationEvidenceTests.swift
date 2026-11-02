@@ -7,7 +7,8 @@ import UIKit
 /// Visual evidence for the navigation contract integration (spec §5 "snapshot/fixture renders"): every
 /// page is rendered inside a real `JourneyHost`, no network (nil clients / an in-process stub).
 /// - anime detail as a journey's first page over dark and light artwork, at the top (round keys over
-///   the hero) and scrolled (paper compact bar with the title, ink glyphs);
+///   the hero), part way through the collapse (H2) and scrolled (paper compact bar with the title, ink
+///   glyphs);
 /// - a pushed character page (Back + ✕);
 /// - club detail at the top and scrolled (compact bar);
 /// - the story fold, folded and unfolded (session fold memory).
@@ -45,6 +46,11 @@ struct NavigationEvidenceTests {
             try? await Task.sleep(for: .milliseconds(1_000))
             await capture(window, name: "detail-\(tone)-top-390.png")
             #expect(navigator.path.isEmpty)
+            // H2: part way through the collapse (p ≈ 0.3): one glyph colour on its whole key, never a
+            // white/ink blend over a half-faded backdrop.
+            if let scroll = Self.scrollView(in: window) { scroll.setContentOffset(CGPoint(x: 0, y: 50), animated: false) }
+            try? await Task.sleep(for: .milliseconds(500))
+            await capture(window, name: "detail-\(tone)-mid-collapse-390.png")
             if let scroll = Self.scrollView(in: window) { scroll.setContentOffset(CGPoint(x: 0, y: 420), animated: false) }
             try? await Task.sleep(for: .milliseconds(700))
             await capture(window, name: "detail-\(tone)-scrolled-compact-bar-390.png")

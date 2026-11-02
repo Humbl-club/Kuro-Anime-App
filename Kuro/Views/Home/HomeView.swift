@@ -155,12 +155,15 @@ struct HomeView: View {
                 onImportNavigation?(destination)
             }
         }
+        // N10: a deep link collapses this page's own sheets too.
+        .kuroNavigationLayer("home.import", isPresented: $showImportChooser)
         .sheet(isPresented: $showImportRecovery) {
             ImportWorkflowSheet(imports: imports, job: importRecoveryJob) { destination in
                 showImportRecovery = false
                 onImportNavigation?(destination)
             }
         }
+        .kuroNavigationLayer("home.importRecovery", isPresented: $showImportRecovery)
         .task {
             guard !skipNetworkLoad else { return }
             home.restoreMedium()

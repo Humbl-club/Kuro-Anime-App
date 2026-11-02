@@ -164,6 +164,8 @@ struct ConciergeView: View {
             }
             .environment(\.shellPageLifetime, nil)
         }
+        // N10: a deep link collapses this page's own sheets too.
+        .kuroNavigationLayer("concierge.anilist", isPresented: $showAniListImportSheet)
         .sheet(item: $importWorkflowJob) { job in
             let origin = workflow.capture(session: imports.accountSession)
             ImportWorkflowSheet(imports: imports, job: job) { destination in
@@ -172,6 +174,7 @@ struct ConciergeView: View {
             }
             .environment(\.shellPageLifetime, nil)
         }
+        .kuroNavigationLayer("concierge.importReview", item: $importWorkflowJob)
         .onAppear {
             workflow.activate(session: imports.accountSession)
             let lifetime = workflow

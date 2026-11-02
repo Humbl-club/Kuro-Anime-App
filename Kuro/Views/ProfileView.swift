@@ -23,6 +23,8 @@ struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.kuroRoutes) private var routes
     @Environment(\.kuroJourney) private var journey
+    /// Session fold memory (F3: Advanced stays open when coming back to Profile).
+    @Environment(\.kuroFoldMemory) private var folds
     @Environment(\.shellPageLifetime) private var pageLifetime
     @Environment(LibraryStore.self) private var library
     @Environment(IdentityStore.self) private var identity
@@ -116,8 +118,9 @@ struct ProfileView: View {
         .background(ProfileMALWindowAnchor { malPresentationAnchor = $0 }.frame(width: 0, height: 0))
         .scrollContentBackground(.hidden)
         // Kept from the native polish pass: Profile mutations and toasts change rows in place without
-        // implicit motion (rulebook §8 asks to keep this suppression).
-        .transaction { $0.animation = nil }
+        // implicit motion (rulebook §8 asks to keep this suppression). Fold toggles (Advanced) are
+        // exempt: they keep the prototype easing (navigation contract F1).
+        .transaction { if !$0.isKuroFold { $0.animation = nil } }
         .task(id: identity.currentUserId) {
             // Back from a pushed page (Clubs, Data sources, Find, Concierge): the import work kept
             // running for this account, so only the list preview is read again (its own TTL).
@@ -530,6 +533,7 @@ struct ProfileView: View {
             .sheet(isPresented: $showServicePicker) {
                 StreamingServicePickerSheet()
                     .environment(\.shellPageLifetime, nil)
+                    .presentationDragIndicator(.visible)
             }
 
             if isSyncing {
@@ -708,34 +712,51 @@ struct ProfileView: View {
 
     private var advancedSection: some View {
         let german = isGermanLocale
+        // F1–F3: the shared fold control (prototype easing, instant with Reduce Motion, says what it
+        // does, remembered for the session).
+        let advanced = folds.binding(page: "profile", section: "advanced")
         return profileGroup {
-            DisclosureGroup {
-                VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-                    ProfileQuietRow(
-                        title: german ? "Cache leeren" : "Clear cache",
-                        subtitle: german ? "Setzt Bild- und Detail-Caches zurück" : "Resets image and detail caches",
-                        horizontalPadding: 0
-                    ) {
-                        Task {
-                            await KuroDiskDetailCache.clearAll()
-                            await artworkMaterials.clearAll()
-                            URLCache.shared.removeAllCachedResponses()
-                            KuroAccessibility.successHaptic()
-                            showToast(.success, title: german ? "Cache geleert" : "Cache cleared", subtitle: nil)
+            VStack(alignment: .leading, spacing: 0) {
+                KuroFoldButton(isExpanded: advanced,
+                               expandLabel: KuroLocale.text("Show advanced", "Erweitert anzeigen"),
+                               collapseLabel: KuroLocale.text("Hide advanced", "Erweitert ausblenden")) { title, open in
+                    HStack {
+                        Text(title)
+                            .font(.kuroBody(weight: .regular))
+                            .foregroundStyle(Color.kuroInkSecondary)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.right")
+                            .font(.kuroCaption(weight: .medium))
+                            .foregroundStyle(Color.kuroInk)
+                            .rotationEffect(.degrees(open ? 90 : 0))
+                            .accessibilityHidden(true)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                }
+                .accessibilityIdentifier("profile.advanced")
+                if advanced.wrappedValue {
+                    VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
+                        ProfileQuietRow(
+                            title: german ? "Cache leeren" : "Clear cache",
+                            subtitle: german ? "Setzt Bild- und Detail-Caches zurück" : "Resets image and detail caches",
+                            horizontalPadding: 0
+                        ) {
+                            Task {
+                                await KuroDiskDetailCache.clearAll()
+                                await artworkMaterials.clearAll()
+                                URLCache.shared.removeAllCachedResponses()
+                                KuroAccessibility.successHaptic()
+                                showToast(.success, title: german ? "Cache geleert" : "Cache cleared", subtitle: nil)
+                            }
+                        }
+                        if flags.isStreamingAvailabilityV1Enabled {
+                            streamingFreshnessPreview
                         }
                     }
-                    if flags.isStreamingAvailabilityV1Enabled {
-                        streamingFreshnessPreview
-                    }
+                    .padding(.bottom, KuroDesignSpacing.sm)
+                    .transition(.opacity)
                 }
-                .padding(.bottom, KuroDesignSpacing.sm)
-            } label: {
-                Text(german ? "Erweitert" : "Advanced")
-                    .font(.kuroBody(weight: .regular))
-                    .foregroundStyle(Color.kuroInkSecondary)
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }
-            .tint(Color.kuroInk)
         }
     }
 

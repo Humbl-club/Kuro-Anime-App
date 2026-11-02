@@ -299,6 +299,8 @@ struct QuickVerdictActionCard: View {
         .sheet(isPresented: $showAdvancedEdit) {
             AddToListSheet(media: media)
         }
+        // N10: a deep link collapses this card's editor too.
+        .kuroNavigationLayer("verdict.edit", isPresented: $showAdvancedEdit)
         .onChange(of: networkMonitor.isConnected) { _, isConnected in
             if isConnected {
                 mutationMessage = nil

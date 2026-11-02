@@ -99,7 +99,8 @@ final class JourneyNavigator {
             open: { [weak self] route in self?.open(route) },
             pop: { [weak self] in self?.pop() },
             close: { [weak self] in self?.close() },
-            isCovered: { [weak self] in self?.isCoveredByForeignSheet ?? false }
+            isCovered: { [weak self] in self?.isCoveredByForeignSheet ?? false },
+            journeyID: ObjectIdentifier(self)
         )
     }
 }
@@ -118,6 +119,9 @@ struct JourneyContext {
     let close: () -> Void
     /// A sheet the host did not present covers the journey (see the nesting rule).
     let isCovered: () -> Bool
+    /// The journey's identity (its navigator): a sheet a page of this journey presents registers under
+    /// it, so a deep link that keeps the journey closes that sheet (N10).
+    var journeyID: ObjectIdentifier? = nil
 
     /// ✕ on a journey page: closes the whole journey (N3) — unless a foreign sheet covers the journey,
     /// in which case the tapped control belongs to that sheet and `fallback` (its `dismiss`) runs.
@@ -161,12 +165,14 @@ extension JourneyContext {
 }
 
 private struct KuroJourneyRefreshable: ViewModifier {
-    let action: @Sendable () async -> Void
+    /// MainActor-typed: SwiftUI's own `.refreshable` inherits the caller's actor (`@_inheritActorContext`);
+    /// a plain `@Sendable` parameter would not, and every view-body closure would run off the main actor.
+    let action: @MainActor @Sendable () async -> Void
     @Environment(\.kuroJourney) private var journey
 
     func body(content: Content) -> some View {
         if JourneyContext.allowsPullToRefresh(inJourney: journey != nil, isPushed: journey?.isPushed ?? false) {
-            content.refreshable(action: action)
+            content.refreshable { await action() }
         } else {
             content
         }
@@ -176,7 +182,7 @@ private struct KuroJourneyRefreshable: ViewModifier {
 extension View {
     /// `.refreshable` for a view that can be a journey's first page: refresh everywhere except there,
     /// where pull-down must dismiss the journey (H4).
-    func kuroJourneyRefreshable(action: @escaping @Sendable () async -> Void) -> some View {
+    func kuroJourneyRefreshable(action: @escaping @MainActor @Sendable () async -> Void) -> some View {
         modifier(KuroJourneyRefreshable(action: action))
     }
 }

@@ -329,6 +329,8 @@ struct BrowseView: View {
                 }
             }
         }
+        // N10: a deep link collapses the filters too.
+        .kuroNavigationLayer("browse.filters", isPresented: $showFiltersSheet)
         .task {
             if !didInitialLoad {
                 didInitialLoad = true

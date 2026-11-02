@@ -94,6 +94,7 @@ struct ImportWorkflowSheet: View {
         }
         .tint(Color.kuroInk)
         .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
         .task { model.activate(); await model.load() }
         .onDisappear { model.close() }
         .onChange(of: imports.accountSession.current) { _, _ in model.close(); dismiss() }
@@ -103,6 +104,7 @@ struct ImportWorkflowSheet: View {
                 matchingItem = nil
                 Task { await model.match(item, mediaId: mediaId) }
             }
+            .presentationDragIndicator(.visible)
         }
         .confirmationDialog(german ? "Restliche Arbeit anhalten?" : "Stop remaining import work?", isPresented: $confirmStop, titleVisibility: .visible) {
             Button(german ? "Restliche Arbeit anhalten" : "Stop remaining work", role: .destructive) { Task { await model.stop() } }

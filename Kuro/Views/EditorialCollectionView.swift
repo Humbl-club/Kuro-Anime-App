@@ -185,6 +185,8 @@ struct EditorialCollectionView: View {
                 show(FolioNotice(tone: toast.kind == .error ? .problem : .confirmation, message: toast.title, actionTitle: nil))
             }
         }
+        // N10: a deep link collapses this page's own sheets too.
+        .kuroNavigationLayer("collection.classify", item: $classifyTarget)
         .sheet(isPresented: $showImportChooser) {
             ImportSourceChooser { destination in
                 showImportChooser = false
@@ -194,6 +196,7 @@ struct EditorialCollectionView: View {
                 }
             }
         }
+        .kuroNavigationLayer("collection.import", isPresented: $showImportChooser)
         .onAppear { mountedAccount = collection.accountSession.current }
         .onDisappear {
             mountedAccount = nil

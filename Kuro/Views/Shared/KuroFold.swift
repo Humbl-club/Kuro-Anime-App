@@ -69,10 +69,31 @@ enum KuroFold {
         KuroMotion.playsMotionNow(reduceMotion: reduceMotion) ? KuroMotion.settle : nil
     }
 
+    /// The transaction a fold toggle runs in: its animation, marked so a page that suppresses implicit
+    /// motion (`.transaction { if !$0.isKuroFold { $0.animation = nil } }`, Profile) still lets the fold
+    /// animate (F1).
+    static func transaction(reduceMotion: Bool) -> Transaction {
+        var transaction = Transaction(animation: animation(reduceMotion: reduceMotion))
+        transaction.isKuroFold = true
+        return transaction
+    }
+
     /// VoiceOver's value for the control (F2).
     nonisolated static func accessibilityValue(expanded: Bool, german: Bool) -> String {
         if german { return expanded ? "Aufgeklappt" : "Zugeklappt" }
         return expanded ? "Expanded" : "Collapsed"
+    }
+}
+
+private struct KuroFoldTransactionKey: TransactionKey {
+    static let defaultValue = false
+}
+
+extension Transaction {
+    /// The change is a fold toggle (`KuroFold.transaction`).
+    var isKuroFold: Bool {
+        get { self[KuroFoldTransactionKey.self] }
+        set { self[KuroFoldTransactionKey.self] = newValue }
     }
 }
 
@@ -101,7 +122,7 @@ struct KuroFoldButton<Label: View>: View {
     var body: some View {
         Button {
             let collapsing = isExpanded
-            withAnimation(KuroFold.animation(reduceMotion: reduceMotion)) { isExpanded.toggle() }
+            withTransaction(KuroFold.transaction(reduceMotion: reduceMotion)) { isExpanded.toggle() }
             if collapsing { onCollapse?() }
         } label: {
             label(isExpanded ? collapseLabel : expandLabel, isExpanded)

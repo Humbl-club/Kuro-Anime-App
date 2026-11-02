@@ -269,6 +269,99 @@ struct JourneyPolicyTests {
                 == [.closeSheets(["profile"]), .closeJourney, .openJourney(a)])
     }
 
+    @Test("N10: a link to the top of a header journey (Search, Profile) keeps it; its tool closes")
+    func sameTargetOnTopOfHeaderJourney() {
+        var snapshot = NavigationCollapsePolicy.Snapshot()
+        snapshot.openSheets = ["search#1"]
+        snapshot.sheetJourneyTops = ["search#1": a]
+        #expect(NavigationCollapsePolicy.plan(snapshot, target: .journey(a)) == [.keepJourney])
+        snapshot.sheetJourneyTools = ["search#1"]
+        #expect(NavigationCollapsePolicy.plan(snapshot, target: .journey(a))
+                == [.closeSheetJourneyTool("search#1"), .keepJourney])
+        // A different target still collapses the header journey.
+        #expect(NavigationCollapsePolicy.plan(snapshot, target: .journey(b))
+                == [.closeSheets(["search#1"]), .openJourney(b)])
+        // Another sheet open beside it: no keep.
+        snapshot.openSheets = ["clubs.create#2", "search#1"]
+        #expect(NavigationCollapsePolicy.plan(snapshot, target: .journey(a))
+                == [.closeSheets(["clubs.create#2", "search#1"]), .openJourney(a)])
+    }
+
+    @Test("N10: keeping a journey also closes the sheets its pages presented (club settings, providers)")
+    func keptJourneyClosesItsPageSheets() {
+        var snapshot = NavigationCollapsePolicy.Snapshot()
+        snapshot.journeyTop = a
+        snapshot.journeySheets = [NavigationCollapsePolicy.rootJourney: ["club.settings#1"]]
+        let steps = NavigationCollapsePolicy.plan(snapshot, target: .journey(a))
+        #expect(steps == [.closeJourneySheets(["club.settings#1"]), .keepJourney])
+        #expect(NavigationCollapsePolicy.needsDismissalWait(steps))
+        // A different target closes the whole journey (its sheets go with it).
+        #expect(NavigationCollapsePolicy.plan(snapshot, target: .journey(b)) == [.closeJourney, .openJourney(b)])
+    }
+
+    @Test("N10: a pager page's own sheet (Clubs → Create) collapses before the target opens")
+    func pagerPageSheetCollapses() {
+        var snapshot = NavigationCollapsePolicy.Snapshot()
+        snapshot.openSheets = ["clubs.create#1"]
+        let steps = NavigationCollapsePolicy.plan(snapshot, target: .journey(a))
+        #expect(steps == [.closeSheets(["clubs.create#1"]), .openJourney(a)])
+        #expect(NavigationCollapsePolicy.needsDismissalWait(steps))
+        // Something unregistered over the pager is still dismissed first.
+        var foreign = NavigationCollapsePolicy.Snapshot()
+        foreign.foreignSheetOpen = true
+        let foreignSteps = NavigationCollapsePolicy.plan(foreign, target: .page)
+        #expect(foreignSteps == [.closeForeignSheet, .performPageAction])
+        #expect(NavigationCollapsePolicy.needsDismissalWait(foreignSteps))
+    }
+
+    @Test("N10: a second link during the first link's dismissal waits instead of presenting at once")
+    func dismissalInFlightWaits() {
+        var snapshot = NavigationCollapsePolicy.Snapshot()
+        snapshot.dismissalInFlight = true
+        let steps = NavigationCollapsePolicy.plan(snapshot, target: .journey(b))
+        #expect(steps == [.awaitDismissalInFlight, .openJourney(b)])
+        #expect(NavigationCollapsePolicy.needsDismissalWait(steps))
+        #expect(!NavigationCollapsePolicy.needsDismissalWait(NavigationCollapsePolicy.plan(.init(), target: .journey(b))))
+    }
+
+    @Test("Coordinator: a second link inside the dismissal window waits, and the last link wins")
+    func coordinatorSecondLinkWaits() async throws {
+        let navigation = KuroNavigationCoordinator(dismissalDelay: .milliseconds(150))
+        var profileOpen = true
+        navigation.registerLayer("profile#1", kind: .sheet, isPresented: { profileOpen }, close: { profileOpen = false })
+        navigation.collapseThenOpen(a)
+        #expect(!profileOpen)
+        #expect(navigation.snapshot.dismissalInFlight)
+        navigation.collapseThenOpen(b)                // nothing open any more, but the dismissal still runs
+        #expect(navigation.journey == nil)            // not presented at once
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(navigation.journey?.root == b)
+        #expect(!navigation.snapshot.dismissalInFlight)
+    }
+
+    @Test("Coordinator: a header journey's top and its page's sheets reach the snapshot")
+    func coordinatorHeaderJourneySnapshot() {
+        let navigation = KuroNavigationCoordinator(dismissalDelay: .zero)
+        let search = JourneyNavigator(root: c)
+        search.open(a)
+        var searchOpen = true
+        var settingsOpen = true
+        navigation.registerLayer("search#1", kind: .sheet, isPresented: { searchOpen }, close: { searchOpen = false })
+        navigation.attachJourney(search, toLayer: "search")
+        navigation.registerLayer("detail.providers#9", kind: .sheet, presentedInJourney: ObjectIdentifier(search),
+                                 isPresented: { settingsOpen }, close: { settingsOpen = false })
+        let snapshot = navigation.snapshot
+        #expect(snapshot.openSheets == ["search#1"])
+        #expect(snapshot.sheetJourneyTops == ["search#1": a])
+        #expect(snapshot.journeySheets == ["search#1": ["detail.providers#9"]])
+        navigation.collapseThenOpen(a)
+        #expect(searchOpen)                          // kept
+        #expect(!settingsOpen)                       // the page's sheet closed
+        #expect(search.path == [a])
+        navigation.detachJourney(search, fromLayer: "search")
+        #expect(navigation.snapshot.sheetJourneyTops.isEmpty)
+    }
+
     @Test("Coordinator: closes registered sheets, then opens the journey; a held link runs after the cover")
     func coordinator() async throws {
         let navigation = KuroNavigationCoordinator(dismissalDelay: .zero)
@@ -314,8 +407,49 @@ struct JourneyPolicyTests {
         #expect(KuroCollapse.displayProgress(0.3, reduceMotion: true) == 0)
         #expect(KuroCollapse.displayProgress(0.5, reduceMotion: true) == 1)
         #expect(KuroCollapse.keyOpacity(0) == 1)
+        #expect(KuroCollapse.keyOpacity(0.49) == 1)
+        #expect(KuroCollapse.keyOpacity(0.5) == 0)
         #expect(KuroCollapse.keyOpacity(0.6) == 0)
         #expect(KuroCollapse.keyOpacity(1) == 0)
+        #expect(KuroCollapse.barOpacity(0.25) == 0.5)
+        #expect(KuroCollapse.barOpacity(0.5) == 1)
+        #expect(KuroCollapse.titleOpacity(0.49) == 0)
+        #expect(KuroCollapse.titleOpacity(0.5) == 1)
+    }
+
+    /// H2 (WCAG 1.4.11): the composited Back / ✕ glyph keeps ≥ 3:1 against what is behind it at EVERY
+    /// collapse progress, over dark, mid and light artwork, with and without a material; the compact
+    /// bar's title keeps ≥ 4.5:1 wherever it is visible. (Before the fix, white and ink glyphs cross-faded
+    /// over a fading disc and bar: about 1:1 near p ≈ 0.3.)
+    @Test("H2: chrome glyphs ≥ 3:1 and the bar title ≥ 4.5:1 at every collapse progress")
+    func chromeContrastAcrossProgress() throws {
+        let ink = try #require(KuroRGB(hex: "#252625"))
+        let paper = try #require(KuroRGB(hex: "#F5F5F4"))
+        let neutralDisc = try #require(KuroRGB(hex: "#EDEEEC"))
+        let white = KuroRGB(1, 1, 1)
+        func contrast(_ a: KuroRGB, _ b: KuroRGB) -> Double {
+            let (l1, l2) = (max(a.luminance, b.luminance), min(a.luminance, b.luminance))
+            return (l1 + 0.05) / (l2 + 0.05)
+        }
+        let arts = try ["#000000", "#2b3a55", "#808080", "#e8e2c8", "#ffffff"].map { try #require(KuroRGB(hex: $0)) }
+        let materials: [ArtworkMaterial?] = [nil, .neutral, .fromHex("#2b3a55"), .fromHex("#e8e2c8"), .fromHex("#c0392b")]
+        for step in 0...100 {
+            let p = CGFloat(step) / 100
+            for art in arts {
+                // The bar's paper over the artwork at its opacity.
+                let bar = KuroRGB.mix(art, paper, Double(KuroCollapse.barOpacity(p)))
+                for material in materials {
+                    let disc = material?.base ?? neutralDisc
+                    let key = KuroRGB.mix(bar, disc, Double(KuroCollapse.keyOpacity(p)))
+                    let glyph = KuroJourneyChromeKey.glyphIsWhite(progress: p, hasMaterial: material != nil) ? white : ink
+                    #expect(contrast(glyph, key) >= 3, "glyph at p=\(p) over \(art.hex), material \(material?.base.hex ?? "none")")
+                }
+                if KuroCollapse.titleOpacity(p) > 0 {
+                    let title = KuroRGB.mix(bar, ink, Double(KuroCollapse.titleOpacity(p)))
+                    #expect(contrast(title, bar) >= 4.5, "title at p=\(p) over \(art.hex)")
+                }
+            }
+        }
     }
 
     // MARK: Folds (F2, F3)

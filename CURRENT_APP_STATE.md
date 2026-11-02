@@ -19815,3 +19815,30 @@ Clubs, Home season overview and the tool sheets of this lane follow the navigati
   - `run_all.sh` with `SKIP_IOS_BUILD=1 SKIP_IOS_TEST=1 SKIP_RAILS_AUDIT=1`: 11 PASS (incl. navigation, docs-current-state, architecture, branded-states), local-db and live-services BLOCKED as expected, 3 SKIP.
 - Lane worktrees `/Users/max/Kuro-wt/nav-{detail,entity,clubs,shell}` were removed. No `Kuro-Lane-nav-*` simulators remained; the lanes created and deleted their own.
 - Inventory: 224 app Swift files, 67 KuroTests files, 5 KuroUITests files.
+
+### Change Log — 2 November 2026: Navigation review fixes (local, not deployed)
+- Fourteen reviewer findings were checked against the code. All were real. Three were duplicates of another finding, so there are eleven fixes and nothing was rejected. Details and the per-rule compliance table: `docs/navigation-2026-11-02/INDEX.md`.
+- **N10 collapse:**
+  - **Pager-page sheets.** Every page-level sheet registers with `.kuroNavigationLayer` (new `item:` overload; one registration per view instance, `"<name>#<uuid>"`): Clubs create/join, Collection classify/import, Browse filters, Home import/recovery, the verdict card's editor, Concierge AniList/import-review/Why-this.
+  - **Kept journeys.** Journey-page tool sheets register too (anime/manga verdict and providers; club settings, new rail, new poll, add a title). Each records its journey (`JourneyContext.journeyID`), so a link that keeps the journey closes them (`.closeJourneySheets`).
+  - **Header journeys.** `ShellJourneyHost(root:layer:)` attaches its navigator, so a link to the top of Profile, Search or Concierge keeps that journey (`sheetJourneyTops`, `.closeSheetJourneyTool`).
+  - **A second link during a dismissal** waits (`Snapshot.dismissalInFlight` → `.awaitDismissalInFlight`).
+  - **Last resort.** An unregistered presentation over the pager is dismissed through UIKit (`foreignSheetOpen`; `KuroPresenterProbe` resolves the root controller; DEBUG logs it).
+- **Isolation:** `.kuroJourneyRefreshable` takes a `@MainActor @Sendable` action (`content.refreshable { await action() }`). The two Release warnings it introduced (`JourneyHost.swift:169`, `ClubDetailView.swift:194`) are gone, and no warning is new.
+- **H2 contrast:** `KuroCollapse.handover` (0.5).
+  - Below it: a whole material disc with a white glyph.
+  - From it: an ink glyph on a paper bar that is solid by then (`barOpacity`).
+  - The title shows from the handover (`titleOpacity`).
+  - Two glyph colours never cross-fade. A pure test checks composited contrast: glyph ≥ 3:1 and title ≥ 4.5:1 at every progress.
+- **Accessibility:** the chrome bar and `JournalStatusBar` get sort priority 1. New `.kuroJourneyEscape()` (escape gesture = Back when pushed, ✕ on a journey's first page) on chrome pages and club detail.
+- **N7:** the AniList import sheet blocks swipe-down while busy, and Done becomes a confirmed Stop that resets the form.
+- **N8:** grabbers added to the AniList import sheet, `ImportWorkflowSheet`, `ImportCatalogMatchPicker`, the chooser's Concierge review sheet and `StreamingServicePickerSheet`.
+- **§1/N9:** inside a journey, `ImportSourceChooser` pushes the Concierge review onto that journey and closes; the sheet stays only for Onboarding and the pager's pages.
+- **F1–F3:** Profile "Advanced" is a `KuroFoldButton` with session memory (`profile#advanced`). `KuroFold.transaction` marks fold toggles, so Profile's animation suppression lets them animate.
+- **Verification** (owned simulator):
+  - KuroTests 872/872.
+  - `NavigationContractUITests` 11/11, including the new `testDeepLinkCollapsesPagerPageSheetThenOpensTarget`. Negative control: it fails with the fix removed.
+  - `NavshellUITests` 4/4.
+  - Release build OK.
+  - `check_navigation.sh` 0 offenders.
+- No new Swift files; inventory unchanged.

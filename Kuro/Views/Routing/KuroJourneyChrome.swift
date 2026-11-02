@@ -12,11 +12,14 @@ import UIKit
 //
 // - Back chevron (only when pushed, `JourneyContext.isPushed`) top-left, ✕ top-right, 44 pt each,
 //   "Back"/"Zurück" and "Close"/"Schließen" for VoiceOver (N1, N3).
-// - Over the artwork (progress 0) they are the round material keys (`ArtworkMaterial.base`, white
-//   glyph; neutral paper key without a material); in the compact bar (progress 1) plain ink glyphs.
-// - The compact bar (paper `kuroPaper`, hairline `kuroLine`, one-line title) fades in with the
-//   progress (H1); the controls never scroll away (H2). Reduce Motion: the bar snaps at half way with a
-//   short cross-fade (H3).
+// - Over the artwork they are the round material keys (`ArtworkMaterial.base`, white glyph, ≥ 7:1;
+//   neutral paper key with an ink glyph without a material); in the compact bar plain ink glyphs.
+//   ONE glyph colour at a time, switched at one threshold (`KuroCollapse.handover`, half way): two
+//   glyph colours never cross-fade over a fading backdrop (they would blend into it, H2).
+// - The compact bar (paper `kuroPaper`, hairline `kuroLine`) fades in with the progress and is solid
+//   by the handover (H1), so the ink glyph and the one-line title (shown from the handover) always
+//   sit on solid paper; the controls never scroll away (H2). Reduce Motion: the bar snaps at half way
+//   with a short cross-fade (H3).
 // - The system bar and back button are hidden and edge swipe-back is restored (N2).
 // - A page with no artwork passes `collapseProgress: 1` (the compact bar from the start).
 // Outside a journey (a legacy sheet) the chrome shows ✕ only and ✕ dismisses the sheet.
@@ -35,9 +38,28 @@ enum KuroCollapse {
         return raw >= 0.5 ? 1 : 0
     }
 
-    /// The round material key's opacity (fully gone by 60 % so the glyphs never double up).
+    /// Where the controls hand over from the round keys over the artwork to plain ink glyphs on the bar.
+    nonisolated static let handover: CGFloat = 0.5
+
+    /// The controls still sit over the artwork (round key, its own glyph colour).
+    nonisolated static func controlsOnArt(_ progress: CGFloat) -> Bool {
+        progress < handover
+    }
+
+    /// The round key's opacity: whole until the handover, then gone (never a half-transparent disc
+    /// under a glyph).
     nonisolated static func keyOpacity(_ progress: CGFloat) -> CGFloat {
-        max(0, 1 - progress / 0.6)
+        controlsOnArt(progress) ? 1 : 0
+    }
+
+    /// The compact bar's opacity: solid by the handover.
+    nonisolated static func barOpacity(_ progress: CGFloat) -> CGFloat {
+        min(1, max(0, progress / handover))
+    }
+
+    /// The compact bar's title: shown from the handover (on solid paper), never faint over artwork.
+    nonisolated static func titleOpacity(_ progress: CGFloat) -> CGFloat {
+        controlsOnArt(progress) ? 0 : 1
     }
 }
 
@@ -75,6 +97,30 @@ private struct KuroJourneyChromeModifier: ViewModifier {
             .overlay(alignment: .top) {
                 KuroJourneyChrome(title: title, progress: progress, material: material)
             }
+            .kuroJourneyEscape()
+    }
+}
+
+extension View {
+    /// The VoiceOver escape gesture (two-finger Z) on a journey page whose system bar is hidden: Back on
+    /// a pushed page (N1), ✕ on the journey's first page (N3); outside a journey it dismisses the sheet.
+    func kuroJourneyEscape() -> some View {
+        modifier(KuroJourneyEscapeModifier())
+    }
+}
+
+private struct KuroJourneyEscapeModifier: ViewModifier {
+    @Environment(\.kuroJourney) private var journey
+    @Environment(\.dismiss) private var dismiss
+
+    func body(content: Content) -> some View {
+        content.accessibilityAction(.escape) {
+            if let journey {
+                if journey.isPushed { journey.pop() } else { journey.closeOrDismiss { dismiss() } }
+            } else {
+                dismiss()
+            }
+        }
     }
 }
 
@@ -92,6 +138,7 @@ struct KuroJourneyChrome: View {
 
     var body: some View {
         let shown = KuroCollapse.displayProgress(progress, reduceMotion: reduceMotion)
+        let onArt = KuroCollapse.controlsOnArt(shown)
         HStack(spacing: 8) {
             if journey?.isPushed == true {
                 KuroJourneyChromeKey(kind: .back, progress: shown, material: material) { journey?.pop() }
@@ -103,9 +150,9 @@ struct KuroJourneyChrome: View {
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: journey?.isPushed == true ? .leading : .center)
                 .padding(.leading, journey?.isPushed == true ? 0 : 52)
-                .opacity(shown)
+                .opacity(KuroCollapse.titleOpacity(shown))
                 .accessibilityAddTraits(.isHeader)
-                .accessibilityHidden(shown < 0.5)
+                .accessibilityHidden(onArt)
             KuroJourneyChromeKey(kind: .close, progress: shown, material: material) {
                 if let journey { journey.closeOrDismiss { dismiss() } } else { dismiss() }
             }
@@ -118,10 +165,14 @@ struct KuroJourneyChrome: View {
                     Rectangle().fill(Color.kuroLine).frame(height: 0.5)
                 }
                 .ignoresSafeArea(edges: .top)
-                .opacity(shown)
+                .opacity(KuroCollapse.barOpacity(shown))
                 .allowsHitTesting(false)
         }
+        // Back (or the title once shown) first after a push or pop, before the page's content.
+        .accessibilityElement(children: .contain)
+        .accessibilitySortPriority(1)
         .animation(reduceMotion ? .easeInOut(duration: 0.2) : nil, value: shown)
+        .kuroAnimation(KuroMotion.settle, value: onArt)
     }
 }
 
@@ -141,24 +192,23 @@ struct KuroJourneyChromeKey: View {
     var material: ArtworkMaterial? = nil
     let action: () -> Void
 
+    /// The glyph colour: white on a material key, ink on the neutral key and on the bar (one at a time).
+    nonisolated static func glyphIsWhite(progress: CGFloat, hasMaterial: Bool) -> Bool {
+        hasMaterial && KuroCollapse.controlsOnArt(progress)
+    }
+
     var body: some View {
-        let keyOpacity = KuroCollapse.keyOpacity(progress)
-        let onArtGlyph: Color = material == nil ? .kuroInk : .white
+        let white = Self.glyphIsWhite(progress: progress, hasMaterial: material != nil)
         Button(action: action) {
             ZStack {
                 Circle()
                     .fill(material?.base.color ?? Color(hex: "EDEEEC"))
                     .overlay(Circle().strokeBorder(Color.white.opacity(0x45 / 255.0), lineWidth: 1))
                     .frame(width: 44, height: 44)
-                    .opacity(keyOpacity)
+                    .opacity(KuroCollapse.keyOpacity(progress))
                 Image(systemName: kind.symbol)
                     .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 20))
-                    .foregroundStyle(onArtGlyph)
-                    .opacity(keyOpacity)
-                Image(systemName: kind.symbol)
-                    .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 20))
-                    .foregroundStyle(Color.kuroInk)
-                    .opacity(1 - keyOpacity)
+                    .foregroundStyle(white ? Color.white : Color.kuroInk)
             }
             .frame(width: 44, height: 44)
             .contentShape(Rectangle())

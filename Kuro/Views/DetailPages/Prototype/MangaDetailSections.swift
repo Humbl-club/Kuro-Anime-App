@@ -242,6 +242,8 @@ struct MangaDetailPage: View {
             QuickVerdictPickerSheet(media: manga, onToast: showToast)
                 .kuroLeavesJourney()
         }
+        // N10: a deep link to this title (already on top) keeps the journey and closes these tools.
+        .kuroNavigationLayer("detail.verdict", isPresented: $showVerdict)
         .confirmationDialog(DetailRemoval.confirmTitle(german: german),
                             isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }),
                             titleVisibility: .visible, presenting: pendingRemoval) { removed in
@@ -260,6 +262,7 @@ struct MangaDetailPage: View {
             }
             .kuroLeavesJourney()
         }
+        .kuroNavigationLayer("detail.providers", isPresented: $showProviders)
         // No page-local presenter: inside a journey every tap pushes and tools open from the journey's
         // tool slot (navigation contract; `\.kuroRoutes` comes from the journey host).
     }

@@ -188,16 +188,27 @@ extension View {
 /// the sheet (see "Page lifetime" above).
 struct ShellJourneyHost: View {
     @State private var lifetime: ShellJourneyLifetime
+    /// The navigation layer this sheet registered as (`.kuroNavigationLayer(layer, …)`): a deep link to
+    /// the page on top of this journey keeps it (N10).
+    private let layer: String?
+    @Environment(\.kuroNavigation) private var navigation
 
-    init(root: JourneyPage) {
+    init(root: JourneyPage, layer: String? = nil) {
         _lifetime = State(initialValue: ShellJourneyLifetime(navigator: JourneyNavigator(root: root)))
+        self.layer = layer
     }
 
     var body: some View {
         JourneyHost(navigator: lifetime.navigator)
             .environment(\.shellJourneyLifetime, lifetime)
             .presentationDragIndicator(.visible)
-            .onDisappear { lifetime.end() }
+            .onAppear {
+                if let layer { navigation?.attachJourney(lifetime.navigator, toLayer: layer) }
+            }
+            .onDisappear {
+                if let layer { navigation?.detachJourney(lifetime.navigator, fromLayer: layer) }
+                lifetime.end()
+            }
     }
 }
 

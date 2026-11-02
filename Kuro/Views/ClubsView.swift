@@ -109,6 +109,8 @@ struct ClubsView: View {
             }
             .kuroLeavesJourney()
         }
+        // N10: a deep link collapses this page's own sheets too.
+        .kuroNavigationLayer("clubs.create", isPresented: $showCreateSheet)
         .sheet(isPresented: $showJoinSheet, onDismiss: { joinPrefillCode = "" }) {
             JoinClubSheet(initialCode: joinPrefillCode) { response in
                 guard actionScope.isCurrent(origin, session: clubs.accountSession) else { return }
@@ -116,6 +118,7 @@ struct ClubsView: View {
             }
             .kuroLeavesJourney()
         }
+        .kuroNavigationLayer("clubs.join", isPresented: $showJoinSheet)
     }
 
     // MARK: - Content
