@@ -46,9 +46,12 @@ All times are UTC. Evidence: `preflight.json` and `postflight.json` in this fold
 
 1. **The catalog import is broken.** I found this in `net._http_response`. The `kuro-import-*` cron calls (10:00, 10:05, 10:10, 10:35) return **401 `{"error":"Unauthorized"}`**, which comes from the function's own `x-import-secret` check. `import_state` was last updated 2026-08-06.
    - Effect: no next-episode dates, no new titles and stale airing data. This blocks the "when is the next episode" feature until it is fixed.
-   - The newly deployed bulk-import functions will get the same 401.
-   - Fix (owner decision): make the `IMPORT_SECRET` function secret and the `x-import-secret` header in cron jobs 101–104 (and 106–112 if they share it) match.
-   - The cron commands also hold the secret and a JWT in plain text in `cron.job`.
+   - **Verified after the deploy:** at 11:00, job 102 called the new `bulk-import-anime` v80. It booted and returned the same 401 from its `x-import-secret` check (`index.ts` line 18). This was not a boot error.
+   - Also verified: at 11:00, the new `manga-chapter-enrich` v67 completed `import_runs` 42079 with status success, 20 processed and 0 errors.
+   - Fix (owner decision): **rotate** the secret. Set a new `IMPORT_SECRET` function secret and put the same new value in the `x-import-secret` header of cron jobs 101–104, and of 106–112 if they share it.
+   - The current value should be treated as exposed, for two reasons:
+     - The cron commands store it in plain text in `cron.job`, together with a JWT.
+     - During this deploy a verification query printed those commands into the operator session's output. They were not written to any committed file.
 2. **`auth-callback` was live with verify_jwt=true**, so browsers got 401, which contradicts its header. It is now deployed with verify_jwt=false as the header specifies, and a GET returns 200.
    - However, Supabase serves HTML from the default `*.supabase.co` domain as `text/plain` with a sandbox CSP, so the re-skinned page shows as source text.
    - It needs a custom domain (or another host) to render. The primary flow (`kuro://auth/callback`) does not depend on this page.
