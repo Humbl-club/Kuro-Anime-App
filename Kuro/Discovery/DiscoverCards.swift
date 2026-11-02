@@ -37,6 +37,15 @@ struct DailyFeature: Identifiable, Codable, Sendable {
 
     var kind: MediaKind { mediaType.uppercased() == "MANGA" ? .manga : .anime }
 
+    /// The argument as one plain line: source descriptions can carry HTML (`<br>`, `<i>`), which
+    /// must never reach the page.
+    var displayArgument: String? {
+        guard let cleaned = TextNormalization.sanitizeMediaDescription(argument) else { return nil }
+        let line = cleaned.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return line.isEmpty ? nil : line
+    }
+
     /// Hero art: banner wins (wide crop), cover as fallback.
     var artURL: URL? {
         guard let raw = bannerImage ?? coverImageLarge, !raw.isEmpty else { return nil }

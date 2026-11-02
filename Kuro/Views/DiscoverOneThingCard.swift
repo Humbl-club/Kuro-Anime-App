@@ -18,7 +18,7 @@ struct DiscoverOneThingCard: View {
         DiscoverLeadFrame(
             kicker: eyebrow ?? Self.defaultEyebrow,
             title: feature.title,
-            line: feature.argument,
+            line: feature.displayArgument,
             imageURL: feature.artURL,
             isWideArt: !(feature.bannerImage ?? "").isEmpty,
             route: MediaRoute(kind: feature.kind, id: feature.mediaId),

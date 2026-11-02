@@ -396,3 +396,18 @@ struct DiscoverCopyAndLayoutTests {
         #expect(!TastePicksCopy.isSettled(personal: nil, bundleLoaded: true, chosen: 0))
     }
 }
+
+@Suite("Today's pick argument is plain text")
+struct DailyFeatureArgumentTests {
+    @Test("HTML from the source never reaches the lead frame; spacing collapses to one line")
+    func argumentIsSanitized() throws {
+        let json = #"{"media_type":"MANGA","media_id":1,"title":"Goodnight Punpun","argument":"Meet Punpun Punyama. He’s an average kid in an average town.<br>\n<br>\nHis <i>dad</i> is gone."}"#
+        let feature = try JSONDecoder().decode(DailyFeature.self, from: Data(json.utf8))
+        let line = try #require(feature.displayArgument)
+        #expect(!line.contains("<"))
+        #expect(!line.contains("\n"))
+        #expect(line.hasPrefix("Meet Punpun Punyama. He’s an average kid in an average town."))
+        let empty = try JSONDecoder().decode(DailyFeature.self, from: Data(#"{"media_type":"ANIME","media_id":2,"title":"x","argument":"<br>"}"#.utf8))
+        #expect(empty.displayArgument == nil)
+    }
+}
