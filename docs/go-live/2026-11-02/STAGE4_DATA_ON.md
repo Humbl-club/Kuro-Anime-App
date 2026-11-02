@@ -211,3 +211,19 @@ error` ("invalid input syntax for type integer": AniList ages are free text such
 drops the column, and both importers store `characters.age` only when it is a plain whole number
 (`characterAge` in `bulk-import-anime/mapping.ts`). Deployed `bulk-import-anime` v84 and
 `bulk-import-manga` v83. The duplicate episode row is left as is (one row, harmless).
+
+### Manga dates: candidate fix (2026-11-02 ~11:50 UTC)
+`92398d7`: `release-intake` mode `manga` now puts RELEASING titles with an active MangaDex link
+(431 of them; only 1 of the top-200 popular had one) ahead of unlinked popular titles. No new
+matching. Deployed; job 117's own command fired once: first manga rows ever — Island of Stars and
+Chains, 10 `mangaupdates` announced chapter dates (58–67, weekly) and one `kuro_estimate` for
+chapter 68 on 2026-11-04. Coverage is bounded by the official-group allowlist (3 MU groups), by
+design: MangaUpdates release records are mostly scanlation timing and are not used otherwise.
+
+### Client IP in Edge Functions (probe, 2026-11-02)
+A throwaway function (deployed, curled, deleted within a minute) showed the edge proxy rebuilds
+`x-forwarded-for`: a client-sent value never appears, entry 0 equals `cf-connecting-ip` (the real
+client), a client `X-Real-IP` is dropped and a forged `CF-Connecting-IP` is rejected by Cloudflare
+(error 1000). The "leftmost XFF is spoofable" review findings for `contact-submit` and
+`concierge-parse` therefore do not apply on Supabase hosting; the rightmost entry is a proxy hop
+and must not be used.
