@@ -1,17 +1,17 @@
 # Contact form: hard release prerequisite (2026-11-02)
 
-The Impressum (`web/legal/impressum.html`) names the contact form as the second fast contact channel under § 5 Abs. 1 Nr. 2 DDG, and the app has had **Profile → Contact us** since TestFlight build 20. Both post to the Edge Function `contact-submit`, which is **prepared, not deployed**. Until every step below is done, an in-app send returns 404 (or 500 when the function is live and the table is not), and the website form shows "Senden fehlgeschlagen".
+The Impressum (`web/legal/impressum.html`) names the contact form as the second fast contact channel under § 5 Abs. 1 Nr. 2 DDG, and the app has had **Profile → Contact us** since TestFlight build 20. Both post to the Edge Function `contact-submit`, **live since 2026-11-02** (steps 1, 2, 3, 5 and the web part of 6 done; see `CONTACT_DEPLOY.md`). Messages are stored, but nobody is e-mailed until step 4 is done.
 
 **Rule:** do not publish the legal site and do not submit an app build for review until steps 1–6 are done and recorded here. TestFlight builds that already contain the sheet show the e-mail address (contact@lazy.space) in the form and in every failure notice, so no user is left without a working channel.
 
 | # | Step | Command / where | Done (date, by) |
 | --- | --- | --- | --- |
-| 1 | Apply the table migration | `supabase/prepared-migrations/20261102100000_contact_messages.sql` (table, 12-month purge, daily cron). Local proof: `scripts/db/run_local_db_tests.sh --only 93_contact_messages` | |
-| 2 | Deploy the function without gateway JWT check | `supabase functions deploy contact-submit --no-verify-jwt --project-ref bkdifromsqxkndnllmdj` | |
-| 3 | Set the IP-hash secret | `CONTACT_IP_HASH_SECRET` (random, at least 32 bytes) | |
+| 1 | Apply the table migration | `supabase/prepared-migrations/20261102100000_contact_messages.sql` (table, 12-month purge, daily cron). Local proof: `scripts/db/run_local_db_tests.sh --only 93_contact_messages` | 2026-11-02, Claude (deploy agent): applied + recorded in history, cron job 119 |
+| 2 | Deploy the function without gateway JWT check | `supabase functions deploy contact-submit --no-verify-jwt --project-ref bkdifromsqxkndnllmdj` | 2026-11-02, Claude: v1, then hardened redeploy (secret-keyed buckets) |
+| 3 | Set the IP-hash secret | `CONTACT_IP_HASH_SECRET` (random, at least 32 bytes) | 2026-11-02, Claude: random 48 bytes, never printed |
 | 4 | Set the e-mail alert (**required**) | `RESEND_API_KEY`, `CONTACT_NOTIFY_TO` (owner inbox), `CONTACT_NOTIFY_FROM` (sender on a domain verified in Resend). Sign the Resend DPA; then resolve the `[prüfen: Resend aktiv?]` / `[ANSCHRIFT RESEND …]` marks in `datenschutz.html`. Without it, messages land in a table nobody watches and the function logs an error on every request. | |
-| 5 | CORS matches the live hostname | `ALLOWED_ORIGINS` in `supabase/functions/contact-submit/handler.ts` includes the hostname the legal site is served from (today `https://kuro-legal.vercel.app`); `KuroLegalLinks.legalSiteBase` in the app points to the same host. | |
-| 6 | Live smoke, both channels | (a) Submit on `<legal site>/kontakt` → 200, row in `contact_messages` with `source = 'web'`, e-mail arrives in `CONTACT_NOTIFY_TO`. (b) Submit from the app (signed in) → "Message sent", row with `source = 'app'` and the account's `user_id`, e-mail arrives. (c) Delete both test rows. | |
+| 5 | CORS matches the live hostname | `ALLOWED_ORIGINS` in `supabase/functions/contact-submit/handler.ts` includes the hostname the legal site is served from (today `https://kuro-legal.vercel.app`); `KuroLegalLinks.legalSiteBase` in the app points to the same host. | 2026-11-02, Claude: kuro-legal.vercel.app + preview hosts answer 204; evil.example 403 |
+| 6 | Live smoke, both channels | (a) Submit on `<legal site>/kontakt` → 200, row in `contact_messages` with `source = 'web'`, e-mail arrives in `CONTACT_NOTIFY_TO`. (b) Submit from the app (signed in) → "Message sent", row with `source = 'app'` and the account's `user_id`, e-mail arrives. (c) Delete both test rows. | 2026-11-02, Claude: (a) without e-mail: 200, row stored then deleted; (b) open: app send on build 20; e-mail part open until step 4 |
 
 ## Limits the function enforces (for the smoke and for support questions)
 

@@ -1,6 +1,6 @@
 # CLAUDE.md — Kuro Project Rules & Context
 
-**Last synced: 2026-10-31** | **This file is mandatory reading. Every rule is binding.**
+**Last synced: 2026-11-02** | **This file is mandatory reading. Every rule is binding.**
 
 ---
 
@@ -362,6 +362,8 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 
 **Migration history caveat (2026-10-08, do NOT "repair"):** live history has 249 identities = the 245 local + 4 applied from `prepared-migrations/` in one approved transaction (`20261007040000_series_home_foundation_v1`, `20261007130000_series_account_lifecycle`, `20261008100000_import_status_fence_preserves_units`, `20261008110000_import_review_recovery_v2`). The nine `20261005*` prepared files are byte-identical copies of applied migrations. `20261007120000_feature_flag_overrides` and `opt-in/` backfill are intentionally NOT applied. Never `supabase db push --include-all` or run history repair without an explicit new approval.
 
+**Go-live deployment (2026-11-02, owner-authorized; records in `docs/go-live/2026-11-02/`):** prepared migrations `20261101000000`, `20261101010000`, `20261101010100`, `20261101020000` and `20261102100000_contact_messages` applied and recorded in history (`20261101030000_auth_hardening` is NOT applied: only after the new app build is released). Functions: `bulk-import-anime` v84 / `bulk-import-manga` v83 (AniList 5,000-entry page-depth stop, character age / authors column fixes), `release-intake` (linked-first manga candidates), `manga-chapter-enrich` v67, `auth-callback` (`--no-verify-jwt`), `contact-submit` (`--no-verify-jwt`, secret-keyed rate-limit buckets). `IMPORT_SECRET` rotated; `CONTACT_IP_HASH_SECRET` and `MU_OFFICIAL_GROUP_IDS` set. There is no `supabase/config.toml`: `--no-verify-jwt` must be passed on every deploy of `auth-callback` and `contact-submit`. Client IP in Edge Functions: XFF[0] / `cf-connecting-ip` are set by the platform and not spoofable (live probe); never use the rightmost XFF entry.
+
 **Edge deployment (2026-10-08):** `concierge-apply` v27, `concierge-undo` v18, `delete-account` v10, `concierge-recommend` v50, `concierge-retrieve-assist` v9, `concierge-import-anilist` v6. The other functions' local handler/module refactors are NOT deployed — do not deploy them opportunistically.
 
 Since 2026-10-05: `concierge-apply`, `concierge-undo` and `delete-account` are split into handler/plan modules with offline `deno test` suites, and `concierge-recommend/router.ts` + `concierge-parse/rules.ts` hold the production rules the corpus gates execute (`docs/modules/edge-functions.md`). Their changes are prepared, NOT deployed (see the execution ledger). `supabase/tests/` holds the disposable local-PostgreSQL authorization tests.
@@ -382,7 +384,7 @@ Since 2026-10-05: `concierge-apply`, `concierge-undo` and `delete-account` are s
 - `manga-source-review-action` — approve/reject unresolved mappings and optionally trigger re-enrich
 - `delete-account` — GDPR account deletion
 - `auth-callback` — email verification fallback redirect page (verify_jwt: false)
-- `contact-submit` (2026-11-02, PREPARED, NOT deployed) — contact form of the legal site (`web/legal/kontakt.html`) and the app's Contact sheet; deploy with `--no-verify-jwt`; user id only from a verified user JWT; limiter kind `contact` 5/h per HMAC-hashed IP and per user; service-role insert into `contact_messages` (prepared migration `20261102100000`); optional Resend notification
+- `contact-submit` (LIVE since 2026-11-02; e-mail alert waits for the owner's Resend key) — contact form of the legal site (`web/legal/kontakt.html`) and the app's Contact sheet; deploy with `--no-verify-jwt`; user id only from a verified user JWT; limiter kind `contact` 5/h per HMAC-hashed IP and per user; service-role insert into `contact_messages` (prepared migration `20261102100000`); optional Resend notification
 
 **Database tables (key groups):**
 - Catalog: `anime`, `manga`, `episodes`, `chapters`, `volumes`, `characters`, `staff`, `studios`, `authors`, `tags`, `genres`, `external_links` + join tables
@@ -393,7 +395,9 @@ Since 2026-10-05: `concierge-apply`, `concierge-undo` and `delete-account` are s
 - Ops: `mirror_runs`, `import_state`, `feature_flags`
 
 **Cron jobs (pg_cron):**
-- Hourly: bulk-import-anime, bulk-import-manga (with IMPORT_SECRET header)
+- Hourly: bulk-import-anime, bulk-import-manga (with IMPORT_SECRET header); release-intake airing (job 116, :25)
+- Daily: release-intake manga (job 117, 03:50, limit 40), contact-messages-retention (job 119, 04:50, 12-month purge); weekly similar-titles re-stale (job 115)
+- Removed 2026-11-02: job 118 `kuro-import-cursor-depth-guard` (superseded by the importer's page-depth stop)
 - Daily: mirror-images (per-batch locks, 200 batch, 15-min spacing, IMPORT_SECRET auth), matview refresh, concierge housekeeping, cron history cleanup (14-day retention)
 - Unscheduled (deprecated): club message pruning (was 30-day, at 03:15 — chat replaced by social activity layer)
 
@@ -535,8 +539,9 @@ scripts/quality-gates/check_migrations.sh
 - **Bundle ID**: `com.Kuro.app` (capital K — must match exactly)
 - **App Store Connect App ID**: 6759221230
 - **Team ID**: YLG68JL5Y7
-- **API Key**: Key ID `7L84A7P9X7`, Issuer ID `bca97a4b-8a3a-4051-9c89-510f10db0b06`
-- **API Key file**: `~/.appstoreconnect/private_keys/AuthKey_7L84A7P9X7.p8`
+- **API Key**: Key ID `4Y9VLAQLQN` (since 2026-11-02; the old `7L84A7P9X7` file is not on this Mac; `fastlane/Fastfile` reads `KURO_ASC_KEY_ID`, default `4Y9VLAQLQN`), Issuer ID `bca97a4b-8a3a-4051-9c89-510f10db0b06`
+- **API Key file**: `~/.appstoreconnect/private_keys/AuthKey_4Y9VLAQLQN.p8`
+- **Latest TestFlight build**: 20 (2026-11-02; prototype redesign, icon M, Contact sheet). Next is 21.
 - **Signing**: Automatic, `-allowProvisioningUpdates`
 
 ---

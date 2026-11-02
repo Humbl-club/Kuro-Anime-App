@@ -1508,3 +1508,7 @@ Status: implemented locally on `kuro/prototype-fidelity`, NOT deployed. Prepared
 ### Change Log — 2 November 2026: Contact form review fixes
 
 Status: fixed locally on `kuro/prototype-fidelity`, NOT deployed. `contact-submit` limiter (IPv6 /64 buckets, IP check before token verification, app IP cap 30/h, per-account 5/h, web global 200/h, notification ceiling 50/h), CORS for `kuro-legal.vercel.app`, Resend alert required for go-live; app consent link to the contact-form section, UTF-16 length rules, reset on reopen, Art. 16 DSA hint; legal pages lead with Max Hufschlag. Go-live is now a hard release prerequisite: `docs/go-live/2026-11-02/CONTACT_FORM_RELEASE.md`.
+
+### Change Log — 2 November 2026: Go-live
+
+Status: LIVE on `bkdifromsqxkndnllmdj`. Release schedule + songs RPCs and intake (jobs 116/117), AnimeThemes backfill, catalogue import restored (secret rotation, page-depth stop, item-error fixes), contact form (migration + `contact-submit`, secret-keyed buckets). TestFlight build 20 (prototype redesign, icon M, Contact sheet). Open: Resend e-mail alert, `20261101030000_auth_hardening` after release, series flag rollout, legal site production deploy + domain, App Store submission. Records: `docs/go-live/2026-11-02/`.
