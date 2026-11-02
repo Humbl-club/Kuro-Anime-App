@@ -1500,3 +1500,7 @@ Home invitation uses the cover-line plus kicker pair. `kuroKicker()` is the shar
 ### Change Log — 9 October 2026: Picture through header
 
 Pinned `HomePagePicture` behind the status bar and header on Home; cleared Home header chrome; soft wash only over lower type. Snapshot suite and owned-sim install updated (`home-picture-through-header.png`). Visual acceptance remains open.
+
+### Change Log — 2 November 2026: Contact form (website + app)
+
+Status: implemented locally on `kuro/prototype-fidelity`, NOT deployed. Prepared migration `20261102100000_contact_messages.sql`, Edge Function `contact-submit` (deploy `--no-verify-jwt`), legal site `kontakt.html` + privacy §4.15, app owner `SupportStore` + `ContactSheet`. Go-live needs owner approval: migration, function, `CONTACT_IP_HASH_SECRET`, optional Resend env, legal-site redeploy.

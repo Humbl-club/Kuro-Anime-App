@@ -260,7 +260,7 @@ Flags defined in `FeatureFlags.swift` (selected):
 
 ## FILE MAP (exact; iOS app, package and gates current as of 2026-10-31, other subsections carry their own dates)
 
-### iOS app — 212 Swift files in `Kuro/`
+### iOS app — 214 Swift files in `Kuro/`
 
 Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.swift`), 60 in `KuroTests/` and 3 in `KuroUITests/`. Navigation map and add/remove-a-capability guide: `docs/modules/README.md`; final owner map: `docs/plans/2026-10-05-modular-architecture-ownership-map.md`.
 
@@ -288,6 +288,7 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 - `Concierge/` — `ConciergeStore`, `ConciergeFunctions`, `ConciergeRecommendModels`, `ConciergeRouting` (pure clarification gate, FM/keyword routing, input-field intent/paste rules)
 - `Taste/` — `TasteStore` (deck, signals + bounded outbox, profile, personalised NEW TO YOU), `TasteModels`
 - `Telemetry/` — `InteractionTelemetry`, `OutboundLinkTelemetry`
+- `Support/` (2026-11-02) — `SupportStore` (the in-app contact form: account-scoped draft, validation, one `contact-submit` call with the signed-in session, no auto-retry; registered in `makeAccountScopedStates` before interaction telemetry)
 - `Infrastructure/` — `TimedCache`, `withRetry` (`Retry.swift`), `MemoryPressure.swift`
 
 **Local package (`Packages/KuroModules`, linked into the app):** `KuroCore` (`MediaKind`, `MediaKey`, `AccountContext`, `AccountSessionCoordinator`, `AccountScopedLoads`), `KuroLibrary` (tracking values/contracts + `LibraryStore`, durable SQLite `ProgressOutbox` + `LibraryProgress`, import workflow/journal/batch (file-backed, file-protected), `MALExportParser`, `MALAccountList`, `SeriesGrouping`), `KuroSupabase` (`SupabaseLibraryBackend`, `LibraryRowTransport`, `LibraryFenceTransport` (revision-fenced writes when `series_foundation_v1` is on), `UserIdText`). No SwiftUI/UIKit/supabase-swift imports; Swift 5 mode, explicit isolation policy in `Package.swift`.
@@ -341,7 +342,7 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 - UI components: `KuroRefinedCard.swift`, `KuroCardText.swift`, `KuroGlass.swift`, `KuroCachedAsyncImage.swift`, `KuroToast.swift`, `KuroTransientBanner.swift`, `KuroConciergeMark.swift`, `KuroInteractionEnvironment.swift`, `KuroLoadMoreSentinel.swift`, `KuroPagingGesture.swift`, `QuickVerdictActionCard.swift`, `GenreHubView.swift` (unreferenced by grep), `CountdownTimer.swift` (`EditorialCards.swift`, `Cards.swift`, `UIComponents.swift`, `PosterView.swift` and the Concierge `ComposerDock`/`ActionFooter`/`IntentDeck` were deleted as dead code on 2026-10-05)
 - Shared components (`Views/Shared/`, 2026-11-01): `KuroMediumSwitch` (heavy sans uppercase, selected word filled with the title's `material:`), `KuroAdvanceKey` (44 pt +1; prototype raised faces `.light` / `.dark` (manga leaf) / `.ink` (dark gradient, keys without artwork, e.g. Folio) / `.material(ArtworkMaterial)`, `confirmTrigger` plays confirm/restore), `KuroMotionEffects.swift` (`.kuroConfirmStamp(trigger:)`, `.kuroRestore(trigger:)`, `.kuroCountRoll(value:pageTurn:)`, `.kuroPressSettle(trigger:)`, `KuroMotionAllowance`, `KuroMotion.playsMotion(reduceMotion:lowPower:)`, `KuroMotion.playsMotionNow(reduceMotion:)` for one-off animation sites), `KuroBrandedStates.swift` (the branded state family: `KuroBrandedState.resolve`, `KuroLoadingView(scope:label:)` (a label shows as a muted caption), `KuroBusyMark` (a working control's short scrub line), `KuroScrubLine(tint:track:)`, `KuroSkeleton(kind:)`, `KuroErrorView`, `KuroOfflineView(hasContent:retry:)`, `KuroEmptyView`, `KuroOutlineButton`; the only file in `Kuro/` allowed to use `ProgressView(`), `KuroReleaseLine`, `KuroStateView` (loading/empty/offline/failed/denied, `hasCachedContent`; a thin wrapper over the branded family), `KuroSectionHeader`, `KuroInkButton`/`KuroPressStyle`, `.kuroReadableWidth()`, `KuroThemeSongRow` (Listen → Apple Music / Spotify search URLs, nothing stored). Use these instead of re-inventing controls.
 - Lists (`Views/Lists/`, 2026-11-01): the "Folio" list experience used by Collection in both flag worlds (status word strip, Shelf/Index density, sort words, medium switch, +1 with caught-up guard + Undo via `CollectionStore.advanceFromList`/`undoListAdvance`, batch bar incl. Dropped) and `ProfileListsPreview` (Profile "Your lists").
-- About (`Views/About/`, 2026-11-01): `DataSourcesView` (Data sources & credits: AniList, MangaDex, MangaUpdates, AnimeThemes), `KuroLegalLinks` (Terms URL still nil until the owner confirms it).
+- About (`Views/About/`, 2026-11-01): `DataSourcesView` (Data sources & credits: AniList, MangaDex, MangaUpdates, AnimeThemes), `KuroLegalLinks` (Terms URL still nil until the owner confirms it; `kuro.app` did not resolve on 2026-11-02), `ContactSheet` (2026-11-02: Profile → About → Contact us, over `SupportStore`).
 - Shared: `AddToListSheet.swift` — editorial "spread" list sheet (full-bleed poster hero, capsule status pills, serif score + dots, pull-quote notes, pinned save dock); its save rule is `TrackingDraft.swift` (the one `LibraryEdit` a save sends)
 - Shared: `LibraryViewActions.swift` — typed-key adapters from views to `LibraryActions` (views never write `LibraryStore` directly); `ClubViewLifecycle.swift` — pure club-view lifecycle rule
 - Legacy/secondary: `DiscoverViewModel.swift`
@@ -381,6 +382,7 @@ Since 2026-10-05: `concierge-apply`, `concierge-undo` and `delete-account` are s
 - `manga-source-review-action` — approve/reject unresolved mappings and optionally trigger re-enrich
 - `delete-account` — GDPR account deletion
 - `auth-callback` — email verification fallback redirect page (verify_jwt: false)
+- `contact-submit` (2026-11-02, PREPARED, NOT deployed) — contact form of the legal site (`web/legal/kontakt.html`) and the app's Contact sheet; deploy with `--no-verify-jwt`; user id only from a verified user JWT; limiter kind `contact` 5/h per HMAC-hashed IP and per user; service-role insert into `contact_messages` (prepared migration `20261102100000`); optional Resend notification
 
 **Database tables (key groups):**
 - Catalog: `anime`, `manga`, `episodes`, `chapters`, `volumes`, `characters`, `staff`, `studios`, `authors`, `tags`, `genres`, `external_links` + join tables

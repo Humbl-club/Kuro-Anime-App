@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 212 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 214 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2039,3 +2039,7 @@ Local branch only; nothing on the live server changed.
 ### Change Log — 2 November 2026: The app now looks like the approved prototype
 
 Home, the anime and manga pages, the first-time screens and Taste were rebuilt to match the prototype you approved, screen by screen, with every page tinted by its own artwork. Saving progress on a "planned" title now also starts it, removing a title asks first and can be undone, and the Home +1 shows an Undo message. Everything is on a local branch; nothing was uploaded or changed on the live server. Side-by-side pictures: `docs/prototype-fidelity/gallery/`.
+
+### Change Log — 2 November 2026: A contact form on the website and in the app (prepared, not live yet)
+
+The legal pages now name the business properly: "Lazy", a sole trader owned by Max Hufschlag. Instead of a phone number there is a contact form, on the website (`/kontakt`, also `/contact`) and in the app under Profile → About → Contact us. Messages go to our own database in Frankfurt, nobody but the server can read them, they are deleted automatically after 12 months, and a short email copy can be sent to us if an email service is switched on. Spam is held back by a hidden trap field and a limit of five messages per hour. The privacy policy has a new section about this. None of it is live until the database change and the server function are deployed with the owner's approval.
