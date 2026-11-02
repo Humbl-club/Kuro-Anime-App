@@ -10,6 +10,9 @@ Paths are relative to this folder. All renders are fixture-only (no network, pro
   German (`-de`, from a `-testLanguage de -testRegion DE` run) or accessibility size 5 (`-ax5`).
   They are evidence for one part of the page, not the integrated page.
 - Native renders have no app header (`KuroHeaderNew`, drawn by the pager): the references include it.
+  The `firstrun/pager-*` composites (round 3) draw ContentView's header over the new-account Home and
+  Taste, so the header can be compared too; their y is not the reference's y − 70 (the native header is
+  shorter).
 
 | Reference | Primary native render | Supplementary |
 |---|---|---|
@@ -25,7 +28,7 @@ Paths are relative to this folder. All renders are fixture-only (no network, pro
 | `ref-home-quiet-anime-390.png` | `home-anime/home-quiet-anime-390.png` | `home-anime/home-quiet-anime-de-390.png` |
 | `ref-home-quiet-anime-320.png` | `home-anime/home-quiet-anime-320.png` | - |
 | `ref-home-quiet-anime-430.png` | `home-anime/home-quiet-anime-430.png` | - |
-| `ref-home-new-anime-390.png` | `firstrun/home-new-anime-homeview-390.png` | `firstrun/home-new-anime-390.png` (first-run harness: stand-in switch and opening, not HomeView), `firstrun/home-new-anime-de-390.png`, `firstrun/home-new-anime-ax5-390.png`, `firstrun/home-new-anime-prototype-block-390.png`, `firstrun/home-new-anime-loader-390.png` (harness) |
+| `ref-home-new-anime-390.png` | `firstrun/home-new-anime-homeview-390.png` | `firstrun/pager-home-new-anime-390.png` (with the app header), `firstrun/home-new-anime-390.png` (first-run harness: stand-in switch and opening, not HomeView), `firstrun/home-new-anime-de-390.png`, `firstrun/home-new-anime-ax5-390.png`, `firstrun/home-new-anime-prototype-block-390.png`, `firstrun/home-new-anime-loader-390.png` (harness) |
 | `ref-home-new-anime-320.png` | `firstrun/home-new-anime-homeview-320.png` | `firstrun/home-new-anime-320.png` (first-run harness: stand-in switch and opening, not HomeView) |
 | `ref-home-new-anime-430.png` | `firstrun/home-new-anime-homeview-430.png` | `firstrun/home-new-anime-430.png` (first-run harness: stand-in switch and opening, not HomeView) |
 | `ref-home-busy-manga-390.png` | `home-manga/home-busy-manga-390.png` | `home-manga/home-busy-manga-de-390.png`, `home-manga/home-manga-busy-390.png` (lane harness, component stack, not HomeView), `home-manga/home-manga-busy-ax5-390.png`, `home-manga/home-manga-states-390.png` (lane harness) |
@@ -40,17 +43,17 @@ Paths are relative to this folder. All renders are fixture-only (no network, pro
 | `ref-home-quiet-manga-390.png` | `home-manga/home-quiet-manga-390.png` | `home-manga/home-quiet-manga-de-390.png` |
 | `ref-home-quiet-manga-320.png` | `home-manga/home-quiet-manga-320.png` | - |
 | `ref-home-quiet-manga-430.png` | `home-manga/home-quiet-manga-430.png` | - |
-| `ref-home-new-manga-390.png` | `firstrun/home-new-manga-homeview-390.png` | `firstrun/home-new-manga-390.png` (first-run harness: stand-in switch and opening, not HomeView), `firstrun/home-new-manga-de-390.png`, `firstrun/home-new-manga-ax5-390.png`, `firstrun/home-new-manga-prototype-block-390.png`, `firstrun/home-new-manga-loader-390.png` (harness) |
+| `ref-home-new-manga-390.png` | `firstrun/home-new-manga-homeview-390.png` | `firstrun/pager-home-new-manga-390.png` (with the app header), `firstrun/home-new-manga-390.png` (first-run harness: stand-in switch and opening, not HomeView), `firstrun/home-new-manga-de-390.png`, `firstrun/home-new-manga-ax5-390.png`, `firstrun/home-new-manga-prototype-block-390.png`, `firstrun/home-new-manga-loader-390.png` (harness) |
 | `ref-home-new-manga-320.png` | `firstrun/home-new-manga-homeview-320.png` | `firstrun/home-new-manga-320.png` (first-run harness: stand-in switch and opening, not HomeView) |
 | `ref-home-new-manga-430.png` | `firstrun/home-new-manga-homeview-430.png` | `firstrun/home-new-manga-430.png` (first-run harness: stand-in switch and opening, not HomeView) |
 | `ref-detail-anime-390.png` | `detail/detail-anime-390.png` | `detail/detail-anime-bundle-390.png`, `detail/detail-anime-untracked-390.png`, `detail/detail-anime-untracked-de-390.png`, `detail/detail-anime-untracked-de-320.png`, `detail/detail-anime-ax5-320.png`, `detail/detail-anime-de-390.png` |
 | `ref-detail-anime-top-390.png` | `detail/detail-anime-top-390.png` | `detail/detail-anime-top-320.png`, `detail/detail-anime-top-ax5-320.png` |
 | `ref-detail-manga-390.png` | `detail/detail-manga-390.png` | `detail/detail-manga-bundle-390.png`, `detail/detail-manga-untracked-390.png`, `detail/detail-manga-untracked-de-390.png`, `detail/detail-manga-untracked-de-320.png`, `detail/detail-manga-ax5-320.png` |
 | `ref-detail-manga-top-390.png` | `detail/detail-manga-top-390.png` | `detail/detail-manga-top-320.png`, `detail/detail-manga-top-ax5-320.png` |
-| `ref-taste-busy-anime-390.png` | `firstrun/taste-busy-anime-390.png` | `firstrun/taste-busy-anime-de-390.png`, `firstrun/taste-busy-anime-ax5-390.png`, `firstrun/taste-loading-anime-390.png`, `firstrun/taste-busy-anime-planned-390.png` |
-| `ref-taste-busy-manga-390.png` | `firstrun/taste-busy-manga-390.png` | `firstrun/taste-busy-manga-de-390.png`, `firstrun/taste-busy-manga-ax5-390.png`, `firstrun/taste-loading-manga-390.png` |
-| `ref-taste-new-anime-390.png` | `firstrun/taste-new-anime-390.png` | `firstrun/taste-live-new-anime-390.png` (TastePicksView itself over the seeded bundle and catalogue) |
-| `ref-taste-new-manga-390.png` | `firstrun/taste-new-manga-390.png` | - |
+| `ref-taste-busy-anime-390.png` | `firstrun/taste-busy-anime-390.png` | `firstrun/pager-taste-busy-anime-390.png` (with the app header), `firstrun/taste-busy-anime-de-390.png`, `firstrun/taste-busy-anime-ax5-390.png`, `firstrun/taste-loading-anime-390.png`, `firstrun/taste-busy-anime-planned-390.png` |
+| `ref-taste-busy-manga-390.png` | `firstrun/taste-busy-manga-390.png` | `firstrun/pager-taste-busy-manga-390.png` (with the app header), `firstrun/taste-busy-manga-de-390.png`, `firstrun/taste-busy-manga-ax5-390.png`, `firstrun/taste-loading-manga-390.png` |
+| `ref-taste-new-anime-390.png` | `firstrun/taste-new-anime-390.png` | `firstrun/pager-taste-new-anime-390.png` (with the app header), `firstrun/taste-live-new-anime-390.png` (TastePicksView itself over the seeded bundle and catalogue) |
+| `ref-taste-new-manga-390.png` | `firstrun/taste-new-manga-390.png` | `firstrun/pager-taste-new-manga-390.png` (with the app header) |
 
 Every reference has a primary native render (38 references).
 
@@ -62,6 +65,7 @@ Every reference has a primary native render (38 references).
 | `home-manga/home-{state}-manga-*` | `KuroTests/HomeAnimeLaneTests.swift`, `mangaHomeRenders` | `HomeView`, manga, busy / full / undated / quiet |
 | `home-manga/home-manga-*`, `home-anime-calendar-club-*` | `KuroTests/HomeMangaLaneTests.swift`, `HomeMangaLaneSnapshotTests` | lane-4/5 component stacks (2x scale) |
 | `firstrun/home-new-*-homeview-*` | `KuroTests/FirstRunSnapshotTests.swift`, `newAccountHomeView` | `HomeView` for a new account (latched, empty Library, seeded Discover bundle) |
+| `firstrun/pager-*` | `KuroTests/FirstRunSnapshotTests.swift`, `pagerComposites` | `KuroHeaderNew` over the new-account `HomeView` and over `TastePageContent`, Series Home pager order |
 | `firstrun/` (other) | `KuroTests/FirstRunSnapshotTests.swift` | first-run harness, `TastePageContent` (the content `TastePicksView` hosts), search, collection invitation, at 1 px = 1 pt; see `firstrun/NOTES.txt` |
 | `detail/` | `KuroTests/DetailAnimeSnapshotTests.swift`, `DetailMangaSnapshotTests.swift` | the prototype detail pages over a complete fixture bundle |
 | `restyle/` | `KuroTests/RestyleSnapshotTests.swift` | the remaining restyled screens (no reference in `reference/`) |
@@ -106,8 +110,19 @@ Differences that stay, and why, are listed per finding in `../FIDELITY_REVIEW.md
   (so busy anime opens with the landscape card). The catalogue rows are seeded into `CatalogStore`'s detail
   cache with the prototype's sample premises (fixture data only).
 - **+1 toast.** `progressToastRender` saves a real +1 through `HomeStore` (signed-in fixture account, a
-  temporary progress outbox, Jujutsu Kaisen 6 → 7), checks that Undo restores it, saves it again, and
-  renders the page with the toast that +1 produces ("Progress saved." with Undo and ×) at the screen foot.
+  temporary progress outbox, Jujutsu Kaisen 6 → 7), lets the drain attempt it (the fixture has no client,
+  so the attempt fails as offline), checks that the toast's Undo (`HomeProgressToasts.performUndo`) puts
+  the count back to 6, saves the +1 again, and renders the page with the toast that +1 produces
+  ("Progress saved." with Undo and ×) at the screen foot. Undo while the send is in flight and after its
+  receipt is covered by `HomeToastRound3Tests`.
+- **Raster (round 3).** Every 1 px = 1 pt render (`HomeAnimeLaneTests.render`, used for all primary Home
+  renders, and `FirstRunSnapshotTests`) is drawn at the screen scale and block-averaged to 1 px = 1 pt (`KuroTests/FixtureRaster.swift`), as a 1x screen shows it. The earlier 1x
+  `drawHierarchy` resampled the 3x snapshot with a sharpening filter and blurred 1 pt rules over three
+  rows. `TEST_RUNNER_KURO_RENDER_SCALE=3` writes device-pixel renders to a temporary folder for diagnosis.
+- **Re-rendered in round 3 (2026-11-02):** every `home-anime/`, `home-manga/` and `firstrun/` render, for
+  the block-averaged raster, the darker word floor, and Taste's premise, heading, leaf and ink changes
+  (German under de_DE), plus the new `firstrun/pager-*` composites. The 2x lane-harness renders
+  (`home-manga/home-manga-*`, `home-anime-calendar-club-*`) keep their 2x raster.
 - **Re-rendered in round 2 (2026-11-02):** every `home-anime/` and `home-manga/` render (the art-filled word
   and the switch rule changed; German under de_DE), every `firstrun/` render (now 1 px = 1 pt, like the
   references; previously 3x), plus the new toast renders. `taste-busy-anime-banner-joined-390.png` is gone:

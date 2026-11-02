@@ -232,12 +232,15 @@ enum HomeMediumWordInk {
     /// The unselected word, `#6e786f` (sRGB luma about 0.455).
     nonisolated static let unselected = KuroRGB(0x6E / 255, 0x78 / 255, 0x6F / 255)
     /// The lightest mean sRGB luma (Rec. 601, 0…1) the word's art band may have before the scrim.
-    /// Under the scrim it lands near the prototype's selected word (about 91 / 255 measured in
-    /// `ref-home-new-anime-390.png`), well below the unselected word.
-    nonisolated static let targetLuma: Double = 0.40
-    /// The lightest any channel of the art may be (`#a4a8a2`): about the prototype selected word's
-    /// lightest letter pixels (luma about 160 / 255 in `ref-taste-busy-*-390.png`).
-    nonisolated static let highlightCeiling = KuroRGB(0xA4 / 255, 0xA8 / 255, 0xA2 / 255)
+    /// The prototype's selected word reads about 92 / 255 against the unselected word's 128 (letter
+    /// pixels in `ref-home-new-anime-390.png`), a gap of about 36 levels: at 0.33 a pale cover (the
+    /// Your Name sky, a white manga page) lands there too, so the selected word stays the dark, heavy
+    /// word of the pair. Art already darker passes through untouched.
+    nonisolated static let targetLuma: Double = 0.33
+    /// The lightest any channel of the art may be (`#8e938c`, luma about 0.57): a white sky or page in
+    /// the band never reads lighter than the unselected word's lighter strokes, so no letter shows a
+    /// pale patch, while saturated mid-tones keep their hue.
+    nonisolated static let highlightCeiling = KuroRGB(0x8E / 255, 0x93 / 255, 0x8C / 255)
     /// The selected word's box is about three times as wide as it is tall (107 × 36 at 390).
     nonisolated static let wordAspect: Double = 3
     /// The prototype's scrim over the artwork: `#15221c15` → `#15221c38`.

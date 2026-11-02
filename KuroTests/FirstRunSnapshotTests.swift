@@ -28,6 +28,12 @@ struct FirstRunSnapshotTests {
         return repo.appendingPathComponent("docs/prototype-fidelity/native/firstrun")
     }()
 
+    /// A device-pixel scale for diagnosis (`TEST_RUNNER_KURO_RENDER_SCALE=3`): the renders then go to a
+    /// temporary folder and never replace the committed 1 px = 1 pt renders.
+    static let diagnosticScale: CGFloat? = ProcessInfo.processInfo.environment["KURO_RENDER_SCALE"]
+        .flatMap(Double.init).map { CGFloat($0) }
+    static let diagnosticDir = FileManager.default.temporaryDirectory.appendingPathComponent("kuro-render-scaled", isDirectory: true)
+
     // MARK: New-account Home
 
     @Test("New-account Home, anime and manga, at 320/390/430 (with and without starter picks)")
@@ -99,6 +105,58 @@ struct FirstRunSnapshotTests {
         }
         await graph.session.endSession()
         defaults.removePersistentDomain(forName: "firstrun-homeview")
+    }
+
+    @Test("Pager composites: the app header over the new-account Home and over Taste, anime and manga, at 390")
+    func pagerComposites() async throws {
+        await Self.seedArtwork()
+        // The Series Home pager (Taste, Home, Discover, Collection, Clubs), as the references show it.
+        let (graph, defaults) = try await Self.signedInGraph(
+            "firstrun-pager", launchArguments: ["--ff-on=series_foundation_v1", "--ff-on=series_home_native_v1",
+                                                "--ff-on=taste_deck_v1"])
+        graph.flags.completeFoundationBootstrap(userId: LifecycleFixtures.userA)
+        func empty(_ medium: String) throws -> HomeBundle {
+            try JSONDecoder().decode(HomeBundle.self, from: Data("""
+            {"medium":"\(medium)","window_days":7,"home_revision":1,"active":[],"upcoming":[],"pending":[],
+             "schedule_state":"ok","next_cursor":null,"club":{"state":"ready","label":"Between us.","items":[]}}
+            """.utf8))
+        }
+        let materials = ArtworkMaterialStore(cacheDirectory: nil, loader: HomeAnimeLaneTests.fixtureLoader)
+        /// The pager's column: its canvas behind the header and the page (`Section.canvas`), the header
+        /// (`KuroHeaderNew`, ContentView's) on top, the page under it.
+        func pager<Page: View>(_ section: KuroMainView.Section, medium: MediaKind, @ViewBuilder page: () -> Page) -> some View {
+            VStack(spacing: 0) {
+                KuroHeaderNew(selection: .constant(section), showProfileSheet: .constant(false),
+                              showSearchSheet: .constant(false), tasteMedium: medium)
+                page()
+            }
+            .background(section.canvas(mangaHome: medium == .manga, mangaTaste: medium == .manga))
+            .environment(graph.identity)
+            .environment(graph.session)
+            .environment(graph.clubs)
+            .environment(graph.flags)
+            .environment(graph.home)
+        }
+        for medium in [MediaKind.anime, .manga] {
+            graph.home.seedForVisualQA(anime: try empty("anime"), manga: try empty("manga"), medium: medium.rawValue)
+            let canvas = TastePageContent.canvas(for: medium)
+            #expect(await render(pager(.home, medium: medium) {
+                HomeAnimeLaneTests.home(graph.graph, materials, canvas: canvas, newAccountLatch: true)
+            }, width: 390, height: 1_000, name: "pager-home-new-\(medium.rawValue)-390.png", settle: 1_400))
+            let busy = await Self.busy(medium, catalog: graph.catalog)
+            let new = await TasteCardDetails.hydrate(
+                Array(Self.cards(medium, premise: false, banner: true).prefix(TastePicksCopy.visibleCount(newAccount: true))),
+                catalog: graph.catalog)
+            for (state, cards, newAccount) in [("busy", busy, false), ("new", new, true)] {
+                #expect(await render(pager(.taste, medium: medium) {
+                    Self.tastePage(medium: medium, state: .cards(cards), newAccount: newAccount, width: 390)
+                        .environment(graph.library)
+                        .environment(graph.libraryActions)
+                }, width: 390, height: 844, name: "pager-taste-\(state)-\(medium.rawValue)-390.png", settle: 1_400))
+            }
+        }
+        await graph.session.endSession()
+        defaults.removePersistentDomain(forName: "firstrun-pager")
     }
 
     @Test("New-account Home through its own loader (seeded Discover bundle)")
@@ -384,11 +442,13 @@ struct FirstRunSnapshotTests {
     }
 
     /// A signed-in graph whose Library loaded empty (a new account) and whose Discover bundle is cached.
-    private static func signedInGraph(_ suite: String) async throws -> (FixtureGraph, UserDefaults) {
+    private static func signedInGraph(_ suite: String, launchArguments: [String] = []) async throws -> (FixtureGraph, UserDefaults) {
         let defaults = try #require(UserDefaults(suiteName: suite))
         let backend = FakeLibraryBackend()
         let graph = AppComposition.testingGraph(testingUserDefaults: defaults, notificationCenter: FakeNotificationCenter(),
-                                                libraryBackend: backend)
+                                                libraryBackend: backend,
+                                                flags: launchArguments.isEmpty ? nil
+                                                    : FeatureFlags(userDefaults: defaults, launchArguments: launchArguments))
         _ = await graph.session.applySession(userId: LifecycleFixtures.userA, email: "new@example.com")
         await graph.libraryActions.libraryRefreshTask?.value
         try? await graph.library.refresh()
@@ -422,6 +482,7 @@ struct FirstRunSnapshotTests {
     private func render<V: View>(_ view: V, width: CGFloat, height: CGFloat, name: String, settle: Int = 500) async -> Bool {
         do {
             try FileManager.default.createDirectory(at: Self.outDir, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: Self.diagnosticDir, withIntermediateDirectories: true)
         } catch {
             note("\(name): could not create the output folder (\(error))")
             return false
@@ -439,14 +500,13 @@ struct FirstRunSnapshotTests {
         host.view.layoutIfNeeded()
         try? await Task.sleep(for: .milliseconds(settle))
         host.view.layoutIfNeeded()
-        // 1 px = 1 pt, as the references and the Home renders, so the two compare pixel for pixel.
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        let image = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { _ in
-            host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
-        }
-        let url = Self.outDir.appendingPathComponent(name)
-        guard let data = image.pngData() else {
+        // 1 px = 1 pt, as the references and the Home renders, so the two compare pixel for pixel:
+        // drawn at the screen scale and block-averaged (`FixtureRaster`). `KURO_RENDER_SCALE=3`
+        // (diagnosis only) keeps the device pixels and writes to a temporary folder instead.
+        let data = FixtureRaster.png(of: host.view, size: CGSize(width: width, height: height),
+                                     diagnosticScale: Self.diagnosticScale)
+        let url = (Self.diagnosticScale == nil ? Self.outDir : Self.diagnosticDir).appendingPathComponent(name)
+        guard let data else {
             note("\(name): PNG encoding failed")
             return false
         }
@@ -465,6 +525,7 @@ struct FirstRunSnapshotTests {
         if let existing = try? String(contentsOf: url, encoding: .utf8), existing.contains(line) { return }
         do {
             try FileManager.default.createDirectory(at: Self.outDir, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: Self.diagnosticDir, withIntermediateDirectories: true)
             if let handle = try? FileHandle(forWritingTo: url) {
                 defer { try? handle.close() }
                 try handle.seekToEnd()

@@ -879,16 +879,14 @@ struct HomeAnimeLaneTests {
         host.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(1_200))
         host.view.layoutIfNeeded()
-        // 1 px = 1 pt, as the reference captures (PROTOTYPE_SPEC.md §1).
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        let image = UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { context in
-            // A very tall hierarchy (AX5) can be refused by the render server: fall back to the layer.
-            if !host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true) {
-                host.view.layer.render(in: context.cgContext)
-            }
-        }
-        guard let data = image.pngData() else {
+        // 1 px = 1 pt, as the reference captures (PROTOTYPE_SPEC.md §1): drawn at the screen scale and
+        // block-averaged (`FixtureRaster`). `KURO_RENDER_SCALE=3` (diagnosis only) keeps the device
+        // pixels and writes to a temporary folder instead.
+        let url = FirstRunSnapshotTests.diagnosticScale == nil ? url
+            : FirstRunSnapshotTests.diagnosticDir.appendingPathComponent(url.lastPathComponent)
+        try FileManager.default.createDirectory(at: FirstRunSnapshotTests.diagnosticDir, withIntermediateDirectories: true)
+        guard let data = FixtureRaster.png(of: host.view, size: CGSize(width: width, height: height),
+                                           diagnosticScale: FirstRunSnapshotTests.diagnosticScale) else {
             Issue.record("png encode failed for \(url.lastPathComponent)")
             return
         }

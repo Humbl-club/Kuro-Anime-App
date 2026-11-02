@@ -873,6 +873,27 @@ struct TasteMetrics {
     var mangaColumnSpacing: CGFloat { compact ? 14 : 17 }
     var portraitArtWidth: CGFloat { compact ? 90 : 103 }
     var portraitCopyLeading: CGFloat { compact ? 12 : 16 }
+    /// The manga leaf's frame height: 2 : 3 on the prototype's unsnapped column (`164.5px` at 390, so
+    /// 246.75), on whole points as the browser draws it (246), the same for both columns. Nil before
+    /// the page is measured.
+    var leafArtHeight: CGFloat? {
+        let column = (pageWidth - paperGutter * 2 - mangaColumnSpacing) / 2
+        return pageWidth > 0 && column > 0 ? (column * 1.5).rounded(.down) : nil
+    }
+}
+
+/// The leaf frame at `TasteMetrics.leafArtHeight`, or 2 : 3 of its width when there is none
+/// (accessibility sizes, where a leaf takes the full width).
+private struct TasteLeafArtSize: ViewModifier {
+    let height: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let height {
+            content.frame(maxWidth: .infinity).frame(height: height)
+        } else {
+            content.aspectRatio(2 / 3, contentMode: .fit)
+        }
+    }
 }
 
 // MARK: - Opening block
@@ -933,9 +954,12 @@ struct TasteOpening: View {
 
 /// The section heading ("Your next story."): SF 24/26.4 w550 −0.85 (manga w500 −0.65, at most 210 wide).
 /// SwiftUI has no w550: anime takes `.semibold` (the system's nearest heavier weight; the reference's
-/// glyphs measure wider than w500), manga keeps `.medium`. A two-line heading keeps SF's own line
-/// pitch: SwiftUI Text ignores a negative line spacing, so it sits about 2 pt deeper than the 26.4 box
-/// (FIDELITY_REVIEW, first-run note FR-C).
+/// glyphs measure wider than w500), manga keeps `.medium`.
+///
+/// Lines follow each other at the prototype's 1.1 pitch (26.4 at 24 pt, on whole points: 26) while
+/// every word keeps SF's own line box (FR-C). SwiftUI `Text` ignores a negative line spacing, and an
+/// exact line height clips the last line's descenders ("story." loses the foot of its y), so the
+/// words are laid out by `TasteHeadingLines`, which wraps them as the browser does.
 struct TasteSectionHeading: View {
     let title: String
     let medium: MediaKind
@@ -943,17 +967,75 @@ struct TasteSectionHeading: View {
     /// Nil: the section's own 32 pt top margin.
     var top: CGFloat? = nil
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var baseSize: CGFloat { metrics.compact ? 22 : 24 }
+    private var weight: Font.Weight { medium == .manga ? .medium : .semibold }
+    private var tracking: CGFloat { medium == .manga ? -0.65 : -0.85 }
+    private var size: CGFloat { min(KuroTypeScale.current.scaled(baseSize, relativeTo: .title2), 40) }
+
     var body: some View {
-        Text(title)
-            .font(.kuroCustom(metrics.compact ? 22 : 24, weight: medium == .manga ? .medium : .semibold,
-                              relativeTo: .title2, maxSize: 40))
-            .tracking(medium == .manga ? -0.65 : -0.85)
-            .foregroundStyle(Color.kuroInk)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: medium == .manga ? 210 : .infinity, alignment: .leading)
-            .accessibilityAddTraits(.isHeader)
-            .padding(.top, top ?? metrics.headingTop)
-            .padding(.bottom, 17)
+        _ = dynamicTypeSize
+        let font = UIFont.systemFont(ofSize: size, weight: weight == .medium ? .medium : .semibold)
+        let space = (" " as NSString).size(withAttributes: [.font: font]).width + tracking
+        return TasteHeadingLines(wordSpacing: space, pitch: (size * 1.1).rounded()) {
+            ForEach(Array(title.split(separator: " ").enumerated()), id: \.offset) { _, word in
+                Text(String(word))
+                    .font(.kuroCustom(baseSize, weight: weight, relativeTo: .title2, maxSize: 40))
+                    .tracking(tracking)
+                    .foregroundStyle(Color.kuroInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: medium == .manga ? 210 : .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(.isHeader)
+        .padding(.top, top ?? metrics.headingTop)
+        // 17 in CSS under a 26.4 line box; SF's last line box is 2.24 pt taller, and 16⅓ puts the
+        // cards on the reference's row under one line and under two (measured at 1 px = 1 pt).
+        .padding(.bottom, 17 - 2.0 / 3.0)
+    }
+}
+
+/// Words left to right, wrapping when the next one does not fit (the browser's greedy wrap), with
+/// each line `pitch` below the one before. The block is as tall as its last line's own box, so a
+/// single-line heading keeps SF's line box and nothing is clipped.
+struct TasteHeadingLines: Layout {
+    let wordSpacing: CGFloat
+    let pitch: CGFloat
+
+    private func positions(width: CGFloat, subviews: Subviews) -> (points: [CGPoint], proposals: [ProposedViewSize], size: CGSize) {
+        var points: [CGPoint] = [], proposals: [ProposedViewSize] = []
+        var x: CGFloat = 0, row = 0, lastHeight: CGFloat = 0, widest: CGFloat = 0
+        for subview in subviews {
+            let natural = subview.sizeThatFits(.unspecified)
+            let proposal = natural.width > width ? ProposedViewSize(width: width, height: nil) : ProposedViewSize(natural)
+            let size = natural.width > width ? subview.sizeThatFits(proposal) : natural
+            if x > 0 && x + size.width > width {
+                x = 0
+                row += 1
+            }
+            points.append(CGPoint(x: x, y: CGFloat(row) * pitch))
+            proposals.append(proposal)
+            x += size.width + wordSpacing
+            widest = max(widest, x - wordSpacing)
+            lastHeight = size.height
+        }
+        return (points, proposals, CGSize(width: widest, height: CGFloat(row) * pitch + lastHeight))
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? .greatestFiniteMagnitude
+        return positions(width: width, subviews: subviews).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let laid = positions(width: bounds.width, subviews: subviews)
+        for (index, subview) in subviews.enumerated() {
+            subview.place(at: CGPoint(x: bounds.minX + laid.points[index].x, y: bounds.minY + laid.points[index].y),
+                          anchor: .topLeading, proposal: laid.proposals[index])
+        }
     }
 }
 
@@ -977,14 +1059,14 @@ struct TasteStoryList: View {
                 }
             }
         } else if medium == .manga {
-            Grid(horizontalSpacing: metrics.mangaColumnSpacing, verticalSpacing: 28) {
+            VStack(alignment: .leading, spacing: 28) {
                 ForEach(Array(stride(from: 0, to: cards.count, by: 2)), id: \.self) { index in
-                    GridRow(alignment: .top) {
+                    TasteLeafRowLayout(spacing: metrics.mangaColumnSpacing) {
                         TasteLeafCard(card: cards[index], metrics: metrics)
                         if index + 1 < cards.count {
                             TasteLeafCard(card: cards[index + 1], metrics: metrics)
                         } else {
-                            Color.clear.gridCellUnsizedAxes([.vertical])
+                            Color.clear
                         }
                     }
                 }
@@ -1004,10 +1086,46 @@ struct TasteStoryList: View {
     }
 }
 
+/// A row of two manga leaves on whole points, as the browser snaps the prototype's `164.5px 164.5px`
+/// grid (165 and 164 at 390): the first column takes the extra half point, so both frames' borders
+/// fall on the pixel grid instead of straddling it. Both leaves take the row's height, so their Plan
+/// keys stay level.
+struct TasteLeafRowLayout: Layout {
+    let spacing: CGFloat
+
+    func columns(_ total: CGFloat) -> (CGFloat, CGFloat) {
+        let lead = max(0, ((total - spacing) / 2).rounded(.up))
+        return (lead, max(0, total - spacing - lead))
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let total = proposal.width ?? 346
+        let (lead, trail) = columns(total)
+        var height: CGFloat = 0
+        for (subview, width) in zip(subviews, [lead, trail]) {
+            height = max(height, subview.sizeThatFits(ProposedViewSize(width: width, height: nil)).height)
+        }
+        return CGSize(width: total, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let (lead, trail) = columns(bounds.width)
+        for (index, subview) in subviews.prefix(2).enumerated() {
+            let x = index == 0 ? bounds.minX : bounds.minX + lead + spacing
+            subview.place(at: CGPoint(x: x, y: bounds.minY), anchor: .topLeading,
+                          proposal: ProposedViewSize(width: index == 0 ? lead : trail, height: bounds.height))
+        }
+    }
+}
+
 /// Story-card text roles (PROTOTYPE_SPEC.md §4 "Taste").
 private enum TasteType {
-    static let kindInk = Color(hex: "626B63")
-    static let premiseInk = Color(hex: "575C59")
+    /// The kind kicker and the premise are a step darker than the prototype's `#626b63` / `#575c59`:
+    /// iOS draws the 8–12 pt strokes thinner than the browser the references were captured in (a 3x
+    /// device capture, block-averaged, carries about 20% less ink than the reference at the same
+    /// colour), so the slightly deeper ink keeps the line's weight (FIDELITY_REVIEW round 3).
+    static let kindInk = Color(hex: "5A635B")
+    static let premiseInk = Color(hex: "4F5451")
 
     static func kind(_ text: String, size: CGFloat, tracking: CGFloat) -> some View {
         Text(text)
@@ -1029,12 +1147,61 @@ private enum TasteType {
     }
 
     static func premise(_ text: String, size: CGFloat, lineSpacing: CGFloat) -> some View {
-        Text(text)
-            .font(.kuroCustom(size, relativeTo: .footnote, maxSize: size * 1.8))
-            .lineSpacing(lineSpacing)
-            .foregroundStyle(premiseInk)
-            .lineLimit(4)
+        TastePremiseText(text: text, baseSize: size, lineSpacing: lineSpacing, ink: UIColor(premiseInk), lineLimit: 4)
             .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// A premise wrapped as the prototype's browser wraps it: each line takes every word that fits.
+/// iOS's standard line-break strategy pushes a word down to avoid a one-word last line ("… in each /
+/// other's lives."), which SwiftUI `Text` cannot turn off; a label with `lineBreakStrategy = []` sets
+/// "… in each other's / lives." on the same 29ch measure (FIDELITY_REVIEW FR-B). Same face, size,
+/// scaling (`KuroTypeScale`, footnote, at most 1.8 ×), line spacing and ink as the `Text` it replaces.
+struct TastePremiseText: UIViewRepresentable {
+    let text: String
+    let baseSize: CGFloat
+    let lineSpacing: CGFloat
+    let ink: UIColor
+    let lineLimit: Int
+
+    /// Re-sets the label when the text size changes.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    func makeUIView(context: Context) -> UILabel {
+        let label = UILabel()
+        label.backgroundColor = .clear
+        label.lineBreakStrategy = []
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        label.setContentHuggingPriority(.required, for: .vertical)
+        return label
+    }
+
+    func updateUIView(_ label: UILabel, context: Context) {
+        _ = dynamicTypeSize
+        label.attributedText = Self.attributed(text, size: fontSize, lineSpacing: lineSpacing, ink: ink)
+        label.numberOfLines = lineLimit
+        label.lineBreakMode = .byTruncatingTail
+        label.lineBreakStrategy = []
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView label: UILabel, context: Context) -> CGSize? {
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? 10_000
+        label.preferredMaxLayoutWidth = width
+        let fit = label.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? ceil(fit.width), height: ceil(fit.height))
+    }
+
+    private var fontSize: CGFloat {
+        min(KuroTypeScale.current.scaled(baseSize, relativeTo: .footnote), baseSize * 1.8)
+    }
+
+    static func attributed(_ text: String, size: CGFloat, lineSpacing: CGFloat, ink: UIColor) -> NSAttributedString {
+        let style = NSMutableParagraphStyle()
+        style.lineSpacing = lineSpacing
+        style.lineBreakMode = .byWordWrapping
+        style.lineBreakStrategy = []
+        return NSAttributedString(string: text, attributes: [.font: UIFont.systemFont(ofSize: size), .foregroundColor: ink,
+                                                             .paragraphStyle: style])
     }
 }
 
@@ -1042,9 +1209,11 @@ private enum TasteType {
 private struct TasteArt: View {
     let url: String?
     var fill: Bool = false
+    /// The well behind a contained cover: `#f0f0ed` on the anime cards, white inside the manga leaf.
+    var well: Color = Color(hex: "F0F0ED")
 
     var body: some View {
-        Color(hex: "F0F0ED")
+        well
             .overlay {
                 KuroCachedAsyncImage(url: url.flatMap(URL.init(string:)), maxPixelSize: 520) { phase in
                     switch phase {
@@ -1224,15 +1393,19 @@ private struct TasteLeafCard: View {
     let card: TasteCard
     let metrics: TasteMetrics
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     @Environment(\.tasteGerman) private var germanOverride
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             TasteOpenButton(card: card) {
                 VStack(alignment: .leading, spacing: 0) {
-                    TasteArt(url: card.media.imageURL)
-                        .padding(9)
-                        .aspectRatio(2 / 3, contentMode: .fit)
+                    // `.story-art`: white, a 1 pt #d9dbd3 border, then 9 pt padding (the border is drawn
+                    // inside the frame, so the cover sits 10 pt in), the cover contained on white.
+                    TasteArt(url: card.media.imageURL, well: .white)
+                        .padding(10)
+                        .modifier(TasteLeafArtSize(height: dynamicTypeSize.isAccessibilitySize ? nil : metrics.leafArtHeight))
                         .background(Color.white)
                         .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
                         .overlay(RoundedRectangle(cornerRadius: 2, style: .continuous)
@@ -1255,6 +1428,10 @@ private struct TasteLeafCard: View {
                                                          german: germanOverride ?? KuroLocale.isGerman) {
                             TasteType.kind(kind, size: 9, tracking: 0.2)
                         }
+                        // SF's own line boxes are shorter than the prototype's (kind 10.7 against 12.6,
+                        // premise lines 13.1 against 15.95): the copy starts 14 pt under the frame (13 in
+                        // CSS) and the key sits 14 pt under the copy (12), so the kicker, title, premise
+                        // and key land on the reference's rows (measured).
                         TasteType.title(card.media.title, size: metrics.compact ? 18 : 20, tracking: -0.5)
                             .padding(.top, 7)
                         if let premise = card.premise {
@@ -1263,8 +1440,8 @@ private struct TasteLeafCard: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 13)
-                    .padding(.bottom, 12)
+                    .padding(.top, 14)
+                    .padding(.bottom, 14)
                 }
             }
             Spacer(minLength: 0)
@@ -1437,7 +1614,8 @@ struct TasteFooter: View {
                 .accessibilityHidden(true)
         }
         .font(.kuroCustom(10, relativeTo: .caption2, maxSize: 18))
-        .foregroundStyle(Color.kuroMuted)
+        // A step deeper than `kuroMuted` (#696c6b), for the same reason as `TasteType.premiseInk`.
+        .foregroundStyle(Color(hex: "606362"))
         .padding(.horizontal, 22)
         .padding(.top, 20)
         .padding(.bottom, 28)

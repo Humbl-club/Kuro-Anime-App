@@ -219,4 +219,18 @@ struct HomeToastRound3Tests {
         #expect(KuroToastHold.holdsUntilDismissed(voiceOver: false, switchControl: true))
         #expect(!KuroToastHold.holdsUntilDismissed(voiceOver: false, switchControl: false))
     }
+
+    // MARK: Medium word ink (round 3)
+
+    @Test("The selected word stays decisively darker than the unselected word, and white art never shows pale")
+    func selectedWordReadsDark() {
+        func luma(_ c: KuroRGB) -> Double { 0.299 * c.r + 0.587 * c.g + 0.114 * c.b }
+        let unselected = luma(HomeMediumWordInk.unselected)
+        // At least 30 levels (of 255) darker than #6e786f, as the reference's pair (about 36).
+        #expect((unselected - HomeMediumWordInk.targetLuma) * 255 >= 30)
+        #expect(HomeMediumWordInk.targetLuma <= 0.33)
+        // No channel of the art lighter than about #8e938c: a white page reads as a mid-tone.
+        #expect(luma(HomeMediumWordInk.highlightCeiling) <= 0.58)
+        #expect(luma(HomeMediumWordInk.highlightCeiling) > HomeMediumWordInk.targetLuma)
+    }
 }
