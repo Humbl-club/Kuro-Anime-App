@@ -549,3 +549,31 @@ Deno.test("MangaUpdates helpers: base36 slug, volume count, plain chapter number
   assert.equal(isMuSeriesPage("https://www.mangaupdates.com/series/pb8uwdsx", "pb8uwds"), false);
   assert.equal(isMuSeriesPage("not a url", "pb8uwds"), false);
 });
+
+Deno.test("manga: releasing titles with a verified MangaDex link come before unlinked popular ones", async () => {
+  // 9 is untracked and the least popular, but it is the only title with a MangaDex link.
+  const { fake } = mangaFake({
+    manga: [
+      { id: 7, status: "RELEASING", popularity: 900, chapters: null, volumes: null },
+      { id: 8, status: "RELEASING", popularity: 800, chapters: null, volumes: null },
+      { id: 9, status: "RELEASING", popularity: 10, chapters: null, volumes: null },
+    ],
+    manga_user_lists: [],
+    manga_source_links: [{ manga_id: 9, provider: "mangadex", status: "active", provider_media_id: "dex-9" }],
+  });
+  const c = clients([], []);
+  const dexIds: string[] = [];
+  const res = await run({ mode: "manga", limit: 1, offset: 0 }, {
+    supabase: fake.client,
+    ...c,
+    readMangaDexLinks: (id) => {
+      dexIds.push(id);
+      return Promise.resolve({ al: "1" });
+    },
+  });
+  const out = await res.json();
+  assert.equal(res.status, 200, JSON.stringify(out));
+  assert.equal(out.results.candidates, 3);
+  assert.deepEqual(dexIds, ["dex-9"], "the linked title is in the first batch");
+  assert.equal(out.results.unmapped, 0);
+});

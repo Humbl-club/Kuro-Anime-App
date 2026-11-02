@@ -164,7 +164,7 @@ async function loadCandidates(supabase: any, opts: MangaOptions): Promise<Candid
     if (error) throw new Error(`manga lookup failed: ${error.message ?? error}`);
     return (data ?? []) as Candidate[];
   }
-  // Tracked first (titles people read now or plan to), then popular RELEASING titles.
+  // Tracked first (titles people read now or plan to).
   const { data: tracked, error: trackedError } = await supabase
     .from("manga_user_lists")
     .select("manga_id")
@@ -185,6 +185,28 @@ async function loadCandidates(supabase: any, opts: MangaOptions): Promise<Candid
       if (row) rows.push(row);
     }
   }
+  // Then RELEASING titles that already have a verified MangaDex link (the only ones the mapping
+  // chain can resolve), most popular first, then the remaining popular RELEASING titles.
+  const { data: links, error: linksError } = await supabase
+    .from("manga_source_links")
+    .select("manga_id")
+    .eq("provider", "mangadex")
+    .eq("status", "active")
+    .limit(5000);
+  if (linksError) throw new Error(`manga_source_links lookup failed: ${linksError.message ?? linksError}`);
+  const linkedIds = [...new Set(((links ?? []) as { manga_id: number }[]).map((r) => Number(r.manga_id)))];
+  const linked: Candidate[] = [];
+  for (let i = 0; i < linkedIds.length; i += 300) {
+    const { data, error } = await supabase
+      .from("manga")
+      .select("id, chapters, volumes, popularity")
+      .in("id", linkedIds.slice(i, i + 300))
+      .eq("status", "RELEASING");
+    if (error) throw new Error(`linked manga lookup failed: ${error.message ?? error}`);
+    linked.push(...((data ?? []) as Candidate[]));
+  }
+  // deno-lint-ignore no-explicit-any
+  linked.sort((a: any, b: any) => (Number(b.popularity) || 0) - (Number(a.popularity) || 0));
   const { data: popular, error: popularError } = await supabase
     .from("manga")
     .select("id, chapters, volumes")
@@ -193,7 +215,7 @@ async function loadCandidates(supabase: any, opts: MangaOptions): Promise<Candid
     .limit(200);
   if (popularError) throw new Error(`popular manga lookup failed: ${popularError.message ?? popularError}`);
   const seen = new Set(rows.map((r) => r.id));
-  for (const r of (popular ?? []) as Candidate[]) {
+  for (const r of [...linked, ...((popular ?? []) as Candidate[])]) {
     if (!seen.has(Number(r.id))) {
       seen.add(Number(r.id));
       rows.push(r);
