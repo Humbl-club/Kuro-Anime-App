@@ -6,19 +6,41 @@ import SwiftUI
 // sharing level allows) member details. Privacy is enforced server-side; these views render whatever
 // the cached club bundles return. Since the prototype-fidelity pass (2026-11-01) the cards are drawn
 // inside the detail page's "Between us." card (`DetailBetweenUs`); the old standalone section and its
-// Add button are gone (Add to a club lives in the status mark's menu).
+// Add button are gone (Add to a club lives in the status mark's menu). Each card's club name opens the
+// club inside the journey (navigation contract N9).
 
 // MARK: - Card per club
 
 struct ClubActivityCard: View {
     let activity: ClubMediaActivity
     let currentUserId: String?
+    @Environment(\.kuroRoutes) private var routes
 
     var body: some View {
         VStack(alignment: .leading, spacing: KuroDesignSpacing.sm) {
-            Text(activity.club.name)
-                .font(.kuroBody(weight: .medium))
-                .foregroundColor(.kuroBlack85)
+            // The club's name opens the club, pushed inside the journey (navigation contract N9: this card
+            // used to be a dead tap). Only the name row is the button: the member disclosure below keeps
+            // its own tap.
+            Button {
+                routes.openPage(DetailNavigation.clubPage(activity))
+            } label: {
+                HStack(spacing: KuroDesignSpacing.sm) {
+                    Text(activity.club.name)
+                        .font(.kuroBody(weight: .medium))
+                        .foregroundColor(.kuroBlack85)
+                        .multilineTextAlignment(.leading)
+                    Spacer(minLength: KuroDesignSpacing.sm)
+                    Image(systemName: "arrow.right")
+                        .font(.kuroCaption())
+                        .foregroundColor(.kuroInkQuiet)
+                        .accessibilityHidden(true)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(activity.club.name)
+            .accessibilityHint(KuroLocale.text("Opens the club.", "Öffnet den Club."))
 
             ForEach(activity.matchingItems, id: \.item.id) { match in
                 ClubActivityItemRow(

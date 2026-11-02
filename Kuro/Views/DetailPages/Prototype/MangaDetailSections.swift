@@ -27,6 +27,9 @@ import SwiftUI
 // paper `#f6f5ef`; the intro band is the artwork `wash → #faf9f2` with a faint 7 pt ruling (the
 // prototype's measured band; the anime band is `base → deep`); the serif appears on the title, the
 // hook, "Your bookmark", chapter numbers (italic) and "Seen the anime?".
+// Navigation (contract 2026-11-02, DetailNavigation.swift): a journey page with the shrinking header
+// (`.detailJourneyChrome`; the round keys are the neutral paper key over the light folio band); every
+// tap inside pushes through `\.kuroRoutes`; folds remember their state for the session.
 
 /// Everything the page shows besides the catalogue row and the Library entry. Fixture renders pass a
 /// complete value; the live page fills it from the owners above.
@@ -83,12 +86,17 @@ struct MangaDetailPage: View {
     @Environment(ProviderAvailabilityStore.self) private var availability
     @Environment(OutboundLinkTelemetry.self) private var outboundLinks
     @Environment(\.kuroRoutes) private var routes
+    @Environment(\.kuroFoldMemory) private var folds
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Optional: fixture hosts may not inject one (then the page counts as online).
     @Environment(NetworkMonitor.self) private var network: NetworkMonitor?
 
     @State private var content: MangaDetailContent
+    /// The shrinking header's progress (read by the chrome only).
+    @State private var collapse = DetailCollapseState()
+    /// Foldable sections whose top has scrolled above the view (F2: a collapse scrolls them back).
+    @State private var foldsAbove: Set<DetailSection> = []
     @State private var releaseItems: [ReleaseScheduleItem]?
     @State private var releaseSongs: [ThemeSong]?
     @State private var roster: [SocialActivityStore.FriendTitleActivity] = []
@@ -163,6 +171,7 @@ struct MangaDetailPage: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     hero
+                        .detailCollapseHero(collapse)
                     if isOffline {
                         KuroOfflineView(hasContent: true) { reloadToken += 1 }
                             .padding(.horizontal, 24)
@@ -172,6 +181,7 @@ struct MangaDetailPage: View {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(DetailLoadPart.visibleSections(sections, settled: pending.isEmpty), id: \.self) { section in
                             sectionView(section, sections: sections, origin: origin, proxy: proxy)
+                                .detailFoldAnchor(section, above: $foldsAbove)
                         }
                         if pending.isEmpty, ladderFailed, !isOffline {
                             KuroStateView(.failed(hasCachedContent: true), layout: .inline) { reloadToken += 1 }
@@ -200,12 +210,13 @@ struct MangaDetailPage: View {
                     }
                 }
             }
+            .detailCollapseTracking(collapse)
         }
         .ignoresSafeArea(edges: .top)
         .background(MangaInk.paper.ignoresSafeArea())
-        .overlay(alignment: .topTrailing) {
-            DetailCloseButton(material: material, fill: MangaInk.closeFill, ink: MangaInk.closeInk)
-        }
+        // Back (pushed) and ✕ over the folio band, then the compact bar (navigation contract N1-N3, H1-H4).
+        // The band is light paper: the neutral paper key (nil material) keeps the ink glyphs legible.
+        .detailJourneyChrome(title: pageTitle, material: nil, collapse: collapse)
         .modifier(DetailToastOverlay(toast: $toast))
         .tint(Color.kuroInk)
         .onAppear { actionScope.activate(session: libraryActions.accountSession) }
@@ -226,8 +237,10 @@ struct MangaDetailPage: View {
             await clubs.refreshMyClubsIfStale()
         }
         .detailReleases(kind: .manga, id: manga.id, schedule: $releaseItems, songs: $releaseSongs)
+        // Tool sheets (N7): they close back to this page; their own close never collapses the journey.
         .sheet(isPresented: $showVerdict) {
             QuickVerdictPickerSheet(media: manga, onToast: showToast)
+                .kuroLeavesJourney()
         }
         .confirmationDialog(DetailRemoval.confirmTitle(german: german),
                             isPresented: Binding(get: { pendingRemoval != nil }, set: { if !$0 { pendingRemoval = nil } }),
@@ -245,9 +258,18 @@ struct MangaDetailPage: View {
                     openURL(url)
                 }
             }
+            .kuroLeavesJourney()
         }
-        // The page's own presentation context: the adaptation card and the editor open here.
-        .routePresenter()
+        // No page-local presenter: inside a journey every tap pushes and tools open from the journey's
+        // tool slot (navigation contract; `\.kuroRoutes` comes from the journey host).
+    }
+
+    private var pageTitle: String { content.bundle?.header.title ?? manga.displayTitle }
+
+    /// F2: after a fold closes, its section comes back into view when its top had scrolled away.
+    private func foldCollapsed(_ section: DetailSection, proxy: ScrollViewProxy) {
+        guard foldsAbove.contains(section) else { return }
+        withAnimation(KuroFold.animation(reduceMotion: reduceMotion)) { proxy.scrollTo(section, anchor: .top) }
     }
 
     // MARK: Sections
@@ -265,7 +287,9 @@ struct MangaDetailPage: View {
                                aboutTitle: DetailPageCopy.aboutTitle(isSeason: false, german: german),
                                expectation: nil,
                                serifHook: true,
-                               premise: hook == nil ? nil : copy?.premise?.detailNonEmpty)
+                               premise: hook == nil ? nil : copy?.premise?.detailNonEmpty,
+                               expanded: folds.binding(page: DetailFold.page(manga.libraryKey), section: DetailFold.story),
+                               onCollapse: { foldCollapsed(.story, proxy: proxy) })
         case .clubPresence:
             DetailClubPresence(names: DetailBetweenUs.rosterNames(roster), count: clubPeople) {
                 // Reduce Motion: the jump is instant (prototype §6).
@@ -293,6 +317,8 @@ struct MangaDetailPage: View {
                                  nextRelease: DetailNextReleaseSection.upcoming(releaseItems ?? []).first,
                                  material: material, coverURL: coverURL, savingNext: savingNext,
                                  confirmTrigger: confirmTrigger,
+                                 showsAll: folds.binding(page: DetailFold.page(manga.libraryKey), section: DetailFold.units),
+                                 onCollapse: { foldCollapsed(.units, proxy: proxy) },
                                  readLinkTitle: readLink?.title,
                                  onReadChapter: readLink == nil ? nil : { openChapter($0) }) { next in
                 advance(to: next, origin: origin)
@@ -301,9 +327,13 @@ struct MangaDetailPage: View {
         case .source:
             if let adaptation = content.adaptation {
                 MangaAdaptationCard(item: adaptation, guides: content.bundle?.adaptations ?? [], material: material,
+                                    showsGuide: folds.binding(page: DetailFold.page(manga.libraryKey),
+                                                              section: DetailFold.adaptationGuide),
+                                    onCollapse: { foldCollapsed(.source, proxy: proxy) },
                                     officialSite: content.adaptationSite,
                                     onOpenSite: { openOfficialSite(adaptation) }) { id in
-                    routes.openMedia(MediaRoute(kind: .anime, id: id))
+                    // The adaptation (and a guide's season) is always an anime: pushed in the journey.
+                    routes.openPage(DetailNavigation.seasonPage(id: id))
                 }
             }
         case .characters:
@@ -834,14 +864,16 @@ struct MangaChaptersSection: View {
     let coverURL: URL?
     let savingNext: Bool
     let confirmTrigger: Int
+    /// "More chapters" open or closed, kept for the session per title (F3, `DetailFold.units`).
+    @Binding var showsAll: Bool
+    /// F2: the page scrolls the chapters back into view after they fold, when needed.
+    var onCollapse: () -> Void = {}
     /// The reading service a chapter row opens; nil leaves the rows inert.
     var readLinkTitle: String? = nil
     var onReadChapter: ((MangaChapter) -> Void)? = nil
     let onAdvance: (Int) -> Void
 
     @Environment(CatalogStore.self) private var catalog
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showsAll = false
     @State private var allChapters: [MangaChapter] = []
     @State private var hasMore = true
     @State private var loadingMore = false
@@ -887,26 +919,21 @@ struct MangaChaptersSection: View {
                 KuroSkeleton(kind: .row).padding(.vertical, 8)
             }
             if hasMoreToShow || showsAll {
-                Button {
-                    if showsAll {
-                        withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsAll = false }
-                    } else {
-                        showsAll = true
-                        Task { await loadAll() }
-                    }
-                } label: {
+                KuroFoldButton(isExpanded: $showsAll,
+                               expandLabel: KuroLocale.text("More chapters", "Mehr Kapitel"),
+                               collapseLabel: KuroLocale.text("Fewer chapters", "Weniger Kapitel"),
+                               onCollapse: onCollapse) { title, open in
                     HStack {
-                        Text(showsAll ? KuroLocale.text("Fewer chapters", "Weniger Kapitel") : KuroLocale.text("More chapters", "Mehr Kapitel"))
+                        Text(title)
                             .font(.detailSF(11, relativeTo: .footnote))
                         Spacer()
-                        Image(systemName: showsAll ? "arrow.up" : "arrow.down")
+                        Image(systemName: open ? "arrow.up" : "arrow.down")
                             .font(.detailSF(14, .light, relativeTo: .body))
+                            .accessibilityHidden(true)
                     }
                     .foregroundStyle(DetailInk.moreLink)
                     .frame(minHeight: 44)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
                 .overlay(alignment: .top) { Rectangle().fill(DetailInk.rowRule).frame(height: 1) }
             }
             if showsAll, hasMore, !allChapters.isEmpty, !loadingMore {
@@ -914,6 +941,12 @@ struct MangaChaptersSection: View {
             }
         }
         .padding(.bottom, 8)
+        // Opened by the fold, or restored open from the session's memory (F3): load the full list.
+        .task(id: showsAll) {
+            guard real, DetailFold.loadsAllUnits(expanded: showsAll, loadedCount: allChapters.count,
+                                                 hasMore: hasMore, loading: loadingMore) else { return }
+            await loadAll()
+        }
     }
 
     private func upNextRow(_ number: Int, german: Bool) -> some View {
@@ -1049,12 +1082,14 @@ struct MangaAdaptationCard: View {
     let item: MediaLadderItem
     let guides: [SeriesDetailBundle.Coverage]
     let material: ArtworkMaterial
+    /// "I've watched the anime" open or closed (F3, `DetailFold.adaptationGuide`).
+    @Binding var showsGuide: Bool
+    /// F2: the page scrolls the card back into view after the guide folds, when needed.
+    var onCollapse: () -> Void = {}
     /// The adaptation's official site ("Official anime site ↗"), when its external links have one.
     var officialSite: URL? = nil
     var onOpenSite: () -> Void = {}
     let onOpen: (Int) -> Void
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showsGuide = false
     @State private var choice: Int?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -1162,23 +1197,21 @@ struct MangaAdaptationCard: View {
     @ViewBuilder
     private func guide(german: Bool) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(KuroMotion.detail(KuroMotion.settle, reduceMotion: reduceMotion)) { showsGuide.toggle() }
-            } label: {
+            let guideTitle = KuroLocale.text("I've watched the anime", "Ich habe den Anime gesehen")
+            KuroFoldButton(isExpanded: $showsGuide, expandLabel: guideTitle, collapseLabel: guideTitle,
+                           onCollapse: onCollapse) { title, open in
                 HStack {
-                    Text(KuroLocale.text("I've watched the anime", "Ich habe den Anime gesehen"))
+                    Text(title)
                         .font(.detailSF(12, .medium, relativeTo: .subheadline))
                     Spacer()
                     Text("+")
                         .font(.detailSF(20, .light, relativeTo: .body))
-                        .rotationEffect(.degrees(showsGuide ? 45 : 0))
+                        .rotationEffect(.degrees(open ? 45 : 0))
+                        .accessibilityHidden(true)
                 }
                 .foregroundStyle(Color.kuroInk)
                 .frame(minHeight: 52)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .accessibilityAddTraits(showsGuide ? .isSelected : [])
             if showsGuide {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(KuroLocale.text("Which season did you finish?", "Welche Staffel hast du beendet?"))

@@ -471,6 +471,7 @@ enum DetailStoryDisclosure {
 // MARK: - Loader chrome
 
 enum DetailLoaderChrome {
-    /// The sheet's grabber shows until the page has loaded (the loaded page has its own close).
-    static func dragIndicator(loaded: Bool) -> Visibility { loaded ? .hidden : .visible }
+    /// The sheet's grabber (navigation contract N8): always visible on a detail journey, loading, failed
+    /// or loaded, so swipe-down to collapse the journey is never a hidden gesture.
+    static let dragIndicator: Visibility = .visible
 }

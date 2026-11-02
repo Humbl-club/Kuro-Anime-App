@@ -1516,3 +1516,7 @@ Status: LIVE on `bkdifromsqxkndnllmdj`. Release schedule + songs RPCs and intake
 ### Change Log — 2 November 2026: Navigation contract foundation
 
 Status: foundation implemented locally on `kuro/prototype-fidelity`, NOT deployed. Journeys (`JourneyHost`, `JourneyPage`, `JourneyPolicy`), chrome + shrinking header, edge swipe-back fix, fold memory, root collapse coordinator (N10) and the WARN gate `check_navigation.sh` exist; screen migrations (detail, club, person pages, Search/Profile/see-all/season sheets, ContentView deep-link wiring) are open for the navigation lanes.
+
+### Change Log — 2 November 2026: Navigation lane "detail"
+
+Status: anime + manga detail pages migrated to journey pages locally on `kuro/nav-detail` (not pushed, not deployed): shrinking header with Back/✕ chrome, grabber always visible, every in-detail tap pushes (seasons, source/adaptation, characters, staff/studio/author, ladder "Original work", club rail cards), folds with session memory. Gate offenders 16 → 2 (clubs lane). Open: UI chain tests on the owned simulator (spec §5) at integration; verdict sheet close (QuickVerdictActionCard, not this lane).

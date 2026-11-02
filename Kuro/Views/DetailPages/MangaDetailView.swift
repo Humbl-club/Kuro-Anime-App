@@ -82,7 +82,7 @@ struct MangaNextPickSection: View {
     let mediaId: Int
     let similar: [Manga]
     @Environment(LibraryStore.self) private var library
-    @State private var showDetail = false
+    @Environment(\.kuroRoutes) private var routes
 
     private var userEntry: LibraryEntry? {
         library.entry(for: MediaKey(kind: .manga, id: mediaId))
@@ -113,7 +113,8 @@ struct MangaNextPickSection: View {
 
                 Button {
                     KuroAccessibility.impactHaptic(.light)
-                    showDetail = true
+                    // Pushed inside the journey (navigation contract), never a sheet on the detail.
+                    routes.openMedia(MediaRoute(kind: .manga, id: manga.id))
                 } label: {
                     HStack(spacing: 12) {
                         KuroCachedAsyncImage(url: URL(string: manga.displayImage), maxPixelSize: 200) { phase in
@@ -159,9 +160,6 @@ struct MangaNextPickSection: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .sheet(isPresented: $showDetail) {
-                    MediaDetailSheet(kind: .manga, id: manga.id).kuroLeavesJourney()
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

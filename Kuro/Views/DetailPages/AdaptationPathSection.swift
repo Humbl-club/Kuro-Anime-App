@@ -7,6 +7,7 @@ struct AdaptationPathSection: View {
 
     @State private var selectedItem: MediaLadderItem?
     @State private var showFullPath = false
+    @Environment(\.kuroRoutes) private var routes
 
     private var source: MediaLadderItem? {
         ladder.primarySource ?? ladder.sourceMaterial.first
@@ -57,12 +58,15 @@ struct AdaptationPathSection: View {
                 )
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .sheet(item: $selectedItem) { item in
-                let kind: MediaKind = item.mediaType.uppercased() == "MANGA" ? .manga : .anime
-                MediaDetailSheet(kind: kind, id: item.mediaId).kuroLeavesJourney()
+            // A tapped title is pushed inside the journey (navigation contract), never a sheet.
+            .onChange(of: selectedItem?.id) { _, _ in
+                guard let item = selectedItem else { return }
+                selectedItem = nil
+                if let page = DetailNavigation.ladderPage(item) { routes.openPage(page) }
             }
             .sheet(isPresented: $showFullPath) {
-                FranchisePathSheet(ladder: ladder).kuroLeavesJourney()
+                // A legacy list sheet: its own presenter opens a tapped title as a journey over it.
+                FranchisePathSheet(ladder: ladder).routePresenter().kuroLeavesJourney()
             }
         }
     }
@@ -310,6 +314,7 @@ private struct FootnoteProseContent: View {
 private struct FranchisePathSheet: View {
     let ladder: MediaLadderResponse
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.kuroRoutes) private var routes
     @State private var selectedItem: MediaLadderItem?
 
     private var groups: [(label: String, items: [MediaLadderItem])] {
@@ -359,9 +364,10 @@ private struct FranchisePathSheet: View {
                 }
             }
         }
-        .sheet(item: $selectedItem) { item in
-            let kind: MediaKind = item.mediaType.uppercased() == "MANGA" ? .manga : .anime
-            MediaDetailSheet(kind: kind, id: item.mediaId).kuroLeavesJourney()
+        .onChange(of: selectedItem?.id) { _, _ in
+            guard let item = selectedItem else { return }
+            selectedItem = nil
+            if let page = DetailNavigation.ladderPage(item) { routes.openPage(page) }
         }
     }
 }

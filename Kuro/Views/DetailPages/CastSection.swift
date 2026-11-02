@@ -5,8 +5,8 @@ import SwiftUI
 struct CastSection: View {
     let characters: [(character: Character, role: String)]
 
-    @State private var selectedCharacter: Character?
     @State private var showAllCharacters = false
+    @Environment(\.kuroRoutes) private var routes
 
     private let previewLimit = 8
     private let displayLimit = 10
@@ -65,7 +65,8 @@ struct CastSection: View {
                                 role: item.role
                             )
                             .onTapGesture {
-                                selectedCharacter = item.character
+                                // Pushed inside the journey (navigation contract), never a sheet.
+                                routes.openCharacter(item.character)
                             }
                         }
                     }
@@ -73,14 +74,13 @@ struct CastSection: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .sheet(isPresented: $showAllCharacters) {
+                // A legacy list sheet: its own presenter opens a tapped character as a journey over it.
                 CharacterDirectorySheet(
                     title: sectionTitle,
                     characters: displayedCharacters
                 )
+                .routePresenter()
                 .kuroLeavesJourney()
-            }
-            .sheet(item: $selectedCharacter) { character in
-                CharacterDetailSheet(character: character).kuroLeavesJourney()
             }
         }
     }
@@ -210,7 +210,7 @@ private struct CharacterDirectorySheet: View {
     let characters: [(character: Character, role: String)]
 
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedCharacter: Character?
+    @Environment(\.kuroRoutes) private var routes
 
     private let columns = [
         GridItem(.adaptive(minimum: 76, maximum: 88), spacing: 16)
@@ -257,7 +257,7 @@ private struct CharacterDirectorySheet: View {
                         ForEach(characters, id: \.character.id) { item in
                             CastCircleItem(character: item.character, role: item.role)
                                 .onTapGesture {
-                                    selectedCharacter = item.character
+                                    routes.openCharacter(item.character)
                                 }
                         }
                     }
@@ -273,9 +273,6 @@ private struct CharacterDirectorySheet: View {
                     DetailSheetCloseButton { dismiss() }
                 }
             }
-        }
-        .sheet(item: $selectedCharacter) { character in
-            CharacterDetailSheet(character: character).kuroLeavesJourney()
         }
     }
 }
