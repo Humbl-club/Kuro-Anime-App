@@ -180,7 +180,7 @@ struct NextPickSection: View {
                 }
                 .buttonStyle(.plain)
                 .sheet(isPresented: $showDetail) {
-                    MediaDetailSheet(kind: .anime, id: anime.id)
+                    MediaDetailSheet(kind: .anime, id: anime.id).kuroLeavesJourney()
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

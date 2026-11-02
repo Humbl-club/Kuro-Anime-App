@@ -160,7 +160,7 @@ struct MangaNextPickSection: View {
                 }
                 .buttonStyle(.plain)
                 .sheet(isPresented: $showDetail) {
-                    MediaDetailSheet(kind: .manga, id: manga.id)
+                    MediaDetailSheet(kind: .manga, id: manga.id).kuroLeavesJourney()
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

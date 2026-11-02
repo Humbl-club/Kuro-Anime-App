@@ -77,9 +77,10 @@ struct CastSection: View {
                     title: sectionTitle,
                     characters: displayedCharacters
                 )
+                .kuroLeavesJourney()
             }
             .sheet(item: $selectedCharacter) { character in
-                CharacterDetailSheet(character: character)
+                CharacterDetailSheet(character: character).kuroLeavesJourney()
             }
         }
     }
@@ -274,7 +275,7 @@ private struct CharacterDirectorySheet: View {
             }
         }
         .sheet(item: $selectedCharacter) { character in
-            CharacterDetailSheet(character: character)
+            CharacterDetailSheet(character: character).kuroLeavesJourney()
         }
     }
 }

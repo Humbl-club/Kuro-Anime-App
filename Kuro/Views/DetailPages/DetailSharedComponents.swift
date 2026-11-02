@@ -135,7 +135,7 @@ struct DetailSheetCloseButton: View {
     @Environment(\.kuroJourney) private var journey
 
     var body: some View {
-        Button(action: { if let journey { journey.close() } else { action() } }) {
+        Button(action: { if let journey { journey.closeOrDismiss(action) } else { action() } }) {
             Text(KuroLocale.text("Close", "Schließen"))
                 .font(.kuroMeta(weight: .medium))
                 .foregroundStyle(Color.kuroInk)

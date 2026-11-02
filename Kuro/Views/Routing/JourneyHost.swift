@@ -118,6 +118,15 @@ struct JourneyContext {
     let close: () -> Void
     /// A sheet the host did not present covers the journey (see the nesting rule).
     let isCovered: () -> Bool
+
+    /// ✕ on a journey page: closes the whole journey (N3) — unless a foreign sheet covers the journey,
+    /// in which case the tapped control belongs to that sheet and `fallback` (its `dismiss`) runs.
+    func closeOrDismiss(_ fallback: () -> Void) {
+        if JourneyContext.closesJourney(isCovered: isCovered()) { close() } else { fallback() }
+    }
+
+    /// The pure rule behind `closeOrDismiss` (tested in JourneyPolicyTests).
+    nonisolated static func closesJourney(isCovered: Bool) -> Bool { !isCovered }
 }
 
 private struct KuroJourneyKey: EnvironmentKey {
@@ -242,7 +251,7 @@ private struct JourneyBrowsePage: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        if let journey { journey.close() } else { dismiss() }
+                        if let journey { journey.closeOrDismiss { dismiss() } } else { dismiss() }
                     } label: {
                         Image(systemName: "xmark")
                             .font(.kuroBody(weight: .regular))

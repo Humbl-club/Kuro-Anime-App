@@ -59,10 +59,10 @@ struct AdaptationPathSection: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .sheet(item: $selectedItem) { item in
                 let kind: MediaKind = item.mediaType.uppercased() == "MANGA" ? .manga : .anime
-                MediaDetailSheet(kind: kind, id: item.mediaId)
+                MediaDetailSheet(kind: kind, id: item.mediaId).kuroLeavesJourney()
             }
             .sheet(isPresented: $showFullPath) {
-                FranchisePathSheet(ladder: ladder)
+                FranchisePathSheet(ladder: ladder).kuroLeavesJourney()
             }
         }
     }
@@ -361,7 +361,7 @@ private struct FranchisePathSheet: View {
         }
         .sheet(item: $selectedItem) { item in
             let kind: MediaKind = item.mediaType.uppercased() == "MANGA" ? .manga : .anime
-            MediaDetailSheet(kind: kind, id: item.mediaId)
+            MediaDetailSheet(kind: kind, id: item.mediaId).kuroLeavesJourney()
         }
     }
 }

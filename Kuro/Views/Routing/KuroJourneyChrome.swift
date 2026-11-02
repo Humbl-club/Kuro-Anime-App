@@ -107,7 +107,7 @@ struct KuroJourneyChrome: View {
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityHidden(shown < 0.5)
             KuroJourneyChromeKey(kind: .close, progress: shown, material: material) {
-                if let journey { journey.close() } else { dismiss() }
+                if let journey { journey.closeOrDismiss { dismiss() } } else { dismiss() }
             }
         }
         .padding(.horizontal, 8)

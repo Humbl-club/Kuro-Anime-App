@@ -82,10 +82,10 @@ struct ProductionSection: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .sheet(item: $selectedStudio) { studio in
-                StudioDetailSheet(studio: studio)
+                StudioDetailSheet(studio: studio).kuroLeavesJourney()
             }
             .sheet(item: $selectedStaff) { staff in
-                StaffDetailSheet(staff: staff)
+                StaffDetailSheet(staff: staff).kuroLeavesJourney()
             }
             .sheet(isPresented: $showAllCredits) {
                 AllCreditsSheet(staffItems: staffItems)
@@ -166,7 +166,7 @@ struct MangaProductionSection: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .sheet(item: $selectedAuthor) { author in
-                AuthorDetailSheet(author: author)
+                AuthorDetailSheet(author: author).kuroLeavesJourney()
             }
         }
     }
@@ -227,7 +227,7 @@ struct AllCreditsSheet: View {
             }
         }
         .sheet(item: $selectedStaff) { staff in
-            StaffDetailSheet(staff: staff)
+            StaffDetailSheet(staff: staff).kuroLeavesJourney()
         }
     }
 }

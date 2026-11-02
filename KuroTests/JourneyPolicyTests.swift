@@ -147,6 +147,21 @@ struct JourneyPolicyTests {
         #expect(closed == 1)
     }
 
+    @Test("✕ closes the whole journey, except in a foreign sheet covering it (that sheet closes itself)")
+    func closeRule() {
+        #expect(JourneyContext.closesJourney(isCovered: false))
+        #expect(!JourneyContext.closesJourney(isCovered: true))
+        var closed = 0
+        var dismissed = 0
+        var covered = false
+        let context = JourneyContext(isPushed: true, open: { _ in }, pop: {}, close: { closed += 1 },
+                                     isCovered: { covered })
+        context.closeOrDismiss { dismissed += 1 }
+        covered = true
+        context.closeOrDismiss { dismissed += 1 }
+        #expect(closed == 1 && dismissed == 1)
+    }
+
     // MARK: Tools (N7)
 
     @Test("N7: tools never become pages; a tool leaves the path unchanged and closes back to it")

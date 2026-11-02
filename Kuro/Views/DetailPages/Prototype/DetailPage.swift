@@ -451,7 +451,7 @@ struct DetailCloseButton: View {
     @Environment(\.kuroJourney) private var journey
 
     var body: some View {
-        Button(action: { if let journey { journey.close() } else { dismiss() } }) {
+        Button(action: { if let journey { journey.closeOrDismiss { dismiss() } } else { dismiss() } }) {
             Image(systemName: "xmark")
                 .font(.kuroCustom(15, weight: .medium, relativeTo: .body, maxSize: 20))
                 .foregroundStyle(ink)

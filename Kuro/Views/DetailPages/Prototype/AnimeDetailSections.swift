@@ -1743,7 +1743,8 @@ struct DetailCharactersRail: View {
         // collapses its own 30 pt bottom margin into this one).
         .padding(.top, 30)
         .sheet(item: $selected) { character in
-            CharacterDetailSheet(character: character)
+            // Legacy page-local sheet (navigation lanes migrate it to a push): not part of the journey.
+            CharacterDetailSheet(character: character).kuroLeavesJourney()
         }
     }
 }
@@ -1803,9 +1804,10 @@ struct DetailCreditsList: View {
             if let footer { footer }
         }
         .padding(.top, 30)
-        .sheet(item: $staff) { StaffDetailSheet(staff: $0) }
-        .sheet(item: $studio) { StudioDetailSheet(studio: $0) }
-        .sheet(item: $author) { AuthorDetailSheet(author: $0) }
+        // Legacy page-local sheets (navigation lanes migrate them to pushes): not part of the journey.
+        .sheet(item: $staff) { StaffDetailSheet(staff: $0).kuroLeavesJourney() }
+        .sheet(item: $studio) { StudioDetailSheet(studio: $0).kuroLeavesJourney() }
+        .sheet(item: $author) { AuthorDetailSheet(author: $0).kuroLeavesJourney() }
     }
 }
 
