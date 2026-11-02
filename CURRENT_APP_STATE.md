@@ -149,7 +149,7 @@
 
 This document is the **authoritative, technical snapshot** of the Kuro app (iOS client + Supabase backend) and the current codebase. It is written for engineers and LLMs that need a complete and precise understanding of how the system works today.
 
-**Current repo inventory:** 211 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
+**Current repo inventory:** 212 app Swift files in `/Kuro`; 27 package Swift files in `/Packages`; 245 SQL migrations in `/supabase/migrations`.
 **Current staged/live note:** provider availability remains staged behind `streaming_availability_v1` at 0%; live watch/read links still come from `external_links`.
 Historical change-log entries below may include point-in-time counts. Treat them as historical context, not current inventory.
 
@@ -19695,3 +19695,7 @@ Branch `kuro/overnight-2026-11-01` (local, not pushed). Morning report: `docs/ov
 - **Review findings:** PF-QA-1 (manga +1 release ceiling via `homeKeyCaughtUp`), PF-QA-2 (`HomeShelfPolicy.onlyBarePlans`), PF-QA-4 (German club VoiceOver verb), SEC-1 (`DetailBetweenUs.headingNames` honours `social_activity_v1`), SEC-2 (`ArtworkMaterialStore.clearAll` from Profile "Clear cache", gated disk writes, per-launch prune to 1,500 files).
 - **Fixtures:** schedule anchored to calendar days; reference totals; undated anime via announced next episodes; spoiler notes; manga Berserk/Vinland Saga on hiatus; English renders under `-testRegion GB`.
 - **Open (owner/backend):** club verbs need the author's list status in `home_bundle_v1` (SECURITY DEFINER helper); manga undated "N new chapters" needs a released-chapter count in `HomeBundle`; "English edition" needs an edition-language field.
+
+### Change Log — 2 November 2026: Prototype fidelity complete (branch `kuro/prototype-fidelity`, local, not deployed)
+
+Home (anime/manga), both detail pages, first-run Home, Taste and the restyled screens now follow the approved prototype (`tools/design-directions/instrument.html?switch=poster`) per `docs/superpowers/specs/2026-11-01-prototype-fidelity-design.md` and `docs/prototype-fidelity/LANE_AMENDMENTS.md`. Round 2 fixed the remaining detail/first-run/Taste differences and pathway findings: Up next +1 on a Planned title moves it to Watching/Reading (Undo restores Planned), Remove asks first and offers Undo, detail ladder read failures show the branded failed state, loading/failed sheets keep a close control, Home +1 shows a toast with Undo. Per-screen evidence and remaining justified differences: `docs/prototype-fidelity/FIDELITY_REVIEW.md`; comparison gallery `docs/prototype-fidelity/gallery/`. Verification: full KuroTests 784/784 on the owned simulator (en-GB), Release build OK, gates PASS except the known BLOCKED local-db/live-services and skipped name-targeted iOS gates. Inventory: 212 app Swift files, 27 package Swift files, 245 migrations.

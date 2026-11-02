@@ -151,7 +151,7 @@
 
 This file explains the app in everyday language for non-technical readers. It is meant to be a complete, easy overview of how Kuro works today.
 
-**Current inventory:** 211 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
+**Current inventory:** 212 app Swift files, 27 package Swift files and 245 SQL migrations are in the repo today.
 **Current rollout note:** streaming/provider availability remains staged behind `streaming_availability_v1` at 0%; the live watch/read path still uses `external_links`.
 Historical notes below describe what changed at the time; they are not current inventory counts.
 
@@ -2035,3 +2035,7 @@ Local branch only; nothing on the live server changed.
 - **Manga:** a book whose newest chapter you have read shows "Caught up" with a light ✓ key instead of a +1 for a chapter that is not out yet.
 - **Fixes from review:** the new-account welcome ends once you start a planned title; German VoiceOver grammar for one club member; club names hide when social activity is switched off; "Clear cache" also clears the colours taken from artwork.
 - Still open, needing a decision or backend work: "Finished …" / "… started" in the club room, a chapter count for manga with only undated announcements, and "English edition" on volume rows. Details in `docs/prototype-fidelity/FIDELITY_REVIEW.md`.
+
+### Change Log — 2 November 2026: The app now looks like the approved prototype
+
+Home, the anime and manga pages, the first-time screens and Taste were rebuilt to match the prototype you approved, screen by screen, with every page tinted by its own artwork. Saving progress on a "planned" title now also starts it, removing a title asks first and can be undone, and the Home +1 shows an Undo message. Everything is on a local branch; nothing was uploaded or changed on the live server. Side-by-side pictures: `docs/prototype-fidelity/gallery/`.
