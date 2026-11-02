@@ -159,6 +159,30 @@ Deno.test("handler: malformed JSON and oversized bodies are 400 body", async () 
   assert.equal(f.inserts.length, 0);
 });
 
+Deno.test("body cap: a declared or streamed body over the cap is 400 without being buffered whole", async () => {
+  const f = new Fakes();
+  const declared = await call(f, post(VALID, { "Content-Length": String(LIMITS.body + 1) }));
+  assert.equal(declared.status, 400);
+  assert.deepEqual(declared.body, { error: "invalid", fields: ["body"] });
+
+  let pulled = 0;
+  const endless = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      pulled += 1;
+      controller.enqueue(new Uint8Array(4096).fill(0x61));
+      if (pulled > 1000) controller.close();
+    },
+  });
+  const streamed = await call(f, new Request("https://example.test/functions/v1/contact-submit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: endless,
+  }));
+  assert.equal(streamed.status, 400);
+  assert.ok(pulled <= Math.ceil(LIMITS.body / 4096) + 2, `stopped reading early (pulled ${pulled} chunks)`);
+  assert.equal(f.inserts.length, 0);
+});
+
 // ---------------------------------------------------------------- honeypot
 
 Deno.test("honeypot: a filled website field is answered 200 ok and nothing is stored or sent", async () => {

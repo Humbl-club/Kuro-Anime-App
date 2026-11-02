@@ -178,6 +178,11 @@ export function classifyAuthorization(header: string | null, anonKey: string | n
   return { kind: "user", token };
 }
 
+/**
+ * The caller IP. On Supabase hosting the edge proxy rebuilds x-forwarded-for, so its LEFTMOST entry is
+ * the real client (= cf-connecting-ip); a client-sent value never survives (probe 2026-11-02,
+ * docs/go-live/2026-11-02/STAGE4_DATA_ON.md). The rightmost entry is a proxy hop: never use it.
+ */
 export function clientIp(req: Request): string | null {
   const xf = req.headers.get("x-forwarded-for");
   if (xf) {
@@ -250,6 +255,36 @@ export interface ContactPlatform {
   newId(): string;
 }
 
+/**
+ * Reads at most `limit` bytes of the body: null when it is larger (declared Content-Length or the
+ * actual stream), so an oversized body is never buffered whole.
+ */
+export async function readCappedBody(req: Request, limit: number): Promise<string | null> {
+  const declared = Number(req.headers.get("Content-Length") ?? "");
+  if (Number.isFinite(declared) && declared > limit) return null;
+  if (!req.body) return "";
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > limit) {
+      await reader.cancel().catch(() => {});
+      return null;
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 function corsHeaders(origin: string | null): Record<string, string> {
   if (!origin) return {};
   return {
@@ -280,8 +315,8 @@ export async function handleContactSubmit(req: Request, platform: ContactPlatfor
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405, { Allow: "POST, OPTIONS" });
 
   try {
-    const raw = await req.text();
-    if (new TextEncoder().encode(raw).length > LIMITS.body) return json({ error: "invalid", fields: ["body"] }, 400);
+    const raw = await readCappedBody(req, LIMITS.body);
+    if (raw === null) return json({ error: "invalid", fields: ["body"] }, 400);
     let body: unknown;
     try {
       body = JSON.parse(raw);

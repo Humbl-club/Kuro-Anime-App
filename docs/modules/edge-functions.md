@@ -151,7 +151,7 @@ narration only in concierge-recommend), `sanitizeForLLM` before prompts.
 
 ## contact-submit (2026-11-02, prepared, NOT deployed)
 
-`index.ts` (env, supabase-js clients, Resend `fetch`) / `handler.ts` (pure validation, CORS allow-list, honeypot, JWT classification, keyed IP hash, limiter mapping, insert, notification text) / `handler_test.ts` (27 offline tests with fakes: `deno test --no-prompt supabase/functions/contact-submit/`). Serves the legal site's `kontakt.html` (anon key) and the app's `SupportStore` (user session). Deploy with `--no-verify-jwt` after the prepared migration `20261102100000_contact_messages.sql`; set `CONTACT_IP_HASH_SECRET`, optionally `RESEND_API_KEY` + `CONTACT_NOTIFY_TO` + `CONTACT_NOTIFY_FROM`.
+`index.ts` (env, supabase-js clients, Resend `fetch`) / `handler.ts` (pure validation, CORS allow-list, honeypot, JWT classification, keyed IP hash, limiter mapping, insert, notification text) / `handler_test.ts` (28 offline tests with fakes: `deno test --no-prompt supabase/functions/contact-submit/`). Serves the legal site's `kontakt.html` (anon key) and the app's `SupportStore` (user session). Deploy with `--no-verify-jwt` after the prepared migration `20261102100000_contact_messages.sql`; set `CONTACT_IP_HASH_SECRET`, optionally `RESEND_API_KEY` + `CONTACT_NOTIFY_TO` + `CONTACT_NOTIFY_FROM`.
 
 ## Other functions: what stays cohesive and why
 
