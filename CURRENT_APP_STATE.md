@@ -19842,3 +19842,7 @@ Clubs, Home season overview and the tool sheets of this lane follow the navigati
   - Release build OK.
   - `check_navigation.sh` 0 offenders.
 - No new Swift files; inventory unchanged.
+
+### Change Log — 2 November 2026: New Home for the owner account (TestFlight build 21)
+
+Owner request "turn on the new home for my account". `20261007120000_feature_flag_overrides` applied and recorded (history md5 = file md5 `22bf45b3…`); RLS on, `authenticated` may only SELECT its own rows, no client writes. Rows: contact@lazy.space → `series_foundation_v1` = true, `series_home_native_v1` = true; global flags unchanged (0%). `FeatureFlags.readsAccountOverrides` is now true in every build (was DEBUG only); a failed lookup still keeps the cached cohort. Build 21 (`a58a5fb` on `kuro/build21-home-cohort`, from build 20's commit; cherry-picked here as `27bc59c`) passed 795/795 KuroTests and was uploaded 14:55 CET. It does not contain the navigation-contract work; the next build (22) will.

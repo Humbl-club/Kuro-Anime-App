@@ -2096,3 +2096,7 @@ Screenshots are in `docs/navigation-2026-11-02/`. Nothing was deployed.
 - From Profile, reviewing an import opens inside Profile, so Back returns there.
 - Profile "Advanced" opens and closes smoothly and stays open for the session.
 - All automatic tests passed. Nothing was deployed.
+
+### Change Log — 2 November 2026: The new Home is on for the owner's account
+
+The new Home can now be switched on per account. It is on for contact@lazy.space only, from TestFlight build 21 onward; everyone else still sees the current layout.

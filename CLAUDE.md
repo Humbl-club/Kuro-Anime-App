@@ -211,11 +211,11 @@ Flags defined in `FeatureFlags.swift` (selected):
 - `streaming_availability_v1` (0%) — where-to-watch/read provider filters and shared availability UI
 - `credits_cast_v1` (100%) — characters, staff, studios, authors on detail pages
 - `taste_deck_v1` (100%) — Taste page at pager index 0 (renders `TastePicksView`)
-- `series_foundation_v1` (0% live, last read 2026-10-08) — revision-fenced progress writes via the SQLite `ProgressOutbox`, import publication
-- `series_home_native_v1` (0% live, last read 2026-10-08) — Home page; requires `series_foundation_v1`. Titles open the same prototype detail pages (`AnimeDetailPage` / `MangaDetailPage` as journey pages) in both flag worlds; `SeriesAnimeDetailView` / `SeriesMangaDetailView` (`Kuro/Views/Home/SeriesDetailViews.swift`) are referenced only by `HomeCompositionSnapshotTests` (verified 2026-11-02)
+- `series_foundation_v1` (0% global, on for the owner account via `feature_flag_overrides` since 2026-11-02) — revision-fenced progress writes via the SQLite `ProgressOutbox`, import publication
+- `series_home_native_v1` (0% global, on for the owner account via `feature_flag_overrides` since 2026-11-02) — Home page; requires `series_foundation_v1`. Titles open the same prototype detail pages (`AnimeDetailPage` / `MangaDetailPage` as journey pages) in both flag worlds; `SeriesAnimeDetailView` / `SeriesMangaDetailView` (`Kuro/Views/Home/SeriesDetailViews.swift`) are referenced only by `HomeCompositionSnapshotTests` (verified 2026-11-02)
 - `personalized_new_to_you_v1` (0%) — Because-You / personalized NTY
 - `discover_realm_rails_v1` (0%) — Discover Shelf + Hidden Gem (realm Stage 4)
-- Debug override: `--ff-on=flag_name` / `--ff-off=flag_name` launch args; per-account overrides table `feature_flag_overrides` is prepared but intentionally NOT applied live. Only the two `series_*` flags get a 24h offline cache.
+- Debug override: `--ff-on=flag_name` / `--ff-off=flag_name` launch args; per-account overrides table `feature_flag_overrides` is LIVE since 2026-11-02 (owner account contact@lazy.space has both `series_*` flags on; rows are written with the service role only) and every build reads it since build 21. Only the two `series_*` flags get a 24h offline cache.
 - Access (since 2026-10-05): one `FeatureFlags` instance built by `AppComposition` and injected — views use `@Environment(FeatureFlags.self)`, owners receive it by initializer. `FeatureFlags.shared` no longer exists (`scripts/quality-gates/check_architecture.sh` fails on it).
 
 ### Deep Linking
@@ -366,7 +366,7 @@ Plus 27 Swift files in the local package `Packages/KuroModules` (incl. `Package.
 
 ### Supabase — 245 migration files in `supabase/migrations/`, 19 prepared files (+1 opt-in) in `supabase/prepared-migrations/` (5 of them are the unapplied 20261101* overnight files), 16 edge function directories (deployed list below as of 2026-07-31; `realm-describe` is deployed and dormant)
 
-**Migration history caveat (2026-10-08, do NOT "repair"):** live history has 249 identities = the 245 local + 4 applied from `prepared-migrations/` in one approved transaction (`20261007040000_series_home_foundation_v1`, `20261007130000_series_account_lifecycle`, `20261008100000_import_status_fence_preserves_units`, `20261008110000_import_review_recovery_v2`). The nine `20261005*` prepared files are byte-identical copies of applied migrations. `20261007120000_feature_flag_overrides` and `opt-in/` backfill are intentionally NOT applied. Never `supabase db push --include-all` or run history repair without an explicit new approval.
+**Migration history caveat (2026-10-08, do NOT "repair"):** live history has 249 identities = the 245 local + 4 applied from `prepared-migrations/` in one approved transaction (`20261007040000_series_home_foundation_v1`, `20261007130000_series_account_lifecycle`, `20261008100000_import_status_fence_preserves_units`, `20261008110000_import_review_recovery_v2`). The nine `20261005*` prepared files are byte-identical copies of applied migrations. `20261007120000_feature_flag_overrides` was applied and recorded on 2026-11-02 (owner request: new Home for the owner account); the `opt-in/` backfill is intentionally NOT applied. Never `supabase db push --include-all` or run history repair without an explicit new approval.
 
 **Go-live deployment (2026-11-02, owner-authorized; records in `docs/go-live/2026-11-02/`):** prepared migrations `20261101000000`, `20261101010000`, `20261101010100`, `20261101020000` and `20261102100000_contact_messages` applied and recorded in history (`20261101030000_auth_hardening` is NOT applied: only after the new app build is released). Functions: `bulk-import-anime` v84 / `bulk-import-manga` v83 (AniList 5,000-entry page-depth stop, character age / authors column fixes), `release-intake` (linked-first manga candidates), `manga-chapter-enrich` v67, `auth-callback` (`--no-verify-jwt`), `contact-submit` (`--no-verify-jwt`, secret-keyed rate-limit buckets). `IMPORT_SECRET` rotated; `CONTACT_IP_HASH_SECRET` and `MU_OFFICIAL_GROUP_IDS` set. There is no `supabase/config.toml`: `--no-verify-jwt` must be passed on every deploy of `auth-callback` and `contact-submit`. Client IP in Edge Functions: XFF[0] / `cf-connecting-ip` are set by the platform and not spoofable (live probe); never use the rightmost XFF entry.
 
@@ -547,7 +547,7 @@ scripts/quality-gates/check_migrations.sh
 - **Team ID**: YLG68JL5Y7
 - **API Key**: Key ID `4Y9VLAQLQN` (since 2026-11-02; the old `7L84A7P9X7` file is not on this Mac; `fastlane/Fastfile` reads `KURO_ASC_KEY_ID`, default `4Y9VLAQLQN`), Issuer ID `bca97a4b-8a3a-4051-9c89-510f10db0b06`
 - **API Key file**: `~/.appstoreconnect/private_keys/AuthKey_4Y9VLAQLQN.p8`
-- **Latest TestFlight build**: 20 (2026-11-02; prototype redesign, icon M, Contact sheet). Next is 21.
+- **Latest TestFlight build**: 21 (2026-11-02; build 20 + every build reads `feature_flag_overrides`). Next is 22. Build 21 predates the navigation-contract work.
 - **Signing**: Automatic, `-allowProvisioningUpdates`
 
 ---
